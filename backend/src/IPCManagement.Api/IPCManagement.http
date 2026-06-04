@@ -1,0 +1,6 @@
+@IPCManagement_HostAddress = http://localhost:5262
+
+GET {{IPCManagement_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
