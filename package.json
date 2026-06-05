@@ -4,9 +4,12 @@
   "description": "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "prepare": "husky",
-    "fe": "npm run dev --prefix frontend",
+    "fe": "npm run dev -w frontend",
     "commitlint": "commitlint --edit"
   },
   "repository": {
