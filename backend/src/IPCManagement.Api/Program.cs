@@ -1,16 +1,13 @@
 using System.Text;
 using IPCManagement.Api.Middlewares;
-using IPCManagement.Application;
-using IPCManagement.Infrastructure;
+using IPCManagement.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services
-    .AddApplication()
-    .AddInfrastructure(builder.Configuration);
+builder.Services.AddBackendServices(builder.Configuration);
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var secretKey = jwtSettings["SecretKey"]!;
