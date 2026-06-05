@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace IPCManagement.Application.DTOs.Dish;
+namespace IPCManagement.Api.Models.DTOs.Dish;
 
 /// <summary>Response DTO — trả ra ngoài client.</summary>
 public class DishDto

@@ -1,7 +1,7 @@
-﻿using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Ingredient;
+﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Ingredient;
 
-namespace IPCManagement.Application.Interfaces.Services;
+namespace IPCManagement.Api.Services;
 
 public interface IIngredientService
 {

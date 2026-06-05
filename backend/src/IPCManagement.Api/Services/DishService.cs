@@ -1,11 +1,11 @@
-﻿using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Dish;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Domain.Entities;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Dish;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Services;
+using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Services;
+namespace IPCManagement.Api.Services;
 
 public class DishService : IDishService
 {
@@ -78,9 +78,12 @@ public class DishService : IDishService
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return false;
 
-        if (!await _dishRepo.ExistsAsync(bytes)) return false;
+        var entity = await _dishRepo.GetByIdAsync(bytes);
+        if (entity is null) return false;
 
-        await _dishRepo.DeleteAsync(bytes);
+        // Soft-delete: giữ lại dữ liệu cho BOM, menu, kế hoạch sản xuất
+        entity.IsActive = false;
+        await _dishRepo.UpdateAsync(entity);
         return true;
     }
 

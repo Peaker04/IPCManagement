@@ -1,11 +1,12 @@
-﻿using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Ingredient;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Domain.Entities;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Ingredient;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Helpers.Mappers;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Services;
+using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Services;
+namespace IPCManagement.Api.Services;
 
 public class IngredientService : IIngredientService
 {
@@ -22,7 +23,7 @@ public class IngredientService : IIngredientService
             request.PageNumber, request.PageSize, request.SearchKeyword);
 
         return PagedResponseDto<IngredientDto>.Create(
-            items.Select(MapToDto),
+            items.Select(IngredientMapper.MapToDto),
             totalCount,
             request.PageNumber,
             request.PageSize);
@@ -34,7 +35,7 @@ public class IngredientService : IIngredientService
         if (bytes is null) return null;
 
         var entity = await _ingredientRepo.GetByIdAsync(bytes);
-        return entity is null ? null : MapToDto(entity);
+        return entity is null ? null : IngredientMapper.MapToDto(entity);
     }
 
     public async Task<IngredientDto> CreateAsync(CreateIngredientDto dto)
@@ -61,7 +62,7 @@ public class IngredientService : IIngredientService
         };
 
         await _ingredientRepo.AddAsync(entity);
-        return MapToDto(entity);
+        return IngredientMapper.MapToDto(entity);
     }
 
     public async Task<IngredientDto?> UpdateAsync(string id, UpdateIngredientDto dto)
@@ -89,7 +90,7 @@ public class IngredientService : IIngredientService
         }
 
         await _ingredientRepo.UpdateAsync(entity);
-        return MapToDto(entity);
+        return IngredientMapper.MapToDto(entity);
     }
 
     public async Task<bool> DeleteAsync(string id)
@@ -97,24 +98,14 @@ public class IngredientService : IIngredientService
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return false;
 
-        if (!await _ingredientRepo.ExistsAsync(bytes)) return false;
+        var entity = await _ingredientRepo.GetByIdAsync(bytes);
+        if (entity is null) return false;
 
-        await _ingredientRepo.DeleteAsync(bytes);
+        // Soft-delete: đánh dấu không hoạt động thay vì xóa vĩnh viễn
+        // để bảo toàn liên kết lịch sử (phiếu nhập/xuất kho, stock movements)
+        entity.IsActive = false;
+        await _ingredientRepo.UpdateAsync(entity);
         return true;
     }
 
-    // ─── Mapping ──────────────────────────────────────────────────────────────
-    private static IngredientDto MapToDto(Ingredient e) => new()
-    {
-        IngredientId   = GuidHelper.ToGuidString(e.IngredientId),
-        IngredientCode = e.IngredientCode,
-        IngredientName = e.IngredientName,
-        IsActive       = e.IsActive ?? true,
-        IsFreshDaily   = e.IsFreshDaily,
-        ReferencePrice = e.ReferencePrice,
-        UnitId         = GuidHelper.ToGuidString(e.UnitId),
-        UnitName       = e.Unit?.UnitName,
-        WarehouseId    = GuidHelper.ToGuidString(e.WarehouseId),
-        WarehouseName  = e.Warehouse?.WarehouseName
-    };
 }

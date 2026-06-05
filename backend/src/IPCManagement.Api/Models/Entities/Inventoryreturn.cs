@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace IPCManagement.Domain.Entities;
+namespace IPCManagement.Api.Models.Entities;
 
 public partial class Inventoryreturn
 {

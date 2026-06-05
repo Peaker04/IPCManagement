@@ -1,0 +1,109 @@
+using System;
+using System.Threading.Tasks;
+using FluentAssertions;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services;
+using NSubstitute;
+using Xunit;
+
+namespace IPCManagement.Api.Tests;
+
+public class AuthServiceTests
+{
+    private readonly IUserRepository _userRepository;
+    private readonly ITokenService _tokenService;
+    private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly AuthService _service;
+
+    public AuthServiceTests()
+    {
+        _userRepository = Substitute.For<IUserRepository>();
+        _tokenService = Substitute.For<ITokenService>();
+        _refreshTokenRepository = Substitute.For<IRefreshTokenRepository>();
+
+        _service = new AuthService(
+            _userRepository,
+            _tokenService,
+            _refreshTokenRepository);
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnUserInfo_When_UserExistsAndActive()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userIdString = userId.ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+
+        var role = new Role { RoleName = "Admin" };
+        var user = new User
+        {
+            UserId = userIdBytes,
+            Username = "testuser",
+            FullName = "Test User",
+            IsActive = true,
+            Role = role
+        };
+
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(b => System.Linq.Enumerable.SequenceEqual(b, userIdBytes)))
+            .Returns(user);
+
+        // Act
+        var result = await _service.GetProfileAsync(userIdString);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.UserId.Should().Be(userIdString);
+        result.Username.Should().Be("testuser");
+        result.FullName.Should().Be("Test User");
+        result.RoleName.Should().Be("Admin");
+        result.IsActive.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnNull_When_UserDoesNotExist()
+    {
+        // Arrange
+        var userIdString = Guid.NewGuid().ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+
+        _userRepository.GetWithRoleAsync(Arg.Any<byte[]>())
+            .Returns((User?)null);
+
+        // Act
+        var result = await _service.GetProfileAsync(userIdString);
+
+        // Assert
+        result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnNull_When_UserIsInactive()
+    {
+        // Arrange
+        var userId = Guid.NewGuid();
+        var userIdString = userId.ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+
+        var role = new Role { RoleName = "Admin" };
+        var user = new User
+        {
+            UserId = userIdBytes,
+            Username = "testuser",
+            FullName = "Test User",
+            IsActive = false,
+            Role = role
+        };
+
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(b => System.Linq.Enumerable.SequenceEqual(b, userIdBytes)))
+            .Returns(user);
+
+        // Act
+        var result = await _service.GetProfileAsync(userIdString);
+
+        // Assert
+        result.Should().BeNull();
+    }
+}

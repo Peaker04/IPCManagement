@@ -1,9 +1,9 @@
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Domain.Entities;
-using IPCManagement.Infrastructure.Data;
+﻿using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPCManagement.Infrastructure.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
 public class WarehouseRepository : IWarehouseRepository
 {

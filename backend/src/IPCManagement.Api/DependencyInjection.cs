@@ -1,9 +1,8 @@
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Application.Services;
-using IPCManagement.Infrastructure.Data;
-using IPCManagement.Infrastructure.Repositories;
-using IPCManagement.Infrastructure.Security;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Security;
+using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api;
@@ -20,6 +19,12 @@ public static class DependencyInjection
         services.AddDbContext<IpcManagementContext>(options =>
             options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
 
+        // Configurations
+        services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));
+
+        // Unit of Work
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
         // Security
         services.AddScoped<ITokenService, JwtTokenService>();
 
@@ -31,6 +36,9 @@ public static class DependencyInjection
         services.AddScoped<IInventoryReceiptRepository, InventoryReceiptRepository>();
         services.AddScoped<IInventoryIssueRepository, InventoryIssueRepository>();
         services.AddScoped<IProductionPlanRepository, ProductionPlanRepository>();
+        services.AddScoped<ICurrentStockRepository, CurrentStockRepository>();
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+        services.AddScoped<IRefreshTokenRepository, RefreshTokenRepository>();
 
         // Services
         services.AddScoped<IAuthService, AuthService>();
@@ -40,6 +48,7 @@ public static class DependencyInjection
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
+        services.AddScoped<IStockLedgerService, StockLedgerService>();
 
         return services;
     }

@@ -1,11 +1,12 @@
-﻿namespace IPCManagement.Application.DTOs.Auth;
+namespace IPCManagement.Api.Models.DTOs.Auth;
 
 public class LoginResponseDto
 {
-    public string AccessToken { get; set; } = string.Empty;
-    public string TokenType   { get; set; } = "Bearer";
-    public int    ExpiresIn   { get; set; } // giây
-    public UserInfoDto User   { get; set; } = null!;
+    public string AccessToken  { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
+    public string TokenType    { get; set; } = "Bearer";
+    public int    ExpiresIn    { get; set; } // giây (access token)
+    public UserInfoDto User    { get; set; } = null!;
 }
 
 public class UserInfoDto
@@ -15,4 +16,15 @@ public class UserInfoDto
     public string Username { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
     public bool   IsActive { get; set; }
+}
+
+public class RefreshTokenRequestDto
+{
+    public string AccessToken  { get; set; } = string.Empty;
+    public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class RevokeTokenRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
 }

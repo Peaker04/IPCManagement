@@ -1,8 +1,8 @@
 using System.Security.Claims;
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Services;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,9 +32,6 @@ public class InventoryReceiptsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        if (GuidHelper.ParseGuidString(id) is null)
-            return BadRequest(ApiResponse.FailResult("ID không hợp lệ."));
-
         var result = await _inventoryReceiptService.GetByIdAsync(id);
         if (result is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu nhập kho với ID: {id}"));

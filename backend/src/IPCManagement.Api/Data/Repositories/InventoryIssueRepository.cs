@@ -1,17 +1,14 @@
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Domain.Entities;
-using IPCManagement.Infrastructure.Data;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPCManagement.Infrastructure.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryIssueRepository : IInventoryIssueRepository
+public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInventoryIssueRepository
 {
-    private readonly IpcManagementContext _context;
-
-    public InventoryIssueRepository(IpcManagementContext context)
+    public InventoryIssueRepository(IpcManagementContext context) : base(context)
     {
-        _context = context;
     }
 
     public async Task<(IEnumerable<Inventoryissue> Items, int TotalCount)> GetPagedAsync(

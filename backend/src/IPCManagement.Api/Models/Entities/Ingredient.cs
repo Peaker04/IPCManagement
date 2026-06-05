@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
-namespace IPCManagement.Domain.Entities;
+namespace IPCManagement.Api.Models.Entities;
 
 public partial class Ingredient
 {
@@ -34,6 +34,8 @@ public partial class Ingredient
     public virtual ICollection<Purchaserequestline> Purchaserequestlines { get; set; } = new List<Purchaserequestline>();
 
     public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
+
+    public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
 
     public virtual Unit Unit { get; set; } = null!;
 

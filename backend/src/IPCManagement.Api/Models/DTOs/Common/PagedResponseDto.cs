@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.DTOs.Common;
+﻿namespace IPCManagement.Api.Models.DTOs.Common;
 
 /// <summary>Generic paged response bọc danh sách kết quả và metadata phân trang.</summary>
 public class PagedResponseDto<T>

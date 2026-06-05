@@ -1,4 +1,4 @@
-namespace IPCManagement.Application.DTOs.ProductionPlan;
+﻿namespace IPCManagement.Api.Models.DTOs.ProductionPlan;
 
 public class ProductionPlanLineDto
 {

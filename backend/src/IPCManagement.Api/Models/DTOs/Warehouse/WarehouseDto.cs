@@ -1,4 +1,4 @@
-namespace IPCManagement.Application.DTOs.Warehouse;
+﻿namespace IPCManagement.Api.Models.DTOs.Warehouse;
 
 public class WarehouseDto
 {

@@ -1,17 +1,14 @@
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Domain.Entities;
-using IPCManagement.Infrastructure.Data;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPCManagement.Infrastructure.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryReceiptRepository : IInventoryReceiptRepository
+public class InventoryReceiptRepository : GenericRepository<Inventoryreceipt>, IInventoryReceiptRepository
 {
-    private readonly IpcManagementContext _context;
-
-    public InventoryReceiptRepository(IpcManagementContext context)
+    public InventoryReceiptRepository(IpcManagementContext context) : base(context)
     {
-        _context = context;
     }
 
     public async Task<(IEnumerable<Inventoryreceipt> Items, int TotalCount)> GetPagedAsync(
@@ -46,10 +43,4 @@ public class InventoryReceiptRepository : IInventoryReceiptRepository
             .Include(receipt => receipt.Inventoryreceiptlines)
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(receipt => receipt.ReceiptId == id);
-
-    public async Task AddAsync(Inventoryreceipt receipt)
-    {
-        _context.Inventoryreceipts.Add(receipt);
-        await _context.SaveChangesAsync();
-    }
 }

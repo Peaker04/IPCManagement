@@ -1,11 +1,11 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Warehouse;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Domain.Entities;
+﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Warehouse;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Services;
+using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Services;
+namespace IPCManagement.Api.Services;
 
 public class WarehouseService : IWarehouseService
 {

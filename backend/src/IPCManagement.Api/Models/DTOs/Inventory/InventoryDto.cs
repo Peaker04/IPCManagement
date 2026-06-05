@@ -1,6 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 
-namespace IPCManagement.Application.DTOs.Inventory;
+namespace IPCManagement.Api.Models.DTOs.Inventory;
 
 // ─── Inventory Receipt (Nhập kho) ─────────────────────────────────────────
 
@@ -109,4 +109,46 @@ public class InventoryIssueLineDto
     public decimal  IssuedQty      { get; set; }
     public string   UnitId         { get; set; } = string.Empty;
     public string?  UnitName       { get; set; }
+}
+
+// ─── Create Inventory Issue ──────────────────────────────────────────────
+
+public class CreateInventoryIssueDto
+{
+    [Required]
+    public DateOnly IssueDate { get; set; }
+
+    public string? ShiftName { get; set; }
+
+    [Required]
+    public string WarehouseId { get; set; } = string.Empty;
+
+    [Required]
+    public string MaterialRequestId { get; set; } = string.Empty;
+
+    public string? ReceivedBy { get; set; }
+
+    [Required, MinLength(1)]
+    public List<CreateInventoryIssueLineDto> Lines { get; set; } = new();
+}
+
+public class CreateInventoryIssueLineDto
+{
+    [Required]
+    public string IngredientId { get; set; } = string.Empty;
+
+    [Required, Range(0.000001, double.MaxValue)]
+    public decimal RequestedQty { get; set; }
+
+    [Required, Range(0.000001, double.MaxValue)]
+    public decimal IssuedQty { get; set; }
+
+    [Required]
+    public string UnitId { get; set; } = string.Empty;
+}
+
+public class InventoryIssueCreatedDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string IssueCode { get; set; } = string.Empty;
 }

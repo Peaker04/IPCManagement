@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace IPCManagement.Application.DTOs.Ingredient;
+namespace IPCManagement.Api.Models.DTOs.Ingredient;
 
 /// <summary>Response DTO — trả ra ngoài client.</summary>
 public class IngredientDto

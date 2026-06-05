@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace IPCManagement.Application.DTOs.Auth;
+namespace IPCManagement.Api.Models.DTOs.Auth;
 
 public class LoginRequestDto
 {

@@ -1,8 +1,11 @@
-﻿using IPCManagement.Application.DTOs.Auth;
+using IPCManagement.Api.Models.DTOs.Auth;
 
-namespace IPCManagement.Application.Interfaces.Services;
+namespace IPCManagement.Api.Services;
 
 public interface IAuthService
 {
-    Task<LoginResponseDto?> LoginAsync(LoginRequestDto request);
+    Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, string deviceInfo = "");
+    Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request);
+    Task<bool>              RevokeTokenAsync(RevokeTokenRequestDto request);
+    Task<UserInfoDto?>      GetProfileAsync(string userId);
 }

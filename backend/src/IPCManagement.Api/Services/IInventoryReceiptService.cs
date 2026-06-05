@@ -1,7 +1,7 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
+﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
 
-namespace IPCManagement.Application.Interfaces.Services;
+namespace IPCManagement.Api.Services;
 
 public interface IInventoryReceiptService
 {

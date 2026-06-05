@@ -1,19 +1,28 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Domain.Entities;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Helpers.Mappers;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Services;
+using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Services;
+namespace IPCManagement.Api.Services;
 
 public class InventoryReceiptService : IInventoryReceiptService
 {
     private readonly IInventoryReceiptRepository _receiptRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IStockLedgerService _stockLedgerService;
 
-    public InventoryReceiptService(IInventoryReceiptRepository receiptRepository)
+    public InventoryReceiptService(
+        IInventoryReceiptRepository receiptRepository,
+        IUnitOfWork unitOfWork,
+        IStockLedgerService stockLedgerService)
     {
         _receiptRepository = receiptRepository;
+        _unitOfWork = unitOfWork;
+        _stockLedgerService = stockLedgerService;
     }
 
     public async Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(PagedRequestDto request)
@@ -23,7 +32,7 @@ public class InventoryReceiptService : IInventoryReceiptService
             request.PageSize);
 
         return PagedResponseDto<InventoryReceiptDto>.Create(
-            items.Select(receipt => MapReceipt(receipt)),
+            items.Select(receipt => InventoryMapper.MapReceipt(receipt)),
             totalCount,
             request.PageNumber,
             request.PageSize);
@@ -35,7 +44,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         if (bytes is null) return null;
 
         var receipt = await _receiptRepository.GetByIdWithLinesAsync(bytes);
-        return receipt is null ? null : MapReceipt(receipt, includeLines: true);
+        return receipt is null ? null : InventoryMapper.MapReceipt(receipt, includeLines: true);
     }
 
     public async Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptDto dto, string? userId)
@@ -48,76 +57,71 @@ public class InventoryReceiptService : IInventoryReceiptService
         var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
 
-        var receipt = new Inventoryreceipt
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            ReceiptId = GuidHelper.NewId(),
-            ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}",
-            ReceiptDate = dto.ReceiptDate,
-            SupplierId = supplierBytes,
-            WarehouseId = warehouseBytes,
-            PurchaseRequestId = dto.PurchaseRequestId is not null
-                ? GuidHelper.ParseGuidString(dto.PurchaseRequestId)
-                : null,
-            CreatedBy = userIdBytes,
-            CreatedAt = DateTime.UtcNow
-        };
+            var receipt = new Inventoryreceipt
+            {
+                ReceiptId = GuidHelper.NewId(),
+                ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}",
+                ReceiptDate = dto.ReceiptDate,
+                SupplierId = supplierBytes,
+                WarehouseId = warehouseBytes,
+                PurchaseRequestId = dto.PurchaseRequestId is not null
+                    ? GuidHelper.ParseGuidString(dto.PurchaseRequestId)
+                    : null,
+                CreatedBy = userIdBytes,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        receipt.Inventoryreceiptlines = dto.Lines.Select(line => new Inventoryreceiptline
+            receipt.Inventoryreceiptlines = dto.Lines.Select(line => new Inventoryreceiptline
+            {
+                ReceiptLineId = GuidHelper.NewId(),
+                ReceiptId = receipt.ReceiptId,
+                IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
+                    ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
+                Quantity = line.Quantity,
+                UnitId = GuidHelper.ParseGuidString(line.UnitId)
+                    ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ."),
+                UnitPrice = line.UnitPrice,
+                LotNumber = line.LotNumber,
+                ManufactureDate = line.ManufactureDate,
+                ExpiredDate = line.ExpiredDate
+            }).ToList();
+
+            // Add receipt using sync change tracking
+            _receiptRepository.Add(receipt);
+
+            // Cập nhật tồn kho hiện tại + ghi nhận stock movements
+            foreach (var line in receipt.Inventoryreceiptlines)
+            {
+                await _stockLedgerService.AddStockAsync(
+                    warehouseBytes,
+                    line.IngredientId,
+                    line.UnitId,
+                    line.Quantity,
+                    "RECEIPT",
+                    "inventoryreceipts",
+                    receipt.ReceiptId,
+                    userIdBytes,
+                    "Nhập kho mua hàng",
+                    $"Phiếu nhập {receipt.ReceiptCode}");
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new InventoryReceiptCreatedDto
+            {
+                ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
+                ReceiptCode = receipt.ReceiptCode
+            };
+        }
+        catch
         {
-            ReceiptLineId = GuidHelper.NewId(),
-            ReceiptId = receipt.ReceiptId,
-            IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
-                ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-            Quantity = line.Quantity,
-            UnitId = GuidHelper.ParseGuidString(line.UnitId)
-                ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ."),
-            UnitPrice = line.UnitPrice,
-            LotNumber = line.LotNumber,
-            ManufactureDate = line.ManufactureDate,
-            ExpiredDate = line.ExpiredDate
-        }).ToList();
-
-        await _receiptRepository.AddAsync(receipt);
-
-        return new InventoryReceiptCreatedDto
-        {
-            ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
-            ReceiptCode = receipt.ReceiptCode
-        };
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
-    private static InventoryReceiptDto MapReceipt(Inventoryreceipt receipt, bool includeLines = false) => new()
-    {
-        ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
-        ReceiptCode = receipt.ReceiptCode,
-        ReceiptDate = receipt.ReceiptDate,
-        SupplierId = GuidHelper.ToGuidString(receipt.SupplierId),
-        SupplierName = receipt.Supplier?.SupplierName,
-        WarehouseId = GuidHelper.ToGuidString(receipt.WarehouseId),
-        WarehouseName = receipt.Warehouse?.WarehouseName,
-        PurchaseRequestId = receipt.PurchaseRequestId is not null
-            ? GuidHelper.ToGuidString(receipt.PurchaseRequestId)
-            : null,
-        CreatedBy = GuidHelper.ToGuidString(receipt.CreatedBy),
-        CreatedByName = receipt.CreatedByNavigation?.FullName,
-        CreatedAt = receipt.CreatedAt,
-        Lines = includeLines
-            ? receipt.Inventoryreceiptlines.Select(MapLine).ToList()
-            : new List<InventoryReceiptLineDto>()
-    };
-
-    private static InventoryReceiptLineDto MapLine(Inventoryreceiptline line) => new()
-    {
-        ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
-        IngredientId = GuidHelper.ToGuidString(line.IngredientId),
-        IngredientName = line.Ingredient?.IngredientName,
-        Quantity = line.Quantity,
-        UnitId = GuidHelper.ToGuidString(line.UnitId),
-        UnitName = line.Unit?.UnitName,
-        UnitPrice = line.UnitPrice,
-        Amount = line.Amount ?? 0,
-        LotNumber = line.LotNumber,
-        ManufactureDate = line.ManufactureDate,
-        ExpiredDate = line.ExpiredDate
-    };
 }

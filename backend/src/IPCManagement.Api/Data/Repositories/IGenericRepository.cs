@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.Interfaces.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
 /// <summary>
 /// Generic repository contract — CRUD cơ bản cho mọi entity.
@@ -12,5 +12,8 @@ public interface IGenericRepository<T> where T : class
     Task AddAsync(T entity);
     Task UpdateAsync(T entity);
     Task DeleteAsync(byte[] id);
+    void Add(T entity);
+    void Update(T entity);
+    void Remove(T entity);
     Task<bool> ExistsAsync(byte[] id);
 }

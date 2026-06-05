@@ -1,15 +1,27 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using IPCManagement.Domain.Entities;
+using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Helpers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
-namespace IPCManagement.Infrastructure.Data;
+namespace IPCManagement.Api.Data;
 
 public partial class IpcManagementContext : DbContext
 {
+    public PaginationOptions PaginationOptions { get; }
+
     public IpcManagementContext(DbContextOptions<IpcManagementContext> options)
+        : this(options, Microsoft.Extensions.Options.Options.Create(new PaginationOptions()))
+    {
+    }
+
+    public IpcManagementContext(
+        DbContextOptions<IpcManagementContext> options,
+        IOptions<PaginationOptions> paginationOptions)
         : base(options)
     {
+        PaginationOptions = paginationOptions.Value;
     }
 
     public virtual DbSet<Auditlog> Auditlogs { get; set; }
@@ -66,11 +78,15 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Stockmovement> Stockmovements { get; set; }
 
+    public virtual DbSet<Currentstock> Currentstocks { get; set; }
+
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<Refreshtoken> Refreshtokens { get; set; }
 
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
@@ -1418,6 +1434,15 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.MovementDate }, "ixStockMovementsLookup");
 
+            // Index cho báo cáo biến động NVL theo ngày
+            entity.HasIndex(e => new { e.IngredientId, e.MovementDate }, "ixStockMovementsIngredientDate");
+
+            // Index cho báo cáo theo loại giao dịch
+            entity.HasIndex(e => new { e.MovementType, e.MovementDate }, "ixStockMovementsTypeDate");
+
+            // Index cho truy vấn tham chiếu chứng từ gốc
+            entity.HasIndex(e => new { e.RefTable, e.RefId }, "ixStockMovementsRef");
+
             entity.HasIndex(e => e.PerformedBy, "performedBy");
 
             entity.HasIndex(e => e.UnitId, "unitId");
@@ -1623,6 +1648,118 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'KHAC'")
                 .HasColumnType("enum('PHULIEUGIAVI','TUOI','DONGLANH','KHAC')")
                 .HasColumnName("warehouseType");
+        });
+
+        modelBuilder.Entity<Currentstock>(entity =>
+        {
+            entity.HasKey(e => new { e.WarehouseId, e.IngredientId }).HasName("PRIMARY");
+
+            entity.ToTable("currentstock");
+
+            entity.HasIndex(e => e.IngredientId, "ix_currentstock_ingredient");
+
+            entity.Property(e => e.WarehouseId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("warehouseId");
+
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+
+            entity.Property(e => e.CurrentQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("currentQty")
+                .HasDefaultValueSql("0.000000");
+
+            entity.Property(e => e.LastUpdated)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("lastUpdated");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocks)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstock_ibfk_2");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Currentstocks)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstock_ibfk_3");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Currentstocks)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstock_ibfk_1");
+        });
+
+        modelBuilder.Entity<Refreshtoken>(entity =>
+        {
+            entity.HasKey(e => e.TokenId).HasName("PRIMARY");
+
+            entity.ToTable("refreshtokens");
+
+            // Tìm kiếm nhanh theo user + trạng thái hạn
+            entity.HasIndex(e => new { e.UserId, e.ExpiresAt }, "ixRefreshTokensUserExpiry");
+            // Hash là unique (mỗi token là duy nhất)
+            entity.HasIndex(e => e.TokenHash, "ixRefreshTokensHash").IsUnique();
+
+            entity.Property(e => e.TokenId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("tokenId");
+
+            entity.Property(e => e.UserId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("userId");
+
+            entity.Property(e => e.TokenHash)
+                .HasMaxLength(64)   // SHA-256 hex = 64 chars
+                .IsFixedLength()
+                .HasColumnName("tokenHash");
+
+            entity.Property(e => e.DeviceInfo)
+                .HasMaxLength(200)
+                .HasDefaultValue(string.Empty)
+                .HasColumnName("deviceInfo");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+
+            entity.Property(e => e.ExpiresAt)
+                .HasColumnType("datetime")
+                .HasColumnName("expiresAt");
+
+            entity.Property(e => e.IsUsed)
+                .HasDefaultValue(false)
+                .HasColumnName("isUsed");
+
+            entity.Property(e => e.IsRevoked)
+                .HasDefaultValue(false)
+                .HasColumnName("isRevoked");
+
+            entity.Property(e => e.RevokedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("revokedAt");
+
+            entity.Property(e => e.ReplacedByToken)
+                .HasMaxLength(64)
+                .HasColumnName("replacedByToken");
+
+            entity.HasOne(d => d.User)
+                .WithMany(p => p.Refreshtokens)
+                .HasForeignKey(d => d.UserId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("refreshtokens_ibfk_1");
         });
 
         OnModelCreatingPartial(modelBuilder);

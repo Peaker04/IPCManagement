@@ -1,6 +1,6 @@
-﻿using IPCManagement.Domain.Entities;
+﻿using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Interfaces.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
 public interface IIngredientRepository : IGenericRepository<Ingredient>
 {

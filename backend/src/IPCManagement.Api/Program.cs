@@ -1,11 +1,33 @@
 using System.Text;
+using System.Threading.RateLimiting;
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Serilog;
+using Serilog.Events;
+
+// ── Serilog bootstrap ───────────────────────────────────────────────────────
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/ipc-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Host.UseSerilog();
 
 builder.Services.AddBackendServices(builder.Configuration);
 
@@ -78,6 +100,10 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
 
+// ── FluentValidation ────────────────────────────────────────────────────────
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -110,6 +136,39 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// ── Rate Limiting (được tích hợp sẵn trong ASP.NET Core 7+) ──────────────────────
+builder.Services.AddRateLimiter(opts =>
+{
+    // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
+    opts.AddFixedWindowLimiter("auth-strict", o =>
+    {
+        o.PermitLimit         = 5;
+        o.Window              = TimeSpan.FromMinutes(1);
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit          = 0;          // không xếp hàng
+    });
+
+    // Policy cho API nói chung: 100 lần / 1 phút theo IP
+    opts.AddSlidingWindowLimiter("api-general", o =>
+    {
+        o.PermitLimit         = 100;
+        o.Window              = TimeSpan.FromMinutes(1);
+        o.SegmentsPerWindow   = 6;
+        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        o.QueueLimit          = 10;
+    });
+
+    // Trả về JSON khi bị từ chối
+    opts.OnRejected = async (context, _) =>
+    {
+        context.HttpContext.Response.StatusCode  = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsync(
+            """{"success":false,"message":"Quá nhiều yêu cầu. Vui lòng thử lại sau."}""")
+            .ConfigureAwait(false);
+    };
+});
+
 var app = builder.Build();
 
 app.UseExceptionMiddleware();
@@ -125,6 +184,7 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+app.UseRateLimiter();
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();

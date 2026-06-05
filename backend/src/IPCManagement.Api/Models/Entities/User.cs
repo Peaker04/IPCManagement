@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
-namespace IPCManagement.Domain.Entities;
+namespace IPCManagement.Api.Models.Entities;
 
 public partial class User
 {
@@ -50,4 +50,7 @@ public partial class User
     public virtual Role Role { get; set; } = null!;
 
     public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
+
+    public virtual ICollection<Refreshtoken> Refreshtokens { get; set; } = new List<Refreshtoken>();
 }
+

@@ -1,19 +1,28 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Repositories;
-using IPCManagement.Application.Interfaces.Services;
-using IPCManagement.Domain.Entities;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Helpers.Mappers;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Services;
+using IPCManagement.Api.Models.Entities;
 
-namespace IPCManagement.Application.Services;
+namespace IPCManagement.Api.Services;
 
 public class InventoryIssueService : IInventoryIssueService
 {
     private readonly IInventoryIssueRepository _issueRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IStockLedgerService _stockLedgerService;
 
-    public InventoryIssueService(IInventoryIssueRepository issueRepository)
+    public InventoryIssueService(
+        IInventoryIssueRepository issueRepository,
+        IUnitOfWork unitOfWork,
+        IStockLedgerService stockLedgerService)
     {
         _issueRepository = issueRepository;
+        _unitOfWork = unitOfWork;
+        _stockLedgerService = stockLedgerService;
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(PagedRequestDto request)
@@ -23,7 +32,7 @@ public class InventoryIssueService : IInventoryIssueService
             request.PageSize);
 
         return PagedResponseDto<InventoryIssueDto>.Create(
-            items.Select(issue => MapIssue(issue)),
+            items.Select(issue => InventoryMapper.MapIssue(issue)),
             totalCount,
             request.PageNumber,
             request.PageSize);
@@ -35,36 +44,83 @@ public class InventoryIssueService : IInventoryIssueService
         if (bytes is null) return null;
 
         var issue = await _issueRepository.GetByIdWithLinesAsync(bytes);
-        return issue is null ? null : MapIssue(issue, includeLines: true);
+        return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
     }
 
-    private static InventoryIssueDto MapIssue(Inventoryissue issue, bool includeLines = false) => new()
+    public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueDto dto, string? userId)
     {
-        IssueId = GuidHelper.ToGuidString(issue.IssueId),
-        IssueCode = issue.IssueCode,
-        IssueDate = issue.IssueDate,
-        ShiftName = issue.ShiftName,
-        WarehouseId = GuidHelper.ToGuidString(issue.WarehouseId),
-        WarehouseName = issue.Warehouse?.WarehouseName,
-        MaterialRequestId = GuidHelper.ToGuidString(issue.MaterialRequestId),
-        IssuedBy = GuidHelper.ToGuidString(issue.IssuedBy),
-        IssuedByName = issue.IssuedByNavigation?.FullName,
-        ReceivedBy = issue.ReceivedBy is not null ? GuidHelper.ToGuidString(issue.ReceivedBy) : null,
-        ReceivedByName = issue.ReceivedByNavigation?.FullName,
-        CreatedAt = issue.CreatedAt,
-        Lines = includeLines
-            ? issue.Inventoryissuelines.Select(MapLine).ToList()
-            : new List<InventoryIssueLineDto>()
-    };
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null) return null;
 
-    private static InventoryIssueLineDto MapLine(Inventoryissueline line) => new()
-    {
-        IssueLineId = GuidHelper.ToGuidString(line.IssueLineId),
-        IngredientId = GuidHelper.ToGuidString(line.IngredientId),
-        IngredientName = line.Ingredient?.IngredientName,
-        RequestedQty = line.RequestedQty,
-        IssuedQty = line.IssuedQty,
-        UnitId = GuidHelper.ToGuidString(line.UnitId),
-        UnitName = line.Unit?.UnitName
-    };
+        var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
+            ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+        var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
+            ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
+        var receivedByBytes = dto.ReceivedBy is not null
+            ? GuidHelper.ParseGuidString(dto.ReceivedBy)
+            : null;
+
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            var issue = new Inventoryissue
+            {
+                IssueId = GuidHelper.NewId(),
+                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}",
+                IssueDate = dto.IssueDate,
+                ShiftName = dto.ShiftName,
+                WarehouseId = warehouseBytes,
+                MaterialRequestId = materialRequestBytes,
+                IssuedBy = userIdBytes,
+                ReceivedBy = receivedByBytes,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            issue.Inventoryissuelines = dto.Lines.Select(line => new Inventoryissueline
+            {
+                IssueLineId = GuidHelper.NewId(),
+                IssueId = issue.IssueId,
+                IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
+                    ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
+                RequestedQty = line.RequestedQty,
+                IssuedQty = line.IssuedQty,
+                UnitId = GuidHelper.ParseGuidString(line.UnitId)
+                    ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.")
+            }).ToList();
+
+            // Add issue using sync change tracking
+            _issueRepository.Add(issue);
+
+            // Cập nhật tồn kho hiện tại + ghi nhận stock movements
+            foreach (var line in issue.Inventoryissuelines)
+            {
+                await _stockLedgerService.RemoveStockWithCheckAsync(
+                    warehouseBytes,
+                    line.IngredientId,
+                    line.UnitId,
+                    line.IssuedQty,
+                    "ISSUE",
+                    "inventoryissues",
+                    issue.IssueId,
+                    userIdBytes,
+                    "Xuất kho sản xuất",
+                    $"Phiếu xuất {issue.IssueCode}");
+            }
+
+            await _unitOfWork.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new InventoryIssueCreatedDto
+            {
+                IssueId = GuidHelper.ToGuidString(issue.IssueId),
+                IssueCode = issue.IssueCode
+            };
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
 }

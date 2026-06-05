@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.Helpers;
+﻿namespace IPCManagement.Api.Helpers;
 
 /// <summary>
 /// Chuẩn hóa response trả về cho tất cả API endpoints.

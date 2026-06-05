@@ -1,7 +1,7 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.ProductionPlan;
+﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.ProductionPlan;
 
-namespace IPCManagement.Application.Interfaces.Services;
+namespace IPCManagement.Api.Services;
 
 public interface IProductionPlanService
 {

@@ -1,7 +1,7 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
-namespace IPCManagement.Domain.Entities;
+namespace IPCManagement.Api.Models.Entities;
 
 public partial class Warehouse
 {
@@ -24,4 +24,6 @@ public partial class Warehouse
     public virtual ICollection<Inventoryreturn> Inventoryreturns { get; set; } = new List<Inventoryreturn>();
 
     public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
+
+    public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
 }

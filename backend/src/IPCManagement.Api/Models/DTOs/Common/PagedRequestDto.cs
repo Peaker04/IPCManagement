@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.DTOs.Common;
+﻿namespace IPCManagement.Api.Models.DTOs.Common;
 
 /// <summary>Query parameters cho API có phân trang.</summary>
 public class PagedRequestDto

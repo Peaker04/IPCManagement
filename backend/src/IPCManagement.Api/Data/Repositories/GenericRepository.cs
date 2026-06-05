@@ -1,8 +1,8 @@
-﻿using IPCManagement.Infrastructure.Data;
-using IPCManagement.Application.Interfaces.Repositories;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Repositories;
 using Microsoft.EntityFrameworkCore;
 
-namespace IPCManagement.Infrastructure.Repositories;
+namespace IPCManagement.Api.Data.Repositories;
 
 /// <summary>
 /// Base implementation của IGenericRepository dùng EF Core.
@@ -29,6 +29,10 @@ public abstract class GenericRepository<T> : IGenericRepository<T> where T : cla
     public virtual async Task<(IEnumerable<T> Items, int TotalCount)> GetPagedAsync(
         int pageNumber, int pageSize, string? searchKeyword = null)
     {
+        int maxPageSize = _context.PaginationOptions.MaxPageSize;
+        pageSize   = Math.Clamp(pageSize, 1, maxPageSize);
+        pageNumber = Math.Max(1, pageNumber);
+
         var query      = _dbSet.AsNoTracking();
         var totalCount = await query.CountAsync();
         var items      = await query
@@ -61,6 +65,28 @@ public abstract class GenericRepository<T> : IGenericRepository<T> where T : cla
         }
     }
 
+    public virtual void Add(T entity)
+    {
+        _dbSet.Add(entity);
+    }
+
+    public virtual void Update(T entity)
+    {
+        _dbSet.Update(entity);
+    }
+
+    public virtual void Remove(T entity)
+    {
+        _dbSet.Remove(entity);
+    }
+
     public virtual async Task<bool> ExistsAsync(byte[] id)
-        => await _dbSet.FindAsync(id) is not null;
+    {
+        // Dùng AnyAsync thay FindAsync để tránh materialise toàn bộ entity
+        var keyName = _context.Model
+            .FindEntityType(typeof(T))!
+            .FindPrimaryKey()!
+            .Properties[0].Name;
+        return await _dbSet.AnyAsync(e => EF.Property<byte[]>(e, keyName) == id);
+    }
 }

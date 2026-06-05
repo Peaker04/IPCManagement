@@ -1,7 +1,8 @@
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Services;
+using System.Security.Claims;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,13 +32,27 @@ public class InventoryIssuesController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        if (GuidHelper.ParseGuidString(id) is null)
-            return BadRequest(ApiResponse.FailResult("ID không hợp lệ."));
-
         var result = await _inventoryIssueService.GetByIdAsync(id);
         if (result is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
 
         return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result));
+    }
+
+    /// <summary>Tạo mới phiếu xuất kho.</summary>
+    [HttpPost]
+    public async Task<IActionResult> Create([FromBody] CreateInventoryIssueDto dto)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+
+        var result = await _inventoryIssueService.CreateAsync(dto, userId);
+        if (result is null)
+            return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+
+        return CreatedAtAction(
+            nameof(GetById),
+            new { id = result.IssueId },
+            ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
     }
 }

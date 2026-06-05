@@ -6,19 +6,29 @@
 
 ```
 IPCManagement/
-├── backend/                 # .NET 9 Web API (Clean Architecture)
+├── backend/                 # .NET 9 Web API
 │   ├── src/
-│   │   ├── IPCManagement.Api/           # Controllers, Middlewares
-│   │   ├── IPCManagement.Application/   # DTOs, Services, Interfaces
-│   │   ├── IPCManagement.Domain/        # Domain Entities
-│   │   └── IPCManagement.Infrastructure/# EF Core, Repositories, Security
+│   │   └── IPCManagement.Api/           # Single-project (monolithic)
+│   │       ├── Controllers/             # API Controllers
+│   │       ├── Data/                    # DbContext, Repositories, UnitOfWork
+│   │       ├── Helpers/                 # ApiResponse, GuidHelper, Mappers
+│   │       ├── Middlewares/             # ExceptionMiddleware
+│   │       ├── Migrations/              # EF Core Migrations
+│   │       ├── Models/                  # Entities, DTOs, Validators
+│   │       ├── Security/                # JwtTokenService
+│   │       └── Services/                # Business Logic Services
 │   └── tests/
 │       ├── IPCManagement.Api.Tests/
 │       └── IPCManagement.Application.Tests/
-├── frontend/                # React + Vite + TypeScript
+├── frontend/                            # React + Vite + TypeScript
 │   ├── src/
+│   │   ├── app/                         # Redux Store, Hooks
+│   │   ├── features/                    # Feature modules (auth, ...)
+│   │   └── types/                       # TypeScript type definitions
 │   └── ...
+├── .husky/                              # Git hooks (commit lint)
 ├── .gitignore
+├── CONTRIBUTING.md
 └── README.md
 ```
 
@@ -57,7 +67,14 @@ Frontend sẽ chạy tại: `http://localhost:5173`
 
 ### Database
 
-Cập nhật connection string trong `backend/src/IPCManagement.Api/appsettings.json`:
+Sao chép file cấu hình mẫu và cập nhật thông tin kết nối:
+
+```bash
+cd backend/src/IPCManagement.Api
+cp appsettings.json.example appsettings.json
+```
+
+Cập nhật connection string trong `appsettings.json`:
 
 ```json
 {
@@ -78,17 +95,19 @@ Backend đã cấu hình CORS cho phép FE truy cập trong development mode. Xe
 cd backend
 dotnet test
 
-# Frontend tests
+# Frontend lint
 cd frontend
-npm test
+npm run lint
 ```
 
 ## 📝 Tech Stack
 
 | Layer      | Technology                          |
 | ---------- | ----------------------------------- |
-| Frontend   | React, Vite, TypeScript             |
+| Frontend   | React 19, Vite, TypeScript, Redux Toolkit |
 | Backend    | ASP.NET Core 9, C#                  |
 | Database   | MySQL 8+ (Pomelo EF Core)           |
-| Auth       | JWT Bearer Authentication           |
+| Auth       | JWT Bearer + Refresh Token Rotation |
+| Validation | FluentValidation                    |
+| Logging    | Serilog (Console + File)            |
 | Testing    | xUnit, NSubstitute, FluentAssertions|

@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.Helpers;
+﻿namespace IPCManagement.Api.Helpers;
 
 /// <summary>
 /// Chuyển đổi giữa Guid và byte[] (binary(16)) — định dạng PK trong MySQL.

@@ -34,6 +34,13 @@ artifacts/
 *.userosscache
 *.sln.docstates
 
+## Sensitive config (keep .example tracked, ignore actual secrets)
+**/appsettings.json
+!**/appsettings.json.example
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Staging.json
+
 # =============================================
 # Node.js / React / Vite
 # =============================================

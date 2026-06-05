@@ -1,4 +1,4 @@
-﻿namespace IPCManagement.Application.DTOs.User;
+﻿namespace IPCManagement.Api.Models.DTOs.User;
 
 public class UserDto
 {

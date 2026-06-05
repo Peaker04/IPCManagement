@@ -1,81 +1,93 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
-using IPCManagement.Application.Interfaces.Services;
-using Microsoft.Extensions.Configuration;
+using IPCManagement.Api.Services;
 using Microsoft.IdentityModel.Tokens;
 
-namespace IPCManagement.Infrastructure.Security;
+namespace IPCManagement.Api.Security;
 
 public class JwtTokenService : ITokenService
 {
-    private readonly IConfiguration _configuration;
+    private readonly IConfiguration _config;
 
-    public JwtTokenService(IConfiguration configuration)
+    public JwtTokenService(IConfiguration config) => _config = config;
+
+    // ── Access Token ──────────────────────────────────────────────────────────
+
+    public string GenerateAccessToken(string userId, string username, string fullName, string roleName)
     {
-        _configuration = configuration;
-    }
-
-    public string GenerateToken(string userId, string username, string fullName, string roleName)
-    {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"]!;
-        var issuer = jwtSettings["Issuer"]!;
-        var audience = jwtSettings["Audience"]!;
-        var expiryMinutes = int.Parse(jwtSettings["ExpiryMinutes"] ?? "480");
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var jwt     = _config.GetSection("JwtSettings");
+        var key     = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["SecretKey"]!));
+        var creds   = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expires = int.Parse(jwt["ExpiryMinutes"] ?? "30");
 
         var claims = new[]
         {
-            new Claim(JwtRegisteredClaimNames.Sub, userId),
+            new Claim(JwtRegisteredClaimNames.Sub,        userId),
             new Claim(JwtRegisteredClaimNames.UniqueName, username),
-            new Claim("fullName", fullName),
-            new Claim(ClaimTypes.Role, roleName),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-            new Claim(
-                JwtRegisteredClaimNames.Iat,
+            new Claim("fullName",                          fullName),
+            new Claim(ClaimTypes.Role,                     roleName),
+            new Claim(JwtRegisteredClaimNames.Jti,         Guid.NewGuid().ToString()),
+            new Claim(JwtRegisteredClaimNames.Iat,
                 DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString(),
                 ClaimValueTypes.Integer64)
         };
 
         var token = new JwtSecurityToken(
-            issuer: issuer,
-            audience: audience,
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
+            issuer:            jwt["Issuer"],
+            audience:          jwt["Audience"],
+            claims:            claims,
+            expires:           DateTime.UtcNow.AddMinutes(expires),
             signingCredentials: creds);
 
         return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
-    public int GetExpirySeconds()
+    public int GetAccessTokenExpirySeconds()
+        => int.Parse(_config["JwtSettings:ExpiryMinutes"] ?? "30") * 60;
+
+    // ── Refresh Token ─────────────────────────────────────────────────────────
+
+    public string GenerateRefreshToken()
     {
-        var expiryMinutes = int.Parse(_configuration["JwtSettings:ExpiryMinutes"] ?? "480");
-        return expiryMinutes * 60;
+        // 128-bit random → URL-safe base64 (22 chars)
+        var bytes = RandomNumberGenerator.GetBytes(32);
+        return Convert.ToBase64String(bytes)
+            .Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
+
+    public string HashRefreshToken(string rawToken)
+    {
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(rawToken));
+        return Convert.ToHexString(bytes).ToLowerInvariant(); // 64 hex chars
+    }
+
+    public int GetRefreshTokenExpiryDays()
+        => int.Parse(_config["JwtSettings:RefreshExpiryDays"] ?? "30");
+
+    // ── Validate expired JWT (for refresh flow) ────────────────────────────────
 
     public ClaimsPrincipal? GetPrincipalFromExpiredToken(string token)
     {
-        var jwtSettings = _configuration.GetSection("JwtSettings");
-        var secretKey = jwtSettings["SecretKey"]!;
-
+        var secretKey = _config["JwtSettings:SecretKey"]!;
         var validationParams = new TokenValidationParameters
         {
             ValidateIssuerSigningKey = true,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            ValidateIssuer = false,
-            ValidateAudience = false,
-            ValidateLifetime = false
+            IssuerSigningKey  = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            ValidateIssuer    = false,
+            ValidateAudience  = false,
+            ValidateLifetime  = false   // ← hết hạn vẫn ok
         };
 
-        var handler = new JwtSecurityTokenHandler();
         try
         {
-            var principal = handler.ValidateToken(token, validationParams, out var securityToken);
-            if (securityToken is not JwtSecurityToken jwtToken ||
-                !jwtToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            var handler   = new JwtSecurityTokenHandler();
+            var principal = handler.ValidateToken(token, validationParams, out var secToken);
+            if (secToken is not JwtSecurityToken jwtToken ||
+                !jwtToken.Header.Alg.Equals(
+                    SecurityAlgorithms.HmacSha256,
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
