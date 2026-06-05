@@ -1,0 +1,28 @@
+{
+  "name": "ipcmanagement",
+  "version": "1.0.0",
+  "description": "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare": "husky",
+    "fe": "npm run dev --prefix frontend",
+    "commitlint": "commitlint --edit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peaker04/IPCManagement.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Peaker04/IPCManagement/issues"
+  },
+  "homepage": "https://github.com/Peaker04/IPCManagement#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "husky": "^9.1.7"
+  }
+}

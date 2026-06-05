@@ -39,8 +39,6 @@ artifacts/
 # =============================================
 node_modules/
 dist/
-dist-ssr/
-*.local
 
 ## Environment files
 .env
