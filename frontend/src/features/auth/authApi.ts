@@ -1,24 +1,12 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { RootState } from '../../app/store';
+import { apiSlice } from '../../api/apiSlice';
 import type {
   ApiResponse,
   LoginData,
   LoginRequest,
   UserInfo,
-} from '../../types/api.types';
+} from '../../types/api';
 
-export const authApi = createApi({
-  reducerPath: 'authApi',
-  baseQuery: fetchBaseQuery({
-    baseUrl: '/api',
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
-      return headers;
-    },
-  }),
+export const authApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<ApiResponse<LoginData>, LoginRequest>({
       query: (credentials) => ({
@@ -31,6 +19,7 @@ export const authApi = createApi({
       query: () => '/auth/profile',
     }),
   }),
+  overrideExisting: false,
 });
 
 export const { useLoginMutation, useGetCurrentUserQuery } = authApi;
