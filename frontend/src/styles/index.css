@@ -51,12 +51,8 @@
 }
 
 #root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
+  width: 100%;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
@@ -109,3 +105,26 @@ code {
   padding: 4px 8px;
   background: var(--code-bg);
 }
+
+.table-row {
+  transition: background-color 0.2s;
+}
+
+.table-row:hover {
+  background-color: #f1f5f9 !important;
+}
+
+.warning-row {
+  background-color: #fff8f8;
+  transition: background-color 0.2s;
+}
+
+.warning-row:hover {
+  background-color: #fee2e2 !important;
+}
+
+input, select {
+  background-color: #ffffff !important;
+  color: #1e293b !important;
+}
+
