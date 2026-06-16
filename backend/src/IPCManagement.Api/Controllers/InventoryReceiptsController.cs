@@ -1,23 +1,29 @@
-using System.Security.Claims;
-using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Inventory;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Services;
+using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Security;
+using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/inventory-receipts")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+[EnableRateLimiting("api-general")]
 public class InventoryReceiptsController : ControllerBase
 {
     private readonly IInventoryReceiptService _inventoryReceiptService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public InventoryReceiptsController(IInventoryReceiptService inventoryReceiptService)
+    public InventoryReceiptsController(
+        IInventoryReceiptService inventoryReceiptService,
+        ICurrentUserService currentUserService)
     {
         _inventoryReceiptService = inventoryReceiptService;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>Lấy danh sách phiếu nhập kho.</summary>
@@ -32,9 +38,6 @@ public class InventoryReceiptsController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)
     {
-        if (GuidHelper.ParseGuidString(id) is null)
-            return BadRequest(ApiResponse.FailResult("ID không hợp lệ."));
-
         var result = await _inventoryReceiptService.GetByIdAsync(id);
         if (result is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu nhập kho với ID: {id}"));
@@ -46,8 +49,7 @@ public class InventoryReceiptsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateInventoryReceiptDto dto)
     {
-        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-            ?? User.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+        var userId = _currentUserService.GetUserId(User);
 
         var result = await _inventoryReceiptService.CreateAsync(dto, userId);
         if (result is null)

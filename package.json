@@ -1,0 +1,37 @@
+{
+  "name": "ipcmanagement",
+  "version": "1.0.0",
+  "description": "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "frontend"
+  ],
+  "scripts": {
+    "prepare": "husky",
+    "fe": "npm run dev -w frontend",
+    "be": "dotnet run --project backend/src/IPCManagement.Api",
+    "build:be": "dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
+    "test:be": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj",
+    "lint:fe": "npm run lint -w frontend",
+    "build:fe": "npm run build -w frontend",
+    "verify": "npm run build:be && npm run test:be && npm run lint:fe && npm run build:fe",
+    "commitlint": "commitlint --edit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Peaker04/IPCManagement.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Peaker04/IPCManagement/issues"
+  },
+  "homepage": "https://github.com/Peaker04/IPCManagement#readme",
+  "devDependencies": {
+    "@commitlint/cli": "^21.0.2",
+    "@commitlint/config-conventional": "^21.0.2",
+    "husky": "^9.1.7"
+  }
+}

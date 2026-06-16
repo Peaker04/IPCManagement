@@ -1,15 +1,18 @@
-﻿using IPCManagement.Application.DTOs.Common;
-using IPCManagement.Application.DTOs.Dish;
-using IPCManagement.Application.Helpers;
-using IPCManagement.Application.Interfaces.Services;
+﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Dish;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Security;
+using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+[EnableRateLimiting("api-general")]
 public class DishesController : ControllerBase
 {
     private readonly IDishService _service;

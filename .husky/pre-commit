@@ -1,0 +1,37 @@
+#!/bin/sh
+# Validate branch naming convention
+# Allowed patterns:
+#   main | develop
+#   feature/<ticket-or-desc>   e.g. feature/user-auth
+#   fix/<ticket-or-desc>       e.g. fix/login-bug
+#   hotfix/<ticket-or-desc>    e.g. hotfix/crash-on-login
+#   release/<version>          e.g. release/1.2.0
+#   chore/<desc>               e.g. chore/update-deps
+#   docs/<desc>                e.g. docs/api-readme
+#   refactor/<desc>            e.g. refactor/auth-service
+
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+PATTERN="^(main|develop|feature|fix|hotfix|release|chore|docs|refactor)(/[a-z0-9][a-z0-9._-]*)?$"
+
+if ! echo "$BRANCH" | grep -qE "$PATTERN"; then
+  echo ""
+  echo "❌  Branch name không hợp lệ: '$BRANCH'"
+  echo ""
+  echo "    Quy tắc đặt tên branch:"
+  echo "    ✅  main / develop"
+  echo "    ✅  feature/<mô-tả>     vd: feature/user-auth"
+  echo "    ✅  fix/<mô-tả>         vd: fix/login-bug"
+  echo "    ✅  hotfix/<mô-tả>      vd: hotfix/crash-on-login"
+  echo "    ✅  release/<version>   vd: release/1.2.0"
+  echo "    ✅  chore/<mô-tả>       vd: chore/update-deps"
+  echo "    ✅  docs/<mô-tả>        vd: docs/api-readme"
+  echo "    ✅  refactor/<mô-tả>    vd: refactor/auth-service"
+  echo ""
+  echo "    Lưu ý: Chỉ dùng chữ thường, số, dấu '-', '_', '.'"
+  echo "    Đổi branch: git checkout -b feature/<tên-mới>"
+  echo ""
+  exit 1
+fi
+
+exit 0

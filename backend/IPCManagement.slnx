@@ -1,8 +1,6 @@
 <Solution>
   <Project Path="src/IPCManagement.Api/IPCManagement.Api.csproj" />
-  <Project Path="src/IPCManagement.Application/IPCManagement.Application.csproj" />
-  <Project Path="src/IPCManagement.Domain/IPCManagement.Domain.csproj" />
-  <Project Path="src/IPCManagement.Infrastructure/IPCManagement.Infrastructure.csproj" />
   <Project Path="tests/IPCManagement.Application.Tests/IPCManagement.Application.Tests.csproj" />
   <Project Path="tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj" />
 </Solution>
+
