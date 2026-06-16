@@ -6,19 +6,29 @@
 
 ```
 IPCManagement/
-├── backend/                 # .NET 9 Web API (Clean Architecture)
+├── backend/                 # .NET 9 Web API
 │   ├── src/
-│   │   ├── IPCManagement.Api/           # Controllers, Middlewares
-│   │   ├── IPCManagement.Application/   # DTOs, Services, Interfaces
-│   │   ├── IPCManagement.Domain/        # Domain Entities
-│   │   └── IPCManagement.Infrastructure/# EF Core, Repositories, Security
+│   │   └── IPCManagement.Api/           # Single-project (monolithic)
+│   │       ├── Controllers/             # API Controllers
+│   │       ├── Data/                    # DbContext, Repositories, UnitOfWork
+│   │       ├── Helpers/                 # ApiResponse, GuidHelper, Mappers
+│   │       ├── Middlewares/             # ExceptionMiddleware
+│   │       ├── Migrations/              # EF Core Migrations
+│   │       ├── Models/                  # Entities, DTOs, Validators
+│   │       ├── Security/                # JwtTokenService
+│   │       └── Services/                # Business Logic Services
 │   └── tests/
 │       ├── IPCManagement.Api.Tests/
 │       └── IPCManagement.Application.Tests/
-├── frontend/                # React + Vite + TypeScript
+├── frontend/                            # React + Vite + TypeScript
 │   ├── src/
+│   │   ├── app/                         # Redux Store, Hooks
+│   │   ├── features/                    # Feature modules (auth, ...)
+│   │   └── types/                       # TypeScript type definitions
 │   └── ...
+├── .husky/                              # Git hooks (commit lint)
 ├── .gitignore
+├── CONTRIBUTING.md
 └── README.md
 ```
 
@@ -32,16 +42,31 @@ IPCManagement/
 
 ### Backend
 
+Chạy từ thư mục gốc repo:
+
 ```bash
-cd backend
+dotnet restore backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+```
+
+Hoặc nếu bạn đã `cd backend` trước đó:
+
+```bash
 dotnet restore
 dotnet build
 dotnet run --project src/IPCManagement.Api
 ```
 
-API sẽ chạy tại: `https://localhost:7xxx` | `http://localhost:5xxx`
+API sẽ chạy tại: `https://localhost:7004` | `http://localhost:5262`
 
-Swagger UI: `http://localhost:5xxx/swagger`
+Swagger UI: `http://localhost:5262/swagger`
+
+Nếu `dotnet run` báo cổng `5262` đã được sử dụng, hãy dừng instance backend đang chạy trước đó hoặc chạy với cổng khác:
+
+```bash
+dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --urls http://localhost:5263
+```
 
 ### Frontend
 
@@ -57,7 +82,14 @@ Frontend sẽ chạy tại: `http://localhost:5173`
 
 ### Database
 
-Cập nhật connection string trong `backend/src/IPCManagement.Api/appsettings.json`:
+Sao chép file cấu hình mẫu và cập nhật thông tin kết nối:
+
+```bash
+cd backend/src/IPCManagement.Api
+cp appsettings.json.example appsettings.json
+```
+
+Cập nhật connection string trong `appsettings.json`:
 
 ```json
 {
@@ -71,24 +103,59 @@ Cập nhật connection string trong `backend/src/IPCManagement.Api/appsettings.
 
 Backend đã cấu hình CORS cho phép FE truy cập trong development mode. Xem `appsettings.json` > `Cors.AllowedOrigins`.
 
+## 📚 Tài liệu domain
+
+Các tài liệu nghiệp vụ bổ sung được đặt trong `docs/`:
+
+- [Business Flow](docs/domain/business-flow.md): luồng từ thực đơn, số suất, định lượng đến mua hàng và kho.
+- [Data Model](docs/domain/data-model.md): nhóm bảng MySQL/EF Core và các ràng buộc nghiệp vụ chính.
+- [Source Workbooks](docs/domain/source-workbooks.md): ý nghĩa các file Excel/DOCX/SQL trong `.docs`.
+
+Thư mục `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ liệu runtime của ứng dụng.
+
 ## 🧪 Testing
 
 ```bash
-# Backend tests
-cd backend
-dotnet test
+# Backend build + tests
+npm run build:be
+npm run test:be
 
-# Frontend tests
-cd frontend
-npm test
+# Frontend lint + build
+npm run lint:fe
+npm run build:fe
+
+# Full local verification
+npm run verify
 ```
+
+> Nếu backend đang chạy bằng `dotnet run`, Windows có thể khóa file trong `bin/Debug`.
+> Hãy dừng instance backend trước khi chạy `npm run verify`, hoặc chạy test với output riêng nếu cần.
+
+### Frontend mock login
+
+Frontend không tự fallback sang tài khoản mock khi backend lỗi. Nếu chỉ muốn thử giao diện ở development mode, bật rõ ràng:
+
+```bash
+VITE_ENABLE_MOCK_LOGIN=true npm run fe
+```
+
+Mock dev hỗ trợ `admin/admin` và `staff/staff`; không dùng cho production build.
 
 ## 📝 Tech Stack
 
 | Layer      | Technology                          |
 | ---------- | ----------------------------------- |
-| Frontend   | React, Vite, TypeScript             |
+| Frontend   | React 19, Vite, TypeScript, Redux Toolkit |
 | Backend    | ASP.NET Core 9, C#                  |
 | Database   | MySQL 8+ (Pomelo EF Core)           |
-| Auth       | JWT Bearer Authentication           |
+| Auth       | JWT Bearer + Refresh Token Rotation |
+| Validation | FluentValidation                    |
+| Logging    | Serilog (Console + File)            |
 | Testing    | xUnit, NSubstitute, FluentAssertions|
+
+## 🔐 Security baseline
+
+- `JwtSettings.SecretKey` phải tối thiểu 32 ký tự.
+- `JwtSettings.Issuer`, `JwtSettings.Audience`, `ExpiryMinutes`, và `RefreshExpiryDays` được validate lúc khởi động.
+- Token lưu trong browser phải được xác thực lại qua `/api/auth/profile` trước khi mở route được bảo vệ.
+- API nghiệp vụ dùng authorization policy và rate limit `api-general`.

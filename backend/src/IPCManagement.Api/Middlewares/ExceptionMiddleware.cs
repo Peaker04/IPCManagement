@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using IPCManagement.Application.Helpers;
+using IPCManagement.Api.Helpers;
 
 namespace IPCManagement.Api.Middlewares;
 

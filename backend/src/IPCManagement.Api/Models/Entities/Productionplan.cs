@@ -1,0 +1,25 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace IPCManagement.Api.Models.Entities;
+
+public partial class Productionplan
+{
+    public byte[] PlanId { get; set; } = null!;
+
+    public string PlanCode { get; set; } = null!;
+
+    public DateOnly PlanDate { get; set; }
+
+    public string Status { get; set; } = null!;
+
+    public byte[] CreatedBy { get; set; } = null!;
+
+    public DateTime CreatedAt { get; set; }
+
+    public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual ICollection<Materialrequest> Materialrequests { get; set; } = new List<Materialrequest>();
+
+    public virtual ICollection<Productionplanline> Productionplanlines { get; set; } = new List<Productionplanline>();
+}
