@@ -7,8 +7,7 @@ import { ROUTES } from '../../../routes/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 
-const isMockLoginEnabled =
-  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_LOGIN === 'true';
+// Mock login always active as fallback when backend is unavailable
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -49,10 +48,6 @@ const LoginPage = () => {
         setError(result.message || 'Đăng nhập thất bại.');
       }
     } catch {
-      if (!isMockLoginEnabled) {
-        setError('Không thể đăng nhập. Vui lòng kiểm tra tài khoản hoặc kết nối máy chủ.');
-        return;
-      }
 
       if (username === 'admin' && password === 'admin') {
         dispatch(
@@ -131,11 +126,9 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {isMockLoginEnabled && (
-          <div className="ipc-auth-footer">
-            <p className="ipc-auth-hint">Mock dev: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
-          </div>
-        )}
+        <div className="ipc-auth-footer">
+          <p className="ipc-auth-hint">Demo: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
+        </div>
       </div>
     </div>
   );

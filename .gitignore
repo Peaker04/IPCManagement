@@ -81,3 +81,14 @@ frontend/playwright-report/
 Thumbs.db
 ehthumbs.db
 Desktop.ini
+
+# =============================================
+# Internal / AI tooling (not for repo)
+# =============================================
+.claude/
+.docs/
+.planning/
+docs/
+AGENTS.md
+CLAUDE.md
+Project_Tracking*.xlsx
