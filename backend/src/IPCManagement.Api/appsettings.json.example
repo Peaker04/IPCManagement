@@ -1,0 +1,30 @@
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "server=localhost;port=3306;database=ipcmanagement;user=root;password=YOUR_PASSWORD_HERE;"
+  },
+  "JwtSettings": {
+    "SecretKey": "GENERATE_A_STRONG_SECRET_KEY_AT_LEAST_32_CHARS_LONG",
+    "Issuer": "IPCManagementAPI",
+    "Audience": "IPCManagementClient",
+    "ExpiryMinutes": 30,
+    "RefreshExpiryDays": 30
+  },
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore": "Warning"
+    }
+  },
+  "Cors": {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://localhost:5173",
+      "http://localhost:4200"
+    ]
+  },
+  "Pagination": {
+    "MaxPageSize": 100
+  },
+  "AllowedHosts": "*"
+}

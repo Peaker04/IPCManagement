@@ -8,7 +8,7 @@
     "frontend"
   ],
   "scripts": {
-    "prepare": "husky",
+    "prepare": "node -e \"if (process.env.CI) process.exit(0)\" || husky",
     "fe": "npm run dev -w frontend",
     "be": "dotnet run --project backend/src/IPCManagement.Api",
     "build:be": "dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
