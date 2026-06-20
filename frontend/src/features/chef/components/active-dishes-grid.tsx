@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
 import { DataTableShell, SectionPanel } from '@/components/common'
+import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Dish } from '@/lib/types'
 
 interface ActiveDishesGridProps {
@@ -87,9 +88,9 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                               className="border-slate-200 hover:bg-slate-50"
                             >
                               <TableCell className="text-slate-800 font-medium">{ing.ingredientName}</TableCell>
-                              <TableCell className="text-slate-500 text-right">{ing.unit}</TableCell>
+                              <TableCell className="text-slate-500 text-right">{formatUnit(ing.unit)}</TableCell>
                               <TableCell className="text-slate-800 font-semibold text-right">
-                                {ing.grossQty}
+                                {formatQuantity(ing.grossQty)}
                               </TableCell>
                             </TableRow>
                           ))}

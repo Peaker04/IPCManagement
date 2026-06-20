@@ -22,6 +22,15 @@ public class DishesController : ControllerBase
         _service = service;
     }
 
+    /// <summary>Lấy catalog món ăn kèm slot thực đơn và chi tiết BOM.</summary>
+    [HttpGet("catalog")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCatalog()
+    {
+        var result = await _service.GetCatalogAsync();
+        return Ok(ApiResponse<IReadOnlyList<DishCatalogDto>>.SuccessResult(result));
+    }
+
     /// <summary>Lấy danh sách món ăn có phân trang và tìm kiếm.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<DishDto>>), StatusCodes.Status200OK)]

@@ -13,6 +13,17 @@ export type OrderUpdatePayload =
   | { id: string; field: 'forecastQuantity'; value: number }
   | { id: string; field: 'specialNotes'; value: string }
 
+export interface SyncOrdersPayload {
+  dayOfWeek: string
+  shift: ShiftType
+  orders: OrderRow[]
+}
+
+export interface MarkOrdersLockedPayload {
+  dayOfWeek: string
+  shifts: ShiftType[]
+}
+
 export interface MenuDish {
   dishId: string
   dishCode: string

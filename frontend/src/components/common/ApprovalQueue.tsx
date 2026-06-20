@@ -2,6 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/features/workflow';
 
 interface ApprovalQueueProps {
@@ -72,9 +73,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
             {record.materials.map((material) => (
               <li key={`${record.id}-${material.name}`}>
                 <span>{material.name}</span>
-                <strong>
-                  {material.quantity} {material.unit}
-                </strong>
+                <strong>{formatQuantityWithUnit(material.quantity, material.unit)}</strong>
               </li>
             ))}
           </ul>

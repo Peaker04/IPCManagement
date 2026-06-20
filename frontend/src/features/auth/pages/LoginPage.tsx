@@ -7,7 +7,9 @@ import { ROUTES } from '../../../routes/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 
-// Mock login always active as fallback when backend is unavailable
+// Fallback login hoạt động khi không có backend (demo mode)
+const isDevLoginFallbackEnabled = true;
+
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -48,6 +50,10 @@ const LoginPage = () => {
         setError(result.message || 'Đăng nhập thất bại.');
       }
     } catch {
+      if (!isDevLoginFallbackEnabled) {
+        setError('Không thể đăng nhập. Vui lòng kiểm tra tài khoản hoặc kết nối máy chủ.');
+        return;
+      }
 
       if (username === 'admin' && password === 'admin') {
         dispatch(
@@ -58,7 +64,7 @@ const LoginPage = () => {
               fullName: 'Trần Văn Giám Đốc',
               role: 'admin',
             },
-            token: 'mock-jwt-token-for-dev',
+            token: 'dev-login-fallback-token-admin',
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -71,7 +77,7 @@ const LoginPage = () => {
               fullName: 'Nguyễn Thị Thu Mua',
               role: 'staff',
             },
-            token: 'mock-jwt-token-for-dev-staff',
+            token: 'dev-login-fallback-token-staff',
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -126,9 +132,11 @@ const LoginPage = () => {
           </button>
         </form>
 
-        <div className="ipc-auth-footer">
-          <p className="ipc-auth-hint">Demo: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
-        </div>
+        {isDevLoginFallbackEnabled && (
+          <div className="ipc-auth-footer">
+            <p className="ipc-auth-hint">Fallback dev: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
+          </div>
+        )}
       </div>
     </div>
   );

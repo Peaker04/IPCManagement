@@ -14,18 +14,18 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  approvalRecords,
-  getDocumentByType,
+  useGetApprovalRecordsQuery,
+  useGetWorkflowDocumentsQuery,
 } from '@/features/workflow';
 
 export default function ApprovalPage() {
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
-  const purchaseDocuments = getDocumentByType('Danh sách mua thêm');
+  const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Danh sách mua thêm');
 
   return (
     <OperationalFrame
-      title="Duyệt vận hành"
-      eyebrow="Luồng Quản lí"
       command={
         <CommandBar
           actions={
@@ -54,8 +54,8 @@ export default function ApprovalPage() {
         <ContextStrip
           items={[
             { label: 'Trạng thái chính', value: 'Chờ duyệt', tone: 'warning' },
-            { label: 'Danh sách mua thêm', value: '2 nguyên liệu thiếu', tone: 'danger' },
-            { label: 'Nhu cầu xuất', value: '1 phiếu cần bổ sung', tone: 'warning' },
+            { label: 'Danh sách mua thêm', value: `${purchaseDocuments.length} chứng từ`, tone: purchaseDocuments.length ? 'danger' : 'neutral' },
+            { label: 'Nhu cầu xuất', value: `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu`, tone: 'warning' },
             { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
           ]}
         />

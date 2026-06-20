@@ -82,8 +82,8 @@ public class InventoryIssueService : IInventoryIssueService
                 IssueId = issue.IssueId,
                 IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
                     ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-                RequestedQty = line.RequestedQty,
-                IssuedQty = line.IssuedQty,
+                RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
+                IssuedQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
                 UnitId = GuidHelper.ParseGuidString(line.UnitId)
                     ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.")
             }).ToList();

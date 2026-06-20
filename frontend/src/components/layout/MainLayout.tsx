@@ -81,10 +81,13 @@ export const MainLayout = () => {
       case ROUTES.REPORTS:
         return { title: 'Phân tích biến động giá', workflow: 'Biến động giá', state: 'Cảnh báo ngưỡng' };
       case ROUTES.APPROVALS:
+        return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.PURCHASING:
+        return { title: 'Thu mua', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.WAREHOUSE:
+        return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.ADMIN_DATA:
-        return { title: workflowContext.lane.stage, workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       default:
         return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
     }

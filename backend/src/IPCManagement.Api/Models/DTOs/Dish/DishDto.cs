@@ -45,3 +45,33 @@ public class UpdateDishDto
 
     public bool?   IsActive  { get; set; }
 }
+
+/// <summary>Catalog món ăn dùng cho frontend menu/BOM integration.</summary>
+public class DishCatalogDto
+{
+    public string DishId { get; set; } = string.Empty;
+    public string DishCode { get; set; } = string.Empty;
+    public string DishName { get; set; } = string.Empty;
+    public string? DishType { get; set; }
+    public string? DishGroup { get; set; }
+    public bool IsActive { get; set; }
+    public IReadOnlyList<string> MenuSlots { get; set; } = [];
+    public IReadOnlyList<DishCatalogBomLineDto> BomLines { get; set; } = [];
+}
+
+/// <summary>Dòng BOM của catalog món ăn.</summary>
+public class DishCatalogBomLineDto
+{
+    public string BomId { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public string IngredientCode { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public string UnitId { get; set; } = string.Empty;
+    public string UnitCode { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public decimal GrossQtyPerServing { get; set; }
+    public decimal WasteRatePercent { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public decimal ReferencePrice { get; set; }
+}

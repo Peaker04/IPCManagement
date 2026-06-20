@@ -3,45 +3,70 @@ import { Calendar, Scale, Lock, Edit } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setMenuPrice, setLossRate } from '../../coordination/coordinationSlice';
-import { DISHES, RAW_MATERIALS } from '../menuData';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, Toolbar, ViewSwitcher } from '@/components/common';
-import { demandLines, workflowDocuments } from '@/features/workflow';
+import { useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DAYS_OF_WEEK_WITH_DATES as DAYS_OF_WEEK } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
+import { useGetDishesCatalogQuery } from '../dishCatalogApi';
+import type { CatalogDish } from '../dishCatalogApi';
 import type { WeeklyMenuState } from '../../coordination/types';
 
 interface MaterialSummaryEntry {
   theory: number;
   actual: number;
+  unit: string;
+  referencePrice: number;
 }
 
 type MaterialSummary = Record<string, MaterialSummaryEntry>;
 
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
-type Dish = (typeof DISHES)[number];
+
+const getDishSearchText = (dish: CatalogDish): string =>
+  [
+    dish.name,
+    dish.code,
+    dish.dishType,
+    dish.dishGroup,
+    ...dish.menuSlots,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+const matchesShift = (dish: CatalogDish, shift: 'morning' | 'afternoon') => {
+  const text = getDishSearchText(dish);
+  if (shift === 'morning') {
+    return text.includes('sáng') || text.includes('morning') || !text.includes('chiều');
+  }
+
+  return text.includes('chiều') || text.includes('afternoon') || !text.includes('sáng');
+};
+
+const matchesCategory = (dish: CatalogDish, category: 'savory' | 'vegetarian') => {
+  const text = getDishSearchText(dish);
+  const isVegetarian = text.includes('chay') || text.includes('vegetarian');
+  return category === 'vegetarian' ? isVegetarian : !isVegetarian;
+};
 
 const SECTIONS = [
-  { label: 'MENU MẶN CA SÁNG', slotType: 'morningSavory' as const, category: 'savory' as const, dishFilter: (dish: Dish) => dish.type === 'morning' && dish.category === 'savory', defaultDishId: 'm1' },
-  { label: 'MENU CHAY CA SÁNG', slotType: 'morningVegetarian' as const, category: 'vegetarian' as const, dishFilter: (dish: Dish) => dish.type === 'morning' && dish.category === 'vegetarian', defaultDishId: 'v1' },
-  { label: 'MENU MẶN - CA CHIỀU', slotType: 'afternoonSavory' as const, category: 'savory' as const, dishFilter: (dish: Dish) => dish.type === 'afternoon' && dish.category === 'savory', defaultDishId: 'a1' },
-  { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, dishFilter: (dish: Dish) => dish.type === 'afternoon' && dish.category === 'vegetarian', defaultDishId: 'v4' }
+  { label: 'MENU MẶN CA SÁNG', slotType: 'morningSavory' as const, category: 'savory' as const, shift: 'morning' as const },
+  { label: 'MENU CHAY CA SÁNG', slotType: 'morningVegetarian' as const, category: 'vegetarian' as const, shift: 'morning' as const },
+  { label: 'MENU MẶN - CA CHIỀU', slotType: 'afternoonSavory' as const, category: 'savory' as const, shift: 'afternoon' as const },
+  { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, shift: 'afternoon' as const }
 ] as const;
 
-const DISH_COMPONENTS: Record<string, { sub1: string; sub2: string; rau: string; canh: string; fruit: string }> = {
-  m1: { sub1: 'Mọc heo viên', sub2: 'Sườn non hầm', rau: 'Rau hành + Giá đỗ', canh: 'Nước dùng mọc', fruit: 'Trái cây' },
-  m2: { sub1: 'Thịt gà ta xé', sub2: 'Lòng mề gà', rau: 'Rau thơm + Húng quế', canh: 'Nước dùng phở gà', fruit: 'Trái cây' },
-  m3: { sub1: 'Tôm + Thịt băm', sub2: 'Trứng cút + Gan heo', rau: 'Giá hẹ + Tần ô', canh: 'Nước lèo Nam Vang', fruit: 'Trái cây' },
-  a1: { sub1: 'Thịt kho đậu khuôn', sub2: 'Bún trộn tôm thịt', rau: 'Cải ngọt luộc + Mắm xối', canh: 'Bí đao nấu tôm', fruit: 'Sữa chua' },
-  a2: { sub1: 'Thịt luộc giá chua', sub2: 'Cà tím sốt thịt băm', rau: 'Su trắng luộc + Mắm dưa', canh: 'Bồ ngót nấu tôm', fruit: 'Trái cây' },
-  a3: { sub1: 'Trứng ốp la', sub2: 'Cải chua xào', rau: 'Khổ qua nhồi thịt', canh: 'Canh cải xanh', fruit: 'Trái cây' },
-  v1: { sub1: 'Đậu hũ chiên', sub2: 'Nấm rơm + Chả chay', rau: 'Rau cải + Giá sống', canh: 'Nước dùng mì chay', fruit: 'Trái cây' },
-  v2: { sub1: 'Măng khô + Đậu hũ', sub2: 'Sườn non chay', rau: 'Rau thơm + Bắp chuối', canh: 'Nước lèo bún chay', fruit: 'Trái cây' },
-  v3: { sub1: 'Đậu hũ chiên giòn', sub2: 'Chả giò chay', rau: 'Dưa leo + Rau sống', canh: 'Nước mắm chay chua ngọt', fruit: 'Trái cây' },
-  v4: { sub1: 'Nấm xào chua ngọt', sub2: 'Đậu khuôn sốt cà', rau: 'Su trắng luộc', canh: 'Bồ ngót nấu nấm', fruit: 'Trái cây' },
-  v5: { sub1: 'Chả chay kho thơm', sub2: 'Đậu hũ chiên sả', rau: 'Dưa cải chua chay', canh: 'Canh cải thảo chay', fruit: 'Trái cây' },
-  v6: { sub1: 'Đậu ve xào nấm', sub2: 'Cà thu chay kho dừa', rau: 'Mít non kho chay', canh: 'Rau muống xào', fruit: 'Trái cây' },
+const getDishComponents = (dish?: CatalogDish): { sub1: string; sub2: string; rau: string; canh: string; fruit: string } => {
+  const names = dish?.ingredients.map((ingredient) => ingredient.name).filter(Boolean) ?? [];
+  return {
+    sub1: names[0] ?? 'Theo catalog',
+    sub2: names[1] ?? 'Theo catalog',
+    rau: names[2] ?? 'Theo catalog',
+    canh: names[3] ?? 'Theo catalog',
+    fruit: 'Theo thực đơn',
+  };
 };
 
 
@@ -50,12 +75,11 @@ type WeeklyMenuView = 'schedule' | 'demand' | 'cost';
 
 const buildMaterialSummary = (
   weeklyMenu: WeeklyMenuState,
+  dishesById: Map<string, CatalogDish>,
   priceRatio: number,
   lossRate: number,
 ): MaterialSummary => {
-  const summary = Object.fromEntries(
-    Object.keys(RAW_MATERIALS).map((name) => [name, { theory: 0, actual: 0 }]),
-  ) as MaterialSummary;
+  const summary: MaterialSummary = {};
 
   Object.values(weeklyMenu).forEach((slots) => {
     const activeSlots = [
@@ -67,16 +91,21 @@ const buildMaterialSummary = (
 
     activeSlots.forEach((slot) => {
       if (!slot) return;
-      const dish = DISHES.find((item) => item.id === slot.dishId);
+      const dish = dishesById.get(slot.dishId);
       if (!dish) {
         return;
       }
 
       dish.ingredients.forEach((ingredient) => {
-        const material = summary[ingredient.name];
-        if (material) {
-          material.theory += (ingredient.amount * slot.portions) / 1000;
+        if (!summary[ingredient.name]) {
+          summary[ingredient.name] = {
+            theory: 0,
+            actual: 0,
+            unit: ingredient.unit,
+            referencePrice: ingredient.referencePrice,
+          };
         }
+        summary[ingredient.name].theory += ingredient.grossQtyPerServing * slot.portions;
       });
     });
   });
@@ -87,38 +116,48 @@ const buildMaterialSummary = (
       {
         theory: data.theory,
         actual: data.theory * priceRatio * (1 + lossRate / 100),
+        unit: data.unit,
+        referencePrice: data.referencePrice,
       },
     ]),
   ) as MaterialSummary;
 };
 
 const calculateTotalMaterialCost = (materialSummary: MaterialSummary): number =>
-  Object.entries(materialSummary).reduce((total, [name, data]) => {
-    const material = RAW_MATERIALS[name];
-    if (!material) {
-      return total;
-    }
-
-    return total + data.actual * Math.min(material.supplierA, material.supplierB);
-  }, 0);
+  Object.values(materialSummary).reduce((total, data) => total + data.actual * data.referencePrice, 0);
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
   const reduxWeeklyMenu = useAppSelector((state) => state.coordination.weeklyMenu);
   const orders = useAppSelector((state) => state.coordination.orders);
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts);
+  const {
+    data: catalogDishes = [],
+    isLoading: isCatalogLoading,
+    isError: isCatalogError,
+  } = useGetDishesCatalogQuery();
+  const isCatalogEmpty = !isCatalogLoading && !isCatalogError && catalogDishes.length === 0;
 
   // Đơn giá chuẩn là 35,000 đ
   const standardPrice = 35000;
   const menuPrice = useAppSelector((state) => state.coordination.menuPrice);
   const lossRate = useAppSelector((state) => state.coordination.lossRate);
-  const [selectedDishId, setSelectedDishId] = useState<string>('m1');
+  const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [activeView, setActiveView] = useState<WeeklyMenuView>('schedule');
   const [warehouseExportFeedback, setWarehouseExportFeedback] = useState<{
     title: string;
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
+  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
+
+  const getSectionDishes = (section: (typeof SECTIONS)[number]) =>
+    catalogDishes.filter((dish) => matchesShift(dish, section.shift) && matchesCategory(dish, section.category));
+
+  const getSectionDefaultDish = (section: (typeof SECTIONS)[number]) =>
+    getSectionDishes(section)[0] ?? catalogDishes[0];
 
   // Modal state for bulk editing the entire menu
   const [isEditingMenu, setIsEditingMenu] = useState<boolean>(false);
@@ -144,7 +183,7 @@ const WeeklyMenuPage = () => {
         const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
         if (isLocked) return; // Skip updating locked shifts
 
-        const currentDishId = weeklyMenu[day.key]?.[sec.slotType]?.dishId || sec.defaultDishId;
+        const currentDishId = weeklyMenu[day.key]?.[sec.slotType]?.dishId || getSectionDefaultDish(sec)?.id;
         const newDishId = tempWeeklyMenu[day.key]?.[sec.slotType]?.dishId;
         if (newDishId && newDishId !== currentDishId) {
           dispatch(updateWeeklyMenuDish({
@@ -192,19 +231,27 @@ const WeeklyMenuPage = () => {
 
       merged[day] = {
         morningSavory: {
-          dishId: slots.morningSavory?.dishId || 'm1',
+          dishId: dishesById.has(slots.morningSavory?.dishId ?? '')
+            ? slots.morningSavory.dishId
+            : getSectionDefaultDish(SECTIONS[0])?.id ?? '',
           portions: morningSavoryPortions,
         },
         morningVegetarian: {
-          dishId: slots.morningVegetarian?.dishId || 'v1',
+          dishId: dishesById.has(slots.morningVegetarian?.dishId ?? '')
+            ? slots.morningVegetarian.dishId
+            : getSectionDefaultDish(SECTIONS[1])?.id ?? '',
           portions: morningVegetarianPortions,
         },
         afternoonSavory: {
-          dishId: slots.afternoonSavory?.dishId || 'a1',
+          dishId: dishesById.has(slots.afternoonSavory?.dishId ?? '')
+            ? slots.afternoonSavory.dishId
+            : getSectionDefaultDish(SECTIONS[2])?.id ?? '',
           portions: afternoonSavoryPortions,
         },
         afternoonVegetarian: {
-          dishId: slots.afternoonVegetarian?.dishId || 'v4',
+          dishId: dishesById.has(slots.afternoonVegetarian?.dishId ?? '')
+            ? slots.afternoonVegetarian.dishId
+            : getSectionDefaultDish(SECTIONS[3])?.id ?? '',
           portions: afternoonVegetarianPortions,
         },
       };
@@ -217,19 +264,15 @@ const WeeklyMenuPage = () => {
     // Collect active materials
     const activeMaterials = Object.entries(materialSummary)
       .map(([name, data]) => {
-        const material = RAW_MATERIALS[name];
-        if (!material || data.theory === 0) return null;
-        const isSupplierABetter = material.supplierA < material.supplierB;
-        const bestSupplier = isSupplierABetter ? 'Nhà cung cấp A' : 'Nhà cung cấp B';
-        const bestPrice = isSupplierABetter ? material.supplierA : material.supplierB;
-        const cost = data.actual * bestPrice;
+        if (data.theory === 0) return null;
+        const cost = data.actual * data.referencePrice;
         return {
           name,
-          unit: material.unit,
+          unit: data.unit,
           theory: data.theory.toFixed(2),
           actual: data.actual.toFixed(2),
-          supplier: bestSupplier,
-          price: bestPrice,
+          supplier: 'Catalog backend',
+          price: data.referencePrice,
           cost,
         };
       })
@@ -258,24 +301,22 @@ const WeeklyMenuPage = () => {
 
   // Portion cost analysis logic (Step 2)
   const analyzedDish = useMemo(() => {
-    return DISHES.find((d) => d.id === selectedDishId) || DISHES[0];
-  }, [selectedDishId]);
+    return catalogDishes.find((d) => d.id === selectedDishId) || catalogDishes[0];
+  }, [catalogDishes, selectedDishId]);
 
   const analyzedIngredients = useMemo(() => {
     if (!analyzedDish) return [];
     return analyzedDish.ingredients.map((ing) => {
-      const theoryGram = ing.amount;
-      const actualGram = theoryGram * priceRatio * (1 + lossRate / 100);
-      const material = RAW_MATERIALS[ing.name];
-      const supplierPrice = material ? Math.min(material.supplierA, material.supplierB) : 0;
-      const supplierName = material ? (material.supplierA < material.supplierB ? 'Nhà cung cấp A' : 'Nhà cung cấp B') : 'N/A';
-      const cost = (actualGram / 1000) * supplierPrice;
+      const theoryQty = ing.grossQtyPerServing;
+      const actualQty = theoryQty * priceRatio * (1 + lossRate / 100);
+      const supplierPrice = ing.referencePrice;
+      const cost = actualQty * supplierPrice;
       return {
         name: ing.name,
-        unit: material ? material.unit : 'kg',
-        theoryGram,
-        actualGram,
-        supplierName,
+        unit: ing.unit,
+        theoryQty,
+        actualQty,
+        supplierName: 'Catalog backend',
         supplierPrice,
         cost,
       };
@@ -295,15 +336,12 @@ const WeeklyMenuPage = () => {
     return menuPrice - totalTrayCost;
   }, [menuPrice, totalTrayCost]);
 
-  const materialSummary = buildMaterialSummary(weeklyMenu, priceRatio, lossRate);
+  const materialSummary = buildMaterialSummary(weeklyMenu, dishesById, priceRatio, lossRate);
   const totalCostInfo = calculateTotalMaterialCost(materialSummary);
 
 
   return (
     <OperationalFrame
-      eyebrow="Kế hoạch thực đơn"
-      title="Lập thực đơn theo tuần và kiểm giá vốn"
-      description=""
       command={
         <CommandBar
           actions={
@@ -364,6 +402,21 @@ const WeeklyMenuPage = () => {
       {warehouseExportFeedback && (
         <InlineAlert title={warehouseExportFeedback.title} variant={warehouseExportFeedback.variant}>
           {warehouseExportFeedback.message}
+        </InlineAlert>
+      )}
+      {isCatalogLoading && (
+        <InlineAlert title="Đang tải catalog món ăn" variant="info">
+          Hệ thống đang lấy danh sách món và định lượng BOM từ API.
+        </InlineAlert>
+      )}
+      {isCatalogError && (
+        <InlineAlert title="Chưa tải được catalog món ăn" variant="warning">
+          Kiểm tra backend hoặc quyền truy cập catalog trước khi phân tích giá vốn.
+        </InlineAlert>
+      )}
+      {isCatalogEmpty && (
+        <InlineAlert title="Catalog món ăn đang trống" variant="warning">
+          Chưa có món ăn hoạt động nào từ API, nên thực đơn tuần và bảng định lượng chưa thể chọn món.
         </InlineAlert>
       )}
 
@@ -428,8 +481,8 @@ const WeeklyMenuPage = () => {
                             {/* Day Columns */}
                             {DAYS_OF_WEEK.map((day, idx) => {
                               const slot = weeklyMenu[day.key]?.[section.slotType];
-                              const dish = DISHES.find((d) => d.id === slot?.dishId) || DISHES[0];
-                              const components = DISH_COMPONENTS[dish.id] || { sub1: '', sub2: '', rau: '', canh: '', fruit: 'Trái cây' };
+                              const dish = dishesById.get(slot?.dishId ?? '') ?? getSectionDefaultDish(section);
+                              const components = getDishComponents(dish);
                               const isEvenCol = idx % 2 === 1;
 
                               if (row.key === 'main') {
@@ -441,7 +494,7 @@ const WeeklyMenuPage = () => {
                                       isEvenCol ? 'bg-slate-50/60' : 'bg-white'
                                     )}
                                   >
-                                    {dish.name}
+                                    {dish?.name ?? 'Chưa có catalog'}
                                   </td>
                                 );
                               } else if (row.key === 'fruit') {
@@ -516,20 +569,22 @@ const WeeklyMenuPage = () => {
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-medium text-slate-600">Món phân tích:</span>
                 <select
-                  value={selectedDishId}
+                  value={analyzedDish?.id ?? ''}
                   onChange={(e) => setSelectedDishId(e.target.value)}
                   className="ipc-select w-[220px] text-[13.5px]"
+                  disabled={catalogDishes.length === 0}
                 >
                   <optgroup label="Ca Sáng">
-                    {DISHES.filter(d => d.type === 'morning').map(d => (
+                    {catalogDishes.filter(d => matchesShift(d, 'morning')).map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </optgroup>
                   <optgroup label="Ca Chiều">
-                    {DISHES.filter(d => d.type === 'afternoon').map(d => (
+                    {catalogDishes.filter(d => matchesShift(d, 'afternoon')).map(d => (
                       <option key={d.id} value={d.id}>{d.name}</option>
                     ))}
                   </optgroup>
+                  {catalogDishes.length === 0 && <option value="">Chưa có catalog</option>}
                 </select>
               </div>
             }
@@ -561,9 +616,9 @@ const WeeklyMenuPage = () => {
               <tr>
                 <th className={`${tableHeadClass} text-left`}>Nguyên liệu</th>
                 <th className={tableHeadClass}>ĐV</th>
-                <th className={tableHeadClass}>LT (g)</th>
-                <th className={tableHeadClass}>TT (g)</th>
-                <th className={tableHeadClass}>Nhà CC</th>
+                <th className={tableHeadClass}>LT / suất</th>
+                <th className={tableHeadClass}>TT / suất</th>
+                <th className={tableHeadClass}>Nguồn giá</th>
                 <th className={tableHeadClass}>Đơn giá</th>
                 <th className={tableHeadClass}>Thành tiền / khay</th>
               </tr>
@@ -573,12 +628,12 @@ const WeeklyMenuPage = () => {
                 <tr key={ing.name} className="table-row">
                   <td className={`${tableCellClass} text-left font-bold`}>{ing.name}</td>
                   <td className={tableCellClass}>{ing.unit}</td>
-                  <td className={tableCellClass}>{ing.theoryGram} g</td>
+                  <td className={tableCellClass}>{ing.theoryQty.toFixed(3)}</td>
                   <td className={`${tableCellClass} font-bold text-blue-600`}>
-                    {ing.actualGram.toFixed(1)} g
+                    {ing.actualQty.toFixed(3)}
                   </td>
                   <td className={`${tableCellClass} font-medium text-green-800`}>{ing.supplierName}</td>
-                  <td className={tableCellClass}>{formatCurrency(ing.supplierPrice)}/kg</td>
+                  <td className={tableCellClass}>{formatCurrency(ing.supplierPrice)}</td>
                   <td className={`${tableCellClass} font-bold text-slate-950`}>
                     {formatCurrency(Math.round(ing.cost))}
                   </td>
@@ -613,33 +668,29 @@ const WeeklyMenuPage = () => {
                   <tr>
                     <th className={`${tableHeadClass} text-left`}>Nguyên liệu</th>
                     <th className={tableHeadClass}>ĐV</th>
-                    <th className={tableHeadClass}>LT (kg)</th>
-                    <th className={tableHeadClass}>TT (kg)</th>
-                    <th className={tableHeadClass}>NCC đề xuất</th>
+                    <th className={tableHeadClass}>LT</th>
+                    <th className={tableHeadClass}>TT</th>
+                    <th className={tableHeadClass}>Nguồn giá</th>
                     <th className={tableHeadClass}>Đơn giá</th>
                     <th className={tableHeadClass}>Thành tiền</th>
                   </tr>
                 </thead>
                 <tbody>
                   {Object.entries(materialSummary).map(([name, data]) => {
-                    const material = RAW_MATERIALS[name];
-                    if (!material || data.theory === 0) return null;
+                    if (data.theory === 0) return null;
 
-                    const isSupplierABetter = material.supplierA < material.supplierB;
-                    const bestSupplier = isSupplierABetter ? 'Nhà cung cấp A' : 'Nhà cung cấp B';
-                    const bestPrice = isSupplierABetter ? material.supplierA : material.supplierB;
-                    const rowCost = data.actual * bestPrice;
+                    const rowCost = data.actual * data.referencePrice;
 
                     return (
                       <tr key={name} className="table-row">
                         <td className={`${tableCellClass} text-left font-bold`}>{name}</td>
-                        <td className={tableCellClass}>{material.unit}</td>
+                        <td className={tableCellClass}>{data.unit}</td>
                         <td className={tableCellClass}>{data.theory.toFixed(2)}</td>
                         <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>
                           {data.actual.toFixed(2)}
                         </td>
-                        <td className={`${tableCellClass} font-medium text-green-800`}>{bestSupplier}</td>
-                        <td className={tableCellClass}>{formatCurrency(bestPrice)}</td>
+                        <td className={`${tableCellClass} font-medium text-green-800`}>Catalog backend</td>
+                        <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td>
                         <td className={`${tableCellClass} font-bold`}>{formatCurrency(rowCost)}</td>
                       </tr>
                     );
@@ -687,7 +738,7 @@ const WeeklyMenuPage = () => {
                             </div>
                           ) : (
                             <select
-                              value={slot?.dishId || sec.defaultDishId}
+                              value={slot?.dishId || getSectionDefaultDish(sec)?.id || ''}
                               onChange={(e) => {
                                 setTempWeeklyMenu((prev) => ({
                                   ...prev,
@@ -702,12 +753,14 @@ const WeeklyMenuPage = () => {
                                 }));
                               }}
                               className="ipc-select text-[12px] h-9 p-1 w-full"
+                              disabled={getSectionDishes(sec).length === 0}
                             >
-                              {DISHES.filter(sec.dishFilter).map((d) => (
+                              {getSectionDishes(sec).map((d) => (
                                 <option key={d.id} value={d.id}>
                                   {d.name}
                                 </option>
                               ))}
+                              {getSectionDishes(sec).length === 0 && <option value="">Chưa có catalog</option>}
                             </select>
                           )}
                         </div>

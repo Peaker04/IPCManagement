@@ -29,6 +29,12 @@ public class StockLedgerService : IStockLedgerService
         string reason,
         string note)
     {
+        quantity = DecimalPolicy.RoundQuantity(quantity);
+        if (quantity <= 0)
+        {
+            throw new ArgumentException("Số lượng nhập kho phải lớn hơn 0.", nameof(quantity));
+        }
+
         // 1. Ghi nhận Stock Movement
         var movement = new Stockmovement
         {
@@ -64,7 +70,7 @@ public class StockLedgerService : IStockLedgerService
         }
         else
         {
-            currentStock.CurrentQty += quantity;
+            currentStock.CurrentQty = DecimalPolicy.RoundQuantity(currentStock.CurrentQty + quantity);
             currentStock.LastUpdated = DateTime.UtcNow;
             _currentStockRepo.Update(currentStock);
         }
@@ -82,11 +88,17 @@ public class StockLedgerService : IStockLedgerService
         string reason,
         string note)
     {
+        quantity = DecimalPolicy.RoundQuantity(quantity);
+        if (quantity <= 0)
+        {
+            throw new ArgumentException("Số lượng xuất kho phải lớn hơn 0.", nameof(quantity));
+        }
+
         // 1. Kiểm tra tồn kho trước khi xuất
         var currentStock = await _currentStockRepo.GetByWarehouseAndIngredientAsync(warehouseId, ingredientId);
-        var currentQty = currentStock?.CurrentQty ?? 0;
+        var currentQty = DecimalPolicy.RoundQuantity(currentStock?.CurrentQty ?? 0);
 
-        if (currentQty < quantity)
+        if (DecimalPolicy.LessThanQuantity(currentQty, quantity))
         {
             throw new InvalidOperationException(
                 $"Nguyên liệu '{GuidHelper.ToGuidString(ingredientId)}' không đủ tồn kho tại kho chỉ định. Yêu cầu: {quantity}, Hiện có: {currentQty}.");
@@ -112,7 +124,7 @@ public class StockLedgerService : IStockLedgerService
         _stockMovementRepo.Add(movement);
 
         // 3. Cập nhật Currentstock
-        currentStock!.CurrentQty -= quantity;
+        currentStock!.CurrentQty = DecimalPolicy.RoundQuantity(currentStock.CurrentQty - quantity);
         currentStock.LastUpdated = DateTime.UtcNow;
         _currentStockRepo.Update(currentStock);
     }

@@ -98,6 +98,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
+    options.AddPolicy(AuthorizationPolicies.PurchaseAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
 });
@@ -210,6 +212,8 @@ if (app.Environment.IsDevelopment())
     });
     app.MapOpenApi();
 }
+
+app.UseMiddleware<SampleDataProductionGuardMiddleware>();
 
 app.MapGet("/", () =>
 {

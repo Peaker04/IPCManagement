@@ -16,24 +16,27 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  demandLines,
-  getDocumentByType,
-  getRoleInboxByLane,
-  stockMovements,
+  useGetIngredientDemandQuery,
+  useGetStockMovementsQuery,
+  useGetWorkflowDocumentsQuery,
+  useWorkflowOverview,
 } from '@/features/workflow';
 
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
+  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const { roleInboxItems } = useWorkflowOverview();
   const warehouseDocuments = [
-    ...getDocumentByType('Phiếu nhập'),
-    ...getDocumentByType('Phiếu xuất'),
+    ...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'),
+    ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất'),
   ];
-  const warehouseInbox = getRoleInboxByLane('warehouse');
+  const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
+  const shortageLine = demandLines.find((line) => line.tone === 'danger');
 
   return (
     <OperationalFrame
-      title="Kho nguyên liệu"
-      eyebrow="Luồng Thủ kho"
       command={
         <CommandBar
           actions={
@@ -60,9 +63,9 @@ export default function WarehousePage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Phiếu nhập', value: '1 chứng từ chờ nhập', tone: 'warning' },
-            { label: 'Phiếu xuất', value: '1 phiếu chờ xuất', tone: 'warning' },
-            { label: 'Thiếu hàng', value: 'Gừng 4 kg', tone: 'danger' },
+            { label: 'Phiếu nhập', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: 'warning' },
+            { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
+            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${Math.max(shortageLine.required - shortageLine.available, 0)} ${shortageLine.unit}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
             { label: 'Bếp nhận', value: 'Chưa ký nhận', tone: 'warning' },
           ]}
         />
@@ -131,10 +134,12 @@ export default function WarehousePage() {
             title="Thiếu hàng cần xử lí"
             items={[
               {
-                title: 'Gừng còn thiếu 4 kg',
-                description: 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.',
+                title: shortageLine ? `${shortageLine.material} còn thiếu` : 'Không có thiếu hàng',
+                description: shortageLine
+                  ? 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.'
+                  : 'Các dòng nhu cầu hiện có đủ tồn kho để xử lí.',
                 action: 'Thủ kho: Tạo phiếu xuất kho bổ sung',
-                tone: 'danger',
+                tone: shortageLine ? 'danger' : 'info',
               },
               {
                 title: 'Bếp chưa ký nhận PX-0613-TRUA',

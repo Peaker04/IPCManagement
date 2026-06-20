@@ -16,22 +16,28 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  demandLines,
-  getDocumentByType,
-  getRoleInboxByLane,
-  getStockMovementsByType,
+  useGetPriceVarianceQuery,
+  useGetPurchaseDemandQuery,
+  useGetStockMovementsQuery,
+  useGetWorkflowDocumentsQuery,
+  useWorkflowOverview,
 } from '@/features/workflow';
 
 export default function PurchasingPage() {
   const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'handoff'>('demand');
-  const purchasingDocuments = getDocumentByType('Đơn mua');
-  const purchaseInbox = getRoleInboxByLane('purchasing');
-  const receiptMovements = getStockMovementsByType('receipt');
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
+  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
+  const { roleInboxItems } = useWorkflowOverview();
+  const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
+  const purchaseInbox = roleInboxItems.filter((item) => item.laneId === 'purchasing');
+  const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
+  const warningPrice = priceRows.find((row) => row.warning);
+  const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
 
   return (
     <OperationalFrame
-      title="Thu mua"
-      eyebrow="Luồng Thu mua"
       command={
         <CommandBar
           actions={
@@ -58,10 +64,10 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: 'Chờ chọn nhà cung cấp', tone: 'warning' },
-            { label: 'Cảnh báo giá', value: 'Hành lá +18%', tone: 'danger' },
+            { label: 'Trạng thái mua', value: primaryPurchaseDemand?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseDemand ? 'warning' : 'neutral' },
+            { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Hạn chuyển kho', value: '10:00', tone: 'warning' },
-            { label: 'Nhà cung cấp đề xuất', value: 'Thực phẩm Minh An', tone: 'neutral' },
+            { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có', tone: 'neutral' },
           ]}
         />
       }
@@ -96,7 +102,7 @@ export default function PurchasingPage() {
             }
           >
             <SectionPanel title="Nhu cầu mua thêm" icon={<ShoppingCart size={18} />}>
-              <DemandSummary lines={demandLines.filter((line) => line.tone === 'danger')} />
+              <DemandSummary lines={purchaseDemandLines.filter((line) => line.tone === 'danger')} />
             </SectionPanel>
           </SplitWorkbench>
         </div>
@@ -108,17 +114,19 @@ export default function PurchasingPage() {
           <div className="ipc-lane-summary-grid">
             <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
               <span>Nhà cung cấp đề xuất</span>
-              <strong className="text-slate-900">Thực phẩm Minh An</strong>
-              <p>Giao trước 10:00, phù hợp kho mát.</p>
+              <strong className="text-slate-900">{warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có dữ liệu'}</strong>
+              <p>Dữ liệu lấy từ danh sách mua và phiếu nhập backend.</p>
             </div>
             <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
               <span>Giá nhập hiện tại</span>
-              <strong className="text-slate-900">42.000 đ/kg - +18%</strong>
-              <p>Vượt ngưỡng 15%, cần cảnh báo quản lí.</p>
+              <strong className="text-slate-900">
+                {warningPrice ? `${warningPrice.priceCurrent.toLocaleString()} đ/${warningPrice.unit} - +${warningPrice.change.toFixed(1)}%` : 'Không có cảnh báo'}
+              </strong>
+              <p>{warningPrice ? 'Vượt ngưỡng 15%, cần cảnh báo quản lí.' : 'Các dòng giá đang dưới ngưỡng cảnh báo.'}</p>
             </div>
             <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
               <span>Trạng thái đơn mua</span>
-              <strong className="text-slate-900">Chờ đặt nguyên liệu</strong>
+              <strong className="text-slate-900">{primaryPurchaseDemand?.status ?? 'Chưa có dữ liệu'}</strong>
               <p>Sau khi đặt, chuyển chứng từ sang kho nhập.</p>
             </div>
           </div>
@@ -139,10 +147,12 @@ export default function PurchasingPage() {
               title="Biến động giá trên 15%"
               items={[
                 {
-                  title: 'Hành lá +18%',
-                  description: 'Giá mới cao hơn lần nhập gần nhất, cần gửi cảnh báo biến động giá.',
+                  title: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có nguyên liệu vượt ngưỡng',
+                  description: warningPrice
+                    ? 'Giá mới cao hơn giá tham chiếu, cần gửi cảnh báo biến động giá.'
+                    : 'Chưa ghi nhận dòng giá vượt ngưỡng 15%.',
                   action: 'Thu mua: Gửi cảnh báo biến động giá',
-                  tone: 'danger',
+                  tone: warningPrice ? 'danger' : 'info',
                 },
               ]}
             />

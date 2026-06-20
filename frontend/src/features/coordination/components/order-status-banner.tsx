@@ -1,26 +1,34 @@
 'use client'
 
-import { Lock, LockOpen } from 'lucide-react'
+import { Loader2, Lock, LockOpen } from 'lucide-react'
 import { InlineAlert } from '@/components/common'
 
 interface OrderStatusBannerProps {
-  isLocked: boolean
+  status: 'syncing' | 'draft' | 'locked'
 }
 
-export function OrderStatusBanner({ isLocked }: OrderStatusBannerProps) {
+export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
   return (
     <div className="ipc-order-status-banner border-b border-slate-200 bg-slate-50 px-5 py-3">
-      {isLocked ? (
+      {status === 'syncing' ? (
         <InlineAlert
-          title="Ca này đã chốt"
+          title="Đang đồng bộ trạng thái đơn"
+          icon={<Loader2 className="size-4 animate-spin text-[var(--ipc-primary-600)]" />}
+          variant="info"
+        >
+          Hệ thống đang lấy dữ liệu mới nhất từ API điều phối.
+        </InlineAlert>
+      ) : status === 'locked' ? (
+        <InlineAlert
+          title="Ca này đã khóa"
           icon={<Lock className="size-4 text-[var(--ipc-success)]" />}
           variant="info"
         >
-          Chỉ có thể điều chỉnh qua luồng sau chốt trước khi gửi tính định lượng.
+          Backend đã khóa kế hoạch suất ăn cho ca này; chỉ số thực tế sau khóa còn được điều chỉnh qua API.
         </InlineAlert>
       ) : (
         <InlineAlert
-          title="Dữ liệu đang ở trạng thái dự thảo"
+          title="Dữ liệu đang ở trạng thái nháp"
           icon={<LockOpen className="size-4 text-[var(--ipc-warning)]" />}
           variant="warning"
         >

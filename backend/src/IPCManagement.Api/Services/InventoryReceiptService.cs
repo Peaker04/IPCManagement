@@ -80,10 +80,10 @@ public class InventoryReceiptService : IInventoryReceiptService
                 ReceiptId = receipt.ReceiptId,
                 IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
                     ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-                Quantity = line.Quantity,
+                Quantity = DecimalPolicy.RoundQuantity(line.Quantity),
                 UnitId = GuidHelper.ParseGuidString(line.UnitId)
                     ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ."),
-                UnitPrice = line.UnitPrice,
+                UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
                 LotNumber = line.LotNumber,
                 ManufactureDate = line.ManufactureDate,
                 ExpiredDate = line.ExpiredDate

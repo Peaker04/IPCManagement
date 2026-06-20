@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { DataTableShell } from './DataTableShell';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
 
 interface DemandSummaryProps {
@@ -47,13 +48,15 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
                   <td>{line.material}</td>
                   <td>{line.source}</td>
                   <td className="ipc-numeric-cell">
-                    {line.required} {line.unit}
+                    {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
                   <td className="ipc-numeric-cell">
-                    {availableAfterReserve} {line.unit}
+                    {formatQuantityWithUnit(availableAfterReserve, line.unit)}
                   </td>
                   <td className="ipc-numeric-cell">
-                    {shortage > 0 ? `${shortage} ${line.unit} thiếu` : `${line.reserved} ${line.unit}`}
+                    {shortage > 0
+                      ? `${formatQuantityWithUnit(shortage, line.unit)} thiếu`
+                      : formatQuantityWithUnit(line.reserved, line.unit)}
                   </td>
                   <td className="ipc-badge-cell">
                     <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
