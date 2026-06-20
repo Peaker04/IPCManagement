@@ -1,0 +1,4 @@
+# Ensure shell scripts always use LF (Unix line endings)
+# so Husky hooks work on all platforms after git pull
+.husky/* text eol=lf
+*.sh text eol=lf
