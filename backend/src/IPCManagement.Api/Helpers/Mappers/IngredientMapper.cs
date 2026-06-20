@@ -13,7 +13,7 @@ public static class IngredientMapper
         IngredientName = e.IngredientName,
         IsActive       = e.IsActive ?? true,
         IsFreshDaily   = e.IsFreshDaily,
-        ReferencePrice = e.ReferencePrice,
+        ReferencePrice = DecimalPolicy.RoundMoney(e.ReferencePrice),
         UnitId         = GuidHelper.ToGuidString(e.UnitId),
         UnitName       = e.Unit?.UnitName,
         WarehouseId    = GuidHelper.ToGuidString(e.WarehouseId),

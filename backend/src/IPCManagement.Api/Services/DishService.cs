@@ -28,6 +28,12 @@ public class DishService : IDishService
             request.PageSize);
     }
 
+    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync()
+    {
+        var dishes = await _dishRepo.GetCatalogAsync();
+        return dishes.Select(MapToCatalogDto).ToList();
+    }
+
     public async Task<DishDto?> GetByIdAsync(string id)
     {
         var bytes  = GuidHelper.ParseGuidString(id);
@@ -96,5 +102,42 @@ public class DishService : IDishService
         DishType  = e.DishType,
         DishGroup = e.DishGroup,
         IsActive  = e.IsActive ?? true
+    };
+
+    private static DishCatalogDto MapToCatalogDto(Dish e) => new()
+    {
+        DishId = GuidHelper.ToGuidString(e.DishId),
+        DishCode = e.DishCode,
+        DishName = e.DishName,
+        DishType = e.DishType,
+        DishGroup = e.DishGroup,
+        IsActive = e.IsActive ?? true,
+        MenuSlots = e.Menuitems
+            .Where(item => !string.IsNullOrWhiteSpace(item.DishSlot))
+            .OrderBy(item => item.DisplayOrder)
+            .Select(item => item.DishSlot!.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList(),
+        BomLines = e.Dishboms
+            .OrderBy(bom => bom.Ingredient.IngredientName)
+            .ThenBy(bom => bom.EffectiveFrom)
+            .Select(MapCatalogBomLine)
+            .ToList()
+    };
+
+    private static DishCatalogBomLineDto MapCatalogBomLine(Dishbom bom) => new()
+    {
+        BomId = GuidHelper.ToGuidString(bom.BomId),
+        IngredientId = GuidHelper.ToGuidString(bom.IngredientId),
+        IngredientCode = bom.Ingredient.IngredientCode,
+        IngredientName = bom.Ingredient.IngredientName,
+        UnitId = GuidHelper.ToGuidString(bom.UnitId),
+        UnitCode = bom.Unit.UnitCode,
+        UnitName = bom.Unit.UnitName,
+        GrossQtyPerServing = bom.GrossQtyPerServing,
+        WasteRatePercent = bom.WasteRatePercent,
+        EffectiveFrom = bom.EffectiveFrom,
+        EffectiveTo = bom.EffectiveTo,
+        ReferencePrice = bom.Ingredient.ReferencePrice
     };
 }

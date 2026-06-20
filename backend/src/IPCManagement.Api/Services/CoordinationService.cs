@@ -162,10 +162,23 @@ public class CoordinationService : ICoordinationService
 
     public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request)
     {
+        var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        var shiftName = NormalizeShiftName(request.ShiftName ?? request.Shift);
+        var query = new List<string>
+        {
+            $"serviceDate={Uri.EscapeDataString(serviceDate.ToString("yyyy-MM-dd"))}",
+            $"format={Uri.EscapeDataString(request.Format)}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            query.Add($"shiftName={Uri.EscapeDataString(shiftName)}");
+        }
+
         return Task.FromResult(new ExportOrderReportResultDto
         {
-            Success = false,
-            DownloadUrl = string.Empty
+            Success = true,
+            DownloadUrl = $"/api/workflow-reports/order-export?{string.Join("&", query)}"
         });
     }
 

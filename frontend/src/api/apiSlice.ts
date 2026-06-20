@@ -4,7 +4,9 @@ import type { RootState } from '../app/store';
 import { logOut } from '../features/auth/authSlice';
 
 const baseQuery = fetchBaseQuery({
-  baseUrl: '/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api`
+    : '/api',
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as RootState).auth.token;
     if (token) {
@@ -21,7 +23,10 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 > = async (args, api, extraOptions) => {
   const result = await baseQuery(args, api, extraOptions);
 
-  if (result.error?.status === 401) {
+  const token = (api.getState() as RootState).auth.token;
+  const isDevLoginFallback = token?.startsWith('dev-login-fallback-token');
+
+  if (result.error?.status === 401 && !isDevLoginFallback) {
     api.dispatch(logOut());
   }
 
@@ -31,6 +36,6 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['User', 'Employee', 'Project', 'Coordination'],
+  tagTypes: ['User', 'Employee', 'Project', 'Coordination', 'WorkflowReports', 'DishCatalog'],
   endpoints: () => ({}),
 });

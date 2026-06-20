@@ -76,17 +76,9 @@ public class CoordinationController : ControllerBase
 
     [HttpPost("orders/export")]
     [ProducesResponseType(typeof(ApiResponse<ExportOrderReportResultDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status501NotImplemented)]
     public async Task<IActionResult> ExportOrderReport([FromBody] ExportOrderReportRequestDto request)
     {
         var result = await _coordinationService.ExportOrderReportAsync(request);
-        if (!result.Success)
-        {
-            return StatusCode(
-                StatusCodes.Status501NotImplemented,
-                ApiResponse.FailResult("Xuất báo cáo chưa được triển khai ở backend."));
-        }
-
         return Ok(ApiResponse<ExportOrderReportResultDto>.SuccessResult(result, "Tạo báo cáo thành công."));
     }
 }

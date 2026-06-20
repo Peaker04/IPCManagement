@@ -4,25 +4,19 @@ import { AlertTriangle, CalendarClock, ClipboardCheck, Route } from 'lucide-reac
 import {
   CommandBar,
   ExceptionLane,
+  InlineAlert,
   OperationalFrame,
   RoleInbox,
   SectionPanel,
   SwimlaneProgress,
 } from '@/components/common';
-import {
-  getBlockedWorkflowItems,
-  roleInboxItems,
-  workflowLanes,
-} from '@/features/workflow';
+import { useWorkflowOverview } from '@/features/workflow';
 
 const DashboardPage = () => {
-  const blockedItems = getBlockedWorkflowItems();
-  const priorityInbox = roleInboxItems;
+  const { blockedItems, isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
 
   return (
     <OperationalFrame
-      eyebrow="Bàn điều hành workflow"
-      title="Tắc nghẽn và hàng đợi"
       command={
         <CommandBar
           actions={
@@ -43,6 +37,16 @@ const DashboardPage = () => {
         </CommandBar>
       }
     >
+      {isError && (
+        <InlineAlert title="Không tải được dữ liệu workflow" variant="warning">
+          Bảng điều hành đang chờ backend trả dữ liệu báo cáo workflow.
+        </InlineAlert>
+      )}
+      {isLoading && (
+        <InlineAlert title="Đang tải dữ liệu workflow" variant="info">
+          Hệ thống đang tổng hợp chứng từ, nhu cầu và luân chuyển kho.
+        </InlineAlert>
+      )}
       <SectionPanel title="Bảng lane vận hành" icon={<Route size={18} />}>
         <SwimlaneProgress
           lanes={workflowLanes}
@@ -57,7 +61,7 @@ const DashboardPage = () => {
       <div className="flex flex-col gap-3">
         <SectionPanel title="Hàng đợi xử lý" icon={<ClipboardCheck size={18} />}>
           <RoleInbox
-            items={priorityInbox}
+            items={roleInboxItems}
             title={null}
             actionForItem={(item) => (
               <Link to={item.route} className="ipc-button ipc-button-ghost ipc-button-bounded">

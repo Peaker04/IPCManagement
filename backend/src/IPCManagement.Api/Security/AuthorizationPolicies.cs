@@ -6,6 +6,7 @@ public static class AuthorizationPolicies
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
     public const string ProductionAccess = "ProductionAccess";
+    public const string PurchaseAccess = "PurchaseAccess";
     public const string WarehouseAccess = "WarehouseAccess";
 
     public static readonly string[] CatalogRoles =
@@ -33,6 +34,13 @@ public static class AuthorizationPolicies
         "Admin", "ADMIN",
         "Manager", "MANAGER", "Quản lý",
         "Chef", "HeadChef", "Head Chef", "Kitchen", "Bếp trưởng"
+    ];
+
+    public static readonly string[] PurchaseRoles =
+    [
+        "Admin", "ADMIN",
+        "Manager", "MANAGER", "Quản lý",
+        "Purchasing", "PURCHASING", "PurchaseStaff", "Purchase Staff", "Nhân viên mua hàng"
     ];
 
     public static readonly string[] WarehouseRoles =
