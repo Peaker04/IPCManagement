@@ -80,7 +80,7 @@ public class InventoryReturnService : IInventoryReturnService
             var inventoryReturn = new Inventoryreturn
             {
                 ReturnId = GuidHelper.NewId(),
-                ReturnCode = $"RET-{DateTime.Now:yyyyMMdd-HHmmss}",
+                ReturnCode = $"RET-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
                 ReturnDate = dto.ReturnDate,
                 ShiftName = dto.ShiftName,
                 WarehouseId = warehouseBytes,

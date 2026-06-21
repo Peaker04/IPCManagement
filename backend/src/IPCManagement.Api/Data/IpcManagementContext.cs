@@ -1683,6 +1683,12 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("lastUpdated");
 
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                .HasColumnName("rowVersion");
+
             entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocks)
                 .HasForeignKey(d => d.IngredientId)
                 .OnDelete(DeleteBehavior.ClientSetNull)

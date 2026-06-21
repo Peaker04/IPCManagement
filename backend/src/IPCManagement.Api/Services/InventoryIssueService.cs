@@ -66,7 +66,7 @@ public class InventoryIssueService : IInventoryIssueService
             var issue = new Inventoryissue
             {
                 IssueId = GuidHelper.NewId(),
-                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}",
+                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
                 IssueDate = dto.IssueDate,
                 ShiftName = dto.ShiftName,
                 WarehouseId = warehouseBytes,

@@ -191,7 +191,8 @@ public class CoordinationService : ICoordinationService
                     .ThenInclude(item => item.Dish)
             .Include(line => line.MenuSchedule)
             .Include(line => line.QuantityPlan)
-            .Where(line => line.QuantityPlan.ServiceDate == serviceDate);
+            .Where(line => line.QuantityPlan.ServiceDate == serviceDate)
+            .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(shiftName))
         {

@@ -4,16 +4,20 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Models.Entities;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IPCManagement.Api.Services;
 
 public class DishService : IDishService
 {
     private readonly IDishRepository _dishRepo;
+    private readonly IMemoryCache _cache;
+    private const string CatalogCacheKey = "DishCatalog";
 
-    public DishService(IDishRepository dishRepo)
+    public DishService(IDishRepository dishRepo, IMemoryCache cache)
     {
         _dishRepo = dishRepo;
+        _cache = cache;
     }
 
     public async Task<PagedResponseDto<DishDto>> GetPagedAsync(PagedRequestDto request)
@@ -30,8 +34,19 @@ public class DishService : IDishService
 
     public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync()
     {
+        if (_cache.TryGetValue(CatalogCacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
+        {
+            return cachedCatalog;
+        }
+
         var dishes = await _dishRepo.GetCatalogAsync();
-        return dishes.Select(MapToCatalogDto).ToList();
+        var result = dishes.Select(MapToCatalogDto).ToList();
+
+        var cacheOptions = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
+        _cache.Set(CatalogCacheKey, result, cacheOptions);
+
+        return result;
     }
 
     public async Task<DishDto?> GetByIdAsync(string id)
@@ -59,6 +74,7 @@ public class DishService : IDishService
         };
 
         await _dishRepo.AddAsync(entity);
+        _cache.Remove(CatalogCacheKey);
         return MapToDto(entity);
     }
 
@@ -76,6 +92,7 @@ public class DishService : IDishService
         if (dto.IsActive  is not null) entity.IsActive  = dto.IsActive;
 
         await _dishRepo.UpdateAsync(entity);
+        _cache.Remove(CatalogCacheKey);
         return MapToDto(entity);
     }
 
@@ -90,6 +107,7 @@ public class DishService : IDishService
         // Soft-delete: giữ lại dữ liệu cho BOM, menu, kế hoạch sản xuất
         entity.IsActive = false;
         await _dishRepo.UpdateAsync(entity);
+        _cache.Remove(CatalogCacheKey);
         return true;
     }
 

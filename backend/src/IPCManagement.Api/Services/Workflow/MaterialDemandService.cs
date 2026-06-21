@@ -47,9 +47,24 @@ public class MaterialDemandService : IMaterialDemandService
 
         var plan = await EnsureProductionPlanAsync(serviceDate, scope, userIdBytes, cancellationToken);
         var materialRequest = await EnsureMaterialRequestAsync(plan, serviceDate, scope, userIdBytes, cancellationToken);
+        
+        var requiredIngredientIds = quantityLines
+            .SelectMany(line => line.Menu.Menuitems)
+            .SelectMany(item => item.Dish.Dishboms)
+            .Where(bom => bom.EffectiveFrom <= serviceDate && (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate))
+            .Select(bom => Convert.ToBase64String(bom.IngredientId))
+            .Distinct()
+            .Select(str => Convert.FromBase64String(str))
+            .ToList();
+
         var currentStocks = await _context.Currentstocks
             .AsNoTracking()
+            .Where(stock => requiredIngredientIds.Contains(stock.IngredientId))
             .ToListAsync(cancellationToken);
+
+        var stockDict = currentStocks
+            .GroupBy(s => Convert.ToBase64String(s.IngredientId))
+            .ToDictionary(g => g.Key, g => g.Sum(s => s.CurrentQty));
 
         var outputLines = new List<MaterialDemandLineDto>();
         foreach (var quantityLine in quantityLines)
@@ -63,9 +78,7 @@ public class MaterialDemandService : IMaterialDemandService
 
                 foreach (var bom in activeBomLines)
                 {
-                    var currentStockQty = currentStocks
-                        .Where(stock => stock.IngredientId.SequenceEqual(bom.IngredientId))
-                        .Sum(stock => stock.CurrentQty);
+                    var currentStockQty = stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), 0m);
                     var numbers = MaterialDemandCalculator.Calculate(
                         quantityLine.FinalServings,
                         bom.GrossQtyPerServing,
@@ -116,7 +129,8 @@ public class MaterialDemandService : IMaterialDemandService
             .Include(line => line.QuantityPlan)
             .Where(line =>
                 line.QuantityPlan.ServiceDate == serviceDate &&
-                line.QuantityPlan.Status == "CONFIRMED");
+                line.QuantityPlan.Status == "CONFIRMED")
+            .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(shiftName))
         {
