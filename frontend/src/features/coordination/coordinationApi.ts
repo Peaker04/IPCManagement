@@ -1,6 +1,11 @@
 import { apiSlice } from '../../api/apiSlice'
 import type { ApiResponse } from '../../types/api'
-import type { ApiShiftName, OrderRow, ShiftType } from './types'
+import type { 
+  ApiShiftName, OrderRow, ShiftType,
+  MenuScheduleQuery, MenuScheduleDto,
+  MealQuantityPlanQuery, MealQuantityPlanDto,
+  SignoffOrderRequest, SignoffOrderResult
+} from './types'
 import { toApiShiftName, toDisplayShift } from './types'
 
 export interface CoordinationQuery {
@@ -98,6 +103,28 @@ export const coordinationApi = apiSlice.injectEndpoints({
         },
       }),
     }),
+    getMenuSchedules: builder.query<ApiResponse<MenuScheduleDto[]>, MenuScheduleQuery>({
+      query: (params) => ({
+        url: '/coordination/menu-schedules',
+        params,
+      }),
+      providesTags: ['Coordination'],
+    }),
+    getMealQuantityPlans: builder.query<ApiResponse<MealQuantityPlanDto[]>, MealQuantityPlanQuery>({
+      query: (params) => ({
+        url: '/coordination/meal-quantity-plans',
+        params,
+      }),
+      providesTags: ['Coordination'],
+    }),
+    signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
+      query: ({ id, body }) => ({
+        url: `/coordination/orders/${id}/signoff`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -107,4 +134,7 @@ export const {
   useLockCoordinationOrdersMutation,
   useAdjustCoordinationOrderMutation,
   useExportCoordinationOrdersMutation,
+  useGetMenuSchedulesQuery,
+  useGetMealQuantityPlansQuery,
+  useSignoffCoordinationOrderMutation,
 } = coordinationApi

@@ -107,3 +107,85 @@ export interface DashboardState {
   editingCell: string | null
 }
 
+// ── BE-3.2: GET /api/menu-schedules ─────────────────────────────────────────
+
+export interface MenuScheduleQuery {
+  serviceDate?: string
+  dayOfWeek?: string
+  weekStartDate?: string
+  shiftName?: string
+}
+
+export interface MenuScheduleDishDto {
+  dishId: string
+  dishCode: string
+  dishName: string
+  dishGroup?: string
+  dishType?: string
+  displayOrder: number
+}
+
+export interface MenuScheduleDto {
+  menuScheduleId: string
+  menuId: string
+  menuCode: string
+  menuName: string
+  serviceDate: string
+  weekStartDate: string
+  shiftName: string
+  shift: string
+  dayOfWeek: string
+  menuPrice: number
+  bomRatePercent: number
+  status: string
+  dishes: MenuScheduleDishDto[]
+}
+
+// ── BE-3.3: GET /api/meal-quantity-plans ────────────────────────────────────
+
+export interface MealQuantityPlanQuery {
+  serviceDate?: string
+  dayOfWeek?: string
+  status?: string
+}
+
+export interface MealQuantityPlanLineDto {
+  quantityPlanLineId: string
+  menuScheduleId: string
+  menuId: string
+  menuCode: string
+  menuName: string
+  shiftName: string
+  shift: string
+  forecastServings: number
+  confirmedServings: number
+  adjustedServings: number
+  finalServings: number
+}
+
+export interface MealQuantityPlanDto {
+  quantityPlanId: string
+  planCode: string
+  serviceDate: string
+  dayOfWeek: string
+  status: string
+  forecastReceivedAt?: string
+  confirmedAt?: string
+  lines: MealQuantityPlanLineDto[]
+}
+
+// ── BE-4.3: POST /api/coordination/orders/{id}/signoff ──────────────────────
+
+export interface SignoffOrderRequest {
+  note?: string
+}
+
+export interface SignoffOrderResult {
+  success: boolean
+  quantityPlanId: string
+  serviceDate: string
+  oldStatus: string
+  newStatus: string
+  signedOffAt: string
+}
+
