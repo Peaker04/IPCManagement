@@ -55,7 +55,7 @@ export const MainLayout = () => {
     if (refreshToken) {
       try {
         await revokeToken({ refreshToken }).unwrap();
-      } catch (error) {
+      } catch {
         // Ignore errors on logout
       }
     }
