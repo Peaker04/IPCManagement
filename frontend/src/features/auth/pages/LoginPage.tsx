@@ -90,6 +90,36 @@ const LoginPage = () => {
           })
         );
         navigate(ROUTES.DASHBOARD);
+      } else if (username === 'quanly' && password === 'quanly') {
+        dispatch(setCredentials({
+          user: { id: '3', username: 'quanly', fullName: 'Lê Văn Quản Lý', role: 'quanly', isAdminFullAccess: false, permissions: [] },
+          token: 'dev-login-fallback-token-quanly', refreshToken: 'dev-fallback-refresh-quanly'
+        }));
+        navigate(ROUTES.DASHBOARD);
+      } else if (username === 'dieuphoi' && password === 'dieuphoi') {
+        dispatch(setCredentials({
+          user: { id: '4', username: 'dieuphoi', fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', isAdminFullAccess: false, permissions: [] },
+          token: 'dev-login-fallback-token-dieuphoi', refreshToken: 'dev-fallback-refresh-dieuphoi'
+        }));
+        navigate(ROUTES.DASHBOARD);
+      } else if (username === 'beptruong' && password === 'beptruong') {
+        dispatch(setCredentials({
+          user: { id: '5', username: 'beptruong', fullName: 'Phạm Bếp Trưởng', role: 'beptruong', isAdminFullAccess: false, permissions: [] },
+          token: 'dev-login-fallback-token-beptruong', refreshToken: 'dev-fallback-refresh-beptruong'
+        }));
+        navigate(ROUTES.DASHBOARD);
+      } else if (username === 'thukho' && password === 'thukho') {
+        dispatch(setCredentials({
+          user: { id: '6', username: 'thukho', fullName: 'Hoàng Thủ Kho', role: 'thukho', isAdminFullAccess: false, permissions: [] },
+          token: 'dev-login-fallback-token-thukho', refreshToken: 'dev-fallback-refresh-thukho'
+        }));
+        navigate(ROUTES.DASHBOARD);
+      } else if (username === 'thumua' && password === 'thumua') {
+        dispatch(setCredentials({
+          user: { id: '7', username: 'thumua', fullName: 'Đinh Thu Mua', role: 'thumua', isAdminFullAccess: false, permissions: [] },
+          token: 'dev-login-fallback-token-thumua', refreshToken: 'dev-fallback-refresh-thumua'
+        }));
+        navigate(ROUTES.DASHBOARD);
       } else {
         setError('Tài khoản hoặc mật khẩu không đúng.');
       }
@@ -143,7 +173,11 @@ const LoginPage = () => {
 
         {isDevLoginFallbackEnabled && (
           <div className="ipc-auth-footer">
-            <p className="ipc-auth-hint">Fallback dev: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
+            <p className="ipc-auth-hint">Fallback dev (Tài khoản / Mật khẩu):</p>
+            <p className="ipc-auth-hint text-xs mt-1">
+              <b>admin/admin</b> | <b>quanly/quanly</b> | <b>dieuphoi/dieuphoi</b><br/>
+              <b>beptruong/beptruong</b> | <b>thukho/thukho</b> | <b>thumua/thumua</b>
+            </p>
           </div>
         )}
       </div>
