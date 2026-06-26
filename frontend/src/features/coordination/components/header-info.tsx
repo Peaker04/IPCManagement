@@ -20,8 +20,7 @@ export function HeaderInfo({ timeRemaining }: HeaderInfoProps) {
   
   const [isShiftOpen, setIsShiftOpen] = useState(false)
   const [isDayOpen, setIsDayOpen] = useState(false)
-  const currentDate = formatDateVN()
-
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0])
   const handleShiftChange = (newShift: ShiftType) => {
     dispatch(setCurrentShift(newShift))
     setIsShiftOpen(false)
@@ -39,9 +38,23 @@ export function HeaderInfo({ timeRemaining }: HeaderInfoProps) {
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         {/* Left Section: Date & Shift & Day Selectors */}
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-          <div className="flex items-center gap-2 text-sm text-slate-600">
-            <Calendar className="size-4 text-blue-600" />
-            <span className="font-medium">{currentDate}</span>
+          <div className="relative flex items-center text-sm text-slate-600 group">
+            <Calendar className="absolute left-2.5 size-4 text-blue-600 pointer-events-none" />
+            <input 
+              type="date"
+              value={selectedDate}
+              className="pl-8 pr-2 py-1.5 h-8 text-sm font-medium rounded-md border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              onChange={(e) => {
+                const newDateStr = e.target.value
+                setSelectedDate(newDateStr)
+                const dateObj = new Date(newDateStr)
+                if (!isNaN(dateObj.getTime())) {
+                  const dayMap = ['cn', 't2', 't3', 't4', 't5', 't6', 't7']
+                  const newDay = dayMap[dateObj.getDay()]
+                  dispatch(setCurrentDayOfWeek(newDay))
+                }
+              }}
+            />
           </div>
 
           {/* Day Dropdown */}
