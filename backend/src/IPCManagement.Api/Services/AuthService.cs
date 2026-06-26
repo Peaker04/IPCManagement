@@ -34,8 +34,9 @@ public class AuthService : IAuthService
 
         var userId   = GuidHelper.ToGuidString(user.UserId);
         var roleName = user.Role?.RoleName ?? "Unknown";
+        var roleCode = user.Role?.RoleCode ?? "";
 
-        return await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleName, deviceInfo);
+        return await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleName, roleCode, deviceInfo);
     }
 
     // ── Refresh Token ─────────────────────────────────────────────────────────
@@ -66,8 +67,9 @@ public class AuthService : IAuthService
 
         var user     = stored.User;
         var roleName = user.Role?.RoleName ?? "Unknown";
+        var roleCode = user.Role?.RoleCode ?? "";
         var newResponse = await BuildLoginResponseAsync(
-            user.UserId, userIdStr, user.Username, user.FullName, roleName);
+            user.UserId, userIdStr, user.Username, user.FullName, roleName, roleCode);
 
         // Ghi hash của token mới vào trường replacedByToken để audit
         stored.ReplacedByToken = _tokenService.HashRefreshToken(newResponse.RefreshToken);
@@ -101,13 +103,18 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetWithRoleAsync(userIdBytes);
         if (user is null || user.IsActive == false) return null;
 
+        var roleCode = user.Role?.RoleCode ?? "";
+        var isAdmin = roleCode == "ADMIN";
+
         return new UserInfoDto
         {
             UserId   = GuidHelper.ToGuidString(user.UserId),
             FullName = user.FullName,
             Username = user.Username,
             RoleName = user.Role?.RoleName ?? "Unknown",
-            IsActive = true
+            IsActive = true,
+            IsAdminFullAccess = isAdmin,
+            Permissions = isAdmin ? new List<string> { "*" } : new List<string>()
         };
     }
 
@@ -116,7 +123,7 @@ public class AuthService : IAuthService
     private async Task<LoginResponseDto> BuildLoginResponseAsync(
         byte[] userIdBytes, string userId,
         string username,    string fullName,
-        string roleName,    string deviceInfo = "")
+        string roleName,    string roleCode, string deviceInfo = "")
     {
         var rawRefreshToken = _tokenService.GenerateRefreshToken();
         var tokenHash       = _tokenService.HashRefreshToken(rawRefreshToken);
@@ -139,6 +146,8 @@ public class AuthService : IAuthService
 
         await _refreshTokenRepository.SaveChangesAsync();
 
+        var isAdmin = roleCode == "ADMIN";
+
         return new LoginResponseDto
         {
             AccessToken  = _tokenService.GenerateAccessToken(userId, username, fullName, roleName),
@@ -150,7 +159,9 @@ public class AuthService : IAuthService
                 FullName = fullName,
                 Username = username,
                 RoleName = roleName,
-                IsActive = true
+                IsActive = true,
+                IsAdminFullAccess = isAdmin,
+                Permissions = isAdmin ? new List<string> { "*" } : new List<string>()
             }
         };
     }
