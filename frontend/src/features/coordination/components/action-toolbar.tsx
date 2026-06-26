@@ -10,6 +10,7 @@ import { useAppDispatch, useIsLocked, useOrders, useCurrentShift, useAppSelector
 import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation } from '../coordinationApi'
 import { toDisplayShift } from '../types'
+import { ActionGuard } from '@/routes/ActionGuard'
 
 type ConfirmationAction = 'lock' | 'export' | null
 
@@ -271,38 +272,44 @@ export function ActionToolbar({ status }: { status?: string }) {
         </p>
 
         <div className="ipc-order-action-buttons flex flex-wrap items-center gap-2">
-          <Button
-            onClick={() => setConfirmationAction('lock')}
-            disabled={isLocked || isLocking || orders.length === 0}
-            variant="default"
-            size="sm"
-            className="gap-1.5 font-semibold whitespace-nowrap"
-          >
-            <Lock className="size-3.5" />
-            {isLocking ? 'Đang chốt...' : 'Chốt đơn ca này'}
-          </Button>
+          <ActionGuard allowedRoles={['dieuphoi']}>
+            <Button
+              onClick={() => setConfirmationAction('lock')}
+              disabled={isLocked || isLocking || orders.length === 0}
+              variant="default"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap"
+            >
+              <Lock className="size-3.5" />
+              {isLocking ? 'Đang chốt...' : 'Chốt đơn ca này'}
+            </Button>
+          </ActionGuard>
 
-          <Button
-            onClick={() => setConfirmationAction('export')}
-            disabled={!isLocked || isExporting}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 font-semibold whitespace-nowrap"
-          >
-            <FileDown className="size-3.5" />
-            {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
-          </Button>
+          <ActionGuard allowedRoles={['dieuphoi', 'quanly']}>
+            <Button
+              onClick={() => setConfirmationAction('export')}
+              disabled={!isLocked || isExporting}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap"
+            >
+              <FileDown className="size-3.5" />
+              {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
+            </Button>
+          </ActionGuard>
 
-          <Button
-            onClick={handleRequestEdit}
-            disabled={!isLocked}
-            variant="outline"
-            size="sm"
-            className="gap-1.5 font-semibold whitespace-nowrap text-amber-700 border-amber-200 hover:bg-amber-50 hover:text-amber-800 disabled:text-slate-400 disabled:border-slate-200"
-          >
-            <Edit className="size-3.5" />
-            Yêu cầu điều chỉnh
-          </Button>
+          <ActionGuard allowedRoles={['dieuphoi']}>
+            <Button
+              onClick={handleRequestEdit}
+              disabled={!isLocked}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap text-amber-700 border-amber-200 hover:bg-amber-50 hover:text-amber-800 disabled:text-slate-400 disabled:border-slate-200"
+            >
+              <Edit className="size-3.5" />
+              Yêu cầu điều chỉnh
+            </Button>
+          </ActionGuard>
         </div>
       </div>
       {feedback && (
