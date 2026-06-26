@@ -30,7 +30,6 @@ export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
         <InlineAlert
           title="Đã chốt ca thành công"
           icon={<CheckCircle className="size-4 text-[var(--ipc-success-600)]" />}
-          variant="success"
         >
           Mọi dữ liệu của ca này đã được chốt và đồng bộ. Không thể thay đổi số lượng.
         </InlineAlert>
@@ -38,7 +37,6 @@ export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
         <InlineAlert
           title="Dữ liệu đã được lưu trữ"
           icon={<Archive className="size-4 text-[var(--ipc-neutral-500)]" />}
-          variant="neutral"
         >
           Phiên làm việc này đã kết thúc và được lưu vào kho lưu trữ lịch sử.
         </InlineAlert>

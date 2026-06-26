@@ -5,7 +5,6 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import type { ShiftType } from '../types'
 import { DAYS_OF_WEEK, SHIFT_LABELS } from '@/lib/constants'
-import { formatDateVN } from '@/lib/formatters'
 import { useAppDispatch, useCurrentShift, useAppSelector } from '@/app/hooks'
 import { setCurrentShift, setCurrentDayOfWeek } from '../coordinationSlice'
 

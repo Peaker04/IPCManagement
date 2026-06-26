@@ -39,41 +39,45 @@ const baseQueryWithAuthHandling: BaseQueryFn<
     if (!refreshPromise) {
       const refreshToken = (api.getState() as RootState).auth.refreshToken;
       if (refreshToken && token) {
-        refreshPromise = baseQuery(
-          {
-            url: '/auth/refresh',
-            method: 'POST',
-            body: { accessToken: token, refreshToken },
-          },
-          api,
-          extraOptions
-        ).then((refreshResult) => {
-          if (refreshResult.data) {
-            const data = (refreshResult.data as ApiResponse<LoginData>).data;
-            if (data) {
-              api.dispatch(
-                setCredentials({
-                  user: {
-                    id: data.user.userId,
-                    username: data.user.username,
-                    fullName: data.user.fullName,
-                    role: data.user.roleName.toLowerCase(),
-                    isAdminFullAccess: data.user.isAdminFullAccess,
-                    permissions: data.user.permissions || [],
-                  },
-                  token: data.accessToken,
-                  refreshToken: data.refreshToken,
-                })
-              );
+        refreshPromise = (async () => {
+          try {
+            const refreshResult = await baseQuery(
+              {
+                url: '/auth/refresh',
+                method: 'POST',
+                body: { accessToken: token, refreshToken },
+              },
+              api,
+              extraOptions
+            );
+
+            if (refreshResult.data) {
+              const data = (refreshResult.data as ApiResponse<LoginData>).data;
+              if (data) {
+                api.dispatch(
+                  setCredentials({
+                    user: {
+                      id: data.user.userId,
+                      username: data.user.username,
+                      fullName: data.user.fullName,
+                      role: data.user.roleName.toLowerCase(),
+                      isAdminFullAccess: data.user.isAdminFullAccess,
+                      permissions: data.user.permissions || [],
+                    },
+                    token: data.accessToken,
+                    refreshToken: data.refreshToken,
+                  })
+                );
+              } else {
+                api.dispatch(logOut());
+              }
             } else {
               api.dispatch(logOut());
             }
-          } else {
-            api.dispatch(logOut());
+          } finally {
+            refreshPromise = null;
           }
-        }).finally(() => {
-          refreshPromise = null;
-        });
+        })();
 
         await refreshPromise;
         // Chạy lại request gốc sau khi có token mới
