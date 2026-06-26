@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { logOut, selectCurrentUser, useRevokeTokenMutation } from '../../features/auth';
@@ -43,6 +44,16 @@ const getStatusTone = (state: string): StatusTone => {
 
 const serviceDateFormatter = new Intl.DateTimeFormat('vi-VN');
 
+/** Map role key → tên hiển thị tiếng Việt */
+const ROLE_LABELS: Record<string, string> = {
+  admin: 'Giám đốc / Admin',
+  quanly: 'Quản lý',
+  dieuphoi: 'Điều phối',
+  beptruong: 'Bếp trưởng',
+  thukho: 'Thủ kho',
+  thumua: 'Thu mua',
+};
+
 export const MainLayout = () => {
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
@@ -63,17 +74,27 @@ export const MainLayout = () => {
     navigate(ROUTES.LOGIN);
   };
 
-  const menuItems = [
-    { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
-    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} /> },
-    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} /> },
-    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} /> },
-    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} /> },
-    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} /> },
-    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} /> },
-    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} /> },
-    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} /> },
+  // allowedRoles: [] = tất cả role đều thấy; [...] = chỉ role đó + admin thấy
+  const menuItems: { path: string; label: string; icon: ReactNode; allowedRoles: string[] }[] = [
+    { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} />, allowedRoles: [] },
+    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, allowedRoles: ['quanly', 'dieuphoi'] },
+    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, allowedRoles: ['dieuphoi'] },
+    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, allowedRoles: ['quanly'] },
+    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, allowedRoles: ['thumua'] },
+    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, allowedRoles: ['thukho'] },
+    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, allowedRoles: ['beptruong'] },
+    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, allowedRoles: ['quanly'] },
+    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, allowedRoles: ['admin'] },
   ];
+
+  // Admin thấy tất cả; role khác chỉ thấy item phù hợp
+  const visibleMenuItems = currentUser
+    ? menuItems.filter((item) => {
+        if (currentUser.isAdminFullAccess) return true;
+        if (item.allowedRoles.length === 0) return true; // public to all
+        return item.allowedRoles.includes(currentUser.role);
+      })
+    : [];
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
@@ -127,7 +148,7 @@ export const MainLayout = () => {
           aria-label="Điều hướng chính"
           className="ipc-nav"
         >
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -155,7 +176,7 @@ export const MainLayout = () => {
               <div className="min-w-0">
                 <div className="ipc-user-name">{currentUser.fullName}</div>
                 <div className="ipc-user-role">
-                  {currentUser.role === 'admin' ? 'Giám đốc / Admin' : 'Nhân viên'}
+                  {ROLE_LABELS[currentUser.role] ?? currentUser.role}
                 </div>
               </div>
             </div>

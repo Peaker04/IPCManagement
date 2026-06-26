@@ -16,7 +16,19 @@ export const useHasPermission = (permission: string) =>
     if (!user) return false;
     if (user.isAdminFullAccess) return true;
     return user.permissions.includes(permission);
-  })
+  });
+
+// Returns true if the user's role is in allowedRoles. Admin always returns true.
+export const useHasRole = (allowedRoles: string[]) =>
+  useAppSelector((state) => {
+    const user = state.auth.user;
+    if (!user) return false;
+    if (user.isAdminFullAccess) return true;
+    return allowedRoles.includes(user.role);
+  });
+
+export const useCurrentRole = () =>
+  useAppSelector((state) => state.auth.user?.role ?? null);
 
 // Coordination-specific selectors
 export const useCoordinationState = () =>
