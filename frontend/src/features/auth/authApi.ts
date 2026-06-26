@@ -4,6 +4,7 @@ import type {
   LoginData,
   LoginRequest,
   UserInfo,
+  RevokeTokenRequest,
 } from '../../types/api';
 
 export const authApi = apiSlice.injectEndpoints({
@@ -18,8 +19,15 @@ export const authApi = apiSlice.injectEndpoints({
     getCurrentUser: builder.query<ApiResponse<UserInfo>, void>({
       query: () => '/auth/profile',
     }),
+    revokeToken: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest>({
+      query: (body) => ({
+        url: '/auth/revoke',
+        method: 'POST',
+        body,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
 
-export const { useLoginMutation, useGetCurrentUserQuery } = authApi;
+export const { useLoginMutation, useGetCurrentUserQuery, useRevokeTokenMutation } = authApi;

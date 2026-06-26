@@ -1,6 +1,6 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { logOut, selectCurrentUser } from '../../features/auth';
+import { logOut, selectCurrentUser, useRevokeTokenMutation } from '../../features/auth';
 import { ROUTES } from '../../routes/routeConfig';
 import { getWorkflowContextForPath } from '../../features/workflow';
 import {
@@ -48,8 +48,17 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
+  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
+  const [revokeToken] = useRevokeTokenMutation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (refreshToken) {
+      try {
+        await revokeToken({ refreshToken }).unwrap();
+      } catch (error) {
+        // Ignore errors on logout
+      }
+    }
     dispatch(logOut());
     navigate(ROUTES.LOGIN);
   };
