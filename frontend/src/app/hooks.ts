@@ -6,6 +6,18 @@ import type { RootState, AppDispatch } from './store';
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
 
+// Auth-specific selectors
+export const useIsAdmin = () =>
+  useAppSelector((state) => state.auth.user?.isAdminFullAccess ?? false)
+
+export const useHasPermission = (permission: string) =>
+  useAppSelector((state) => {
+    const user = state.auth.user;
+    if (!user) return false;
+    if (user.isAdminFullAccess) return true;
+    return user.permissions.includes(permission);
+  })
+
 // Coordination-specific selectors
 export const useCoordinationState = () =>
   useAppSelector((state) => state.coordination)

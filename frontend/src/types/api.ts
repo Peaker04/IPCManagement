@@ -19,6 +19,10 @@ export interface UserInfo {
   username: string;
   roleName: string;
   isActive: boolean;
+  /** true nếu user là Admin toàn quyền (bypass mọi permission check) */
+  isAdminFullAccess: boolean;
+  /** Danh sách các quyền cụ thể. Admin trả về ["*"], vai trò khác trả về danh sách hạn chế. */
+  permissions: string[];
 }
 
 /**

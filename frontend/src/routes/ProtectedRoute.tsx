@@ -35,6 +35,8 @@ export const ProtectedRoute = () => {
             username: data.data.username,
             fullName: data.data.fullName,
             role: data.data.roleName.toLowerCase(),
+            isAdminFullAccess: data.data.isAdminFullAccess,
+            permissions: data.data.permissions || [],
           },
           token,
         })

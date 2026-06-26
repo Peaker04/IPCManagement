@@ -41,6 +41,8 @@ const LoginPage = () => {
               username: result.data.user.username,
               fullName: result.data.user.fullName,
               role: result.data.user.roleName.toLowerCase(),
+              isAdminFullAccess: result.data.user.isAdminFullAccess,
+              permissions: result.data.user.permissions || [],
             },
             token: result.data.accessToken,
           })
@@ -63,6 +65,8 @@ const LoginPage = () => {
               username: 'admin',
               fullName: 'Trần Văn Giám Đốc',
               role: 'admin',
+              isAdminFullAccess: true,
+              permissions: ['*'],
             },
             token: 'dev-login-fallback-token-admin',
           })
@@ -76,6 +80,8 @@ const LoginPage = () => {
               username: 'staff',
               fullName: 'Nguyễn Thị Thu Mua',
               role: 'staff',
+              isAdminFullAccess: false,
+              permissions: [],
             },
             token: 'dev-login-fallback-token-staff',
           })

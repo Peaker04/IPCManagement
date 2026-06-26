@@ -6,6 +6,8 @@ export interface User {
   username: string;
   fullName: string;
   role: string;
+  isAdminFullAccess: boolean;
+  permissions: string[];
 }
 
 export interface AuthState {
