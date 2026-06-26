@@ -77,7 +77,7 @@ const downloadCsv = (csv: string, filename: string) => {
   URL.revokeObjectURL(url)
 }
 
-export function ActionToolbar() {
+export function ActionToolbar({ status }: { status?: string }) {
   const dispatch = useAppDispatch()
   const isLocked = useIsLocked()
   const allOrders = useOrders()
@@ -256,8 +256,17 @@ export function ActionToolbar() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-slate-600">
           Trạng thái ca:{' '}
-          <span className={`font-semibold ${isLocked ? 'text-teal-700' : 'text-amber-700'}`}>
-            {isLocked ? 'Đã khóa' : 'Chưa chốt'}
+          <span className={`font-semibold ${
+            status === 'COMPLETED' ? 'text-emerald-700' :
+            status === 'ARCHIVED' ? 'text-slate-500' :
+            status === 'CONFIRMED' || isLocked ? 'text-teal-700' : 'text-amber-700'
+          }`}>
+            {status === 'COMPLETED' ? 'Đã chốt (Hoàn tất)' :
+             status === 'ARCHIVED' ? 'Đã lưu trữ' :
+             status === 'CONFIRMED' ? 'Đã khóa (Chờ nấu)' :
+             status === 'DRAFT' ? 'Nháp' :
+             status === 'syncing' ? 'Đang đồng bộ...' :
+             (isLocked ? 'Đã khóa' : 'Chưa chốt')}
           </span>
         </p>
 

@@ -1,10 +1,10 @@
 'use client'
 
-import { Loader2, Lock, LockOpen } from 'lucide-react'
+import { Loader2, Lock, LockOpen, CheckCircle, Archive } from 'lucide-react'
 import { InlineAlert } from '@/components/common'
 
 interface OrderStatusBannerProps {
-  status: 'syncing' | 'draft' | 'locked'
+  status: 'syncing' | 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'ARCHIVED' | string
 }
 
 export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
@@ -18,21 +18,37 @@ export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
         >
           Hệ thống đang lấy dữ liệu mới nhất từ API điều phối.
         </InlineAlert>
-      ) : status === 'locked' ? (
+      ) : status === 'CONFIRMED' ? (
         <InlineAlert
-          title="Ca này đã khóa"
-          icon={<Lock className="size-4 text-[var(--ipc-success)]" />}
+          title="Ca này đã khóa (Đang sản xuất)"
+          icon={<Lock className="size-4 text-[var(--ipc-info-600)]" />}
           variant="info"
         >
-          Backend đã khóa kế hoạch suất ăn cho ca này; chỉ số thực tế sau khóa còn được điều chỉnh qua API.
+          Kế hoạch suất ăn đã được khóa để nhà bếp tiến hành nấu. Số liệu đã được chuyển sang xưởng sản xuất.
+        </InlineAlert>
+      ) : status === 'COMPLETED' ? (
+        <InlineAlert
+          title="Đã chốt ca thành công"
+          icon={<CheckCircle className="size-4 text-[var(--ipc-success-600)]" />}
+          variant="success"
+        >
+          Mọi dữ liệu của ca này đã được chốt và đồng bộ. Không thể thay đổi số lượng.
+        </InlineAlert>
+      ) : status === 'ARCHIVED' ? (
+        <InlineAlert
+          title="Dữ liệu đã được lưu trữ"
+          icon={<Archive className="size-4 text-[var(--ipc-neutral-500)]" />}
+          variant="neutral"
+        >
+          Phiên làm việc này đã kết thúc và được lưu vào kho lưu trữ lịch sử.
         </InlineAlert>
       ) : (
         <InlineAlert
           title="Dữ liệu đang ở trạng thái nháp"
-          icon={<LockOpen className="size-4 text-[var(--ipc-warning)]" />}
+          icon={<LockOpen className="size-4 text-[var(--ipc-warning-600)]" />}
           variant="warning"
         >
-          Kiểm tra menu, số suất và chênh lệch trước khi chốt đơn ca này.
+          Kiểm tra thực đơn, số suất và chênh lệch trước khi gửi khóa đơn ca này.
         </InlineAlert>
       )}
     </div>

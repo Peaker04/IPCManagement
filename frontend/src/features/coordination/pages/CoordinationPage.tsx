@@ -6,7 +6,7 @@ import { ActionToolbar } from '../components/action-toolbar'
 import { useCountdown } from '../components/hooks'
 import { useAppDispatch, useAppSelector, useCurrentShift } from '@/app/hooks'
 import { syncOrdersForShift } from '../coordinationSlice'
-import { useGetCoordinationOrdersQuery } from '../coordinationApi'
+import { useGetCoordinationOrdersQuery, useGetMenuSchedulesQuery, useGetMealQuantityPlansQuery } from '../coordinationApi'
 import { ContextStrip, InlineAlert, OperationalFrame, SectionPanel } from '@/components/common'
 import { formatNumber } from '@/lib/formatters'
 
@@ -21,6 +21,16 @@ export default function CoordinationPage() {
   const reduxLocked = useAppSelector((state) => state.coordination.isLocked)
   const localError = useAppSelector((state) => state.coordination.error)
   const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, shift: currentShift })
+  
+  // Gọi 2 API mới của Task R-06
+  const menusQuery = useGetMenuSchedulesQuery({ 
+    dayOfWeek: currentDayOfWeek, 
+    shiftName: currentShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON' 
+  })
+  const plansQuery = useGetMealQuantityPlansQuery({ 
+    dayOfWeek: currentDayOfWeek 
+  })
+
   // Use countdown lock time if it reaches 8:30 AM, or if manually locked
   const effectiveIsLocked = reduxLocked || countdownLocked
 
@@ -47,12 +57,17 @@ export default function CoordinationPage() {
   const menuShiftKey = currentShift === 'Ca Sáng' ? 'morningSavory' : 'afternoonSavory'
   const plannedDishId = weeklyMenu[currentDayOfWeek]?.[menuShiftKey]?.dishId
   const plannedMenuName = filteredOrders.find((order) => order.menuName)?.menuName
-  const plannedDishLabel = plannedMenuName || (plannedDishId ? 'Theo thực đơn đã nhập' : 'Chưa có dữ liệu')
-  const loading = ordersQuery.isLoading || ordersQuery.isFetching
+  
+  // Ưu tiên lấy tên Menu từ Backend (API mới), nếu chưa có thì dùng Redux mock
+  const beMenuName = menusQuery.data?.data?.[0]?.menuName
+  const plannedDishLabel = beMenuName || plannedMenuName || (plannedDishId ? 'Theo thực đơn đã nhập' : 'Chưa có dữ liệu')
+  const loading = ordersQuery.isLoading || ordersQuery.isFetching || plansQuery.isLoading || plansQuery.isFetching
   const error = ordersQuery.isError
     ? 'Không tải được danh sách suất ăn từ API điều phối.'
     : localError
-  const orderStatus = loading ? 'syncing' : effectiveIsLocked ? 'locked' : 'draft'
+    
+  const beStatus = plansQuery.data?.data?.[0]?.status
+  const orderStatus = loading ? 'syncing' : (beStatus || (effectiveIsLocked ? 'CONFIRMED' : 'DRAFT'))
 
   return (
     <OperationalFrame
@@ -89,7 +104,7 @@ export default function CoordinationPage() {
           <OrderTable orders={filteredOrders} isLocked={effectiveIsLocked} />
         </div>
 
-        <ActionToolbar />
+        <ActionToolbar status={orderStatus} />
       </SectionPanel>
     </OperationalFrame>
   )
