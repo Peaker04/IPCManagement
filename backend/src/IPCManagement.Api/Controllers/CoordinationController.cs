@@ -25,6 +25,8 @@ public class CoordinationController : ControllerBase
         _currentUserService = currentUserService;
     }
 
+    // ── Existing ─────────────────────────────────────────────────────────────
+
     [HttpGet("orders")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CoordinationOrderDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrders(
@@ -80,5 +82,65 @@ public class CoordinationController : ControllerBase
     {
         var result = await _coordinationService.ExportOrderReportAsync(request);
         return Ok(ApiResponse<ExportOrderReportResultDto>.SuccessResult(result, "Tạo báo cáo thành công."));
+    }
+
+    // ── BE-3.2: GET /api/coordination/menu-schedules ─────────────────────────
+
+    /// <summary>
+    /// Lấy lịch thực đơn tuần theo ngày / ca. Trả về danh sách menu schedule kèm
+    /// thông tin món ăn (BOM) cho từng ca.
+    /// </summary>
+    [HttpGet("menu-schedules")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MenuScheduleDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMenuSchedules([FromQuery] MenuScheduleQueryDto query)
+    {
+        var result = await _coordinationService.GetMenuSchedulesAsync(query);
+        return Ok(ApiResponse<IReadOnlyList<MenuScheduleDto>>.SuccessResult(result));
+    }
+
+    // ── BE-3.3: GET /api/coordination/meal-quantity-plans ────────────────────
+
+    /// <summary>
+    /// Lấy kế hoạch số suất ăn theo ngày / trạng thái. Trả về đầy đủ thông tin
+    /// forecast, confirmed và final servings theo từng ca.
+    /// </summary>
+    [HttpGet("meal-quantity-plans")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMealQuantityPlans([FromQuery] MealQuantityPlanQueryDto query)
+    {
+        var result = await _coordinationService.GetMealQuantityPlansAsync(query);
+        return Ok(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>.SuccessResult(result));
+    }
+
+    // ── BE-4.3: POST /api/coordination/orders/{id}/signoff ───────────────────
+
+    /// <summary>
+    /// Chốt ca — chuyển trạng thái MealQuantityPlan từ CONFIRMED → COMPLETED.
+    /// Ghi audit log tự động. Chỉ cho phép khi kế hoạch đang ở trạng thái CONFIRMED.
+    /// </summary>
+    [HttpPost("orders/{id}/signoff")]
+    [ProducesResponseType(typeof(ApiResponse<SignoffOrderResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SignoffOrder(string id, [FromBody] SignoffOrderRequestDto request)
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        SignoffOrderResultDto? result;
+        try
+        {
+            result = await _coordinationService.SignoffOrderAsync(id, request, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"));
+        }
+
+        return Ok(ApiResponse<SignoffOrderResultDto>.SuccessResult(result, "Chốt ca thành công."));
     }
 }

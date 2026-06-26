@@ -182,6 +182,203 @@ public class CoordinationService : ICoordinationService
         });
     }
 
+    // ── BE-3.2: GET /api/menu-schedules ─────────────────────────────────────
+
+    public async Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query)
+    {
+        var dbQuery = _context.Menuschedules
+            .Include(ms => ms.Menu)
+                .ThenInclude(m => m.Menuitems)
+                    .ThenInclude(mi => mi.Dish)
+            .AsNoTracking()
+            .AsQueryable();
+
+        // Lọc theo ngày phục vụ cụ thể
+        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
+            DateOnly.TryParse(query.ServiceDate, out var parsedServiceDate))
+        {
+            dbQuery = dbQuery.Where(ms => ms.ServiceDate == parsedServiceDate);
+        }
+        // Lọc theo ngày trong tuần
+        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
+        {
+            var serviceDate = ResolveServiceDate(null, query.DayOfWeek);
+            dbQuery = dbQuery.Where(ms => ms.ServiceDate == serviceDate);
+        }
+        // Lọc theo tuần
+        else if (!string.IsNullOrWhiteSpace(query.WeekStartDate) &&
+                 DateOnly.TryParse(query.WeekStartDate, out var weekStart))
+        {
+            var weekEnd = weekStart.AddDays(6);
+            dbQuery = dbQuery.Where(ms => ms.ServiceDate >= weekStart && ms.ServiceDate <= weekEnd);
+        }
+
+        // Lọc theo ca
+        if (!string.IsNullOrWhiteSpace(query.ShiftName))
+        {
+            var normalized = NormalizeShiftName(query.ShiftName);
+            if (normalized is not null)
+                dbQuery = dbQuery.Where(ms => ms.ShiftName == normalized);
+        }
+
+        var schedules = await dbQuery
+            .OrderBy(ms => ms.ServiceDate)
+            .ThenBy(ms => ms.ShiftName)
+            .ToListAsync();
+
+        return schedules.Select(ms => new MenuScheduleDto
+        {
+            MenuScheduleId  = GuidHelper.ToGuidString(ms.MenuScheduleId),
+            MenuId          = GuidHelper.ToGuidString(ms.MenuId),
+            MenuCode        = ms.Menu.MenuCode,
+            MenuName        = ms.Menu.MenuName,
+            ServiceDate     = ms.ServiceDate.ToString("yyyy-MM-dd"),
+            WeekStartDate   = ms.WeekStartDate.ToString("yyyy-MM-dd"),
+            ShiftName       = ms.ShiftName,
+            Shift           = ToDisplayShift(ms.ShiftName),
+            DayOfWeek       = ToDayCode(ms.ServiceDate),
+            MenuPrice       = ms.MenuPrice,
+            BomRatePercent  = ms.BomRatePercent,
+            Status          = ms.Status,
+            Dishes          = ms.Menu.Menuitems
+                .OrderBy(mi => mi.DisplayOrder)
+                .Select(mi => new MenuScheduleDishDto
+                {
+                    DishId       = GuidHelper.ToGuidString(mi.DishId),
+                    DishCode     = mi.Dish.DishCode,
+                    DishName     = mi.Dish.DishName,
+                    DishGroup    = mi.Dish.DishGroup,
+                    DishType     = mi.Dish.DishType,
+                    DisplayOrder = mi.DisplayOrder
+                })
+                .ToList()
+        }).ToList();
+    }
+
+    // ── BE-3.3: GET /api/meal-quantity-plans ────────────────────────────────
+
+    public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
+    {
+        var dbQuery = _context.Mealquantityplans
+            .Include(p => p.Mealquantityplanlines)
+                .ThenInclude(l => l.Menu)
+            .Include(p => p.Mealquantityplanlines)
+                .ThenInclude(l => l.MenuSchedule)
+            .AsNoTracking()
+            .AsQueryable();
+
+        // Lọc theo ngày phục vụ
+        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
+            DateOnly.TryParse(query.ServiceDate, out var parsedServiceDate))
+        {
+            dbQuery = dbQuery.Where(p => p.ServiceDate == parsedServiceDate);
+        }
+        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
+        {
+            var serviceDate = ResolveServiceDate(null, query.DayOfWeek);
+            dbQuery = dbQuery.Where(p => p.ServiceDate == serviceDate);
+        }
+
+        // Lọc theo trạng thái
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = query.Status.Trim().ToUpperInvariant();
+            dbQuery = dbQuery.Where(p => p.Status == status);
+        }
+
+        var plans = await dbQuery
+            .OrderByDescending(p => p.ServiceDate)
+            .ToListAsync();
+
+        return plans.Select(p => new MealQuantityPlanDto
+        {
+            QuantityPlanId    = GuidHelper.ToGuidString(p.QuantityPlanId),
+            PlanCode          = p.PlanCode,
+            ServiceDate       = p.ServiceDate.ToString("yyyy-MM-dd"),
+            DayOfWeek         = ToDayCode(p.ServiceDate),
+            Status            = p.Status,
+            ForecastReceivedAt = p.ForecastReceivedAt,
+            ConfirmedAt       = p.ConfirmedAt,
+            Lines             = p.Mealquantityplanlines
+                .OrderBy(l => l.ShiftName)
+                .Select(l => new MealQuantityPlanLineDto
+                {
+                    QuantityPlanLineId = GuidHelper.ToGuidString(l.QuantityPlanLineId),
+                    MenuScheduleId     = GuidHelper.ToGuidString(l.MenuScheduleId),
+                    MenuId             = GuidHelper.ToGuidString(l.MenuId),
+                    MenuCode           = l.Menu.MenuCode,
+                    MenuName           = l.Menu.MenuName,
+                    ShiftName          = l.ShiftName,
+                    Shift              = ToDisplayShift(l.ShiftName),
+                    ForecastServings   = l.ForecastServings,
+                    ConfirmedServings  = l.ConfirmedServings,
+                    AdjustedServings   = l.AdjustedServings,
+                    FinalServings      = l.FinalServings
+                })
+                .ToList()
+        }).ToList();
+    }
+
+    // ── BE-4.3: POST /api/coordination/orders/{id}/signoff ──────────────────
+
+    public async Task<SignoffOrderResultDto?> SignoffOrderAsync(
+        string quantityPlanId,
+        SignoffOrderRequestDto request,
+        string? userId)
+    {
+        var planIdBytes = GuidHelper.ParseGuidString(quantityPlanId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+
+        if (planIdBytes is null || userIdBytes is null)
+            return null;
+
+        var plan = await _context.Mealquantityplans
+            .FirstOrDefaultAsync(p => p.QuantityPlanId == planIdBytes);
+
+        if (plan is null)
+            return null;
+
+        // BE-4.4: Kiểm tra state machine — chỉ cho phép CONFIRMED → COMPLETED
+        if (!OrderStatus.CanTransition(plan.Status, OrderStatus.Completed))
+        {
+            throw new InvalidOperationException(
+                $"Không thể chốt ca. Kế hoạch đang ở trạng thái '{plan.Status}', " +
+                $"chỉ có thể chốt khi trạng thái là '{OrderStatus.Confirmed}'.");
+        }
+
+        var oldStatus   = plan.Status;
+        var signedOffAt = DateTime.UtcNow;
+
+        plan.Status = OrderStatus.Completed;
+
+        // Ghi audit log
+        _context.Auditlogs.Add(new Models.Entities.Auditlog
+        {
+            AuditId      = GuidHelper.NewId(),
+            EntityName   = "MealQuantityPlan",
+            EntityId     = planIdBytes,
+            FieldName    = "status",
+            OldValue     = oldStatus,
+            NewValue     = OrderStatus.Completed,
+            Reason       = request.Note ?? "Chốt ca",
+            ChangedBy    = userIdBytes,
+            ChangedAt    = signedOffAt,
+            BusinessArea = "Coordination"
+        });
+
+        await _context.SaveChangesAsync();
+
+        return new SignoffOrderResultDto
+        {
+            Success        = true,
+            QuantityPlanId = quantityPlanId,
+            ServiceDate    = plan.ServiceDate.ToString("yyyy-MM-dd"),
+            OldStatus      = oldStatus,
+            NewStatus      = OrderStatus.Completed,
+            SignedOffAt    = signedOffAt
+        };
+    }
+
     private IQueryable<Mealquantityplanline> QueryLines(DateOnly serviceDate, string? shiftName)
     {
         var query = _context.Mealquantityplanlines
