@@ -1,12 +1,14 @@
-import { useState } from 'react';
-import { Bell, Database, SlidersHorizontal, History } from 'lucide-react';
+import { useMemo, useState, type FormEvent } from 'react';
+import { Bell, Database, History, PencilLine, Power, Search, ShieldCheck, SlidersHorizontal, UserPlus, Users } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useAuditLogs } from '@/app/hooks';
+import { useAppSelector, useAuditLogs } from '@/app/hooks';
+import { selectCurrentUser } from '@/features/auth';
 import {
   ApprovalQueue,
   CommandBar,
   ContextStrip,
   DocumentRail,
+  FieldRow,
   OperationalFrame,
   RoleInbox,
   PaginationBar,
@@ -14,7 +16,10 @@ import {
   SplitWorkbench,
   StockMovementTable,
   DataTableShell,
+  EmptyState,
+  StatusBadge,
   ViewSwitcher,
+  type ViewTab,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
@@ -23,15 +28,67 @@ import {
   getRoleInboxByLane,
   getStockMovementsByType,
 } from '@/features/workflow';
+import {
+  type AdminEmployee,
+  useCreateAdminEmployeeMutation,
+  useGetAdminEmployeesQuery,
+  useGetAdminRolesQuery,
+  useUpdateAdminEmployeeMutation,
+  useUpdateAdminEmployeeStatusMutation,
+} from '@/features/admin/adminApi';
+
+type AdminView = 'adjustments' | 'inventory' | 'audit' | 'employees';
+
+type EmployeeFormState = {
+  fullName: string;
+  username: string;
+  password: string;
+  roleId: string;
+  isActive: boolean;
+};
+
+const defaultEmployeeForm: EmployeeFormState = {
+  fullName: '',
+  username: '',
+  password: '',
+  roleId: '',
+  isActive: true,
+};
 
 export default function AdminDataPage() {
-  const [activeView, setActiveView] = useState<'adjustments' | 'inventory' | 'audit'>('adjustments');
+  const currentUser = useAppSelector(selectCurrentUser);
+  const isAdmin = currentUser?.role === 'admin';
+
+  const [activeView, setActiveView] = useState<AdminView>('adjustments');
   const [auditPage, setAuditPage] = useState(1);
+  const [employeePage, setEmployeePage] = useState(1);
+  const [employeeSearch, setEmployeeSearch] = useState('');
+  const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
+  const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
+  const [employeeNotice, setEmployeeNotice] = useState<string | null>(null);
   const auditPageSize = 8;
   const logs = useAuditLogs();
   const adjustmentDocuments = getDocumentByType('Điều chỉnh');
   const adminInbox = getRoleInboxByLane('admin');
   const adjustmentMovements = getStockMovementsByType('adjustment');
+  const employeeQuery = useMemo(
+    () => ({
+      pageNumber: employeePage,
+      pageSize: 8,
+      searchKeyword: employeeSearch.trim() || undefined,
+    }),
+    [employeePage, employeeSearch],
+  );
+
+  const { data: employeeResponse, isFetching: isEmployeeLoading } = useGetAdminEmployeesQuery(employeeQuery, {
+    skip: !isAdmin || activeView !== 'employees',
+  });
+  const { data: rolesResponse, isFetching: isRolesLoading } = useGetAdminRolesQuery(undefined, {
+    skip: !isAdmin || activeView !== 'employees',
+  });
+  const [createEmployee, { isLoading: isCreatingEmployee }] = useCreateAdminEmployeeMutation();
+  const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
+  const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
 
   const defaultAuditLogs = [
     {
@@ -73,6 +130,107 @@ export default function AdminDataPage() {
   const totalAuditPages = Math.max(1, Math.ceil(displayLogs.length / auditPageSize));
   const safeAuditPage = Math.min(auditPage, totalAuditPages);
   const pagedAuditLogs = displayLogs.slice((safeAuditPage - 1) * auditPageSize, safeAuditPage * auditPageSize);
+  const employeeRoles = rolesResponse?.data ?? [];
+  const employeeRows = employeeResponse?.data?.items ?? [];
+  const employeeMeta = employeeResponse?.data;
+  const defaultRoleId = employeeRoles[0]?.roleId ?? '';
+  const effectiveActiveView: AdminView = isAdmin ? activeView : activeView === 'employees' ? 'adjustments' : activeView;
+
+  const resetEmployeeForm = (roleId = defaultRoleId) => {
+    setEditingEmployeeId(null);
+    setEmployeeForm({
+      ...defaultEmployeeForm,
+      roleId,
+    });
+  };
+
+  const handleEmployeeSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    const selectedRoleId = employeeForm.roleId || defaultRoleId;
+
+    if (!employeeForm.fullName.trim() || !employeeForm.username.trim() || !selectedRoleId) {
+      setEmployeeNotice('Vui lòng nhập đầy đủ họ tên, tài khoản và vai trò.');
+      return;
+    }
+
+    if (!selectedRoleId) {
+      setEmployeeNotice('Vui lòng chọn vai trò hợp lệ.');
+      return;
+    }
+
+    if (!editingEmployeeId && !employeeForm.password.trim()) {
+      setEmployeeNotice('Vui lòng nhập mật khẩu cho tài khoản mới.');
+      return;
+    }
+
+    try {
+      if (editingEmployeeId) {
+        const response = await updateEmployee({
+          id: editingEmployeeId,
+          body: {
+            fullName: employeeForm.fullName.trim(),
+            username: employeeForm.username.trim(),
+            password: employeeForm.password.trim() || undefined,
+            roleId: selectedRoleId,
+            isActive: employeeForm.isActive,
+          },
+        }).unwrap();
+
+        setEmployeeNotice(response.message || 'Cập nhật nhân viên thành công.');
+      } else {
+        const response = await createEmployee({
+          fullName: employeeForm.fullName.trim(),
+          username: employeeForm.username.trim(),
+          password: employeeForm.password.trim(),
+          roleId: selectedRoleId,
+          isActive: employeeForm.isActive,
+        }).unwrap();
+
+        setEmployeeNotice(response.message || 'Tạo tài khoản nhân viên thành công.');
+      }
+
+      resetEmployeeForm();
+      setEmployeePage(1);
+    } catch (error) {
+      const message = error && typeof error === 'object' && 'data' in error && error.data && typeof error.data === 'object' && 'message' in error.data
+        ? String(error.data.message)
+        : 'Không thể lưu tài khoản nhân viên.';
+      setEmployeeNotice(message);
+    }
+  };
+
+  const handleEditEmployee = (employee: AdminEmployee) => {
+    setEditingEmployeeId(employee.userId);
+    setEmployeeForm({
+      fullName: employee.fullName,
+      username: employee.username,
+      password: '',
+      roleId: employee.roleId,
+      isActive: employee.isActive,
+    });
+    setEmployeeNotice(null);
+  };
+
+  const handleEmployeeStatusToggle = async (employee: AdminEmployee) => {
+    try {
+      const response = await updateEmployeeStatus({
+        id: employee.userId,
+        isActive: !employee.isActive,
+      }).unwrap();
+
+      setEmployeeNotice(response.message || 'Đã cập nhật trạng thái nhân viên.');
+    } catch {
+      setEmployeeNotice('Không thể cập nhật trạng thái nhân viên.');
+    }
+  };
+
+  const employeeTabs: ViewTab[] = [
+    { id: 'admin-adjustments', label: 'Điều chỉnh' },
+    { id: 'admin-inventory', label: 'Tồn kho' },
+    { id: 'admin-audit', label: 'Audit' },
+    ...(isAdmin ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
+  ];
 
   return (
     <OperationalFrame
@@ -102,6 +260,7 @@ export default function AdminDataPage() {
             Phạm vi: BOM và tồn kho
           </span>
           <span className="ipc-command-meta">Yêu cầu có lý do điều chỉnh</span>
+          {isAdmin && <span className="ipc-command-meta">Admin có thể quản lí nhân viên</span>}
         </CommandBar>
       }
       context={
@@ -111,6 +270,7 @@ export default function AdminDataPage() {
             { label: 'Điều chỉnh tồn', value: 'Hành lá +3 kg', tone: 'success' },
             { label: 'Thông báo', value: 'Chưa gửi cho ca trưa', tone: 'warning' },
             { label: 'Audit', value: 'Có lý do thay đổi', tone: 'neutral' },
+            ...(isAdmin ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
           ]}
         />
       }
@@ -118,16 +278,12 @@ export default function AdminDataPage() {
       <ViewSwitcher
         compact
         ariaLabel="Chọn góc nhìn quản trị dữ liệu"
-        tabs={[
-          { id: 'admin-adjustments', label: 'Điều chỉnh' },
-          { id: 'admin-inventory', label: 'Tồn kho' },
-          { id: 'admin-audit', label: 'Audit' },
-        ]}
-        activeTab={`admin-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('admin-', '') as 'adjustments' | 'inventory' | 'audit')}
+        tabs={employeeTabs}
+        activeTab={`admin-${effectiveActiveView}`}
+        onTabChange={(id) => setActiveView(id.replace('admin-', '') as AdminView)}
       />
 
-      {activeView === 'adjustments' && (
+      {effectiveActiveView === 'adjustments' && (
         <div id="admin-adjustments-panel" role="tabpanel" aria-labelledby="admin-adjustments-tab">
           <SplitWorkbench
             detailLabel="Chứng từ"
@@ -150,7 +306,7 @@ export default function AdminDataPage() {
         </div>
       )}
 
-      {activeView === 'inventory' && (
+      {effectiveActiveView === 'inventory' && (
         <SectionPanel title="Điều chỉnh tồn và thông báo">
           <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
           <StockMovementTable movements={adjustmentMovements} />
@@ -169,7 +325,7 @@ export default function AdminDataPage() {
         </SectionPanel>
       )}
 
-      {activeView === 'audit' && (
+      {effectiveActiveView === 'audit' && (
         <SectionPanel title="Nhật ký thay đổi hệ thống (Audit Trail)" icon={<History size={18} />}>
           <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
             <div className="rounded-md border border-slate-200 bg-slate-50/60 p-4">
@@ -219,6 +375,218 @@ export default function AdminDataPage() {
             <PaginationBar page={safeAuditPage} pageSize={auditPageSize} totalItems={displayLogs.length} onPageChange={setAuditPage} />
           </div>
         </SectionPanel>
+      )}
+
+      {isAdmin && effectiveActiveView === 'employees' && (
+        <div id="admin-employees-panel" role="tabpanel" aria-labelledby="admin-employees-tab" className="flex flex-col gap-4">
+          <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
+            <SectionPanel
+              title={editingEmployeeId ? 'Cập nhật nhân viên' : 'Tạo tài khoản nhân viên'}
+              icon={<UserPlus size={18} />}
+            >
+              <form className="flex flex-col gap-4" onSubmit={handleEmployeeSubmit}>
+                {employeeNotice && (
+                  <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                    {employeeNotice}
+                  </div>
+                )}
+
+                <FieldRow label="Họ và tên" htmlFor="employee-full-name">
+                  <input
+                    id="employee-full-name"
+                    className="ipc-input"
+                    value={employeeForm.fullName}
+                    onChange={(event) => setEmployeeForm((current) => ({ ...current, fullName: event.target.value }))}
+                    placeholder="Ví dụ: Nguyễn Văn A"
+                  />
+                </FieldRow>
+
+                <FieldRow label="Tên đăng nhập" htmlFor="employee-username">
+                  <input
+                    id="employee-username"
+                    className="ipc-input"
+                    value={employeeForm.username}
+                    onChange={(event) => setEmployeeForm((current) => ({ ...current, username: event.target.value }))}
+                    placeholder="Ví dụ: nguyenvana"
+                  />
+                </FieldRow>
+
+                <FieldRow label={editingEmployeeId ? 'Đổi mật khẩu (không bắt buộc)' : 'Mật khẩu'} htmlFor="employee-password">
+                  <input
+                    id="employee-password"
+                    type="password"
+                    className="ipc-input"
+                    value={employeeForm.password}
+                    onChange={(event) => setEmployeeForm((current) => ({ ...current, password: event.target.value }))}
+                    placeholder={editingEmployeeId ? 'Để trống nếu không đổi' : 'Nhập mật khẩu'}
+                  />
+                </FieldRow>
+
+                <FieldRow label="Vai trò" htmlFor="employee-role">
+                  <select
+                    id="employee-role"
+                    className="ipc-select"
+                    value={employeeForm.roleId || defaultRoleId}
+                    onChange={(event) => setEmployeeForm((current) => ({ ...current, roleId: event.target.value }))}
+                    disabled={isRolesLoading}
+                  >
+                    <option value="">Chọn vai trò</option>
+                    {employeeRoles.map((role) => (
+                      <option key={role.roleId} value={role.roleId}>
+                        {role.roleName} · {role.roleCode}
+                      </option>
+                    ))}
+                  </select>
+                </FieldRow>
+                <p className="-mt-2 text-xs leading-5 text-slate-500">
+                  Vai trò được lấy trực tiếp từ bảng auth roles, bao gồm Head Chef, Manager và Procurement Staff.
+                </p>
+
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={employeeForm.isActive}
+                    onChange={(event) => setEmployeeForm((current) => ({ ...current, isActive: event.target.checked }))}
+                  />
+                  Đang hoạt động
+                </label>
+
+                <div className="flex flex-wrap gap-2">
+                  <button type="submit" className="ipc-button ipc-button-primary" disabled={isCreatingEmployee || isUpdatingEmployee}>
+                    {editingEmployeeId ? 'Cập nhật' : 'Tạo tài khoản'}
+                  </button>
+                  <button
+                    type="button"
+                    className="ipc-button ipc-button-ghost"
+                    onClick={() => resetEmployeeForm()}
+                    disabled={isCreatingEmployee || isUpdatingEmployee}
+                  >
+                    Hủy / làm mới
+                  </button>
+                </div>
+              </form>
+            </SectionPanel>
+
+            <SectionPanel
+              title="Danh sách nhân viên"
+              icon={<Users size={18} />}
+            >
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="min-w-[260px] flex-1">
+                    <FieldRow label="Tìm kiếm" htmlFor="employee-search">
+                      <div className="relative">
+                        <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          id="employee-search"
+                          className="ipc-input pl-9"
+                          value={employeeSearch}
+                          onChange={(event) => {
+                            setEmployeeSearch(event.target.value);
+                            setEmployeePage(1);
+                          }}
+                          placeholder="Tìm theo tên, tài khoản, vai trò"
+                        />
+                      </div>
+                    </FieldRow>
+                  </div>
+                </div>
+
+                <DataTableShell ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
+                  <table className="ipc-data-table ipc-admin-employee-table text-sm">
+                    <thead>
+                      <tr>
+                        <th>Họ tên</th>
+                        <th>Tài khoản</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
+                        <th>Ngày tạo</th>
+                        <th>Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {isEmployeeLoading ? (
+                        <tr>
+                          <td colSpan={6} className="py-8 text-center text-slate-500">
+                            Đang tải danh sách nhân viên...
+                          </td>
+                        </tr>
+                      ) : employeeRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="py-8">
+                            <EmptyState
+                              title="Chưa có nhân viên nào"
+                              description="Hãy tạo tài khoản đầu tiên để phân quyền và quản lý nhân viên trong công ty."
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        employeeRows.map((employee) => (
+                          <tr key={employee.userId} className="align-top hover:bg-slate-50">
+                            <td className="font-semibold text-slate-900">{employee.fullName}</td>
+                            <td className="font-mono text-slate-600">{employee.username}</td>
+                            <td>
+                              <span className="inline-flex rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-700">
+                                {employee.roleName}
+                              </span>
+                            </td>
+                            <td>
+                              <StatusBadge variant={employee.isActive ? 'success' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
+                                {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
+                              </StatusBadge>
+                            </td>
+                            <td className="text-slate-500">
+                              {new Date(employee.createdAt).toLocaleDateString('vi-VN')}
+                            </td>
+                            <td>
+                              <div className="flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  className="ipc-button ipc-button-ghost ipc-button-bounded"
+                                  onClick={() => handleEditEmployee(employee)}
+                                >
+                                  <PencilLine size={14} />
+                                  Sửa
+                                </button>
+                                <button
+                                  type="button"
+                                  className="ipc-button ipc-button-bounded"
+                                  onClick={() => handleEmployeeStatusToggle(employee)}
+                                  disabled={isUpdatingStatus}
+                                >
+                                  <Power size={14} />
+                                  {employee.isActive ? 'Khóa' : 'Mở'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+
+                {employeeMeta && (
+                  <PaginationBar
+                    page={employeeMeta.pageNumber}
+                    pageSize={employeeMeta.pageSize}
+                    totalItems={employeeMeta.totalCount}
+                    onPageChange={setEmployeePage}
+                  />
+                )}
+              </div>
+            </SectionPanel>
+          </div>
+
+          <SectionPanel
+            title="Quyền quản trị"
+            icon={<ShieldCheck size={18} />}
+          >
+            <p className="text-sm leading-6 text-slate-600">
+              Chỉ tài khoản có role <b>Admin</b> mới nhìn thấy tab này và có thể tạo, sửa, khóa hoặc mở tài khoản nhân viên.
+            </p>
+          </SectionPanel>
+        </div>
       )}
     </OperationalFrame>
   );
