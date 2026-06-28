@@ -16,7 +16,6 @@ import {
   ShoppingCart,
   Warehouse,
   Database,
-  ShieldCheck,
 } from 'lucide-react';
 
 type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -76,7 +75,6 @@ export const MainLayout = () => {
     { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, allowedRoles: ['quanly', 'beptruong'] },
     { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, allowedRoles: ['quanly'] },
     { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, allowedRoles: ['admin'] },
-    { path: ROUTES.ADMIN_ACCOUNTS, label: 'Phân quyền tài khoản', icon: <ShieldCheck size={18} />, allowedRoles: ['admin'] },
   ];
 
   const visibleMenuItems = menuItems.filter((item) =>
@@ -136,13 +134,7 @@ export const MainLayout = () => {
           className="ipc-nav"
         >
           {visibleMenuItems.map((item) => {
-            const activeAdminTab = new URLSearchParams(location.search).get('tab');
-            const isActive =
-              item.path === ROUTES.ADMIN_ACCOUNTS
-                ? location.pathname === ROUTES.ADMIN_DATA && activeAdminTab === 'employees'
-                : item.path === ROUTES.ADMIN_DATA
-                  ? location.pathname === ROUTES.ADMIN_DATA && activeAdminTab !== 'employees'
-                  : location.pathname === item.path;
+            const isActive = location.pathname === item.path;
             return (
               <Link
                 key={item.path}

@@ -1,4 +1,10 @@
 {
   "buildCommand": "npm run build:fe",
-  "outputDirectory": "frontend/dist"
+  "outputDirectory": "frontend/dist",
+  "git": {
+    "deploymentEnabled": {
+      "dev": true,
+      "*": false
+    }
+  }
 }

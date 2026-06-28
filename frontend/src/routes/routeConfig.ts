@@ -10,5 +10,4 @@ export const ROUTES = {
   PURCHASING: '/purchasing',
   WAREHOUSE: '/warehouse',
   ADMIN_DATA: '/admin-data',
-  ADMIN_ACCOUNTS: '/admin-data?tab=employees',
 } as const;
