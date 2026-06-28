@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { BarChart3, Bell, Database, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, UserPlus, Users, XCircle } from 'lucide-react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import {
   ApprovalQueue,
@@ -53,11 +53,6 @@ import {
 
 type AdminView = 'adjustments' | 'inventory' | 'audit' | 'statistics' | 'employees';
 
-const adminViewKeys: AdminView[] = ['adjustments', 'inventory', 'audit', 'statistics', 'employees'];
-
-const parseAdminView = (value: string | null): AdminView =>
-  adminViewKeys.includes(value as AdminView) ? (value as AdminView) : 'adjustments';
-
 type BomFormState = {
   ingredientId: string;
   grossQtyPerServing: string;
@@ -103,8 +98,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 export default function AdminDataPage() {
   const currentUser = useAppSelector(selectCurrentUser);
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [activeView, setActiveView] = useState<AdminView>(() => parseAdminView(searchParams.get('tab')));
+  const [activeView, setActiveView] = useState<AdminView>('adjustments');
   const [auditPage, setAuditPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
@@ -189,16 +183,6 @@ export default function AdminDataPage() {
   const totalAuditPages = Math.max(1, Math.ceil(displayLogs.length / auditPageSize));
   const safeAuditPage = Math.min(auditPage, totalAuditPages);
   const pagedAuditLogs = displayLogs.slice((safeAuditPage - 1) * auditPageSize, safeAuditPage * auditPageSize);
-
-  useEffect(() => {
-    const viewFromUrl = parseAdminView(searchParams.get('tab'));
-    setActiveView(viewFromUrl);
-  }, [searchParams]);
-
-  const updateActiveView = (view: AdminView) => {
-    setActiveView(view);
-    setSearchParams(view === 'adjustments' ? {} : { tab: view });
-  };
 
   const resetBomForm = () => {
     setEditingBomId(null);
@@ -371,7 +355,7 @@ export default function AdminDataPage() {
                 Gửi thông báo vận hành
               </button>
               {canManageEmployees && (
-                <button className="ipc-button ipc-button-ghost" type="button" onClick={() => updateActiveView('employees')}>
+                <button className="ipc-button ipc-button-ghost" type="button" onClick={() => setActiveView('employees')}>
                   <Users size={16} />
                   Nhân viên
                 </button>
@@ -410,7 +394,7 @@ export default function AdminDataPage() {
         ariaLabel="Chọn góc nhìn quản trị dữ liệu"
         tabs={adminTabs}
         activeTab={`admin-${effectiveActiveView}`}
-        onTabChange={(id) => updateActiveView(id.replace('admin-', '') as AdminView)}
+        onTabChange={(id) => setActiveView(id.replace('admin-', '') as AdminView)}
       />
 
       {effectiveActiveView === 'adjustments' && (
