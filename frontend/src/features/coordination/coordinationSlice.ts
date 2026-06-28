@@ -67,6 +67,11 @@ const initialState: CoordinationState = {
   lastUpdated: null,
 }
 
+interface WeeklyMenuShuffleDish {
+  id: string
+  menuSlots: string[]
+}
+
 export const fetchActiveOrders = createAsyncThunk(
   'coordination/fetchActiveOrders',
   async (shift: ShiftType, { dispatch, getState, rejectWithValue }) => {
@@ -278,6 +283,27 @@ const coordinationSlice = createSlice({
     setLossRate: (state, action: PayloadAction<number>) => {
       state.lossRate = action.payload
     },
+    setWeeklyMenu: (state, action: PayloadAction<WeeklyMenuState>) => {
+      state.weeklyMenu = action.payload
+    },
+    shuffleWeeklyMenu: (state, action: PayloadAction<{ dishes: WeeklyMenuShuffleDish[] }>) => {
+      const dishes = action.payload.dishes
+      if (!dishes || dishes.length === 0) return
+      
+      const morningSavory = dishes.filter(d => d.menuSlots.includes('MENU MẶN CA SÁNG'))
+      const morningVeg = dishes.filter(d => d.menuSlots.includes('MENU CHAY CA SÁNG'))
+      const afternoonSavory = dishes.filter(d => d.menuSlots.includes('MENU MẶN CA CHIỀU'))
+      const afternoonVeg = dishes.filter(d => d.menuSlots.includes('MENU CHAY CA CHIỀU'))
+
+      Object.keys(state.weeklyMenu).forEach((day, index) => {
+        if (state.weeklyMenu[day]) {
+          if (morningSavory.length > 0) state.weeklyMenu[day].morningSavory.dishId = morningSavory[(index * 2) % morningSavory.length].id
+          if (morningVeg.length > 0) state.weeklyMenu[day].morningVegetarian.dishId = morningVeg[(index * 2) % morningVeg.length].id
+          if (afternoonSavory.length > 0) state.weeklyMenu[day].afternoonSavory.dishId = afternoonSavory[(index * 2) % afternoonSavory.length].id
+          if (afternoonVeg.length > 0) state.weeklyMenu[day].afternoonVegetarian.dishId = afternoonVeg[(index * 2) % afternoonVeg.length].id
+        }
+      })
+    },
     addAuditLog: (state, action: PayloadAction<AuditLogEntry>) => {
       state.auditLogs.push(action.payload)
     },
@@ -390,6 +416,8 @@ export const {
   updateWeeklyMenuDish,
   setMenuPrice,
   setLossRate,
+  setWeeklyMenu,
+  shuffleWeeklyMenu,
   addAuditLog,
   clearError,
 } = coordinationSlice.actions

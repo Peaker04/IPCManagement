@@ -1898,8 +1898,9 @@ code {
 .ipc-context-label {
   color: currentColor;
   opacity: 0.85;
-  font-size: 0.825rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .ipc-context-value {
@@ -1907,6 +1908,7 @@ code {
   font-weight: 700;
   color: currentColor;
   font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 767px) {

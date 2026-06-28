@@ -1,10 +1,10 @@
 'use client'
 
-import { Loader2, Lock, LockOpen } from 'lucide-react'
+import { Archive, CheckCircle, Loader2, Lock, LockOpen } from 'lucide-react'
 import { InlineAlert } from '@/components/common'
 
 interface OrderStatusBannerProps {
-  status: 'syncing' | 'draft' | 'locked'
+  status: 'syncing' | 'draft' | 'locked' | 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'ARCHIVED' | string
 }
 
 export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
@@ -18,13 +18,29 @@ export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
         >
           Hệ thống đang lấy dữ liệu mới nhất từ API điều phối.
         </InlineAlert>
-      ) : status === 'locked' ? (
+      ) : status === 'locked' || status === 'CONFIRMED' ? (
         <InlineAlert
           title="Ca này đã khóa"
-          icon={<Lock className="size-4 text-[var(--ipc-success)]" />}
+          icon={<Lock className="size-4 text-[var(--ipc-info-600)]" />}
           variant="info"
         >
-          Backend đã khóa kế hoạch suất ăn cho ca này; chỉ số thực tế sau khóa còn được điều chỉnh qua API.
+          Kế hoạch suất ăn đã được chốt để bếp triển khai; các điều chỉnh sau chốt cần ghi lý do.
+        </InlineAlert>
+      ) : status === 'COMPLETED' ? (
+        <InlineAlert
+          title="Ca này đã hoàn tất"
+          icon={<CheckCircle className="size-4 text-[var(--ipc-success-600)]" />}
+          variant="info"
+        >
+          Dữ liệu ca đã được hoàn tất và ghi nhận vào nhật ký điều phối.
+        </InlineAlert>
+      ) : status === 'ARCHIVED' ? (
+        <InlineAlert
+          title="Dữ liệu đã lưu trữ"
+          icon={<Archive className="size-4 text-slate-500" />}
+          variant="info"
+        >
+          Ca này đã kết thúc và chỉ nên dùng để tra cứu lịch sử.
         </InlineAlert>
       ) : (
         <InlineAlert

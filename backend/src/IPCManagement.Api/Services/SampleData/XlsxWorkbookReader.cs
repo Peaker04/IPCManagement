@@ -24,9 +24,13 @@ internal sealed class XlsxWorkbookReader
 
         using var sheetStream = sheetEntry.Open();
         var document = XDocument.Load(sheetStream);
-        var rows = document
+        var rawRows = document
             .Descendants(SpreadsheetNs + "row")
-            .Select(row => ReadRow(row, sharedStrings))
+            .Select((row, index) => ReadRow(row, sharedStrings, index + 1))
+            .ToList();
+        ApplyMergedCellValues(rawRows, document);
+        var rows = rawRows
+            .Select(row => row.Cells)
             .Where(row => row.Count > 0)
             .ToList();
 
@@ -78,9 +82,13 @@ internal sealed class XlsxWorkbookReader
 
         using var sheetStream = sheetEntry.Open();
         var document = XDocument.Load(sheetStream);
-        var rows = document
+        var rawRows = document
             .Descendants(SpreadsheetNs + "row")
-            .Select(row => ReadRow(row, sharedStrings))
+            .Select((row, index) => ReadRow(row, sharedStrings, index + 1))
+            .ToList();
+        ApplyMergedCellValues(rawRows, document);
+        var rows = rawRows
+            .Select(row => row.Cells)
             .Where(row => row.Count > 0);
 
         if (maxRows is not null)
@@ -161,9 +169,10 @@ internal sealed class XlsxWorkbookReader
             : $"xl/{normalized.TrimStart('/')}";
     }
 
-    private static Dictionary<string, string> ReadRow(XElement row, IReadOnlyList<string> sharedStrings)
+    private static RawXlsxRow ReadRow(XElement row, IReadOnlyList<string> sharedStrings, int fallbackRowNumber)
     {
         var cells = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        var rowNumber = ParseRowNumber(row.Attribute("r")?.Value, fallbackRowNumber);
         foreach (var cell in row.Elements(SpreadsheetNs + "c"))
         {
             var reference = cell.Attribute("r")?.Value;
@@ -198,6 +207,120 @@ internal sealed class XlsxWorkbookReader
             }
         }
 
-        return cells;
+        return new RawXlsxRow(rowNumber, cells);
     }
+
+    private static void ApplyMergedCellValues(
+        IReadOnlyList<RawXlsxRow> rows,
+        XDocument document)
+    {
+        var rowsByNumber = rows.ToDictionary(row => row.RowNumber);
+        foreach (var mergeRange in document.Descendants(SpreadsheetNs + "mergeCell"))
+        {
+            var reference = mergeRange.Attribute("ref")?.Value;
+            if (!TryParseCellRange(reference, out var start, out var end))
+            {
+                continue;
+            }
+
+            if (!rowsByNumber.TryGetValue(start.Row, out var sourceRow) ||
+                !sourceRow.Cells.TryGetValue(start.Column, out var sourceValue) ||
+                string.IsNullOrWhiteSpace(sourceValue))
+            {
+                continue;
+            }
+
+            var startColumn = ColumnLetterToIndex(start.Column);
+            var endColumn = ColumnLetterToIndex(end.Column);
+            for (var rowNumber = start.Row; rowNumber <= end.Row; rowNumber++)
+            {
+                if (!rowsByNumber.TryGetValue(rowNumber, out var targetRow))
+                {
+                    continue;
+                }
+
+                for (var columnIndex = startColumn; columnIndex <= endColumn; columnIndex++)
+                {
+                    var column = ColumnIndexToLetter(columnIndex);
+                    if (!targetRow.Cells.TryGetValue(column, out var currentValue) ||
+                        string.IsNullOrWhiteSpace(currentValue))
+                    {
+                        targetRow.Cells[column] = sourceValue;
+                    }
+                }
+            }
+        }
+    }
+
+    private static bool TryParseCellRange(
+        string? reference,
+        out CellAddress start,
+        out CellAddress end)
+    {
+        start = default;
+        end = default;
+        if (string.IsNullOrWhiteSpace(reference))
+        {
+            return false;
+        }
+
+        var parts = reference.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        if (parts.Length == 1)
+        {
+            return TryParseCellAddress(parts[0], out start) && TryParseCellAddress(parts[0], out end);
+        }
+
+        return parts.Length == 2 &&
+               TryParseCellAddress(parts[0], out start) &&
+               TryParseCellAddress(parts[1], out end);
+    }
+
+    private static bool TryParseCellAddress(string reference, out CellAddress address)
+    {
+        address = default;
+        var column = new string(reference.TakeWhile(char.IsLetter).ToArray()).ToUpperInvariant();
+        var rowText = new string(reference.SkipWhile(char.IsLetter).TakeWhile(char.IsDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(column) ||
+            !int.TryParse(rowText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var row) ||
+            row <= 0)
+        {
+            return false;
+        }
+
+        address = new CellAddress(column, row);
+        return true;
+    }
+
+    private static int ParseRowNumber(string? value, int fallbackRowNumber)
+        => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var rowNumber) && rowNumber > 0
+            ? rowNumber
+            : fallbackRowNumber;
+
+    private static int ColumnLetterToIndex(string column)
+    {
+        var result = 0;
+        foreach (var character in column.ToUpperInvariant())
+        {
+            result = (result * 26) + character - 'A' + 1;
+        }
+
+        return result;
+    }
+
+    private static string ColumnIndexToLetter(int column)
+    {
+        var result = string.Empty;
+        while (column > 0)
+        {
+            column--;
+            result = (char)('A' + column % 26) + result;
+            column /= 26;
+        }
+
+        return result;
+    }
+
+    private sealed record RawXlsxRow(int RowNumber, Dictionary<string, string> Cells);
+
+    private readonly record struct CellAddress(string Column, int Row);
 }

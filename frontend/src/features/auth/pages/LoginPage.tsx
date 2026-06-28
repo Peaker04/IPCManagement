@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAppDispatch } from '../../../app/hooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
+import { normalizeUserRole, type AppRole } from '../roleUtils';
 import { ROUTES } from '../../../routes/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
@@ -10,6 +11,15 @@ import { FieldRow } from '@/components/common';
 // Fallback login hoạt động khi không có backend (demo mode)
 const isDevLoginFallbackEnabled = true;
 
+const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
+  admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
+  quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination:read', 'catalog:read', 'purchasing:read', 'warehouse:read'] },
+  dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination:read', 'coordination:write'] },
+  beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
+  thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
+  thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchasing:read'] },
+  staff: { fullName: 'Nguyễn Thị Thu Mua', role: 'staff', permissions: [] },
+}
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -40,9 +50,14 @@ const LoginPage = () => {
               id: result.data.user.userId,
               username: result.data.user.username,
               fullName: result.data.user.fullName,
-              role: result.data.user.roleName.toLowerCase(),
+              role: normalizeUserRole(result.data.user.roleCode, result.data.user.roleName),
+              roleCode: result.data.user.roleCode,
+              roleName: result.data.user.roleName,
+              isAdminFullAccess: result.data.user.isAdminFullAccess ?? false,
+              permissions: result.data.user.permissions ?? [],
             },
             token: result.data.accessToken,
+            refreshToken: result.data.refreshToken,
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -55,29 +70,22 @@ const LoginPage = () => {
         return;
       }
 
-      if (username === 'admin' && password === 'admin') {
+      const devAccount = devAccounts[username]
+      if (devAccount && password === username) {
         dispatch(
           setCredentials({
             user: {
-              id: '1',
-              username: 'admin',
-              fullName: 'Trần Văn Giám Đốc',
-              role: 'admin',
+              id: `dev-${username}`,
+              username,
+              fullName: devAccount.fullName,
+              role: devAccount.role,
+              roleCode: devAccount.role.toUpperCase(),
+              roleName: devAccount.role,
+              isAdminFullAccess: devAccount.role === 'admin',
+              permissions: devAccount.permissions,
             },
-            token: 'dev-login-fallback-token-admin',
-          })
-        );
-        navigate(ROUTES.DASHBOARD);
-      } else if (username === 'staff' && password === 'staff') {
-        dispatch(
-          setCredentials({
-            user: {
-              id: '2',
-              username: 'staff',
-              fullName: 'Nguyễn Thị Thu Mua',
-              role: 'staff',
-            },
-            token: 'dev-login-fallback-token-staff',
+            token: `dev-login-fallback-token-${username}`,
+            refreshToken: `dev-fallback-refresh-${username}`,
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -134,7 +142,8 @@ const LoginPage = () => {
 
         {isDevLoginFallbackEnabled && (
           <div className="ipc-auth-footer">
-            <p className="ipc-auth-hint">Fallback dev: <b>admin / admin</b> hoặc <b>staff / staff</b></p>
+            <p className="ipc-auth-hint">Fallback dev: <b>admin/admin</b>, <b>quanly/quanly</b>, <b>dieuphoi/dieuphoi</b></p>
+            <p className="ipc-auth-hint text-xs mt-1"><b>beptruong/beptruong</b>, <b>thukho/thukho</b>, <b>thumua/thumua</b></p>
           </div>
         )}
       </div>
