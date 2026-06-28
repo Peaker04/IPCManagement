@@ -26,6 +26,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Auditlog> Auditlogs { get; set; }
 
+    public virtual DbSet<Approvalhistory> Approvalhistories { get; set; }
+
     public virtual DbSet<Bomadjustment> Bomadjustments { get; set; }
 
     public virtual DbSet<Customer> Customers { get; set; }
@@ -143,6 +145,52 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.ChangedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("auditlogs_ibfk_1");
+        });
+
+        modelBuilder.Entity<Approvalhistory>(entity =>
+        {
+            entity.HasKey(e => e.ApprovalHistoryId).HasName("PRIMARY");
+
+            entity.ToTable("approvalhistories");
+
+            entity.HasIndex(e => new { e.TargetType, e.TargetId, e.ActionAt }, "ixApprovalHistoriesTarget");
+
+            entity.Property(e => e.ApprovalHistoryId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("approvalHistoryId");
+            entity.Property(e => e.ActionAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("actionAt");
+            entity.Property(e => e.ActionBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("actionBy");
+            entity.Property(e => e.Decision)
+                .HasMaxLength(20)
+                .HasColumnName("decision");
+            entity.Property(e => e.NewStatus)
+                .HasMaxLength(50)
+                .HasColumnName("newStatus");
+            entity.Property(e => e.OldStatus)
+                .HasMaxLength(50)
+                .HasColumnName("oldStatus");
+            entity.Property(e => e.Reason)
+                .HasColumnType("text")
+                .HasColumnName("reason");
+            entity.Property(e => e.TargetId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("targetId");
+            entity.Property(e => e.TargetType)
+                .HasMaxLength(50)
+                .HasColumnName("targetType");
+
+            entity.HasOne(d => d.ActionByNavigation).WithMany()
+                .HasForeignKey(d => d.ActionBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("approvalhistories_ibfk_1");
         });
 
         modelBuilder.Entity<Bomadjustment>(entity =>

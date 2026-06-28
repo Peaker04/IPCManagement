@@ -90,6 +90,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy(AuthorizationPolicies.AdminAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.AdminRoles));
     options.AddPolicy(AuthorizationPolicies.CatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogRoles));
     options.AddPolicy(AuthorizationPolicies.CoordinationAccess, policy =>

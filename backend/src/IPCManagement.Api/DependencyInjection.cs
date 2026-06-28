@@ -3,6 +3,7 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.Approvals;
 using IPCManagement.Api.Services.SampleData;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,11 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
+        services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryAdjustmentApprovalHandler>();
         services.AddScoped<IIngredientService, IngredientService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IWarehouseService, WarehouseService>();

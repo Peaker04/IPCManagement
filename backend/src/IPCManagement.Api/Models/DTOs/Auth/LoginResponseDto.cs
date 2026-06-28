@@ -21,6 +21,13 @@ public class UserInfoDto
     public List<string> Permissions { get; set; } = new();
 }
 
+public class UserProfileResponseDto
+{
+    public UserInfoDto User { get; set; } = null!;
+    public IReadOnlyList<string> Permissions { get; set; } = [];
+    public bool IsAdmin { get; set; }
+}
+
 public class RefreshTokenRequestDto
 {
     public string AccessToken  { get; set; } = string.Empty;

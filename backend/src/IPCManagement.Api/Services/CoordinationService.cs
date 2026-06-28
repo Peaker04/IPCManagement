@@ -243,56 +243,93 @@ public class CoordinationService : ICoordinationService
             return null;
         }
 
-        var lockedAt = DateTime.UtcNow;
-        foreach (var line in lines)
-        {
-            var lineKey = Convert.ToBase64String(line.QuantityPlanLineId);
-            var finalServings = requestedServings.GetValueOrDefault(lineKey, line.ForecastServings);
+        await using var transaction = await _context.Database.BeginTransactionAsync();
 
-            line.ConfirmedServings = finalServings;
-            line.AdjustedServings = 0;
-            line.FinalServings = finalServings;
-            line.QuantityPlan.Status = "CONFIRMED";
-            line.QuantityPlan.ConfirmedAt = lockedAt;
-            line.QuantityPlan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
-            line.QuantityPlan.ConfirmedBy = userIdBytes;
+        try
+        {
+            var lockedAt = DateTime.UtcNow;
+            foreach (var line in lines)
+            {
+                var lineKey = Convert.ToBase64String(line.QuantityPlanLineId);
+                var finalServings = requestedServings.GetValueOrDefault(lineKey, line.ForecastServings);
+
+                line.ConfirmedServings = finalServings;
+                line.AdjustedServings = 0;
+                line.FinalServings = finalServings;
+                line.QuantityPlan.Status = "CONFIRMED";
+                line.QuantityPlan.ConfirmedAt = lockedAt;
+                line.QuantityPlan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
+                line.QuantityPlan.ConfirmedBy = userIdBytes;
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new LockOrderPlanResultDto
+            {
+                Success = true,
+                LockedAt = lockedAt,
+                ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
+                Scope = scope,
+                LockedShiftNames = lines
+                    .Select(line => line.ShiftName)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(shift => shift)
+                    .ToList(),
+                LockedLineCount = lines.Count
+            };
         }
-
-        await _context.SaveChangesAsync();
-
-        return new LockOrderPlanResultDto
+        catch
         {
-            Success = true,
-            LockedAt = lockedAt,
-            ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
-            Scope = scope,
-            LockedShiftNames = lines
-                .Select(line => line.ShiftName)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(shift => shift)
-                .ToList(),
-            LockedLineCount = lines.Count
-        };
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
         AdjustOrderAfterLockRequestDto request,
         string? userId)
     {
-        var userIdBytes = GuidHelper.ParseGuidString(userId);
-        var lineId = GuidHelper.ParseGuidString(
-            !string.IsNullOrWhiteSpace(request.QuantityPlanLineId)
-                ? request.QuantityPlanLineId
-                : request.OrderId);
-        if (userIdBytes is null || lineId is null)
-        {
-            return null;
-        }
-
         if (!string.Equals(request.Field, "actualQuantity", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(request.Field, "finalServings", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Chỉ hỗ trợ điều chỉnh số suất thực tế sau khi chốt.");
+        }
+
+        var lineId = !string.IsNullOrWhiteSpace(request.QuantityPlanLineId)
+            ? request.QuantityPlanLineId
+            : request.OrderId;
+
+        var result = await AdjustServingsAsync(
+            lineId,
+            new AdjustServingsRequestDto
+            {
+                ServingsQuantity = request.NewValue,
+                Reason = request.Reason
+            },
+            userId);
+
+        if (result is null)
+        {
+            return null;
+        }
+        return new AdjustOrderAfterLockResultDto
+        {
+            Success = true,
+            Timestamp = result.ChangedAt
+        };
+    }
+
+    public async Task<AdjustServingsResultDto?> AdjustServingsAsync(
+        string orderId,
+        AdjustServingsRequestDto request,
+        string? userId)
+    {
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        var lineId = GuidHelper.ParseGuidString(orderId);
+        if (userIdBytes is null || lineId is null)
+        {
+            return null;
         }
 
         var line = await _context.Mealquantityplanlines
@@ -309,28 +346,49 @@ public class CoordinationService : ICoordinationService
             throw new InvalidOperationException("Chỉ có thể điều chỉnh sau khi kế hoạch đã được chốt.");
         }
 
-        var oldValue = line.FinalServings;
-        line.AdjustedServings = request.NewValue - line.ConfirmedServings;
-        line.FinalServings = request.NewValue;
+        await using var transaction = await _context.Database.BeginTransactionAsync();
 
-        _context.Quantityadjustments.Add(new Quantityadjustment
+        try
         {
-            AdjustmentId = GuidHelper.NewId(),
-            QuantityPlanLineId = line.QuantityPlanLineId,
-            OldServings = oldValue,
-            NewServings = request.NewValue,
-            Reason = request.Reason,
-            AdjustedBy = userIdBytes,
-            AdjustedAt = DateTime.UtcNow
-        });
+            var oldValue = line.FinalServings;
+            var changedAt = DateTime.UtcNow;
+            var auditId = GuidHelper.NewId();
 
-        await _context.SaveChangesAsync();
+            line.AdjustedServings = request.ServingsQuantity - line.ConfirmedServings;
+            line.FinalServings = request.ServingsQuantity;
 
-        return new AdjustOrderAfterLockResultDto
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = auditId,
+                ChangedAt = changedAt,
+                ChangedBy = userIdBytes,
+                BusinessArea = "Coordination",
+                EntityName = nameof(Mealquantityplanline),
+                EntityId = line.QuantityPlanLineId,
+                FieldName = "finalServings",
+                OldValue = oldValue.ToString(),
+                NewValue = request.ServingsQuantity.ToString(),
+                Reason = request.Reason
+            });
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return new AdjustServingsResultDto
+            {
+                Success = true,
+                OrderId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
+                OldServings = oldValue,
+                NewServings = request.ServingsQuantity,
+                ChangedAt = changedAt,
+                AuditId = GuidHelper.ToGuidString(auditId)
+            };
+        }
+        catch
         {
-            Success = true,
-            Timestamp = DateTime.UtcNow
-        };
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     public async Task<SignoffOrderResultDto?> SignoffOrderAsync(

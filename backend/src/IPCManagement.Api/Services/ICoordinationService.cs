@@ -10,5 +10,6 @@ public interface ICoordinationService
     Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequestDto request, string? userId);
     Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(AdjustOrderAfterLockRequestDto request, string? userId);
     Task<SignoffOrderResultDto?> SignoffOrderAsync(string quantityPlanId, SignoffOrderRequestDto request, string? userId);
+    Task<AdjustServingsResultDto?> AdjustServingsAsync(string orderId, AdjustServingsRequestDto request, string? userId);
     Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request);
 }
