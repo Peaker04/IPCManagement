@@ -10,6 +10,16 @@ namespace IPCManagement.Api.Services.Admin;
 public class AdminEmployeeService : IAdminEmployeeService
 {
     private readonly IpcManagementContext _context;
+    private static readonly (Guid RoleId, string RoleCode, string RoleName)[] DefaultRoles =
+    [
+        (Guid.Parse("00000000-0000-0000-0000-000000000001"), "ADMIN", "Admin"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000002"), "MANAGER", "Quản lý"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000003"), "COORDINATOR", "Điều phối"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000004"), "CHEF", "Bếp trưởng"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000005"), "WAREHOUSESTAFF", "Thủ kho"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000006"), "PURCHASING", "Thu mua"),
+        (Guid.Parse("00000000-0000-0000-0000-000000000007"), "STAFF", "Nhân viên")
+    ];
 
     public AdminEmployeeService(IpcManagementContext context)
     {
@@ -17,7 +27,10 @@ public class AdminEmployeeService : IAdminEmployeeService
     }
 
     public async Task<List<AdminRoleDto>> GetRolesAsync()
-        => await _context.Roles
+    {
+        await EnsureDefaultRolesAsync();
+
+        return await _context.Roles
             .AsNoTracking()
             .OrderBy(role => role.RoleName)
             .Select(role => new AdminRoleDto
@@ -27,6 +40,7 @@ public class AdminEmployeeService : IAdminEmployeeService
                 RoleName = role.RoleName
             })
             .ToListAsync();
+    }
 
     public async Task<PagedResponseDto<EmployeeDto>> GetPagedAsync(PagedRequestDto request)
     {
@@ -145,6 +159,8 @@ public class AdminEmployeeService : IAdminEmployeeService
 
     private async Task<byte[]> ResolveRoleIdAsync(string roleId)
     {
+        await EnsureDefaultRolesAsync();
+
         var bytes = GuidHelper.ParseGuidString(roleId)
             ?? throw new ArgumentException("Vai trò không hợp lệ.");
 
@@ -153,6 +169,31 @@ public class AdminEmployeeService : IAdminEmployeeService
             throw new InvalidOperationException("Vai trò không tồn tại.");
 
         return bytes;
+    }
+
+    private async Task EnsureDefaultRolesAsync()
+    {
+        var existingCodes = await _context.Roles
+            .Select(role => role.RoleCode)
+            .ToListAsync();
+        var existingCodeSet = existingCodes.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingRoles = DefaultRoles
+            .Where(role => !existingCodeSet.Contains(role.RoleCode))
+            .Select(role => new Role
+            {
+                RoleId = GuidHelper.ToBytes(role.RoleId),
+                RoleCode = role.RoleCode,
+                RoleName = role.RoleName
+            })
+            .ToList();
+
+        if (missingRoles.Count == 0)
+        {
+            return;
+        }
+
+        _context.Roles.AddRange(missingRoles);
+        await _context.SaveChangesAsync();
     }
 
     private async Task EnsureUsernameAvailableAsync(string username, byte[]? currentUserId = null)
