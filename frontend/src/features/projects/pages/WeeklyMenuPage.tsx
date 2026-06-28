@@ -292,14 +292,6 @@ const WeeklyMenuPage = () => {
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const isImporting = isPreviewingImport || isCommittingImport;
-  useEffect(() => {
-    if (committedMenuWeekStartDate && !isValidWeekStartDate(committedMenuWeekStartDate)) {
-      window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
-      setCommittedMenuWeekStartDate('');
-      setImportedMenuDates({});
-    }
-  }, [committedMenuWeekStartDate]);
-
   const { data: committedMenuResponse } = useGetCommittedWeeklyMenuQuery(
     {
       customerId: effectiveImportCustomerId,
