@@ -29,6 +29,179 @@ public class CoordinationService : ICoordinationService
         return lines.Select(MapOrder).ToList();
     }
 
+    public async Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query)
+    {
+        var schedulesQuery = _context.Menuschedules
+            .Include(schedule => schedule.Customer)
+            .Include(schedule => schedule.Menu)
+                .ThenInclude(menu => menu.Menuitems)
+                    .ThenInclude(item => item.Dish)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.CustomerId))
+        {
+            var customerId = GuidHelper.ParseGuidString(query.CustomerId);
+            if (customerId is null)
+            {
+                return [];
+            }
+
+            schedulesQuery = schedulesQuery.Where(schedule => schedule.CustomerId == customerId);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
+            DateOnly.TryParse(query.ServiceDate, out var serviceDate))
+        {
+            schedulesQuery = schedulesQuery.Where(schedule => schedule.ServiceDate == serviceDate);
+        }
+        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
+        {
+            var resolvedDate = ResolveServiceDate(null, query.DayOfWeek);
+            schedulesQuery = schedulesQuery.Where(schedule => schedule.ServiceDate == resolvedDate);
+        }
+        else
+        {
+            var weekStart = ResolveWeekStartDate(query.WeekStartDate);
+            var weekEnd = weekStart.AddDays(6);
+            schedulesQuery = schedulesQuery.Where(schedule =>
+                schedule.ServiceDate >= weekStart &&
+                schedule.ServiceDate <= weekEnd);
+        }
+
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        if (!string.IsNullOrWhiteSpace(query.ShiftName) && shiftName is null)
+        {
+            return [];
+        }
+
+        if (shiftName is not null)
+        {
+            schedulesQuery = schedulesQuery.Where(schedule => schedule.ShiftName == shiftName);
+        }
+
+        var schedules = await schedulesQuery
+            .OrderBy(schedule => schedule.ServiceDate)
+            .ThenBy(schedule => schedule.ShiftName)
+            .ThenBy(schedule => schedule.Customer.CustomerCode)
+            .ToListAsync();
+
+        return schedules.Select(schedule => new MenuScheduleDto
+        {
+            MenuScheduleId = GuidHelper.ToGuidString(schedule.MenuScheduleId),
+            CustomerId = GuidHelper.ToGuidString(schedule.CustomerId),
+            CustomerCode = schedule.Customer.CustomerCode,
+            CustomerName = schedule.Customer.CustomerName,
+            MenuId = GuidHelper.ToGuidString(schedule.MenuId),
+            MenuCode = schedule.Menu.MenuCode,
+            MenuName = schedule.Menu.MenuName,
+            ServiceDate = schedule.ServiceDate.ToString("yyyy-MM-dd"),
+            WeekStartDate = schedule.WeekStartDate.ToString("yyyy-MM-dd"),
+            ShiftName = schedule.ShiftName,
+            Shift = ToDisplayShift(schedule.ShiftName),
+            DayOfWeek = ToDayCode(schedule.ServiceDate),
+            MenuPrice = schedule.MenuPrice,
+            BomRatePercent = schedule.BomRatePercent,
+            Status = schedule.Status,
+            Dishes = schedule.Menu.Menuitems
+                .OrderBy(item => item.DisplayOrder)
+                .Select(item => new MenuScheduleDishDto
+                {
+                    DishId = GuidHelper.ToGuidString(item.DishId),
+                    DishCode = item.Dish.DishCode,
+                    DishName = item.Dish.DishName,
+                    DishGroup = item.Dish.DishGroup,
+                    DishType = item.Dish.DishType,
+                    DisplayOrder = item.DisplayOrder
+                })
+                .ToList()
+        }).ToList();
+    }
+
+    public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
+    {
+        var plansQuery = _context.Mealquantityplans
+            .Include(plan => plan.Mealquantityplanlines)
+                .ThenInclude(line => line.Customer)
+            .Include(plan => plan.Mealquantityplanlines)
+                .ThenInclude(line => line.Menu)
+            .Include(plan => plan.Mealquantityplanlines)
+                .ThenInclude(line => line.MenuSchedule)
+            .AsNoTracking()
+            .AsSplitQuery()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
+            DateOnly.TryParse(query.ServiceDate, out var serviceDate))
+        {
+            plansQuery = plansQuery.Where(plan => plan.ServiceDate == serviceDate);
+        }
+        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
+        {
+            var resolvedDate = ResolveServiceDate(null, query.DayOfWeek);
+            plansQuery = plansQuery.Where(plan => plan.ServiceDate == resolvedDate);
+        }
+        else
+        {
+            var weekStart = ResolveWeekStartDate(query.WeekStartDate);
+            var weekEnd = weekStart.AddDays(6);
+            plansQuery = plansQuery.Where(plan =>
+                plan.ServiceDate >= weekStart &&
+                plan.ServiceDate <= weekEnd);
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.Status))
+        {
+            var status = OrderStatus.Normalize(query.Status);
+            plansQuery = plansQuery.Where(plan => plan.Status == status);
+        }
+
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        if (!string.IsNullOrWhiteSpace(query.ShiftName) && shiftName is null)
+        {
+            return [];
+        }
+
+        var plans = await plansQuery
+            .OrderBy(plan => plan.ServiceDate)
+            .ThenBy(plan => plan.PlanCode)
+            .ToListAsync();
+
+        return plans.Select(plan => new MealQuantityPlanDto
+        {
+            QuantityPlanId = GuidHelper.ToGuidString(plan.QuantityPlanId),
+            PlanCode = plan.PlanCode,
+            ServiceDate = plan.ServiceDate.ToString("yyyy-MM-dd"),
+            DayOfWeek = ToDayCode(plan.ServiceDate),
+            Status = plan.Status,
+            ForecastReceivedAt = plan.ForecastReceivedAt,
+            ConfirmedAt = plan.ConfirmedAt,
+            Lines = plan.Mealquantityplanlines
+                .Where(line => shiftName is null || line.ShiftName == shiftName)
+                .OrderBy(line => line.ShiftName)
+                .ThenBy(line => line.Customer.CustomerCode)
+                .Select(line => new MealQuantityPlanLineDto
+                {
+                    QuantityPlanLineId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
+                    MenuScheduleId = GuidHelper.ToGuidString(line.MenuScheduleId),
+                    CustomerId = GuidHelper.ToGuidString(line.CustomerId),
+                    CustomerCode = line.Customer.CustomerCode,
+                    CustomerName = line.Customer.CustomerName,
+                    MenuId = GuidHelper.ToGuidString(line.MenuId),
+                    MenuCode = line.Menu.MenuCode,
+                    MenuName = line.Menu.MenuName,
+                    ShiftName = line.ShiftName,
+                    Shift = ToDisplayShift(line.ShiftName),
+                    ForecastServings = line.ForecastServings,
+                    ConfirmedServings = line.ConfirmedServings,
+                    AdjustedServings = line.AdjustedServings,
+                    FinalServings = line.FinalServings
+                })
+                .ToList()
+        }).ToList();
+    }
+
     public async Task<LockOrderPlanResultDto?> LockOrderPlanAsync(
         LockOrderPlanRequestDto request,
         string? userId)
@@ -160,6 +333,64 @@ public class CoordinationService : ICoordinationService
         };
     }
 
+    public async Task<SignoffOrderResultDto?> SignoffOrderAsync(
+        string quantityPlanId,
+        SignoffOrderRequestDto request,
+        string? userId)
+    {
+        var planIdBytes = GuidHelper.ParseGuidString(quantityPlanId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (planIdBytes is null || userIdBytes is null)
+        {
+            return null;
+        }
+
+        var plan = await _context.Mealquantityplans
+            .FirstOrDefaultAsync(item => item.QuantityPlanId == planIdBytes);
+        if (plan is null)
+        {
+            return null;
+        }
+
+        var oldStatus = OrderStatus.Normalize(plan.Status);
+        if (!OrderStatus.CanTransition(oldStatus, OrderStatus.Completed))
+        {
+            throw new InvalidOperationException(
+                "Chỉ có thể hoàn tất ca sau khi kế hoạch đã được chốt.");
+        }
+
+        var signedOffAt = DateTime.UtcNow;
+        plan.Status = OrderStatus.Completed;
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = signedOffAt,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Coordination",
+            EntityName = nameof(Mealquantityplan),
+            EntityId = planIdBytes,
+            FieldName = nameof(Mealquantityplan.Status),
+            OldValue = oldStatus,
+            NewValue = OrderStatus.Completed,
+            Reason = string.IsNullOrWhiteSpace(request.Note)
+                ? "Hoàn tất ca điều phối"
+                : request.Note.Trim()
+        });
+
+        await _context.SaveChangesAsync();
+
+        return new SignoffOrderResultDto
+        {
+            Success = true,
+            QuantityPlanId = quantityPlanId,
+            ServiceDate = plan.ServiceDate.ToString("yyyy-MM-dd"),
+            OldStatus = oldStatus,
+            NewStatus = OrderStatus.Completed,
+            SignedOffAt = signedOffAt
+        };
+    }
+
     public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request)
     {
         var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
@@ -265,6 +496,19 @@ public class CoordinationService : ICoordinationService
         };
 
         return monday.AddDays(dayOffset);
+    }
+
+    private static DateOnly ResolveWeekStartDate(string? weekStartDate)
+    {
+        if (!string.IsNullOrWhiteSpace(weekStartDate) &&
+            DateOnly.TryParse(weekStartDate, out var parsedWeekStart))
+        {
+            return parsedWeekStart;
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var offsetFromMonday = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-offsetFromMonday);
     }
 
     private static string? NormalizeShiftName(string? shift)

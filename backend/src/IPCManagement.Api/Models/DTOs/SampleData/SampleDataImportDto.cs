@@ -14,6 +14,88 @@ public class SampleDataImportResultDto
     public List<SampleDataFileResultDto> Files { get; set; } = [];
     public SampleDataImportCountsDto Counts { get; set; } = new();
     public List<string> Warnings { get; set; } = [];
+    public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+}
+
+public class CoordinationCustomerOptionDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+}
+
+public class WeeklyMenuImportResultDto
+{
+    public bool Committed { get; set; }
+    public string FileName { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public DateOnly? WeekStartDate { get; set; }
+    public DateOnly? WeekEndDate { get; set; }
+    public WeeklyMenuImportLayoutDto DetectedLayout { get; set; } = new();
+    public SampleDataImportCountsDto Counts { get; set; } = new();
+    public List<string> Warnings { get; set; } = [];
+    public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
+    public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+}
+
+public class WeeklyMenuImportLayoutDto
+{
+    public string SheetName { get; set; } = string.Empty;
+    public string LabelColumn { get; set; } = string.Empty;
+    public List<WeeklyMenuImportColumnDto> DayColumns { get; set; } = [];
+    public List<string> Sections { get; set; } = [];
+    public int RowsScanned { get; set; }
+    public int RowsImported { get; set; }
+    public int RowsSkipped { get; set; }
+}
+
+public class WeeklyMenuImportColumnDto
+{
+    public string Column { get; set; } = string.Empty;
+    public DateOnly ServiceDate { get; set; }
+    public string Label { get; set; } = string.Empty;
+}
+
+public class WeeklyMenuImportRowDto
+{
+    public DateOnly ServiceDate { get; set; }
+    public string DayKey { get; set; } = string.Empty;
+    public string SourceSection { get; set; } = string.Empty;
+    public string SourceShift { get; set; } = string.Empty;
+    public string DbShiftName { get; set; } = string.Empty;
+    public string Variant { get; set; } = string.Empty;
+    public string Slot { get; set; } = string.Empty;
+    public string SlotLabel { get; set; } = string.Empty;
+    public string DishName { get; set; } = string.Empty;
+    public string? DishId { get; set; }
+    public bool ExistingDish { get; set; }
+}
+
+public class ImportedDayMenuDto
+{
+    public ImportedMenuSlotDto MorningSavory { get; set; } = new();
+    public ImportedMenuSlotDto MorningVegetarian { get; set; } = new();
+    public ImportedMenuSlotDto AfternoonSavory { get; set; } = new();
+    public ImportedMenuSlotDto AfternoonVegetarian { get; set; } = new();
+}
+
+public class ImportedCustomComponentsDto
+{
+    public string? Main { get; set; }
+    public string? Sub1 { get; set; }
+    public string? Sub2 { get; set; }
+    public string? Rau { get; set; }
+    public string? Canh { get; set; }
+    public string? Fruit { get; set; }
+}
+
+public class ImportedMenuSlotDto
+{
+    public string DishId { get; set; } = string.Empty;
+    public int Portions { get; set; }
+    public ImportedCustomComponentsDto CustomComponents { get; set; } = new();
 }
 
 public class SampleDataFileResultDto

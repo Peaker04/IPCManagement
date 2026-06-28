@@ -5,7 +5,10 @@ namespace IPCManagement.Api.Services;
 public interface ICoordinationService
 {
     Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query);
+    Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query);
+    Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query);
     Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequestDto request, string? userId);
     Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(AdjustOrderAfterLockRequestDto request, string? userId);
+    Task<SignoffOrderResultDto?> SignoffOrderAsync(string quantityPlanId, SignoffOrderRequestDto request, string? userId);
     Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request);
 }

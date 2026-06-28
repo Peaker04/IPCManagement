@@ -14,8 +14,11 @@ public class UserInfoDto
     public string UserId   { get; set; } = string.Empty;
     public string FullName { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
+    public string RoleCode { get; set; } = string.Empty;
     public string RoleName { get; set; } = string.Empty;
     public bool   IsActive { get; set; }
+    public bool   IsAdminFullAccess { get; set; }
+    public List<string> Permissions { get; set; } = new();
 }
 
 public class RefreshTokenRequestDto
