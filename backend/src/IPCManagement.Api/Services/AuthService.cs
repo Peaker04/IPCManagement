@@ -4,6 +4,7 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Auth;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services;
@@ -108,6 +109,32 @@ public class AuthService : IAuthService
             Username = user.Username,
             RoleName = user.Role?.RoleName ?? "Unknown",
             IsActive = true
+        };
+    }
+
+    public async Task<UserProfileResponseDto?> GetMeAsync(string userId)
+    {
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null) return null;
+
+        var user = await _userRepository.GetWithRoleAsync(userIdBytes);
+        if (user is null || user.IsActive == false) return null;
+
+        var roleName = user.Role?.RoleName ?? "Unknown";
+        var permissions = AuthorizationPolicies.ResolvePermissions(roleName);
+
+        return new UserProfileResponseDto
+        {
+            User = new UserInfoDto
+            {
+                UserId = GuidHelper.ToGuidString(user.UserId),
+                FullName = user.FullName,
+                Username = user.Username,
+                RoleName = roleName,
+                IsActive = true
+            },
+            Permissions = permissions,
+            IsAdmin = AuthorizationPolicies.IsAdminRole(roleName)
         };
     }
 

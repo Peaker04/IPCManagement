@@ -63,7 +63,7 @@ public class InventoryReceiptService : IInventoryReceiptService
             var receipt = new Inventoryreceipt
             {
                 ReceiptId = GuidHelper.NewId(),
-                ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}",
+                ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
                 ReceiptDate = dto.ReceiptDate,
                 SupplierId = supplierBytes,
                 WarehouseId = warehouseBytes,
