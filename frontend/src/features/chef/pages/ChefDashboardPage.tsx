@@ -12,8 +12,7 @@ import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
 import type { ExcessMaterial, SupplementalRequest } from '@/lib/types'
 import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow'
-
-
+import { formatQuantityWithUnit } from '@/lib/formatters'
 
 export default function ChefDashboardPage() {
   const orders = useAppSelector((state) => state.coordination.orders)
@@ -143,7 +142,7 @@ export default function ChefDashboardPage() {
     setRequests([...requests, { ...data, day: activeDay, shift: activeShift }])
     setChefFeedback({
       title: 'Đã ghi nhận yêu cầu bổ sung',
-      message: `${data.ingredientName}: ${data.requestedQty} ${data.unit} đã được thêm vào nhật ký ca ${activeShift}.`,
+      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.requestedQty, data.unit)} đã được thêm vào nhật ký ca ${activeShift}.`,
       variant: 'warning',
     })
   }
@@ -152,7 +151,7 @@ export default function ChefDashboardPage() {
     setReturns([...returns, { ...data, day: activeDay, shift: activeShift }])
     setChefFeedback({
       title: 'Đã ghi nhận nguyên liệu thừa',
-      message: `${data.ingredientName}: ${data.returnedQty} ${data.unit} (${data.condition}) đã được thêm vào nhật ký ca ${activeShift}.`,
+      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.returnedQty, data.unit)} (${data.condition}) đã được thêm vào nhật ký ca ${activeShift}.`,
       variant: 'info',
     })
   }

@@ -21,6 +21,7 @@ import {
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
 } from '@/features/workflow';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
@@ -65,7 +66,7 @@ export default function WarehousePage() {
           items={[
             { label: 'Phiếu nhập', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: 'warning' },
             { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
-            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${Math.max(shortageLine.required - shortageLine.available, 0)} ${shortageLine.unit}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
+            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
             { label: 'Bếp nhận', value: 'Chưa ký nhận', tone: 'warning' },
           ]}
         />

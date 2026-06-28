@@ -1,3 +1,4 @@
+import type { AppRole } from './roleUtils';
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 
@@ -5,17 +6,23 @@ export interface User {
   id: string;
   username: string;
   fullName: string;
-  role: string;
+  role: AppRole;
+  roleCode?: string;
+  roleName?: string;
+  isAdminFullAccess: boolean;
+  permissions: string[];
 }
 
 export interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
 const token = localStorage.getItem('token');
+const refreshToken = localStorage.getItem('refreshToken');
 const userJson = localStorage.getItem('user');
 
 const parseStoredUser = (): User | null => {
@@ -24,7 +31,21 @@ const parseStoredUser = (): User | null => {
   }
 
   try {
-    return JSON.parse(userJson) as User;
+    const parsed = JSON.parse(userJson) as Partial<User>;
+    if (!parsed.id || !parsed.username || !parsed.fullName || !parsed.role) {
+      throw new Error('Invalid stored user');
+    }
+
+    return {
+      id: parsed.id,
+      username: parsed.username,
+      fullName: parsed.fullName,
+      role: parsed.role,
+      roleCode: parsed.roleCode,
+      roleName: parsed.roleName,
+      isAdminFullAccess: parsed.isAdminFullAccess ?? parsed.role === 'admin',
+      permissions: parsed.permissions ?? [],
+    };
   } catch {
     localStorage.removeItem('user');
     return null;
@@ -34,6 +55,7 @@ const parseStoredUser = (): User | null => {
 const initialState: AuthState = {
   user: parseStoredUser(),
   token: token,
+  refreshToken: refreshToken,
   isAuthenticated: false,
   isLoading: !!token,
 };
@@ -44,11 +66,15 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User; token: string; refreshToken?: string }>
     ) => {
-      const { user, token } = action.payload;
+      const { user, token, refreshToken } = action.payload;
       state.user = user;
       state.token = token;
+      if (refreshToken) {
+        state.refreshToken = refreshToken;
+        localStorage.setItem('refreshToken', refreshToken);
+      }
       state.isAuthenticated = true;
       state.isLoading = false;
       localStorage.setItem('token', token);
@@ -60,9 +86,11 @@ const authSlice = createSlice({
     logOut: (state) => {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
       state.isLoading = false;
       localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
       localStorage.removeItem('user');
     },
   },

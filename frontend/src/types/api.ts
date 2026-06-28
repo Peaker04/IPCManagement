@@ -17,8 +17,11 @@ export interface UserInfo {
   userId: string;
   fullName: string;
   username: string;
+  roleCode?: string;
   roleName: string;
   isActive: boolean;
+  isAdminFullAccess?: boolean;
+  permissions?: string[];
 }
 
 /**

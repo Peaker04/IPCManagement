@@ -1,6 +1,17 @@
 import { apiSlice } from '../../api/apiSlice'
 import type { ApiResponse } from '../../types/api'
-import type { ApiShiftName, OrderRow, ShiftType } from './types'
+import type {
+  ApiShiftName,
+  MealQuantityPlanDto,
+  MealQuantityPlanQuery,
+  MenuScheduleDto,
+  MenuScheduleQuery,
+  OrderRow,
+  ShiftType,
+  SignoffOrderRequest,
+  SignoffOrderResult,
+  WeeklyMenuState,
+} from './types'
 import { toApiShiftName, toDisplayShift } from './types'
 
 export interface CoordinationQuery {
@@ -46,8 +57,104 @@ export interface ExportOrderReportResult {
   downloadUrl: string
 }
 
+export interface CoordinationCustomerOption {
+  customerId: string
+  customerCode: string
+  customerName: string
+}
+
+export interface WeeklyMenuImportRequest {
+  file: File
+  customerId: string
+  weekStartDate?: string
+}
+
+export interface WeeklyMenuQuery {
+  customerId: string
+  weekStartDate?: string
+}
+
+export interface WeeklyMenuImportColumn {
+  column: string
+  serviceDate: string
+  label: string
+}
+
+export interface WeeklyMenuImportLayout {
+  sheetName: string
+  labelColumn: string
+  dayColumns: WeeklyMenuImportColumn[]
+  sections: string[]
+  rowsScanned: number
+  rowsImported: number
+  rowsSkipped: number
+}
+
+export interface WeeklyMenuImportRow {
+  serviceDate: string
+  dayKey: string
+  sourceSection: string
+  sourceShift: string
+  dbShiftName: ApiShiftName
+  variant: string
+  slot: string
+  slotLabel: string
+  dishName: string
+  dishId?: string
+  existingDish: boolean
+}
+
+export interface WeeklyMenuImportResult {
+  committed: boolean
+  fileName: string
+  customerId: string
+  customerCode: string
+  customerName: string
+  weekStartDate?: string
+  weekEndDate?: string
+  detectedLayout: WeeklyMenuImportLayout
+  warnings: string[]
+  rows: WeeklyMenuImportRow[]
+  importedWeeklyMenu: WeeklyMenuState
+}
+
+const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate }: WeeklyMenuImportRequest) => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('customerId', customerId)
+  if (weekStartDate) {
+    formData.append('weekStartDate', weekStartDate)
+  }
+  return formData
+}
+
 export const coordinationApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    getCoordinationCustomers: builder.query<ApiResponse<CoordinationCustomerOption[]>, void>({
+      query: () => '/coordination/customers',
+      providesTags: ['Customers'],
+    }),
+    getCommittedWeeklyMenu: builder.query<ApiResponse<WeeklyMenuImportResult | null>, WeeklyMenuQuery>({
+      query: ({ customerId, weekStartDate }) => ({
+        url: '/coordination/weekly-menu',
+        params: { customerId, ...(weekStartDate ? { weekStartDate } : {}) },
+      }),
+      providesTags: ['Coordination'],
+    }),
+    getMenuSchedules: builder.query<ApiResponse<MenuScheduleDto[]>, MenuScheduleQuery>({
+      query: (params) => ({
+        url: '/coordination/menu-schedules',
+        params,
+      }),
+      providesTags: ['Coordination'],
+    }),
+    getMealQuantityPlans: builder.query<ApiResponse<MealQuantityPlanDto[]>, MealQuantityPlanQuery>({
+      query: (params) => ({
+        url: '/coordination/meal-quantity-plans',
+        params,
+      }),
+      providesTags: ['Coordination'],
+    }),
     getCoordinationOrders: builder.query<ApiResponse<OrderRow[]>, CoordinationQuery>({
       query: ({ dayOfWeek, shift }) => ({
         url: '/coordination/orders',
@@ -87,6 +194,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
+      query: ({ id, body }) => ({
+        url: `/coordination/orders/${id}/signoff`,
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
     exportCoordinationOrders: builder.mutation<ApiResponse<ExportOrderReportResult>, ExportOrderReportRequest>({
       query: ({ dayOfWeek, shift, format }) => ({
         url: '/coordination/orders/export',
@@ -98,13 +213,35 @@ export const coordinationApi = apiSlice.injectEndpoints({
         },
       }),
     }),
+    previewWeeklyMenuImport: builder.mutation<ApiResponse<WeeklyMenuImportResult>, WeeklyMenuImportRequest>({
+      query: (request) => ({
+        url: '/coordination/weekly-menu/import/preview',
+        method: 'POST',
+        body: buildWeeklyMenuImportFormData(request),
+      }),
+    }),
+    commitWeeklyMenuImport: builder.mutation<ApiResponse<WeeklyMenuImportResult>, WeeklyMenuImportRequest>({
+      query: (request) => ({
+        url: '/coordination/weekly-menu/import/commit',
+        method: 'POST',
+        body: buildWeeklyMenuImportFormData(request),
+      }),
+      invalidatesTags: ['Coordination', 'DishCatalog'],
+    }),
   }),
   overrideExisting: false,
 })
 
 export const {
+  useGetCoordinationCustomersQuery,
+  useGetCommittedWeeklyMenuQuery,
+  useGetMenuSchedulesQuery,
+  useGetMealQuantityPlansQuery,
   useGetCoordinationOrdersQuery,
   useLockCoordinationOrdersMutation,
   useAdjustCoordinationOrderMutation,
+  useSignoffCoordinationOrderMutation,
   useExportCoordinationOrdersMutation,
+  usePreviewWeeklyMenuImportMutation,
+  useCommitWeeklyMenuImportMutation,
 } = coordinationApi

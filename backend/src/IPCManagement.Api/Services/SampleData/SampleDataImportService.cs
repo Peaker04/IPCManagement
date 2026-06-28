@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.SampleData;
 
-public class SampleDataImportService : ISampleDataImportService
+public partial class SampleDataImportService : ISampleDataImportService
 {
     private const string SampleCustomerCode = "DAV";
     private const string SampleCustomerName = "Draxlmaier";

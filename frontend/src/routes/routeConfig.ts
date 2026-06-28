@@ -1,5 +1,6 @@
 export const ROUTES = {
   LOGIN: '/login',
+  FORBIDDEN: '/403',
   DASHBOARD: '/',
   WEEKLY_MENU: '/weekly-menu',
   REPORTS: '/reports',
@@ -9,4 +10,5 @@ export const ROUTES = {
   PURCHASING: '/purchasing',
   WAREHOUSE: '/warehouse',
   ADMIN_DATA: '/admin-data',
+  ADMIN_ACCOUNTS: '/admin-data?tab=employees',
 } as const;
