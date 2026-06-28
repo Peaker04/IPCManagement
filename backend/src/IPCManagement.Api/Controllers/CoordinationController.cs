@@ -74,6 +74,21 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<AdjustOrderAfterLockResultDto>.SuccessResult(result, "Điều chỉnh đơn thành công."));
     }
 
+    [HttpPatch("orders/{id}/servings")]
+    [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> AdjustServings([FromRoute] string id, [FromBody] AdjustServingsRequestDto request)
+    {
+        var userId = _currentUserService.GetUserId(User);
+        var result = await _coordinationService.AdjustServingsAsync(id, request, userId);
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
+        }
+
+        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, "Điều chỉnh số suất ăn thành công."));
+    }
+
     [HttpPost("orders/export")]
     [ProducesResponseType(typeof(ApiResponse<ExportOrderReportResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ExportOrderReport([FromBody] ExportOrderReportRequestDto request)
