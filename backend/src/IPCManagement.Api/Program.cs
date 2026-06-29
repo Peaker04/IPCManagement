@@ -219,7 +219,6 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "IPC Management API v1");
         c.RoutePrefix = "swagger";
     });
-    app.MapOpenApi();
 }
 
 app.UseMiddleware<SampleDataProductionGuardMiddleware>();
