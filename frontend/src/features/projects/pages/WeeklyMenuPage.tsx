@@ -525,7 +525,7 @@ const WeeklyMenuPage = () => {
         if (dayKey) {
           dispatch(updateWeeklyMenuDish({
             day: dayKey,
-            slotType: slot.slotType as any,
+            slotType: slot.slotType as 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian',
             dishId: slot.dishId,
           }));
         }
