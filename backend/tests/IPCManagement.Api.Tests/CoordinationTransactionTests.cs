@@ -13,6 +13,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
+using NSubstitute;
+using IPCManagement.Api.Services.Workflow;
 
 namespace IPCManagement.Api.Tests;
 
@@ -30,7 +32,8 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
         var request = new LockOrderPlanRequestDto
         {
             ServiceDate = "2026-06-15",
@@ -82,7 +85,8 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
         var request = new AdjustServingsRequestDto
         {
