@@ -90,6 +90,53 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         };
     }
 
+    public async Task UpdateLineSupplierAsync(
+        string requestId,
+        string lineId,
+        UpdatePurchaseRequestLineSupplierDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var prIdBytes = GuidHelper.ParseGuidString(requestId);
+        var prLineIdBytes = GuidHelper.ParseGuidString(lineId);
+        var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId);
+
+        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null)
+        {
+            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        var pr = await _context.Purchaserequests
+            .Include(x => x.Purchaserequestlines)
+            .FirstOrDefaultAsync(x => x.PurchaseRequestId == prIdBytes, cancellationToken);
+
+        if (pr is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy Purchase Request.");
+        }
+
+        if (pr.Status != "DRAFT")
+        {
+            throw new InvalidOperationException("Chỉ được đổi nhà cung cấp khi Đề xuất mua ở trạng thái DRAFT.");
+        }
+
+        var line = pr.Purchaserequestlines.FirstOrDefault(x => x.PurchaseRequestLineId.SequenceEqual(prLineIdBytes));
+        if (line is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong Purchase Request.");
+        }
+
+        var supplierExists = await _context.Suppliers.AnyAsync(s => s.SupplierId == supplierIdBytes && s.IsActive != false, cancellationToken);
+        if (!supplierExists)
+        {
+            throw new KeyNotFoundException("Nhà cung cấp không tồn tại hoặc đã bị khóa.");
+        }
+
+        line.SupplierId = supplierIdBytes;
+        line.EstimatedUnitPrice = DecimalPolicy.RoundMoney(request.EstimatedUnitPrice);
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
         Materialrequest materialRequest,
         byte[] userId,
