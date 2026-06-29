@@ -42,4 +42,34 @@ public class PurchaseWorkflowController : ControllerBase
 
         return Ok(ApiResponse<PurchaseRequestWorkflowResultDto>.SuccessResult(result, "Tạo đề xuất mua hàng thành công."));
     }
+
+    /// <summary>Gắn nhà cung cấp và đơn giá vào dòng đề xuất mua hàng.</summary>
+    [HttpPatch("requests/{id}/lines/{lineId}/supplier")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateLineSupplier(
+        string id,
+        string lineId,
+        [FromBody] UpdatePurchaseRequestLineSupplierDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, cancellationToken);
+            return Ok(ApiResponse.SuccessResult("Cập nhật nhà cung cấp và đơn giá thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }

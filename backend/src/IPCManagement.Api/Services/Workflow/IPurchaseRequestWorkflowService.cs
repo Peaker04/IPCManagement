@@ -8,4 +8,10 @@ public interface IPurchaseRequestWorkflowService
         GeneratePurchaseRequestFromDemandDto request,
         string? userId,
         CancellationToken cancellationToken = default);
+
+    Task UpdateLineSupplierAsync(
+        string requestId,
+        string lineId,
+        UpdatePurchaseRequestLineSupplierDto request,
+        CancellationToken cancellationToken = default);
 }
