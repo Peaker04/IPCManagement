@@ -2,6 +2,8 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Models.DTOs.Workflow;
+using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services;
@@ -9,10 +11,12 @@ namespace IPCManagement.Api.Services;
 public class CoordinationService : ICoordinationService
 {
     private readonly IpcManagementContext _context;
+    private readonly IMaterialDemandService _materialDemandService;
 
-    public CoordinationService(IpcManagementContext context)
+    public CoordinationService(IpcManagementContext context, IMaterialDemandService materialDemandService)
     {
         _context = context;
+        _materialDemandService = materialDemandService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -374,6 +378,22 @@ public class CoordinationService : ICoordinationService
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
 
+            string? warning = null;
+            try
+            {
+                await _materialDemandService.GenerateAsync(
+                    new GenerateMaterialDemandRequestDto
+                    {
+                        ServiceDate = line.QuantityPlan.ServiceDate.ToString("yyyy-MM-dd"),
+                        Scope = "FULLDAY"
+                    },
+                    userId);
+            }
+            catch (Exception ex)
+            {
+                warning = $"Đã cập nhật số suất thành công, nhưng tự động tính nhu cầu mua hàng gặp lỗi: {ex.Message}";
+            }
+
             return new AdjustServingsResultDto
             {
                 Success = true,
@@ -381,7 +401,8 @@ public class CoordinationService : ICoordinationService
                 OldServings = oldValue,
                 NewServings = request.ServingsQuantity,
                 ChangedAt = changedAt,
-                AuditId = GuidHelper.ToGuidString(auditId)
+                AuditId = GuidHelper.ToGuidString(auditId),
+                Warning = warning
             };
         }
         catch

@@ -14,4 +14,5 @@ public class AdjustServingsResultDto
     public int NewServings { get; set; }
     public DateTime ChangedAt { get; set; }
     public string AuditId { get; set; } = string.Empty;
+    public string? Warning { get; set; }
 }

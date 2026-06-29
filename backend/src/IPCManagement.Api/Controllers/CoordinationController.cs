@@ -230,7 +230,8 @@ public class CoordinationController : ControllerBase
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
         }
 
-        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, "Điều chỉnh số suất ăn thành công."));
+        var message = result.Warning ?? "Điều chỉnh số suất ăn thành công.";
+        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, message));
     }
 
     [HttpPost("orders/export")]
