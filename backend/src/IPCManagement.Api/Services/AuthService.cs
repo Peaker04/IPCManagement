@@ -4,6 +4,7 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Auth;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services;
@@ -34,8 +35,9 @@ public class AuthService : IAuthService
 
         var userId   = GuidHelper.ToGuidString(user.UserId);
         var roleName = user.Role?.RoleName ?? "Unknown";
+        var roleCode = user.Role?.RoleCode ?? string.Empty;
 
-        return await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleName, deviceInfo);
+        return await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleCode, roleName, deviceInfo);
     }
 
     // ── Refresh Token ─────────────────────────────────────────────────────────
@@ -66,8 +68,9 @@ public class AuthService : IAuthService
 
         var user     = stored.User;
         var roleName = user.Role?.RoleName ?? "Unknown";
+        var roleCode = user.Role?.RoleCode ?? string.Empty;
         var newResponse = await BuildLoginResponseAsync(
-            user.UserId, userIdStr, user.Username, user.FullName, roleName);
+            user.UserId, userIdStr, user.Username, user.FullName, roleCode, roleName);
 
         // Ghi hash của token mới vào trường replacedByToken để audit
         stored.ReplacedByToken = _tokenService.HashRefreshToken(newResponse.RefreshToken);
@@ -101,13 +104,46 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetWithRoleAsync(userIdBytes);
         if (user is null || user.IsActive == false) return null;
 
+        var roleCode = user.Role?.RoleCode ?? string.Empty;
+        var roleName = user.Role?.RoleName ?? "Unknown";
+        var permissions = BuildPermissionsForRole(roleCode, roleName);
+
         return new UserInfoDto
         {
             UserId   = GuidHelper.ToGuidString(user.UserId),
             FullName = user.FullName,
             Username = user.Username,
-            RoleName = user.Role?.RoleName ?? "Unknown",
-            IsActive = true
+            RoleCode = roleCode,
+            RoleName = roleName,
+            IsActive = true,
+            IsAdminFullAccess = IsAdminRole(roleCode, roleName),
+            Permissions = permissions
+        };
+    }
+
+    public async Task<UserProfileResponseDto?> GetMeAsync(string userId)
+    {
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null) return null;
+
+        var user = await _userRepository.GetWithRoleAsync(userIdBytes);
+        if (user is null || user.IsActive == false) return null;
+
+        var roleName = user.Role?.RoleName ?? "Unknown";
+        var permissions = AuthorizationPolicies.ResolvePermissions(roleName);
+
+        return new UserProfileResponseDto
+        {
+            User = new UserInfoDto
+            {
+                UserId = GuidHelper.ToGuidString(user.UserId),
+                FullName = user.FullName,
+                Username = user.Username,
+                RoleName = roleName,
+                IsActive = true
+            },
+            Permissions = permissions,
+            IsAdmin = AuthorizationPolicies.IsAdminRole(roleName)
         };
     }
 
@@ -116,7 +152,8 @@ public class AuthService : IAuthService
     private async Task<LoginResponseDto> BuildLoginResponseAsync(
         byte[] userIdBytes, string userId,
         string username,    string fullName,
-        string roleName,    string deviceInfo = "")
+        string roleCode,    string roleName,
+        string deviceInfo = "")
     {
         var rawRefreshToken = _tokenService.GenerateRefreshToken();
         var tokenHash       = _tokenService.HashRefreshToken(rawRefreshToken);
@@ -139,6 +176,8 @@ public class AuthService : IAuthService
 
         await _refreshTokenRepository.SaveChangesAsync();
 
+        var permissions = BuildPermissionsForRole(roleCode, roleName);
+
         return new LoginResponseDto
         {
             AccessToken  = _tokenService.GenerateAccessToken(userId, username, fullName, roleName),
@@ -149,9 +188,51 @@ public class AuthService : IAuthService
                 UserId   = userId,
                 FullName = fullName,
                 Username = username,
+                RoleCode = roleCode,
                 RoleName = roleName,
-                IsActive = true
+                IsActive = true,
+                IsAdminFullAccess = IsAdminRole(roleCode, roleName),
+                Permissions = permissions
             }
         };
     }
+
+    private static bool IsAdminRole(string? roleCode, string? roleName)
+        => MatchesAny(roleCode, roleName, ["Admin", "ADMIN", "Quản trị"]);
+
+    private static List<string> BuildPermissionsForRole(string? roleCode, string? roleName)
+    {
+        if (IsAdminRole(roleCode, roleName))
+        {
+            return ["*"];
+        }
+
+        var permissions = new List<string>();
+        AddPermissionIfMatches(permissions, "catalog:read", roleCode, roleName, AuthorizationPolicies.CatalogRoles);
+        AddPermissionIfMatches(permissions, "coordination:read", roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, "coordination:write", roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, "inventory:read", roleCode, roleName, AuthorizationPolicies.InventoryRoles);
+        AddPermissionIfMatches(permissions, "production:read", roleCode, roleName, AuthorizationPolicies.ProductionRoles);
+        AddPermissionIfMatches(permissions, "purchasing:read", roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
+        AddPermissionIfMatches(permissions, "warehouse:read", roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
+        return permissions;
+    }
+
+    private static void AddPermissionIfMatches(
+        ICollection<string> permissions,
+        string permission,
+        string? roleCode,
+        string? roleName,
+        string[] allowedRoles)
+    {
+        if (MatchesAny(roleCode, roleName, allowedRoles))
+        {
+            permissions.Add(permission);
+        }
+    }
+
+    private static bool MatchesAny(string? roleCode, string? roleName, string[] allowedRoles)
+        => allowedRoles.Any(allowed =>
+            string.Equals(allowed, roleCode, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(allowed, roleName, StringComparison.OrdinalIgnoreCase));
 }

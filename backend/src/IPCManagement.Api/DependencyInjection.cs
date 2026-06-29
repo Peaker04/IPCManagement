@@ -3,6 +3,10 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.Admin;
+using IPCManagement.Api.Services.Approvals;
+using IPCManagement.Api.Services.SampleData;
+using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api;
@@ -36,6 +40,7 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
         services.AddScoped<IInventoryReceiptRepository, InventoryReceiptRepository>();
         services.AddScoped<IInventoryIssueRepository, InventoryIssueRepository>();
+        services.AddScoped<IInventoryReturnRepository, InventoryReturnRepository>();
         services.AddScoped<IProductionPlanRepository, ProductionPlanRepository>();
         services.AddScoped<ICurrentStockRepository, CurrentStockRepository>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
@@ -43,14 +48,25 @@ public static class DependencyInjection
 
         // Services
         services.AddScoped<IAuthService, AuthService>();
+        services.AddScoped<IAdminEmployeeService, AdminEmployeeService>();
+        services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
+        services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, InventoryAdjustmentApprovalHandler>();
         services.AddScoped<IIngredientService, IngredientService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
+        services.AddScoped<IInventoryReturnService, InventoryReturnService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICoordinationService, CoordinationService>();
+        services.AddScoped<ISampleDataImportService, SampleDataImportService>();
+        services.AddScoped<IMaterialDemandService, MaterialDemandService>();
+        services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
+        services.AddScoped<IWorkflowReportService, WorkflowReportService>();
 
         return services;
     }

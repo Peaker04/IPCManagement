@@ -1,6 +1,7 @@
+import type { ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { logOut, selectCurrentUser } from '../../features/auth';
+import { canAccessRole, logOut, ROLE_LABELS, selectCurrentUser, useRevokeTokenMutation, type AppRole } from '../../features/auth';
 import { ROUTES } from '../../routes/routeConfig';
 import { getWorkflowContextForPath } from '../../features/workflow';
 import {
@@ -48,23 +49,37 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
+  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
+  const [revokeToken] = useRevokeTokenMutation();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    if (refreshToken && !refreshToken.startsWith('dev-fallback-refresh')) {
+      try {
+        await revokeToken({ refreshToken }).unwrap();
+      } catch {
+        // Logout must remain available even when the API cannot revoke.
+      }
+    }
+
     dispatch(logOut());
     navigate(ROUTES.LOGIN);
   };
 
-  const menuItems = [
+  const menuItems: Array<{ path: string; label: string; icon: ReactNode; allowedRoles?: AppRole[] }> = [
     { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
-    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} /> },
-    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} /> },
-    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} /> },
-    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} /> },
-    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} /> },
-    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} /> },
-    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} /> },
-    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} /> },
+    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, allowedRoles: ['quanly', 'dieuphoi'] },
+    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, allowedRoles: ['quanly', 'dieuphoi'] },
+    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, allowedRoles: ['quanly'] },
+    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, allowedRoles: ['quanly', 'thumua'] },
+    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, allowedRoles: ['quanly', 'thukho'] },
+    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, allowedRoles: ['quanly', 'beptruong'] },
+    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, allowedRoles: ['quanly'] },
+    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, allowedRoles: ['admin'] },
   ];
+
+  const visibleMenuItems = menuItems.filter((item) =>
+    !item.allowedRoles || canAccessRole(currentUser, item.allowedRoles)
+  );
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
@@ -81,10 +96,13 @@ export const MainLayout = () => {
       case ROUTES.REPORTS:
         return { title: 'Phân tích biến động giá', workflow: 'Biến động giá', state: 'Cảnh báo ngưỡng' };
       case ROUTES.APPROVALS:
+        return { title: 'Duyệt vận hành', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.PURCHASING:
+        return { title: 'Thu mua', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.WAREHOUSE:
+        return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.ADMIN_DATA:
-        return { title: workflowContext.lane.stage, workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+        return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       default:
         return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
     }
@@ -115,7 +133,7 @@ export const MainLayout = () => {
           aria-label="Điều hướng chính"
           className="ipc-nav"
         >
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
               <Link
@@ -143,7 +161,7 @@ export const MainLayout = () => {
               <div className="min-w-0">
                 <div className="ipc-user-name">{currentUser.fullName}</div>
                 <div className="ipc-user-role">
-                  {currentUser.role === 'admin' ? 'Giám đốc / Admin' : 'Nhân viên'}
+                  {ROLE_LABELS[currentUser.role] ?? 'Nhân viên'}
                 </div>
               </div>
             </div>

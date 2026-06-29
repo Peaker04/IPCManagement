@@ -13,6 +13,17 @@ export type OrderUpdatePayload =
   | { id: string; field: 'forecastQuantity'; value: number }
   | { id: string; field: 'specialNotes'; value: string }
 
+export interface SyncOrdersPayload {
+  dayOfWeek: string
+  shift: ShiftType
+  orders: OrderRow[]
+}
+
+export interface MarkOrdersLockedPayload {
+  dayOfWeek: string
+  shifts: ShiftType[]
+}
+
 export interface MenuDish {
   dishId: string
   dishCode: string
@@ -61,6 +72,14 @@ export interface AuditLogEntry {
 export interface MenuSlot {
   dishId: string
   portions: number
+  customComponents?: {
+    main?: string
+    sub1?: string
+    sub2?: string
+    rau?: string
+    canh?: string
+    fruit?: string
+  }
 }
 
 export interface DayMenuState {
@@ -96,3 +115,87 @@ export interface DashboardState {
   editingCell: string | null
 }
 
+export interface MenuScheduleQuery {
+  serviceDate?: string
+  dayOfWeek?: string
+  weekStartDate?: string
+  shiftName?: ApiShiftName
+  customerId?: string
+}
+
+export interface MenuScheduleDishDto {
+  dishId: string
+  dishCode: string
+  dishName: string
+  dishGroup?: string
+  dishType?: string
+  displayOrder: number
+}
+
+export interface MenuScheduleDto {
+  menuScheduleId: string
+  customerId: string
+  customerCode: string
+  customerName: string
+  menuId: string
+  menuCode: string
+  menuName: string
+  serviceDate: string
+  weekStartDate: string
+  shiftName: ApiShiftName
+  shift: ShiftType
+  dayOfWeek: string
+  menuPrice: number
+  bomRatePercent: number
+  status: string
+  dishes: MenuScheduleDishDto[]
+}
+
+export interface MealQuantityPlanQuery {
+  serviceDate?: string
+  dayOfWeek?: string
+  weekStartDate?: string
+  shiftName?: ApiShiftName
+  status?: string
+}
+
+export interface MealQuantityPlanLineDto {
+  quantityPlanLineId: string
+  menuScheduleId: string
+  customerId: string
+  customerCode: string
+  customerName: string
+  menuId: string
+  menuCode: string
+  menuName: string
+  shiftName: ApiShiftName
+  shift: ShiftType
+  forecastServings: number
+  confirmedServings: number
+  adjustedServings: number
+  finalServings: number
+}
+
+export interface MealQuantityPlanDto {
+  quantityPlanId: string
+  planCode: string
+  serviceDate: string
+  dayOfWeek: string
+  status: 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'ARCHIVED' | string
+  forecastReceivedAt?: string
+  confirmedAt?: string
+  lines: MealQuantityPlanLineDto[]
+}
+
+export interface SignoffOrderRequest {
+  note?: string
+}
+
+export interface SignoffOrderResult {
+  success: boolean
+  quantityPlanId: string
+  serviceDate: string
+  oldStatus: string
+  newStatus: string
+  signedOffAt: string
+}

@@ -3,8 +3,9 @@
 import { useMemo, useState } from 'react'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
-import { updateOrder } from '../coordinationSlice'
-import { DataTableShell, EmptyState, PaginationBar } from '@/components/common'
+import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
+import { useAdjustCoordinationOrderMutation } from '../coordinationApi'
+import { DataTableShell, EmptyState, InlineAlert, PaginationBar } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
 import { ClipboardList } from 'lucide-react'
 
@@ -15,7 +16,10 @@ interface OrderTableProps {
 
 export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const dispatch = useAppDispatch()
+  const [adjustCoordinationOrder] = useAdjustCoordinationOrderMutation()
   const [page, setPage] = useState(1)
+  const [pendingOrderIds, setPendingOrderIds] = useState<Record<string, boolean>>({})
+  const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const pageSize = 12
   const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
   const safePage = Math.min(page, totalPages)
@@ -28,7 +32,34 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
     dispatch(updateOrder(payload))
   }
 
+  const handleActualQuantityChange = async (order: OrderRow, value: number) => {
+    const previousValue = order.actualQuantity
+    dispatch(setOrderActualQuantity({ id: order.id, value }))
+    setPendingOrderIds((current) => ({ ...current, [order.id]: true }))
+    setOptimisticError(null)
 
+    try {
+      const response = await adjustCoordinationOrder({
+        orderId: order.quantityPlanLineId ?? order.id,
+        field: 'actualQuantity',
+        newValue: value,
+        reason: 'Điều phối cập nhật số suất thực tế sau chốt.',
+      }).unwrap()
+
+      if (!response.success) {
+        throw new Error(response.message || 'Không cập nhật được số suất.')
+      }
+    } catch (error) {
+      dispatch(setOrderActualQuantity({ id: order.id, value: previousValue }))
+      setOptimisticError(error instanceof Error ? error.message : 'Không cập nhật được số suất, đã hoàn tác giá trị cũ.')
+    } finally {
+      setPendingOrderIds((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
+    }
+  }
 
   if (orders.length === 0) {
     return (
@@ -43,6 +74,13 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
 
   return (
     <div className="ipc-order-table-wrap">
+      {optimisticError && (
+        <div className="border-b border-slate-200">
+          <InlineAlert title="Không lưu được số suất" variant="danger">
+            {optimisticError}
+          </InlineAlert>
+        </div>
+      )}
       <DataTableShell className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
@@ -138,9 +176,18 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
               <td className="border-r border-slate-200 text-center">
                 <input
                   type="number"
-                  disabled
+                  min="0"
+                  max="9999"
+                  disabled={!isLocked || pendingOrderIds[order.id]}
                   value={order.actualQuantity}
-                  className="min-h-9 w-16 rounded-md border border-slate-200 bg-slate-100 px-2 py-1.5 text-center font-semibold text-slate-500"
+                  onChange={(e) =>
+                    handleActualQuantityChange(order, parseInt(e.target.value) || 0)
+                  }
+                  className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
+                    isLocked
+                      ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'
+                      : 'border-slate-200 bg-slate-100 text-slate-500'
+                  } ${pendingOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
                 />
               </td>
 

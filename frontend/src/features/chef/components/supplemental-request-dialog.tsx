@@ -20,6 +20,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Plus, AlertTriangle, Scale } from 'lucide-react'
+import { formatQuantityWithUnit, formatUnit } from '@/lib/formatters'
 import type { Ingredient, SupplementalRequest } from '@/lib/types'
 
 interface SupplementalRequestDialogProps {
@@ -102,7 +103,7 @@ export function SupplementalRequestDialog({
                     <span className="text-slate-800 font-medium">
                       {material.name}
                     </span>
-                    <span className="text-xs text-slate-400 ml-1.5">({material.unit})</span>
+                    <span className="text-xs text-slate-400 ml-1.5">({formatUnit(material.unit)})</span>
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -119,7 +120,7 @@ export function SupplementalRequestDialog({
                 <span className="text-xs font-medium text-slate-500">Số lượng hiện tại:</span>
               </div>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-800">
-                {selectedMaterial.quantity} {selectedMaterial.unit}
+                {formatQuantityWithUnit(selectedMaterial.quantity, selectedMaterial.unit)}
               </span>
             </div>
           )}
@@ -143,7 +144,7 @@ export function SupplementalRequestDialog({
               {selectedMaterial && (
                 <div className="absolute inset-y-0 right-0 flex items-center pr-3">
                   <span className="text-xs font-semibold text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-200">
-                    {selectedMaterial.unit}
+                    {formatUnit(selectedMaterial.unit)}
                   </span>
                 </div>
               )}

@@ -152,3 +152,72 @@ public class InventoryIssueCreatedDto
     public string IssueId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
 }
+
+// ─── Inventory Return (Trả nguyên liệu dư) ───────────────────────────────
+
+public class InventoryReturnDto
+{
+    public string ReturnId { get; set; } = string.Empty;
+    public string ReturnCode { get; set; } = string.Empty;
+    public DateOnly ReturnDate { get; set; }
+    public string? ShiftName { get; set; }
+    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseName { get; set; }
+    public string IssueId { get; set; } = string.Empty;
+    public string? IssueCode { get; set; }
+    public string? Reason { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public string? CreatedByName { get; set; }
+    public DateTime CreatedAt { get; set; }
+
+    public List<InventoryReturnLineDto> Lines { get; set; } = new();
+}
+
+public class InventoryReturnLineDto
+{
+    public string ReturnLineId { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public decimal Quantity { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+}
+
+// ─── Create Inventory Return ─────────────────────────────────────────────
+
+public class CreateInventoryReturnDto
+{
+    [Required]
+    public DateOnly ReturnDate { get; set; }
+
+    public string? ShiftName { get; set; }
+
+    [Required]
+    public string WarehouseId { get; set; } = string.Empty;
+
+    [Required]
+    public string IssueId { get; set; } = string.Empty;
+
+    public string? Reason { get; set; }
+
+    [Required, MinLength(1)]
+    public List<CreateInventoryReturnLineDto> Lines { get; set; } = new();
+}
+
+public class CreateInventoryReturnLineDto
+{
+    [Required]
+    public string IngredientId { get; set; } = string.Empty;
+
+    [Required, Range(0.000001, double.MaxValue)]
+    public decimal Quantity { get; set; }
+
+    [Required]
+    public string UnitId { get; set; } = string.Empty;
+}
+
+public class InventoryReturnCreatedDto
+{
+    public string ReturnId { get; set; } = string.Empty;
+    public string ReturnCode { get; set; } = string.Empty;
+}
