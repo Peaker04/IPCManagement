@@ -3,6 +3,8 @@ import type {
   ApiResponse,
   LoginData,
   LoginRequest,
+  RefreshTokenRequest,
+  RevokeTokenRequest,
   UserInfo,
 } from '../../types/api';
 
@@ -15,6 +17,20 @@ export const authApi = apiSlice.injectEndpoints({
         body: credentials,
       }),
     }),
+    refreshToken: builder.mutation<ApiResponse<LoginData>, RefreshTokenRequest>({
+      query: (body) => ({
+        url: '/auth/refresh',
+        method: 'POST',
+        body,
+      }),
+    }),
+    logout: builder.mutation<ApiResponse<void>, RevokeTokenRequest>({
+      query: (body) => ({
+        url: '/auth/logout',
+        method: 'POST',
+        body,
+      }),
+    }),
     getCurrentUser: builder.query<ApiResponse<UserInfo>, void>({
       query: () => '/auth/profile',
     }),
@@ -22,4 +38,4 @@ export const authApi = apiSlice.injectEndpoints({
   overrideExisting: false,
 });
 
-export const { useLoginMutation, useGetCurrentUserQuery } = authApi;
+export const { useLoginMutation, useRefreshTokenMutation, useGetCurrentUserQuery } = authApi;

@@ -1,6 +1,8 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { logOut, selectCurrentUser } from '../../features/auth';
+import { selectCurrentUser } from '../../features/auth';
+import { logoutSession } from '../../features/auth/logoutSession';
+import { store } from '../../app/store';
 import { ROUTES } from '../../routes/routeConfig';
 import { getWorkflowContextForPath } from '../../features/workflow';
 import {
@@ -49,9 +51,9 @@ export const MainLayout = () => {
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
 
-  const handleLogout = () => {
-    dispatch(logOut());
-    navigate(ROUTES.LOGIN);
+  const handleLogout = async () => {
+    await logoutSession(dispatch, store.getState);
+    navigate(ROUTES.LOGIN, { replace: true });
   };
 
   const menuItems = [

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { ROUTES } from './routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { MainLayout } from '../components/layout/MainLayout';
+import { SessionTimeoutModal } from '../features/auth/components/SessionTimeoutModal';
 import LoginPage from '../features/auth/pages/LoginPage';
 import DashboardPage from '../features/dashboard/pages/DashboardPage';
 import WeeklyMenuPage from '../features/projects/pages/WeeklyMenuPage';
@@ -16,6 +17,7 @@ import AdminDataPage from '../features/workflow/pages/AdminDataPage';
 export const AppRouter = () => {
   return (
     <BrowserRouter>
+      <SessionTimeoutModal />
       <Routes>
         {/* Public Routes */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />

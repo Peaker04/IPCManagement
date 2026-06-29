@@ -5,6 +5,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Auth;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace IPCManagement.Api.Services;
 
@@ -13,15 +14,18 @@ public class AuthService : IAuthService
     private readonly IUserRepository   _userRepository;
     private readonly ITokenService     _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly ILogger<AuthService> _logger;
 
     public AuthService(
         IUserRepository       userRepository,
         ITokenService         tokenService,
-        IRefreshTokenRepository refreshTokenRepository)
+        IRefreshTokenRepository refreshTokenRepository,
+        ILogger<AuthService> logger)
     {
         _userRepository = userRepository;
         _tokenService   = tokenService;
         _refreshTokenRepository = refreshTokenRepository;
+        _logger = logger;
     }
 
     // ── Login ─────────────────────────────────────────────────────────────────
@@ -29,66 +33,152 @@ public class AuthService : IAuthService
     public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, string deviceInfo = "")
     {
         var user = await _userRepository.FindByUsernameAsync(request.Username);
-        if (user is null || user.IsActive == false) return null;
-        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash)) return null;
+        if (user is null || user.IsActive == false)
+        {
+            _logger.LogWarning("Login rejected for unknown or inactive username {Username}", request.Username);
+            return null;
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
+        {
+            _logger.LogWarning("Login rejected for user {UserId} ({Username}) due to invalid password", GuidHelper.ToGuidString(user.UserId), user.Username);
+            return null;
+        }
 
         var userId   = GuidHelper.ToGuidString(user.UserId);
         var roleName = user.Role?.RoleName ?? "Unknown";
 
-        return await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleName, deviceInfo);
+        var response = await BuildLoginResponseAsync(user.UserId, userId, user.Username, user.FullName, roleName, deviceInfo);
+
+        _logger.LogInformation(
+            "Issued tokens for user {UserId} ({Username}) from device {DeviceInfo}",
+            userId,
+            user.Username,
+            deviceInfo);
+
+        return response;
     }
 
     // ── Refresh Token ─────────────────────────────────────────────────────────
 
     public async Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request)
     {
-        // 1. Validate chữ ký + claims của access token (bỏ qua expired)
-        var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
-        if (principal is null) return null;
+        try
+        {
+            // 1. Validate chữ ký + claims của access token (bỏ qua expired)
+            var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
+            if (principal is null)
+            {
+                _logger.LogWarning("Refresh rejected because access token is invalid or tampered.");
+                return null;
+            }
 
-        var userIdStr = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
-        if (userIdStr is null) return null;
+            var userIdStr = principal.FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+            if (userIdStr is null)
+            {
+                _logger.LogWarning("Refresh rejected because subject claim is missing.");
+                return null;
+            }
 
-        var userId = GuidHelper.ParseGuidString(userIdStr);
-        if (userId is null) return null;
+            var userId = GuidHelper.ParseGuidString(userIdStr);
+            if (userId is null)
+            {
+                _logger.LogWarning("Refresh rejected because subject claim is not a valid user id.");
+                return null;
+            }
 
 
-        // 2. Tìm refresh token trong DB theo hash
-        var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
-        var stored    = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId);
+            // 2. Tìm refresh token trong DB theo hash
+            var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
+            var stored    = await _refreshTokenRepository.FindValidByHashAsync(tokenHash, userId);
 
-        if (stored is null || stored.IsRevoked || stored.IsUsed || stored.ExpiresAt < DateTime.UtcNow)
-            return null;
+            if (stored is null || stored.IsRevoked || stored.IsUsed || stored.ExpiresAt < DateTime.UtcNow)
+            {
+                _logger.LogWarning(
+                    "Refresh rejected for user {UserId} with token hash prefix {TokenHashPrefix}",
+                    GuidHelper.ToGuidString(userId),
+                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                return null;
+            }
 
-        // 3. Đánh dấu token cũ đã dùng (Token Rotation)
-        stored.IsUsed   = true;
-        stored.RevokedAt = DateTime.UtcNow;
+            // 3. Đánh dấu token cũ đã dùng (Token Rotation)
+            stored.IsUsed   = true;
+            stored.RevokedAt = DateTime.UtcNow;
 
-        var user     = stored.User;
-        var roleName = user.Role?.RoleName ?? "Unknown";
-        var newResponse = await BuildLoginResponseAsync(
-            user.UserId, userIdStr, user.Username, user.FullName, roleName);
+            var user     = stored.User;
+            var roleName = user.Role?.RoleName ?? "Unknown";
+            var newResponse = await BuildLoginResponseAsync(
+                user.UserId, userIdStr, user.Username, user.FullName, roleName);
 
-        // Ghi hash của token mới vào trường replacedByToken để audit
-        stored.ReplacedByToken = _tokenService.HashRefreshToken(newResponse.RefreshToken);
+            // Ghi hash của token mới vào trường replacedByToken để audit
+            stored.ReplacedByToken = _tokenService.HashRefreshToken(newResponse.RefreshToken);
 
-        await _refreshTokenRepository.SaveChangesAsync();
-        return newResponse;
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Refresh succeeded for user {UserId} with rotated refresh token hash prefix {TokenHashPrefix}",
+                userIdStr,
+                tokenHash[..Math.Min(tokenHash.Length, 8)]);
+
+            return newResponse;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error during refresh token rotation.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during refresh token flow.");
+            throw;
+        }
     }
 
     // ── Revoke (Logout) ────────────────────────────────────────────────────────
 
     public async Task<bool> RevokeTokenAsync(RevokeTokenRequestDto request)
     {
-        var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
-        var stored    = await _refreshTokenRepository.FindByHashAsync(tokenHash);
+        try
+        {
+            var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
+            var stored    = await _refreshTokenRepository.FindByHashAsync(tokenHash);
 
-        if (stored is null || stored.IsRevoked) return false;
+            if (stored is null)
+            {
+                _logger.LogWarning(
+                    "Logout/revoke requested for unknown refresh token hash prefix {TokenHashPrefix}",
+                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                return false;
+            }
 
-        stored.IsRevoked  = true;
-        stored.RevokedAt  = DateTime.UtcNow;
-        await _refreshTokenRepository.SaveChangesAsync();
-        return true;
+            if (stored.IsRevoked)
+            {
+                _logger.LogInformation(
+                    "Logout/revoke requested for already revoked token hash prefix {TokenHashPrefix}",
+                    tokenHash[..Math.Min(tokenHash.Length, 8)]);
+                return true;
+            }
+
+            stored.IsRevoked  = true;
+            stored.RevokedAt  = DateTime.UtcNow;
+            await _refreshTokenRepository.SaveChangesAsync();
+
+            _logger.LogInformation(
+                "Refresh token revoked for user {UserId} with token hash prefix {TokenHashPrefix}",
+                GuidHelper.ToGuidString(stored.UserId),
+                tokenHash[..Math.Min(tokenHash.Length, 8)]);
+            return true;
+        }
+        catch (DbUpdateException ex)
+        {
+            _logger.LogError(ex, "Database error during refresh token revocation.");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Unexpected error during revoke token flow.");
+            throw;
+        }
     }
 
     // ── Profile ─────────────────────────────────────────────────────────────────

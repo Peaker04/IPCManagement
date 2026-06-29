@@ -4,6 +4,7 @@ export {
   setCredentials,
   logOut,
   selectAuthToken,
+  selectRefreshToken,
   selectCurrentUser,
   selectIsAuthenticated,
   selectIsAuthLoading,

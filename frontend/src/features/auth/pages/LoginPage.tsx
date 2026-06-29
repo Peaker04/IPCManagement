@@ -41,6 +41,7 @@ const LoginPage = () => {
               role: result.data.user.roleName.toLowerCase(),
             },
             token: result.data.accessToken,
+            refreshToken: result.data.refreshToken,
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -59,6 +60,7 @@ const LoginPage = () => {
               role: 'admin',
             },
             token: 'mock-jwt-token-for-dev',
+            refreshToken: 'mock-refresh-token-for-dev',
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -72,6 +74,7 @@ const LoginPage = () => {
               role: 'staff',
             },
             token: 'mock-jwt-token-for-dev-staff',
+            refreshToken: 'mock-refresh-token-for-dev-staff',
           })
         );
         navigate(ROUTES.DASHBOARD);

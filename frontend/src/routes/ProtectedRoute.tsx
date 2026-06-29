@@ -43,7 +43,12 @@ export const ProtectedRoute = () => {
     }
 
     if (error) {
-      dispatch(logOut());
+      const status = typeof error === 'object' && error && 'status' in error ? error.status : undefined;
+
+      if (status !== 401) {
+        dispatch(logOut());
+      }
+
       return;
     }
 
