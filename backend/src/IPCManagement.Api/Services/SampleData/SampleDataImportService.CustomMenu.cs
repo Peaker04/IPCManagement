@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
+using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -1187,6 +1188,113 @@ public partial class SampleDataImportService
         public List<string> Sections { get; } = [];
         public List<string> Warnings { get; } = [];
         public List<ParsedWeeklyMenuItem> Items { get; } = [];
+    }
+
+    public async Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
+        BulkUpdateWeeklyMenuRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var customerBytes = GuidHelper.ParseGuidString(request.CustomerId);
+        if (customerBytes is null)
+        {
+            return (false, "ID khách hàng không hợp lệ.", new List<string>());
+        }
+
+        var warnings = new List<string>();
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
+        {
+            foreach (var slot in request.Slots)
+            {
+                var dishBytes = GuidHelper.ParseGuidString(slot.DishId);
+                if (dishBytes is null)
+                {
+                    return (false, $"ID món ăn không hợp lệ: {slot.DishId}", new List<string>());
+                }
+
+                // 1. Verify dish exists
+                var dish = await _context.Dishes
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(d => d.DishId.SequenceEqual(dishBytes), cancellationToken);
+                if (dish is null)
+                {
+                    return (false, $"Món ăn với ID {slot.DishId} không tồn tại trong hệ thống.", new List<string>());
+                }
+
+                // Check BOM coverage
+                var hasActiveBom = await _context.Dishboms
+                    .AnyAsync(b => b.DishId.SequenceEqual(dishBytes) && (b.EffectiveTo == null || b.EffectiveTo >= today), cancellationToken);
+                if (!hasActiveBom)
+                {
+                    var warningMsg = $"Món '{dish.DishName}' chưa được cấu hình định lượng (BOM).";
+                    if (!warnings.Contains(warningMsg))
+                    {
+                        warnings.Add(warningMsg);
+                    }
+                }
+
+                var dbShiftName = string.Equals(slot.ShiftName, "Ca Sáng", StringComparison.OrdinalIgnoreCase) || string.Equals(slot.ShiftName, "Ca sáng", StringComparison.OrdinalIgnoreCase)
+                    ? "MORNING"
+                    : "AFTERNOON";
+
+                // 2. Find menuschedule
+                var schedule = await _context.Menuschedules
+                    .Include(s => s.Menu)
+                        .ThenInclude(m => m.Menuitems)
+                    .FirstOrDefaultAsync(s => s.CustomerId.SequenceEqual(customerBytes) 
+                        && s.ServiceDate == slot.ServiceDate 
+                        && s.ShiftName == dbShiftName, cancellationToken);
+
+                if (schedule is null)
+                {
+                    return (false, $"Không tìm thấy lịch thực đơn cho ngày {slot.ServiceDate:dd/MM/yyyy} {slot.ShiftName}. Vui lòng import thực đơn Excel trước.", new List<string>());
+                }
+
+                if (!string.Equals(schedule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
+                {
+                    return (false, $"Không thể chỉnh sửa thực đơn vì lịch ngày {slot.ServiceDate:dd/MM/yyyy} {slot.ShiftName} đã ở trạng thái {schedule.Status}.", new List<string>());
+                }
+
+                // Map SlotType to dishSlot in Database
+                string variantKey = slot.SlotType.Contains("Vegetarian", StringComparison.OrdinalIgnoreCase) ? "vegetarian" : "savory";
+                string dishSlot = $"{variantKey}-main";
+
+                // Find the menuitem for this slot
+                var menuItem = schedule.Menu.Menuitems.FirstOrDefault(item => item.DishSlot == dishSlot);
+                if (menuItem is not null)
+                {
+                    menuItem.DishId = dishBytes;
+                    _context.Menuitems.Update(menuItem);
+                }
+                else
+                {
+                    // Create new menuitem
+                    var displayOrder = schedule.Menu.Menuitems.Count + 1;
+                    var newItem = new Menuitem
+                    {
+                        MenuItemId = GuidHelper.NewId(),
+                        MenuId = schedule.Menu.MenuId,
+                        DishId = dishBytes,
+                        DishSlot = dishSlot,
+                        DisplayOrder = displayOrder
+                    };
+                    await _context.Menuitems.AddAsync(newItem, cancellationToken);
+                }
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            var message = "Đã lưu thực đơn chỉnh sửa thành công.";
+            return (true, message, warnings);
+        }
+        catch (Exception ex)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            return (false, $"Lỗi hệ thống khi lưu thực đơn: {ex.Message}", new List<string>());
+        }
     }
 
     private sealed class ParsedWeeklyMenuItem

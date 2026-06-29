@@ -177,6 +177,27 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
     }
 
+    [HttpPut("weekly-menu/bulk-update")]
+    [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkUpdateWeeklyMenu(
+        [FromBody] BulkUpdateWeeklyMenuRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.CustomerId))
+        {
+            return BadRequest(ApiResponse.FailResult("Dữ liệu cập nhật thực đơn không hợp lệ."));
+        }
+
+        var (success, message, warnings) = await _sampleDataImportService.BulkUpdateWeeklyMenuAsync(request, cancellationToken);
+        if (!success)
+        {
+            return BadRequest(ApiResponse.FailResult(message));
+        }
+
+        return Ok(ApiResponse<List<string>>.SuccessResult(warnings, message));
+    }
+
     [HttpPost("orders/adjust")]
     [ProducesResponseType(typeof(ApiResponse<AdjustOrderAfterLockResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

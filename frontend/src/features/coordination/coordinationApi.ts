@@ -228,6 +228,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
+    updateWeeklyMenuBulk: builder.mutation<ApiResponse<string[]>, { customerId: string; slots: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> }>({
+      query: (body) => ({
+        url: '/coordination/weekly-menu/bulk-update',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -244,4 +252,5 @@ export const {
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,
   useCommitWeeklyMenuImportMutation,
+  useUpdateWeeklyMenuBulkMutation,
 } = coordinationApi

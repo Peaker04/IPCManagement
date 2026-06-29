@@ -168,7 +168,6 @@ export default function AdminDataPage() {
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
   const employeeMeta = employeeResponse?.data;
-  const defaultRoleId = employeeRoles[0]?.roleId ?? '';
   const isSavingEmployee = isCreatingEmployee || isUpdatingEmployee;
   const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'adjustments' : activeView;
   const adminTabs: ViewTab[] = [
@@ -194,12 +193,9 @@ export default function AdminDataPage() {
     });
   };
 
-  const resetEmployeeForm = (roleId = defaultRoleId) => {
+  const resetEmployeeForm = () => {
     setEditingEmployeeId(null);
-    setEmployeeForm({
-      ...defaultEmployeeForm,
-      roleId,
-    });
+    setEmployeeForm(defaultEmployeeForm);
   };
 
   const startEditBomLine = (line: CatalogIngredient) => {
@@ -271,9 +267,9 @@ export default function AdminDataPage() {
   const handleEmployeeSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const selectedRoleId = employeeForm.roleId || defaultRoleId;
+    const selectedRoleId = employeeForm.roleId;
     if (!employeeForm.fullName.trim() || !employeeForm.username.trim() || !selectedRoleId) {
-      setEmployeeNotice('Vui lòng nhập đầy đủ họ tên, tài khoản và vai trò.');
+      setEmployeeNotice('Vui lòng nhập đầy đủ họ tên, tài khoản và chọn vai trò.');
       return;
     }
 
@@ -768,7 +764,7 @@ export default function AdminDataPage() {
                   <select
                     id="employee-role"
                     className="ipc-select"
-                    value={employeeForm.roleId || defaultRoleId}
+                    value={employeeForm.roleId}
                     onChange={(event) => setEmployeeForm((current) => ({ ...current, roleId: event.target.value }))}
                     disabled={isRolesLoading}
                   >

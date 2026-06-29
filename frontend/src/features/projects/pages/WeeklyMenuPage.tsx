@@ -16,6 +16,7 @@ import {
   useGetCoordinationCustomersQuery,
   useGetCommittedWeeklyMenuQuery,
   usePreviewWeeklyMenuImportMutation,
+  useUpdateWeeklyMenuBulkMutation,
 } from '../../coordination/coordinationApi';
 import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
 
@@ -274,6 +275,7 @@ const WeeklyMenuPage = () => {
   const customers = customerResponse?.data ?? [];
   const [previewImport, { isLoading: isPreviewingImport }] = usePreviewWeeklyMenuImportMutation();
   const [commitImport, { isLoading: isCommittingImport }] = useCommitWeeklyMenuImportMutation();
+  const [updateWeeklyMenuBulk, { isLoading: isSavingEdit }] = useUpdateWeeklyMenuBulkMutation();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedImportCustomerId, setSelectedImportCustomerId] = useState(
     () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
@@ -415,6 +417,7 @@ const WeeklyMenuPage = () => {
 
   useEffect(() => {
     if (!committedMenu?.importedWeeklyMenu || Object.keys(committedMenu.importedWeeklyMenu).length === 0) {
+      dispatch(setWeeklyMenu({}));
       return;
     }
 
@@ -464,25 +467,92 @@ const WeeklyMenuPage = () => {
     setIsEditingMenu(true);
   };
 
-  const handleSaveEdit = () => {
+  const getServiceDateIso = (dayKey: string) => {
+    const row = committedMenu?.rows?.find((r) => r.dayKey === dayKey);
+    if (row?.serviceDate) {
+      return row.serviceDate.split('T')[0];
+    }
+    return '';
+  };
+
+  const handleSaveEdit = async () => {
+    const slotsToUpdate: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> = [];
+
     displayDays.forEach((day) => {
       SECTIONS.forEach((sec) => {
         const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
-        if (isLocked) return; // Skip updating locked shifts
+        if (isLocked) return;
 
         const currentDishId = weeklyMenu[day.key]?.[sec.slotType]?.dishId || getSectionDefaultDish(sec)?.id;
         const newDishId = tempWeeklyMenu[day.key]?.[sec.slotType]?.dishId;
         if (newDishId && newDishId !== currentDishId) {
-          dispatch(updateWeeklyMenuDish({
-            day: day.key,
-            slotType: sec.slotType,
-            dishId: newDishId,
-          }));
+          const serviceDateIso = getServiceDateIso(day.key);
+          if (serviceDateIso) {
+            slotsToUpdate.push({
+              serviceDate: serviceDateIso,
+              shiftName: sec.shift === 'morning' ? 'Ca Sáng' : 'Ca Chiều',
+              slotType: sec.slotType,
+              dishId: newDishId,
+            });
+          }
         }
       });
     });
 
-    setIsEditingMenu(false);
+    if (slotsToUpdate.length === 0) {
+      setIsEditingMenu(false);
+      return;
+    }
+
+    try {
+      setWarehouseExportFeedback({
+        title: 'Đang lưu chỉnh sửa',
+        message: 'Hệ thống đang ghi các thay đổi thực đơn vào backend...',
+        variant: 'info',
+      });
+
+      const response = await updateWeeklyMenuBulk({
+        customerId: effectiveImportCustomerId,
+        slots: slotsToUpdate,
+      }).unwrap();
+
+      if (!response.success) {
+        throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.');
+      }
+
+      slotsToUpdate.forEach((slot) => {
+        const dayKey = displayDays.find((d) => getServiceDateIso(d.key) === slot.serviceDate)?.key;
+        if (dayKey) {
+          dispatch(updateWeeklyMenuDish({
+            day: dayKey,
+            slotType: slot.slotType as any,
+            dishId: slot.dishId,
+          }));
+        }
+      });
+
+      if (response.data && response.data.length > 0) {
+        setWarehouseExportFeedback({
+          title: 'Lưu thành công (Có cảnh báo)',
+          message: `${response.message}\nCảnh báo:\n` + response.data.map(w => `- ${w}`).join('\n'),
+          variant: 'warning',
+        });
+      } else {
+        setWarehouseExportFeedback({
+          title: 'Cập nhật thực đơn thành công',
+          message: response.message || 'Thay đổi đã được lưu vào database.',
+          variant: 'info',
+        });
+      }
+
+      setIsEditingMenu(false);
+    } catch (err: unknown) {
+      setWarehouseExportFeedback({
+        title: 'Chỉnh sửa thực đơn thất bại',
+        message: getApiErrorMessage(err, 'Không thể lưu thay đổi vào backend.'),
+        variant: 'danger',
+      });
+    }
   };
 
   // Merge dishId from Redux with portions calculated from active customer orders
@@ -605,9 +675,31 @@ const WeeklyMenuPage = () => {
       return;
     }
 
+    // Build CSV content
+    const customerCode = customers.find((c) => c.customerId === effectiveImportCustomerId)?.customerCode ?? 'DAV';
+    const weekStr = committedMenuWeekStartDate || '2026-06-15';
+    
+    let csvContent = '\uFEFF'; // Add BOM for UTF-8 in Excel
+    csvContent += 'Tuần,Khách hàng,Nguyên liệu,Số lượng LT,Số lượng TT,Đơn vị,Đơn giá (đ),Thành tiền (đ)\n';
+    
+    activeMaterials.forEach((m) => {
+      if (!m) return;
+      csvContent += `"${weekStr}","${customerCode}","${m.name.replace(/"/g, '""')}","${m.theory}","${m.actual}","${m.unit}","${m.price}","${Math.round(m.cost)}"\n`;
+    });
+    
+    // Trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Bao_cao_gui_kho_${customerCode}_tuan_${weekStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     setWarehouseExportFeedback({
-      title: 'Đã kết xuất báo cáo gửi kho',
-      message: `Tổng chi phí mua hàng tạm tính ${formatCurrency(totalCostInfo)} đã được ghi nhận cho báo cáo nguyên liệu tuần.`,
+      title: 'Đã xuất báo cáo gửi kho thành công',
+      message: `Tệp báo cáo 'Bao_cao_gui_kho_${customerCode}_tuan_${weekStr}.csv' đã được tải xuống máy tính của bạn.`,
       variant: 'info',
     });
   };
@@ -616,6 +708,16 @@ const WeeklyMenuPage = () => {
   const priceRatio = useMemo(() => {
     return Math.max(0.1, Math.min(1.5, menuPrice / standardPrice));
   }, [menuPrice]);
+
+  const getDishUnitCost = (dishId: string) => {
+    const dish = dishesById.get(dishId);
+    if (!dish || !dish.ingredients.length) return 0;
+    const cost = dish.ingredients.reduce((sum, ing) => {
+      const actualQty = ing.grossQtyPerServing * priceRatio * (1 + lossRate / 100);
+      return sum + actualQty * ing.referencePrice;
+    }, 0);
+    return Math.round(cost);
+  };
 
   // Portion cost analysis logic (Step 2)
   const analyzedDish =
@@ -684,6 +786,36 @@ const WeeklyMenuPage = () => {
             </div>
           }
         >
+          <FieldRow label="Khách hàng">
+            <select
+              value={selectedImportCustomerId || (customers[0]?.customerId ?? '')}
+              onChange={(e) => {
+                const cid = e.target.value;
+                setSelectedImportCustomerId(cid);
+                window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, cid);
+              }}
+              className="ipc-select min-w-[200px]"
+              disabled={isCustomerLoading}
+            >
+              {customers.map((c) => (
+                <option key={c.customerId} value={c.customerId}>
+                  {c.customerCode} - {c.customerName}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+          <FieldRow label="Tuần bắt đầu">
+            <input
+              type="date"
+              value={committedMenuWeekStartDate}
+              onChange={(e) => {
+                const date = e.target.value;
+                setCommittedMenuWeekStartDate(date);
+                window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, date);
+              }}
+              className="ipc-input"
+            />
+          </FieldRow>
           <FieldRow label="Đơn giá suất ăn bình quân (đ)" hint="Định mức 35K = 100% định lượng">
             <input
               type="number"
@@ -1003,27 +1135,39 @@ const WeeklyMenuPage = () => {
                     <th className={tableHeadClass}>Ca</th>
                     <th className={`${tableHeadClass} text-left`}>Món trong kế hoạch</th>
                     <th className={tableHeadClass}>Suất</th>
+                    <th className={tableHeadClass}>Đơn giá vốn</th>
+                    <th className={tableHeadClass}>Thành tiền</th>
                     <th className={tableHeadClass}>Trạng thái giá vốn</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {weeklyPlanRows.map((row) => (
-                    <tr key={`cost-${row.key}`} className="table-row">
-                      <td className={`${tableCellClass} text-left font-semibold`}>
-                        {row.dayLabel}
-                        <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
-                      </td>
-                      <td className={tableCellClass}>{row.shiftLabel}</td>
-                      <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
-                      <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
-                      <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
-                        {row.hasCatalogBom ? 'Tính bằng BOM catalog' : 'Chờ gắn BOM'}
-                      </td>
-                    </tr>
-                  ))}
+                  {weeklyPlanRows.map((row) => {
+                    const unitCost = getDishUnitCost(row.dishId);
+                    const totalCost = unitCost * row.portions;
+                    return (
+                      <tr key={`cost-${row.key}`} className="table-row">
+                        <td className={`${tableCellClass} text-left font-semibold`}>
+                          {row.dayLabel}
+                          <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
+                        </td>
+                        <td className={tableCellClass}>{row.shiftLabel}</td>
+                        <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
+                        <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
+                        <td className={tableCellClass}>
+                          {row.hasCatalogBom ? formatCurrency(unitCost) : '-'}
+                        </td>
+                        <td className={`${tableCellClass} font-semibold`}>
+                          {row.hasCatalogBom ? formatCurrency(totalCost) : '-'}
+                        </td>
+                        <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
+                          {row.hasCatalogBom ? 'Tính bằng BOM catalog' : 'Chờ gắn BOM'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {weeklyPlanRows.length === 0 && (
                     <tr>
-                      <td className="p-4 text-center text-sm text-slate-500" colSpan={5}>
+                      <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
                         Chưa có kế hoạch tuần để liên kết giá vốn.
                       </td>
                     </tr>
@@ -1360,9 +1504,10 @@ const WeeklyMenuPage = () => {
               <button
                 type="button"
                 onClick={handleSaveEdit}
+                disabled={isSavingEdit}
                 className="ipc-button ipc-button-primary"
               >
-                Lưu thay đổi
+                {isSavingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </DialogFooter>
           </DialogContent>
