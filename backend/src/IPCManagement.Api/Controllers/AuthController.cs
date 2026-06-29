@@ -87,6 +87,19 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile()
+        => await GetProfileInternal();
+
+    /// <summary>Lấy profile đầy đủ cho route/action guard của Frontend.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    [EnableRateLimiting("api-general")]
+    [ProducesResponseType(typeof(ApiResponse<UserProfileResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMe()
+        => await GetMeInternal();
+
+    private async Task<IActionResult> GetProfileInternal()
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -98,5 +111,19 @@ public class AuthController : ControllerBase
             return NotFound(ApiResponse.FailResult("Người dùng không tồn tại hoặc tài khoản đã bị khoá."));
 
         return Ok(ApiResponse<UserInfoDto>.SuccessResult(profile, "Lấy thông tin người dùng thành công."));
+    }
+
+    private async Task<IActionResult> GetMeInternal()
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(ApiResponse.FailResult("Token không hợp lệ hoặc thiếu thông tin người dùng."));
+
+        var profile = await _authService.GetMeAsync(userId);
+        if (profile is null)
+            return NotFound(ApiResponse.FailResult("Người dùng không tồn tại hoặc tài khoản đã bị khoá."));
+
+        return Ok(ApiResponse<UserProfileResponseDto>.SuccessResult(profile, "Lấy profile người dùng thành công."));
     }
 }

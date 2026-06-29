@@ -13,6 +13,7 @@ import {
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
 import { DataTableShell, SectionPanel } from '@/components/common'
+import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Ingredient } from '@/lib/types'
 
 interface MaterialChecklistProps {
@@ -83,8 +84,8 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                     <TableCell className={cn("text-slate-800 font-medium", material.signed && "line-through text-slate-400")}>
                       {material.name}
                     </TableCell>
-                    <TableCell className="text-slate-500 text-right">{material.unit}</TableCell>
-                    <TableCell className="text-slate-800 font-semibold text-right">{material.quantity}</TableCell>
+                    <TableCell className="text-slate-500 text-right">{formatUnit(material.unit)}</TableCell>
+                    <TableCell className="text-slate-800 font-semibold text-right">{formatQuantity(material.quantity)}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"

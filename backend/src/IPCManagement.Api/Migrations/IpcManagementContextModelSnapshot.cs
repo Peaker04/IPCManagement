@@ -177,6 +177,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("lastUpdated")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
+                    b.Property<DateTime>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp(6)")
+                        .HasColumnName("rowVersion")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
                     b.Property<byte[]>("UnitId")
                         .IsRequired()
                         .HasMaxLength(16)

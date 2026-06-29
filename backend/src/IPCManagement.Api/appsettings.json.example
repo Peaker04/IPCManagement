@@ -1,6 +1,6 @@
 {
   "ConnectionStrings": {
-    "DefaultConnection": "server=localhost;port=3306;database=ipcmanagement;user=root;password=YOUR_PASSWORD_HERE;"
+    "DefaultConnection": "server=root;port=3306;database=ipcmanagement;user=root;password=12345;"
   },
   "JwtSettings": {
     "SecretKey": "GENERATE_A_STRONG_SECRET_KEY_AT_LEAST_32_CHARS_LONG",

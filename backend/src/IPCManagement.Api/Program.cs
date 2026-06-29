@@ -90,6 +90,8 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization(options =>
 {
+    options.AddPolicy(AuthorizationPolicies.AdminAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.AdminRoles));
     options.AddPolicy(AuthorizationPolicies.CatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogRoles));
     options.AddPolicy(AuthorizationPolicies.CoordinationAccess, policy =>
@@ -98,6 +100,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
+    options.AddPolicy(AuthorizationPolicies.PurchaseAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
 });
@@ -126,6 +130,13 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         opts.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+
+builder.Services.AddMemoryCache();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<Microsoft.AspNetCore.ResponseCompression.BrotliCompressionProvider>();
+});
 
 // ── FluentValidation ────────────────────────────────────────────────────────
 builder.Services.AddFluentValidationAutoValidation();
@@ -208,8 +219,9 @@ if (app.Environment.IsDevelopment())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "IPC Management API v1");
         c.RoutePrefix = "swagger";
     });
-    app.MapOpenApi();
 }
+
+app.UseMiddleware<SampleDataProductionGuardMiddleware>();
 
 app.MapGet("/", () =>
 {
@@ -225,6 +237,7 @@ app.MapGet("/", () =>
 });
 
 app.UseRateLimiter();
+app.UseResponseCompression();
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();

@@ -29,6 +29,18 @@ public class DishRepository : GenericRepository<Dish>, IDishRepository
             .OrderBy(d => d.DishCode)
             .ToListAsync();
 
+    public async Task<IReadOnlyList<Dish>> GetCatalogAsync()
+        => await _dbSet
+            .AsNoTracking()
+            .Include(d => d.Dishboms)
+                .ThenInclude(bom => bom.Ingredient)
+            .Include(d => d.Dishboms)
+                .ThenInclude(bom => bom.Unit)
+            .Include(d => d.Menuitems)
+            .Where(d => d.IsActive ?? true)
+            .OrderBy(d => d.DishCode)
+            .ToListAsync();
+
     public override async Task<(IEnumerable<Dish> Items, int TotalCount)> GetPagedAsync(
         int pageNumber, int pageSize, string? searchKeyword = null)
     {

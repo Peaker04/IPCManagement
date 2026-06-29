@@ -66,7 +66,7 @@ public class InventoryIssueService : IInventoryIssueService
             var issue = new Inventoryissue
             {
                 IssueId = GuidHelper.NewId(),
-                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}",
+                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
                 IssueDate = dto.IssueDate,
                 ShiftName = dto.ShiftName,
                 WarehouseId = warehouseBytes,
@@ -82,8 +82,8 @@ public class InventoryIssueService : IInventoryIssueService
                 IssueId = issue.IssueId,
                 IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
                     ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-                RequestedQty = line.RequestedQty,
-                IssuedQty = line.IssuedQty,
+                RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
+                IssuedQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
                 UnitId = GuidHelper.ParseGuidString(line.UnitId)
                     ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.")
             }).ToList();
