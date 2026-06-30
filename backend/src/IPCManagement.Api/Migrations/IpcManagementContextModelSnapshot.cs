@@ -434,6 +434,17 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("bomId")
                         .IsFixedLength();
 
+                    b.Property<string>("BomStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("bomStatus")
+                        .HasDefaultValueSql("'PUBLISHED'")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("BomStatus"), "utf8mb4");
+
                     b.Property<byte[]>("DishId")
                         .IsRequired()
                         .HasMaxLength(16)

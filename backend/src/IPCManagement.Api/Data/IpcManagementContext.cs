@@ -377,6 +377,12 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("bomId");
+            entity.Property(e => e.BomStatus)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'PUBLISHED'")
+                .HasColumnName("bomStatus")
+                .HasCharSet("utf8mb4")
+                .UseCollation("utf8mb4_unicode_ci");
             entity.Property(e => e.DishId)
                 .HasMaxLength(16)
                 .IsFixedLength()

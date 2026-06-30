@@ -76,8 +76,12 @@ type AdminView = 'adjustments' | 'contracts' | 'cleanup' | 'inventory' | 'audit'
 
 type BomFormState = {
   ingredientId: string;
+  unitId: string;
   grossQtyPerServing: string;
   wasteRatePercent: string;
+  bomStatus: string;
+  effectiveFrom: string;
+  effectiveTo: string;
   reason: string;
 };
 
@@ -117,6 +121,18 @@ const defaultDishForm: DishFormState = {
   isActive: true,
 };
 
+const bomStatusOptions = [
+  { value: 'DRAFT', label: 'Draft' },
+  { value: 'PUBLISHED', label: 'Published' },
+  { value: 'ARCHIVED', label: 'Archived' },
+];
+
+const getBomStatusBadgeVariant = (status: string): 'neutral' | 'success' | 'warning' => {
+  if (status === 'PUBLISHED') return 'success';
+  if (status === 'ARCHIVED') return 'neutral';
+  return 'warning';
+};
+
 const defaultContractForm: ContractFormState = {
   customerCode: '',
   customerName: '',
@@ -136,6 +152,8 @@ const defaultScheduleRuleForm: ScheduleRuleFormState = {
   status: 'ACTIVE',
   reason: '',
 };
+
+const getTodayInputValue = () => new Date().toISOString().slice(0, 10);
 
 type EmployeeFormState = {
   fullName: string;
@@ -194,8 +212,12 @@ export default function AdminDataPage() {
   const [editingBomId, setEditingBomId] = useState<string | null>(null);
   const [bomForm, setBomForm] = useState<BomFormState>({
     ingredientId: '',
+    unitId: '',
     grossQtyPerServing: '',
     wasteRatePercent: '0',
+    bomStatus: 'PUBLISHED',
+    effectiveFrom: getTodayInputValue(),
+    effectiveTo: '',
     reason: '',
   });
   const [dishFeedback, setDishFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
@@ -270,9 +292,21 @@ export default function AdminDataPage() {
     () => catalogDishes.find((dish) => dish.id === selectedDishId) ?? catalogDishes[0],
     [catalogDishes, selectedDishId],
   );
-  const selectedDishBomLines = selectedDish?.ingredients ?? [];
-  const activeBomCount = selectedDishBomLines.filter((line) => !line.effectiveTo).length;
+  const selectedDishBomLines = useMemo(() => selectedDish?.ingredients ?? [], [selectedDish]);
+  const activeBomCount = selectedDishBomLines.filter((line) => line.bomStatus === 'PUBLISHED' && !line.effectiveTo).length;
   const selectedIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
+  const unitOptions = useMemo(() => {
+    const options = new Map<string, string>();
+    ingredientLookup.forEach((ingredient) => {
+      if (ingredient.unitId) {
+        options.set(ingredient.unitId, ingredient.unitName ?? 'Đơn vị mặc định');
+      }
+    });
+    selectedDishBomLines.forEach((line) => {
+      options.set(line.unitId, line.unit);
+    });
+    return Array.from(options, ([unitId, unitName]) => ({ unitId, unitName }));
+  }, [ingredientLookup, selectedDishBomLines]);
   const dataQualityIssues = dataQualityReport?.issues ?? [];
   const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading || closeDishBomLineState.isLoading;
@@ -302,8 +336,12 @@ export default function AdminDataPage() {
     setEditingBomId(null);
     setBomForm({
       ingredientId: ingredientLookup[0]?.ingredientId ?? '',
+      unitId: ingredientLookup[0]?.unitId ?? '',
       grossQtyPerServing: '',
       wasteRatePercent: '0',
+      bomStatus: 'PUBLISHED',
+      effectiveFrom: getTodayInputValue(),
+      effectiveTo: '',
       reason: '',
     });
   };
@@ -589,8 +627,12 @@ export default function AdminDataPage() {
     setEditingBomId(line.bomId);
     setBomForm({
       ingredientId: line.ingredientId,
+      unitId: line.unitId,
       grossQtyPerServing: String(line.grossQtyPerServing),
       wasteRatePercent: String(line.wasteRatePercent),
+      bomStatus: line.bomStatus,
+      effectiveFrom: line.effectiveFrom,
+      effectiveTo: line.effectiveTo ?? '',
       reason: '',
     });
     setBomFeedback(null);
@@ -603,10 +645,11 @@ export default function AdminDataPage() {
     }
 
     const ingredientId = bomForm.ingredientId || ingredientLookup[0]?.ingredientId;
+    const unitId = bomForm.unitId || selectedIngredient?.unitId;
     const grossQtyPerServing = Number(bomForm.grossQtyPerServing);
     const wasteRatePercent = Number(bomForm.wasteRatePercent || 0);
-    if (!ingredientId || !Number.isFinite(grossQtyPerServing) || grossQtyPerServing <= 0) {
-      setBomFeedback({ type: 'error', message: 'Vui lòng chọn nguyên liệu và nhập định lượng lớn hơn 0.' });
+    if (!ingredientId || !unitId || !Number.isFinite(grossQtyPerServing) || grossQtyPerServing <= 0) {
+      setBomFeedback({ type: 'error', message: 'Vui lòng chọn nguyên liệu, đơn vị và nhập định lượng lớn hơn 0.' });
       return;
     }
     if (!Number.isFinite(wasteRatePercent) || wasteRatePercent < 0 || wasteRatePercent > 100) {
@@ -617,9 +660,12 @@ export default function AdminDataPage() {
     const request = {
       dishId: selectedDish.id,
       ingredientId,
-      unitId: selectedIngredient?.unitId,
+      unitId,
       grossQtyPerServing,
       wasteRatePercent,
+      bomStatus: bomForm.bomStatus,
+      effectiveFrom: bomForm.effectiveFrom || undefined,
+      effectiveTo: bomForm.effectiveTo || null,
       reason: bomForm.reason.trim() || undefined,
     };
 
@@ -953,12 +999,52 @@ export default function AdminDataPage() {
                     id="admin-bom-ingredient"
                     className="ipc-select w-full"
                     value={bomForm.ingredientId}
-                    onChange={(event) => setBomForm((prev) => ({ ...prev, ingredientId: event.target.value }))}
+                    onChange={(event) => {
+                      const nextIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === event.target.value);
+                      setBomForm((prev) => ({
+                        ...prev,
+                        ingredientId: event.target.value,
+                        unitId: nextIngredient?.unitId ?? prev.unitId,
+                      }));
+                    }}
                   >
                     <option value="">Chọn nguyên liệu</option>
                     {ingredientLookup.map((ingredient) => (
                       <option key={ingredient.ingredientId} value={ingredient.ingredientId}>
                         {ingredient.ingredientName} ({ingredient.unitName ?? 'đơn vị'})
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-unit">
+                    Đơn vị tính
+                  </label>
+                  <select
+                    id="admin-bom-unit"
+                    className="ipc-select w-full"
+                    value={bomForm.unitId}
+                    onChange={(event) => setBomForm((prev) => ({ ...prev, unitId: event.target.value }))}
+                  >
+                    <option value="">Chọn đơn vị</option>
+                    {unitOptions.map((unit) => (
+                      <option key={unit.unitId} value={unit.unitId}>
+                        {unit.unitName}
+                      </option>
+                    ))}
+                  </select>
+
+                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-status">
+                    Trạng thái version
+                  </label>
+                  <select
+                    id="admin-bom-status"
+                    className="ipc-select w-full"
+                    value={bomForm.bomStatus}
+                    onChange={(event) => setBomForm((prev) => ({ ...prev, bomStatus: event.target.value }))}
+                  >
+                    {bomStatusOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
                       </option>
                     ))}
                   </select>
@@ -985,6 +1071,27 @@ export default function AdminDataPage() {
                         type="number"
                         value={bomForm.wasteRatePercent}
                         onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                      Hiệu lực từ
+                      <input
+                        className="ipc-input"
+                        type="date"
+                        value={bomForm.effectiveFrom}
+                        onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                      Hiệu lực đến
+                      <input
+                        className="ipc-input"
+                        type="date"
+                        value={bomForm.effectiveTo}
+                        onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))}
                       />
                     </label>
                   </div>
@@ -1018,24 +1125,31 @@ export default function AdminDataPage() {
                       <th>Nguyên liệu</th>
                       <th>Định lượng/suất</th>
                       <th>Hao hụt</th>
+                      <th>Trạng thái</th>
                       <th>Hiệu lực</th>
                       <th>Thao tác</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedDishBomLines.length === 0 ? <EmptyRow colSpan={5} /> : selectedDishBomLines.map((line) => (
+                    {selectedDishBomLines.length === 0 ? <EmptyRow colSpan={6} /> : selectedDishBomLines.map((line) => (
                       <tr key={line.bomId}>
                         <td className="font-semibold text-slate-900">{line.name}</td>
                         <td className="ipc-numeric-cell">
                           {line.grossQtyPerServing.toLocaleString('vi-VN')} {line.unit}
                         </td>
                         <td className="ipc-numeric-cell">{line.wasteRatePercent.toLocaleString('vi-VN')}%</td>
+                        <td className="ipc-badge-cell">
+                          <StatusBadge variant={getBomStatusBadgeVariant(line.bomStatus)}>{line.bomStatusLabel}</StatusBadge>
+                        </td>
                         <td>
-                          {line.effectiveTo ? (
-                            <StatusBadge variant="neutral">Đến {new Date(line.effectiveTo).toLocaleDateString('vi-VN')}</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="success">Đang áp dụng</StatusBadge>
-                          )}
+                          <div className="flex flex-col items-center gap-1 text-xs text-slate-600">
+                            <span>Từ {new Date(line.effectiveFrom).toLocaleDateString('vi-VN')}</span>
+                            {line.effectiveTo ? (
+                              <StatusBadge variant="neutral">Đến {new Date(line.effectiveTo).toLocaleDateString('vi-VN')}</StatusBadge>
+                            ) : (
+                              <StatusBadge variant="success">Đang áp dụng</StatusBadge>
+                            )}
+                          </div>
                         </td>
                         <td>
                           <div className="flex flex-wrap justify-center gap-2">

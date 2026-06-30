@@ -38,6 +38,31 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_Ignore_Draft_BomLines()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var bom = await setupContext.Dishboms.SingleAsync();
+            bom.BomStatus = "DRAFT";
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new MaterialDemandService(context);
+
+        var result = await service.GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        result.Should().NotBeNull();
+        result!.Lines.Should().BeEmpty();
+        result.MissingBomDishes.Should().ContainSingle(item => item.DishCode == "DISH-BOM");
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_PruneStaleDemandAndProductionLines_OnRegenerate()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1140,6 +1165,7 @@ public class WorkflowGenerationTests
                 UnitId = UnitId,
                 GrossQtyPerServing = 2,
                 WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
                 EffectiveFrom = new DateOnly(2026, 1, 1)
             });
             context.Menuschedules.Add(new Menuschedule
@@ -1319,6 +1345,7 @@ public class WorkflowGenerationTests
                     unitId BLOB NOT NULL,
                     grossQtyPerServing TEXT NOT NULL,
                     wasteRatePercent TEXT NOT NULL,
+                    bomStatus TEXT NOT NULL DEFAULT 'PUBLISHED',
                     effectiveFrom TEXT NOT NULL,
                     effectiveTo TEXT NULL
                 );

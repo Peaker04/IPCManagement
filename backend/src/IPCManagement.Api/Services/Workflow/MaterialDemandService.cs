@@ -9,6 +9,7 @@ namespace IPCManagement.Api.Services.Workflow;
 public class MaterialDemandService : IMaterialDemandService
 {
     private readonly IpcManagementContext _context;
+    private const string PublishedBomStatus = "PUBLISHED";
 
     public MaterialDemandService(IpcManagementContext context)
     {
@@ -70,7 +71,7 @@ public class MaterialDemandService : IMaterialDemandService
         var requiredIngredientIds = quantityLines
             .SelectMany(line => line.Menu.Menuitems)
             .SelectMany(item => item.Dish.Dishboms)
-            .Where(bom => bom.EffectiveFrom <= serviceDate && (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate))
+            .Where(bom => IsPublishedAndEffective(bom, serviceDate))
             .Select(bom => Convert.ToBase64String(bom.IngredientId))
             .Distinct()
             .Select(str => Convert.FromBase64String(str))
@@ -99,7 +100,7 @@ public class MaterialDemandService : IMaterialDemandService
                 generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
                 var portionRule = ResolvePortionRule(effectivePortionRules, quantityLine, menuItem, serviceDate);
                 var activeBomLines = menuItem.Dish.Dishboms
-                    .Where(bom => bom.EffectiveFrom <= serviceDate && (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate))
+                    .Where(bom => IsPublishedAndEffective(bom, serviceDate))
                     .ToList();
                 if (activeBomLines.Count == 0)
                 {
@@ -693,6 +694,11 @@ public class MaterialDemandService : IMaterialDemandService
 
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
+
+    private static bool IsPublishedAndEffective(Dishbom bom, DateOnly serviceDate)
+        => bom.BomStatus == PublishedBomStatus &&
+           bom.EffectiveFrom <= serviceDate &&
+           (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate);
 
     private static decimal CalculateStockInBomUnit(IReadOnlyList<Currentstock> stocks, Unit bomUnit)
     {

@@ -21,6 +21,8 @@ export interface DishCatalogBomLineDto {
   unitName: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   effectiveFrom: string;
   effectiveTo?: string | null;
   referencePrice: number;
@@ -55,6 +57,8 @@ export interface CatalogIngredient {
   unit: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   referencePrice: number;
   effectiveFrom: string;
   effectiveTo?: string | null;
@@ -96,6 +100,7 @@ export interface UpsertDishBomLineRequest {
   unitId?: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus?: string;
   effectiveFrom?: string;
   effectiveTo?: string | null;
   reason?: string;
@@ -118,6 +123,8 @@ const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
     unit: line.unitName || line.unitCode,
     grossQtyPerServing: line.grossQtyPerServing,
     wasteRatePercent: line.wasteRatePercent,
+    bomStatus: line.bomStatus,
+    bomStatusLabel: line.bomStatusLabel,
     referencePrice: line.referencePrice,
     effectiveFrom: line.effectiveFrom,
     effectiveTo: line.effectiveTo,
