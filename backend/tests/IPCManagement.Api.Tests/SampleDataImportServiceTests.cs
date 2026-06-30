@@ -1,6 +1,11 @@
 using System.Reflection;
 using FluentAssertions;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services.SampleData;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests;
 
@@ -45,6 +50,214 @@ public class SampleDataImportServiceTests
         args[2].Should().Be(shift);
     }
 
+    [Fact]
+    public async Task ResolveCustomerContractPolicy_Should_UseActiveContractForImportSchedule()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE customercontracts (
+                contractId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                effectiveFrom TEXT NOT NULL,
+                effectiveTo TEXT NULL,
+                activeWeekDays TEXT NOT NULL,
+                shiftNames TEXT NOT NULL,
+                defaultMenuPrice TEXT NOT NULL,
+                defaultBomRatePercent TEXT NOT NULL,
+                status TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
+
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        var customerId = GuidHelper.NewId();
+        context.Customercontracts.Add(new Customercontract
+        {
+            ContractId = GuidHelper.NewId(),
+            CustomerId = customerId,
+            EffectiveFrom = new DateOnly(2026, 6, 15),
+            ActiveWeekDays = "t2,t3",
+            ShiftNames = "MORNING",
+            DefaultMenuPrice = 43000,
+            DefaultBomRatePercent = 125,
+            Status = "ACTIVE",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = new SampleDataImportService(context, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "ResolveCustomerContractPolicy",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = method!.Invoke(service, [
+            new Customer
+            {
+                CustomerId = customerId,
+                CustomerCode = "CUS",
+                CustomerName = "Customer",
+                IsActive = true
+            },
+            new DateOnly(2026, 6, 15),
+            "MORNING"
+        ])!;
+
+        GetProperty<decimal>(result, "MenuPrice").Should().Be(43000);
+        GetProperty<decimal>(result, "BomRatePercent").Should().Be(125);
+        GetProperty<bool>(result, "UsedFallback").Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task ResolveCustomerContractPolicy_Should_Fallback_WhenNoActiveContractMatches()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE customercontracts (
+                contractId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                effectiveFrom TEXT NOT NULL,
+                effectiveTo TEXT NULL,
+                activeWeekDays TEXT NOT NULL,
+                shiftNames TEXT NOT NULL,
+                defaultMenuPrice TEXT NOT NULL,
+                defaultBomRatePercent TEXT NOT NULL,
+                status TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
+
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        var customerId = GuidHelper.NewId();
+
+        var service = new SampleDataImportService(context, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "ResolveCustomerContractPolicy",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = method!.Invoke(service, [
+            new Customer
+            {
+                CustomerId = customerId,
+                CustomerCode = "CUS",
+                CustomerName = "Customer",
+                IsActive = true
+            },
+            new DateOnly(2026, 6, 15),
+            "MORNING"
+        ])!;
+
+        GetProperty<decimal>(result, "MenuPrice").Should().Be(25000);
+        GetProperty<decimal>(result, "BomRatePercent").Should().Be(100);
+        GetProperty<bool>(result, "UsedFallback").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResolveCustomerContractPolicy_Should_IgnoreInactiveAndExpiredContracts()
+    {
+        var setup = await CreateContractPolicyContextAsync();
+        await using var connection = setup.Connection;
+        await using var context = setup.Context;
+        var customerId = GuidHelper.NewId();
+        context.Customercontracts.AddRange(
+            new Customercontract
+            {
+                ContractId = GuidHelper.NewId(),
+                CustomerId = customerId,
+                EffectiveFrom = new DateOnly(2026, 6, 1),
+                ActiveWeekDays = "t2",
+                ShiftNames = "MORNING",
+                DefaultMenuPrice = 48000,
+                DefaultBomRatePercent = 120,
+                Status = "INACTIVE",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Customercontract
+            {
+                ContractId = GuidHelper.NewId(),
+                CustomerId = customerId,
+                EffectiveFrom = new DateOnly(2026, 6, 1),
+                EffectiveTo = new DateOnly(2026, 6, 14),
+                ActiveWeekDays = "t2",
+                ShiftNames = "MORNING",
+                DefaultMenuPrice = 49000,
+                DefaultBomRatePercent = 130,
+                Status = "ACTIVE",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        await context.SaveChangesAsync();
+
+        var result = InvokeContractPolicy(context, customerId, new DateOnly(2026, 6, 15), "MORNING");
+
+        GetProperty<decimal>(result, "MenuPrice").Should().Be(25000);
+        GetProperty<decimal>(result, "BomRatePercent").Should().Be(100);
+        GetProperty<bool>(result, "UsedFallback").Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task ResolveCustomerContractPolicy_Should_ApplyNewEffectiveContractMidWeek()
+    {
+        var setup = await CreateContractPolicyContextAsync();
+        await using var connection = setup.Connection;
+        await using var context = setup.Context;
+        var customerId = GuidHelper.NewId();
+        context.Customercontracts.AddRange(
+            new Customercontract
+            {
+                ContractId = GuidHelper.NewId(),
+                CustomerId = customerId,
+                EffectiveFrom = new DateOnly(2026, 6, 15),
+                EffectiveTo = new DateOnly(2026, 6, 16),
+                ActiveWeekDays = "t2,t3",
+                ShiftNames = "MORNING",
+                DefaultMenuPrice = 40000,
+                DefaultBomRatePercent = 110,
+                Status = "ACTIVE",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new Customercontract
+            {
+                ContractId = GuidHelper.NewId(),
+                CustomerId = customerId,
+                EffectiveFrom = new DateOnly(2026, 6, 17),
+                ActiveWeekDays = "t4,t5,t6",
+                ShiftNames = "MORNING",
+                DefaultMenuPrice = 52000,
+                DefaultBomRatePercent = 145,
+                Status = "ACTIVE",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+        await context.SaveChangesAsync();
+
+        var mondayPolicy = InvokeContractPolicy(context, customerId, new DateOnly(2026, 6, 15), "MORNING");
+        var wednesdayPolicy = InvokeContractPolicy(context, customerId, new DateOnly(2026, 6, 17), "MORNING");
+
+        GetProperty<decimal>(mondayPolicy, "MenuPrice").Should().Be(40000);
+        GetProperty<decimal>(mondayPolicy, "BomRatePercent").Should().Be(110);
+        GetProperty<bool>(mondayPolicy, "UsedFallback").Should().BeFalse();
+        GetProperty<decimal>(wednesdayPolicy, "MenuPrice").Should().Be(52000);
+        GetProperty<decimal>(wednesdayPolicy, "BomRatePercent").Should().Be(145);
+        GetProperty<bool>(wednesdayPolicy, "UsedFallback").Should().BeFalse();
+    }
+
     private static T InvokePrivateStatic<T>(string methodName, params object?[] args)
     {
         var method = typeof(SampleDataImportService).GetMethod(
@@ -53,5 +266,64 @@ public class SampleDataImportServiceTests
 
         method.Should().NotBeNull();
         return (T)method!.Invoke(null, args)!;
+    }
+
+    private static object InvokeContractPolicy(
+        IpcManagementContext context,
+        byte[] customerId,
+        DateOnly serviceDate,
+        string shiftName)
+    {
+        var service = new SampleDataImportService(context, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "ResolveCustomerContractPolicy",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        return method!.Invoke(service, [
+            new Customer
+            {
+                CustomerId = customerId,
+                CustomerCode = "CUS",
+                CustomerName = "Customer",
+                IsActive = true
+            },
+            serviceDate,
+            shiftName
+        ])!;
+    }
+
+    private static async Task<(SqliteConnection Connection, IpcManagementContext Context)> CreateContractPolicyContextAsync()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE customercontracts (
+                contractId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                effectiveFrom TEXT NOT NULL,
+                effectiveTo TEXT NULL,
+                activeWeekDays TEXT NOT NULL,
+                shiftNames TEXT NOT NULL,
+                defaultMenuPrice TEXT NOT NULL,
+                defaultBomRatePercent TEXT NOT NULL,
+                status TEXT NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
+
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        return (connection, new IpcManagementContext(options));
+    }
+
+    private static T GetProperty<T>(object instance, string propertyName)
+    {
+        var property = instance.GetType().GetProperty(propertyName);
+        property.Should().NotBeNull();
+        return (T)property!.GetValue(instance)!;
     }
 }

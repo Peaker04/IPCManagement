@@ -24,6 +24,70 @@ namespace IPCManagement.Api.Migrations
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+                {
+                    b.Property<byte[]>("ApprovalHistoryId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("approvalHistoryId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ActionAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("actionAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("ActionBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("actionBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("decision");
+
+                    b.Property<string>("NewStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("newStatus");
+
+                    b.Property<string>("OldStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("oldStatus");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<byte[]>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("targetId")
+                        .IsFixedLength();
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("targetType");
+
+                    b.HasKey("ApprovalHistoryId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("ActionBy");
+
+                    b.HasIndex(new[] { "TargetType", "TargetId", "ActionAt" }, "ixApprovalHistoriesTarget");
+
+                    b.ToTable("approvalhistories", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
                 {
                     b.Property<byte[]>("AuditId")
@@ -238,6 +302,83 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("customers", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customercontract", b =>
+                {
+                    b.Property<byte[]>("ContractId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("contractId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActiveWeekDays")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("activeWeekDays");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("DefaultBomRatePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("defaultBomRatePercent")
+                        .HasDefaultValueSql("'100.00'");
+
+                    b.Property<decimal>("DefaultMenuPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("defaultMenuPrice");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveFrom");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveTo");
+
+                    b.Property<string>("ShiftNames")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("shiftNames");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("status")
+                        .HasDefaultValueSql("'ACTIVE'");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("ContractId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "CustomerId" }, "customerId");
+
+                    b.HasIndex(new[] { "CustomerId", "EffectiveFrom", "EffectiveTo" }, "ixCustomerContractsEffective");
+
+                    b.ToTable("customercontracts", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dish", b =>
@@ -1074,7 +1215,8 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("QuantityPlanLineId")
                         .HasName("PRIMARY");
 
-                    b.HasIndex(new[] { "CustomerId" }, "customerId");
+                    b.HasIndex(new[] { "CustomerId" }, "customerId")
+                        .HasDatabaseName("customerId1");
 
                     b.HasIndex(new[] { "MenuId" }, "menuId");
 
@@ -1218,7 +1360,8 @@ namespace IPCManagement.Api.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("enum('DRAFT','CONFIRMED','CANCELLED')")
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
@@ -1238,6 +1381,94 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("menuschedules", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+                {
+                    b.Property<byte[]>("MenuVersionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("menuVersionId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("PublishedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("publishedAt");
+
+                    b.Property<byte[]>("PublishedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("publishedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("SourceChecksum")
+                        .HasMaxLength(128)
+                        .HasColumnType("varchar(128)")
+                        .HasColumnName("sourceChecksum");
+
+                    b.Property<string>("SourceFileName")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceFileName");
+
+                    b.Property<string>("SourceImportBatch")
+                        .HasMaxLength(80)
+                        .HasColumnType("varchar(80)")
+                        .HasColumnName("sourceImportBatch");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("status")
+                        .HasDefaultValueSql("'DRAFT'");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<int>("VersionNo")
+                        .HasColumnType("int")
+                        .HasColumnName("versionNo");
+
+                    b.Property<DateOnly>("WeekStartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("weekStartDate");
+
+                    b.HasKey("MenuVersionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "CustomerId" }, "customerId")
+                        .HasDatabaseName("customerId2");
+
+                    b.HasIndex(new[] { "CustomerId", "WeekStartDate", "Status" }, "ixMenuVersionsCustomerWeekStatus");
+
+                    b.HasIndex(new[] { "CustomerId", "WeekStartDate", "VersionNo" }, "uqMenuVersionsCustomerWeekVersion")
+                        .IsUnique();
+
+                    b.ToTable("menuversions", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
@@ -1347,7 +1578,7 @@ namespace IPCManagement.Api.Migrations
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId1");
+                        .HasDatabaseName("customerId3");
 
                     b.HasIndex(new[] { "DishId" }, "dishId")
                         .HasDatabaseName("dishId1");
@@ -2014,6 +2245,17 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("warehouses", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ActionByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ActionBy")
+                        .IsRequired()
+                        .HasConstraintName("approvalhistories_ibfk_1");
+
+                    b.Navigation("ActionByNavigation");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ChangedByNavigation")
@@ -2069,6 +2311,17 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
 
                     b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customercontract", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Customercontracts")
+                        .HasForeignKey("CustomerId")
+                        .IsRequired()
+                        .HasConstraintName("customercontracts_ibfk_1");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
@@ -2444,6 +2697,17 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Menu");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Menuversions")
+                        .HasForeignKey("CustomerId")
+                        .IsRequired()
+                        .HasConstraintName("menuversions_ibfk_1");
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
@@ -2648,9 +2912,13 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
+                    b.Navigation("Customercontracts");
+
                     b.Navigation("Mealquantityplanlines");
 
                     b.Navigation("Menuschedules");
+
+                    b.Navigation("Menuversions");
 
                     b.Navigation("Productionplanlines");
                 });

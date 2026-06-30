@@ -143,6 +143,7 @@ const coordinationSlice = createSlice({
       if (order && !isCurrentlyLocked) {
         if (action.payload.field === 'forecastQuantity') {
           order.forecastQuantity = action.payload.value
+          order.actualQuantity = action.payload.value
         } else {
           order.specialNotes = action.payload.value
         }

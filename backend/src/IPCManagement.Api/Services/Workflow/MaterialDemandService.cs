@@ -59,26 +59,38 @@ public class MaterialDemandService : IMaterialDemandService
 
         var currentStocks = await _context.Currentstocks
             .AsNoTracking()
+            .Include(stock => stock.Unit)
             .Where(stock => requiredIngredientIds.Contains(stock.IngredientId))
             .ToListAsync(cancellationToken);
 
         var stockDict = currentStocks
             .GroupBy(s => Convert.ToBase64String(s.IngredientId))
-            .ToDictionary(g => g.Key, g => g.Sum(s => s.CurrentQty));
+            .ToDictionary(g => g.Key, g => g.ToList());
 
         var outputLines = new List<MaterialDemandLineDto>();
+        var missingBomDishes = new List<MissingBomDishDto>();
+        var generatedPlanLineIds = new HashSet<string>();
+        var generatedRequestLineKeys = new HashSet<string>();
         foreach (var quantityLine in quantityLines)
         {
             foreach (var menuItem in quantityLine.Menu.Menuitems.OrderBy(item => item.DisplayOrder))
             {
                 var productionLine = EnsureProductionPlanLine(plan, quantityLine, menuItem);
+                generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
                 var activeBomLines = menuItem.Dish.Dishboms
                     .Where(bom => bom.EffectiveFrom <= serviceDate && (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate))
                     .ToList();
+                if (activeBomLines.Count == 0)
+                {
+                    missingBomDishes.Add(MapMissingBomDish(quantityLine, menuItem));
+                    continue;
+                }
 
                 foreach (var bom in activeBomLines)
                 {
-                    var currentStockQty = stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), 0m);
+                    var currentStockQty = CalculateStockInBomUnit(
+                        stockDict.GetValueOrDefault(Convert.ToBase64String(bom.IngredientId), []),
+                        bom.Unit);
                     var numbers = MaterialDemandCalculator.Calculate(
                         quantityLine.FinalServings,
                         bom.GrossQtyPerServing,
@@ -91,11 +103,28 @@ public class MaterialDemandService : IMaterialDemandService
                         quantityLine.FinalServings,
                         quantityLine.MenuSchedule.BomRatePercent,
                         numbers);
+                    generatedRequestLineKeys.Add(BuildMaterialRequestLineKey(productionLine.PlanLineId, bom.IngredientId));
 
                     outputLines.Add(MapLine(requestLine, productionLine, bom));
                 }
             }
         }
+
+        PruneStaleLines(plan, materialRequest, generatedPlanLineIds, generatedRequestLineKeys);
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Demand",
+            EntityName = nameof(Materialrequest),
+            EntityId = materialRequest.RequestId,
+            FieldName = "Generate",
+            OldValue = null,
+            NewValue = $"{outputLines.Count} demand lines; {missingBomDishes.Count} missing BOM dishes",
+            Reason = "Tạo nhu cầu nguyên liệu từ số suất, thực đơn và BOM."
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -107,7 +136,8 @@ public class MaterialDemandService : IMaterialDemandService
             Scope = scope,
             Status = materialRequest.Status,
             ProductionPlanLineCount = plan.Productionplanlines.Count,
-            Lines = outputLines
+            Lines = outputLines,
+            MissingBomDishes = missingBomDishes
         };
     }
 
@@ -179,6 +209,7 @@ public class MaterialDemandService : IMaterialDemandService
         var requestCode = $"MR-{serviceDate:yyyyMMdd}-{scope}";
         var existing = await _context.Materialrequests
             .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Purchaserequestlines)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
         if (existing is not null)
         {
@@ -199,6 +230,36 @@ public class MaterialDemandService : IMaterialDemandService
 
         _context.Materialrequests.Add(materialRequest);
         return materialRequest;
+    }
+
+    private void PruneStaleLines(
+        Productionplan plan,
+        Materialrequest materialRequest,
+        HashSet<string> generatedPlanLineIds,
+        HashSet<string> generatedRequestLineKeys)
+    {
+        var staleRequestLines = materialRequest.Materialrequestlines
+            .Where(line => !generatedRequestLineKeys.Contains(BuildMaterialRequestLineKey(line.PlanLineId, line.IngredientId)))
+            .ToList();
+        foreach (var staleLine in staleRequestLines)
+        {
+            if (staleLine.Purchaserequestlines.Count > 0)
+            {
+                _context.Purchaserequestlines.RemoveRange(staleLine.Purchaserequestlines);
+            }
+
+            materialRequest.Materialrequestlines.Remove(staleLine);
+            _context.Materialrequestlines.Remove(staleLine);
+        }
+
+        var stalePlanLines = plan.Productionplanlines
+            .Where(line => !generatedPlanLineIds.Contains(BuildKey(line.PlanLineId)))
+            .ToList();
+        foreach (var staleLine in stalePlanLines)
+        {
+            plan.Productionplanlines.Remove(staleLine);
+            _context.Productionplanlines.Remove(staleLine);
+        }
     }
 
     private Productionplanline EnsureProductionPlanLine(
@@ -297,6 +358,43 @@ public class MaterialDemandService : IMaterialDemandService
             CurrentStockQty = requestLine.CurrentStockQty,
             SuggestedPurchaseQty = requestLine.SuggestedPurchaseQty
         };
+
+    private static MissingBomDishDto MapMissingBomDish(Mealquantityplanline quantityLine, Menuitem menuItem)
+        => new()
+        {
+            DishId = GuidHelper.ToGuidString(menuItem.DishId),
+            DishCode = menuItem.Dish.DishCode,
+            DishName = menuItem.Dish.DishName,
+            CustomerId = GuidHelper.ToGuidString(quantityLine.CustomerId),
+            CustomerCode = quantityLine.Customer.CustomerCode,
+            CustomerName = quantityLine.Customer.CustomerName,
+            MenuId = GuidHelper.ToGuidString(quantityLine.MenuId),
+            MenuName = quantityLine.Menu.MenuName,
+            ShiftName = quantityLine.ShiftName,
+            TotalServings = quantityLine.FinalServings,
+            Message = "Món chưa có dòng BOM/định lượng đang hiệu lực nên chưa sinh nhu cầu nguyên liệu."
+        };
+
+    private static string BuildMaterialRequestLineKey(byte[] planLineId, byte[] ingredientId)
+        => $"{BuildKey(planLineId)}:{BuildKey(ingredientId)}";
+
+    private static string BuildKey(byte[] value)
+        => Convert.ToBase64String(value);
+
+    private static decimal CalculateStockInBomUnit(IReadOnlyList<Currentstock> stocks, Unit bomUnit)
+    {
+        if (stocks.Count == 0)
+        {
+            return 0m;
+        }
+
+        var bomRate = bomUnit.ConvertRateToBase <= 0 ? 1m : bomUnit.ConvertRateToBase;
+        return stocks.Sum(stock =>
+        {
+            var stockRate = stock.Unit.ConvertRateToBase <= 0 ? bomRate : stock.Unit.ConvertRateToBase;
+            return stock.CurrentQty * stockRate / bomRate;
+        });
+    }
 
     private static string NormalizeScope(string? scope, string? shiftName)
     {

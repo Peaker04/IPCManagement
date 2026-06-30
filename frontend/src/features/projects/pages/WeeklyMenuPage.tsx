@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload } from 'lucide-react';
+import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setMenuPrice, setLossRate, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, Toolbar, ViewSwitcher } from '@/components/common';
-import { useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { ActionGuard } from '@/routes/ActionGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { formatCurrency } from '@/lib/formatters';
@@ -28,6 +29,13 @@ interface MaterialSummaryEntry {
 }
 
 type MaterialSummary = Record<string, MaterialSummaryEntry>;
+
+type GeneratedMaterialRequest = {
+  materialRequestId: string;
+  requestCode: string;
+  serviceDate: string;
+  shortageLineCount: number;
+};
 
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
@@ -335,6 +343,15 @@ const WeeklyMenuPage = () => {
       return;
     }
 
+    if (!isValidWeekStartDate(importWeekStartDate)) {
+      setImportFeedback({
+        title: 'Ngày bắt đầu tuần không hợp lệ',
+        message: 'Vui lòng chọn ngày thứ 2 để backend gắn đúng cột Thứ 2 - Thứ 7.',
+        variant: 'warning',
+      });
+      return;
+    }
+
     try {
       setImportFeedback({
         title: 'Đang phân tích file',
@@ -353,7 +370,7 @@ const WeeklyMenuPage = () => {
       setImportPreview(response.data);
       setImportFeedback({
         title: 'Đã tạo bản xem trước',
-        message: `Tìm thấy ${response.data.detectedLayout.rowsImported} dòng món trên sheet ${response.data.detectedLayout.sheetName}.`,
+        message: `Tìm thấy ${response.data.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${response.data.detectedLayout.rowsSkipped} dòng trên sheet ${response.data.detectedLayout.sheetName}.`,
         variant: response.data.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
@@ -371,6 +388,15 @@ const WeeklyMenuPage = () => {
       setImportFeedback({
         title: 'Chưa có bản xem trước',
         message: 'Vui lòng xem trước file trước khi lưu vào hệ thống.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (!isValidWeekStartDate(importWeekStartDate)) {
+      setImportFeedback({
+        title: 'Ngày bắt đầu tuần không hợp lệ',
+        message: 'Vui lòng chọn ngày thứ 2 rồi xem trước lại trước khi lưu.',
         variant: 'warning',
       });
       return;
@@ -402,9 +428,12 @@ const WeeklyMenuPage = () => {
       setImportPreview(response.data);
       setIsImportDialogOpen(false);
       setWarehouseExportFeedback({
-        title: 'Import thực đơn thành công',
-        message: `Đã lưu ${response.data.detectedLayout.rowsImported} dòng món cho ${response.data.customerCode}.`,
-        variant: 'info',
+        title: response.data.warnings.length > 0 ? 'Import thực đơn thành công (có cảnh báo)' : 'Import thực đơn thành công',
+        message: [
+          `Đã lưu ${response.data.detectedLayout.rowsImported} dòng món cho ${response.data.customerCode}; bỏ qua ${response.data.detectedLayout.rowsSkipped} dòng không phải món.`,
+          ...response.data.warnings.slice(0, 4),
+        ].join('\n'),
+        variant: response.data.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
       setImportFeedback({
@@ -435,8 +464,16 @@ const WeeklyMenuPage = () => {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
+  const [demandFeedback, setDemandFeedback] = useState<{
+    title: string;
+    message: string;
+    variant: 'info' | 'warning' | 'danger';
+  } | null>(null);
+  const [generatedMaterialRequests, setGeneratedMaterialRequests] = useState<GeneratedMaterialRequest[]>([]);
   const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
+  const [generatePurchaseRequestFromDemand, { isLoading: isGeneratingPurchaseRequest }] = useGeneratePurchaseRequestFromDemandMutation();
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
@@ -475,6 +512,123 @@ const WeeklyMenuPage = () => {
     return '';
   };
 
+  const handleGenerateDemand = async () => {
+    const serviceDates = Array.from(
+      new Set(weeklyPlanRows.map((row) => row.date).filter(Boolean)),
+    );
+
+    if (serviceDates.length === 0) {
+      setDemandFeedback({
+        title: 'Chưa có ngày để tạo demand',
+        message: 'Vui lòng import hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    setDemandFeedback(null);
+    const results = await Promise.all(serviceDates.map(async (serviceDate) => {
+      try {
+        const response = await generateMaterialDemand({ serviceDate, scope: 'FULLDAY' }).unwrap();
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Không tạo được nhu cầu nguyên liệu.');
+        }
+
+        return { serviceDate, response };
+      } catch (error) {
+        return { serviceDate, error };
+      }
+    }));
+
+    const succeeded = results.filter((result): result is { serviceDate: string; response: NonNullable<(typeof result)['response']> } => 'response' in result);
+    const skipped = results.length - succeeded.length;
+    const demandLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.length, 0);
+    const shortageLineCount = succeeded.reduce(
+      (sum, result) => sum + result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length,
+      0,
+    );
+    const missingBomCount = succeeded.reduce((sum, result) => sum + result.response.data!.missingBomDishes.length, 0);
+    const planLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.productionPlanLineCount, 0);
+    const generatedRequests = succeeded.map((result) => ({
+      materialRequestId: result.response.data!.materialRequestId,
+      requestCode: result.response.data!.requestCode,
+      serviceDate: result.response.data!.serviceDate,
+      shortageLineCount: result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length,
+    }));
+
+    if (succeeded.length === 0) {
+      const firstError = results.find((result) => 'error' in result)?.error;
+      setDemandFeedback({
+        title: 'Chưa tạo được demand',
+        message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'),
+        variant: 'danger',
+      });
+      return;
+    }
+
+    setGeneratedMaterialRequests(generatedRequests);
+    setDemandFeedback({
+      title: skipped > 0 ? 'Đã tạo demand cho ngày đã chốt' : 'Đã tạo demand cho tuần',
+      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Thu mua có thể sinh danh sách mua thêm bằng nút riêng.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có BOM cần bổ sung.` : 'BOM đã đủ cho các dòng sinh demand.'}`,
+      variant: missingBomCount > 0 || skipped > 0 ? 'warning' : 'info',
+    });
+  };
+
+  const handleGeneratePurchaseRequests = async () => {
+    const candidateMap = new Map<string, GeneratedMaterialRequest>();
+    generatedMaterialRequests
+      .filter((request) => request.shortageLineCount > 0)
+      .forEach((request) => candidateMap.set(request.materialRequestId, request));
+    demandLines
+      .filter((line) => line.tone === 'danger' && line.materialRequestId)
+      .forEach((line) => {
+        if (!line.materialRequestId) return;
+        candidateMap.set(line.materialRequestId, {
+          materialRequestId: line.materialRequestId,
+          requestCode: line.sourceDocumentCode ?? line.source,
+          serviceDate: '',
+          shortageLineCount: 1,
+        });
+      });
+
+    const candidates = Array.from(candidateMap.values());
+    if (candidates.length === 0) {
+      setDemandFeedback({
+        title: 'Chưa có demand thiếu hàng',
+        message: 'Hãy tạo demand trước hoặc kiểm tra báo cáo nhu cầu nguyên liệu để có dòng thiếu cần mua thêm.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    setDemandFeedback(null);
+    const purchaseResults = await Promise.all(candidates.map(async (request) => {
+        try {
+          const response = await generatePurchaseRequestFromDemand({
+            materialRequestId: request.materialRequestId,
+          }).unwrap();
+          if (!response.success || !response.data) {
+            throw new Error(response.message || 'Không tạo được danh sách mua thêm.');
+          }
+
+          return { request, response };
+        } catch (error) {
+          return { request, error };
+        }
+      }));
+    const purchaseSuccessCount = purchaseResults.filter((result) => 'response' in result).length;
+    const purchaseLineCount = purchaseResults.reduce(
+      (sum, result) => ('response' in result ? sum + (result.response?.data?.lines.length ?? 0) : sum),
+      0,
+    );
+    const failed = purchaseResults.length - purchaseSuccessCount;
+
+    setDemandFeedback({
+      title: failed > 0 ? 'Sinh danh sách mua thêm chưa đủ' : 'Đã sinh danh sách mua thêm',
+      message: `Xử lý ${purchaseSuccessCount}/${purchaseResults.length} demand thiếu hàng, tạo/cập nhật ${purchaseLineCount} dòng mua thêm.${failed > 0 ? ' Một số demand cần kiểm tra lại nhà cung cấp hoặc dữ liệu nguyên liệu.' : ''}`,
+      variant: failed > 0 ? 'warning' : 'info',
+    });
+  };
   const handleSaveEdit = async () => {
     const slotsToUpdate: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> = [];
 
@@ -678,7 +832,6 @@ const WeeklyMenuPage = () => {
     // Build CSV content
     const customerCode = customers.find((c) => c.customerId === effectiveImportCustomerId)?.customerCode ?? 'DAV';
     const weekStr = committedMenuWeekStartDate || '2026-06-15';
-    
     let csvContent = '\uFEFF'; // Add BOM for UTF-8 in Excel
     csvContent += 'Tuần,Khách hàng,Nguyên liệu,Số lượng LT,Số lượng TT,Đơn vị,Đơn giá (đ),Thành tiền (đ)\n';
     
@@ -686,7 +839,6 @@ const WeeklyMenuPage = () => {
       if (!m) return;
       csvContent += `"${weekStr}","${customerCode}","${m.name.replace(/"/g, '""')}","${m.theory}","${m.actual}","${m.unit}","${m.price}","${Math.round(m.cost)}"\n`;
     });
-    
     // Trigger download
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -940,14 +1092,14 @@ const WeeklyMenuPage = () => {
                             {section.label}
                           </td>
                         </tr>
-                        
+
                         {rowTypes.map((row, rowIndex) => (
                           <tr key={`${section.label}-${row.key}`}>
                             {/* Label Column */}
                             <td className="border-r border-slate-200 bg-slate-50 align-middle font-semibold text-slate-800 text-[12px] p-2 text-center w-[120px] min-w-[120px] max-w-[120px]">
                               {row.label}
                             </td>
-                            
+
                             {/* Day Columns */}
                             {displayDays.map((_, idx) => {
                               const cell = cellsByDay[idx];
@@ -1011,6 +1163,36 @@ const WeeklyMenuPage = () => {
                 Các món này vẫn được đưa vào KHSX theo tên món trong Excel, nhưng chưa sinh định lượng nguyên liệu cho đến khi được gắn với món/BOM trong catalog.
               </InlineAlert>
             )}
+            {demandFeedback && (
+              <InlineAlert title={demandFeedback.title} variant={demandFeedback.variant}>
+                {demandFeedback.message}
+              </InlineAlert>
+            )}
+
+            <Toolbar className="justify-end">
+              <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
+                <button
+                  className="ipc-button ipc-button-primary"
+                  type="button"
+                  onClick={() => void handleGenerateDemand()}
+                  disabled={isGeneratingDemand || weeklyPlanRows.length === 0}
+                >
+                  <Scale size={16} />
+                  {isGeneratingDemand ? 'Đang tạo demand...' : 'Tạo demand từ KHSX'}
+                </button>
+              </ActionGuard>
+              <ActionGuard allowedRoles={['quanly', 'thumua']} requiredPermissions={['purchase.generate']}>
+                <button
+                  className="ipc-button ipc-button-warning"
+                  type="button"
+                  onClick={() => void handleGeneratePurchaseRequests()}
+                  disabled={isGeneratingPurchaseRequest || (generatedMaterialRequests.length === 0 && !demandLines.some((line) => line.tone === 'danger' && line.materialRequestId))}
+                >
+                  <ShoppingCart size={16} />
+                  {isGeneratingPurchaseRequest ? 'Đang sinh mua thêm...' : 'Sinh danh sách mua thêm'}
+                </button>
+              </ActionGuard>
+            </Toolbar>
 
             <DataTableShell ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
               <table className="ipc-data-table">
@@ -1350,9 +1532,39 @@ const WeeklyMenuPage = () => {
                       { label: 'Sheet', value: importPreview.detectedLayout.sheetName, tone: 'neutral' },
                       { label: 'Cột nhãn', value: importPreview.detectedLayout.labelColumn, tone: 'neutral' },
                       { label: 'Ngày', value: `${formatImportDate(importPreview.weekStartDate)} - ${formatImportDate(importPreview.weekEndDate)}`, tone: 'info' },
-                      { label: 'Dòng món', value: importPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
+                      { label: 'Hợp lệ', value: importPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
+                      {
+                        label: 'Bỏ qua',
+                        value: importPreview.detectedLayout.rowsSkipped.toString(),
+                        tone: importPreview.detectedLayout.rowsSkipped > 0 ? 'warning' : 'neutral',
+                      },
+                      {
+                        label: 'Thêm',
+                        value: importPreview.previewDiff.addedSlots.toString(),
+                        tone: importPreview.previewDiff.addedSlots > 0 ? 'info' : 'neutral',
+                      },
+                      {
+                        label: 'Đổi món',
+                        value: importPreview.previewDiff.changedSlots.toString(),
+                        tone: importPreview.previewDiff.changedSlots > 0 ? 'warning' : 'neutral',
+                      },
+                      {
+                        label: 'Bỏ khỏi tuần',
+                        value: importPreview.previewDiff.removedSlots.toString(),
+                        tone: importPreview.previewDiff.removedSlots > 0 ? 'danger' : 'neutral',
+                      },
                     ]}
                   />
+
+                  {importPreview.previewDiff.rows.some((row) => row.changeType !== 'unchanged') && (
+                    <InlineAlert title="Diff so với thực đơn đang lưu" variant="info">
+                      {importPreview.previewDiff.rows
+                        .filter((row) => row.changeType !== 'unchanged')
+                        .slice(0, 4)
+                        .map((row) => `${formatImportDate(row.serviceDate)} ${row.shiftName}: ${row.currentDishName ?? '-'} -> ${row.importedDishName ?? '-'}`)
+                        .join(' | ')}
+                    </InlineAlert>
+                  )}
 
                   {importPreview.warnings.length > 0 && (
                     <InlineAlert title="Cảnh báo khi đọc file" variant="warning">
@@ -1433,26 +1645,26 @@ const WeeklyMenuPage = () => {
                 Chỉnh sửa Thực đơn tuần (T2 - T7)
               </DialogTitle>
             </DialogHeader>
-            
+
             <div className="mt-4 flex flex-col gap-6">
               {SECTIONS.map((sec) => (
                 <div key={sec.label} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0">
                   <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-[13px] font-bold uppercase text-slate-800">
                     {sec.label}
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     {displayDays.map((day) => {
                       const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
                       const slot = tempWeeklyMenu[day.key]?.[sec.slotType];
-                      
+
                       return (
                         <div key={day.key} className="p-2 border border-slate-200 rounded-md bg-white flex flex-col gap-1.5 shadow-sm">
                           <div className="flex flex-col">
                             <span className="text-[12px] font-semibold text-slate-700">{day.label}</span>
                             <span className="text-[10px] text-slate-400">{day.date}</span>
                           </div>
-                          
+
                           {isLocked ? (
                             <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">
                               <Lock size={10} className="text-slate-400" />

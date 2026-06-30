@@ -147,6 +147,33 @@ public class AuditChangeReportDto
     public string? Reason { get; set; }
 }
 
+public class DataQualityReportDto
+{
+    public DateTime GeneratedAt { get; set; }
+    public int TotalIssues { get; set; }
+    public int ErrorCount { get; set; }
+    public int WarningCount { get; set; }
+    public int MissingBomCount { get; set; }
+    public int InvalidUnitCount { get; set; }
+    public int NegativeStockCount { get; set; }
+    public int OrphanDocumentCount { get; set; }
+    public IReadOnlyList<DataQualityIssueDto> Issues { get; set; } = [];
+}
+
+public class DataQualityIssueDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string EntityName { get; set; } = string.Empty;
+    public string? EntityId { get; set; }
+    public string EntityCode { get; set; } = string.Empty;
+    public string EntityLabel { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string SuggestedAction { get; set; } = string.Empty;
+    public string Route { get; set; } = string.Empty;
+}
+
 public class WorkflowDocumentDto
 {
     public string DocumentId { get; set; } = string.Empty;

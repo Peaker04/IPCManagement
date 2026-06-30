@@ -13,15 +13,20 @@ namespace IPCManagement.Api.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
+    private const string RefreshTokenCookieName = "refreshToken";
+
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly ITokenService _tokenService;
 
     public AuthController(
         IAuthService authService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        ITokenService tokenService)
     {
         _authService = authService;
         _currentUserService = currentUserService;
+        _tokenService = tokenService;
     }
 
     /// <summary>Đăng nhập — trả về access token + refresh token.</summary>
@@ -38,6 +43,7 @@ public class AuthController : ControllerBase
         if (result is null)
             return Unauthorized(ApiResponse.FailResult("Tên đăng nhập hoặc mật khẩu không đúng."));
 
+        SetRefreshTokenCookie(result.RefreshToken);
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Đăng nhập thành công."));
     }
 
@@ -46,8 +52,11 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                   StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto request)
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto? request)
     {
+        request ??= new RefreshTokenRequestDto();
+        request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
+
         if (string.IsNullOrWhiteSpace(request.AccessToken) ||
             string.IsNullOrWhiteSpace(request.RefreshToken))
         {
@@ -56,28 +65,45 @@ public class AuthController : ControllerBase
 
         var result = await _authService.RefreshTokenAsync(request);
         if (result is null)
+        {
+            ClearRefreshTokenCookie();
             return Unauthorized(ApiResponse.FailResult("Refresh token không hợp lệ hoặc đã hết hạn."));
+        }
 
+        SetRefreshTokenCookie(result.RefreshToken);
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Làm mới token thành công."));
     }
 
     /// <summary>Đăng xuất — vô hiệu hoá refresh token.</summary>
+    [HttpPost("logout")]
+    [EnableRateLimiting("api-general")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Logout([FromBody] RevokeTokenRequestDto? request)
+    {
+        request ??= new RevokeTokenRequestDto();
+        request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
+
+        if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            return BadRequest(ApiResponse.FailResult("Thiếu refresh token."));
+
+        var success = await _authService.RevokeTokenAsync(request);
+        ClearRefreshTokenCookie();
+
+        if (!success)
+            return Ok(ApiResponse.SuccessResult("Đăng xuất thành công."));
+
+        return Ok(ApiResponse.SuccessResult("Đăng xuất thành công."));
+    }
+
+    /// <summary>Alias tương thích ngược cho luồng thu hồi token.</summary>
     [HttpPost("revoke")]
     [Authorize]
     [EnableRateLimiting("api-general")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Revoke([FromBody] RevokeTokenRequestDto request)
-    {
-        if (string.IsNullOrWhiteSpace(request.RefreshToken))
-            return BadRequest(ApiResponse.FailResult("Thiếu refresh token."));
-
-        var success = await _authService.RevokeTokenAsync(request);
-        if (!success)
-            return BadRequest(ApiResponse.FailResult("Refresh token không tồn tại hoặc đã bị thu hồi."));
-
-        return Ok(ApiResponse.SuccessResult("Đăng xuất thành công."));
-    }
+    public Task<IActionResult> Revoke([FromBody] RevokeTokenRequestDto? request)
+        => Logout(request);
 
     /// <summary>Lấy thông tin cá nhân của người dùng hiện tại.</summary>
     [HttpGet("profile")]
@@ -125,5 +151,38 @@ public class AuthController : ControllerBase
             return NotFound(ApiResponse.FailResult("Người dùng không tồn tại hoặc tài khoản đã bị khoá."));
 
         return Ok(ApiResponse<UserProfileResponseDto>.SuccessResult(profile, "Lấy profile người dùng thành công."));
+    }
+
+    private string ResolveRefreshToken(string? refreshToken)
+        => !string.IsNullOrWhiteSpace(refreshToken)
+            ? refreshToken.Trim()
+            : Request.Cookies[RefreshTokenCookieName] ?? string.Empty;
+
+    private void SetRefreshTokenCookie(string refreshToken)
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(_tokenService.GetRefreshTokenExpiryDays())
+        };
+
+        Response.Cookies.Append(RefreshTokenCookieName, refreshToken, cookieOptions);
+    }
+
+    private void ClearRefreshTokenCookie()
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = Request.IsHttps,
+            SameSite = SameSiteMode.Lax,
+            Path = "/",
+            Expires = DateTimeOffset.UtcNow.AddDays(-1)
+        };
+
+        Response.Cookies.Append(RefreshTokenCookieName, string.Empty, cookieOptions);
     }
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { BarChart3, Bell, Database, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, UserPlus, Users, XCircle } from 'lucide-react';
+import { BarChart3, Bell, CalendarCheck, Database, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, UserPlus, Users, XCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import {
@@ -25,6 +25,7 @@ import {
   useGetApprovalRecordsQuery,
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
+  useGetDataQualityQuery,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -37,11 +38,31 @@ import {
 import {
   useAddDishBomLineMutation,
   useCloseDishBomLineMutation,
-  useGetDishesCatalogQuery,
+  useCreateDishMutation,
+  useDeactivateDishMutation,
+  useGetAdminDishCatalogQuery,
   useGetIngredientsQuery,
+  useUpdateDishMutation,
   useUpdateDishBomLineMutation,
   type CatalogIngredient,
 } from '@/features/projects/dishCatalogApi';
+import {
+  useCreateCustomerContractMutation,
+  useGetCustomerContractsQuery,
+  useGetMenuSchedulesQuery,
+  useUpdateCustomerContractMutation,
+  useUpdateMenuScheduleRulesMutation,
+  useUpdateMenuScheduleVersionMutation,
+} from '@/features/coordination/coordinationApi';
+import type {
+  ApiShiftName,
+  CreateCustomerContractRequest,
+  CustomerContractDto,
+  MenuScheduleDto,
+  UpdateCustomerContractRequest,
+  UpdateMenuScheduleRulesRequest,
+  UpdateMenuScheduleVersionRequest,
+} from '@/features/coordination/types';
 import {
   type AdminEmployee,
   useCreateAdminEmployeeMutation,
@@ -51,13 +72,69 @@ import {
   useUpdateAdminEmployeeStatusMutation,
 } from '@/features/admin/adminApi';
 
-type AdminView = 'adjustments' | 'inventory' | 'audit' | 'statistics' | 'employees';
+type AdminView = 'adjustments' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees';
 
 type BomFormState = {
   ingredientId: string;
   grossQtyPerServing: string;
   wasteRatePercent: string;
   reason: string;
+};
+
+type DishFormState = {
+  dishCode: string;
+  dishName: string;
+  dishType: string;
+  dishGroup: string;
+  isActive: boolean;
+};
+
+type ContractFormState = {
+  customerCode: string;
+  customerName: string;
+  note: string;
+  isActive: boolean;
+  effectiveFrom: string;
+  effectiveTo: string;
+  activeWeekDays: string;
+  shiftNames: string;
+  defaultMenuPrice: string;
+  defaultBomRatePercent: string;
+};
+
+type ScheduleRuleFormState = {
+  menuPrice: string;
+  bomRatePercent: string;
+  status: string;
+  reason: string;
+};
+
+const defaultDishForm: DishFormState = {
+  dishCode: '',
+  dishName: '',
+  dishType: '',
+  dishGroup: '',
+  isActive: true,
+};
+
+const defaultContractForm: ContractFormState = {
+  customerCode: '',
+  customerName: '',
+  note: '',
+  isActive: true,
+  effectiveFrom: '',
+  effectiveTo: '',
+  activeWeekDays: '',
+  shiftNames: '',
+  defaultMenuPrice: '',
+  defaultBomRatePercent: '',
+};
+
+const defaultScheduleRuleForm: ScheduleRuleFormState = {
+  menuPrice: '',
+  bomRatePercent: '100',
+  status: 'ACTIVE',
+  reason: '',
 };
 
 type EmployeeFormState = {
@@ -106,6 +183,14 @@ export default function AdminDataPage() {
   const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
   const [employeeNotice, setEmployeeNotice] = useState<string | null>(null);
   const [selectedDishId, setSelectedDishId] = useState('');
+  const [editingDishId, setEditingDishId] = useState<string | null>(null);
+  const [dishForm, setDishForm] = useState<DishFormState>(defaultDishForm);
+  const [selectedContractCustomerId, setSelectedContractCustomerId] = useState('');
+  const [isCreatingContract, setIsCreatingContract] = useState(false);
+  const [selectedScheduleId, setSelectedScheduleId] = useState('');
+  const [contractForm, setContractForm] = useState<ContractFormState>(defaultContractForm);
+  const [scheduleRuleForm, setScheduleRuleForm] = useState<ScheduleRuleFormState>(defaultScheduleRuleForm);
+  const [contractFeedback, setContractFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [editingBomId, setEditingBomId] = useState<string | null>(null);
   const [bomForm, setBomForm] = useState<BomFormState>({
     ingredientId: '',
@@ -113,16 +198,40 @@ export default function AdminDataPage() {
     wasteRatePercent: '0',
     reason: '',
   });
+  const [dishFeedback, setDishFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [bomFeedback, setBomFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const auditPageSize = 8;
-  const { data: catalogDishes = [], isLoading: isCatalogLoading } = useGetDishesCatalogQuery();
+  const { data: catalogDishes = [], isLoading: isCatalogLoading } = useGetAdminDishCatalogQuery();
   const { data: ingredientLookup = [] } = useGetIngredientsQuery();
+  const [createDish, createDishState] = useCreateDishMutation();
+  const [updateDish, updateDishState] = useUpdateDishMutation();
+  const [deactivateDish, deactivateDishState] = useDeactivateDishMutation();
   const [addDishBomLine, addDishBomLineState] = useAddDishBomLineMutation();
   const [updateDishBomLine, updateDishBomLineState] = useUpdateDishBomLineMutation();
   const [closeDishBomLine, closeDishBomLineState] = useCloseDishBomLineMutation();
+  const { data: contractResponse } = useGetCustomerContractsQuery();
+  const customerContracts = useMemo(() => contractResponse?.data ?? [], [contractResponse?.data]);
+  const selectedContract = useMemo(
+    () => customerContracts.find((customer) => customer.customerId === selectedContractCustomerId) ?? customerContracts[0],
+    [customerContracts, selectedContractCustomerId],
+  );
+  const { data: scheduleResponse } = useGetMenuSchedulesQuery(
+    { customerId: selectedContract?.customerId, serviceDate: selectedContract?.latestServiceDate ?? undefined },
+    { skip: !selectedContract?.customerId },
+  );
+  const menuSchedules = useMemo(() => scheduleResponse?.data ?? [], [scheduleResponse?.data]);
+  const selectedSchedule = useMemo(
+    () => menuSchedules.find((schedule) => schedule.menuScheduleId === selectedScheduleId) ?? menuSchedules[0],
+    [menuSchedules, selectedScheduleId],
+  );
+  const [createCustomerContract, createCustomerContractState] = useCreateCustomerContractMutation();
+  const [updateCustomerContract, updateCustomerContractState] = useUpdateCustomerContractMutation();
+  const [updateMenuScheduleRules, updateMenuScheduleRulesState] = useUpdateMenuScheduleRulesMutation();
+  const [updateMenuScheduleVersion, updateMenuScheduleVersionState] = useUpdateMenuScheduleVersionMutation();
   const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: auditLogs = [] } = useGetAuditChangesQuery({ limit: 100 });
+  const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: purchaseDemandRows = [] } = useGetPurchaseDemandQuery({ limit: 100 });
@@ -164,7 +273,11 @@ export default function AdminDataPage() {
   const selectedDishBomLines = selectedDish?.ingredients ?? [];
   const activeBomCount = selectedDishBomLines.filter((line) => !line.effectiveTo).length;
   const selectedIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
+  const dataQualityIssues = dataQualityReport?.issues ?? [];
+  const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading || closeDishBomLineState.isLoading;
+  const isSavingDish = createDishState.isLoading || updateDishState.isLoading || deactivateDishState.isLoading;
+  const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
   const employeeMeta = employeeResponse?.data;
@@ -172,6 +285,8 @@ export default function AdminDataPage() {
   const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'adjustments' : activeView;
   const adminTabs: ViewTab[] = [
     { id: 'admin-adjustments', label: 'Điều chỉnh' },
+    { id: 'admin-contracts', label: 'Contract' },
+    { id: 'admin-cleanup', label: 'Dữ liệu lỗi' },
     { id: 'admin-inventory', label: 'Tồn kho' },
     { id: 'admin-statistics', label: 'Thống kê' },
     { id: 'admin-audit', label: 'Audit' },
@@ -191,6 +306,278 @@ export default function AdminDataPage() {
       wasteRatePercent: '0',
       reason: '',
     });
+  };
+
+  const resetDishForm = () => {
+    setEditingDishId(null);
+    setDishForm(defaultDishForm);
+  };
+
+  const startEditDish = () => {
+    if (!selectedDish) return;
+    setEditingDishId(selectedDish.id);
+    setDishForm({
+      dishCode: selectedDish.code,
+      dishName: selectedDish.name,
+      dishType: selectedDish.dishType ?? '',
+      dishGroup: selectedDish.dishGroup ?? '',
+      isActive: selectedDish.isActive,
+    });
+    setDishFeedback(null);
+  };
+
+  const handleSaveDish = async () => {
+    if (!dishForm.dishName.trim()) {
+      setDishFeedback({ type: 'error', message: 'Vui lòng nhập tên món ăn.' });
+      return;
+    }
+
+    if (!editingDishId && !dishForm.dishCode.trim()) {
+      setDishFeedback({ type: 'error', message: 'Vui lòng nhập mã món ăn khi tạo mới.' });
+      return;
+    }
+
+    try {
+      if (editingDishId) {
+        await updateDish({
+          dishId: editingDishId,
+          body: {
+            dishName: dishForm.dishName.trim(),
+            dishType: dishForm.dishType.trim() || null,
+            dishGroup: dishForm.dishGroup.trim() || null,
+            isActive: dishForm.isActive,
+          },
+        }).unwrap();
+        setDishFeedback({ type: 'success', message: 'Đã cập nhật món ăn.' });
+      } else {
+        await createDish({
+          dishCode: dishForm.dishCode.trim(),
+          dishName: dishForm.dishName.trim(),
+          dishType: dishForm.dishType.trim() || null,
+          dishGroup: dishForm.dishGroup.trim() || null,
+        }).unwrap();
+        setDishFeedback({ type: 'success', message: 'Đã tạo món ăn mới.' });
+      }
+
+      resetDishForm();
+    } catch (error) {
+      setDishFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được món ăn. Kiểm tra mã trùng hoặc dữ liệu nhập.') });
+    }
+  };
+
+  const handleToggleDishActive = async () => {
+    if (!selectedDish) return;
+
+    try {
+      if (selectedDish.isActive) {
+        await deactivateDish(selectedDish.id).unwrap();
+        setDishFeedback({ type: 'success', message: `Đã khóa món ${selectedDish.name}.` });
+      } else {
+        await updateDish({
+          dishId: selectedDish.id,
+          body: {
+            dishName: selectedDish.name,
+            dishType: selectedDish.dishType ?? null,
+            dishGroup: selectedDish.dishGroup ?? null,
+            isActive: true,
+          },
+        }).unwrap();
+        setDishFeedback({ type: 'success', message: `Đã mở lại món ${selectedDish.name}.` });
+      }
+      resetDishForm();
+    } catch (error) {
+      setDishFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái món ăn.') });
+    }
+  };
+
+  const loadContractForm = (contract: CustomerContractDto | undefined) => {
+    setIsCreatingContract(false);
+    setContractForm(contract ? {
+      customerCode: contract.customerCode,
+      customerName: contract.customerName,
+      note: contract.note ?? '',
+      isActive: contract.isActive,
+      effectiveFrom: contract.effectiveFrom ?? '',
+      effectiveTo: contract.effectiveTo ?? '',
+      activeWeekDays: contract.activeWeekDays.join(','),
+      shiftNames: contract.shiftNames.join(','),
+      defaultMenuPrice: contract.defaultMenuPrice != null ? String(contract.defaultMenuPrice) : '',
+      defaultBomRatePercent: contract.defaultBomRatePercent != null ? String(contract.defaultBomRatePercent) : '',
+    } : defaultContractForm);
+    setContractFeedback(null);
+  };
+
+  const startNewContract = () => {
+    setIsCreatingContract(true);
+    setSelectedContractCustomerId('');
+    setSelectedScheduleId('');
+    setContractForm({
+      ...defaultContractForm,
+      isActive: true,
+      activeWeekDays: 't2,t3,t4,t5,t6,t7',
+      shiftNames: 'MORNING,AFTERNOON',
+      defaultMenuPrice: '25000',
+      defaultBomRatePercent: '100',
+    });
+    loadScheduleRuleForm(undefined);
+    setContractFeedback(null);
+  };
+
+  const loadScheduleRuleForm = (schedule: MenuScheduleDto | undefined) => {
+    setScheduleRuleForm(schedule ? {
+      menuPrice: String(schedule.menuPrice),
+      bomRatePercent: String(schedule.bomRatePercent),
+      status: schedule.status,
+      reason: '',
+    } : defaultScheduleRuleForm);
+    setContractFeedback(null);
+  };
+
+  const handleSaveCustomerContract = async () => {
+    if (!isCreatingContract && !selectedContract) {
+      setContractFeedback({ type: 'error', message: 'Chưa chọn khách hàng.' });
+      return;
+    }
+
+    const nextCustomerCode = contractForm.customerCode.trim().toUpperCase();
+    const nextCustomerName = contractForm.customerName.trim() || selectedContract?.customerName;
+    const nextNote = contractForm.customerName || contractForm.note
+      ? contractForm.note.trim()
+      : selectedContract?.note ?? '';
+    const nextIsActive = contractForm.customerName || contractForm.note || selectedContractCustomerId
+      ? contractForm.isActive
+      : selectedContract?.isActive ?? true;
+
+    if (isCreatingContract && !nextCustomerCode) {
+      setContractFeedback({ type: 'error', message: 'Mã khách hàng không được trống.' });
+      return;
+    }
+    if (!nextCustomerName) {
+      setContractFeedback({ type: 'error', message: 'Tên khách hàng không được trống.' });
+      return;
+    }
+
+    const defaultMenuPrice = contractForm.defaultMenuPrice.trim()
+      ? Number(contractForm.defaultMenuPrice)
+      : undefined;
+    const defaultBomRatePercent = contractForm.defaultBomRatePercent.trim()
+      ? Number(contractForm.defaultBomRatePercent)
+      : undefined;
+
+    if (defaultMenuPrice != null && (!Number.isFinite(defaultMenuPrice) || defaultMenuPrice < 0)) {
+      setContractFeedback({ type: 'error', message: 'Đơn giá mặc định không hợp lệ.' });
+      return;
+    }
+    if (defaultBomRatePercent != null && (!Number.isFinite(defaultBomRatePercent) || defaultBomRatePercent <= 0 || defaultBomRatePercent > 300)) {
+      setContractFeedback({ type: 'error', message: 'Tỷ lệ BOM mặc định phải trong khoảng 0-300%.' });
+      return;
+    }
+
+    const activeWeekDays = contractForm.activeWeekDays
+      .split(',')
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const shiftNames: ApiShiftName[] = contractForm.shiftNames
+      .split(',')
+      .map((value) => value.trim().toUpperCase())
+      .filter(Boolean) as ApiShiftName[];
+    if (activeWeekDays.length === 0) {
+      setContractFeedback({ type: 'error', message: 'Ngày làm việc contract không được trống.' });
+      return;
+    }
+    if (shiftNames.length === 0) {
+      setContractFeedback({ type: 'error', message: 'Ca phục vụ contract không được trống.' });
+      return;
+    }
+
+    const body: UpdateCustomerContractRequest = {
+      customerName: nextCustomerName,
+      note: nextNote || null,
+      isActive: nextIsActive,
+      effectiveFrom: contractForm.effectiveFrom || undefined,
+      effectiveTo: contractForm.effectiveTo || undefined,
+      activeWeekDays,
+      shiftNames,
+      defaultMenuPrice,
+      defaultBomRatePercent,
+    };
+
+    try {
+      if (isCreatingContract) {
+        const createBody: CreateCustomerContractRequest = {
+          customerCode: nextCustomerCode,
+          ...body,
+          customerName: nextCustomerName,
+        };
+        const response = await createCustomerContract(createBody).unwrap();
+        if (!response.data) {
+          throw new Error('Không nhận được contract vừa tạo.');
+        }
+
+        setSelectedContractCustomerId(response.data.customerId);
+        setIsCreatingContract(false);
+        loadContractForm(response.data);
+        setContractFeedback({ type: 'success', message: 'Đã tạo khách hàng và contract.' });
+        return;
+      }
+
+      await updateCustomerContract({ customerId: selectedContract!.customerId, body }).unwrap();
+      setContractFeedback({ type: 'success', message: 'Đã lưu contract khách hàng.' });
+    } catch (error) {
+      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được contract khách hàng.') });
+    }
+  };
+
+  const handleSaveScheduleRules = async () => {
+    if (!selectedSchedule) {
+      setContractFeedback({ type: 'error', message: 'Chưa chọn lịch thực đơn/ca phục vụ.' });
+      return;
+    }
+
+    const menuPrice = Number(scheduleRuleForm.menuPrice || selectedSchedule.menuPrice);
+    const bomRatePercent = Number(scheduleRuleForm.bomRatePercent || selectedSchedule.bomRatePercent);
+    if (!Number.isFinite(menuPrice) || menuPrice < 0) {
+      setContractFeedback({ type: 'error', message: 'Đơn giá menu không hợp lệ.' });
+      return;
+    }
+    if (!Number.isFinite(bomRatePercent) || bomRatePercent <= 0 || bomRatePercent > 300) {
+      setContractFeedback({ type: 'error', message: 'Tỷ lệ BOM phải trong khoảng 0-300%.' });
+      return;
+    }
+
+    const body: UpdateMenuScheduleRulesRequest = {
+      menuPrice,
+      bomRatePercent,
+      status: scheduleRuleForm.status,
+      reason: scheduleRuleForm.reason.trim() || undefined,
+    };
+
+    try {
+      await updateMenuScheduleRules({ menuScheduleId: selectedSchedule.menuScheduleId, body }).unwrap();
+      setContractFeedback({ type: 'success', message: 'Đã lưu quy tắc suất ăn cho ca/ngày.' });
+    } catch (error) {
+      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được quy tắc suất ăn.') });
+    }
+  };
+
+  const handleUpdateScheduleVersion = async (status: string) => {
+    if (!selectedSchedule) {
+      setContractFeedback({ type: 'error', message: 'Chưa chọn lịch thực đơn để cập nhật version.' });
+      return;
+    }
+
+    const body: UpdateMenuScheduleVersionRequest = {
+      status,
+      reason: scheduleRuleForm.reason.trim() || undefined,
+    };
+
+    try {
+      await updateMenuScheduleVersion({ menuScheduleId: selectedSchedule.menuScheduleId, body }).unwrap();
+      setScheduleRuleForm((prev) => ({ ...prev, status }));
+      setContractFeedback({ type: 'success', message: `Đã chuyển version thực đơn sang ${status}.` });
+    } catch (error) {
+      setContractFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được version thực đơn.') });
+    }
   };
 
   const resetEmployeeForm = () => {
@@ -377,6 +764,7 @@ export default function AdminDataPage() {
         <ContextStrip
           items={[
             { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
+            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
             { label: 'Cảnh báo giá', value: priceWarnings.length.toString(), tone: priceWarnings.length ? 'danger' : 'success' },
             { label: 'Tồn kho', value: `${currentStockRows.length} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
@@ -414,7 +802,7 @@ export default function AdminDataPage() {
                 >
                   {catalogDishes.map((dish) => (
                     <option key={dish.id} value={dish.id}>
-                      {dish.name}
+                      {dish.name}{dish.isActive ? '' : ' - đã khóa'}
                     </option>
                   ))}
                 </select>
@@ -423,6 +811,115 @@ export default function AdminDataPage() {
                   <div className="font-bold text-slate-900">{selectedDish?.name ?? 'Chưa có món'}</div>
                   <div className="mt-1 text-xs text-slate-500">
                     {selectedDish ? `${activeBomCount} dòng BOM đang áp dụng / ${selectedDishBomLines.length} tổng dòng` : 'Chọn món để cập nhật định lượng'}
+                  </div>
+                  {selectedDish && (
+                    <div className="mt-2">
+                      <StatusBadge variant={selectedDish.isActive ? 'success' : 'warning'}>
+                        {selectedDish.isActive ? 'Đang dùng' : 'Đã khóa'}
+                      </StatusBadge>
+                    </div>
+                  )}
+                </div>
+
+                {dishFeedback && (
+                  <div
+                    className={`rounded-md border px-3 py-2 text-sm font-medium ${
+                      dishFeedback.type === 'success'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                        : 'border-rose-200 bg-rose-50 text-rose-800'
+                    }`}
+                  >
+                    {dishFeedback.message}
+                  </div>
+                )}
+
+                <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[13px] font-bold text-slate-800">
+                      {editingDishId ? 'Sửa món ăn' : 'Tạo món ăn'}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <button className="ipc-button ipc-button-ghost" type="button" onClick={startEditDish} disabled={!selectedDish || isSavingDish}>
+                        <Pencil size={15} />
+                        Nạp món
+                      </button>
+                      <button className="ipc-button ipc-button-ghost" type="button" onClick={resetDishForm} disabled={isSavingDish}>
+                        <PlusCircle size={15} />
+                        Món mới
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-code">
+                    Mã món
+                  </label>
+                  <input
+                    id="admin-dish-code"
+                    className="ipc-input"
+                    value={dishForm.dishCode}
+                    disabled={!!editingDishId}
+                    onChange={(event) => setDishForm((prev) => ({ ...prev, dishCode: event.target.value }))}
+                    placeholder="Ví dụ: DISH-NEW"
+                  />
+
+                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-name">
+                    Tên món
+                  </label>
+                  <input
+                    id="admin-dish-name"
+                    className="ipc-input"
+                    value={dishForm.dishName}
+                    onChange={(event) => setDishForm((prev) => ({ ...prev, dishName: event.target.value }))}
+                    placeholder="Tên món ăn"
+                  />
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-type">
+                        Loại
+                      </label>
+                      <input
+                        id="admin-dish-type"
+                        className="ipc-input mt-1"
+                        value={dishForm.dishType}
+                        onChange={(event) => setDishForm((prev) => ({ ...prev, dishType: event.target.value }))}
+                        placeholder="Mặn / Chay / Canh"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-group">
+                        Nhóm
+                      </label>
+                      <input
+                        id="admin-dish-group"
+                        className="ipc-input mt-1"
+                        value={dishForm.dishGroup}
+                        onChange={(event) => setDishForm((prev) => ({ ...prev, dishGroup: event.target.value }))}
+                        placeholder="Sáng / Trưa / Tối"
+                      />
+                    </div>
+                  </div>
+
+                  {editingDishId && (
+                    <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                      <input
+                        type="checkbox"
+                        checked={dishForm.isActive}
+                        onChange={(event) => setDishForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                      />
+                      Món đang được dùng trong catalog
+                    </label>
+                  )}
+
+                  <div className="flex flex-wrap gap-2">
+                    <button className="ipc-button ipc-button-primary" type="button" onClick={() => void handleSaveDish()} disabled={isSavingDish}>
+                      <Save size={15} />
+                      {editingDishId ? 'Lưu món' : 'Tạo món'}
+                    </button>
+                    <button className="ipc-button ipc-button-ghost" type="button" onClick={() => void handleToggleDishActive()} disabled={!selectedDish || isSavingDish}>
+                      <Power size={15} />
+                      {selectedDish?.isActive ? 'Khóa món' : 'Mở lại món'}
+                    </button>
                   </div>
                 </div>
 
@@ -585,6 +1082,384 @@ export default function AdminDataPage() {
               <ApprovalQueue records={approvalRecords.filter((record) => record.type === 'adjustment')} title={null} />
             </SectionPanel>
           </SplitWorkbench>
+        </div>
+      )}
+
+      {effectiveActiveView === 'contracts' && (
+        <div id="admin-contracts-panel" role="tabpanel" aria-labelledby="admin-contracts-tab" className="flex flex-col gap-4">
+          <SectionPanel title="Customer contract và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
+            <ContextStrip
+              items={[
+                { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
+                { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
+                { label: 'Ca phục vụ', value: selectedContract?.shiftNames.join(', ') || '-', tone: 'info' },
+                { label: 'BOM mặc định', value: selectedContract?.defaultBomRatePercent != null ? `${selectedContract.defaultBomRatePercent}%` : '-', tone: 'neutral' },
+                { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
+              ]}
+            />
+
+            {contractFeedback && (
+              <div
+                className={`mt-4 rounded-md border px-3 py-2 text-sm font-medium ${
+                  contractFeedback.type === 'success'
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                    : 'border-rose-200 bg-rose-50 text-rose-800'
+                }`}
+              >
+                {contractFeedback.message}
+              </div>
+            )}
+
+            <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.6fr)]">
+              <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
+                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-customer">
+                  Khách hàng
+                </label>
+                <select
+                  id="admin-contract-customer"
+                  className="ipc-select"
+                  value={isCreatingContract ? '' : selectedContract?.customerId ?? ''}
+                  onChange={(event) => {
+                    const contract = customerContracts.find((item) => item.customerId === event.target.value);
+                    setIsCreatingContract(false);
+                    setSelectedContractCustomerId(event.target.value);
+                    setSelectedScheduleId('');
+                    loadContractForm(contract);
+                    loadScheduleRuleForm(undefined);
+                  }}
+                >
+                  <option value="" disabled>
+                    {isCreatingContract ? 'Đang tạo khách hàng mới' : 'Chọn khách hàng'}
+                  </option>
+                  {customerContracts.map((customer) => (
+                    <option key={customer.customerId} value={customer.customerId}>
+                      {customer.customerCode} - {customer.customerName}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button className="ipc-button ipc-button-ghost justify-center" type="button" onClick={() => loadContractForm(selectedContract)}>
+                    <Pencil size={15} />
+                    Nạp
+                  </button>
+                  <button className="ipc-button ipc-button-ghost justify-center" type="button" onClick={startNewContract}>
+                    <PlusCircle size={15} />
+                    Tạo mới
+                  </button>
+                </div>
+
+                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-code">
+                  Mã khách hàng
+                </label>
+                <input
+                  id="admin-contract-code"
+                  className="ipc-input"
+                  value={contractForm.customerCode}
+                  disabled={!isCreatingContract}
+                  onChange={(event) => setContractForm((prev) => ({ ...prev, customerCode: event.target.value.toUpperCase() }))}
+                  placeholder={isCreatingContract ? 'VD: DAV' : selectedContract?.customerCode ?? 'Mã khách hàng'}
+                />
+
+                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-name">
+                  Tên khách hàng
+                </label>
+                <input
+                  id="admin-contract-name"
+                  className="ipc-input"
+                  value={contractForm.customerName}
+                  onChange={(event) => setContractForm((prev) => ({ ...prev, customerName: event.target.value }))}
+                  placeholder={selectedContract?.customerName ?? 'Tên khách hàng'}
+                />
+
+                <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-contract-note">
+                  Ghi chú contract
+                </label>
+                <textarea
+                  id="admin-contract-note"
+                  className="ipc-input min-h-[86px]"
+                  value={contractForm.note}
+                  onChange={(event) => setContractForm((prev) => ({ ...prev, note: event.target.value }))}
+                  placeholder={selectedContract?.note ?? 'Ca phục vụ, ngày làm việc, ràng buộc menu'}
+                />
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-from">
+                    Hiệu lực từ
+                    <input
+                      id="admin-contract-effective-from"
+                      className="ipc-input"
+                      type="date"
+                      value={contractForm.effectiveFrom}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-effective-to">
+                    Hiệu lực đến
+                    <input
+                      id="admin-contract-effective-to"
+                      className="ipc-input"
+                      type="date"
+                      value={contractForm.effectiveTo}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, effectiveTo: event.target.value }))}
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-week-days">
+                    Ngày làm việc
+                    <input
+                      id="admin-contract-week-days"
+                      className="ipc-input"
+                      value={contractForm.activeWeekDays}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, activeWeekDays: event.target.value }))}
+                      placeholder="t2,t3,t4,t5,t6,t7"
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-shifts">
+                    Ca phục vụ
+                    <input
+                      id="admin-contract-shifts"
+                      className="ipc-input"
+                      value={contractForm.shiftNames}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, shiftNames: event.target.value }))}
+                      placeholder="MORNING,AFTERNOON"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-price">
+                    Đơn giá mặc định
+                    <input
+                      id="admin-contract-default-price"
+                      className="ipc-input"
+                      type="number"
+                      min="0"
+                      step="1000"
+                      value={contractForm.defaultMenuPrice}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, defaultMenuPrice: event.target.value }))}
+                      placeholder={selectedContract?.defaultMenuPrice?.toString() ?? '25000'}
+                    />
+                  </label>
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-bom-rate">
+                    BOM mặc định (%)
+                    <input
+                      id="admin-contract-default-bom-rate"
+                      className="ipc-input"
+                      type="number"
+                      min="1"
+                      max="300"
+                      step="1"
+                      value={contractForm.defaultBomRatePercent}
+                      onChange={(event) => setContractForm((prev) => ({ ...prev, defaultBomRatePercent: event.target.value }))}
+                      placeholder={selectedContract?.defaultBomRatePercent?.toString() ?? '100'}
+                    />
+                  </label>
+                </div>
+
+                <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={contractForm.isActive}
+                    onChange={(event) => setContractForm((prev) => ({ ...prev, isActive: event.target.checked }))}
+                  />
+                  Khách hàng đang hoạt động
+                </label>
+
+                <button className="ipc-button ipc-button-primary justify-center" type="button" disabled={isSavingContract || (!isCreatingContract && !selectedContract)} onClick={() => void handleSaveCustomerContract()}>
+                  <Save size={15} />
+                  {isCreatingContract ? 'Tạo contract' : 'Lưu contract'}
+                </button>
+              </div>
+
+              <div className="grid gap-4">
+                <DataTableShell ariaLabel="Bảng contract khách hàng">
+                  <table className="ipc-data-table text-sm">
+                    <thead>
+                      <tr>
+                        <th>Khách hàng</th>
+                        <th>Ngày làm việc</th>
+                        <th>Ca</th>
+                        <th>Hiệu lực</th>
+                        <th>Đơn giá TB</th>
+                        <th>BOM TB</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {customerContracts.length === 0 ? <EmptyRow colSpan={7} /> : customerContracts.map((contract) => (
+                        <tr key={contract.customerId}>
+                          <td>
+                            <div className="font-semibold text-slate-900">{contract.customerCode}</div>
+                            <div className="text-xs text-slate-500">{contract.customerName}</div>
+                          </td>
+                          <td>{contract.activeWeekDays.join(', ') || '-'}</td>
+                          <td>{contract.shiftNames.join(', ') || '-'}</td>
+                          <td>
+                            <div>{contract.effectiveFrom ?? '-'}</div>
+                            <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : contract.contractStatus}</div>
+                          </td>
+                          <td className="ipc-numeric-cell">{contract.defaultMenuPrice?.toLocaleString('vi-VN') ?? '-'}</td>
+                          <td className="ipc-numeric-cell">{contract.defaultBomRatePercent != null ? `${contract.defaultBomRatePercent}%` : '-'}</td>
+                          <td>
+                            <StatusBadge variant={contract.isActive ? 'success' : 'warning'}>
+                              {contract.isActive ? 'Đang dùng' : 'Đã khóa'}
+                            </StatusBadge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+
+                <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(110px,0.5fr))]">
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-schedule">
+                      Lịch thực đơn
+                      <select
+                        id="admin-contract-schedule"
+                        className="ipc-select"
+                        value={selectedSchedule?.menuScheduleId ?? ''}
+                        onChange={(event) => {
+                          const schedule = menuSchedules.find((item) => item.menuScheduleId === event.target.value);
+                          setSelectedScheduleId(event.target.value);
+                          loadScheduleRuleForm(schedule);
+                        }}
+                      >
+                        {menuSchedules.map((schedule) => (
+                          <option key={schedule.menuScheduleId} value={schedule.menuScheduleId}>
+                            {schedule.serviceDate} / {schedule.shift} / {schedule.menuName}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="text-[11px] font-medium text-slate-500">
+                        {selectedSchedule?.sourceImportBatch
+                          ? `Batch ${selectedSchedule.sourceImportBatch} / V${selectedSchedule.menuVersionNo ?? '-'} / ${selectedSchedule.menuVersionStatus ?? selectedSchedule.status}`
+                          : `Version ${selectedSchedule?.status ?? '-'}`}
+                      </span>
+                    </label>
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                      Đơn giá
+                      <input
+                        className="ipc-input"
+                        inputMode="decimal"
+                        type="number"
+                        min="0"
+                        value={scheduleRuleForm.menuPrice}
+                        onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, menuPrice: event.target.value }))}
+                        placeholder={selectedSchedule?.menuPrice.toString() ?? '0'}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                      BOM %
+                      <input
+                        className="ipc-input"
+                        inputMode="decimal"
+                        type="number"
+                        min="1"
+                        max="300"
+                        value={scheduleRuleForm.bomRatePercent}
+                        onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, bomRatePercent: event.target.value }))}
+                        placeholder={selectedSchedule?.bomRatePercent.toString() ?? '100'}
+                      />
+                    </label>
+                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                      Version
+                      <select
+                        className="ipc-select"
+                        value={scheduleRuleForm.status}
+                        onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, status: event.target.value }))}
+                      >
+                        <option value="DRAFT">DRAFT</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="SUPERSEDED">SUPERSEDED</option>
+                        <option value="LOCKED">LOCKED</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
+                    Lý do
+                    <input
+                      className="ipc-input"
+                      value={scheduleRuleForm.reason}
+                      onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, reason: event.target.value }))}
+                      placeholder="Cập nhật contract/version"
+                    />
+                  </label>
+
+                  <div className="flex flex-wrap gap-2">
+                    <button className="ipc-button ipc-button-primary" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleSaveScheduleRules()}>
+                      <Save size={15} />
+                      Lưu quy tắc
+                    </button>
+                    <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('ACTIVE')}>
+                      Publish
+                    </button>
+                    <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingContract || !selectedSchedule} onClick={() => void handleUpdateScheduleVersion('SUPERSEDED')}>
+                      Archive
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </SectionPanel>
+        </div>
+      )}
+
+      {effectiveActiveView === 'cleanup' && (
+        <div id="admin-cleanup-panel" role="tabpanel" aria-labelledby="admin-cleanup-tab" className="flex flex-col gap-4">
+          <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
+            <ContextStrip
+              items={[
+                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
+                { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
+                { label: 'Unit/quy đổi', value: `${dataQualityReport?.invalidUnitCount ?? 0}`, tone: (dataQualityReport?.invalidUnitCount ?? 0) ? 'danger' : 'success' },
+                { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
+                { label: 'Phiếu orphan', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
+              ]}
+            />
+
+            <DataTableShell ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
+              <table className="ipc-data-table text-sm">
+                <thead>
+                  <tr>
+                    <th>Nhóm lỗi</th>
+                    <th>Mức</th>
+                    <th>Đối tượng</th>
+                    <th className="text-left">Mô tả</th>
+                    <th className="text-left">Cách xử lý</th>
+                    <th>Đi tới</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} /> : dataQualityIssues.map((issue) => (
+                    <tr key={issue.id}>
+                      <td className="font-semibold">{issue.category}</td>
+                      <td>
+                        <StatusBadge variant={issue.severity === 'error' ? 'danger' : 'warning'}>
+                          {issue.severity === 'error' ? 'Lỗi' : 'Cảnh báo'}
+                        </StatusBadge>
+                      </td>
+                      <td>
+                        <div className="font-semibold text-slate-900">{issue.entityCode}</div>
+                        <div className="text-xs text-slate-500">{issue.entityName} / {issue.entityLabel}</div>
+                      </td>
+                      <td className="text-left text-slate-700">{issue.message}</td>
+                      <td className="text-left text-slate-600">{issue.suggestedAction}</td>
+                      <td>
+                        <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={issue.route || ROUTES.ADMIN_DATA}>
+                          Sửa
+                        </Link>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </DataTableShell>
+          </SectionPanel>
         </div>
       )}
 

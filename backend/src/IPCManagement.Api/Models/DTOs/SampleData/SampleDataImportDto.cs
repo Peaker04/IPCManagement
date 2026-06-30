@@ -33,10 +33,17 @@ public class WeeklyMenuImportResultDto
     public string CustomerName { get; set; } = string.Empty;
     public DateOnly? WeekStartDate { get; set; }
     public DateOnly? WeekEndDate { get; set; }
+    public string? MenuVersionId { get; set; }
+    public int? MenuVersionNo { get; set; }
+    public string? MenuVersionStatus { get; set; }
+    public string? PublishedBy { get; set; }
+    public string? PublishedAt { get; set; }
+    public string? SourceImportBatch { get; set; }
     public WeeklyMenuImportLayoutDto DetectedLayout { get; set; } = new();
     public SampleDataImportCountsDto Counts { get; set; } = new();
     public List<string> Warnings { get; set; } = [];
     public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
+    public WeeklyMenuImportDiffDto PreviewDiff { get; set; } = new();
     public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
 }
 
@@ -71,6 +78,26 @@ public class WeeklyMenuImportRowDto
     public string DishName { get; set; } = string.Empty;
     public string? DishId { get; set; }
     public bool ExistingDish { get; set; }
+}
+
+public class WeeklyMenuImportDiffDto
+{
+    public int AddedSlots { get; set; }
+    public int ChangedSlots { get; set; }
+    public int RemovedSlots { get; set; }
+    public int UnchangedSlots { get; set; }
+    public List<WeeklyMenuImportDiffRowDto> Rows { get; set; } = [];
+}
+
+public class WeeklyMenuImportDiffRowDto
+{
+    public string ServiceDate { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public string Variant { get; set; } = string.Empty;
+    public string Slot { get; set; } = string.Empty;
+    public string? CurrentDishName { get; set; }
+    public string? ImportedDishName { get; set; }
+    public string ChangeType { get; set; } = string.Empty;
 }
 
 public class ImportedDayMenuDto

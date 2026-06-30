@@ -13,11 +13,11 @@ const isDevLoginFallbackEnabled = true;
 
 const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
   admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
-  quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination:read', 'catalog:read', 'purchasing:read', 'warehouse:read'] },
-  dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination:read', 'coordination:write'] },
+  quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
+  dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] },
   beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
   thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
-  thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchasing:read'] },
+  thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchase.read', 'purchase.generate'] },
   staff: { fullName: 'Nguyễn Thị Thu Mua', role: 'staff', permissions: [] },
 }
 
