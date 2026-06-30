@@ -13,6 +13,8 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
+using NSubstitute;
+using IPCManagement.Api.Services.Workflow;
 
 namespace IPCManagement.Api.Tests;
 
@@ -30,7 +32,8 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
         var request = new LockOrderPlanRequestDto
         {
             ServiceDate = "2026-06-15",
@@ -82,7 +85,8 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var service = new CoordinationService(new IpcManagementContext(options));
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
         var request = new AdjustServingsRequestDto
         {
@@ -107,6 +111,52 @@ public class CoordinationTransactionTests
         persistedLine.FinalServings.Should().Be(100);
         persistedLine.AdjustedServings.Should().Be(0);
         auditCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task UpdateForecastServingsAsync_Should_Update_DraftForecastAndAudit()
+    {
+        // Arrange
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var request = new UpdateForecastServingsRequestDto
+        {
+            ServingsQuantity = 135,
+            Reason = "Nhập tay số suất trước chốt"
+        };
+
+        // Act
+        var result = await service.UpdateForecastServingsAsync(lineId, request, fixture.UserId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.OldServings.Should().Be(100);
+        result.NewServings.Should().Be(135);
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedLine = await verifyContext.Mealquantityplanlines
+            .AsNoTracking()
+            .FirstAsync(item => item.QuantityPlanLineId == fixture.LineId);
+        var audit = await verifyContext.Auditlogs
+            .AsNoTracking()
+            .SingleAsync();
+
+        persistedLine.ForecastServings.Should().Be(135);
+        persistedLine.FinalServings.Should().Be(135);
+        persistedLine.ConfirmedServings.Should().Be(100);
+        audit.FieldName.Should().Be("forecastServings");
+        audit.OldValue.Should().Be("100");
+        audit.NewValue.Should().Be("135");
     }
 
     private static DbContextOptions<IpcManagementContext> BuildOptions(

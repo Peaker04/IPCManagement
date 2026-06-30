@@ -10,7 +10,7 @@ namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/material-demand")]
-[Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
+[Authorize(Policy = AuthorizationPolicies.DemandGenerateAccess)]
 [EnableRateLimiting("api-general")]
 public class MaterialDemandController : ControllerBase
 {

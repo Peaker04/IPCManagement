@@ -4,6 +4,7 @@ import type { RootState } from '../app/store';
 import { logOut, setCredentials } from '../features/auth/authSlice';
 import { normalizeUserRole } from '../features/auth/roleUtils';
 import type { ApiResponse, LoginData } from '../types/api';
+import { notifySessionExpired } from '../features/auth/sessionEvents';
 
 const baseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL
@@ -25,6 +26,17 @@ const devFallbackTokenPrefix = 'dev-login-fallback-token-';
 
 const getDevFallbackUsername = (token?: string | null) =>
   token?.startsWith(devFallbackTokenPrefix) ? token.slice(devFallbackTokenPrefix.length) : null;
+
+const isAuthEndpoint = (args: string | FetchArgs) => {
+  const url = typeof args === 'string' ? args : args.url;
+
+  return (
+    url.startsWith('/auth/login') ||
+    url.startsWith('/auth/refresh') ||
+    url.startsWith('/auth/logout') ||
+    url.startsWith('/auth/revoke')
+  );
+};
 
 const setLoginData = (
   api: Parameters<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>[1],
@@ -62,7 +74,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
   const token = (api.getState() as RootState).auth.token;
   const devFallbackUsername = getDevFallbackUsername(token);
 
-  if (result.error?.status === 401 && devFallbackUsername) {
+  if (result.error?.status === 401 && devFallbackUsername && !isAuthEndpoint(args)) {
     if (!devFallbackLoginPromise) {
       devFallbackLoginPromise = (async () => {
         try {
@@ -82,6 +94,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
           const data = (devLoginResult.data as ApiResponse<LoginData> | undefined)?.data;
           if (!data) {
             api.dispatch(logOut());
+            notifySessionExpired();
             return false;
           }
 
@@ -101,10 +114,11 @@ const baseQueryWithAuthHandling: BaseQueryFn<
     return baseQuery(args, api, extraOptions);
   }
 
-  if (result.error?.status === 401) {
+  if (result.error?.status === 401 && !isAuthEndpoint(args)) {
     const refreshToken = (api.getState() as RootState).auth.refreshToken;
     if (!refreshToken || !token) {
       api.dispatch(logOut());
+      notifySessionExpired();
       return result;
     }
 
@@ -124,6 +138,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
           const data = (refreshResult.data as ApiResponse<LoginData> | undefined)?.data;
           if (!data) {
             api.dispatch(logOut());
+            notifySessionExpired();
             return;
           }
 
@@ -136,6 +151,10 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 
     await refreshPromise;
     result = await baseQuery(args, api, extraOptions);
+    if (result.error?.status === 401) {
+      api.dispatch(logOut());
+      notifySessionExpired();
+    }
   }
 
   return result;

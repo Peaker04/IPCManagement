@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
-import { useAdjustCoordinationOrderMutation } from '../coordinationApi'
+import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '../coordinationApi'
 import { DataTableShell, EmptyState, InlineAlert, PaginationBar } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
 import { ClipboardList } from 'lucide-react'
@@ -17,8 +17,11 @@ interface OrderTableProps {
 export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const dispatch = useAppDispatch()
   const [adjustCoordinationOrder] = useAdjustCoordinationOrderMutation()
+  const [updateForecastServings] = useUpdateForecastServingsMutation()
   const [page, setPage] = useState(1)
   const [pendingOrderIds, setPendingOrderIds] = useState<Record<string, boolean>>({})
+  const [pendingForecastOrderIds, setPendingForecastOrderIds] = useState<Record<string, boolean>>({})
+  const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const pageSize = 12
   const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
@@ -30,6 +33,57 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
 
   const handleOrderChange = (payload: OrderUpdatePayload) => {
     dispatch(updateOrder(payload))
+  }
+
+  const rememberForecastValue = (order: OrderRow) => {
+    setForecastRollbackValues((current) => ({
+      ...current,
+      [order.id]: current[order.id] ?? order.forecastQuantity,
+    }))
+  }
+
+  const handleForecastQuantitySave = async (order: OrderRow, value: number) => {
+    if (isLocked || pendingForecastOrderIds[order.id]) return
+
+    const previousValue = forecastRollbackValues[order.id] ?? order.forecastQuantity
+    if (value === previousValue) {
+      setForecastRollbackValues((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
+      return
+    }
+
+    setPendingForecastOrderIds((current) => ({ ...current, [order.id]: true }))
+    setOptimisticError(null)
+
+    try {
+      const response = await updateForecastServings({
+        orderId: order.quantityPlanLineId ?? order.id,
+        servingsQuantity: value,
+        reason: 'Điều phối cập nhật số suất dự kiến trước chốt.',
+      }).unwrap()
+
+      if (!response.success) {
+        throw new Error(response.message || 'Không cập nhật được số suất dự kiến.')
+      }
+
+      setForecastRollbackValues((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
+    } catch (error) {
+      dispatch(updateOrder({ id: order.id, field: 'forecastQuantity', value: previousValue }))
+      setOptimisticError(error instanceof Error ? error.message : 'Không cập nhật được số suất dự kiến, đã hoàn tác giá trị cũ.')
+    } finally {
+      setPendingForecastOrderIds((current) => {
+        const next = { ...current }
+        delete next[order.id]
+        return next
+      })
+    }
   }
 
   const handleActualQuantityChange = async (order: OrderRow, value: number) => {
@@ -155,8 +209,12 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   type="number"
                   min="0"
                   max="9999"
-                  disabled={isLocked}
+                  disabled={isLocked || pendingForecastOrderIds[order.id]}
                   value={order.forecastQuantity}
+                  onFocus={() => rememberForecastValue(order)}
+                  onBlur={(e) =>
+                    handleForecastQuantitySave(order, parseInt(e.target.value) || 0)
+                  }
                   onChange={(e) =>
                     handleOrderChange({
                       id: order.id,
@@ -168,7 +226,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                     isLocked
                       ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed'
                       : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
-                  }`}
+                  } ${pendingForecastOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
                 />
               </td>
 

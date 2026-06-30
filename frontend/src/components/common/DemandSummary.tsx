@@ -12,6 +12,12 @@ interface DemandSummaryProps {
   className?: string;
 }
 
+const formatVariance = (value: number, unit: string) => {
+  if (value > 0) return `+${formatQuantityWithUnit(value, unit)}`;
+  if (value < 0) return `-${formatQuantityWithUnit(Math.abs(value), unit)}`;
+  return formatQuantityWithUnit(0, unit);
+};
+
 export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryProps) {
   const [page, setPage] = useState(1);
 
@@ -26,44 +32,45 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
   return (
     <div className={cn('ipc-demand-summary', className)}>
       <DataTableShell className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu">
-        <table className="ipc-data-table ipc-demand-table">
+        <table className="ipc-data-table ipc-demand-table table-fixed w-full">
           <thead>
             <tr>
-              <th>Nguyên liệu</th>
-              <th>Nguồn</th>
-              <th>Cần</th>
-              <th>Khả dụng</th>
-              <th>Dự trữ</th>
-              <th>Trạng thái</th>
-              <th>Tiếp theo</th>
+              <th style={{ width: '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
+              <th style={{ width: '22%' }} className="whitespace-nowrap text-left">Nguồn</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Cần</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Khả dụng</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Tiếp theo</th>
             </tr>
           </thead>
           <tbody>
             {pageLines.map((line) => {
               const availableAfterReserve = line.available - line.reserved;
-              const shortage = Math.max(line.required - availableAfterReserve, 0);
+              const variance = availableAfterReserve - line.required;
 
               return (
                 <tr key={line.id}>
-                  <td>{line.material}</td>
-                  <td>{line.source}</td>
-                  <td className="ipc-numeric-cell">
+                  <td className="truncate" title={line.material}>{line.material}</td>
+                  <td className="truncate" title={line.source}>{line.source}</td>
+                  <td className="ipc-numeric-cell text-right whitespace-nowrap">
                     {formatQuantityWithUnit(line.required, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell">
+                  <td className="ipc-numeric-cell text-right whitespace-nowrap">
                     {formatQuantityWithUnit(availableAfterReserve, line.unit)}
                   </td>
-                  <td className="ipc-numeric-cell">
-                    {shortage > 0
-                      ? `${formatQuantityWithUnit(shortage, line.unit)} thiếu`
-                      : formatQuantityWithUnit(line.reserved, line.unit)}
+                  <td className={cn(
+                    'ipc-numeric-cell text-right whitespace-nowrap font-semibold',
+                    variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700',
+                  )}>
+                    {formatVariance(variance, line.unit)}
                   </td>
-                  <td className="ipc-badge-cell">
+                  <td className="ipc-badge-cell text-center whitespace-nowrap">
                     <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
                       {line.status}
                     </StatusBadge>
                   </td>
-                  <td>{line.nextAction}</td>
+                  <td className="text-center whitespace-nowrap">{line.nextAction}</td>
                 </tr>
               );
             })}

@@ -49,6 +49,7 @@ public class ExceptionMiddleware
             ArgumentException         => (HttpStatusCode.UnprocessableEntity, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized,      "Không có quyền truy cập."),
             KeyNotFoundException      => (HttpStatusCode.NotFound,            ex.Message),
+            DirectoryNotFoundException => (HttpStatusCode.NotFound,           ex.Message),
             _                         => (HttpStatusCode.InternalServerError, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
         };
 

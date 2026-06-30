@@ -57,6 +57,128 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<CoordinationCustomerOptionDto>>.SuccessResult(result));
     }
 
+    [HttpGet("customer-contracts")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CustomerContractDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerContracts()
+    {
+        var result = await _coordinationService.GetCustomerContractsAsync();
+        return Ok(ApiResponse<IReadOnlyList<CustomerContractDto>>.SuccessResult(result));
+    }
+
+    [HttpPost("customers/contract")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerContractDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreateCustomerContract([FromBody] CreateCustomerContractDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.CreateCustomerContractAsync(request, userId);
+            return CreatedAtAction(
+                nameof(GetCustomerContracts),
+                ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã tạo khách hàng và contract."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPut("customers/{id}/contract")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerContractDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateCustomerContract(string id, [FromBody] UpdateCustomerContractDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpdateCustomerContractAsync(id, request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy khách hàng để cập nhật contract."));
+            }
+
+            return Ok(ApiResponse<CustomerContractDto>.SuccessResult(result, "Đã cập nhật contract khách hàng."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpGet("portion-rules")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PortionRuleDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPortionRules([FromQuery] PortionRuleQueryDto query)
+    {
+        var result = await _coordinationService.GetPortionRulesAsync(query);
+        return Ok(ApiResponse<IReadOnlyList<PortionRuleDto>>.SuccessResult(result));
+    }
+
+    [HttpPost("portion-rules")]
+    [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreatePortionRule([FromBody] CreatePortionRuleDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.CreatePortionRuleAsync(request, userId);
+            return CreatedAtAction(
+                nameof(GetPortionRules),
+                ApiResponse<PortionRuleDto>.SuccessResult(result, "Đã tạo portion rule."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPut("portion-rules/{id}")]
+    [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdatePortionRule(string id, [FromBody] UpdatePortionRuleDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpdatePortionRuleAsync(id, request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy portion rule."));
+            }
+
+            return Ok(ApiResponse<PortionRuleDto>.SuccessResult(result, "Đã cập nhật portion rule."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPost("portion-rules/resolve")]
+    [ProducesResponseType(typeof(ApiResponse<ResolvedPortionRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResolvePortionRule([FromBody] ResolvePortionRuleDto request)
+    {
+        try
+        {
+            var result = await _coordinationService.ResolvePortionRuleAsync(request);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy khách hàng để resolve portion rule."));
+            }
+
+            return Ok(ApiResponse<ResolvedPortionRuleDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("weekly-menu")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
@@ -87,6 +209,52 @@ public class CoordinationController : ControllerBase
     {
         var result = await _coordinationService.GetMenuSchedulesAsync(query);
         return Ok(ApiResponse<IReadOnlyList<MenuScheduleDto>>.SuccessResult(result));
+    }
+
+    [HttpPatch("menu-schedules/{id}/rules")]
+    [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateMenuScheduleRules(string id, [FromBody] UpdateMenuScheduleRulesDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpdateMenuScheduleRulesAsync(id, request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật quy tắc."));
+            }
+
+            return Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật quy tắc suất ăn."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPatch("menu-schedules/{id}/version")]
+    [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateMenuScheduleVersion(string id, [FromBody] UpdateMenuScheduleVersionDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpdateMenuScheduleVersionAsync(id, request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy lịch thực đơn để cập nhật version."));
+            }
+
+            return Ok(ApiResponse<MenuScheduleDto>.SuccessResult(result, "Đã cập nhật version thực đơn."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpGet("meal-quantity-plans")]
@@ -177,6 +345,27 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
     }
 
+    [HttpPut("weekly-menu/bulk-update")]
+    [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BulkUpdateWeeklyMenu(
+        [FromBody] BulkUpdateWeeklyMenuRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (request == null || string.IsNullOrWhiteSpace(request.CustomerId))
+        {
+            return BadRequest(ApiResponse.FailResult("Dữ liệu cập nhật thực đơn không hợp lệ."));
+        }
+
+        var (success, message, warnings) = await _sampleDataImportService.BulkUpdateWeeklyMenuAsync(request, cancellationToken);
+        if (!success)
+        {
+            return BadRequest(ApiResponse.FailResult(message));
+        }
+
+        return Ok(ApiResponse<List<string>>.SuccessResult(warnings, message));
+    }
+
     [HttpPost("orders/adjust")]
     [ProducesResponseType(typeof(ApiResponse<AdjustOrderAfterLockResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -230,7 +419,23 @@ public class CoordinationController : ControllerBase
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
         }
 
-        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, "Điều chỉnh số suất ăn thành công."));
+        var message = result.Warning ?? "Điều chỉnh số suất ăn thành công.";
+        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, message));
+    }
+
+    [HttpPatch("orders/{id}/forecast")]
+    [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdateForecastServings([FromRoute] string id, [FromBody] UpdateForecastServingsRequestDto request)
+    {
+        var userId = _currentUserService.GetUserId(User);
+        var result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để cập nhật."));
+        }
+
+        return Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, "Cập nhật số suất dự kiến thành công."));
     }
 
     [HttpPost("orders/export")]

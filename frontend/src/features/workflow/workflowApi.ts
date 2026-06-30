@@ -24,6 +24,7 @@ export interface WorkflowReportQuery {
   serviceDate?: string;
   dateFrom?: string;
   dateTo?: string;
+  customerId?: string;
   warehouseId?: string;
   ingredientId?: string;
   supplierId?: string;
@@ -56,6 +57,11 @@ interface IngredientDemandReportDto {
   unitId: string;
   unitName?: string;
   totalServings: number;
+  bomRatePercent?: number;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  yieldLossPercent?: number | null;
   totalRequiredQty: number;
   currentStockQty: number;
   suggestedPurchaseQty: number;
@@ -169,6 +175,109 @@ interface AuditChangeReportDto {
   reason?: string;
 }
 
+interface DataQualityIssueDto {
+  issueId: string;
+  category: string;
+  severity: 'error' | 'warning' | string;
+  entityName: string;
+  entityId?: string;
+  entityCode: string;
+  entityLabel: string;
+  message: string;
+  suggestedAction: string;
+  route: string;
+}
+
+interface DataQualityReportDto {
+  generatedAt: string;
+  totalIssues: number;
+  errorCount: number;
+  warningCount: number;
+  missingBomCount: number;
+  invalidUnitCount: number;
+  negativeStockCount: number;
+  orphanDocumentCount: number;
+  issues: DataQualityIssueDto[];
+}
+
+interface MissingBomDishDto {
+  dishId: string;
+  dishCode: string;
+  dishName: string;
+  customerId: string;
+  customerCode: string;
+  customerName: string;
+  menuId: string;
+  menuName: string;
+  shiftName: string;
+  totalServings: number;
+  message: string;
+}
+
+interface MaterialDemandResultDto {
+  materialRequestId: string;
+  requestCode: string;
+  serviceDate: string;
+  scope: string;
+  status: string;
+  productionPlanLineCount: number;
+  lines: Array<{
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    unitId: string;
+    unitName: string;
+    dishId: string;
+    dishName: string;
+    shiftName: string;
+    totalServings: number;
+    grossQtyPerServing: number;
+    bomRatePercent: number;
+    appliedPortionRuleId?: string | null;
+    appliedPortionRuleSource?: string;
+    appliedPortionRatePercent?: number;
+    yieldLossPercent?: number | null;
+    totalRequiredQty: number;
+    currentStockQty: number;
+    suggestedPurchaseQty: number;
+  }>;
+  missingBomDishes: MissingBomDishDto[];
+}
+
+export interface GenerateMaterialDemandRequest {
+  serviceDate: string;
+  customerId?: string;
+  shiftName?: string;
+  scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
+}
+
+interface PurchaseRequestWorkflowResultDto {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: Array<{
+    purchaseRequestLineId: string;
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    supplierId: string;
+    supplierName: string;
+    unitId: string;
+    unitName: string;
+    requiredQty: number;
+    currentStockQty: number;
+    purchaseQty: number;
+    estimatedUnitPrice: number;
+  }>;
+}
+
+export interface GeneratePurchaseRequestFromDemandRequest {
+  materialRequestId: string;
+}
+
 export interface PriceVarianceRow {
   id: string;
   name: string;
@@ -223,6 +332,31 @@ export interface UsageReportRow {
   usedQty: number;
 }
 
+export interface DataQualityIssueRow {
+  id: string;
+  category: string;
+  severity: 'error' | 'warning';
+  entityName: string;
+  entityId?: string;
+  entityCode: string;
+  entityLabel: string;
+  message: string;
+  suggestedAction: string;
+  route: string;
+}
+
+export interface DataQualityReport {
+  generatedAt: string;
+  totalIssues: number;
+  errorCount: number;
+  warningCount: number;
+  missingBomCount: number;
+  invalidUnitCount: number;
+  negativeStockCount: number;
+  orphanDocumentCount: number;
+  issues: DataQualityIssueRow[];
+}
+
 const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
 
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
@@ -264,35 +398,47 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
 const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   const shortage = Math.max(item.suggestedPurchaseQty, 0);
-  const tone: WorkflowTone = shortage > 0 ? 'danger' : 'success';
+  const isCancelled = item.status?.toUpperCase() === 'CANCELLED';
+  const tone: WorkflowTone = isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success';
 
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
+    materialRequestId: item.materialRequestId,
+    sourceDocumentCode: item.materialRequestCode,
+    serviceDate: item.requestDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
     required: item.totalRequiredQty,
     available: item.currentStockQty,
     reserved: 0,
     unit: item.unitName ?? '',
     source: item.dishName || item.customerName || item.materialRequestCode,
-    status: shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-    nextAction: shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    appliedPortionRuleId: item.appliedPortionRuleId,
+    appliedPortionRuleSource: item.appliedPortionRuleSource,
+    appliedPortionRatePercent: item.appliedPortionRatePercent,
+    bomRatePercent: item.bomRatePercent,
+    yieldLossPercent: item.yieldLossPercent,
+    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+    nextAction: isCancelled ? 'Import menu đã thay đổi, tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
     tone,
   };
 };
 
 const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
-  const tone = item.purchaseQty > 0 ? toneFromStatus(item.status) : 'success';
+  const isCancelled = item.status?.toUpperCase() === 'CANCELLED';
+  const tone = isCancelled ? 'warning' : item.purchaseQty > 0 ? toneFromStatus(item.status) : 'success';
 
   return {
     id: `${item.purchaseRequestId}-${item.ingredientId}`,
+    sourceDocumentCode: item.purchaseRequestCode,
+    serviceDate: item.purchaseForDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
     required: item.requiredQty,
     available: item.currentStockQty,
     reserved: Math.max(item.purchaseQty, 0),
     unit: item.unitName ?? '',
     source: item.supplierName || item.purchaseRequestCode,
-    status: item.status,
-    nextAction: item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
+    status: isCancelled ? 'Cần tạo lại danh sách mua' : item.status,
+    nextAction: isCancelled ? 'Demand/menu đã thay đổi, sinh lại danh sách mua thêm' : item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
     tone,
   };
 };
@@ -404,6 +550,29 @@ const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
   reason: item.reason ?? item.businessArea,
 });
 
+const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
+  generatedAt: item.generatedAt,
+  totalIssues: item.totalIssues,
+  errorCount: item.errorCount,
+  warningCount: item.warningCount,
+  missingBomCount: item.missingBomCount,
+  invalidUnitCount: item.invalidUnitCount,
+  negativeStockCount: item.negativeStockCount,
+  orphanDocumentCount: item.orphanDocumentCount,
+  issues: (item.issues ?? []).map((issue) => ({
+    id: issue.issueId,
+    category: issue.category,
+    severity: issue.severity === 'error' ? 'error' : 'warning',
+    entityName: issue.entityName,
+    entityId: issue.entityId,
+    entityCode: issue.entityCode,
+    entityLabel: issue.entityLabel,
+    message: issue.message,
+    suggestedAction: issue.suggestedAction,
+    route: issue.route,
+  })),
+});
+
 const buildRoleInbox = (
   documents: WorkflowDocument[],
   demandLines: DemandLine[],
@@ -428,8 +597,8 @@ const buildRoleInbox = (
 
   const demandItems: RoleInboxItem[] = demandLines
     .filter((line) => line.tone === 'danger')
-    .map((line) => ({
-      id: `demand-${line.id}`,
+    .map((line, index) => ({
+      id: `demand-${line.id}-${index}`,
       laneId: 'planning',
       owner: 'KHSX',
       title: `Thiếu ${line.material}`,
@@ -499,6 +668,25 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<IngredientDemandReportDto[]>) => getData(response).map(mapDemandLine),
       providesTags: ['WorkflowReports'],
     }),
+    generateMaterialDemand: builder.mutation<ApiResponse<MaterialDemandResultDto>, GenerateMaterialDemandRequest>({
+      query: (body) => ({
+        url: '/material-demand/generate',
+        method: 'POST',
+        body: {
+          scope: 'FULLDAY',
+          ...body,
+        },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    generatePurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, GeneratePurchaseRequestFromDemandRequest>({
+      query: (body) => ({
+        url: '/purchase-workflow/from-demand',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -563,6 +751,25 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
       providesTags: ['WorkflowReports'],
     }),
+    getDataQuality: builder.query<DataQualityReport, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/data-quality',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<DataQualityReportDto>) =>
+        response.data ? mapDataQualityReport(response.data) : {
+          generatedAt: '',
+          totalIssues: 0,
+          errorCount: 0,
+          warningCount: 0,
+          missingBomCount: 0,
+          invalidUnitCount: 0,
+          negativeStockCount: 0,
+          orphanDocumentCount: 0,
+          issues: [],
+        },
+      providesTags: ['WorkflowReports'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -570,6 +777,8 @@ export const workflowApi = apiSlice.injectEndpoints({
 export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
+  useGenerateMaterialDemandMutation,
+  useGeneratePurchaseRequestFromDemandMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useGetStockMovementsQuery,
@@ -578,6 +787,7 @@ export const {
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,
+  useGetDataQualityQuery,
 } = workflowApi;
 
 export function useWorkflowOverview() {
