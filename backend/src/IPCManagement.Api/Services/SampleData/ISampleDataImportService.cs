@@ -1,4 +1,5 @@
 using IPCManagement.Api.Models.DTOs.SampleData;
+using IPCManagement.Api.Models.DTOs.Coordination;
 
 namespace IPCManagement.Api.Services.SampleData;
 
@@ -28,5 +29,9 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        CancellationToken cancellationToken = default);
+
+    Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
+        BulkUpdateWeeklyMenuRequestDto request,
         CancellationToken cancellationToken = default);
 }

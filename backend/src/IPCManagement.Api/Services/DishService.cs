@@ -36,19 +36,30 @@ public class DishService : IDishService
             request.PageSize);
     }
 
-    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync()
+    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync(bool includeInactive = false)
     {
-        if (_cache.TryGetValue(CatalogCacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
+        var cacheKey = includeInactive ? $"{CatalogCacheKey}:all" : CatalogCacheKey;
+        if (_cache.TryGetValue(cacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
         {
             return cachedCatalog;
         }
 
-        var dishes = await _dishRepo.GetCatalogAsync();
+        var dishes = includeInactive
+            ? await _context.Dishes
+                .AsNoTracking()
+                .Include(d => d.Dishboms)
+                    .ThenInclude(bom => bom.Ingredient)
+                .Include(d => d.Dishboms)
+                    .ThenInclude(bom => bom.Unit)
+                .Include(d => d.Menuitems)
+                .OrderBy(d => d.DishCode)
+                .ToListAsync()
+            : await _dishRepo.GetCatalogAsync();
         var result = dishes.Select(MapToCatalogDto).ToList();
 
         var cacheOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
-        _cache.Set(CatalogCacheKey, result, cacheOptions);
+        _cache.Set(cacheKey, result, cacheOptions);
 
         return result;
     }
@@ -335,7 +346,7 @@ public class DishService : IDishService
         };
 
         await _dishRepo.AddAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return MapToDto(entity);
     }
 
@@ -353,7 +364,7 @@ public class DishService : IDishService
         if (dto.IsActive  is not null) entity.IsActive  = dto.IsActive;
 
         await _dishRepo.UpdateAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return MapToDto(entity);
     }
 
@@ -368,7 +379,7 @@ public class DishService : IDishService
         // Soft-delete: giữ lại dữ liệu cho BOM, menu, kế hoạch sản xuất
         entity.IsActive = false;
         await _dishRepo.UpdateAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return true;
     }
 
@@ -440,7 +451,7 @@ public class DishService : IDishService
 
         _context.Dishboms.Add(entity);
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
 
         return MapCatalogBomLine(entity);
     }
@@ -551,7 +562,7 @@ public class DishService : IDishService
         }
 
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
 
         return MapCatalogBomLine(entity);
     }
@@ -580,8 +591,14 @@ public class DishService : IDishService
         }
 
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return true;
+    }
+
+    private void ClearCatalogCache()
+    {
+        _cache.Remove(CatalogCacheKey);
+        _cache.Remove($"{CatalogCacheKey}:all");
     }
 
     private static BomValidationIssueDto CreateValidationIssue(

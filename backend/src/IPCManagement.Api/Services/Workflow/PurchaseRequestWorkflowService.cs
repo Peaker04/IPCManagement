@@ -45,7 +45,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .ToList();
         if (shortageLines.Count == 0)
         {
-            return null;
+            return await ClearStalePurchaseRequestAsync(materialRequest, userIdBytes, cancellationToken);
         }
 
         var purchaseRequest = await EnsurePurchaseRequestAsync(materialRequest, userIdBytes, cancellationToken);
@@ -73,6 +73,32 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 existingLines);
         }
 
+        var shortageLineIds = shortageLines
+            .Select(line => BuildKey(line.RequestLineId))
+            .ToHashSet();
+        var staleLines = existingLines
+            .Where(line => !shortageLineIds.Contains(BuildKey(line.MaterialRequestLineId)))
+            .ToList();
+        if (staleLines.Count > 0)
+        {
+            _context.Purchaserequestlines.RemoveRange(staleLines);
+            existingLines.RemoveAll(line => staleLines.Any(stale => stale.PurchaseRequestLineId.SequenceEqual(line.PurchaseRequestLineId)));
+        }
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequest),
+            EntityId = purchaseRequest.PurchaseRequestId,
+            FieldName = "GenerateFromDemand",
+            OldValue = null,
+            NewValue = $"{shortageLines.Count} shortage lines; {existingLines.Count} purchase lines",
+            Reason = "Sinh đề xuất mua hàng từ dòng thiếu nguyên liệu sau kiểm tồn."
+        });
+
         await _context.SaveChangesAsync(cancellationToken);
 
         return new PurchaseRequestWorkflowResultDto
@@ -86,8 +112,104 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             Lines = existingLines
                 .OrderBy(line => line.Ingredient.IngredientName)
                 .Select(MapLine)
-                .ToList()
+            .ToList()
         };
+    }
+
+    private async Task<PurchaseRequestWorkflowResultDto?> ClearStalePurchaseRequestAsync(
+        Materialrequest materialRequest,
+        byte[] userId,
+        CancellationToken cancellationToken)
+    {
+        var requestCode = BuildPurchaseRequestCode(materialRequest);
+        var purchaseRequest = await _context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+            .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
+        if (purchaseRequest is null)
+        {
+            return null;
+        }
+
+        var staleCount = purchaseRequest.Purchaserequestlines.Count;
+        if (staleCount > 0)
+        {
+            _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
+        }
+
+        purchaseRequest.Status = purchaseRequest.Status == "SENTTOSUPPLIER" ? purchaseRequest.Status : "DRAFT";
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userId,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequest),
+            EntityId = purchaseRequest.PurchaseRequestId,
+            FieldName = "GenerateFromDemand",
+            OldValue = $"{staleCount} stale purchase lines",
+            NewValue = "0 shortage lines; 0 purchase lines",
+            Reason = "Dọn đề xuất mua hàng cũ vì nhu cầu hiện tại không còn thiếu nguyên liệu."
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new PurchaseRequestWorkflowResultDto
+        {
+            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
+            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
+            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
+            ShiftName = purchaseRequest.ShiftName,
+            Status = purchaseRequest.Status,
+            Lines = []
+        };
+    }
+
+    public async Task UpdateLineSupplierAsync(
+        string requestId,
+        string lineId,
+        UpdatePurchaseRequestLineSupplierDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var prIdBytes = GuidHelper.ParseGuidString(requestId);
+        var prLineIdBytes = GuidHelper.ParseGuidString(lineId);
+        var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId);
+
+        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null)
+        {
+            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        var pr = await _context.Purchaserequests
+            .Include(x => x.Purchaserequestlines)
+            .FirstOrDefaultAsync(x => x.PurchaseRequestId == prIdBytes, cancellationToken);
+
+        if (pr is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy Purchase Request.");
+        }
+
+        if (pr.Status != "DRAFT")
+        {
+            throw new InvalidOperationException("Chỉ được đổi nhà cung cấp khi Đề xuất mua ở trạng thái DRAFT.");
+        }
+
+        var line = pr.Purchaserequestlines.FirstOrDefault(x => x.PurchaseRequestLineId.SequenceEqual(prLineIdBytes));
+        if (line is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong Purchase Request.");
+        }
+
+        var supplierExists = await _context.Suppliers.AnyAsync(s => s.SupplierId == supplierIdBytes && s.IsActive != false, cancellationToken);
+        if (!supplierExists)
+        {
+            throw new KeyNotFoundException("Nhà cung cấp không tồn tại hoặc đã bị khóa.");
+        }
+
+        line.SupplierId = supplierIdBytes;
+        line.EstimatedUnitPrice = DecimalPolicy.RoundMoney(request.EstimatedUnitPrice);
+
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
@@ -95,8 +217,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         byte[] userId,
         CancellationToken cancellationToken)
     {
-        var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
-        var requestCode = $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
+        var requestCode = BuildPurchaseRequestCode(materialRequest);
         var existing = await _context.Purchaserequests
             .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
         if (existing is not null)
@@ -195,6 +316,15 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         _context.Purchaserequestlines.Add(line);
         existingLines.Add(line);
     }
+
+    private static string BuildPurchaseRequestCode(Materialrequest materialRequest)
+    {
+        var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
+        return $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
+    }
+
+    private static string BuildKey(byte[] value)
+        => Convert.ToBase64String(value);
 
     private static PurchaseRequestWorkflowLineDto MapLine(Purchaserequestline line)
         => new()

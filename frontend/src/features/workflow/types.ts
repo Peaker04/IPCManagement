@@ -101,6 +101,8 @@ export interface ApprovalRecord {
 
 export interface DemandLine {
   id: string;
+  materialRequestId?: string;
+  sourceDocumentCode?: string;
   material: string;
   required: number;
   available: number;

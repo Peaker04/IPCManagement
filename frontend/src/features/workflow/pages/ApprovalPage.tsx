@@ -23,6 +23,10 @@ export default function ApprovalPage() {
   const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Danh sách mua thêm');
+  const sourceDocument = workflowDocuments.find((document) => document.type === 'KHSX')
+    ?? purchaseDocuments[0]
+    ?? workflowDocuments[0];
+  const nearestDeadline = approvalRecords.find((record) => record.deadline)?.deadline;
 
   return (
     <OperationalFrame
@@ -45,9 +49,9 @@ export default function ApprovalPage() {
         >
           <span className="ipc-command-meta">
             <ClipboardCheck size={16} />
-            Nguồn: KHSX-0613-TRUA
+            Nguồn: {sourceDocument?.title ?? 'Chưa có chứng từ'}
           </span>
-          <span className="ipc-command-meta">Hạn duyệt gần nhất: 09:20</span>
+          <span className="ipc-command-meta">Hạn duyệt gần nhất: {nearestDeadline ?? 'Chưa có'}</span>
         </CommandBar>
       }
       context={

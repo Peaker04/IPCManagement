@@ -4,6 +4,7 @@ using FluentAssertions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
 using NSubstitute;
 using Xunit;
@@ -105,5 +106,56 @@ public class AuthServiceTests
 
         // Assert
         result.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnDemandPermissionOnly_ForCoordinator()
+    {
+        var userId = Guid.NewGuid();
+        var userIdString = userId.ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+        var user = new User
+        {
+            UserId = userIdBytes,
+            Username = "dieuphoi",
+            FullName = "Điều phối",
+            IsActive = true,
+            Role = new Role { RoleCode = "COORDINATOR", RoleName = "Điều phối" }
+        };
+
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(b => System.Linq.Enumerable.SequenceEqual(b, userIdBytes)))
+            .Returns(user);
+
+        var result = await _service.GetProfileAsync(userIdString);
+
+        result.Should().NotBeNull();
+        result!.Permissions.Should().Contain(AuthorizationPolicies.DemandGenerate);
+        result.Permissions.Should().NotContain(AuthorizationPolicies.PurchaseGenerate);
+    }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnPurchasePermissionOnly_ForPurchasing()
+    {
+        var userId = Guid.NewGuid();
+        var userIdString = userId.ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+        var user = new User
+        {
+            UserId = userIdBytes,
+            Username = "thumua",
+            FullName = "Thu mua",
+            IsActive = true,
+            Role = new Role { RoleCode = "PURCHASING", RoleName = "Thu mua" }
+        };
+
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(b => System.Linq.Enumerable.SequenceEqual(b, userIdBytes)))
+            .Returns(user);
+
+        var result = await _service.GetProfileAsync(userIdString);
+
+        result.Should().NotBeNull();
+        result!.Permissions.Should().Contain(AuthorizationPolicies.PurchaseRead);
+        result.Permissions.Should().Contain(AuthorizationPolicies.PurchaseGenerate);
+        result.Permissions.Should().NotContain(AuthorizationPolicies.DemandGenerate);
     }
 }

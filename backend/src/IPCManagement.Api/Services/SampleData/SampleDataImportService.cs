@@ -196,6 +196,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         var existingMenuItems = await _context.Menuitems.ToListAsync(cancellationToken);
         var existingSchedules = await _context.Menuschedules.ToListAsync(cancellationToken);
         var displayOrderByMenu = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        var missingContractWarnings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
         string? shiftName = null;
         string? menuVariant = null;
@@ -255,6 +256,16 @@ public partial class SampleDataImportService : ISampleDataImportService
                     request.DryRun,
                     result.Counts);
 
+                var contractPolicy = ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
+                if (contractPolicy.UsedFallback)
+                {
+                    var warning = MissingCustomerContractWarning(customer, serviceDate, shiftName);
+                    if (missingContractWarnings.Add(warning))
+                    {
+                        AddWarning(result, warning);
+                    }
+                }
+
                 EnsureMenuSchedule(
                     customer,
                     menu,
@@ -263,7 +274,8 @@ public partial class SampleDataImportService : ISampleDataImportService
                     shiftName,
                     existingSchedules,
                     request.DryRun,
-                    result.Counts);
+                    result.Counts,
+                    contractPolicy);
 
                 AddServingHint(servingHints, dishName, 0);
                 fileResult.RowsImported++;
@@ -996,8 +1008,10 @@ public partial class SampleDataImportService : ISampleDataImportService
         string shiftName,
         List<Menuschedule> schedules,
         bool dryRun,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        CustomerContractPolicy? contractPolicy = null)
     {
+        contractPolicy ??= ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
         var existing = schedules.FirstOrDefault(item =>
             item.CustomerId.SequenceEqual(customer.CustomerId) &&
             item.ServiceDate == serviceDate &&
@@ -1006,8 +1020,8 @@ public partial class SampleDataImportService : ISampleDataImportService
         {
             existing.MenuId = menu.MenuId;
             existing.WeekStartDate = weekStart;
-            existing.MenuPrice = existing.MenuPrice <= 0 ? 25000 : DecimalPolicy.RoundMoney(existing.MenuPrice);
-            existing.BomRatePercent = existing.BomRatePercent <= 0 ? 100 : DecimalPolicy.RoundPercent(existing.BomRatePercent);
+            existing.MenuPrice = contractPolicy.MenuPrice;
+            existing.BomRatePercent = contractPolicy.BomRatePercent;
             existing.Status = "DRAFT";
             counts.MenuSchedulesUpdated++;
             return;
@@ -1022,8 +1036,8 @@ public partial class SampleDataImportService : ISampleDataImportService
             ServiceDate = serviceDate,
             WeekStartDate = weekStart,
             ShiftName = shiftName,
-            MenuPrice = DecimalPolicy.RoundMoney(25000),
-            BomRatePercent = DecimalPolicy.RoundPercent(100),
+            MenuPrice = contractPolicy.MenuPrice,
+            BomRatePercent = contractPolicy.BomRatePercent,
             Status = "DRAFT"
         };
 
@@ -1034,6 +1048,58 @@ public partial class SampleDataImportService : ISampleDataImportService
 
         schedules.Add(schedule);
     }
+
+    private CustomerContractPolicy ResolveCustomerContractPolicy(
+        Customer customer,
+        DateOnly serviceDate,
+        string shiftName)
+    {
+        var dayCode = ToDayCode(serviceDate);
+        var contract = _context.Customercontracts
+            .AsNoTracking()
+            .Where(item =>
+                item.CustomerId.SequenceEqual(customer.CustomerId) &&
+                item.Status == "ACTIVE" &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
+            .AsEnumerable()
+            .Where(item =>
+                SplitCsv(item.ActiveWeekDays).Contains(dayCode, StringComparer.OrdinalIgnoreCase) &&
+                SplitCsv(item.ShiftNames).Contains(shiftName, StringComparer.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.EffectiveFrom)
+            .FirstOrDefault();
+
+        if (contract is null)
+        {
+            return new CustomerContractPolicy(
+                DecimalPolicy.RoundMoney(25000),
+                DecimalPolicy.RoundPercent(100),
+                UsedFallback: true);
+        }
+
+        return new CustomerContractPolicy(
+            DecimalPolicy.RoundMoney(contract.DefaultMenuPrice),
+            DecimalPolicy.RoundPercent(contract.DefaultBomRatePercent),
+            UsedFallback: false);
+    }
+
+    private static string MissingCustomerContractWarning(Customer customer, DateOnly serviceDate, string shiftName)
+        => $"Không có hợp đồng hiệu lực cho {customer.CustomerCode} ngày {serviceDate:dd/MM/yyyy} {ToVietnameseShift(shiftName)}; dùng giá mặc định 25.000 và BOM 100%.";
+
+    private static string ToDayCode(DateOnly date)
+        => date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "t2",
+            DayOfWeek.Tuesday => "t3",
+            DayOfWeek.Wednesday => "t4",
+            DayOfWeek.Thursday => "t5",
+            DayOfWeek.Friday => "t6",
+            DayOfWeek.Saturday => "t7",
+            _ => "cn"
+        };
+
+    private static IReadOnlyList<string> SplitCsv(string value)
+        => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
     private Mealquantityplan EnsureMealQuantityPlan(
         DateOnly serviceDate,
@@ -1714,4 +1780,9 @@ public partial class SampleDataImportService : ISampleDataImportService
         string SupplierName,
         string DebtPolicy,
         string InvoicePolicy);
+
+    private sealed record CustomerContractPolicy(
+        decimal MenuPrice,
+        decimal BomRatePercent,
+        bool UsedFallback);
 }

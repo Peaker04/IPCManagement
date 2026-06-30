@@ -2,6 +2,8 @@ import { apiSlice } from '../../api/apiSlice'
 import type { ApiResponse } from '../../types/api'
 import type {
   ApiShiftName,
+  CreateCustomerContractRequest,
+  CustomerContractDto,
   MealQuantityPlanDto,
   MealQuantityPlanQuery,
   MenuScheduleDto,
@@ -10,6 +12,9 @@ import type {
   ShiftType,
   SignoffOrderRequest,
   SignoffOrderResult,
+  UpdateCustomerContractRequest,
+  UpdateMenuScheduleRulesRequest,
+  UpdateMenuScheduleVersionRequest,
   WeeklyMenuState,
 } from './types'
 import { toApiShiftName, toDisplayShift } from './types'
@@ -46,6 +51,22 @@ export interface AdjustOrderAfterLockRequest {
 export interface AdjustOrderAfterLockResult {
   success: boolean
   timestamp: string
+}
+
+export interface UpdateForecastServingsRequest {
+  orderId: string
+  servingsQuantity: number
+  reason: string
+}
+
+export interface UpdateForecastServingsResult {
+  success: boolean
+  orderId: string
+  oldServings: number
+  newServings: number
+  changedAt: string
+  auditId: string
+  warning?: string
 }
 
 export interface ExportOrderReportRequest extends CoordinationQuery {
@@ -104,6 +125,24 @@ export interface WeeklyMenuImportRow {
   existingDish: boolean
 }
 
+export interface WeeklyMenuImportDiffRow {
+  serviceDate: string
+  shiftName: ApiShiftName
+  variant: string
+  slot: string
+  currentDishName?: string | null
+  importedDishName?: string | null
+  changeType: 'added' | 'changed' | 'removed' | 'unchanged' | string
+}
+
+export interface WeeklyMenuImportDiff {
+  addedSlots: number
+  changedSlots: number
+  removedSlots: number
+  unchangedSlots: number
+  rows: WeeklyMenuImportDiffRow[]
+}
+
 export interface WeeklyMenuImportResult {
   committed: boolean
   fileName: string
@@ -112,9 +151,16 @@ export interface WeeklyMenuImportResult {
   customerName: string
   weekStartDate?: string
   weekEndDate?: string
+  menuVersionId?: string | null
+  menuVersionNo?: number | null
+  menuVersionStatus?: string | null
+  publishedBy?: string | null
+  publishedAt?: string | null
+  sourceImportBatch?: string | null
   detectedLayout: WeeklyMenuImportLayout
   warnings: string[]
   rows: WeeklyMenuImportRow[]
+  previewDiff: WeeklyMenuImportDiff
   importedWeeklyMenu: WeeklyMenuState
 }
 
@@ -134,6 +180,26 @@ export const coordinationApi = apiSlice.injectEndpoints({
       query: () => '/coordination/customers',
       providesTags: ['Customers'],
     }),
+    getCustomerContracts: builder.query<ApiResponse<CustomerContractDto[]>, void>({
+      query: () => '/coordination/customer-contracts',
+      providesTags: ['Customers', 'Coordination'],
+    }),
+    createCustomerContract: builder.mutation<ApiResponse<CustomerContractDto>, CreateCustomerContractRequest>({
+      query: (body) => ({
+        url: '/coordination/customers/contract',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Customers', 'Coordination'],
+    }),
+    updateCustomerContract: builder.mutation<ApiResponse<CustomerContractDto>, { customerId: string; body: UpdateCustomerContractRequest }>({
+      query: ({ customerId, body }) => ({
+        url: `/coordination/customers/${customerId}/contract`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Customers', 'Coordination'],
+    }),
     getCommittedWeeklyMenu: builder.query<ApiResponse<WeeklyMenuImportResult | null>, WeeklyMenuQuery>({
       query: ({ customerId, weekStartDate }) => ({
         url: '/coordination/weekly-menu',
@@ -147,6 +213,22 @@ export const coordinationApi = apiSlice.injectEndpoints({
         params,
       }),
       providesTags: ['Coordination'],
+    }),
+    updateMenuScheduleRules: builder.mutation<ApiResponse<MenuScheduleDto>, { menuScheduleId: string; body: UpdateMenuScheduleRulesRequest }>({
+      query: ({ menuScheduleId, body }) => ({
+        url: `/coordination/menu-schedules/${menuScheduleId}/rules`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Coordination', 'WorkflowReports'],
+    }),
+    updateMenuScheduleVersion: builder.mutation<ApiResponse<MenuScheduleDto>, { menuScheduleId: string; body: UpdateMenuScheduleVersionRequest }>({
+      query: ({ menuScheduleId, body }) => ({
+        url: `/coordination/menu-schedules/${menuScheduleId}/version`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['Coordination', 'WorkflowReports'],
     }),
     getMealQuantityPlans: builder.query<ApiResponse<MealQuantityPlanDto[]>, MealQuantityPlanQuery>({
       query: (params) => ({
@@ -194,6 +276,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    updateForecastServings: builder.mutation<ApiResponse<UpdateForecastServingsResult>, UpdateForecastServingsRequest>({
+      query: ({ orderId, servingsQuantity, reason }) => ({
+        url: `/coordination/orders/${orderId}/forecast`,
+        method: 'PATCH',
+        body: { servingsQuantity, reason },
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
     signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
       query: ({ id, body }) => ({
         url: `/coordination/orders/${id}/signoff`,
@@ -228,20 +318,35 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
+    updateWeeklyMenuBulk: builder.mutation<ApiResponse<string[]>, { customerId: string; slots: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> }>({
+      query: (body) => ({
+        url: '/coordination/weekly-menu/bulk-update',
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
   }),
   overrideExisting: false,
 })
 
 export const {
   useGetCoordinationCustomersQuery,
+  useGetCustomerContractsQuery,
+  useCreateCustomerContractMutation,
+  useUpdateCustomerContractMutation,
   useGetCommittedWeeklyMenuQuery,
   useGetMenuSchedulesQuery,
+  useUpdateMenuScheduleRulesMutation,
+  useUpdateMenuScheduleVersionMutation,
   useGetMealQuantityPlansQuery,
   useGetCoordinationOrdersQuery,
   useLockCoordinationOrdersMutation,
   useAdjustCoordinationOrderMutation,
+  useUpdateForecastServingsMutation,
   useSignoffCoordinationOrderMutation,
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,
   useCommitWeeklyMenuImportMutation,
+  useUpdateWeeklyMenuBulkMutation,
 } = coordinationApi
