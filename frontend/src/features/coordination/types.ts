@@ -79,6 +79,7 @@ export interface MenuSlot {
     rau?: string
     canh?: string
     fruit?: string
+    dessert?: string
   }
 }
 
@@ -148,10 +149,72 @@ export interface MenuScheduleDto {
   menuPrice: number
   bomRatePercent: number
   status: string
+  menuVersionId?: string | null
+  menuVersionNo?: number | null
+  menuVersionStatus?: string | null
+  publishedBy?: string | null
+  publishedAt?: string | null
+  sourceImportBatch?: string | null
   dishes: MenuScheduleDishDto[]
 }
 
+export interface CustomerContractDto {
+  contractId?: string | null
+  customerId: string
+  customerCode: string
+  customerName: string
+  note?: string | null
+  isActive: boolean
+  effectiveFrom?: string | null
+  effectiveTo?: string | null
+  contractStatus: string
+  menuScheduleCount: number
+  activeWeekDays: string[]
+  shiftNames: ApiShiftName[]
+  defaultMenuPrice?: number | null
+  defaultBomRatePercent?: number | null
+  latestServiceDate?: string | null
+}
+
+export interface UpdateCustomerContractRequest {
+  customerName?: string
+  note?: string | null
+  isActive?: boolean
+  effectiveFrom?: string
+  effectiveTo?: string
+  activeWeekDays?: string[]
+  shiftNames?: ApiShiftName[]
+  defaultMenuPrice?: number
+  defaultBomRatePercent?: number
+}
+
+export interface CreateCustomerContractRequest {
+  customerCode: string
+  customerName: string
+  note?: string | null
+  isActive?: boolean
+  effectiveFrom?: string
+  effectiveTo?: string
+  activeWeekDays?: string[]
+  shiftNames?: ApiShiftName[]
+  defaultMenuPrice?: number
+  defaultBomRatePercent?: number
+}
+
+export interface UpdateMenuScheduleRulesRequest {
+  menuPrice?: number
+  bomRatePercent?: number
+  status?: string
+  reason?: string
+}
+
+export interface UpdateMenuScheduleVersionRequest {
+  status: string
+  reason?: string
+}
+
 export interface MealQuantityPlanQuery {
+  customerId?: string
   serviceDate?: string
   dayOfWeek?: string
   weekStartDate?: string

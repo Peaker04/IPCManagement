@@ -21,5 +21,7 @@ public partial class Dish
 
     public virtual ICollection<Menuitem> Menuitems { get; set; } = new List<Menuitem>();
 
+    public virtual ICollection<Portionrule> Portionrules { get; set; } = new List<Portionrule>();
+
     public virtual ICollection<Productionplanline> Productionplanlines { get; set; } = new List<Productionplanline>();
 }

@@ -11,4 +11,5 @@ public interface IAdminEmployeeService
     Task<EmployeeDto> CreateAsync(CreateEmployeeDto request);
     Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request);
     Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request);
+    Task SeedSampleUsersAsync();
 }

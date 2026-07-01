@@ -27,9 +27,9 @@ public class DishesController : ControllerBase
     /// <summary>Lấy catalog món ăn kèm slot thực đơn và chi tiết BOM.</summary>
     [HttpGet("catalog")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCatalog()
+    public async Task<IActionResult> GetCatalog([FromQuery] bool includeInactive = false)
     {
-        var result = await _service.GetCatalogAsync();
+        var result = await _service.GetCatalogAsync(includeInactive);
         return Ok(ApiResponse<IReadOnlyList<DishCatalogDto>>.SuccessResult(result));
     }
 

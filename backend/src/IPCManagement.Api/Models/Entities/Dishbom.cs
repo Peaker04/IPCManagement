@@ -17,6 +17,8 @@ public partial class Dishbom
 
     public decimal WasteRatePercent { get; set; }
 
+    public string BomStatus { get; set; } = "PUBLISHED";
+
     public DateOnly EffectiveFrom { get; set; }
 
     public DateOnly? EffectiveTo { get; set; }

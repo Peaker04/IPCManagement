@@ -114,6 +114,11 @@ export interface DemandLine {
   reserved: number;
   unit: string;
   source: string;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  bomRatePercent?: number;
+  yieldLossPercent?: number | null;
   status: string;
   nextAction: string;
   tone: WorkflowTone;

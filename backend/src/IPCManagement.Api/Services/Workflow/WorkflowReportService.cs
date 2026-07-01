@@ -119,9 +119,14 @@ public class WorkflowReportService : IWorkflowReportService
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
         var shiftName = NormalizeShiftName(query.ShiftName);
+        var customerId = ParseCustomerId(query.CustomerId);
         var documents = new List<WorkflowDocumentDto>();
 
-        var materialRequests = _context.Materialrequests.AsNoTracking().AsQueryable();
+        var materialRequests = _context.Materialrequests
+            .AsNoTracking()
+            .Include(item => item.Plan)
+                .ThenInclude(item => item.Productionplanlines)
+            .AsQueryable();
         if (dateFrom is not null)
         {
             materialRequests = materialRequests.Where(item => item.RequestDate >= dateFrom);
@@ -130,6 +135,11 @@ public class WorkflowReportService : IWorkflowReportService
         if (dateTo is not null)
         {
             materialRequests = materialRequests.Where(item => item.RequestDate <= dateTo);
+        }
+
+        if (customerId is not null)
+        {
+            materialRequests = materialRequests.Where(item => item.Plan.Productionplanlines.Any(line => line.CustomerId.SequenceEqual(customerId)));
         }
 
         documents.AddRange(await materialRequests
@@ -149,7 +159,12 @@ public class WorkflowReportService : IWorkflowReportService
             })
             .ToListAsync());
 
-        var purchaseRequests = _context.Purchaserequests.AsNoTracking().AsQueryable();
+        var purchaseRequests = _context.Purchaserequests
+            .AsNoTracking()
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(item => item.MaterialRequestLine)
+                    .ThenInclude(item => item.PlanLine)
+            .AsQueryable();
         if (dateFrom is not null)
         {
             purchaseRequests = purchaseRequests.Where(item => item.PurchaseForDate >= dateFrom);
@@ -163,6 +178,12 @@ public class WorkflowReportService : IWorkflowReportService
         if (!string.IsNullOrWhiteSpace(shiftName))
         {
             purchaseRequests = purchaseRequests.Where(item => item.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            purchaseRequests = purchaseRequests.Where(item =>
+                item.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customerId)));
         }
 
         documents.AddRange(await purchaseRequests
@@ -196,6 +217,7 @@ public class WorkflowReportService : IWorkflowReportService
     public async Task<IReadOnlyList<IngredientDemandReportDto>> GetIngredientDemandAsync(WorkflowReportQueryDto query)
     {
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
@@ -231,6 +253,11 @@ public class WorkflowReportService : IWorkflowReportService
             lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
         }
 
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
         return await lines
             .OrderByDescending(item => item.Request.RequestDate)
             .ThenBy(item => item.Ingredient.IngredientName)
@@ -249,6 +276,11 @@ public class WorkflowReportService : IWorkflowReportService
                 UnitId = GuidHelper.ToGuidString(item.UnitId),
                 UnitName = item.Unit.UnitName,
                 TotalServings = item.TotalServings,
+                BomRatePercent = item.BomRatePercent,
+                AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
+                AppliedPortionRuleSource = item.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = item.AppliedPortionRatePercent,
+                YieldLossPercent = item.YieldLossPercent,
                 TotalRequiredQty = item.TotalRequiredQty,
                 CurrentStockQty = item.CurrentStockQty,
                 SuggestedPurchaseQty = item.SuggestedPurchaseQty
@@ -260,6 +292,7 @@ public class WorkflowReportService : IWorkflowReportService
     {
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
         var supplierId = GuidHelper.ParseGuidString(query.SupplierId);
+        var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
@@ -270,6 +303,8 @@ public class WorkflowReportService : IWorkflowReportService
             .Include(item => item.Ingredient)
             .Include(item => item.Supplier)
             .Include(item => item.Unit)
+            .Include(item => item.MaterialRequestLine)
+                .ThenInclude(item => item.PlanLine)
             .AsQueryable();
 
         if (ingredientId is not null)
@@ -295,6 +330,11 @@ public class WorkflowReportService : IWorkflowReportService
         if (!string.IsNullOrWhiteSpace(shiftName))
         {
             lines = lines.Where(item => item.PurchaseRequest.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customerId));
         }
 
         var purchaseLines = await lines
@@ -484,13 +524,148 @@ public class WorkflowReportService : IWorkflowReportService
                 ChangedAt = item.ChangedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ChangedBy),
                 ChangedByName = item.ChangedByNavigation.FullName,
-                BusinessArea = item.BusinessArea,
+                BusinessArea = item.EntityName == nameof(Mealquantityplan)
+                    && item.FieldName == nameof(Mealquantityplan.Status)
+                    && item.NewValue == "COMPLETED"
+                        ? "Signoff"
+                        : item.BusinessArea,
                 EntityName = item.EntityName,
                 EntityId = item.EntityId == null ? null : GuidHelper.ToGuidString(item.EntityId),
                 FieldName = item.FieldName,
                 OldValue = item.OldValue,
                 NewValue = item.NewValue,
                 Reason = item.Reason
+            })
+            .ToListAsync();
+
+        var importBatches = _context.Quantityimportbatches
+            .AsNoTracking()
+            .Include(item => item.ImportedByNavigation)
+            .Include(item => item.Mealquantityplans)
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            importBatches = importBatches.Where(item => item.ImportedAt >= dateFrom);
+        }
+
+        if (dateToExclusive is not null)
+        {
+            importBatches = importBatches.Where(item => item.ImportedAt < dateToExclusive);
+        }
+
+        var importRows = await importBatches
+            .Select(item => new AuditChangeReportDto
+            {
+                AuditId = GuidHelper.ToGuidString(item.ImportBatchId),
+                ChangedAt = item.ImportedAt,
+                ChangedBy = item.ImportedBy == null ? string.Empty : GuidHelper.ToGuidString(item.ImportedBy),
+                ChangedByName = item.ImportedByNavigation == null ? null : item.ImportedByNavigation.FullName,
+                BusinessArea = "Import",
+                EntityName = nameof(Quantityimportbatch),
+                EntityId = GuidHelper.ToGuidString(item.ImportBatchId),
+                FieldName = item.SourceType,
+                OldValue = null,
+                NewValue = $"{item.BatchCode} - {item.Status}; {item.Mealquantityplans.Count} plans",
+                Reason = item.SourceCompanyName
+            })
+            .ToListAsync();
+
+        var approvals = _context.Approvalhistories
+            .AsNoTracking()
+            .Include(item => item.ActionByNavigation)
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            approvals = approvals.Where(item => item.ActionAt >= dateFrom);
+        }
+
+        if (dateToExclusive is not null)
+        {
+            approvals = approvals.Where(item => item.ActionAt < dateToExclusive);
+        }
+
+        var approvalRows = await approvals
+            .Select(item => new AuditChangeReportDto
+            {
+                AuditId = GuidHelper.ToGuidString(item.ApprovalHistoryId),
+                ChangedAt = item.ActionAt,
+                ChangedBy = GuidHelper.ToGuidString(item.ActionBy),
+                ChangedByName = item.ActionByNavigation.FullName,
+                BusinessArea = "Approval",
+                EntityName = item.TargetType,
+                EntityId = GuidHelper.ToGuidString(item.TargetId),
+                FieldName = item.Decision,
+                OldValue = item.OldStatus,
+                NewValue = item.NewStatus,
+                Reason = item.Reason
+            })
+            .ToListAsync();
+
+        var receipts = _context.Inventoryreceipts
+            .AsNoTracking()
+            .Include(item => item.CreatedByNavigation)
+            .Include(item => item.Inventoryreceiptlines)
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            receipts = receipts.Where(item => item.CreatedAt >= dateFrom);
+        }
+
+        if (dateToExclusive is not null)
+        {
+            receipts = receipts.Where(item => item.CreatedAt < dateToExclusive);
+        }
+
+        var receiptRows = await receipts
+            .Select(item => new AuditChangeReportDto
+            {
+                AuditId = GuidHelper.ToGuidString(item.ReceiptId),
+                ChangedAt = item.CreatedAt,
+                ChangedBy = GuidHelper.ToGuidString(item.CreatedBy),
+                ChangedByName = item.CreatedByNavigation.FullName,
+                BusinessArea = "Receipt",
+                EntityName = nameof(Inventoryreceipt),
+                EntityId = GuidHelper.ToGuidString(item.ReceiptId),
+                FieldName = "Receive",
+                OldValue = item.PurchaseRequestId == null ? null : GuidHelper.ToGuidString(item.PurchaseRequestId),
+                NewValue = $"{item.ReceiptCode} - {item.Inventoryreceiptlines.Count} lines",
+                Reason = $"Ngày nhập {item.ReceiptDate:yyyy-MM-dd}"
+            })
+            .ToListAsync();
+
+        var issues = _context.Inventoryissues
+            .AsNoTracking()
+            .Include(item => item.IssuedByNavigation)
+            .Include(item => item.Inventoryissuelines)
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            issues = issues.Where(item => item.CreatedAt >= dateFrom);
+        }
+
+        if (dateToExclusive is not null)
+        {
+            issues = issues.Where(item => item.CreatedAt < dateToExclusive);
+        }
+
+        var issueRows = await issues
+            .Select(item => new AuditChangeReportDto
+            {
+                AuditId = GuidHelper.ToGuidString(item.IssueId),
+                ChangedAt = item.CreatedAt,
+                ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
+                ChangedByName = item.IssuedByNavigation.FullName,
+                BusinessArea = "Issue",
+                EntityName = nameof(Inventoryissue),
+                EntityId = GuidHelper.ToGuidString(item.IssueId),
+                FieldName = item.ShiftName ?? "FULLDAY",
+                OldValue = GuidHelper.ToGuidString(item.MaterialRequestId),
+                NewValue = $"{item.IssueCode} - {item.Inventoryissuelines.Count} lines",
+                Reason = $"Ngày xuất {item.IssueDate:yyyy-MM-dd}"
             })
             .ToListAsync();
 
@@ -563,11 +738,186 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
 
         return auditRows
+            .Concat(importRows)
+            .Concat(approvalRows)
+            .Concat(receiptRows)
+            .Concat(issueRows)
             .Concat(quantityRows)
             .Concat(bomRows)
             .OrderByDescending(item => item.ChangedAt)
             .Take(limit)
             .ToList();
+    }
+
+    public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
+    {
+        var limit = NormalizeLimit(query.Limit);
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var issues = new List<DataQualityIssueDto>();
+
+        var missingBomDishes = await _context.Dishes
+            .AsNoTracking()
+            .Where(dish => (dish.IsActive ?? true) && !_context.Dishboms.Any(bom =>
+                bom.DishId == dish.DishId &&
+                bom.EffectiveFrom <= today &&
+                (bom.EffectiveTo == null || bom.EffectiveTo >= today)))
+            .OrderBy(dish => dish.DishCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(missingBomDishes.Select(dish => BuildDataQualityIssue(
+            "missing_bom",
+            "error",
+            nameof(Dish),
+            GuidHelper.ToGuidString(dish.DishId),
+            dish.DishCode,
+            dish.DishName,
+            "Món đang hoạt động nhưng chưa có dòng BOM/định lượng hiệu lực.",
+            "Mở Quản trị dữ liệu > Điều chỉnh để thêm BOM.",
+            "/admin-data")));
+
+        var invalidUnitIngredients = await _context.Ingredients
+            .AsNoTracking()
+            .Include(item => item.Unit)
+            .Where(item => (item.IsActive ?? true) && (
+                item.Unit.UnitCode == "" ||
+                item.Unit.UnitName == "" ||
+                item.Unit.ConvertRateToBase <= 0))
+            .OrderBy(item => item.IngredientCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(invalidUnitIngredients.Select(ingredient => BuildDataQualityIssue(
+            "invalid_unit",
+            "error",
+            nameof(Ingredient),
+            GuidHelper.ToGuidString(ingredient.IngredientId),
+            ingredient.IngredientCode,
+            ingredient.IngredientName,
+            $"Nguyên liệu dùng đơn vị '{ingredient.Unit.UnitCode}' nhưng mã/tên/hệ số quy đổi không hợp lệ.",
+            "Chuẩn hóa đơn vị hoặc cập nhật nguyên liệu trước khi tính BOM/kho.",
+            "/admin-data")));
+
+        var inactiveBomIngredients = await _context.Dishboms
+            .AsNoTracking()
+            .Include(item => item.Dish)
+            .Include(item => item.Ingredient)
+            .Where(item =>
+                item.EffectiveFrom <= today &&
+                (item.EffectiveTo == null || item.EffectiveTo >= today) &&
+                item.Ingredient.IsActive == false)
+            .OrderBy(item => item.Dish.DishCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(inactiveBomIngredients.Select(line => BuildDataQualityIssue(
+            "inactive_bom_ingredient",
+            "warning",
+            nameof(Dishbom),
+            GuidHelper.ToGuidString(line.BomId),
+            line.Dish.DishCode,
+            line.Dish.DishName,
+            $"BOM đang dùng nguyên liệu đã khóa: {line.Ingredient.IngredientName}.",
+            "Đổi nguyên liệu trong BOM hoặc mở lại nguyên liệu nếu vẫn dùng.",
+            "/admin-data")));
+
+        var negativeStocks = await _context.Currentstocks
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .Where(item => item.CurrentQty < 0)
+            .OrderBy(item => item.Warehouse.WarehouseCode)
+            .ThenBy(item => item.Ingredient.IngredientCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(negativeStocks.Select(stock => BuildDataQualityIssue(
+            "negative_stock",
+            "error",
+            nameof(Currentstock),
+            $"{GuidHelper.ToGuidString(stock.WarehouseId)}:{GuidHelper.ToGuidString(stock.IngredientId)}",
+            stock.Warehouse.WarehouseCode,
+            stock.Ingredient.IngredientName,
+            $"Tồn kho âm {DecimalPolicy.RoundQuantity(stock.CurrentQty)} {stock.Unit.UnitName}.",
+            "Kiểm tra phiếu xuất/nhập hoặc tạo điều chỉnh tồn.",
+            "/admin-data")));
+
+        var orphanMaterialRequests = await _context.Materialrequests
+            .AsNoTracking()
+            .Where(request => !_context.Productionplans.Any(plan => plan.PlanId == request.PlanId))
+            .OrderBy(request => request.RequestCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(orphanMaterialRequests.Select(request => BuildDataQualityIssue(
+            "orphan_document",
+            "warning",
+            nameof(Materialrequest),
+            GuidHelper.ToGuidString(request.RequestId),
+            request.RequestCode,
+            request.Status,
+            "Yêu cầu nguyên liệu không còn KHSX gốc.",
+            "Sinh lại demand từ KHSX hoặc kiểm tra dữ liệu import.",
+            "/weekly-menu")));
+
+        var orphanPurchaseLines = await _context.Purchaserequestlines
+            .AsNoTracking()
+            .Include(line => line.PurchaseRequest)
+            .Include(line => line.Ingredient)
+            .Where(line => !_context.Materialrequestlines.Any(materialLine => materialLine.RequestLineId == line.MaterialRequestLineId))
+            .OrderBy(line => line.PurchaseRequest.PurchaseRequestCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(orphanPurchaseLines.Select(line => BuildDataQualityIssue(
+            "orphan_document",
+            "warning",
+            nameof(Purchaserequestline),
+            GuidHelper.ToGuidString(line.PurchaseRequestLineId),
+            line.PurchaseRequest.PurchaseRequestCode,
+            line.Ingredient.IngredientName,
+            "Dòng mua thêm không còn dòng demand gốc.",
+            "Sinh lại danh sách mua thêm từ demand hiện tại.",
+            "/weekly-menu")));
+
+        var orphanIssues = await _context.Inventoryissues
+            .AsNoTracking()
+            .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+            .OrderBy(issue => issue.IssueCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(orphanIssues.Select(issue => BuildDataQualityIssue(
+            "orphan_document",
+            "warning",
+            nameof(Inventoryissue),
+            GuidHelper.ToGuidString(issue.IssueId),
+            issue.IssueCode,
+            issue.IssueDate.ToString("yyyy-MM-dd"),
+            "Phiếu xuất không còn demand/material request gốc.",
+            "Kiểm tra lại workflow kho và demand đã sinh.",
+            "/warehouse")));
+
+        var sortedIssues = issues
+            .OrderBy(issue => issue.Severity == "error" ? 0 : 1)
+            .ThenBy(issue => issue.Category)
+            .ThenBy(issue => issue.EntityCode)
+            .Take(limit)
+            .ToList();
+
+        return new DataQualityReportDto
+        {
+            GeneratedAt = DateTime.UtcNow,
+            TotalIssues = sortedIssues.Count,
+            ErrorCount = sortedIssues.Count(issue => issue.Severity == "error"),
+            WarningCount = sortedIssues.Count(issue => issue.Severity == "warning"),
+            MissingBomCount = sortedIssues.Count(issue => issue.Category == "missing_bom"),
+            InvalidUnitCount = sortedIssues.Count(issue => issue.Category is "invalid_unit" or "inactive_bom_ingredient"),
+            NegativeStockCount = sortedIssues.Count(issue => issue.Category == "negative_stock"),
+            OrphanDocumentCount = sortedIssues.Count(issue => issue.Category == "orphan_document"),
+            Issues = sortedIssues
+        };
     }
 
     public async Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query)
@@ -793,11 +1143,38 @@ public class WorkflowReportService : IWorkflowReportService
             IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty)
         };
 
+    private static DataQualityIssueDto BuildDataQualityIssue(
+        string category,
+        string severity,
+        string entityName,
+        string? entityId,
+        string entityCode,
+        string entityLabel,
+        string message,
+        string suggestedAction,
+        string route)
+        => new()
+        {
+            IssueId = $"{category}:{entityName}:{entityId ?? entityCode}",
+            Category = category,
+            Severity = severity,
+            EntityName = entityName,
+            EntityId = entityId,
+            EntityCode = entityCode,
+            EntityLabel = entityLabel,
+            Message = message,
+            SuggestedAction = suggestedAction,
+            Route = route
+        };
+
     private static string BuildUsageKey(byte[] issueId, byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToBase64String(issueId)}|{Convert.ToBase64String(ingredientId)}|{Convert.ToBase64String(unitId)}";
 
     private static DateOnly? ParseDateOnly(string? value)
         => DateOnly.TryParse(value, out var date) ? date : null;
+
+    private static byte[]? ParseCustomerId(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : GuidHelper.ParseGuidString(value);
 
     private static DateTime? ParseDateTimeStart(string? value)
         => DateOnly.TryParse(value, out var date)

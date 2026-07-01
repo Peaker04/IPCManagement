@@ -36,6 +36,8 @@ export default function PurchasingPage() {
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
   const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
+  const purchaseSummaryDocument = purchasingDocuments.find((document) => document.type === 'Danh sách mua thêm')
+    ?? purchasingDocuments[0];
 
   return (
     <OperationalFrame
@@ -63,7 +65,7 @@ export default function PurchasingPage() {
         >
           <span className="ipc-command-meta">
             <ShoppingCart size={16} />
-            Danh sách mua thêm: MUA-0613-01
+            Danh sách mua thêm: {purchaseSummaryDocument?.title ?? primaryPurchaseDemand?.sourceDocumentCode ?? 'Chưa có chứng từ'}
           </span>
           <span className="ipc-command-meta">Ngưỡng cảnh báo: 15%</span>
         </CommandBar>
@@ -73,7 +75,7 @@ export default function PurchasingPage() {
           items={[
             { label: 'Trạng thái mua', value: primaryPurchaseDemand?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseDemand ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
-            { label: 'Hạn chuyển kho', value: '10:00', tone: 'warning' },
+            { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có', tone: 'neutral' },
           ]}
         />

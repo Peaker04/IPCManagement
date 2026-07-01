@@ -1,22 +1,29 @@
-import { useEffect, useMemo, useState, Fragment } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
+import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { updateWeeklyMenuDish, setMenuPrice, setLossRate, setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, Toolbar, ViewSwitcher } from '@/components/common';
-import { useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
+import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { useGenerateMaterialDemandMutation, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import type { DemandLine, WorkflowDocument } from '@/features/workflow';
+import { ActionGuard } from '@/routes/ActionGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
-import { formatCurrency } from '@/lib/formatters';
+import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
 import type { CatalogDish } from '../dishCatalogApi';
-import type { WeeklyMenuState } from '../../coordination/types';
+import type { CreateCustomerContractRequest, WeeklyMenuState } from '../../coordination/types';
 import {
+  useCreateCustomerContractMutation,
   useCommitWeeklyMenuImportMutation,
   useGetCoordinationCustomersQuery,
+  useGetCustomerContractsQuery,
   useGetCommittedWeeklyMenuQuery,
+  useGetMealQuantityPlansQuery,
+  useGetMenuSchedulesQuery,
   usePreviewWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
+  useUpdateWeeklyMenuBulkMutation,
 } from '../../coordination/coordinationApi';
 import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
 
@@ -25,25 +32,87 @@ interface MaterialSummaryEntry {
   actual: number;
   unit: string;
   referencePrice: number;
+  dishNames: string[];
 }
 
 type MaterialSummary = Record<string, MaterialSummaryEntry>;
+type MaterialSummaryAccumulator = Record<string, MaterialSummaryEntry & { dishNameSet: Set<string> }>;
+
+type GeneratedMaterialRequest = {
+  materialRequestId: string;
+  requestCode: string;
+  serviceDate: string;
+  customerId: string;
+  shortageLineCount: number;
+};
 
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
-type ScheduleRowKey = 'main' | 'sub1' | 'sub2' | 'rau' | 'canh' | 'fruit';
+const STANDARD_MENU_PRICE = 35000;
+const DEFAULT_LOSS_RATE = 5;
+const PURCHASE_SUMMARY_PAGE_SIZE = 10;
+
+type ServingsStatus = 'confirmed' | 'draft' | 'import-default' | 'missing';
+
 type WeeklyPlanRow = {
   key: string;
   dayKey: string;
   dayLabel: string;
   date: string;
+  serviceDate: string;
   sectionLabel: string;
   shiftLabel: string;
   menuTypeLabel: string;
+  slotLabel: string;
   dishId: string;
   dishName: string;
   portions: number;
+  importedPortions: number;
+  servingsStatus: ServingsStatus;
+  servingsStatusLabel: string;
+  hasConfirmedServings: boolean;
   hasCatalogBom: boolean;
+  menuPrice: number;
+  bomRatePercent: number;
+  quantityFactor: number;
+};
+
+type ImportedLayoutRow = {
+  key: string;
+  firstIndex: number;
+  sourceSection: string;
+  slot: string;
+  slotLabel: string;
+  cells: Record<string, WeeklyMenuImportResult['rows'][number]>;
+};
+
+type WeeklyMenuImportJobStatus = 'idle' | 'previewing' | 'previewed' | 'committing' | 'committed' | 'failed';
+
+type WeeklyMenuImportJob = {
+  jobId: string;
+  customerId: string;
+  customerCode: string;
+  customerName: string;
+  weekStartDate: string;
+  file: File;
+  fileName: string;
+  fileSize: number;
+  status: WeeklyMenuImportJobStatus;
+  previewResult: WeeklyMenuImportResult | null;
+  warnings: string[];
+  error: string | null;
+};
+
+type WeeklyMenuPricingOverride = {
+  menuPrice?: number;
+  lossRate?: number;
+};
+
+type PurchaseSummaryMaterialEntry = [string, MaterialSummaryEntry];
+
+type LayoutCellSpan = {
+  hidden: boolean;
+  span: number;
 };
 
 const importSlotLabels: Record<string, string> = {
@@ -52,7 +121,195 @@ const importSlotLabels: Record<string, string> = {
   sub2: 'Phụ 2',
   rau: 'Rau',
   canh: 'Canh',
-  fruit: 'Tráng miệng',
+  fruit: 'Trái cây',
+  dessert: 'Sữa chua',
+};
+
+const getShiftLabel = (shiftName?: string) => {
+  if (shiftName === 'MORNING') return 'Ca sáng';
+  if (shiftName === 'AFTERNOON') return 'Ca chiều';
+  return shiftName || 'Chưa xác định ca';
+};
+
+const getVariantLabel = (variant?: string) => {
+  const normalized = (variant ?? '').toLowerCase();
+  if (normalized === 'savory') return 'Mặn';
+  if (normalized === 'vegetarian') return 'Chay';
+  return variant || 'Theo file';
+};
+
+const isLegacyFruitLabel = (value?: string) =>
+  normalizeDishMatchKey(value).includes('TRAI CAY');
+
+const stripDishDisplayWeight = (value?: string | null) =>
+  (value ?? '')
+    .replace(/\s*\b\d+(?:[.,]\d+)?\s*(?:g|gram|kg)\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+const formatMenuDishName = (value?: string | null) => {
+  const stripped = stripDishDisplayWeight(value);
+  return stripped || value || '-';
+};
+
+const normalizeMenuDisplayDiff = (value?: string | null) =>
+  normalizeDishMatchKey(stripDishDisplayWeight(value));
+
+const isMeaningfulMenuDiff = (row: WeeklyMenuImportResult['previewDiff']['rows'][number]) => {
+  if (row.changeType === 'unchanged') return false;
+  return normalizeMenuDisplayDiff(row.currentDishName) !== normalizeMenuDisplayDiff(row.importedDishName);
+};
+
+const summarizeImportWarnings = (warnings: string[]) => {
+  const uniqueWarnings = Array.from(new Set(warnings.filter(Boolean)));
+  const contractWarnings = uniqueWarnings.filter((warning) =>
+    warning.includes('Không có hợp đồng hiệu lực') && warning.includes('dùng giá mặc định'),
+  );
+  const otherWarnings = uniqueWarnings.filter((warning) => !contractWarnings.includes(warning));
+
+  if (contractWarnings.length === 0) {
+    return otherWarnings;
+  }
+
+  const firstMatch = /cho\s+(.+?)\s+ngày/i.exec(contractWarnings[0]);
+  const customer = firstMatch?.[1]?.trim();
+  const priceMatch = /dùng giá mặc định\s+([^;]+?)(?:\s+và|\.)/i.exec(contractWarnings[0]);
+  const price = priceMatch?.[1]?.trim();
+  const summary = [
+    `Không có hợp đồng hiệu lực${customer ? ` cho ${customer}` : ''}: ${contractWarnings.length} ca/ngày đang dùng giá mặc định${price ? ` ${price}` : ''} và BOM 100%.`,
+  ];
+
+  return [...summary, ...otherWarnings];
+};
+
+const resolveImportedSlotLabel = (
+  row: WeeklyMenuImportResult['rows'][number],
+  occurrence: number,
+) => {
+  const label = row.slotLabel || importSlotLabels[row.slot] || row.slot;
+  if (row.slot === 'fruit' && occurrence > 1 && isLegacyFruitLabel(label)) {
+    return 'Sữa chua';
+  }
+
+  return label;
+};
+
+const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
+  const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon';
+  const variant = row.variant?.toLowerCase() === 'vegetarian' ? 'Vegetarian' : 'Savory';
+  return `${shift}${variant}` as keyof WeeklyMenuState[string];
+};
+
+const buildImportedLayoutRows = (rows: WeeklyMenuImportResult['rows'] = []) => {
+  const rowMap = new Map<string, ImportedLayoutRow>();
+  const occurrenceByDaySlot = new Map<string, number>();
+
+  rows.forEach((row, index) => {
+    const repeatedSlotKey = [
+      row.serviceDate,
+      row.sourceSection,
+      row.dbShiftName,
+      row.variant,
+      row.slot,
+      row.slotLabel,
+    ].join('|');
+    const occurrence = (occurrenceByDaySlot.get(repeatedSlotKey) ?? 0) + 1;
+    occurrenceByDaySlot.set(repeatedSlotKey, occurrence);
+    const sourceRowKey = row.sourceRowNumber > 0 ? `row-${row.sourceRowNumber}` : `occurrence-${occurrence}`;
+    const key = [
+      row.sourceSection,
+      row.dbShiftName,
+      row.variant,
+      row.slot,
+      row.slotLabel,
+      sourceRowKey,
+    ].join('|');
+
+    const current = rowMap.get(key) ?? {
+      key,
+      firstIndex: index,
+      sourceSection: row.sourceSection,
+      slot: row.slot,
+      slotLabel: resolveImportedSlotLabel(row, occurrence),
+      cells: {},
+    };
+
+    current.cells[row.dayKey] = row;
+    rowMap.set(key, current);
+  });
+
+  return Array.from(rowMap.values()).sort((a, b) => a.firstIndex - b.firstIndex);
+};
+
+const isSameMergedDish = (
+  current?: WeeklyMenuImportResult['rows'][number],
+  next?: WeeklyMenuImportResult['rows'][number],
+) => {
+  if (!current || !next) return false;
+
+  return current.dishName.trim().toLocaleUpperCase('vi-VN') === next.dishName.trim().toLocaleUpperCase('vi-VN') &&
+    current.sourceSection === next.sourceSection &&
+    current.dbShiftName === next.dbShiftName &&
+    current.variant === next.variant;
+};
+
+const buildLayoutCellSpans = (
+  rows: ImportedLayoutRow[],
+  displayDays: Array<{ key: string }>,
+) => {
+  const spans = new Map<string, LayoutCellSpan>();
+  const hasSourceMergeMetadata = rows.some((row) =>
+    Object.values(row.cells).some((cell) => cell.sourceRowNumber > 0),
+  );
+
+  displayDays.forEach((day) => {
+    rows.forEach((row, index) => {
+      const cellKey = `${row.key}|${day.key}`;
+      const cell = row.cells[day.key];
+      if (!cell) {
+        spans.set(cellKey, { hidden: false, span: 1 });
+        return;
+      }
+
+      if (hasSourceMergeMetadata) {
+        spans.set(cellKey, {
+          hidden: cell.isMergedContinuation,
+          span: cell.isMergedContinuation ? 1 : Math.max(1, Math.min(cell.rowSpan || 1, rows.length - index)),
+        });
+        return;
+      }
+
+      const previous = rows[index - 1]?.cells[day.key];
+      if (isSameMergedDish(previous, cell)) {
+        spans.set(cellKey, { hidden: true, span: 1 });
+        return;
+      }
+
+      let span = 1;
+      for (let nextIndex = index + 1; nextIndex < rows.length; nextIndex += 1) {
+        if (!isSameMergedDish(cell, rows[nextIndex]?.cells[day.key])) {
+          break;
+        }
+
+        span += 1;
+      }
+
+      spans.set(cellKey, { hidden: false, span });
+    });
+  });
+
+  return spans;
+};
+
+const isWeeklyMenuRowContinuation = (
+  row: WeeklyMenuImportResult['rows'][number],
+  index: number,
+  rows: WeeklyMenuImportResult['rows'],
+) => {
+  if (row.isMergedContinuation) return true;
+  if (row.sourceRowNumber > 0) return false;
+
+  return isSameMergedDish(rows[index - 1], row);
 };
 
 const getDishSearchText = (dish: CatalogDish): string =>
@@ -89,29 +346,6 @@ const SECTIONS = [
   { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, shift: 'afternoon' as const }
 ] as const;
 
-const getDishComponents = (dish?: CatalogDish): { sub1: string; sub2: string; rau: string; canh: string; fruit: string } => {
-  const names = dish?.ingredients.map((ingredient) => ingredient.name).filter(Boolean) ?? [];
-  return {
-    sub1: names[0] ?? 'Theo catalog',
-    sub2: names[1] ?? 'Theo catalog',
-    rau: names[2] ?? 'Theo catalog',
-    canh: names[3] ?? 'Theo catalog',
-    fruit: 'Theo thực đơn',
-  };
-};
-
-const getSectionRowTypes = (category: 'savory' | 'vegetarian') => [
-  { key: 'main', label: category === 'savory' ? 'Món mặn chính' : 'Món chay chính' },
-  { key: 'sub1', label: 'Phụ 1' },
-  { key: 'sub2', label: 'Phụ 2' },
-  { key: 'rau', label: 'Rau' },
-  { key: 'canh', label: 'Canh' },
-  { key: 'fruit', label: 'Trái cây' },
-] as const satisfies ReadonlyArray<{ key: ScheduleRowKey; label: string }>;
-
-const normalizeMergedCellValue = (value: string) =>
-  value.trim().replace(/\s+/g, ' ').toLocaleUpperCase('vi-VN');
-
 const normalizeDishMatchKey = (value?: string) =>
   (value ?? '')
     .normalize('NFD')
@@ -122,91 +356,143 @@ const normalizeDishMatchKey = (value?: string) =>
     .replace(/\s+/g, ' ')
     .toLocaleUpperCase('vi-VN');
 
-const buildRowSpans = (values: string[]) => {
-  const rowSpans = Array(values.length).fill(1);
-  let rowIndex = 0;
+type WeeklyMenuView = 'schedule' | 'demand' | 'purchase-summary' | 'cost' | 'dish-materials';
 
-  while (rowIndex < values.length) {
-    const value = normalizeMergedCellValue(values[rowIndex] ?? '');
-    if (!value) {
-      rowIndex += 1;
-      continue;
+const addDishToMaterialSummary = (
+  summary: MaterialSummaryAccumulator,
+  dish: CatalogDish,
+  dishName: string,
+  portions: number,
+  quantityFactor: number,
+) => {
+  dish.ingredients.forEach((ingredient) => {
+    if (!summary[ingredient.name]) {
+      summary[ingredient.name] = {
+        theory: 0,
+        actual: 0,
+        unit: ingredient.unit,
+        referencePrice: ingredient.referencePrice,
+        dishNames: [],
+        dishNameSet: new Set<string>(),
+      };
     }
 
-    let span = 1;
-    while (
-      rowIndex + span < values.length &&
-      normalizeMergedCellValue(values[rowIndex + span] ?? '') === value
-    ) {
-      span += 1;
-    }
-
-    rowSpans[rowIndex] = span;
-    for (let skippedIndex = rowIndex + 1; skippedIndex < rowIndex + span; skippedIndex += 1) {
-      rowSpans[skippedIndex] = 0;
-    }
-
-    rowIndex += span;
-  }
-
-  return rowSpans;
+    const theoryQty = ingredient.grossQtyPerServing * portions;
+    summary[ingredient.name].theory += theoryQty;
+    summary[ingredient.name].actual += theoryQty * quantityFactor;
+    summary[ingredient.name].dishNameSet.add(formatMenuDishName(dishName || dish.name));
+  });
 };
 
-type WeeklyMenuView = 'schedule' | 'demand' | 'cost';
-
-const buildMaterialSummary = (
-  weeklyMenu: WeeklyMenuState,
-  dishesById: Map<string, CatalogDish>,
-  dishesByName: Map<string, CatalogDish>,
-  priceRatio: number,
-  lossRate: number,
-): MaterialSummary => {
-  const summary: MaterialSummary = {};
-
-  Object.values(weeklyMenu).forEach((slots) => {
-    const activeSlots = [
-      slots.morningSavory,
-      slots.morningVegetarian,
-      slots.afternoonSavory,
-      slots.afternoonVegetarian,
-    ];
-
-    activeSlots.forEach((slot) => {
-      if (!slot) return;
-      const dish = dishesById.get(slot.dishId) ?? dishesByName.get(normalizeDishMatchKey(slot.customComponents?.main));
-      if (!dish) {
-        return;
-      }
-
-      dish.ingredients.forEach((ingredient) => {
-        if (!summary[ingredient.name]) {
-          summary[ingredient.name] = {
-            theory: 0,
-            actual: 0,
-            unit: ingredient.unit,
-            referencePrice: ingredient.referencePrice,
-          };
-        }
-        summary[ingredient.name].theory += ingredient.grossQtyPerServing * slot.portions;
-      });
-    });
-  });
-
-  return Object.fromEntries(
+const finalizeMaterialSummary = (summary: MaterialSummaryAccumulator): MaterialSummary =>
+  Object.fromEntries(
     Object.entries(summary).map(([name, data]) => [
       name,
       {
         theory: data.theory,
-        actual: data.theory * priceRatio * (1 + lossRate / 100),
+        actual: data.actual,
         unit: data.unit,
         referencePrice: data.referencePrice,
+        dishNames: Array.from(data.dishNameSet).sort((a, b) => a.localeCompare(b, 'vi-VN')),
       },
     ]),
   ) as MaterialSummary;
+
+const buildPlanRowsMaterialSummary = (
+  rows: WeeklyPlanRow[],
+  dishesById: Map<string, CatalogDish>,
+  dishesByName: Map<string, CatalogDish>,
+): MaterialSummary => {
+  const summary: MaterialSummaryAccumulator = {};
+
+  rows.forEach((row) => {
+    const dish = (row.dishId ? dishesById.get(row.dishId) : undefined) ?? dishesByName.get(normalizeDishMatchKey(row.dishName));
+    if (!dish) return;
+
+    addDishToMaterialSummary(summary, dish, row.dishName, row.portions, row.quantityFactor);
+  });
+
+  return finalizeMaterialSummary(summary);
 };
 
 const calculateTotalMaterialCost = (materialSummary: MaterialSummary): number =>
   Object.values(materialSummary).reduce((total, data) => total + data.actual * data.referencePrice, 0);
+
+const formatMaterialDishSource = (dishNames: string[]) => {
+  const uniqueNames = Array.from(new Set(dishNames.filter(Boolean)));
+  if (uniqueNames.length === 0) return 'Chưa xác định';
+  if (uniqueNames.length <= 2) return uniqueNames.join(', ');
+  return `${uniqueNames.slice(0, 2).join(', ')} +${uniqueNames.length - 2} món`;
+};
+
+const formatQuantityVariance = (value: number, unit: string) => {
+  if (value > 0) return `+${formatQuantityWithUnit(value, unit)}`;
+  if (value < 0) return `-${formatQuantityWithUnit(Math.abs(value), unit)}`;
+  return formatQuantityWithUnit(0, unit);
+};
+
+const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[] => {
+  const groups = new Map<string, {
+    id: string;
+    material: string;
+    unit: string;
+    required: number;
+    available: number;
+    reserved: number;
+    sources: Set<string>;
+    materialRequestIds: Set<string>;
+    sourceDocumentCodes: Set<string>;
+    hasCancelled: boolean;
+  }>();
+
+  lines.forEach((line) => {
+    const key = `${line.material}__${line.unit}`;
+    const current = groups.get(key) ?? {
+      id: `material-${key}`,
+      material: line.material,
+      unit: line.unit,
+      required: 0,
+      available: 0,
+      reserved: 0,
+      sources: new Set<string>(),
+      materialRequestIds: new Set<string>(),
+      sourceDocumentCodes: new Set<string>(),
+      hasCancelled: false,
+    };
+
+    current.required += line.required;
+    current.available = Math.max(current.available, line.available);
+    current.reserved += line.reserved;
+    if (line.source) current.sources.add(line.source);
+    if (line.materialRequestId) current.materialRequestIds.add(line.materialRequestId);
+    if (line.sourceDocumentCode) current.sourceDocumentCodes.add(line.sourceDocumentCode);
+    current.hasCancelled = current.hasCancelled || line.status.toLowerCase().includes('tạo lại');
+    groups.set(key, current);
+  });
+
+  return Array.from(groups.values())
+    .map((group): DemandLine => {
+      const availableAfterReserve = group.available - group.reserved;
+      const shortage = Math.max(group.required - availableAfterReserve, 0);
+      const tone: DemandLine['tone'] = group.hasCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success';
+
+      return {
+        id: group.id,
+        materialRequestId: group.materialRequestIds.size === 1 ? Array.from(group.materialRequestIds)[0] : undefined,
+        sourceDocumentCode: group.sourceDocumentCodes.size === 1 ? Array.from(group.sourceDocumentCodes)[0] : undefined,
+        material: group.material,
+        required: group.required,
+        available: group.available,
+        reserved: group.reserved,
+        unit: group.unit,
+        source: formatMaterialDishSource(Array.from(group.sources)),
+        status: group.hasCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+        nextAction: group.hasCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+        tone,
+      };
+    })
+    .sort((left, right) => left.material.localeCompare(right.material, 'vi-VN'));
+};
 
 const formatImportDate = (value?: string) => {
   if (!value) return 'Chưa xác định';
@@ -218,6 +504,30 @@ const formatImportDate = (value?: string) => {
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return value;
   return parsed.toLocaleDateString('vi-VN');
+};
+
+const formatFileSize = (bytes?: number) => {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString('vi-VN')} KB`;
+  return `${(bytes / (1024 * 1024)).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`;
+};
+
+const toLocalIsoDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const parseDisplayDateToIso = (value?: string) => {
+  if (!value) return '';
+  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
+
+  const displayMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
+  if (!displayMatch) return '';
+
+  return `${displayMatch[3]}-${displayMatch[2].padStart(2, '0')}-${displayMatch[1].padStart(2, '0')}`;
 };
 
 const LAST_WEEKLY_MENU_CUSTOMER_KEY = 'ipc.weeklyMenu.lastCustomerId';
@@ -246,6 +556,33 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
   return error.data?.message || error.message || fallback;
 };
 
+const getImportJobStatusLabel = (status: WeeklyMenuImportJobStatus) => {
+  switch (status) {
+    case 'previewing':
+      return 'Đang xem trước';
+    case 'previewed':
+      return 'Sẵn sàng lưu';
+    case 'committing':
+      return 'Đang lưu';
+    case 'committed':
+      return 'Đã lưu';
+    case 'failed':
+      return 'Lỗi';
+    default:
+      return 'Chưa xem trước';
+  }
+};
+
+const getImportJobStatusClass = (status: WeeklyMenuImportJobStatus) =>
+  cn(
+    'inline-flex min-w-[116px] items-center justify-center rounded border px-2 py-1 text-xs font-bold',
+    status === 'committed' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
+    status === 'previewed' && 'border-blue-200 bg-blue-50 text-blue-800',
+    (status === 'previewing' || status === 'committing') && 'border-amber-200 bg-amber-50 text-amber-800',
+    status === 'failed' && 'border-red-200 bg-red-50 text-red-700',
+    status === 'idle' && 'border-slate-200 bg-slate-50 text-slate-700',
+  );
+
 const buildImportedDayDates = (rows: WeeklyMenuImportResult['rows']) =>
   rows.reduce<Record<string, string>>((dates, row) => {
     if (!dates[row.dayKey]) {
@@ -254,6 +591,114 @@ const buildImportedDayDates = (rows: WeeklyMenuImportResult['rows']) =>
 
     return dates;
   }, {});
+
+const ImportedLayoutMatrix = ({
+  rows,
+  displayDays,
+  activeDayKey,
+  maxBodyHeight = 'max-h-[440px]',
+}: {
+  rows: ImportedLayoutRow[];
+  displayDays: Array<{ key: string; label: string; date: string }>;
+  activeDayKey?: string;
+  maxBodyHeight?: string;
+}) => {
+  const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)));
+
+  return (
+    <DataTableShell className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
+      <table className="ipc-data-table ipc-schedule-table">
+        <thead>
+          <tr>
+            <th className="w-[190px] min-w-[190px] border-r border-slate-200 bg-slate-100 text-left">
+              Bố cục / dòng
+            </th>
+            {displayDays.map((day, index) => (
+              <th
+                key={day.key}
+                className={cn(
+                  tableHeadClass,
+                  'border-r border-slate-200 transition-colors',
+                  index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50',
+                  day.key === activeDayKey && 'bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200',
+                )}
+              >
+                <div className="flex flex-col items-center justify-center gap-0.5 py-1">
+                  <span className="text-[13px] font-bold text-slate-800">{day.label}</span>
+                  <span className="text-[10.5px] font-medium text-slate-500">{day.date}</span>
+                  {day.key === activeDayKey && (
+                    <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
+                      Hôm nay
+                    </span>
+                  )}
+                </div>
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {sectionNames.map((sectionName) => {
+            const sectionRows = rows.filter((row) => row.sourceSection === sectionName);
+            const cellSpans = buildLayoutCellSpans(sectionRows, displayDays);
+
+            return (
+              <Fragment key={sectionName}>
+                <tr>
+                  <td
+                    colSpan={displayDays.length + 1}
+                    className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-[12.5px] font-bold uppercase tracking-wide text-slate-900"
+                  >
+                    {sectionName}
+                  </td>
+                </tr>
+                {sectionRows.map((row) => (
+                  <tr key={row.key}>
+                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle">
+                      <span className="text-[12.5px] font-semibold text-slate-800">{row.slotLabel}</span>
+                    </td>
+                    {displayDays.map((day, index) => {
+                      const cell = row.cells[day.key];
+                      const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 };
+                      if (spanInfo.hidden) {
+                        return null;
+                      }
+
+                      return (
+                        <td
+                          key={`${row.key}-${day.key}`}
+                          rowSpan={spanInfo.span}
+                          className={cn(
+                            'border-r border-slate-200 p-2 text-center align-middle text-[12.5px]',
+                            index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white',
+                            day.key === activeDayKey && 'bg-blue-50/70',
+                            !cell && 'text-slate-400',
+                          )}
+                        >
+                          {cell ? (
+                              <span className="font-semibold text-slate-900">{formatMenuDishName(cell.dishName)}</span>
+                          ) : (
+                            '-'
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </Fragment>
+            );
+          })}
+          {rows.length === 0 && (
+            <tr>
+              <td className="p-4 text-center text-sm text-slate-500" colSpan={displayDays.length + 1}>
+                Chưa có dữ liệu layout import cho khách hàng và tuần đang chọn.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </table>
+    </DataTableShell>
+  );
+};
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
@@ -271,37 +716,73 @@ const WeeklyMenuPage = () => {
     data: customerResponse,
     isLoading: isCustomerLoading,
     isError: isCustomerError,
+    refetch: refetchCustomers,
   } = useGetCoordinationCustomersQuery();
   const customers = customerResponse?.data ?? [];
+  const { data: customerContractsResponse } = useGetCustomerContractsQuery();
+  const customerContracts = customerContractsResponse?.data ?? [];
   const [previewImport, { isLoading: isPreviewingImport }] = usePreviewWeeklyMenuImportMutation();
   const [commitImport, { isLoading: isCommittingImport }] = useCommitWeeklyMenuImportMutation();
   const [saveImportMapping, { isLoading: isSavingImportMapping }] = useSaveCustomerImportMappingMutation();
+  const [createCustomerContract, { isLoading: isCreatingImportCustomer }] = useCreateCustomerContractMutation();
+  const [updateWeeklyMenuBulk, { isLoading: isSavingEdit }] = useUpdateWeeklyMenuBulkMutation();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
-  const [selectedImportCustomerId, setSelectedImportCustomerId] = useState(
+  const importFileInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedMenuCustomerId, setSelectedMenuCustomerId] = useState(
     () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
   );
-  const effectiveImportCustomerId = selectedImportCustomerId || customers[0]?.customerId || '';
+  const effectiveMenuCustomerId = selectedMenuCustomerId;
   const [committedMenuWeekStartDate, setCommittedMenuWeekStartDate] = useState(
     getStoredWeekStartDate,
   );
+  const [draftImportCustomerId, setDraftImportCustomerId] = useState('');
+  const [isQuickCustomerFormOpen, setIsQuickCustomerFormOpen] = useState(false);
+  const [quickCustomerCode, setQuickCustomerCode] = useState('');
+  const [quickCustomerName, setQuickCustomerName] = useState('');
   const [importWeekStartDate, setImportWeekStartDate] = useState('');
   const [selectedImportFile, setSelectedImportFile] = useState<File | null>(null);
-  const [importPreview, setImportPreview] = useState<WeeklyMenuImportResult | null>(null);
-  const [importedMenuDates, setImportedMenuDates] = useState<Record<string, string>>({});
+  const [importJobs, setImportJobs] = useState<WeeklyMenuImportJob[]>([]);
+  const [selectedImportJobId, setSelectedImportJobId] = useState('');
   const [importFeedback, setImportFeedback] = useState<{
     title: string;
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const isImporting = isPreviewingImport || isCommittingImport;
-  const { data: committedMenuResponse } = useGetCommittedWeeklyMenuQuery(
+  const [pricingOverrides, setPricingOverrides] = useState<Record<string, WeeklyMenuPricingOverride>>({});
+  const isImporting = isPreviewingImport || isCommittingImport || isCreatingImportCustomer || importJobs.some((job) => job.status === 'previewing' || job.status === 'committing');
+  const {
+    currentData: committedMenuResponse,
+    isFetching: isCommittedMenuFetching,
+  } = useGetCommittedWeeklyMenuQuery(
     {
-      customerId: effectiveImportCustomerId,
+      customerId: effectiveMenuCustomerId,
       weekStartDate: committedMenuWeekStartDate || undefined,
     },
-    { skip: !effectiveImportCustomerId },
+    { skip: !effectiveMenuCustomerId },
   );
   const committedMenu = committedMenuResponse?.data;
+  const displayedWeekStartDate = committedMenuWeekStartDate || committedMenu?.weekStartDate?.split('T')[0] || '';
+  const menuScheduleWeekStartDate = committedMenu?.weekStartDate?.split('T')[0] ?? (committedMenuWeekStartDate || undefined);
+  const {
+    currentData: menuSchedulesResponse,
+  } = useGetMenuSchedulesQuery(
+    {
+      customerId: effectiveMenuCustomerId,
+      ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
+    },
+    { skip: !effectiveMenuCustomerId },
+  );
+  const menuSchedules = useMemo(() => menuSchedulesResponse?.data ?? [], [menuSchedulesResponse?.data]);
+  const {
+    currentData: mealQuantityPlansResponse,
+  } = useGetMealQuantityPlansQuery(
+    {
+      customerId: effectiveMenuCustomerId,
+      ...(menuScheduleWeekStartDate ? { weekStartDate: menuScheduleWeekStartDate } : {}),
+    },
+    { skip: !effectiveMenuCustomerId || !menuScheduleWeekStartDate },
+  );
+  const mealQuantityPlans = useMemo(() => mealQuantityPlansResponse?.data ?? [], [mealQuantityPlansResponse?.data]);
   const committedMenuDates = useMemo(
     () => (committedMenu?.rows ? buildImportedDayDates(committedMenu.rows) : {}),
     [committedMenu],
@@ -309,126 +790,387 @@ const WeeklyMenuPage = () => {
   const displayDays = useMemo(
     () => DEFAULT_DAYS_OF_WEEK.map((day) => ({
       ...day,
-      date: importedMenuDates[day.key] ?? committedMenuDates[day.key] ?? day.date,
+      date: committedMenuDates[day.key] ?? day.date,
     })),
-    [committedMenuDates, importedMenuDates],
+    [committedMenuDates],
   );
+  const todayIso = toLocalIsoDate(new Date());
+  const activeServiceDay = displayDays.find((day) => parseDisplayDateToIso(day.date) === todayIso);
+  const activeServiceLabel = activeServiceDay
+    ? `${activeServiceDay.label} - ${activeServiceDay.date}`
+    : `Ngoài tuần menu (${formatImportDate(todayIso)})`;
+  const selectedCustomer = customers.find((customer) => customer.customerId === effectiveMenuCustomerId);
+  const selectedCustomerContract = customerContracts.find((contract) => contract.customerId === effectiveMenuCustomerId);
+  const pricingScopeKey = `${effectiveMenuCustomerId || 'none'}|${menuScheduleWeekStartDate || 'latest'}`;
+  const scopedPricingOverride = pricingOverrides[pricingScopeKey] ?? {};
+  const scheduleMenuPrices = menuSchedules
+    .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
+    .map((schedule) => schedule.menuPrice)
+    .filter((price) => Number.isFinite(price) && price > 0);
+  const scheduleBomRates = menuSchedules
+    .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
+    .map((schedule) => schedule.bomRatePercent)
+    .filter((rate) => Number.isFinite(rate) && rate > 0);
+  const baseMenuPrice = scheduleMenuPrices.length > 0
+    ? Math.round(scheduleMenuPrices.reduce((sum, price) => sum + price, 0) / scheduleMenuPrices.length)
+    : selectedCustomerContract?.defaultMenuPrice ?? STANDARD_MENU_PRICE;
+  const baseBomRatePercent = scheduleBomRates.length > 0
+    ? scheduleBomRates.reduce((sum, rate) => sum + rate, 0) / scheduleBomRates.length
+    : selectedCustomerContract?.defaultBomRatePercent ?? 100;
+  const menuPrice = scopedPricingOverride.menuPrice ?? baseMenuPrice;
+  const lossRate = scopedPricingOverride.lossRate ?? DEFAULT_LOSS_RATE;
+  const priceRatio = Math.max(0.1, Math.min(1.5, menuPrice / STANDARD_MENU_PRICE));
+  const effectiveQuantityFactor = priceRatio * (baseBomRatePercent / 100) * (1 + lossRate / 100);
+  const draftImportCustomer = customers.find((customer) => customer.customerId === draftImportCustomerId);
+  const selectedImportFileMeta = selectedImportFile
+    ? `${selectedImportFile.name} • ${formatFileSize(selectedImportFile.size)}`
+    : 'Chưa chọn file Excel';
+  const committedLayoutRows = useMemo(
+    () => buildImportedLayoutRows(committedMenu?.rows ?? []),
+    [committedMenu],
+  );
+  const selectedImportJob = importJobs.find((job) => job.jobId === selectedImportJobId) ?? importJobs[0];
+  const selectedImportPreview = selectedImportJob?.previewResult ?? null;
+  const importPreviewLayoutRows = useMemo(
+    () => buildImportedLayoutRows(selectedImportPreview?.rows ?? []),
+    [selectedImportPreview],
+  );
+  const importPreviewDisplayDays = useMemo(() => {
+    const previewDates = selectedImportPreview ? buildImportedDayDates(selectedImportPreview.rows) : {};
+    return DEFAULT_DAYS_OF_WEEK.map((day) => ({
+      ...day,
+      date: previewDates[day.key] ?? displayDays.find((displayDay) => displayDay.key === day.key)?.date ?? day.date,
+    }));
+  }, [displayDays, selectedImportPreview]);
+  const selectedImportPreviewActiveDayKey = importPreviewDisplayDays.find((day) => parseDisplayDateToIso(day.date) === todayIso)?.key;
+  const readyImportJobs = importJobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error);
+  const workflowReportQuery = useMemo(() => ({
+    limit: 100,
+    customerId: effectiveMenuCustomerId,
+    dateFrom: committedMenu?.weekStartDate?.split('T')[0] ?? (committedMenuWeekStartDate || undefined),
+    dateTo: committedMenu?.weekEndDate?.split('T')[0] ?? undefined,
+  }), [committedMenu?.weekEndDate, committedMenu?.weekStartDate, committedMenuWeekStartDate, effectiveMenuCustomerId]);
 
   const resetImportDialog = () => {
     setSelectedImportFile(null);
-    setImportPreview(null);
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = '';
+    }
+    setImportJobs([]);
+    setSelectedImportJobId('');
+    setIsQuickCustomerFormOpen(false);
+    setQuickCustomerCode('');
+    setQuickCustomerName('');
     setImportFeedback(null);
   };
 
   const handleImportClick = () => {
     resetImportDialog();
+    setDraftImportCustomerId(effectiveMenuCustomerId);
+    setImportWeekStartDate(committedMenu?.weekStartDate?.split('T')[0] ?? committedMenuWeekStartDate);
     setIsImportDialogOpen(true);
   };
 
-  const handleImportPreview = async () => {
-    if (!selectedImportFile || !effectiveImportCustomerId) {
+  const handleCreateQuickImportCustomer = async () => {
+    const customerCode = quickCustomerCode.trim().toUpperCase();
+    const customerName = quickCustomerName.trim();
+
+    if (!customerCode || !customerName) {
       setImportFeedback({
-        title: 'Thiếu thông tin import',
+        title: 'Thiếu thông tin khách hàng',
+        message: 'Vui lòng nhập mã khách hàng và tên khách hàng trước khi tạo mới.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const body: CreateCustomerContractRequest = {
+      customerCode,
+      customerName,
+      note: 'Tạo nhanh từ modal import thực đơn',
+      isActive: true,
+      activeWeekDays: ['t2', 't3', 't4', 't5', 't6', 't7'],
+      shiftNames: ['MORNING', 'AFTERNOON'],
+      defaultMenuPrice: 25000,
+      defaultBomRatePercent: 100,
+    };
+
+    try {
+      setImportFeedback({
+        title: 'Đang tạo khách hàng',
+        message: `Hệ thống đang tạo ${customerCode} để import thực đơn.`,
+        variant: 'info',
+      });
+      const response = await createCustomerContract(body).unwrap();
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Không tạo được khách hàng.');
+      }
+
+      await refetchCustomers();
+      setDraftImportCustomerId(response.data.customerId);
+      setSelectedMenuCustomerId(response.data.customerId);
+      resetScopedWeeklyMenuUi();
+      window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, response.data.customerId);
+      setQuickCustomerCode('');
+      setQuickCustomerName('');
+      setIsQuickCustomerFormOpen(false);
+      setImportFeedback({
+        title: 'Đã tạo khách hàng mới',
+        message: `${response.data.customerCode} - ${response.data.customerName} đã được chọn cho dòng import.`,
+        variant: 'info',
+      });
+    } catch (err: unknown) {
+      setImportFeedback({
+        title: 'Tạo khách hàng thất bại',
+        message: getApiErrorMessage(err, 'Không thể tạo khách hàng mới.'),
+        variant: 'danger',
+      });
+    }
+  };
+
+  const handleAddImportJob = () => {
+    const customerId = draftImportCustomerId;
+    const customer = customers.find((item) => item.customerId === customerId);
+    if (!customer || !selectedImportFile) {
+      setImportFeedback({
+        title: 'Thiếu thông tin dòng import',
         message: 'Vui lòng chọn khách hàng và file Excel trước khi xem trước.',
         variant: 'warning',
       });
       return;
     }
 
+    if (!isValidWeekStartDate(importWeekStartDate)) {
+      setImportFeedback({
+        title: 'Ngày bắt đầu tuần không hợp lệ',
+        message: 'Vui lòng chọn ngày thứ 2 để backend gắn đúng cột Thứ 2 - Thứ 7.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const nextJob: WeeklyMenuImportJob = {
+      jobId: `import-${customer.customerId}`,
+      customerId: customer.customerId,
+      customerCode: customer.customerCode,
+      customerName: customer.customerName,
+      weekStartDate: importWeekStartDate,
+      file: selectedImportFile,
+      fileName: selectedImportFile.name,
+      fileSize: selectedImportFile.size,
+      status: 'idle',
+      previewResult: null,
+      warnings: [],
+      error: null,
+    };
+
+    setImportJobs((currentJobs) => {
+      const exists = currentJobs.some((job) => job.customerId === nextJob.customerId);
+      const nextJobs = exists
+        ? currentJobs.map((job) => (job.customerId === nextJob.customerId ? nextJob : job))
+        : [...currentJobs, nextJob];
+
+      return nextJobs;
+    });
+    setSelectedImportJobId(nextJob.jobId);
+    setSelectedImportFile(null);
+    if (importFileInputRef.current) {
+      importFileInputRef.current.value = '';
+    }
+    setImportFeedback({
+      title: 'Đã thêm vào danh sách import',
+      message: `${nextJob.customerCode} - ${nextJob.customerName} đã sẵn sàng để xem trước. Nếu khách này đã có trong danh sách, hệ thống đã thay bằng file mới.`,
+      variant: 'info',
+    });
+  };
+
+  const handleRemoveImportJob = (jobId: string) => {
+    setImportJobs((currentJobs) => {
+      const nextJobs = currentJobs.filter((job) => job.jobId !== jobId);
+      if (selectedImportJobId === jobId) {
+        setSelectedImportJobId(nextJobs[0]?.jobId ?? '');
+      }
+
+      return nextJobs;
+    });
+  };
+
+  const handlePreviewImportJob = async (jobId: string) => {
+    const job = importJobs.find((item) => item.jobId === jobId);
+    if (!job) return;
+
     try {
+      setSelectedImportJobId(jobId);
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? { ...item, status: 'previewing', error: null, warnings: [], previewResult: null }
+            : item,
+        ),
+      );
       setImportFeedback({
         title: 'Đang phân tích file',
-        message: `Backend đang đọc bảng thực đơn trong ${selectedImportFile.name}.`,
+        message: `Backend đang đọc ${job.fileName} cho ${job.customerCode}.`,
         variant: 'info',
       });
       const response = await previewImport({
-        file: selectedImportFile,
-        customerId: effectiveImportCustomerId,
-        weekStartDate: importWeekStartDate || undefined,
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
       }).unwrap();
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Không đọc được file thực đơn.');
       }
+      const result = response.data;
 
-      setImportPreview(response.data);
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? {
+              ...item,
+              status: 'previewed',
+              previewResult: result,
+              warnings: result.warnings,
+              error: null,
+            }
+            : item,
+        ),
+      );
       setImportFeedback({
         title: 'Đã tạo bản xem trước',
-        message: `Tìm thấy ${response.data.detectedLayout.rowsImported} dòng món trên sheet ${response.data.detectedLayout.sheetName}.`,
-        variant: response.data.warnings.length > 0 ? 'warning' : 'info',
+        message: `${result.customerCode}: tìm thấy ${result.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${result.detectedLayout.rowsSkipped} dòng trên sheet ${result.detectedLayout.sheetName}.`,
+        variant: result.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
-      setImportPreview(null);
+      const message = getApiErrorMessage(err, 'Không thể phân tích file thực đơn.');
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? { ...item, status: 'failed', previewResult: null, warnings: [], error: message }
+            : item,
+        ),
+      );
       setImportFeedback({
         title: 'Xem trước thất bại',
-        message: getApiErrorMessage(err, 'Không thể phân tích file thực đơn.'),
+        message,
         variant: 'danger',
       });
     }
   };
 
-  const handleImportCommit = async () => {
-    if (!selectedImportFile || !effectiveImportCustomerId || !importPreview) {
+  const handlePreviewAllImportJobs = async () => {
+    if (importJobs.length === 0) {
+      setImportFeedback({
+        title: 'Chưa có dòng import',
+        message: 'Vui lòng thêm ít nhất một khách hàng và file Excel vào danh sách.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    for (const job of importJobs) {
+      if (job.status !== 'committed') {
+        await handlePreviewImportJob(job.jobId);
+      }
+    }
+  };
+
+  const handleCommitImportJob = async (jobId: string) => {
+    const job = importJobs.find((item) => item.jobId === jobId);
+    if (!job?.previewResult) {
       setImportFeedback({
         title: 'Chưa có bản xem trước',
-        message: 'Vui lòng xem trước file trước khi lưu vào hệ thống.',
+        message: 'Vui lòng xem trước dòng import trước khi lưu vào hệ thống.',
         variant: 'warning',
       });
       return;
     }
 
     try {
+      setSelectedImportJobId(jobId);
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? { ...item, status: 'committing', error: null }
+            : item,
+        ),
+      );
       setImportFeedback({
         title: 'Đang lưu thực đơn',
-        message: 'Hệ thống đang ghi thực đơn, món ăn và lịch phục vụ vào backend.',
+        message: `Hệ thống đang ghi thực đơn cho ${job.customerCode}.`,
         variant: 'info',
       });
       const response = await commitImport({
-        file: selectedImportFile,
-        customerId: effectiveImportCustomerId,
-        weekStartDate: importWeekStartDate || undefined,
+        file: job.file,
+        customerId: job.customerId,
+        weekStartDate: job.weekStartDate || undefined,
       }).unwrap();
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Không lưu được thực đơn.');
       }
+      const result = response.data;
 
-      window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, response.data.customerId);
-      if (response.data.weekStartDate) {
-        window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, response.data.weekStartDate);
-        setCommittedMenuWeekStartDate(response.data.weekStartDate);
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? {
+              ...item,
+              status: 'committed',
+              previewResult: result,
+              warnings: result.warnings,
+              error: null,
+            }
+            : item,
+        ),
+      );
+
+      const shouldFocusCommittedCustomer = importJobs.length === 1 || result.customerId === effectiveMenuCustomerId;
+      if (shouldFocusCommittedCustomer) {
+        window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, result.customerId);
+        setSelectedMenuCustomerId(result.customerId);
+        resetScopedWeeklyMenuUi();
+        if (result.weekStartDate) {
+          window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, result.weekStartDate);
+          setCommittedMenuWeekStartDate(result.weekStartDate);
+        }
+        dispatch(setWeeklyMenu(result.importedWeeklyMenu));
       }
-      setSelectedImportCustomerId(response.data.customerId);
-      dispatch(setWeeklyMenu(response.data.importedWeeklyMenu));
-      setImportedMenuDates(buildImportedDayDates(response.data.rows));
-      setImportPreview(response.data);
-      setIsImportDialogOpen(false);
-      setWarehouseExportFeedback({
-        title: 'Import thực đơn thành công',
-        message: `Đã lưu ${response.data.detectedLayout.rowsImported} dòng món cho ${response.data.customerCode}.`,
-        variant: 'info',
+      setImportFeedback({
+        title: result.warnings.length > 0 ? 'Đã lưu thực đơn (có cảnh báo)' : 'Đã lưu thực đơn',
+        message: `${result.customerCode}: đã lưu ${result.detectedLayout.rowsImported} dòng món, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`,
+        variant: result.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
+      const message = getApiErrorMessage(err, 'Không thể lưu thực đơn vào backend.');
+      setImportJobs((currentJobs) =>
+        currentJobs.map((item) =>
+          item.jobId === jobId
+            ? { ...item, status: 'failed', error: message }
+            : item,
+        ),
+      );
       setImportFeedback({
         title: 'Lưu import thất bại',
-        message: getApiErrorMessage(err, 'Không thể lưu thực đơn vào backend.'),
+        message,
         variant: 'danger',
       });
     }
   };
 
   const handleSaveImportMapping = async () => {
-    if (!importPreview || !effectiveImportCustomerId) {
+    if (!selectedImportPreview || !selectedImportJob) {
       return;
     }
 
     try {
       await saveImportMapping({
-        customerId: effectiveImportCustomerId,
-        sheetNameHint: importPreview.detectedLayout.sheetName,
-        labelColumn: importPreview.detectedLayout.labelColumn,
+        customerId: selectedImportJob.customerId,
+        sheetNameHint: selectedImportPreview.detectedLayout.sheetName,
+        labelColumn: selectedImportPreview.detectedLayout.labelColumn,
       }).unwrap();
       setImportFeedback({
         title: 'Đã lưu mẫu mapping cho khách hàng',
-        message: `Lần import sau của ${importPreview.customerCode} sẽ tự dùng sheet "${importPreview.detectedLayout.sheetName}", cột nhãn "${importPreview.detectedLayout.labelColumn}".`,
+        message: `Lần import sau của ${selectedImportJob.customerCode} sẽ tự dùng sheet "${selectedImportPreview.detectedLayout.sheetName}", cột nhãn "${selectedImportPreview.detectedLayout.labelColumn}".`,
         variant: 'info',
       });
     } catch (err: unknown) {
@@ -440,27 +1182,67 @@ const WeeklyMenuPage = () => {
     }
   };
 
+  const handleCommitReadyImportJobs = async () => {
+    const jobsToCommit = importJobs.filter((job) => job.status === 'previewed' && job.previewResult && !job.error);
+    if (jobsToCommit.length === 0) {
+      setImportFeedback({
+        title: 'Chưa có dòng hợp lệ để lưu',
+        message: 'Chỉ những dòng đã xem trước thành công mới được lưu vào hệ thống.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    for (const job of jobsToCommit) {
+      await handleCommitImportJob(job.jobId);
+    }
+  };
+
   useEffect(() => {
     if (!committedMenu?.importedWeeklyMenu || Object.keys(committedMenu.importedWeeklyMenu).length === 0) {
+      dispatch(setWeeklyMenu({}));
       return;
     }
 
     dispatch(setWeeklyMenu(committedMenu.importedWeeklyMenu));
   }, [committedMenu, dispatch]);
 
-  // Đơn giá chuẩn là 35,000 đ
-  const standardPrice = 35000;
-  const menuPrice = useAppSelector((state) => state.coordination.menuPrice);
-  const lossRate = useAppSelector((state) => state.coordination.lossRate);
   const [selectedDishId, setSelectedDishId] = useState<string>('');
   const [activeView, setActiveView] = useState<WeeklyMenuView>('schedule');
+  const [selectedCostDayKey, setSelectedCostDayKey] = useState<string | null>(null);
+  const [selectedDemandDayKey, setSelectedDemandDayKey] = useState<string | null>(null);
+  const [purchaseSummaryPageIndex, setPurchaseSummaryPageIndex] = useState(0);
   const [warehouseExportFeedback, setWarehouseExportFeedback] = useState<{
     title: string;
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const [demandFeedback, setDemandFeedback] = useState<{
+    title: string;
+    message: string;
+    variant: 'info' | 'warning' | 'danger';
+  } | null>(null);
+
+  const resetScopedWeeklyMenuUi = () => {
+    dispatch(setWeeklyMenu({}));
+    setSelectedCostDayKey(null);
+    setSelectedDemandDayKey(null);
+    setPurchaseSummaryPageIndex(0);
+    setSelectedDishId('');
+    setWarehouseExportFeedback(null);
+    setDemandFeedback(null);
+  };
+
+  const [generatedMaterialRequests, setGeneratedMaterialRequests] = useState<GeneratedMaterialRequest[]>([]);
+  const currentGeneratedMaterialRequests = useMemo(
+    () => generatedMaterialRequests.filter((request) => request.customerId === effectiveMenuCustomerId),
+    [effectiveMenuCustomerId, generatedMaterialRequests],
+  );
+  const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines]);
+  const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
+  const [generatePurchaseRequestFromDemand, { isLoading: isGeneratingPurchaseRequest }] = useGeneratePurchaseRequestFromDemandMutation();
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
@@ -491,77 +1273,385 @@ const WeeklyMenuPage = () => {
     setIsEditingMenu(true);
   };
 
-  const handleSaveEdit = () => {
+  const getServiceDateIso = (dayKey: string) => {
+    const row = committedMenu?.rows?.find((r) => r.dayKey === dayKey);
+    if (row?.serviceDate) {
+      return row.serviceDate.split('T')[0];
+    }
+    return '';
+  };
+
+  const activeCustomerOrders = useMemo(
+    () => orders.filter((order) => order.customerId === effectiveMenuCustomerId),
+    [effectiveMenuCustomerId, orders],
+  );
+
+  const quantityPlanByDateShift = useMemo(() => {
+    const map = new Map<string, { servings: number; status: ServingsStatus; statusLabel: string }>();
+
+    mealQuantityPlans.forEach((plan) => {
+      const serviceDate = plan.serviceDate.split('T')[0];
+      const planStatus = plan.status.toUpperCase();
+      const isConfirmedPlan = planStatus === 'CONFIRMED' || planStatus === 'COMPLETED';
+
+      plan.lines
+        .filter((line) => !effectiveMenuCustomerId || line.customerId === effectiveMenuCustomerId)
+        .forEach((line) => {
+          const key = `${serviceDate}|${line.shiftName}`;
+          const current = map.get(key);
+          const servings = line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0;
+          const lineConfirmed = isConfirmedPlan && servings > 0;
+          const status: ServingsStatus = lineConfirmed ? 'confirmed' : servings > 0 ? 'draft' : 'missing';
+          const nextServings = (current?.servings ?? 0) + servings;
+          const nextStatus: ServingsStatus = current?.status === 'confirmed' || status === 'confirmed'
+            ? 'confirmed'
+            : current?.status === 'draft' || status === 'draft'
+              ? 'draft'
+              : 'missing';
+
+          map.set(key, {
+            servings: nextServings,
+            status: nextStatus,
+            statusLabel: nextStatus === 'confirmed' ? 'Đã chốt suất' : `Chưa chốt (${plan.status})`,
+          });
+        });
+    });
+
+    return map;
+  }, [effectiveMenuCustomerId, mealQuantityPlans]);
+
+  const getShiftServingInfo = (dayKey: string, shiftName: 'MORNING' | 'AFTERNOON') => {
+    const serviceDate = getServiceDateIso(dayKey);
+    const quantityInfo = serviceDate ? quantityPlanByDateShift.get(`${serviceDate}|${shiftName}`) : undefined;
+    if (quantityInfo && quantityInfo.servings > 0) {
+      return quantityInfo;
+    }
+
+    const shiftLabel = shiftName === 'MORNING' ? 'Ca Sáng' : 'Ca Chiều';
+    const isShiftLocked = !!lockedShifts[`${dayKey}-${shiftLabel}`];
+    const draftOrders = activeCustomerOrders.filter((order) => order.dayOfWeek === dayKey && order.shift === shiftLabel);
+    const draftServings = draftOrders.reduce(
+      (sum, order) => sum + (isShiftLocked ? order.actualQuantity : order.forecastQuantity),
+      0,
+    );
+
+    if (draftServings > 0) {
+      return {
+        servings: draftServings,
+        status: 'draft' as ServingsStatus,
+        statusLabel: 'Dự kiến điều phối',
+      };
+    }
+
+    return {
+      servings: 0,
+      status: 'missing' as ServingsStatus,
+      statusLabel: 'Chưa có số suất',
+    };
+  };
+
+  const getSlotServingInfo = (
+    dayKey: string,
+    slotType: 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian',
+  ) => {
+    const isMorning = slotType.startsWith('morning');
+    const shiftInfo = getShiftServingInfo(dayKey, isMorning ? 'MORNING' : 'AFTERNOON');
+    const savoryPortions = Math.round(shiftInfo.servings * 0.85);
+    const vegetarianPortions = shiftInfo.servings - savoryPortions;
+    const calculatedPortions = slotType.endsWith('Vegetarian') ? vegetarianPortions : savoryPortions;
+    const importedPortions = reduxWeeklyMenu[dayKey]?.[slotType]?.portions ?? 0;
+
+    if (shiftInfo.servings > 0) {
+      return {
+        portions: calculatedPortions,
+        importedPortions,
+        status: shiftInfo.status,
+        statusLabel: shiftInfo.statusLabel,
+        hasConfirmedServings: shiftInfo.status === 'confirmed',
+      };
+    }
+
+    return {
+      portions: importedPortions,
+      importedPortions,
+      status: importedPortions > 0 ? 'import-default' as ServingsStatus : 'missing' as ServingsStatus,
+      statusLabel: importedPortions > 0 ? 'Suất tạm từ import' : 'Chưa có số suất',
+      hasConfirmedServings: importedPortions > 0,
+    };
+  };
+
+  const scheduleByDateShift = useMemo(() => {
+    const schedules = new Map<string, (typeof menuSchedules)[number]>();
+    menuSchedules
+      .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
+      .forEach((schedule) => {
+        schedules.set(`${schedule.serviceDate.split('T')[0]}|${schedule.shiftName}`, schedule);
+      });
+    return schedules;
+  }, [effectiveMenuCustomerId, menuSchedules]);
+
+  const getLinePricing = (serviceDate: string, shiftName: string) => {
+    const schedule = scheduleByDateShift.get(`${serviceDate.split('T')[0]}|${shiftName}`);
+    const lineMenuPrice = schedule?.menuPrice ?? menuPrice;
+    const lineBomRatePercent = schedule?.bomRatePercent ?? baseBomRatePercent;
+    const linePriceRatio = Math.max(0.1, Math.min(1.5, lineMenuPrice / STANDARD_MENU_PRICE));
+    return {
+      menuPrice: lineMenuPrice,
+      bomRatePercent: lineBomRatePercent,
+      quantityFactor: linePriceRatio * (lineBomRatePercent / 100) * (1 + lossRate / 100),
+    };
+  };
+
+  const handleGenerateDemand = async () => {
+    if (!effectiveMenuCustomerId) {
+      setDemandFeedback({
+        title: 'Chưa chọn khách hàng',
+        message: 'Vui lòng chọn khách hàng trước khi tạo nhu cầu nguyên liệu.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    const serviceDates = Array.from(
+      new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean)),
+    );
+
+    if (serviceDates.length === 0) {
+      setDemandFeedback({
+        title: 'Chưa có ngày để tạo demand',
+        message: 'Vui lòng import hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (weeklyRowsMissingOperationalServings.length > 0) {
+      const affectedDates = Array.from(new Set(weeklyRowsMissingOperationalServings.map((row) => row.date))).slice(0, 4);
+      setDemandFeedback({
+        title: 'Chưa tạo được demand',
+        message: `Hiện còn ${weeklyRowsMissingOperationalServings.length} dòng KHSX chưa có số suất vận hành${affectedDates.length > 0 ? ` (${affectedDates.join(', ')})` : ''}. Cần có số suất chốt hoặc suất default import trước khi sinh demand.`,
+        variant: 'danger',
+      });
+      return;
+    }
+
+    setDemandFeedback(null);
+    const results = await Promise.all(serviceDates.map(async (serviceDate) => {
+      try {
+        const response = await generateMaterialDemand({ serviceDate, customerId: effectiveMenuCustomerId, scope: 'FULLDAY' }).unwrap();
+        if (!response.success || !response.data) {
+          throw new Error(response.message || 'Không tạo được nhu cầu nguyên liệu.');
+        }
+
+        return { serviceDate, response };
+      } catch (error) {
+        return { serviceDate, error };
+      }
+    }));
+
+    const succeeded = results.filter((result): result is { serviceDate: string; response: NonNullable<(typeof result)['response']> } => 'response' in result);
+    const skipped = results.length - succeeded.length;
+    const demandLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.lines.length, 0);
+    const shortageLineCount = succeeded.reduce(
+      (sum, result) => sum + result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length,
+      0,
+    );
+    const missingBomCount = succeeded.reduce((sum, result) => sum + result.response.data!.missingBomDishes.length, 0);
+    const planLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.productionPlanLineCount, 0);
+    const generatedRequests = succeeded.map((result) => ({
+      materialRequestId: result.response.data!.materialRequestId,
+      requestCode: result.response.data!.requestCode,
+      serviceDate: result.response.data!.serviceDate,
+      customerId: effectiveMenuCustomerId,
+      shortageLineCount: result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length,
+    }));
+
+    if (succeeded.length === 0) {
+      const firstError = results.find((result) => 'error' in result)?.error;
+      setDemandFeedback({
+        title: 'Chưa tạo được demand',
+        message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'),
+        variant: 'danger',
+      });
+      return;
+    }
+
+    setGeneratedMaterialRequests(generatedRequests);
+    setDemandFeedback({
+      title: skipped > 0 ? 'Đã tạo demand cho ngày đã chốt' : 'Đã tạo demand cho tuần',
+      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Thu mua có thể sinh danh sách mua thêm bằng nút riêng.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có BOM cần bổ sung.` : 'BOM đã đủ cho các dòng sinh demand.'}`,
+      variant: missingBomCount > 0 || skipped > 0 ? 'warning' : 'info',
+    });
+  };
+
+  const handleGeneratePurchaseRequests = async () => {
+    const candidateMap = new Map<string, GeneratedMaterialRequest>();
+    currentGeneratedMaterialRequests
+      .filter((request) => request.shortageLineCount > 0)
+      .forEach((request) => candidateMap.set(request.materialRequestId, request));
+    demandLines
+      .filter((line) => line.tone === 'danger' && line.materialRequestId)
+      .forEach((line) => {
+        if (!line.materialRequestId) return;
+        candidateMap.set(line.materialRequestId, {
+          materialRequestId: line.materialRequestId,
+          requestCode: line.sourceDocumentCode ?? line.source,
+          serviceDate: '',
+          customerId: effectiveMenuCustomerId,
+          shortageLineCount: 1,
+        });
+      });
+
+    const candidates = Array.from(candidateMap.values());
+    if (candidates.length === 0) {
+      setDemandFeedback({
+        title: 'Chưa có demand thiếu hàng',
+        message: 'Hãy tạo demand trước hoặc kiểm tra báo cáo nhu cầu nguyên liệu để có dòng thiếu cần mua thêm.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    setDemandFeedback(null);
+    const purchaseResults = await Promise.all(candidates.map(async (request) => {
+        try {
+          const response = await generatePurchaseRequestFromDemand({
+            materialRequestId: request.materialRequestId,
+          }).unwrap();
+          if (!response.success || !response.data) {
+            throw new Error(response.message || 'Không tạo được danh sách mua thêm.');
+          }
+
+          return { request, response };
+        } catch (error) {
+          return { request, error };
+        }
+      }));
+    const purchaseSuccessCount = purchaseResults.filter((result) => 'response' in result).length;
+    const purchaseLineCount = purchaseResults.reduce(
+      (sum, result) => ('response' in result ? sum + (result.response?.data?.lines.length ?? 0) : sum),
+      0,
+    );
+    const failed = purchaseResults.length - purchaseSuccessCount;
+
+    setDemandFeedback({
+      title: failed > 0 ? 'Sinh danh sách mua thêm chưa đủ' : 'Đã sinh danh sách mua thêm',
+      message: `Xử lý ${purchaseSuccessCount}/${purchaseResults.length} demand thiếu hàng, tạo/cập nhật ${purchaseLineCount} dòng mua thêm.${failed > 0 ? ' Một số demand cần kiểm tra lại nhà cung cấp hoặc dữ liệu nguyên liệu.' : ''}`,
+      variant: failed > 0 ? 'warning' : 'info',
+    });
+  };
+
+  const handleSaveEdit = async () => {
+    const slotsToUpdate: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> = [];
+
     displayDays.forEach((day) => {
       SECTIONS.forEach((sec) => {
         const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
-        if (isLocked) return; // Skip updating locked shifts
+        if (isLocked) return;
 
         const currentDishId = weeklyMenu[day.key]?.[sec.slotType]?.dishId || getSectionDefaultDish(sec)?.id;
         const newDishId = tempWeeklyMenu[day.key]?.[sec.slotType]?.dishId;
         if (newDishId && newDishId !== currentDishId) {
-          dispatch(updateWeeklyMenuDish({
-            day: day.key,
-            slotType: sec.slotType,
-            dishId: newDishId,
-          }));
+          const serviceDateIso = getServiceDateIso(day.key);
+          if (serviceDateIso) {
+            slotsToUpdate.push({
+              serviceDate: serviceDateIso,
+              shiftName: sec.shift === 'morning' ? 'Ca Sáng' : 'Ca Chiều',
+              slotType: sec.slotType,
+              dishId: newDishId,
+            });
+          }
         }
       });
     });
 
-    setIsEditingMenu(false);
+    if (slotsToUpdate.length === 0) {
+      setIsEditingMenu(false);
+      return;
+    }
+
+    try {
+      setWarehouseExportFeedback({
+        title: 'Đang lưu chỉnh sửa',
+        message: 'Hệ thống đang ghi các thay đổi thực đơn vào backend...',
+        variant: 'info',
+      });
+
+      const response = await updateWeeklyMenuBulk({
+        customerId: effectiveMenuCustomerId,
+        slots: slotsToUpdate,
+      }).unwrap();
+
+      if (!response.success) {
+        throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.');
+      }
+
+      slotsToUpdate.forEach((slot) => {
+        const dayKey = displayDays.find((d) => getServiceDateIso(d.key) === slot.serviceDate)?.key;
+        if (dayKey) {
+          dispatch(updateWeeklyMenuDish({
+            day: dayKey,
+            slotType: slot.slotType as 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian',
+            dishId: slot.dishId,
+          }));
+        }
+      });
+
+      if (response.data && response.data.length > 0) {
+        setWarehouseExportFeedback({
+          title: 'Lưu thành công (Có cảnh báo)',
+          message: `${response.message}\nCảnh báo:\n` + response.data.map(w => `- ${w}`).join('\n'),
+          variant: 'warning',
+        });
+      } else {
+        setWarehouseExportFeedback({
+          title: 'Cập nhật thực đơn thành công',
+          message: response.message || 'Thay đổi đã được lưu vào database.',
+          variant: 'info',
+        });
+      }
+
+      setIsEditingMenu(false);
+    } catch (err: unknown) {
+      setWarehouseExportFeedback({
+        title: 'Chỉnh sửa thực đơn thất bại',
+        message: getApiErrorMessage(err, 'Không thể lưu thay đổi vào backend.'),
+        variant: 'danger',
+      });
+    }
   };
 
-  // Merge dishId from Redux with portions calculated from active customer orders
+  // Merge dishId from Redux with servings from confirmed quantity plans.
   const weeklyMenu = (() => {
     const merged: WeeklyMenuState = {};
 
     displayDays.forEach(({ key: day }) => {
       const slots = reduxWeeklyMenu[day];
       if (!slots) return;
-
-      // Morning portions
-      const morningOrders = orders.filter((o) => o.dayOfWeek === day && o.shift === 'Ca Sáng');
-      const isMorningLocked = !!lockedShifts[`${day}-Ca Sáng`];
-      const morningPortions = morningOrders.reduce(
-        (sum, o) => sum + (isMorningLocked ? o.actualQuantity : o.forecastQuantity),
-        0,
-      );
-
-      // Afternoon portions
-      const afternoonOrders = orders.filter((o) => o.dayOfWeek === day && o.shift === 'Ca Chiều');
-      const isAfternoonLocked = !!lockedShifts[`${day}-Ca Chiều`];
-      const afternoonPortions = afternoonOrders.reduce(
-        (sum, o) => sum + (isAfternoonLocked ? o.actualQuantity : o.forecastQuantity),
-        0,
-      );
-
-      // Savory is 85%, Vegetarian is 15%
-      const morningSavoryPortions = Math.round(morningPortions * 0.85);
-      const morningVegetarianPortions = morningPortions - morningSavoryPortions;
-
-      const afternoonSavoryPortions = Math.round(afternoonPortions * 0.85);
-      const afternoonVegetarianPortions = afternoonPortions - afternoonSavoryPortions;
+      const morningSavoryServing = getSlotServingInfo(day, 'morningSavory');
+      const morningVegetarianServing = getSlotServingInfo(day, 'morningVegetarian');
+      const afternoonSavoryServing = getSlotServingInfo(day, 'afternoonSavory');
+      const afternoonVegetarianServing = getSlotServingInfo(day, 'afternoonVegetarian');
 
       merged[day] = {
         morningSavory: {
           dishId: slots.morningSavory?.dishId || getSectionDefaultDish(SECTIONS[0])?.id || '',
-          portions: morningSavoryPortions || slots.morningSavory?.portions || 0,
+          portions: morningSavoryServing.portions,
           customComponents: slots.morningSavory?.customComponents,
         },
         morningVegetarian: {
           dishId: slots.morningVegetarian?.dishId || getSectionDefaultDish(SECTIONS[1])?.id || '',
-          portions: morningVegetarianPortions || slots.morningVegetarian?.portions || 0,
+          portions: morningVegetarianServing.portions,
           customComponents: slots.morningVegetarian?.customComponents,
         },
         afternoonSavory: {
           dishId: slots.afternoonSavory?.dishId || getSectionDefaultDish(SECTIONS[2])?.id || '',
-          portions: afternoonSavoryPortions || slots.afternoonSavory?.portions || 0,
+          portions: afternoonSavoryServing.portions,
           customComponents: slots.afternoonSavory?.customComponents,
         },
         afternoonVegetarian: {
           dishId: slots.afternoonVegetarian?.dishId || getSectionDefaultDish(SECTIONS[3])?.id || '',
-          portions: afternoonVegetarianPortions || slots.afternoonVegetarian?.portions || 0,
+          portions: afternoonVegetarianServing.portions,
           customComponents: slots.afternoonVegetarian?.customComponents,
         },
       };
@@ -570,7 +1660,41 @@ const WeeklyMenuPage = () => {
     return merged;
   })();
 
-  const weeklyPlanRows: WeeklyPlanRow[] = displayDays.flatMap((day) => {
+  const weeklyPlanRows: WeeklyPlanRow[] = committedMenu?.rows?.length ? committedMenu.rows
+    .filter((row, index, rows) => !isWeeklyMenuRowContinuation(row, index, rows))
+    .map((row, index) => {
+    const catalogDish = (row.dishId ? dishesById.get(row.dishId) : undefined) ?? dishesByName.get(normalizeDishMatchKey(row.dishName));
+    const day = displayDays.find((item) => item.key === row.dayKey);
+    const slotType = getNormalizedSlotType(row);
+    const servingsInfo = getSlotServingInfo(row.dayKey, slotType);
+    const calculatedPortions = weeklyMenu[row.dayKey]?.[slotType]?.portions ?? servingsInfo.portions;
+    const portions = calculatedPortions > 0 ? calculatedPortions : servingsInfo.importedPortions;
+    const serviceDate = row.serviceDate.split('T')[0];
+    const linePricing = getLinePricing(serviceDate, row.dbShiftName);
+
+    return {
+      key: `import-${row.serviceDate}-${row.sourceSection}-${row.slot}-${index}`,
+      dayKey: row.dayKey,
+      dayLabel: day?.label ?? row.dayKey.toUpperCase(),
+      date: formatImportDate(row.serviceDate),
+      serviceDate,
+      sectionLabel: row.sourceSection,
+      shiftLabel: getShiftLabel(row.dbShiftName),
+      menuTypeLabel: getVariantLabel(row.variant),
+      slotLabel: row.slotLabel || importSlotLabels[row.slot] || row.slot,
+      dishId: catalogDish?.id ?? row.dishId ?? '',
+      dishName: formatMenuDishName(row.dishName),
+      portions,
+      importedPortions: servingsInfo.importedPortions,
+      servingsStatus: servingsInfo.status,
+      servingsStatusLabel: servingsInfo.statusLabel,
+      hasConfirmedServings: servingsInfo.hasConfirmedServings,
+      hasCatalogBom: Boolean(catalogDish?.ingredients.length),
+      menuPrice: linePricing.menuPrice,
+      bomRatePercent: linePricing.bomRatePercent,
+      quantityFactor: linePricing.quantityFactor,
+    };
+  }) : displayDays.flatMap((day) => {
     const rows: WeeklyPlanRow[] = [];
 
     SECTIONS.forEach((section) => {
@@ -579,22 +1703,36 @@ const WeeklyMenuPage = () => {
 
       const importedMainDish = slot.customComponents?.main?.trim();
       const catalogDish = dishesById.get(slot.dishId) ?? dishesByName.get(normalizeDishMatchKey(importedMainDish));
-      const dishName = importedMainDish || catalogDish?.name || 'Chưa có món';
+      const dishName = formatMenuDishName(importedMainDish || catalogDish?.name || 'Chưa có món');
 
       if (dishName === 'Chưa có món') return;
+      const serviceDate = getServiceDateIso(day.key) || parseDisplayDateToIso(day.date) || day.date;
+      const shiftName = section.shift === 'morning' ? 'MORNING' : 'AFTERNOON';
+      const linePricing = getLinePricing(serviceDate, shiftName);
+      const servingsInfo = getSlotServingInfo(day.key, section.slotType);
+      const portions = servingsInfo.portions > 0 ? servingsInfo.portions : servingsInfo.importedPortions;
 
       rows.push({
         key: `${day.key}-${section.slotType}`,
         dayKey: day.key,
         dayLabel: day.label,
         date: day.date,
+        serviceDate,
         sectionLabel: section.label,
         shiftLabel: section.shift === 'morning' ? 'Ca Sáng' : 'Ca Chiều',
         menuTypeLabel: section.category === 'vegetarian' ? 'Chay' : 'Mặn',
+        slotLabel: 'Món chính',
         dishId: catalogDish?.id ?? slot.dishId,
         dishName,
-        portions: slot.portions ?? 0,
+        portions,
+        importedPortions: servingsInfo.importedPortions,
+        servingsStatus: servingsInfo.status,
+        servingsStatusLabel: servingsInfo.statusLabel,
+        hasConfirmedServings: servingsInfo.hasConfirmedServings,
         hasCatalogBom: Boolean(catalogDish?.ingredients.length),
+        menuPrice: linePricing.menuPrice,
+        bomRatePercent: linePricing.bomRatePercent,
+        quantityFactor: linePricing.quantityFactor,
       });
     });
 
@@ -603,7 +1741,92 @@ const WeeklyMenuPage = () => {
 
   const weeklyRowsWithBom = weeklyPlanRows.filter((row) => row.hasCatalogBom);
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
+  const weeklyRowsUsingImportDefault = weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default');
+  const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
   const weeklyPlanCatalogDishIds = new Set(weeklyRowsWithBom.map((row) => row.dishId));
+  const demandDayPages = displayDays
+    .map((day) => ({
+      ...day,
+      rows: weeklyPlanRows.filter((row) => row.dayKey === day.key),
+    }))
+    .filter((day) => day.rows.length > 0);
+  const selectedDemandDayIndex = selectedDemandDayKey
+    ? demandDayPages.findIndex((day) => day.key === selectedDemandDayKey)
+    : -1;
+  const todayDemandDayIndex = activeServiceDay
+    ? demandDayPages.findIndex((day) => day.key === activeServiceDay.key)
+    : -1;
+  const safeDemandDayPageIndex = demandDayPages.length === 0
+    ? 0
+    : selectedDemandDayIndex >= 0
+      ? selectedDemandDayIndex
+      : todayDemandDayIndex >= 0
+        ? todayDemandDayIndex
+        : 0;
+  const activeDemandDay = demandDayPages[safeDemandDayPageIndex];
+  const activeDemandDate = activeDemandDay
+    ? getServiceDateIso(activeDemandDay.key) || parseDisplayDateToIso(activeDemandDay.date)
+    : '';
+  const activeDemandAggregatedLines = aggregateDemandLinesByMaterial(
+    activeDemandDate
+      ? demandLines.filter((line) => line.serviceDate === activeDemandDate)
+      : [],
+  );
+  const demandPageRows = activeDemandDay?.rows ?? [];
+  const khsxDraftDocument: WorkflowDocument | null = (() => {
+    if (!activeDemandDay || weeklyPlanRows.length === 0) return null;
+
+    const customerCode = selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'UNKNOWN';
+    const serviceDates = Array.from(new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean)));
+    const totalPortions = activeDemandDay.rows.reduce((sum, row) => sum + row.portions, 0);
+    const missingBomInDay = activeDemandDay.rows.filter((row) => !row.hasCatalogBom).length;
+
+    return {
+      id: `KHSX-DRAFT-${customerCode}-${activeDemandDay.key}`,
+      type: 'KHSX',
+      title: 'KHSX theo menu đang xem',
+      status: demandLines.length > 0 ? 'Đã sinh demand' : 'DRAFT',
+      owner: 'Bếp trưởng',
+      summary: demandLines.length > 0
+        ? 'Demand nguyên liệu đã được sinh từ KHSX của khách hàng đang chọn.'
+        : 'Bản KHSX tạm từ menu tuần; bấm Tạo demand từ KHSX để sinh nhu cầu nguyên liệu backend.',
+      route: '/weekly-menu',
+      tone: demandLines.length > 0 ? 'success' : missingBomInDay > 0 ? 'warning' : 'neutral',
+      lines: [
+        { label: 'Khách hàng', value: selectedCustomer ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}` : customerCode },
+        { label: 'Ngày', value: `${activeDemandDay.label} ${activeDemandDay.date}` },
+        { label: 'Ngày tuần', value: serviceDates.length.toString() },
+        { label: 'Dòng KHSX', value: activeDemandDay.rows.length.toString() },
+        { label: 'Tổng suất ngày', value: totalPortions.toLocaleString('vi-VN') },
+        { label: 'Thiếu BOM ngày', value: missingBomInDay.toString(), tone: missingBomInDay > 0 ? 'warning' : 'success' },
+      ],
+    };
+  })();
+  const khsxBackendDocuments = workflowDocuments.filter((document) =>
+    ['KHSX', 'Danh sách mua thêm', 'Phiếu xuất'].includes(document.type),
+  );
+  const khsxWorkflowDocuments = khsxDraftDocument ? [khsxDraftDocument, ...khsxBackendDocuments] : khsxBackendDocuments;
+  const costDayPages = displayDays
+    .map((day) => ({
+      ...day,
+      rows: weeklyPlanRows.filter((row) => row.dayKey === day.key),
+    }))
+    .filter((day) => day.rows.length > 0);
+  const selectedCostDayIndex = selectedCostDayKey
+    ? costDayPages.findIndex((day) => day.key === selectedCostDayKey)
+    : -1;
+  const todayCostDayIndex = activeServiceDay
+    ? costDayPages.findIndex((day) => day.key === activeServiceDay.key)
+    : -1;
+  const safeCostDayPageIndex = costDayPages.length === 0
+    ? 0
+    : selectedCostDayIndex >= 0
+      ? selectedCostDayIndex
+      : todayCostDayIndex >= 0
+        ? todayCostDayIndex
+        : 0;
+  const activeCostDay = costDayPages[safeCostDayPageIndex];
+  const costPageRows = activeCostDay?.rows ?? [];
 
   const handleExportWarehouseReport = () => {
     // Collect active materials
@@ -632,17 +1855,50 @@ const WeeklyMenuPage = () => {
       return;
     }
 
+    // Build CSV content
+    const customerCode = customers.find((c) => c.customerId === effectiveMenuCustomerId)?.customerCode ?? committedMenu?.customerCode ?? 'UNKNOWN';
+    const weekStr = committedMenuWeekStartDate || '2026-06-15';
+
+    let csvContent = '\uFEFF'; // Add BOM for UTF-8 in Excel
+    csvContent += 'Tuần,Khách hàng,Nguyên liệu,Số lượng LT,Số lượng TT,Đơn vị,Đơn giá (đ),Thành tiền (đ)\n';
+
+    activeMaterials.forEach((m) => {
+      if (!m) return;
+      csvContent += `"${weekStr}","${customerCode}","${m.name.replace(/"/g, '""')}","${m.theory}","${m.actual}","${m.unit}","${m.price}","${Math.round(m.cost)}"\n`;
+    });
+
+    // Trigger download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Bao_cao_gui_kho_${customerCode}_tuan_${weekStr}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     setWarehouseExportFeedback({
-      title: 'Đã kết xuất báo cáo gửi kho',
-      message: `Tổng chi phí mua hàng tạm tính ${formatCurrency(totalCostInfo)} đã được ghi nhận cho báo cáo nguyên liệu tuần.`,
+      title: 'Đã xuất báo cáo gửi kho thành công',
+      message: `Tệp báo cáo 'Bao_cao_gui_kho_${customerCode}_tuan_${weekStr}.csv' đã được tải xuống máy tính của bạn.`,
       variant: 'info',
     });
   };
 
-  // Tính hệ số đơn giá suất ăn (Giảm giá giảm định lượng theo tỉ lệ: 35k = 100%)
-  const priceRatio = useMemo(() => {
-    return Math.max(0.1, Math.min(1.5, menuPrice / standardPrice));
-  }, [menuPrice]);
+  const getDishUnitCost = (dishId: string, quantityFactor = effectiveQuantityFactor) => {
+    const dish = dishesById.get(dishId);
+    if (!dish || !dish.ingredients.length) return 0;
+    const cost = dish.ingredients.reduce((sum, ing) => {
+      const actualQty = ing.grossQtyPerServing * quantityFactor;
+      return sum + actualQty * ing.referencePrice;
+    }, 0);
+    return Math.round(cost);
+  };
+  const activeDayRowsWithBom = costPageRows.filter((row) => row.hasCatalogBom);
+  const activeDayRowsMissingBom = costPageRows.filter((row) => !row.hasCatalogBom);
+  const activeDayCostTotal = activeDayRowsWithBom.reduce(
+    (sum, row) => sum + getDishUnitCost(row.dishId, row.quantityFactor) * row.portions,
+    0,
+  );
 
   // Portion cost analysis logic (Step 2)
   const analyzedDish =
@@ -653,7 +1909,7 @@ const WeeklyMenuPage = () => {
   const analyzedIngredients = analyzedDish
     ? analyzedDish.ingredients.map((ing) => {
       const theoryQty = ing.grossQtyPerServing;
-      const actualQty = theoryQty * priceRatio * (1 + lossRate / 100);
+      const actualQty = theoryQty * effectiveQuantityFactor;
       const supplierPrice = ing.referencePrice;
       const cost = actualQty * supplierPrice;
       return {
@@ -661,7 +1917,6 @@ const WeeklyMenuPage = () => {
         unit: ing.unit,
         theoryQty,
         actualQty,
-        supplierName: 'Catalog backend',
         supplierPrice,
         cost,
       };
@@ -672,8 +1927,33 @@ const WeeklyMenuPage = () => {
   const foodCostPercent = menuPrice <= 0 ? 0 : (totalTrayCost / menuPrice) * 100;
   const grossProfit = menuPrice - totalTrayCost;
 
-  const materialSummary = buildMaterialSummary(weeklyMenu, dishesById, dishesByName, priceRatio, lossRate);
+  const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName);
+  const activeDayMaterialSummary = buildPlanRowsMaterialSummary(costPageRows, dishesById, dishesByName);
+  const activeDayMaterialCost = calculateTotalMaterialCost(activeDayMaterialSummary);
   const totalCostInfo = calculateTotalMaterialCost(materialSummary);
+  const materialSummaryEntries = Object.entries(materialSummary).filter(([, data]) => data.theory > 0);
+  const purchaseSummaryUsesDemand = demandLines.length > 0;
+  const purchaseSummaryTotalItems = purchaseSummaryUsesDemand ? aggregatedDemandLines.length : materialSummaryEntries.length;
+  const purchaseSummaryTotalPages = Math.max(1, Math.ceil(purchaseSummaryTotalItems / PURCHASE_SUMMARY_PAGE_SIZE));
+  const safePurchaseSummaryPageIndex = Math.min(purchaseSummaryPageIndex, purchaseSummaryTotalPages - 1);
+  const purchaseSummaryPageStartIndex = safePurchaseSummaryPageIndex * PURCHASE_SUMMARY_PAGE_SIZE;
+  const purchaseDemandPageRows: DemandLine[] = purchaseSummaryUsesDemand
+    ? aggregatedDemandLines.slice(purchaseSummaryPageStartIndex, purchaseSummaryPageStartIndex + PURCHASE_SUMMARY_PAGE_SIZE)
+    : [];
+  const purchaseSummaryMaterialPageRows: PurchaseSummaryMaterialEntry[] = purchaseSummaryUsesDemand
+    ? []
+    : materialSummaryEntries.slice(purchaseSummaryPageStartIndex, purchaseSummaryPageStartIndex + PURCHASE_SUMMARY_PAGE_SIZE);
+  const purchaseSummaryShortageCount = aggregatedDemandLines.filter((line) => {
+    const availableAfterReserve = line.available - line.reserved;
+    return Math.max(line.required - availableAfterReserve, 0) > 0;
+  }).length;
+  const purchaseSummaryStart = purchaseSummaryTotalItems === 0
+    ? 0
+    : safePurchaseSummaryPageIndex * PURCHASE_SUMMARY_PAGE_SIZE + 1;
+  const purchaseSummaryEnd = Math.min(
+    purchaseSummaryTotalItems,
+    (safePurchaseSummaryPageIndex + 1) * PURCHASE_SUMMARY_PAGE_SIZE,
+  );
 
 
   return (
@@ -681,7 +1961,7 @@ const WeeklyMenuPage = () => {
       command={
         <CommandBar
           actions={
-            <div className="ipc-weekly-command-actions flex items-center gap-2">
+            <>
               <button
                 type="button"
                 onClick={handleOpenEdit}
@@ -708,15 +1988,71 @@ const WeeklyMenuPage = () => {
               >
                 Xuất báo cáo gửi kho
               </button>
-            </div>
+            </>
           }
         >
+          <FieldRow label="Khách hàng">
+            <select
+              value={selectedMenuCustomerId}
+              onChange={(e) => {
+                const cid = e.target.value;
+                setSelectedMenuCustomerId(cid);
+                setCommittedMenuWeekStartDate('');
+                resetScopedWeeklyMenuUi();
+                if (cid) {
+                  window.localStorage.setItem(LAST_WEEKLY_MENU_CUSTOMER_KEY, cid);
+                } else {
+                  window.localStorage.removeItem(LAST_WEEKLY_MENU_CUSTOMER_KEY);
+                }
+                window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
+              }}
+              className="ipc-select min-w-[200px]"
+              disabled={isCustomerLoading}
+            >
+              <option value="">Chọn khách hàng</option>
+              {customers.map((c) => (
+                <option key={c.customerId} value={c.customerId}>
+                  {c.customerCode} - {c.customerName}
+                </option>
+              ))}
+            </select>
+          </FieldRow>
+          <FieldRow label="Tuần bắt đầu">
+            <input
+              type="date"
+              value={displayedWeekStartDate}
+              onChange={(e) => {
+                const date = e.target.value;
+                setCommittedMenuWeekStartDate(date);
+                resetScopedWeeklyMenuUi();
+                if (date) {
+                  window.localStorage.setItem(LAST_WEEKLY_MENU_WEEK_KEY, date);
+                } else {
+                  window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
+                }
+              }}
+              className="ipc-input"
+            />
+          </FieldRow>
+        </CommandBar>
+      }
+      context={
+        <div className="mt-3 flex flex-wrap items-center gap-4 rounded-md border border-slate-200 bg-slate-50/50 p-3 shadow-sm">
           <FieldRow label="Đơn giá suất ăn bình quân (đ)" hint="Định mức 35K = 100% định lượng">
             <input
               type="number"
               value={menuPrice}
-              onChange={(e) => dispatch(setMenuPrice(Math.max(5000, Number(e.target.value))))}
-              className="ipc-input"
+              onChange={(e) => {
+                const nextPrice = Math.max(5000, Number(e.target.value));
+                setPricingOverrides((current) => ({
+                  ...current,
+                  [pricingScopeKey]: {
+                    ...current[pricingScopeKey],
+                    menuPrice: nextPrice,
+                  },
+                }));
+              }}
+              className="ipc-input bg-white w-[220px]"
               step="1000"
             />
           </FieldRow>
@@ -724,16 +2060,25 @@ const WeeklyMenuPage = () => {
             <input
               type="number"
               value={lossRate}
-              onChange={(e) => dispatch(setLossRate(Math.max(0, Number(e.target.value))))}
+              onChange={(e) => {
+                const nextLossRate = Math.max(0, Number(e.target.value));
+                setPricingOverrides((current) => ({
+                  ...current,
+                  [pricingScopeKey]: {
+                    ...current[pricingScopeKey],
+                    lossRate: nextLossRate,
+                  },
+                }));
+              }}
               className="ipc-input"
               min="0"
               max="50"
             />
           </FieldRow>
           <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] leading-5 text-slate-700 self-end h-[38px] flex items-center">
-            Hệ số thực tế: &nbsp;<b>{(priceRatio * (1 + lossRate / 100) * 100).toFixed(1)}%</b>
+            Hệ số thực tế: &nbsp;<b>{(effectiveQuantityFactor * 100).toFixed(1)}%</b>
           </div>
-        </CommandBar>
+        </div>
       }
     >
       <ViewSwitcher
@@ -741,7 +2086,9 @@ const WeeklyMenuPage = () => {
         tabs={[
           { id: 'schedule', label: 'Kế hoạch tuần' },
           { id: 'demand', label: 'KHSX và nhu cầu' },
+          { id: 'purchase-summary', label: 'Tổng hợp mua' },
           { id: 'cost', label: 'Giá vốn' },
+          { id: 'dish-materials', label: 'Nguyên liệu món' },
         ]}
         activeTab={activeView}
         onTabChange={(tabId) => setActiveView(tabId as WeeklyMenuView)}
@@ -761,6 +2108,11 @@ const WeeklyMenuPage = () => {
           Kiểm tra backend hoặc quyền truy cập catalog trước khi phân tích giá vốn.
         </InlineAlert>
       )}
+      {isCommittedMenuFetching && effectiveMenuCustomerId && (
+        <InlineAlert title="Đang tải thực đơn khách hàng" variant="info">
+          Hệ thống đang lấy menu, KHSX và giá vốn theo khách hàng đang chọn.
+        </InlineAlert>
+      )}
       {isCatalogEmpty && (
         <InlineAlert title="Catalog món ăn đang trống" variant="warning">
           Chưa có món ăn hoạt động nào từ API, nên thực đơn tuần và bảng định lượng chưa thể chọn món.
@@ -769,118 +2121,29 @@ const WeeklyMenuPage = () => {
 
       {activeView === 'schedule' && (
         <div className="flex flex-col gap-4">
-          <SectionPanel title="Bảng Lên Thực Đơn & Nhập Suất Ăn Tuần" icon={<Calendar size={18} color="#475569" />}>
-            <DataTableShell className="ipc-weekly-menu-shell" ariaLabel="Bảng thực đơn tuần có thể cuộn">
-              <table className="ipc-data-table ipc-schedule-table">
-                <thead>
-                  <tr>
-                    <th className={`${tableHeadClass} w-[120px] min-w-[120px] max-w-[120px] border-r border-slate-200 bg-slate-100`}>Buổi / Ca</th>
-                    {displayDays.map((day, idx) => (
-                      <th
-                        key={day.key}
-                        className={cn(
-                          tableHeadClass,
-                          'border-r border-slate-200 transition-colors',
-                          idx % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50'
-                        )}
-                      >
-                        <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                          <span className="font-bold text-slate-800 text-[13px]">{day.label}</span>
-                          <span className="text-[10.5px] text-slate-500 font-medium">{day.date}</span>
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {SECTIONS.map((section) => {
-                    const rowTypes = getSectionRowTypes(section.category);
-                    const cellsByDay = displayDays.map((day) => {
-                      const slot = weeklyMenu[day.key]?.[section.slotType];
-                      const dish = dishesById.get(slot?.dishId ?? '') ?? getSectionDefaultDish(section);
-                      const components = getDishComponents(dish);
-                      const importedComponents = slot?.customComponents;
-                      const values = rowTypes.map((row) => {
-                        if (row.key === 'main') {
-                          return importedComponents?.main ?? dish?.name ?? 'Chưa có catalog';
-                        }
-
-                        if (row.key === 'fruit') {
-                          return importedComponents ? importedComponents.fruit ?? '' : components.fruit;
-                        }
-
-                        return importedComponents
-                          ? importedComponents[row.key] ?? ''
-                          : components[row.key];
-                      });
-
-                      return {
-                        dayKey: day.key,
-                        values,
-                        rowSpans: buildRowSpans(values),
-                      };
-                    });
-
-                    return (
-                      <Fragment key={section.label}>
-                        {/* Clean neutral section header row with thick divider */}
-                        <tr>
-                          <td
-                            colSpan={7}
-                            className={cn(
-                              'bg-slate-200 py-2.5 text-center text-[12.5px] font-bold uppercase tracking-wide text-slate-900 border-r border-b border-slate-300',
-                              section.slotType !== 'morningSavory' && 'border-t-2 border-t-slate-500'
-                            )}
-                          >
-                            {section.label}
-                          </td>
-                        </tr>
-                        
-                        {rowTypes.map((row, rowIndex) => (
-                          <tr key={`${section.label}-${row.key}`}>
-                            {/* Label Column */}
-                            <td className="border-r border-slate-200 bg-slate-50 align-middle font-semibold text-slate-800 text-[12px] p-2 text-center w-[120px] min-w-[120px] max-w-[120px]">
-                              {row.label}
-                            </td>
-                            
-                            {/* Day Columns */}
-                            {displayDays.map((_, idx) => {
-                              const cell = cellsByDay[idx];
-                              const rowSpan = cell.rowSpans[rowIndex];
-                              if (rowSpan === 0) {
-                                return null;
-                              }
-
-                              const value = cell.values[rowIndex];
-                              const isEvenCol = idx % 2 === 1;
-                              const textClass = row.key === 'main'
-                                ? 'font-semibold text-slate-800'
-                                : row.key === 'fruit'
-                                  ? 'font-medium text-slate-600'
-                                  : 'text-slate-700';
-
-                              return (
-                                <td
-                                  key={`${cell.dayKey}-${row.key}`}
-                                  rowSpan={rowSpan}
-                                  className={cn(
-                                    'border-r border-slate-200 text-center align-middle p-2 text-[12.5px]',
-                                    textClass,
-                                    isEvenCol ? 'bg-slate-50/60' : 'bg-white'
-                                  )}
-                                >
-                                  {value}
-                                </td>
-                              );
-                            })}
-                          </tr>
-                        ))}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </DataTableShell>
+          <SectionPanel title="Bố cục menu theo file khách hàng" icon={<Calendar size={18} color="#475569" />}>
+            <div className="flex flex-col gap-3">
+              <ContextStrip
+                items={[
+                  {
+                    label: 'Khách hàng',
+                    value: selectedCustomer ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}` : committedMenu?.customerCode ?? 'Chưa chọn',
+                    tone: 'neutral',
+                  },
+                  {
+                    label: 'Tuần',
+                    value: committedMenu?.weekStartDate ? `${formatImportDate(committedMenu.weekStartDate)} - ${formatImportDate(committedMenu.weekEndDate)}` : 'Chưa có menu',
+                    tone: committedMenu?.weekStartDate ? 'info' : 'neutral',
+                  },
+                  {
+                    label: 'Đang thực hiện',
+                    value: activeServiceLabel,
+                    tone: activeServiceDay ? 'success' : 'warning',
+                  },
+                ]}
+              />
+              <ImportedLayoutMatrix rows={committedLayoutRows} displayDays={displayDays} activeDayKey={activeServiceDay?.key} />
+            </div>
           </SectionPanel>
         </div>
       )}
@@ -890,7 +2153,12 @@ const WeeklyMenuPage = () => {
           <div className="flex flex-col gap-3">
             <ContextStrip
               items={[
-                { label: 'Dòng KHSX từ kế hoạch tuần', value: weeklyPlanRows.length.toString(), tone: 'neutral' },
+                {
+                  label: 'Nguồn menu',
+                  value: selectedCustomer ? selectedCustomer.customerCode : committedMenu?.customerCode ?? 'Chưa chọn',
+                  tone: 'neutral',
+                },
+                { label: 'Dòng KHSX', value: weeklyPlanRows.length.toString(), tone: 'neutral' },
                 { label: 'Đã có BOM/catalog', value: weeklyRowsWithBom.length.toString(), tone: 'success' },
                 {
                   label: 'Chưa tính được BOM',
@@ -906,21 +2174,57 @@ const WeeklyMenuPage = () => {
                 Các món này vẫn được đưa vào KHSX theo tên món trong Excel, nhưng chưa sinh định lượng nguyên liệu cho đến khi được gắn với món/BOM trong catalog.
               </InlineAlert>
             )}
+            {weeklyRowsUsingImportDefault.length > 0 && (
+              <InlineAlert title="Đang dùng số suất default từ import" variant="warning">
+                Tạm thời hệ thống dùng số suất mặc định trong file import để chạy luồng KHSX, demand và mua thêm. Khi có dữ liệu suất chuẩn, Meal Quantity Plan đã chốt sẽ tự được ưu tiên.
+              </InlineAlert>
+            )}
+            {demandFeedback && (
+              <InlineAlert title={demandFeedback.title} variant={demandFeedback.variant}>
+                {demandFeedback.message}
+              </InlineAlert>
+            )}
 
-            <DataTableShell ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
-              <table className="ipc-data-table">
+            <Toolbar className="justify-end">
+              <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
+                <button
+                  className="ipc-button ipc-button-primary"
+                  type="button"
+                  onClick={() => void handleGenerateDemand()}
+                  disabled={isGeneratingDemand || weeklyPlanRows.length === 0}
+                >
+                  <Scale size={16} />
+                  {isGeneratingDemand ? 'Đang tạo demand...' : 'Tạo demand từ KHSX'}
+                </button>
+              </ActionGuard>
+              <ActionGuard allowedRoles={['quanly', 'thumua']} requiredPermissions={['purchase.generate']}>
+                <button
+                  className="ipc-button ipc-button-warning"
+                  type="button"
+                  onClick={() => void handleGeneratePurchaseRequests()}
+                  disabled={isGeneratingPurchaseRequest || (currentGeneratedMaterialRequests.length === 0 && !demandLines.some((line) => line.tone === 'danger' && line.materialRequestId))}
+                >
+                  <ShoppingCart size={16} />
+                  {isGeneratingPurchaseRequest ? 'Đang sinh mua thêm...' : 'Sinh danh sách mua thêm'}
+                </button>
+              </ActionGuard>
+            </Toolbar>
+
+            <DataTableShell className="h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+              <table className="ipc-data-table table-fixed w-full">
                 <thead>
                   <tr>
-                    <th className={`${tableHeadClass} text-left`}>Ngày</th>
-                    <th className={tableHeadClass}>Ca</th>
-                    <th className={tableHeadClass}>Nhóm</th>
-                    <th className={`${tableHeadClass} text-left`}>Món theo kế hoạch tuần</th>
-                    <th className={tableHeadClass}>Suất</th>
-                    <th className={tableHeadClass}>BOM</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
+                    <th style={{ width: '24%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
+                    <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
+                    <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {weeklyPlanRows.map((row) => (
+                  {demandPageRows.map((row) => (
                     <tr key={row.key} className="table-row">
                       <td className={`${tableCellClass} text-left font-semibold`}>
                         {row.dayLabel}
@@ -928,31 +2232,84 @@ const WeeklyMenuPage = () => {
                       </td>
                       <td className={tableCellClass}>{row.shiftLabel}</td>
                       <td className={tableCellClass}>{row.menuTypeLabel}</td>
+                      <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
                       <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>
                         {row.dishName}
                       </td>
-                      <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
+                      <td className={tableCellClass} title={row.servingsStatusLabel}>
+                        {row.servingsStatus === 'missing' ? (
+                          <span className="inline-flex flex-col items-center gap-0.5">
+                            <span className="font-semibold text-amber-700">Chưa chốt</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex flex-col items-center gap-0.5">
+                            <span>{row.portions.toLocaleString('vi-VN')}</span>
+                            {row.servingsStatus === 'import-default' && (
+                              <span className="text-[11px] font-normal text-amber-700">Tạm từ import</span>
+                            )}
+                          </span>
+                        )}
+                      </td>
                       <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
                         {row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}
                       </td>
                     </tr>
                   ))}
-                  {weeklyPlanRows.length === 0 && (
+                  {demandPageRows.length === 0 && (
                     <tr>
-                      <td className="p-4 text-center text-sm text-slate-500" colSpan={6}>
-                        Chưa có kế hoạch tuần để sinh KHSX.
+                      <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
+                        Chưa có kế hoạch ngày để sinh KHSX.
                       </td>
                     </tr>
                   )}
                 </tbody>
               </table>
             </DataTableShell>
+            <div className="flex min-h-[38px] items-center justify-end gap-2">
+              <span className="mr-2 text-sm font-medium text-slate-600">
+                {activeDemandDay
+                  ? `${activeDemandDay.label} ${activeDemandDay.date} (${safeDemandDayPageIndex + 1}/${demandDayPages.length})`
+                  : 'Chưa có ngày'}
+              </span>
+              <button
+                type="button"
+                className="ipc-button ipc-button-ghost"
+                disabled={safeDemandDayPageIndex <= 0}
+                onClick={() => setSelectedDemandDayKey(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
+              >
+                Ngày trước
+              </button>
+              <button
+                type="button"
+                className="ipc-button ipc-button-primary"
+                disabled={safeDemandDayPageIndex >= demandDayPages.length - 1}
+                onClick={() => setSelectedDemandDayKey(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
+              >
+                Ngày sau
+              </button>
+            </div>
 
-            <DemandSummary lines={demandLines} />
+            {demandLines.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                  <span className="text-sm font-semibold text-slate-800">
+                    Nguyên liệu ngày {activeDemandDay ? `${activeDemandDay.label} ${activeDemandDay.date}` : 'đang xem'}
+                  </span>
+                  <span className="text-xs font-medium text-slate-500">
+                    Tổng hợp mua xử lý toàn tuần
+                  </span>
+                </div>
+                <DemandSummary lines={activeDemandAggregatedLines} />
+              </div>
+            ) : (
+              <InlineAlert title="Chưa sinh nhu cầu nguyên liệu backend" variant={weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
+                {weeklyPlanRows.length > 0
+                  ? 'Bảng KHSX phía trên đã có dữ liệu từ menu. Bấm Tạo demand từ KHSX để sinh dòng nguyên liệu, kiểm tồn kho và danh sách mua thêm.'
+                  : 'Chưa có dòng KHSX từ menu đang chọn.'}
+              </InlineAlert>
+            )}
             <DocumentRail
-              documents={workflowDocuments.filter((document) =>
-                ['KHSX', 'Danh sách mua thêm', 'Phiếu xuất'].includes(document.type),
-              )}
+              documents={khsxWorkflowDocuments}
               title="KHSX và chứng từ đầu ra"
             />
           </div>
@@ -961,6 +2318,328 @@ const WeeklyMenuPage = () => {
 
       {/* Phân tích định lượng & giá vốn 1 khay ăn (Step 2) */}
       {activeView === 'cost' && (
+        <>
+          <SectionPanel
+            title="Giá vốn theo ngày từ kế hoạch tuần"
+            icon={<Scale size={18} color="#475569" />}
+          >
+            <div className="mb-6 mt-4">
+              <ContextStrip
+                items={[
+                  {
+                    label: 'Nguồn tính',
+                    value: selectedCustomer ? selectedCustomer.customerCode : committedMenu?.customerCode ?? 'Chưa chọn',
+                    tone: 'neutral',
+                  },
+                  {
+                    label: 'Ngày đang tính',
+                    value: activeCostDay ? `${activeCostDay.label} ${activeCostDay.date}` : 'Chưa có ngày',
+                    tone: activeCostDay ? 'info' : 'neutral',
+                  },
+                  { label: 'Dòng trong ngày', value: costPageRows.length.toString(), tone: 'neutral' },
+                  { label: 'Đã có BOM', value: activeDayRowsWithBom.length.toString(), tone: 'success' },
+                  {
+                    label: 'Chờ gắn BOM',
+                    value: activeDayRowsMissingBom.length.toString(),
+                    tone: activeDayRowsMissingBom.length > 0 ? 'warning' : 'success',
+                  },
+                  { label: 'Đơn giá bán/suất', value: formatCurrency(menuPrice), tone: 'neutral' },
+                  { label: 'Tổng giá vốn ngày', value: formatCurrency(activeDayCostTotal), tone: activeDayCostTotal > 0 ? 'success' : 'neutral' },
+                ]}
+              />
+            </div>
+
+            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
+              <table className="ipc-data-table ipc-cost-table table-fixed w-full">
+                <thead>
+                  <tr>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
+                    <th style={{ width: '8%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
+                    <th style={{ width: '24%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món trong kế hoạch</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Đơn giá vốn</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Thành tiền</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Trạng thái giá vốn</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {costPageRows.map((row) => {
+                    const unitCost = getDishUnitCost(row.dishId, row.quantityFactor);
+                    const totalCost = unitCost * row.portions;
+                    return (
+                      <tr key={`cost-${row.key}`} className="table-row">
+                        <td className={`${tableCellClass} text-left font-semibold`}>
+                          {row.dayLabel}
+                          <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
+                        </td>
+                        <td className={tableCellClass}>{row.shiftLabel}</td>
+                        <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
+                        <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
+                        <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
+                        <td className={tableCellClass}>
+                          {row.hasCatalogBom ? formatCurrency(unitCost) : '-'}
+                        </td>
+                        <td className={`${tableCellClass} font-semibold`}>
+                          {row.hasCatalogBom ? formatCurrency(totalCost) : '-'}
+                        </td>
+                        <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
+                          {row.hasCatalogBom ? 'Tính bằng BOM catalog' : 'Chờ gắn BOM'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {costPageRows.length === 0 && (
+                    <tr>
+                      <td className="p-4 text-center text-sm text-slate-500" colSpan={8}>
+                        Chưa có kế hoạch ngày để liên kết giá vốn.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </DataTableShell>
+            <div className="mb-5 mt-3 flex min-h-[38px] items-center justify-end gap-2">
+              <span className="mr-2 text-sm font-medium text-slate-600">
+                {activeCostDay
+                  ? `${activeCostDay.label} ${activeCostDay.date} (${safeCostDayPageIndex + 1}/${costDayPages.length})`
+                  : 'Chưa có ngày'}
+              </span>
+              <button
+                type="button"
+                className="ipc-button ipc-button-ghost"
+                disabled={safeCostDayPageIndex <= 0}
+                onClick={() => setSelectedCostDayKey(costDayPages[Math.max(0, safeCostDayPageIndex - 1)]?.key ?? null)}
+              >
+                Ngày trước
+              </button>
+              <button
+                type="button"
+                className="ipc-button ipc-button-primary"
+                disabled={safeCostDayPageIndex >= costDayPages.length - 1}
+                onClick={() => setSelectedCostDayKey(costDayPages[Math.min(costDayPages.length - 1, safeCostDayPageIndex + 1)]?.key ?? null)}
+              >
+                Ngày sau
+              </button>
+            </div>
+
+            <DataTableShell className="ipc-cost-table-shell h-[360px]" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
+              <table className="ipc-data-table ipc-cost-table">
+                <thead>
+                  <tr>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Nguyên liệu</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>ĐV</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>LT ngày</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>TT ngày</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Món trong kế hoạch</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn giá</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Thành tiền ngày</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(activeDayMaterialSummary).map(([name, data]) => {
+                    if (data.theory === 0) return null;
+
+                    const rowCost = data.actual * data.referencePrice;
+                    const dishSource = formatMaterialDishSource(data.dishNames);
+
+                    return (
+                      <tr key={`day-material-${name}`} className="table-row">
+                        <td className={`${tableCellClass} text-left font-bold`}>{name}</td>
+                        <td className={tableCellClass}>{data.unit}</td>
+                        <td className={tableCellClass}>{data.theory.toFixed(2)}</td>
+                        <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>
+                          {data.actual.toFixed(2)}
+                        </td>
+                        <td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>
+                          {dishSource}
+                        </td>
+                        <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td>
+                        <td className={`${tableCellClass} font-bold`}>{formatCurrency(rowCost)}</td>
+                      </tr>
+                    );
+                  })}
+                  {Object.keys(activeDayMaterialSummary).length === 0 && (
+                    <tr>
+                      <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
+                        Chưa có nguyên liệu cho ngày này. Kiểm tra các món đã gắn BOM catalog.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </DataTableShell>
+            <div className="mt-3 flex min-h-[32px] items-center justify-end text-sm font-medium text-slate-600">
+              Tổng nguyên liệu ngày: <span className="ml-2 text-lg font-bold text-green-800">{formatCurrency(activeDayMaterialCost)}</span>
+            </div>
+          </SectionPanel>
+
+        </>
+      )}
+
+      {activeView === 'purchase-summary' && (
+        <SectionPanel
+          title="Bảng Tính Định Lượng Tổng Hợp & Đề Xuất Mua Hàng"
+          icon={<ShoppingCart size={18} color="#475569" />}
+          badge={
+            <Toolbar>
+              <div className="text-sm font-medium text-slate-600">
+                Tổng chi phí tối ưu: <span className="text-lg font-bold text-green-800">{formatCurrency(totalCostInfo)}</span>
+              </div>
+              <button
+                onClick={handleExportWarehouseReport}
+                className="ipc-button ipc-button-success ipc-button-bounded"
+              >
+                Xuất Báo Cáo Gửi Kho
+              </button>
+            </Toolbar>
+          }
+        >
+          <div className="mb-4">
+            <ContextStrip
+              items={[
+                {
+                  label: 'Khách hàng',
+                  value: selectedCustomer ? selectedCustomer.customerCode : committedMenu?.customerCode ?? 'Chưa chọn',
+                  tone: 'neutral',
+                },
+                {
+                  label: 'Tuần',
+                  value: committedMenu?.weekStartDate ? `${formatImportDate(committedMenu.weekStartDate)} - ${formatImportDate(committedMenu.weekEndDate)}` : 'Chưa có menu',
+                  tone: committedMenu?.weekStartDate ? 'info' : 'neutral',
+                },
+                {
+                  label: 'Nguyên liệu',
+                  value: purchaseSummaryUsesDemand
+                    ? aggregatedDemandLines.length.toString()
+                    : Object.keys(materialSummary).length.toString(),
+                  tone: 'info',
+                },
+                {
+                  label: 'Thiếu sau kiểm tồn',
+                  value: purchaseSummaryUsesDemand ? purchaseSummaryShortageCount.toString() : '-',
+                  tone: purchaseSummaryShortageCount > 0 ? 'danger' : purchaseSummaryUsesDemand ? 'success' : 'neutral',
+                },
+              ]}
+            />
+          </div>
+
+          {!purchaseSummaryUsesDemand && (
+            <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">
+              Bảng dưới đây mới là định lượng theo BOM. Bấm Tạo demand từ KHSX ở tab KHSX và nhu cầu để backend kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.
+            </InlineAlert>
+          )}
+
+          <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
+            <table className="ipc-data-table ipc-cost-table table-fixed w-full">
+              <thead>
+                {purchaseSummaryUsesDemand ? (
+                  <tr>
+                    <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
+                    <th style={{ width: '25%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguồn</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Cần</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Tồn khả dụng</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Chênh lệch</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Trạng thái</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-center whitespace-nowrap`}>Tiếp theo</th>
+                  </tr>
+                ) : (
+                  <tr>
+                    <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
+                    <th style={{ width: '8%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>ĐV</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>LT</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>TT</th>
+                    <th style={{ width: '30%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món trong kế hoạch</th>
+                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Đơn giá</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Thành tiền</th>
+                  </tr>
+                )}
+              </thead>
+              <tbody>
+                {purchaseDemandPageRows.map((line) => {
+                  const availableAfterReserve = line.available - line.reserved;
+                  const variance = availableAfterReserve - line.required;
+
+                  return (
+                    <tr key={line.id} className="table-row">
+                      <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td>
+                      <td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
+                      <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td>
+                      <td className={tableCellClass}>{formatQuantityWithUnit(availableAfterReserve, line.unit)}</td>
+                      <td className={`${tableCellClass} font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>
+                        {formatQuantityVariance(variance, line.unit)}
+                      </td>
+                      <td className="ipc-badge-cell">
+                        <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
+                          {line.status}
+                        </StatusBadge>
+                      </td>
+                      <td className={`${tableCellClass} text-left`}>{line.nextAction}</td>
+                    </tr>
+                  );
+                })}
+                {purchaseSummaryMaterialPageRows.map(([name, data]) => {
+                  const rowCost = data.actual * data.referencePrice;
+                  const dishSource = formatMaterialDishSource(data.dishNames);
+
+                  return (
+                    <tr key={name} className="table-row">
+                      <td className={`${tableCellClass} text-left font-bold`}>{name}</td>
+                      <td className={tableCellClass}>{data.unit}</td>
+                      <td className={tableCellClass}>{data.theory.toFixed(2)}</td>
+                      <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>
+                        {data.actual.toFixed(2)}
+                      </td>
+                      <td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>
+                        {dishSource}
+                      </td>
+                      <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td>
+                      <td className={`${tableCellClass} font-bold`}>{formatCurrency(rowCost)}</td>
+                    </tr>
+                  );
+                })}
+                {purchaseSummaryTotalItems === 0 && (
+                  <tr>
+                    <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
+                      Chưa có nguyên liệu tổng hợp. Kiểm tra menu tuần và BOM catalog.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </DataTableShell>
+          <div className="mt-3 flex min-h-[38px] items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
+            <span className="text-sm font-medium text-slate-600">
+              Hiển thị {purchaseSummaryStart}-{purchaseSummaryEnd} / {purchaseSummaryTotalItems}
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="mr-2 text-sm font-bold text-slate-800">
+                {purchaseSummaryTotalItems > 0
+                  ? `Trang ${safePurchaseSummaryPageIndex + 1}/${purchaseSummaryTotalPages}`
+                  : 'Trang 0/0'}
+              </span>
+              <button
+                type="button"
+                className="ipc-button ipc-button-ghost"
+                disabled={purchaseSummaryTotalItems === 0 || safePurchaseSummaryPageIndex <= 0}
+                onClick={() => setPurchaseSummaryPageIndex(Math.max(0, safePurchaseSummaryPageIndex - 1))}
+              >
+                Trang trước
+              </button>
+              <button
+                type="button"
+                className="ipc-button ipc-button-primary"
+                disabled={purchaseSummaryTotalItems === 0 || safePurchaseSummaryPageIndex >= purchaseSummaryTotalPages - 1}
+                onClick={() => setPurchaseSummaryPageIndex(Math.min(purchaseSummaryTotalPages - 1, safePurchaseSummaryPageIndex + 1))}
+              >
+                Trang sau
+              </button>
+            </div>
+          </div>
+        </SectionPanel>
+      )}
+
+      {activeView === 'dish-materials' && (
         <>
           {foodCostPercent > 85 && (
             <InlineAlert
@@ -972,15 +2651,15 @@ const WeeklyMenuPage = () => {
             </InlineAlert>
           )}
           <SectionPanel
-            title="Phân Tích Định Lượng & Giá Vốn 1 Khay Ăn"
+            title="Nguyên liệu món phân tích"
             icon={<Scale size={18} color="#475569" />}
             badge={
               <div className="flex items-center gap-2">
-                <span className="text-[13px] font-medium text-slate-600">Món phân tích:</span>
+                <span className="text-[13px] font-medium text-slate-600 whitespace-nowrap">Món phân tích:</span>
                 <select
                   value={analyzedDish?.id ?? ''}
                   onChange={(e) => setSelectedDishId(e.target.value)}
-                  className="ipc-select w-[220px] text-[13.5px]"
+                  className="ipc-select w-[280px] text-[13.5px]"
                   disabled={catalogDishes.length === 0}
                 >
                   <optgroup label="Ca Sáng">
@@ -1002,149 +2681,73 @@ const WeeklyMenuPage = () => {
               </div>
             }
           >
-            {/* Khối thống kê biên lợi nhuận */}
             <div className="mb-6 mt-4">
               <ContextStrip
                 items={[
+                  {
+                    label: 'Nguồn tính',
+                    value: selectedCustomer ? selectedCustomer.customerCode : committedMenu?.customerCode ?? 'Chưa chọn',
+                    tone: 'neutral',
+                  },
+                  {
+                    label: 'Món trong kế hoạch',
+                    value: analyzedDish?.name ?? 'Chưa chọn',
+                    tone: analyzedDish ? 'info' : 'neutral',
+                  },
                   { label: 'Đơn giá bán/suất', value: formatCurrency(menuPrice), tone: 'neutral' },
                   { label: 'Giá vốn nguyên liệu / khay', value: formatCurrency(Math.round(totalTrayCost)), tone: 'info' },
                   {
                     label: 'Tỷ lệ giá vốn (Food Cost %)',
                     value: `${foodCostPercent.toFixed(1)}%`,
-                    tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'success'
+                    tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'success',
                   },
                   {
                     label: 'Lợi nhuận gộp / khay (Dự kiến)',
                     value: formatCurrency(Math.round(grossProfit)),
-                    tone: grossProfit >= 0 ? 'success' : 'danger'
+                    tone: grossProfit >= 0 ? 'success' : 'danger',
                   },
                 ]}
               />
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell mb-5" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
+            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
               <table className="ipc-data-table ipc-cost-table">
                 <thead>
                   <tr>
-                    <th className={`${tableHeadClass} text-left`}>Ngày</th>
-                    <th className={tableHeadClass}>Ca</th>
-                    <th className={`${tableHeadClass} text-left`}>Món trong kế hoạch</th>
-                    <th className={tableHeadClass}>Suất</th>
-                    <th className={tableHeadClass}>Trạng thái giá vốn</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Nguyên liệu</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>ĐV</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>LT / suất</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>TT / suất</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Món trong kế hoạch</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn giá</th>
+                    <th className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Thành tiền / khay</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {weeklyPlanRows.map((row) => (
-                    <tr key={`cost-${row.key}`} className="table-row">
-                      <td className={`${tableCellClass} text-left font-semibold`}>
-                        {row.dayLabel}
-                        <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
+                  {analyzedIngredients.map((ing) => (
+                    <tr key={ing.name} className="table-row">
+                      <td className={`${tableCellClass} text-left font-bold`}>{ing.name}</td>
+                      <td className={tableCellClass}>{ing.unit}</td>
+                      <td className={tableCellClass}>{ing.theoryQty.toFixed(3)}</td>
+                      <td className={`${tableCellClass} font-bold text-blue-600`}>
+                        {ing.actualQty.toFixed(3)}
                       </td>
-                      <td className={tableCellClass}>{row.shiftLabel}</td>
-                      <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
-                      <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
-                      <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
-                        {row.hasCatalogBom ? 'Tính bằng BOM catalog' : 'Chờ gắn BOM'}
+                      <td className={`${tableCellClass} text-left font-medium text-slate-800`}>
+                        {analyzedDish?.name ?? 'Chưa chọn'}
+                      </td>
+                      <td className={tableCellClass}>{formatCurrency(ing.supplierPrice)}</td>
+                      <td className={`${tableCellClass} font-bold text-slate-950`}>
+                        {formatCurrency(Math.round(ing.cost))}
                       </td>
                     </tr>
                   ))}
-                  {weeklyPlanRows.length === 0 && (
+                  {analyzedIngredients.length === 0 && (
                     <tr>
-                      <td className="p-4 text-center text-sm text-slate-500" colSpan={5}>
-                        Chưa có kế hoạch tuần để liên kết giá vốn.
+                      <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
+                        Chưa có nguyên liệu cho món đang chọn.
                       </td>
                     </tr>
                   )}
-                </tbody>
-              </table>
-            </DataTableShell>
-
-        {/* Bảng chi tiết định lượng và chi phí từng nguyên liệu trong khay */}
-        <DataTableShell className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
-          <table className="ipc-data-table ipc-cost-table">
-            <thead>
-              <tr>
-                <th className={`${tableHeadClass} text-left`}>Nguyên liệu</th>
-                <th className={tableHeadClass}>ĐV</th>
-                <th className={tableHeadClass}>LT / suất</th>
-                <th className={tableHeadClass}>TT / suất</th>
-                <th className={tableHeadClass}>Nguồn giá</th>
-                <th className={tableHeadClass}>Đơn giá</th>
-                <th className={tableHeadClass}>Thành tiền / khay</th>
-              </tr>
-            </thead>
-            <tbody>
-              {analyzedIngredients.map((ing) => (
-                <tr key={ing.name} className="table-row">
-                  <td className={`${tableCellClass} text-left font-bold`}>{ing.name}</td>
-                  <td className={tableCellClass}>{ing.unit}</td>
-                  <td className={tableCellClass}>{ing.theoryQty.toFixed(3)}</td>
-                  <td className={`${tableCellClass} font-bold text-blue-600`}>
-                    {ing.actualQty.toFixed(3)}
-                  </td>
-                  <td className={`${tableCellClass} font-medium text-green-800`}>{ing.supplierName}</td>
-                  <td className={tableCellClass}>{formatCurrency(ing.supplierPrice)}</td>
-                  <td className={`${tableCellClass} font-bold text-slate-950`}>
-                    {formatCurrency(Math.round(ing.cost))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </DataTableShell>
-          </SectionPanel>
-
-          {/* Bảng tính định lượng tổng hợp nguyên liệu */}
-          <SectionPanel
-            title="Bảng Tính Định Lượng Tổng Hợp & Đề Xuất Mua Hàng"
-            icon={<Scale size={18} color="#475569" />}
-            badge={
-              <Toolbar>
-                <div className="text-sm font-medium text-slate-600">
-                  Tổng chi phí tối ưu: <span className="text-lg font-bold text-green-800">{formatCurrency(totalCostInfo)}</span>
-                </div>
-                <button
-                  onClick={handleExportWarehouseReport}
-                  className="ipc-button ipc-button-success ipc-button-bounded"
-                >
-                Xuất Báo Cáo Gửi Kho
-                </button>
-              </Toolbar>
-            }
-          >
-            <DataTableShell className="ipc-cost-table-shell" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
-              <table className="ipc-data-table ipc-cost-table">
-                <thead>
-                  <tr>
-                    <th className={`${tableHeadClass} text-left`}>Nguyên liệu</th>
-                    <th className={tableHeadClass}>ĐV</th>
-                    <th className={tableHeadClass}>LT</th>
-                    <th className={tableHeadClass}>TT</th>
-                    <th className={tableHeadClass}>Nguồn giá</th>
-                    <th className={tableHeadClass}>Đơn giá</th>
-                    <th className={tableHeadClass}>Thành tiền</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {Object.entries(materialSummary).map(([name, data]) => {
-                    if (data.theory === 0) return null;
-
-                    const rowCost = data.actual * data.referencePrice;
-
-                    return (
-                      <tr key={name} className="table-row">
-                        <td className={`${tableCellClass} text-left font-bold`}>{name}</td>
-                        <td className={tableCellClass}>{data.unit}</td>
-                        <td className={tableCellClass}>{data.theory.toFixed(2)}</td>
-                        <td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>
-                          {data.actual.toFixed(2)}
-                        </td>
-                        <td className={`${tableCellClass} font-medium text-green-800`}>Catalog backend</td>
-                        <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td>
-                        <td className={`${tableCellClass} font-bold`}>{formatCurrency(rowCost)}</td>
-                      </tr>
-                    );
-                  })}
                 </tbody>
               </table>
             </DataTableShell>
@@ -1164,24 +2767,49 @@ const WeeklyMenuPage = () => {
         >
           <DialogContent className="ipc-weekly-dialog max-w-6xl">
             <DialogHeader className="border-b border-slate-100 pb-3">
-              <DialogTitle className="text-slate-900 font-bold text-lg">
-                Import thực đơn Excel
+              <DialogTitle className="text-lg font-bold text-slate-900">
+                Import thực đơn theo khách hàng
               </DialogTitle>
             </DialogHeader>
 
-            <div className="mt-4 flex flex-col gap-4">
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(180px,1fr)_minmax(160px,220px)_minmax(220px,1.2fr)]">
-                <FieldRow label="Khách hàng" hint="Bắt buộc chọn trước khi đọc file">
+            <div className="mt-4 flex flex-col gap-5">
+              <ContextStrip
+                items={[
+                  {
+                    label: 'Khách đang xem',
+                    value: selectedCustomer ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}` : 'Chưa chọn',
+                    tone: selectedCustomer ? 'neutral' : 'warning',
+                  },
+                  {
+                    label: 'Tuần đang xem',
+                    value: committedMenuWeekStartDate ? formatImportDate(committedMenuWeekStartDate) : 'Chưa chọn',
+                    tone: committedMenuWeekStartDate ? 'info' : 'neutral',
+                  },
+                  {
+                    label: 'Dòng import',
+                    value: `${importJobs.length} khách hàng`,
+                    tone: importJobs.length > 0 ? 'success' : 'neutral',
+                  },
+                  {
+                    label: 'Sẵn sàng lưu',
+                    value: `${readyImportJobs.length} dòng`,
+                    tone: readyImportJobs.length > 0 ? 'success' : 'neutral',
+                  },
+                ]}
+              />
+
+              <div className="grid grid-cols-1 gap-4 rounded-md border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,220px)_minmax(260px,1.35fr)_auto]">
+                <FieldRow label="Khách hàng import" hint="Chọn đúng đơn vị nhận file">
                   <select
-                    value={effectiveImportCustomerId}
+                    value={draftImportCustomerId}
                     onChange={(event) => {
-                      setSelectedImportCustomerId(event.target.value);
-                      setCommittedMenuWeekStartDate('');
-                      setImportPreview(null);
+                      setDraftImportCustomerId(event.target.value);
+                      setImportFeedback(null);
                     }}
                     className="ipc-select"
                     disabled={isCustomerLoading || customers.length === 0}
                   >
+                    <option value="">Chọn khách hàng</option>
                     {customers.map((customer) => (
                       <option key={customer.customerId} value={customer.customerId}>
                         {customer.customerCode} - {customer.customerName}
@@ -1189,31 +2817,88 @@ const WeeklyMenuPage = () => {
                     ))}
                     {customers.length === 0 && <option value="">Chưa có khách hàng</option>}
                   </select>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsQuickCustomerFormOpen((open) => !open);
+                      setImportFeedback(null);
+                    }}
+                    className="ipc-button ipc-button-ghost mt-2 w-full justify-center"
+                    disabled={isImporting}
+                  >
+                    {isQuickCustomerFormOpen ? 'Đóng tạo khách' : 'Tạo khách hàng mới'}
+                  </button>
                 </FieldRow>
-                <FieldRow label="Ngày bắt đầu tuần" hint="Dùng khi file chỉ có Thứ 2 - Thứ 7">
+                <FieldRow label="Ngày bắt đầu tuần" hint="Chọn thứ 2 của tuần menu">
                   <input
                     type="date"
                     value={importWeekStartDate}
                     onChange={(event) => {
                       setImportWeekStartDate(event.target.value);
-                      setImportPreview(null);
-                    }}
-                    className="ipc-input"
-                  />
-                </FieldRow>
-                <FieldRow label="File Excel" hint="Chỉ xử lý dữ liệu bảng, bỏ qua logo/ảnh">
-                  <input
-                    type="file"
-                    accept=".xlsx,.xlsm,.xls"
-                    onChange={(event) => {
-                      setSelectedImportFile(event.target.files?.[0] ?? null);
-                      setImportPreview(null);
                       setImportFeedback(null);
                     }}
                     className="ipc-input"
                   />
                 </FieldRow>
+                <FieldRow label="File Excel" hint="Hỗ trợ .xlsx, .xlsm, .xls">
+                  <input
+                    ref={importFileInputRef}
+                    type="file"
+                    accept=".xlsx,.xlsm,.xls"
+                    onChange={(event) => {
+                      setSelectedImportFile(event.target.files?.[0] ?? null);
+                      setImportFeedback(null);
+                    }}
+                    className="ipc-input"
+                  />
+                  <div className="mt-1 text-xs font-medium text-slate-500">{selectedImportFileMeta}</div>
+                </FieldRow>
+                <div className="flex items-end">
+                  <button
+                    type="button"
+                    onClick={handleAddImportJob}
+                    disabled={isImporting || !selectedImportFile || !draftImportCustomer}
+                    className="ipc-button ipc-button-primary w-full whitespace-nowrap"
+                  >
+                    Thêm vào danh sách
+                  </button>
+                </div>
               </div>
+
+              {isQuickCustomerFormOpen && (
+                <div className="grid grid-cols-1 gap-4 rounded-md border border-blue-200 bg-blue-50/60 p-4 md:grid-cols-[180px_minmax(220px,1fr)_auto]">
+                  <FieldRow label="Mã khách hàng" hint="VD: ANV, DAV">
+                    <input
+                      type="text"
+                      value={quickCustomerCode}
+                      onChange={(event) => setQuickCustomerCode(event.target.value.toUpperCase())}
+                      className="ipc-input"
+                      placeholder="ANV"
+                      disabled={isCreatingImportCustomer}
+                    />
+                  </FieldRow>
+                  <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị khi import">
+                    <input
+                      type="text"
+                      value={quickCustomerName}
+                      onChange={(event) => setQuickCustomerName(event.target.value)}
+                      className="ipc-input"
+                      placeholder="Tên khách hàng"
+                      disabled={isCreatingImportCustomer}
+                    />
+                  </FieldRow>
+                  <div className="flex items-end">
+                    <button
+                      type="button"
+                      onClick={() => void handleCreateQuickImportCustomer()}
+                      className="ipc-button ipc-button-primary w-full whitespace-nowrap"
+                      disabled={isCreatingImportCustomer || !quickCustomerCode.trim() || !quickCustomerName.trim()}
+                    >
+                      {isCreatingImportCustomer ? 'Đang tạo...' : 'Tạo và chọn'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               {isCustomerError && (
                 <InlineAlert title="Chưa tải được danh sách khách hàng" variant="warning">
@@ -1226,70 +2911,250 @@ const WeeklyMenuPage = () => {
                 </InlineAlert>
               )}
 
-              {importPreview && (
-                <div className="flex flex-col gap-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <ContextStrip
-                      items={[
-                        { label: 'Sheet', value: importPreview.detectedLayout.sheetName, tone: 'neutral' },
-                        { label: 'Cột nhãn', value: importPreview.detectedLayout.labelColumn, tone: 'neutral' },
-                        { label: 'Ngày', value: `${formatImportDate(importPreview.weekStartDate)} - ${formatImportDate(importPreview.weekEndDate)}`, tone: 'info' },
-                        { label: 'Dòng món', value: importPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
-                      ]}
-                    />
+              <div className="flex flex-col gap-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">Danh sách import</h3>
+                    <p className="text-sm font-medium text-slate-500">Mỗi dòng là một khách hàng, một tuần và một file Excel riêng.</p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      onClick={() => void handleSaveImportMapping()}
-                      disabled={isSavingImportMapping}
-                      className="ipc-button ipc-button-ghost ipc-button-bounded"
-                      title="Ghi nhớ sheet và cột nhãn đã dò được cho khách hàng này, dùng lại cho lần import sau"
+                      onClick={handlePreviewAllImportJobs}
+                      disabled={isImporting || importJobs.length === 0}
+                      className="ipc-button ipc-button-ghost"
                     >
-                      {isSavingImportMapping ? 'Đang lưu mẫu...' : 'Lưu làm mẫu cho khách hàng này'}
+                      {isPreviewingImport ? 'Đang xem trước...' : 'Xem trước tất cả'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCommitReadyImportJobs}
+                      disabled={isImporting || readyImportJobs.length === 0}
+                      className="ipc-button ipc-button-primary"
+                    >
+                      {isCommittingImport ? 'Đang lưu...' : 'Lưu các dòng hợp lệ'}
                     </button>
                   </div>
+                </div>
 
-                  {importPreview.warnings.length > 0 && (
-                    <InlineAlert title="Cảnh báo khi đọc file" variant="warning">
-                      {importPreview.warnings.slice(0, 4).join(' | ')}
+                <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách khách hàng chờ import">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Khách hàng</th>
+                        <th className="text-left">Tuần</th>
+                        <th className="text-left">File</th>
+                        <th className="text-center">Bố cục</th>
+                        <th className="text-center">Dòng món</th>
+                        <th className="text-center">Trạng thái</th>
+                        <th className="text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importJobs.map((job) => {
+                        const preview = job.previewResult;
+                        const isSelected = selectedImportJob?.jobId === job.jobId;
+                        return (
+                          <tr key={job.jobId} className={cn(isSelected && 'bg-blue-50/70')}>
+                            <td className="text-left">
+                              <button
+                                type="button"
+                                onClick={() => setSelectedImportJobId(job.jobId)}
+                                className="text-left font-bold text-slate-900 hover:text-blue-700"
+                              >
+                                {job.customerCode} - {job.customerName}
+                              </button>
+                            </td>
+                            <td className="text-left font-medium">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Backend tự nhận diện'}</td>
+                            <td className="text-left">
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-slate-800">{job.fileName}</span>
+                                <span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span>
+                              </div>
+                            </td>
+                            <td className="text-center">
+                              {preview ? `${preview.detectedLayout.sections.length} section / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}
+                            </td>
+                            <td className="text-center">
+                              {preview ? preview.detectedLayout.rowsImported.toLocaleString('vi-VN') : '-'}
+                            </td>
+                            <td className="text-center">
+                              <span className={getImportJobStatusClass(job.status)}>
+                                {getImportJobStatusLabel(job.status)}
+                              </span>
+                            </td>
+                            <td className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => void handlePreviewImportJob(job.jobId)}
+                                  disabled={isImporting || job.status === 'committed'}
+                                  className="ipc-button ipc-button-ghost"
+                                >
+                                  Xem trước
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void handleCommitImportJob(job.jobId)}
+                                  disabled={isImporting || job.status !== 'previewed'}
+                                  className="ipc-button ipc-button-primary"
+                                >
+                                  Lưu
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleRemoveImportJob(job.jobId)}
+                                  disabled={isImporting}
+                                  className="ipc-button ipc-button-ghost"
+                                >
+                                  Xóa
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {importJobs.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">
+                            Chưa có dòng import. Chọn khách hàng, tuần và file Excel rồi bấm Thêm vào danh sách.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </div>
+
+              {selectedImportJob && (
+                <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h3 className="text-base font-bold text-slate-900">
+                        Chi tiết import {selectedImportJob.customerCode}
+                      </h3>
+                      <p className="text-sm font-medium text-slate-500">{selectedImportJob.fileName}</p>
+                    </div>
+                    <span className={getImportJobStatusClass(selectedImportJob.status)}>
+                      {getImportJobStatusLabel(selectedImportJob.status)}
+                    </span>
+                  </div>
+
+                  {selectedImportJob.error && (
+                    <InlineAlert title={`Lỗi import ${selectedImportJob.customerCode}`} variant="danger">
+                      {selectedImportJob.error}
                     </InlineAlert>
                   )}
 
-                  <DataTableShell className="max-h-[360px]" ariaLabel="Bảng xem trước thực đơn import">
-                    <table className="ipc-data-table">
-                      <thead>
-                        <tr>
-                          <th className="text-left">Ngày</th>
-                          <th className="text-left">Section</th>
-                          <th className="text-left">Dòng</th>
-                          <th className="text-left">Món</th>
-                          <th className="text-center">Catalog</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {importPreview.rows.slice(0, 60).map((row, index) => (
-                          <tr key={`${row.serviceDate}-${row.sourceSection}-${row.slot}-${row.dishName}-${index}`}>
-                            <td className="text-left font-medium">{formatImportDate(row.serviceDate)}</td>
-                            <td className="text-left">
-                              <div className="flex flex-col">
-                                <span className="font-semibold text-slate-800">{row.sourceSection}</span>
-                                <span className="text-xs text-slate-500">{row.dbShiftName === 'MORNING' ? 'Ca sáng' : 'Ca chiều'} / {row.variant}</span>
-                              </div>
-                            </td>
-                            <td className="text-left">{importSlotLabels[row.slot] ?? row.slotLabel}</td>
-                            <td className="text-left font-semibold text-slate-800">{row.dishName}</td>
-                            <td className="text-center">
-                              {row.existingDish ? 'Đã có' : 'Món mới'}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </DataTableShell>
+                  {selectedImportPreview && (
+                    <>
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <ContextStrip
+                          items={[
+                            { label: 'Sheet', value: selectedImportPreview.detectedLayout.sheetName, tone: 'neutral' },
+                            { label: 'Tuần trong file', value: `${formatImportDate(selectedImportPreview.weekStartDate)} - ${formatImportDate(selectedImportPreview.weekEndDate)}`, tone: 'info' },
+                            { label: 'Bố cục', value: `${selectedImportPreview.detectedLayout.sections.length} section`, tone: 'info' },
+                            { label: 'Dòng món hợp lệ', value: selectedImportPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
+                            {
+                              label: 'Dòng bỏ qua',
+                              value: selectedImportPreview.detectedLayout.rowsSkipped.toString(),
+                              tone: selectedImportPreview.detectedLayout.rowsSkipped > 0 ? 'warning' : 'neutral',
+                            },
+                            {
+                              label: 'Món thêm mới',
+                              value: selectedImportPreview.previewDiff.addedSlots.toString(),
+                              tone: selectedImportPreview.previewDiff.addedSlots > 0 ? 'info' : 'neutral',
+                            },
+                            {
+                              label: 'Món thay đổi',
+                              value: selectedImportPreview.previewDiff.changedSlots.toString(),
+                              tone: selectedImportPreview.previewDiff.changedSlots > 0 ? 'warning' : 'neutral',
+                            },
+                            {
+                              label: 'Món bị bỏ',
+                              value: selectedImportPreview.previewDiff.removedSlots.toString(),
+                              tone: selectedImportPreview.previewDiff.removedSlots > 0 ? 'danger' : 'neutral',
+                            },
+                          ]}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => void handleSaveImportMapping()}
+                          disabled={isSavingImportMapping}
+                          className="ipc-button ipc-button-ghost ipc-button-bounded"
+                          title="Ghi nhớ sheet và cột nhãn đã dò được cho khách hàng này, dùng lại cho lần import sau"
+                        >
+                          {isSavingImportMapping ? 'Đang lưu mẫu...' : 'Lưu làm mẫu cho khách hàng này'}
+                        </button>
+                      </div>
+
+                      {selectedImportPreview.previewDiff.rows.some(isMeaningfulMenuDiff) && (
+                        <InlineAlert title={`Diff ${selectedImportJob.customerCode} so với thực đơn đang lưu`} variant="info">
+                          {selectedImportPreview.previewDiff.rows
+                            .filter(isMeaningfulMenuDiff)
+                            .slice(0, 4)
+                            .map((row) => `${formatImportDate(row.serviceDate)} ${row.shiftName}: ${formatMenuDishName(row.currentDishName)} -> ${formatMenuDishName(row.importedDishName)}`)
+                            .join(' | ')}
+                        </InlineAlert>
+                      )}
+
+                      {selectedImportPreview.warnings.length > 0 && (
+                        <InlineAlert title={`Cảnh báo khi đọc file ${selectedImportJob.customerCode}`} variant="warning">
+                          {summarizeImportWarnings(selectedImportPreview.warnings).slice(0, 4).join(' | ')}
+                        </InlineAlert>
+                      )}
+
+                      <ImportedLayoutMatrix
+                        rows={importPreviewLayoutRows}
+                        displayDays={importPreviewDisplayDays}
+                        activeDayKey={selectedImportPreviewActiveDayKey}
+                        maxBodyHeight="max-h-[300px]"
+                      />
+
+                      <DataTableShell className="max-h-[300px]" ariaLabel="Bảng xem trước thực đơn import">
+                        <table className="ipc-data-table">
+                          <thead>
+                            <tr>
+                              <th className="text-left">Ngày</th>
+                              <th className="text-left">Section</th>
+                              <th className="text-left">Dòng</th>
+                              <th className="text-left">Món</th>
+                              <th className="text-center">Catalog</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {selectedImportPreview.rows.slice(0, 60).map((row, index) => (
+                              <tr key={`${selectedImportJob.jobId}-${row.serviceDate}-${row.sourceSection}-${row.slot}-${row.dishName}-${index}`}>
+                                <td className="text-left font-medium">{formatImportDate(row.serviceDate)}</td>
+                                <td className="text-left">
+                                  <div className="flex flex-col">
+                                    <span className="font-semibold text-slate-800">{row.sourceSection}</span>
+                                    <span className="text-xs text-slate-500">{getShiftLabel(row.dbShiftName)} / {getVariantLabel(row.variant)}</span>
+                                  </div>
+                                </td>
+                                <td className="text-left">{row.slotLabel || importSlotLabels[row.slot] || row.slot}</td>
+                                <td className="text-left font-semibold text-slate-800">{formatMenuDishName(row.dishName)}</td>
+                                <td className="text-center">
+                                  {row.existingDish ? 'Đã có' : 'Món mới'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </DataTableShell>
+                    </>
+                  )}
                 </div>
               )}
             </div>
 
-            <DialogFooter className="mt-6 flex flex-wrap justify-end gap-2 border-t border-slate-100 pt-4">
+            <DialogFooter className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <div className="text-sm font-medium text-slate-600">
+                {importJobs.length === 0
+                  ? 'Thêm ít nhất một khách hàng và file Excel để bắt đầu'
+                  : `${readyImportJobs.length}/${importJobs.length} dòng đã xem trước hợp lệ`}
+              </div>
+              <div className="flex flex-wrap justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setIsImportDialogOpen(false)}
@@ -1297,22 +3162,7 @@ const WeeklyMenuPage = () => {
               >
                 Hủy
               </button>
-              <button
-                type="button"
-                onClick={handleImportPreview}
-                disabled={isImporting || !selectedImportFile || !effectiveImportCustomerId}
-                className="ipc-button ipc-button-ghost"
-              >
-                Xem trước
-              </button>
-              <button
-                type="button"
-                onClick={handleImportCommit}
-                disabled={isImporting || !importPreview}
-                className="ipc-button ipc-button-primary"
-              >
-                Lưu vào hệ thống
-              </button>
+              </div>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -1327,26 +3177,26 @@ const WeeklyMenuPage = () => {
                 Chỉnh sửa Thực đơn tuần (T2 - T7)
               </DialogTitle>
             </DialogHeader>
-            
+
             <div className="mt-4 flex flex-col gap-6">
               {SECTIONS.map((sec) => (
                 <div key={sec.label} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0">
                   <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-[13px] font-bold uppercase text-slate-800">
                     {sec.label}
                   </h3>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
                     {displayDays.map((day) => {
                       const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
                       const slot = tempWeeklyMenu[day.key]?.[sec.slotType];
-                      
+
                       return (
                         <div key={day.key} className="p-2 border border-slate-200 rounded-md bg-white flex flex-col gap-1.5 shadow-sm">
                           <div className="flex flex-col">
                             <span className="text-[12px] font-semibold text-slate-700">{day.label}</span>
                             <span className="text-[10px] text-slate-400">{day.date}</span>
                           </div>
-                          
+
                           {isLocked ? (
                             <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">
                               <Lock size={10} className="text-slate-400" />
@@ -1398,9 +3248,10 @@ const WeeklyMenuPage = () => {
               <button
                 type="button"
                 onClick={handleSaveEdit}
+                disabled={isSavingEdit}
                 className="ipc-button ipc-button-primary"
               >
-                Lưu thay đổi
+                {isSavingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}
               </button>
             </DialogFooter>
           </DialogContent>

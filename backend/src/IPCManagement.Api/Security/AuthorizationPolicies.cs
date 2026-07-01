@@ -7,7 +7,9 @@ public static class AuthorizationPolicies
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
     public const string ProductionAccess = "ProductionAccess";
+    public const string DemandGenerateAccess = "DemandGenerateAccess";
     public const string PurchaseAccess = "PurchaseAccess";
+    public const string PurchaseGenerateAccess = "PurchaseGenerateAccess";
     public const string WarehouseAccess = "WarehouseAccess";
 
     public static readonly string[] AdminRoles =
@@ -25,7 +27,7 @@ public static class AuthorizationPolicies
     [
         "Admin", "ADMIN",
         "Manager", "MANAGER", "Quản lý",
-        "Coordinator", "COORDINATOR"
+        "Coordinator", "COORDINATOR", "Điều phối"
     ];
 
     public static readonly string[] InventoryRoles =
@@ -47,7 +49,7 @@ public static class AuthorizationPolicies
     [
         "Admin", "ADMIN",
         "Manager", "MANAGER", "Quản lý",
-        "Purchasing", "PURCHASING", "PurchaseStaff", "Purchase Staff", "Nhân viên mua hàng"
+        "Purchasing", "PURCHASING", "PurchaseStaff", "Purchase Staff", "Nhân viên mua hàng", "Thu mua"
     ];
 
     public static readonly string[] WarehouseRoles =
@@ -66,7 +68,10 @@ public static class AuthorizationPolicies
     public const string CoordinationOrderLock = "coordination.order.lock";
     public const string CoordinationOrderAdjust = "coordination.order.adjust";
     public const string CoordinationOrderSignoff = "coordination.order.signoff";
+    public const string DemandGenerate = "demand.generate";
     public const string InventoryRead = "inventory.read";
+    public const string PurchaseRead = "purchase.read";
+    public const string PurchaseGenerate = "purchase.generate";
     public const string PurchaseRequestApprove = "purchase.request.approve";
     public const string InventoryReceiptApprove = "inventory.receipt.approve";
     public const string InventoryIssueApprove = "inventory.issue.approve";
@@ -85,7 +90,10 @@ public static class AuthorizationPolicies
         CoordinationOrderLock,
         CoordinationOrderAdjust,
         CoordinationOrderSignoff,
+        DemandGenerate,
         InventoryRead,
+        PurchaseRead,
+        PurchaseGenerate,
         PurchaseRequestApprove,
         InventoryReceiptApprove,
         InventoryIssueApprove,
@@ -105,7 +113,10 @@ public static class AuthorizationPolicies
         CoordinationOrderLock,
         CoordinationOrderAdjust,
         CoordinationOrderSignoff,
+        DemandGenerate,
         InventoryRead,
+        PurchaseRead,
+        PurchaseGenerate,
         PurchaseRequestApprove,
         InventoryReceiptApprove,
         InventoryIssueApprove,
@@ -123,6 +134,7 @@ public static class AuthorizationPolicies
         CoordinationOrderLock,
         CoordinationOrderAdjust,
         CoordinationOrderSignoff,
+        DemandGenerate,
         ReportRead
     ];
 
@@ -131,6 +143,8 @@ public static class AuthorizationPolicies
         AuthProfileRead,
         DashboardRead,
         InventoryRead,
+        PurchaseRead,
+        PurchaseGenerate,
         PurchaseRequestApprove,
         InventoryReceiptApprove,
         ReportRead
@@ -173,12 +187,12 @@ public static class AuthorizationPolicies
             return ManagerPermissions;
         }
 
-        if (MatchesRole(roleName, "Coordinator", "COORDINATOR"))
+        if (MatchesRole(roleName, "Coordinator", "COORDINATOR", "Điều phối"))
         {
             return CoordinatorPermissions;
         }
 
-        if (MatchesRole(roleName, "ProcurementStaff", "Procurement Staff"))
+        if (MatchesRole(roleName, "ProcurementStaff", "Procurement Staff", "Purchasing", "PURCHASING", "PurchaseStaff", "Purchase Staff", "Nhân viên mua hàng", "Thu mua"))
         {
             return ProcurementPermissions;
         }
@@ -197,7 +211,7 @@ public static class AuthorizationPolicies
     }
 
     public static bool IsAdminRole(string? roleName)
-        => MatchesRole(roleName, "Admin", "ADMIN");
+        => MatchesRole(roleName, "Admin", "ADMIN", "Quản trị");
 
     private static bool MatchesRole(string? roleName, params string[] candidates)
     {

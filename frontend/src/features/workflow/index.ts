@@ -3,6 +3,9 @@ export {
   useGetApprovalRecordsQuery,
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
+  useGetDataQualityQuery,
+  useGenerateMaterialDemandMutation,
+  useGeneratePurchaseRequestFromDemandMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -17,6 +20,8 @@ export {
 export type {
   AuditLogRow,
   CurrentStockRow,
+  DataQualityIssueRow,
+  DataQualityReport,
   KitchenIssueRow,
   PriceVarianceRow,
   SupplierDto,

@@ -5,6 +5,7 @@ public class WorkflowReportQueryDto
     public string? ServiceDate { get; set; }
     public string? DateFrom { get; set; }
     public string? DateTo { get; set; }
+    public string? CustomerId { get; set; }
     public string? WarehouseId { get; set; }
     public string? IngredientId { get; set; }
     public string? SupplierId { get; set; }
@@ -58,6 +59,11 @@ public class IngredientDemandReportDto
     public string UnitId { get; set; } = string.Empty;
     public string? UnitName { get; set; }
     public int TotalServings { get; set; }
+    public decimal BomRatePercent { get; set; }
+    public string? AppliedPortionRuleId { get; set; }
+    public string AppliedPortionRuleSource { get; set; } = string.Empty;
+    public decimal AppliedPortionRatePercent { get; set; }
+    public decimal? YieldLossPercent { get; set; }
     public decimal TotalRequiredQty { get; set; }
     public decimal CurrentStockQty { get; set; }
     public decimal SuggestedPurchaseQty { get; set; }
@@ -146,6 +152,33 @@ public class AuditChangeReportDto
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
     public string? Reason { get; set; }
+}
+
+public class DataQualityReportDto
+{
+    public DateTime GeneratedAt { get; set; }
+    public int TotalIssues { get; set; }
+    public int ErrorCount { get; set; }
+    public int WarningCount { get; set; }
+    public int MissingBomCount { get; set; }
+    public int InvalidUnitCount { get; set; }
+    public int NegativeStockCount { get; set; }
+    public int OrphanDocumentCount { get; set; }
+    public IReadOnlyList<DataQualityIssueDto> Issues { get; set; } = [];
+}
+
+public class DataQualityIssueDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string Category { get; set; } = string.Empty;
+    public string Severity { get; set; } = string.Empty;
+    public string EntityName { get; set; } = string.Empty;
+    public string? EntityId { get; set; }
+    public string EntityCode { get; set; } = string.Empty;
+    public string EntityLabel { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string SuggestedAction { get; set; } = string.Empty;
+    public string Route { get; set; } = string.Empty;
 }
 
 public class WorkflowDocumentDto
