@@ -177,6 +177,27 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
     }
 
+    [HttpGet("customers/{customerId}/import-mapping")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerImportMapping(
+        string customerId,
+        CancellationToken cancellationToken)
+    {
+        var mapping = await _sampleDataImportService.GetCustomerImportMappingAsync(customerId, cancellationToken);
+        return Ok(ApiResponse<CustomerImportMappingDto?>.SuccessResult(mapping));
+    }
+
+    [HttpPut("customers/{customerId}/import-mapping")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SaveCustomerImportMapping(
+        string customerId,
+        [FromBody] SaveCustomerImportMappingDto request,
+        CancellationToken cancellationToken)
+    {
+        var mapping = await _sampleDataImportService.SaveCustomerImportMappingAsync(customerId, request, cancellationToken);
+        return Ok(ApiResponse<CustomerImportMappingDto>.SuccessResult(mapping, "Đã lưu cấu hình mapping cho khách hàng."));
+    }
+
     [HttpPost("orders/adjust")]
     [ProducesResponseType(typeof(ApiResponse<AdjustOrderAfterLockResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

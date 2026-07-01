@@ -1,3 +1,4 @@
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -18,9 +19,9 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<List<SupplierDto>>> GetSuppliers(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<List<SupplierDto>>>> GetSuppliers(CancellationToken cancellationToken)
     {
         var suppliers = await _supplierService.GetActiveSuppliersAsync(cancellationToken);
-        return Ok(suppliers);
+        return Ok(ApiResponse<List<SupplierDto>>.SuccessResult(suppliers));
     }
 }

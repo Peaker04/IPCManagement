@@ -16,6 +16,7 @@ import {
   useGetCoordinationCustomersQuery,
   useGetCommittedWeeklyMenuQuery,
   usePreviewWeeklyMenuImportMutation,
+  useSaveCustomerImportMappingMutation,
 } from '../../coordination/coordinationApi';
 import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
 
@@ -274,6 +275,7 @@ const WeeklyMenuPage = () => {
   const customers = customerResponse?.data ?? [];
   const [previewImport, { isLoading: isPreviewingImport }] = usePreviewWeeklyMenuImportMutation();
   const [commitImport, { isLoading: isCommittingImport }] = useCommitWeeklyMenuImportMutation();
+  const [saveImportMapping, { isLoading: isSavingImportMapping }] = useSaveCustomerImportMappingMutation();
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [selectedImportCustomerId, setSelectedImportCustomerId] = useState(
     () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
@@ -408,6 +410,31 @@ const WeeklyMenuPage = () => {
       setImportFeedback({
         title: 'Lưu import thất bại',
         message: getApiErrorMessage(err, 'Không thể lưu thực đơn vào backend.'),
+        variant: 'danger',
+      });
+    }
+  };
+
+  const handleSaveImportMapping = async () => {
+    if (!importPreview || !effectiveImportCustomerId) {
+      return;
+    }
+
+    try {
+      await saveImportMapping({
+        customerId: effectiveImportCustomerId,
+        sheetNameHint: importPreview.detectedLayout.sheetName,
+        labelColumn: importPreview.detectedLayout.labelColumn,
+      }).unwrap();
+      setImportFeedback({
+        title: 'Đã lưu mẫu mapping cho khách hàng',
+        message: `Lần import sau của ${importPreview.customerCode} sẽ tự dùng sheet "${importPreview.detectedLayout.sheetName}", cột nhãn "${importPreview.detectedLayout.labelColumn}".`,
+        variant: 'info',
+      });
+    } catch (err: unknown) {
+      setImportFeedback({
+        title: 'Lưu mapping thất bại',
+        message: getApiErrorMessage(err, 'Không thể lưu cấu hình mapping cho khách hàng.'),
         variant: 'danger',
       });
     }
@@ -1201,14 +1228,25 @@ const WeeklyMenuPage = () => {
 
               {importPreview && (
                 <div className="flex flex-col gap-3">
-                  <ContextStrip
-                    items={[
-                      { label: 'Sheet', value: importPreview.detectedLayout.sheetName, tone: 'neutral' },
-                      { label: 'Cột nhãn', value: importPreview.detectedLayout.labelColumn, tone: 'neutral' },
-                      { label: 'Ngày', value: `${formatImportDate(importPreview.weekStartDate)} - ${formatImportDate(importPreview.weekEndDate)}`, tone: 'info' },
-                      { label: 'Dòng món', value: importPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
-                    ]}
-                  />
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <ContextStrip
+                      items={[
+                        { label: 'Sheet', value: importPreview.detectedLayout.sheetName, tone: 'neutral' },
+                        { label: 'Cột nhãn', value: importPreview.detectedLayout.labelColumn, tone: 'neutral' },
+                        { label: 'Ngày', value: `${formatImportDate(importPreview.weekStartDate)} - ${formatImportDate(importPreview.weekEndDate)}`, tone: 'info' },
+                        { label: 'Dòng món', value: importPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
+                      ]}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => void handleSaveImportMapping()}
+                      disabled={isSavingImportMapping}
+                      className="ipc-button ipc-button-ghost ipc-button-bounded"
+                      title="Ghi nhớ sheet và cột nhãn đã dò được cho khách hàng này, dùng lại cho lần import sau"
+                    >
+                      {isSavingImportMapping ? 'Đang lưu mẫu...' : 'Lưu làm mẫu cho khách hàng này'}
+                    </button>
+                  </div>
 
                   {importPreview.warnings.length > 0 && (
                     <InlineAlert title="Cảnh báo khi đọc file" variant="warning">

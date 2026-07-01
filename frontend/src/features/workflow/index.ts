@@ -11,12 +11,16 @@ export {
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
+  useGetSuppliersQuery,
+  useUpdatePurchaseRequestLineSupplierMutation,
 } from './workflowApi';
 export type {
   AuditLogRow,
   CurrentStockRow,
   KitchenIssueRow,
   PriceVarianceRow,
+  SupplierDto,
+  UpdatePurchaseRequestLineSupplierDto,
   UsageReportRow,
   WorkflowReportQuery,
 } from './workflowApi';

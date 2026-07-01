@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Security;
 using FluentAssertions;
+using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services.SampleData;
 
 namespace IPCManagement.Api.Tests;
@@ -225,7 +226,84 @@ public class WeeklyMenuImportParserTests
         }
     }
 
-    private static object InvokeParse(string workbookPath, string fileName, DateOnly? weekStartDate)
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_PreferSheetNameHint_FromCustomerMapping()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            // "Sheet1" is a decoy that outscores the real menu sheet (many repeated section
+            // headers) but has no coherent day columns, so parsing it fails outright.
+            var decoyRows = Enumerable.Range(0, 10)
+                .Select(_ => new List<string> { "", "", "MENU MẶN - CA SÁNG" })
+                .ToList();
+
+            IReadOnlyList<IReadOnlyList<string>> realMenuRows = [
+                ["", "", "", "15/06/2026"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá mối kho nghệ"],
+            ];
+
+            CreateMultiSheetWorkbook(tempFile, [
+                ("Sheet1", decoyRows, null),
+                ("MENU", realMenuRows, null),
+            ]);
+
+            var actionWithoutHint = () => InvokeParse(tempFile, "customer-file.xlsx", null, null);
+            actionWithoutHint.Should().Throw<TargetInvocationException>();
+
+            var mapping = new Customerimportmapping { SheetNameHint = "MENU" };
+            var plan = InvokeParse(tempFile, "customer-file.xlsx", null, mapping);
+
+            GetProperty<string>(plan, "SheetName").Should().Be("MENU");
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "DishName"))
+                .Should()
+                .Contain("Cá mối kho nghệ");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_UseLabelColumn_FromCustomerMapping()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "01.09", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                ["", "", "Từ ngày 01/09/2024"],
+                [],
+                ["", "", "", "Chủ Nhật"],
+                ["", "", "", "01/09/2024"],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá mối kho nghệ"],
+                ["", "", "Phụ", "Tôm thịt rim"],
+            ]);
+
+            var mapping = new Customerimportmapping { LabelColumn = "c" };
+            var plan = InvokeParse(tempFile, "override.xlsx", null, mapping);
+
+            GetProperty<string>(plan, "LabelColumn").Should().Be("c");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    private static object InvokeParse(
+        string workbookPath,
+        string fileName,
+        DateOnly? weekStartDate,
+        Customerimportmapping? mapping = null)
     {
         var service = new SampleDataImportService(null!, null!);
         var method = typeof(SampleDataImportService).GetMethod(
@@ -233,7 +311,7 @@ public class WeeklyMenuImportParserTests
             BindingFlags.NonPublic | BindingFlags.Instance);
 
         method.Should().NotBeNull();
-        return method!.Invoke(service, [workbookPath, fileName, weekStartDate])!;
+        return method!.Invoke(service, [workbookPath, fileName, weekStartDate, mapping])!;
     }
 
     private static T GetProperty<T>(object source, string propertyName)
@@ -287,6 +365,51 @@ public class WeeklyMenuImportParserTests
             </Relationships>
             """);
         AddEntry(archive, "xl/worksheets/sheet1.xml", BuildSheet(rows, mergedRanges ?? []));
+    }
+
+    private static void CreateMultiSheetWorkbook(
+        string path,
+        IReadOnlyList<(string SheetName, IReadOnlyList<IReadOnlyList<string>> Rows, IReadOnlyList<string>? MergedRanges)> sheets)
+    {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+        var sheetParts = sheets
+            .Select((sheet, index) => new { sheet.SheetName, sheet.Rows, sheet.MergedRanges, PartIndex = index + 1 })
+            .ToList();
+
+        AddEntry(archive, "[Content_Types].xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+              <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+              <Default Extension="xml" ContentType="application/xml"/>
+              <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+              {string.Concat(sheetParts.Select(part => $"""<Override PartName="/xl/worksheets/sheet{part.PartIndex}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>"""))}
+            </Types>
+            """);
+        AddEntry(archive, "_rels/.rels", """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+            </Relationships>
+            """);
+        AddEntry(archive, "xl/workbook.xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+              <sheets>
+                {string.Concat(sheetParts.Select(part => $"""<sheet name="{SecurityElement.Escape(part.SheetName)}" sheetId="{part.PartIndex}" r:id="rId{part.PartIndex}"/>"""))}
+              </sheets>
+            </workbook>
+            """);
+        AddEntry(archive, "xl/_rels/workbook.xml.rels", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              {string.Concat(sheetParts.Select(part => $"""<Relationship Id="rId{part.PartIndex}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{part.PartIndex}.xml"/>"""))}
+            </Relationships>
+            """);
+
+        foreach (var part in sheetParts)
+        {
+            AddEntry(archive, $"xl/worksheets/sheet{part.PartIndex}.xml", BuildSheet(part.Rows, part.MergedRanges ?? []));
+        }
     }
 
     private static string BuildSheet(

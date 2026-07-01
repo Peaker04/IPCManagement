@@ -165,10 +165,11 @@ public partial class SampleDataImportService
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping);
             return await BuildWeeklyMenuImportResultAsync(
                 plan,
                 customer,
@@ -189,10 +190,11 @@ public partial class SampleDataImportService
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping);
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
@@ -221,6 +223,64 @@ public partial class SampleDataImportService
         }
 
         return customer;
+    }
+
+    private Task<Customerimportmapping?> FindCustomerImportMappingAsync(
+        byte[] customerId,
+        CancellationToken cancellationToken)
+        => _context.Customerimportmappings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerId), cancellationToken);
+
+    public async Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
+        string customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
+        return mapping is null
+            ? null
+            : new CustomerImportMappingDto
+            {
+                CustomerId = customerId,
+                SheetNameHint = mapping.SheetNameHint,
+                LabelColumn = mapping.LabelColumn
+            };
+    }
+
+    public async Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
+        string customerId,
+        SaveCustomerImportMappingDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await _context.Customerimportmappings
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customer.CustomerId), cancellationToken);
+
+        var now = DateTime.UtcNow;
+        if (mapping is null)
+        {
+            mapping = new Customerimportmapping
+            {
+                MappingId = GuidHelper.NewId(),
+                CustomerId = customer.CustomerId,
+                CreatedAt = now
+            };
+            _context.Customerimportmappings.Add(mapping);
+        }
+
+        mapping.SheetNameHint = string.IsNullOrWhiteSpace(request.SheetNameHint) ? null : request.SheetNameHint.Trim();
+        mapping.LabelColumn = string.IsNullOrWhiteSpace(request.LabelColumn) ? null : request.LabelColumn.Trim().ToUpperInvariant();
+        mapping.UpdatedAt = now;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new CustomerImportMappingDto
+        {
+            CustomerId = customerId,
+            SheetNameHint = mapping.SheetNameHint,
+            LabelColumn = mapping.LabelColumn
+        };
     }
 
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
@@ -388,7 +448,8 @@ public partial class SampleDataImportService
     private WeeklyMenuImportPlan ParseWeeklyMenuWorkbook(
         string workbookPath,
         string originalFileName,
-        DateOnly? weekStartFallback)
+        DateOnly? weekStartFallback,
+        Customerimportmapping? mapping = null)
     {
         var sheetCandidates = _reader.GetSheetNames(workbookPath)
             .Select(sheetName =>
@@ -396,16 +457,27 @@ public partial class SampleDataImportService
                 var rows = _reader.ReadRows(workbookPath, sheetName, 240);
                 return new WeeklyMenuSheetCandidate(sheetName, rows, ScoreMenuSheet(sheetName, rows));
             })
-            .OrderByDescending(candidate => candidate.Score)
             .ToList();
 
-        var best = sheetCandidates.FirstOrDefault();
+        // Cấu hình mapping đã lưu cho khách hàng (nếu có) được ưu tiên trước khi dò tự động,
+        // để hỗ trợ nhiều mẫu file khác nhau theo từng khách hàng (FULL-001).
+        var sheetsMatchingHint = string.IsNullOrWhiteSpace(mapping?.SheetNameHint)
+            ? []
+            : sheetCandidates
+                .Where(candidate => candidate.SheetName.Contains(mapping.SheetNameHint, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        var best = (sheetsMatchingHint.Count > 0 ? sheetsMatchingHint : sheetCandidates)
+            .OrderByDescending(candidate => candidate.Score)
+            .FirstOrDefault();
         if (best is null || best.Score < 20)
         {
             throw new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.");
         }
 
-        var labelColumn = DetectLabelColumn(best.Rows);
+        var labelColumn = !string.IsNullOrWhiteSpace(mapping?.LabelColumn)
+            ? mapping.LabelColumn
+            : DetectLabelColumn(best.Rows);
         if (labelColumn is null)
         {
             throw new InvalidOperationException("Không xác định được cột nhãn món trong file thực đơn.");

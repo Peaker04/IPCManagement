@@ -118,6 +118,12 @@ export interface WeeklyMenuImportResult {
   importedWeeklyMenu: WeeklyMenuState
 }
 
+export interface CustomerImportMapping {
+  customerId: string
+  sheetNameHint?: string
+  labelColumn?: string
+}
+
 const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
   formData.append('file', file)
@@ -228,6 +234,21 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
+    getCustomerImportMapping: builder.query<ApiResponse<CustomerImportMapping | null>, string>({
+      query: (customerId) => `/coordination/customers/${customerId}/import-mapping`,
+      providesTags: ['Customers'],
+    }),
+    saveCustomerImportMapping: builder.mutation<
+      ApiResponse<CustomerImportMapping>,
+      { customerId: string; sheetNameHint?: string; labelColumn?: string }
+    >({
+      query: ({ customerId, ...body }) => ({
+        url: `/coordination/customers/${customerId}/import-mapping`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['Customers'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -244,4 +265,6 @@ export const {
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,
   useCommitWeeklyMenuImportMutation,
+  useGetCustomerImportMappingQuery,
+  useSaveCustomerImportMappingMutation,
 } = coordinationApi

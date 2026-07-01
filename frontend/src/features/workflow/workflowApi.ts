@@ -63,6 +63,7 @@ interface IngredientDemandReportDto {
 
 interface PurchaseDemandReportDto {
   purchaseRequestId: string;
+  purchaseRequestLineId: string;
   purchaseRequestCode: string;
   purchaseForDate: string;
   shiftName?: string;
@@ -96,6 +97,17 @@ interface StockMovementViewDto {
   refId?: string;
   reason?: string;
   note?: string;
+}
+
+export interface SupplierDto {
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+}
+
+export interface UpdatePurchaseRequestLineSupplierDto {
+  supplierId: string;
+  estimatedUnitPrice: number;
 }
 
 interface ReceiptPriceVarianceReportDto {
@@ -284,7 +296,13 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
   const tone = item.purchaseQty > 0 ? toneFromStatus(item.status) : 'success';
 
   return {
-    id: `${item.purchaseRequestId}-${item.ingredientId}`,
+    id: item.purchaseRequestLineId || `${item.purchaseRequestId}-${item.ingredientId}`,
+    purchaseRequestId: item.purchaseRequestId,
+    purchaseRequestLineId: item.purchaseRequestLineId,
+    supplierId: item.supplierId,
+    estimatedUnitPrice: item.estimatedUnitPrice,
+    sourceDocumentCode: item.purchaseRequestCode,
+    serviceDate: item.purchaseForDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
     required: item.requiredQty,
     available: item.currentStockQty,
@@ -491,6 +509,21 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<WorkflowDocumentDto[]>) => getData(response).map(mapDocument),
       providesTags: ['WorkflowReports'],
     }),
+    getSuppliers: builder.query<SupplierDto[], void>({
+      query: () => '/suppliers',
+      transformResponse: (response: ApiResponse<SupplierDto[]>) => getData(response),
+    }),
+    updatePurchaseRequestLineSupplier: builder.mutation<
+      ApiResponse<void>,
+      { purchaseRequestId: string; purchaseRequestLineId: string; data: UpdatePurchaseRequestLineSupplierDto }
+    >({
+      query: ({ purchaseRequestId, purchaseRequestLineId, data }) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -578,6 +611,8 @@ export const {
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,
+  useGetSuppliersQuery,
+  useUpdatePurchaseRequestLineSupplierMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

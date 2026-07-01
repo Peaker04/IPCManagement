@@ -32,6 +32,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Customer> Customers { get; set; }
 
+    public virtual DbSet<Customerimportmapping> Customerimportmappings { get; set; }
+
     public virtual DbSet<Dish> Dishes { get; set; }
 
     public virtual DbSet<Dishbom> Dishboms { get; set; }
@@ -271,6 +273,49 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.Note)
                 .HasColumnType("text")
                 .HasColumnName("note");
+        });
+
+        modelBuilder.Entity<Customerimportmapping>(entity =>
+        {
+            entity.HasKey(e => e.MappingId).HasName("PRIMARY");
+
+            entity.ToTable("customerimportmappings");
+
+            entity.HasIndex(e => e.CustomerId, "ixCustomerImportMappingsCustomer").IsUnique();
+
+            entity.Property(e => e.MappingId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("mappingId");
+
+            entity.Property(e => e.CustomerId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("customerId");
+
+            entity.Property(e => e.SheetNameHint)
+                .HasMaxLength(100)
+                .HasColumnName("sheetNameHint");
+
+            entity.Property(e => e.LabelColumn)
+                .HasMaxLength(10)
+                .HasColumnName("labelColumn");
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+
+            entity.HasOne(d => d.Customer)
+                .WithMany(p => p.Customerimportmappings)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("customerimportmappings_ibfk_1");
         });
 
         modelBuilder.Entity<Dish>(entity =>

@@ -1,5 +1,6 @@
 import {
   AlertTriangle,
+  ArrowLeftRight,
   ClipboardList,
   Database,
   Download,
@@ -24,6 +25,7 @@ import {
   PaginationBar,
   SectionPanel,
   StatusBadge,
+  StockMovementTable,
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
@@ -35,21 +37,55 @@ import {
   useGetKitchenIssuesQuery,
   useGetPriceVarianceQuery,
   useGetPurchaseDemandQuery,
+  useGetStockMovementsQuery,
+  type StockMovement,
   type WorkflowReportQuery,
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 
-type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'kitchen' | 'usage' | 'audit';
+type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit';
 
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
   { id: 'reports-demand', label: 'Nhu cầu NVL' },
   { id: 'reports-purchase', label: 'Nhu cầu mua' },
   { id: 'reports-stock', label: 'Tồn kho' },
+  { id: 'reports-movement', label: 'Nhập/xuất kho' },
   { id: 'reports-kitchen', label: 'Xuất bếp' },
   { id: 'reports-usage', label: 'Sử dụng thực tế' },
   { id: 'reports-audit', label: 'Audit' },
 ];
+
+const movementTypeLabel: Record<StockMovement['type'], string> = {
+  receipt: 'Nhập kho',
+  issue: 'Xuất kho',
+  supplemental: 'Xuất bổ sung',
+  return: 'Trả kho',
+  adjustment: 'Điều chỉnh',
+};
+
+const escapeCsvValue = (value: unknown) => {
+  const text = value == null ? '' : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const buildCsv = <T,>(rows: T[], columns: Array<[string, (row: T) => unknown]>) => {
+  const headerLine = columns.map(([label]) => escapeCsvValue(label)).join(',');
+  const rowLines = rows.map((row) => columns.map(([, getValue]) => escapeCsvValue(getValue(row))).join(','));
+  return ['﻿' + headerLine, ...rowLines].join('\r\n');
+};
+
+const downloadCsv = (csv: string, filename: string) => {
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+};
 
 const EmptyRow = ({ colSpan }: { colSpan: number }) => (
   <tr>
@@ -78,6 +114,7 @@ const ReportsPage = () => {
   const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
   const purchaseDemandResult = useGetPurchaseDemandQuery(reportQuery);
   const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
+  const stockMovementResult = useGetStockMovementsQuery(reportQuery);
   const kitchenIssueResult = useGetKitchenIssuesQuery(reportQuery);
   const usageResult = useGetIssueVsReturnUsageQuery(reportQuery);
   const auditResult = useGetAuditChangesQuery(reportQuery);
@@ -86,6 +123,7 @@ const ReportsPage = () => {
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
   const purchaseDemandRows = purchaseDemandResult.data ?? [];
   const currentStockRows = currentStockResult.data ?? [];
+  const stockMovementRows = stockMovementResult.data ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
   const usageRows = usageResult.data ?? [];
   const auditRows = auditResult.data ?? [];
@@ -101,11 +139,128 @@ const ReportsPage = () => {
     demand: ingredientDemandResult,
     purchase: purchaseDemandResult,
     stock: currentStockResult,
+    movement: stockMovementResult,
     kitchen: kitchenIssueResult,
     usage: usageResult,
     audit: auditResult,
   };
   const activeReportState = reportStates[activeView];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each entry's rows/columns are paired per report view; a shared row type would be unsound here.
+  const exportConfig: Record<ReportView, { filename: string; rows: unknown[]; columns: Array<[string, (row: any) => unknown]> }> = {
+    price: {
+      filename: 'bien-dong-gia',
+      rows: priceVarianceRows,
+      columns: [
+        ['Tên nguyên liệu', (row) => row.name],
+        ['Nhà cung cấp', (row) => row.supplier],
+        ['ĐVT', (row) => row.unit],
+        ['Giá tham chiếu', (row) => row.pricePrev],
+        ['Giá nhập', (row) => row.priceCurrent],
+        ['Thay đổi (%)', (row) => row.change],
+        ['Vượt ngưỡng', (row) => (row.warning ? 'Có' : 'Không')],
+      ],
+    },
+    demand: {
+      filename: 'nhu-cau-nguyen-lieu',
+      rows: ingredientDemandRows,
+      columns: [
+        ['Nguyên liệu', (row) => row.material],
+        ['Nguồn', (row) => row.source],
+        ['Cần', (row) => row.required],
+        ['Tồn hiện có', (row) => row.available],
+        ['Thiếu/mua', (row) => Math.max(row.required - row.available, 0)],
+        ['Đơn vị', (row) => row.unit],
+        ['Trạng thái', (row) => row.status],
+      ],
+    },
+    purchase: {
+      filename: 'nhu-cau-mua',
+      rows: purchaseDemandRows,
+      columns: [
+        ['Nguyên liệu', (row) => row.material],
+        ['Nhà cung cấp', (row) => row.source],
+        ['Cần', (row) => row.required],
+        ['Mua', (row) => row.reserved],
+        ['Đơn vị', (row) => row.unit],
+        ['Trạng thái', (row) => row.status],
+      ],
+    },
+    stock: {
+      filename: 'ton-kho-hien-tai',
+      rows: currentStockRows,
+      columns: [
+        ['Kho', (row) => row.warehouse],
+        ['Nguyên liệu', (row) => row.ingredient],
+        ['Số lượng hiện tại', (row) => row.currentQty],
+        ['Đơn vị', (row) => row.unit],
+        ['Cập nhật', (row) => new Date(row.lastUpdated).toLocaleString('vi-VN')],
+      ],
+    },
+    movement: {
+      filename: 'nhap-xuat-kho',
+      rows: stockMovementRows,
+      columns: [
+        ['Chứng từ', (row) => row.documentNo],
+        ['Loại', (row: StockMovement) => movementTypeLabel[row.type]],
+        ['Nguyên liệu', (row) => row.material],
+        ['Số lượng', (row) => row.quantity],
+        ['Đơn vị', (row) => row.unit],
+        ['Phụ trách', (row) => row.owner],
+        ['Trạng thái', (row) => row.status],
+      ],
+    },
+    kitchen: {
+      filename: 'xuat-bep',
+      rows: kitchenIssueRows,
+      columns: [
+        ['Phiếu xuất', (row) => row.issueCode],
+        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
+        ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
+        ['Kho', (row) => row.warehouse],
+        ['Nguyên liệu', (row) => row.ingredient],
+        ['Yêu cầu', (row) => row.requestedQty],
+        ['Đã xuất', (row) => row.issuedQty],
+        ['Đơn vị', (row) => row.unit],
+      ],
+    },
+    usage: {
+      filename: 'su-dung-thuc-te',
+      rows: usageRows,
+      columns: [
+        ['Phiếu xuất', (row) => row.issueCode],
+        ['Ngày', (row) => new Date(row.issueDate).toLocaleDateString('vi-VN')],
+        ['Ca', (row) => row.shiftName ?? 'Cả ngày'],
+        ['Nguyên liệu', (row) => row.ingredient],
+        ['Đã xuất', (row) => row.issuedQty],
+        ['Hoàn kho', (row) => row.returnedQty],
+        ['Đã dùng', (row) => row.usedQty],
+        ['Đơn vị', (row) => row.unit],
+      ],
+    },
+    audit: {
+      filename: 'audit',
+      rows: auditRows,
+      columns: [
+        ['Thời gian', (row) => new Date(row.timestamp).toLocaleString('vi-VN')],
+        ['Người thực hiện', (row) => row.actor],
+        ['Đối tượng', (row) => row.fieldAffected],
+        ['Giá trị cũ', (row) => row.oldValue],
+        ['Giá trị mới', (row) => row.newValue],
+        ['Lý do', (row) => row.reason],
+      ],
+    },
+  };
+
+  const handleExportActiveReport = () => {
+    const config = exportConfig[activeView];
+    if (config.rows.length === 0) {
+      return;
+    }
+    const csv = buildCsv(config.rows, config.columns);
+    const timestamp = new Date().toISOString().slice(0, 10);
+    downloadCsv(csv, `${config.filename}-${timestamp}.csv`);
+  };
 
   const warningQueue = warningItems.map((item) => ({
     title: item.name,
@@ -130,7 +285,12 @@ const ReportsPage = () => {
       command={
         <CommandBar
           actions={
-            <button type="button" className="ipc-button ipc-button-primary">
+            <button
+              type="button"
+              className="ipc-button ipc-button-primary"
+              onClick={handleExportActiveReport}
+              disabled={exportConfig[activeView].rows.length === 0}
+            >
               <Download size={16} />
               Xuất báo cáo
             </button>
@@ -371,6 +531,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </DataTableShell>
+        </SectionPanel>
+      )}
+
+      {activeView === 'movement' && (
+        <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
+          <StockMovementTable movements={stockMovementRows} />
         </SectionPanel>
       )}
 

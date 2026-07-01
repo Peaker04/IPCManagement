@@ -15,6 +15,8 @@ public partial class Customer
 
     public bool? IsActive { get; set; }
 
+    public virtual ICollection<Customerimportmapping> Customerimportmappings { get; set; } = new List<Customerimportmapping>();
+
     public virtual ICollection<Mealquantityplanline> Mealquantityplanlines { get; set; } = new List<Mealquantityplanline>();
 
     public virtual ICollection<Menuschedule> Menuschedules { get; set; } = new List<Menuschedule>();

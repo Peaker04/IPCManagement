@@ -144,3 +144,16 @@ public class SampleDataImportCountsDto
     public int CurrentStockRowsCreated { get; set; }
     public int CurrentStockRowsUpdated { get; set; }
 }
+
+public class CustomerImportMappingDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string? SheetNameHint { get; set; }
+    public string? LabelColumn { get; set; }
+}
+
+public class SaveCustomerImportMappingDto
+{
+    public string? SheetNameHint { get; set; }
+    public string? LabelColumn { get; set; }
+}

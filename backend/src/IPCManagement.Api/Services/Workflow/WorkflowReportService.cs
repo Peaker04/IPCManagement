@@ -307,6 +307,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(item => new PurchaseDemandReportDto
             {
                 PurchaseRequestId = GuidHelper.ToGuidString(item.PurchaseRequestId),
+                PurchaseRequestLineId = GuidHelper.ToGuidString(item.PurchaseRequestLineId),
                 PurchaseRequestCode = item.PurchaseRequest.PurchaseRequestCode,
                 PurchaseForDate = item.PurchaseRequest.PurchaseForDate,
                 ShiftName = item.PurchaseRequest.ShiftName,

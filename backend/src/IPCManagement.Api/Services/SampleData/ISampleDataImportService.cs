@@ -29,4 +29,13 @@ public interface ISampleDataImportService
         string customerId,
         DateOnly? weekStartDate,
         CancellationToken cancellationToken = default);
+
+    Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
+        string customerId,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
+        string customerId,
+        SaveCustomerImportMappingDto request,
+        CancellationToken cancellationToken = default);
 }

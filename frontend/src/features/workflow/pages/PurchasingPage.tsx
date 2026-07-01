@@ -6,9 +6,7 @@ import {
   ContextStrip,
   DemandSummary,
   DocumentRail,
-  ExceptionLane,
   OperationalFrame,
-  RoleInbox,
   SectionPanel,
   SplitWorkbench,
   StockMovementTable,
@@ -20,8 +18,10 @@ import {
   useGetPurchaseDemandQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
-  useWorkflowOverview,
+  useGetSuppliersQuery,
+  useUpdatePurchaseRequestLineSupplierMutation,
 } from '@/features/workflow';
+import type { DemandLine, SupplierDto } from '@/features/workflow';
 
 export default function PurchasingPage() {
   const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'handoff'>('demand');
@@ -29,9 +29,10 @@ export default function PurchasingPage() {
   const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
-  const { roleInboxItems } = useWorkflowOverview();
+
+  const { data: suppliers = [] } = useGetSuppliersQuery();
+  const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
-  const purchaseInbox = roleInboxItems.filter((item) => item.laneId === 'purchasing');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
   const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
@@ -42,7 +43,13 @@ export default function PurchasingPage() {
         <CommandBar
           actions={
             <>
-              <button className="ipc-button ipc-button-primary" type="button">Chọn nhà cung cấp</button>
+              <button
+                className="ipc-button ipc-button-primary"
+                type="button"
+                onClick={() => setActiveView('supplier')}
+              >
+                Chọn nhà cung cấp
+              </button>
               <button className="ipc-button ipc-button-warning" type="button">Gửi cảnh báo biến động giá</button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
                 <PackageCheck size={16} />
@@ -85,6 +92,8 @@ export default function PurchasingPage() {
         onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'handoff')}
       />
 
+      {/* Bảng danh sách chọn Nhà Cung Cấp */}
+
       {activeView === 'demand' && (
         <div id="purchasing-demand-panel" role="tabpanel" aria-labelledby="purchasing-demand-tab">
           <SplitWorkbench
@@ -102,7 +111,7 @@ export default function PurchasingPage() {
             }
           >
             <SectionPanel title="Nhu cầu mua thêm" icon={<ShoppingCart size={18} />}>
-              <DemandSummary lines={purchaseDemandLines.filter((line) => line.tone === 'danger')} />
+              <DemandSummary lines={purchaseDemandLines} />
             </SectionPanel>
           </SplitWorkbench>
         </div>
@@ -111,52 +120,35 @@ export default function PurchasingPage() {
       {activeView === 'supplier' && (
         <SectionPanel title="Nhà cung cấp, đơn mua và nhập giá">
           <div id="purchasing-supplier-panel" role="tabpanel" aria-labelledby="purchasing-supplier-tab">
-          <div className="ipc-lane-summary-grid">
-            <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-              <span>Nhà cung cấp đề xuất</span>
-              <strong className="text-slate-900">{warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có dữ liệu'}</strong>
-              <p>Dữ liệu lấy từ danh sách mua và phiếu nhập backend.</p>
+            <div className="ipc-table-container mt-4">
+              <table className="ipc-table">
+                <thead>
+                  <tr>
+                    <th>Chứng từ</th>
+                    <th>Nguyên liệu</th>
+                    <th className="text-right">SL Cần mua</th>
+                    <th>Nhà cung cấp</th>
+                    <th>Giá dự kiến (đ)</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {purchaseDemandLines
+                    .filter(line => line.purchaseRequestId)
+                    .map((line) => (
+                    <SupplierLineItem 
+                      key={line.id} 
+                      line={line} 
+                      suppliers={suppliers} 
+                      onUpdate={updateSupplier} 
+                    />
+                  ))}
+                  {purchaseDemandLines.length === 0 && (
+                    <tr><td colSpan={6} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-            <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-              <span>Giá nhập hiện tại</span>
-              <strong className="text-slate-900">
-                {warningPrice ? `${warningPrice.priceCurrent.toLocaleString()} đ/${warningPrice.unit} - +${warningPrice.change.toFixed(1)}%` : 'Không có cảnh báo'}
-              </strong>
-              <p>{warningPrice ? 'Vượt ngưỡng 15%, cần cảnh báo quản lí.' : 'Các dòng giá đang dưới ngưỡng cảnh báo.'}</p>
-            </div>
-            <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-              <span>Trạng thái đơn mua</span>
-              <strong className="text-slate-900">{primaryPurchaseDemand?.status ?? 'Chưa có dữ liệu'}</strong>
-              <p>Sau khi đặt, chuyển chứng từ sang kho nhập.</p>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <RoleInbox
-              items={purchaseInbox}
-              title={null}
-              actionForItem={(item) => (
-                <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                  {item.nextAction}
-                </Link>
-              )}
-            />
-          </div>
-          <div className="mt-4">
-            <ExceptionLane
-              title="Biến động giá trên 15%"
-              items={[
-                {
-                  title: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có nguyên liệu vượt ngưỡng',
-                  description: warningPrice
-                    ? 'Giá mới cao hơn giá tham chiếu, cần gửi cảnh báo biến động giá.'
-                    : 'Chưa ghi nhận dòng giá vượt ngưỡng 15%.',
-                  action: 'Thu mua: Gửi cảnh báo biến động giá',
-                  tone: warningPrice ? 'danger' : 'info',
-                },
-              ]}
-            />
-          </div>
           </div>
         </SectionPanel>
       )}
@@ -169,5 +161,88 @@ export default function PurchasingPage() {
         </SectionPanel>
       )}
     </OperationalFrame>
+  );
+}
+
+function SupplierLineItem({
+  line,
+  suppliers,
+  onUpdate,
+}: {
+  line: DemandLine;
+  suppliers: SupplierDto[];
+  onUpdate: ReturnType<typeof useUpdatePurchaseRequestLineSupplierMutation>[0];
+}) {
+  const [selectedSupplierId, setSelectedSupplierId] = useState(line.supplierId ?? '');
+  const [estimatedPrice, setEstimatedPrice] = useState<number>(line.estimatedUnitPrice ?? 0);
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleSave = async () => {
+    if (!line.purchaseRequestId || !line.purchaseRequestLineId || !selectedSupplierId) {
+      alert('Vui lòng chọn Nhà cung cấp');
+      return;
+    }
+    if (!estimatedPrice || estimatedPrice <= 0) {
+      alert('Vui lòng nhập giá dự kiến lớn hơn 0');
+      return;
+    }
+    setIsUpdating(true);
+    try {
+      await onUpdate({
+        purchaseRequestId: line.purchaseRequestId,
+        purchaseRequestLineId: line.purchaseRequestLineId,
+        data: {
+          supplierId: selectedSupplierId,
+          estimatedUnitPrice: estimatedPrice
+        }
+      }).unwrap();
+      alert('Đã cập nhật Nhà cung cấp thành công!');
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Lỗi khi cập nhật Nhà cung cấp: ' + message);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  return (
+    <tr>
+      <td className="text-slate-500 font-mono text-sm">{line.sourceDocumentCode}</td>
+      <td className="font-medium text-slate-800">{line.material}</td>
+      <td className="text-right">{line.reserved} <span className="text-slate-500">{line.unit}</span></td>
+      <td>
+        <select 
+          className="ipc-input w-full" 
+          value={selectedSupplierId} 
+          onChange={(e) => setSelectedSupplierId(e.target.value)}
+        >
+          <option value="">-- Chọn Nhà cung cấp --</option>
+          {suppliers.map(s => (
+            <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
+          ))}
+        </select>
+      </td>
+      <td>
+        <input 
+          type="number" 
+          className="ipc-input w-full" 
+          placeholder="VD: 150000" 
+          value={estimatedPrice || ''}
+          onChange={(e) => setEstimatedPrice(Number(e.target.value))}
+        />
+      </td>
+      <td>
+        <button 
+          className="ipc-button ipc-button-primary" 
+          onClick={handleSave}
+          disabled={isUpdating}
+        >
+          {isUpdating ? 'Đang lưu...' : 'Lưu NCC'}
+        </button>
+      </td>
+    </tr>
   );
 }
