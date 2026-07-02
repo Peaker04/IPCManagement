@@ -16,3 +16,17 @@ public class AdjustServingsRequestDtoValidator : AbstractValidator<AdjustServing
             .MaximumLength(500).WithMessage("Lý do điều chỉnh không được vượt quá 500 ký tự.");
     }
 }
+
+public class UpdateForecastServingsRequestDtoValidator : AbstractValidator<UpdateForecastServingsRequestDto>
+{
+    public UpdateForecastServingsRequestDtoValidator()
+    {
+        RuleFor(x => x.ServingsQuantity)
+            .GreaterThanOrEqualTo(0)
+            .WithMessage("Số suất ăn phải lớn hơn hoặc bằng 0.");
+
+        RuleFor(x => x.Reason)
+            .NotEmpty().WithMessage("Lý do cập nhật không được để trống.")
+            .MaximumLength(500).WithMessage("Lý do cập nhật không được vượt quá 500 ký tự.");
+    }
+}

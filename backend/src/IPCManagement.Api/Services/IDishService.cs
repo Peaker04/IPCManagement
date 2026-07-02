@@ -6,7 +6,7 @@ namespace IPCManagement.Api.Services;
 public interface IDishService
 {
     Task<PagedResponseDto<DishDto>> GetPagedAsync(PagedRequestDto request);
-    Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync();
+    Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync(bool includeInactive = false);
     Task<BomCoverageReportDto> GetBomCoverageAsync();
     Task<BomValidationReportDto> GetBomValidationAsync();
     Task<MenuImportHistoryDto> GetMenuImportHistoryAsync();

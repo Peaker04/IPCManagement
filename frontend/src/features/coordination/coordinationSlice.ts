@@ -5,50 +5,7 @@ import { toDisplayShift } from './types'
 import { coordinationApi } from './coordinationApi'
 import { getTodayDayCode } from '@/lib/dateUtils'
 
-const defaultWeeklyMenu: WeeklyMenuState = {
-  t2: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-  t3: {
-    morningSavory: { dishId: 'm2', portions: 970 },
-    morningVegetarian: { dishId: 'v2', portions: 170 },
-    afternoonSavory: { dishId: 'a2', portions: 990 },
-    afternoonVegetarian: { dishId: 'v5', portions: 170 },
-  },
-  t4: {
-    morningSavory: { dishId: 'm3', portions: 840 },
-    morningVegetarian: { dishId: 'v3', portions: 150 },
-    afternoonSavory: { dishId: 'a3', portions: 870 },
-    afternoonVegetarian: { dishId: 'v6', portions: 150 },
-  },
-  t5: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-  t6: {
-    morningSavory: { dishId: 'm2', portions: 970 },
-    morningVegetarian: { dishId: 'v2', portions: 170 },
-    afternoonSavory: { dishId: 'a2', portions: 990 },
-    afternoonVegetarian: { dishId: 'v5', portions: 170 },
-  },
-  t7: {
-    morningSavory: { dishId: 'm3', portions: 840 },
-    morningVegetarian: { dishId: 'v3', portions: 150 },
-    afternoonSavory: { dishId: 'a3', portions: 870 },
-    afternoonVegetarian: { dishId: 'v6', portions: 150 },
-  },
-  cn: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-}
+const defaultWeeklyMenu: WeeklyMenuState = {}
 
 const initialDay = getTodayDayCode()
 
@@ -186,6 +143,7 @@ const coordinationSlice = createSlice({
       if (order && !isCurrentlyLocked) {
         if (action.payload.field === 'forecastQuantity') {
           order.forecastQuantity = action.payload.value
+          order.actualQuantity = action.payload.value
         } else {
           order.specialNotes = action.payload.value
         }

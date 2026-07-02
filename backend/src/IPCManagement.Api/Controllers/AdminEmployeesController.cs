@@ -85,4 +85,13 @@ public class AdminEmployeesController : ControllerBase
         var message = request.IsActive ? "Đã kích hoạt tài khoản." : "Đã khóa tài khoản.";
         return Ok(ApiResponse<EmployeeDto>.SuccessResult(updated, message));
     }
+
+    [HttpPost("seed")]
+    [AllowAnonymous]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SeedSampleUsers()
+    {
+        await _employeeService.SeedSampleUsersAsync();
+        return Ok(ApiResponse.SuccessResult("Tạo tài khoản mẫu thành công."));
+    }
 }

@@ -8,9 +8,17 @@ internal static class MaterialDemandCalculator
         int servings,
         decimal grossQtyPerServing,
         decimal bomRatePercent,
-        decimal currentStockQty)
+        decimal currentStockQty,
+        decimal portionRatePercent = 100,
+        decimal? yieldLossPercent = null)
     {
-        var totalRequiredQty = DecimalPolicy.RoundQuantity(servings * grossQtyPerServing * (bomRatePercent / 100m));
+        var yieldRate = yieldLossPercent is null ? 1m : Math.Max(1m - (yieldLossPercent.Value / 100m), 0.000001m);
+        var totalRequiredQty = DecimalPolicy.RoundQuantity(
+            servings *
+            grossQtyPerServing *
+            (portionRatePercent / 100m) *
+            (bomRatePercent / 100m) /
+            yieldRate);
         var stockQty = DecimalPolicy.RoundQuantity(currentStockQty);
         var suggestedPurchaseQty = DecimalPolicy.RoundQuantity(Math.Max(totalRequiredQty - stockQty, 0));
 

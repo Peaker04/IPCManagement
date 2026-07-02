@@ -33,11 +33,40 @@ public class WeeklyMenuImportResultDto
     public string CustomerName { get; set; } = string.Empty;
     public DateOnly? WeekStartDate { get; set; }
     public DateOnly? WeekEndDate { get; set; }
+    public string? MenuVersionId { get; set; }
+    public int? MenuVersionNo { get; set; }
+    public string? MenuVersionStatus { get; set; }
+    public string? PublishedBy { get; set; }
+    public string? PublishedAt { get; set; }
+    public string? SourceImportBatch { get; set; }
     public WeeklyMenuImportLayoutDto DetectedLayout { get; set; } = new();
     public SampleDataImportCountsDto Counts { get; set; } = new();
     public List<string> Warnings { get; set; } = [];
+    public WeeklyMenuImportValidationDto Validation { get; set; } = new();
     public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
+    public WeeklyMenuImportDiffDto PreviewDiff { get; set; } = new();
     public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+}
+
+public class WeeklyMenuImportValidationDto
+{
+    public bool IsValid { get; set; } = true;
+    public bool HasCriticalErrors { get; set; }
+    public int ErrorCount { get; set; }
+    public int WarningCount { get; set; }
+    public List<WeeklyMenuImportValidationIssueDto> Issues { get; set; } = [];
+}
+
+public class WeeklyMenuImportValidationIssueDto
+{
+    public string Severity { get; set; } = "info";
+    public string Code { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? SheetName { get; set; }
+    public int? RowNumber { get; set; }
+    public string? Column { get; set; }
+    public string? Cell { get; set; }
+    public string? Field { get; set; }
 }
 
 public class WeeklyMenuImportLayoutDto
@@ -62,6 +91,8 @@ public class WeeklyMenuImportRowDto
 {
     public DateOnly ServiceDate { get; set; }
     public string DayKey { get; set; } = string.Empty;
+    public int SourceRowNumber { get; set; }
+    public string SourceColumn { get; set; } = string.Empty;
     public string SourceSection { get; set; } = string.Empty;
     public string SourceShift { get; set; } = string.Empty;
     public string DbShiftName { get; set; } = string.Empty;
@@ -69,8 +100,30 @@ public class WeeklyMenuImportRowDto
     public string Slot { get; set; } = string.Empty;
     public string SlotLabel { get; set; } = string.Empty;
     public string DishName { get; set; } = string.Empty;
+    public int RowSpan { get; set; } = 1;
+    public bool IsMergedContinuation { get; set; }
     public string? DishId { get; set; }
     public bool ExistingDish { get; set; }
+}
+
+public class WeeklyMenuImportDiffDto
+{
+    public int AddedSlots { get; set; }
+    public int ChangedSlots { get; set; }
+    public int RemovedSlots { get; set; }
+    public int UnchangedSlots { get; set; }
+    public List<WeeklyMenuImportDiffRowDto> Rows { get; set; } = [];
+}
+
+public class WeeklyMenuImportDiffRowDto
+{
+    public string ServiceDate { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public string Variant { get; set; } = string.Empty;
+    public string Slot { get; set; } = string.Empty;
+    public string? CurrentDishName { get; set; }
+    public string? ImportedDishName { get; set; }
+    public string ChangeType { get; set; } = string.Empty;
 }
 
 public class ImportedDayMenuDto
@@ -89,6 +142,7 @@ public class ImportedCustomComponentsDto
     public string? Rau { get; set; }
     public string? Canh { get; set; }
     public string? Fruit { get; set; }
+    public string? Dessert { get; set; }
 }
 
 public class ImportedMenuSlotDto
@@ -143,4 +197,17 @@ public class SampleDataImportCountsDto
     public int StockMovementsUpdated { get; set; }
     public int CurrentStockRowsCreated { get; set; }
     public int CurrentStockRowsUpdated { get; set; }
+}
+
+public class CustomerImportMappingDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string? SheetNameHint { get; set; }
+    public string? LabelColumn { get; set; }
+}
+
+public class SaveCustomerImportMappingDto
+{
+    public string? SheetNameHint { get; set; }
+    public string? LabelColumn { get; set; }
 }

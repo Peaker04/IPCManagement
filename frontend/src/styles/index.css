@@ -1615,7 +1615,7 @@ code {
   display: block;
   min-width: 0;
   line-height: 1.25;
-  overflow-wrap: anywhere;
+  overflow-wrap: normal;
 }
 
 .ipc-badge-cell {
@@ -1649,10 +1649,34 @@ code {
 
 .ipc-table-badge--status {
   --ipc-table-badge-width: 150px;
+  width: max-content;
+  min-width: var(--ipc-table-badge-width);
+  max-width: 100%;
   white-space: nowrap;
 }
 
 .ipc-table-badge--status .ipc-status-badge-label {
+  white-space: nowrap;
+}
+
+.ipc-status-action-table {
+  min-width: 1080px !important;
+  table-layout: fixed;
+}
+
+.ipc-status-action-table th:nth-last-child(2),
+.ipc-status-action-table td:nth-last-child(2) {
+  width: 190px !important;
+  min-width: 190px;
+}
+
+.ipc-status-action-table th:last-child,
+.ipc-status-action-table td:last-child {
+  width: 190px !important;
+  min-width: 190px;
+}
+
+.ipc-status-action-table td:last-child {
   white-space: nowrap;
 }
 

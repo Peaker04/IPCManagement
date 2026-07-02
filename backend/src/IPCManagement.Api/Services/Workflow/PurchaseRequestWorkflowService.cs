@@ -45,7 +45,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .ToList();
         if (shortageLines.Count == 0)
         {
-            return null;
+            return await ClearStalePurchaseRequestAsync(materialRequest, userIdBytes, cancellationToken);
         }
 
         var purchaseRequest = await EnsurePurchaseRequestAsync(materialRequest, userIdBytes, cancellationToken);
@@ -64,7 +64,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 throw new InvalidOperationException($"Chưa có nhà cung cấp để tạo đề xuất mua cho '{line.Ingredient.IngredientName}'.");
             }
 
-            var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, cancellationToken);
+            var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, line.Unit, cancellationToken);
             EnsurePurchaseRequestLine(
                 purchaseRequest,
                 line,
@@ -72,6 +72,32 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 PurchaseRequestPlanner.EstimateUnitPrice(latestPrice, line.Ingredient.ReferencePrice),
                 existingLines);
         }
+
+        var shortageLineIds = shortageLines
+            .Select(line => BuildKey(line.RequestLineId))
+            .ToHashSet();
+        var staleLines = existingLines
+            .Where(line => !shortageLineIds.Contains(BuildKey(line.MaterialRequestLineId)))
+            .ToList();
+        if (staleLines.Count > 0)
+        {
+            _context.Purchaserequestlines.RemoveRange(staleLines);
+            existingLines.RemoveAll(line => staleLines.Any(stale => stale.PurchaseRequestLineId.SequenceEqual(line.PurchaseRequestLineId)));
+        }
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequest),
+            EntityId = purchaseRequest.PurchaseRequestId,
+            FieldName = "GenerateFromDemand",
+            OldValue = null,
+            NewValue = $"{shortageLines.Count} shortage lines; {existingLines.Count} purchase lines",
+            Reason = "Sinh đề xuất mua hàng từ dòng thiếu nguyên liệu sau kiểm tồn."
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -86,7 +112,56 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             Lines = existingLines
                 .OrderBy(line => line.Ingredient.IngredientName)
                 .Select(MapLine)
-                .ToList()
+            .ToList()
+        };
+    }
+
+    private async Task<PurchaseRequestWorkflowResultDto?> ClearStalePurchaseRequestAsync(
+        Materialrequest materialRequest,
+        byte[] userId,
+        CancellationToken cancellationToken)
+    {
+        var requestCode = BuildPurchaseRequestCode(materialRequest);
+        var purchaseRequest = await _context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+            .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
+        if (purchaseRequest is null)
+        {
+            return null;
+        }
+
+        var staleCount = purchaseRequest.Purchaserequestlines.Count;
+        if (staleCount > 0)
+        {
+            _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
+        }
+
+        purchaseRequest.Status = purchaseRequest.Status == "SENTTOSUPPLIER" ? purchaseRequest.Status : "DRAFT";
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userId,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequest),
+            EntityId = purchaseRequest.PurchaseRequestId,
+            FieldName = "GenerateFromDemand",
+            OldValue = $"{staleCount} stale purchase lines",
+            NewValue = "0 shortage lines; 0 purchase lines",
+            Reason = "Dọn đề xuất mua hàng cũ vì nhu cầu hiện tại không còn thiếu nguyên liệu."
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new PurchaseRequestWorkflowResultDto
+        {
+            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
+            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
+            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
+            ShiftName = purchaseRequest.ShiftName,
+            Status = purchaseRequest.Status,
+            Lines = []
         };
     }
 
@@ -142,8 +217,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         byte[] userId,
         CancellationToken cancellationToken)
     {
-        var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
-        var requestCode = $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
+        var requestCode = BuildPurchaseRequestCode(materialRequest);
         var existing = await _context.Purchaserequests
             .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
         if (existing is not null)
@@ -187,12 +261,49 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, CancellationToken cancellationToken)
-        => await _context.Inventoryreceiptlines
+    private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, Unit targetUnit, CancellationToken cancellationToken)
+    {
+        var latestReceiptLine = await _context.Inventoryreceiptlines
+            .Include(line => line.Unit)
+            .Include(line => line.Receipt)
             .Where(line => line.IngredientId == ingredientId)
             .OrderByDescending(line => line.Receipt.ReceiptDate)
-            .Select(line => line.UnitPrice)
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestReceiptLine is null || latestReceiptLine.UnitPrice <= 0)
+        {
+            return 0m;
+        }
+
+        if (latestReceiptLine.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            return latestReceiptLine.UnitPrice;
+        }
+
+        if (!CanConvertUnits(latestReceiptLine.Unit, targetUnit))
+        {
+            return 0m;
+        }
+
+        return DecimalPolicy.RoundMoney(latestReceiptLine.UnitPrice * targetUnit.ConvertRateToBase / latestReceiptLine.Unit.ConvertRateToBase);
+    }
+
+    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
+    {
+        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            return true;
+        }
+
+        return sourceUnit.ConvertRateToBase > 0 &&
+               targetUnit.ConvertRateToBase > 0 &&
+               string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizedBaseUnitCode(Unit unit)
+        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
+            ? unit.UnitCode.Trim().ToUpperInvariant()
+            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private void EnsurePurchaseRequestLine(
         Purchaserequest purchaseRequest,
@@ -242,6 +353,15 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         _context.Purchaserequestlines.Add(line);
         existingLines.Add(line);
     }
+
+    private static string BuildPurchaseRequestCode(Materialrequest materialRequest)
+    {
+        var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
+        return $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
+    }
+
+    private static string BuildKey(byte[] value)
+        => Convert.ToBase64String(value);
 
     private static PurchaseRequestWorkflowLineDto MapLine(Purchaserequestline line)
         => new()

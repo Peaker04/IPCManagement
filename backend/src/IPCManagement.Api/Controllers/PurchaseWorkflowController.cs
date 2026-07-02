@@ -27,6 +27,7 @@ public class PurchaseWorkflowController : ControllerBase
 
     /// <summary>Tạo đề xuất mua hàng từ các dòng nhu cầu nguyên liệu còn thiếu sau kiểm tồn.</summary>
     [HttpPost("from-demand")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GenerateFromDemand(

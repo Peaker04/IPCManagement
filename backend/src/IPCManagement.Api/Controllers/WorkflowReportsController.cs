@@ -65,6 +65,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
 
+    [HttpGet("data-quality")]
+    public async Task<IActionResult> GetDataQuality([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
+            await _workflowReportService.GetDataQualityAsync(query)));
+
     [HttpGet("order-export")]
     public async Task<IActionResult> GetOrderExport([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>.SuccessResult(

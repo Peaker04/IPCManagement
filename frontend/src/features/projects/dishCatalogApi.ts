@@ -21,6 +21,8 @@ export interface DishCatalogBomLineDto {
   unitName: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   effectiveFrom: string;
   effectiveTo?: string | null;
   referencePrice: number;
@@ -37,6 +39,15 @@ export interface DishCatalogDto {
   bomLines: DishCatalogBomLineDto[];
 }
 
+export interface DishDto {
+  dishId: string;
+  dishCode: string;
+  dishName: string;
+  dishType?: string | null;
+  dishGroup?: string | null;
+  isActive: boolean;
+}
+
 export interface CatalogIngredient {
   bomId: string;
   ingredientId: string;
@@ -46,6 +57,8 @@ export interface CatalogIngredient {
   unit: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   referencePrice: number;
   effectiveFrom: string;
   effectiveTo?: string | null;
@@ -57,8 +70,17 @@ export interface CatalogDish {
   name: string;
   dishType?: string | null;
   dishGroup?: string | null;
+  isActive: boolean;
   menuSlots: string[];
   ingredients: CatalogIngredient[];
+}
+
+export interface DishUpsertRequest {
+  dishCode?: string;
+  dishName: string;
+  dishType?: string | null;
+  dishGroup?: string | null;
+  isActive?: boolean;
 }
 
 export interface IngredientLookup {
@@ -78,6 +100,7 @@ export interface UpsertDishBomLineRequest {
   unitId?: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus?: string;
   effectiveFrom?: string;
   effectiveTo?: string | null;
   reason?: string;
@@ -89,6 +112,7 @@ const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
   name: dish.dishName,
   dishType: dish.dishType,
   dishGroup: dish.dishGroup,
+  isActive: dish.isActive,
   menuSlots: dish.menuSlots ?? [],
   ingredients: (dish.bomLines ?? []).map((line) => ({
     bomId: line.bomId,
@@ -99,6 +123,8 @@ const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
     unit: line.unitName || line.unitCode,
     grossQtyPerServing: line.grossQtyPerServing,
     wasteRatePercent: line.wasteRatePercent,
+    bomStatus: line.bomStatus,
+    bomStatusLabel: line.bomStatusLabel,
     referencePrice: line.referencePrice,
     effectiveFrom: line.effectiveFrom,
     effectiveTo: line.effectiveTo,
@@ -114,6 +140,37 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
           .filter((dish) => dish.isActive)
           .map(mapCatalogDish),
       providesTags: ['DishCatalog'],
+    }),
+    getAdminDishCatalog: builder.query<CatalogDish[], void>({
+      query: () => '/dishes/catalog?includeInactive=true',
+      transformResponse: (response: ApiResponse<DishCatalogDto[]>) =>
+        (response.data ?? []).map(mapCatalogDish),
+      providesTags: ['DishCatalog'],
+    }),
+    createDish: builder.mutation<DishDto, DishUpsertRequest>({
+      query: (body) => ({
+        url: '/dishes',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<DishDto>) => response.data!,
+      invalidatesTags: ['DishCatalog'],
+    }),
+    updateDish: builder.mutation<DishDto, { dishId: string; body: DishUpsertRequest }>({
+      query: ({ dishId, body }) => ({
+        url: `/dishes/${dishId}`,
+        method: 'PUT',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<DishDto>) => response.data!,
+      invalidatesTags: ['DishCatalog'],
+    }),
+    deactivateDish: builder.mutation<void, string>({
+      query: (dishId) => ({
+        url: `/dishes/${dishId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['DishCatalog'],
     }),
     getIngredients: builder.query<IngredientLookup[], void>({
       query: () => '/ingredients?pageNumber=1&pageSize=500',
@@ -152,6 +209,10 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
 
 export const {
   useGetDishCatalogQuery,
+  useGetAdminDishCatalogQuery,
+  useCreateDishMutation,
+  useUpdateDishMutation,
+  useDeactivateDishMutation,
   useGetIngredientsQuery,
   useAddDishBomLineMutation,
   useUpdateDishBomLineMutation,

@@ -24,6 +24,70 @@ namespace IPCManagement.Api.Migrations
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+                {
+                    b.Property<byte[]>("ApprovalHistoryId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("approvalHistoryId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("ActionAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("actionAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("ActionBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("actionBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Decision")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("decision");
+
+                    b.Property<string>("NewStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("newStatus");
+
+                    b.Property<string>("OldStatus")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("oldStatus");
+
+                    b.Property<string>("Reason")
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<byte[]>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("targetId")
+                        .IsFixedLength();
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("targetType");
+
+                    b.HasKey("ApprovalHistoryId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("ActionBy");
+
+                    b.HasIndex(new[] { "TargetType", "TargetId", "ActionAt" }, "ixApprovalHistoriesTarget");
+
+                    b.ToTable("approvalhistories", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
                 {
                     b.Property<byte[]>("AuditId")
@@ -238,6 +302,52 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("customers", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+                {
+                    b.Property<byte[]>("MappingId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("mappingId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<string>("LabelColumn")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("labelColumn");
+
+                    b.Property<string>("SheetNameHint")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sheetNameHint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("MappingId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "CustomerId" }, "ixCustomerImportMappingsCustomer")
+                        .IsUnique();
+
+                    b.ToTable("customerimportmappings", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dish", b =>
@@ -2014,6 +2124,17 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("warehouses", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ActionByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ActionBy")
+                        .IsRequired()
+                        .HasConstraintName("approvalhistories_ibfk_1");
+
+                    b.Navigation("ActionByNavigation");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ChangedByNavigation")
@@ -2069,6 +2190,18 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
 
                     b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Customerimportmappings")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("customerimportmappings_ibfk_1");
+
+                    b.Navigation("Customer");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
@@ -2648,6 +2781,8 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
+                    b.Navigation("Customerimportmappings");
+
                     b.Navigation("Mealquantityplanlines");
 
                     b.Navigation("Menuschedules");

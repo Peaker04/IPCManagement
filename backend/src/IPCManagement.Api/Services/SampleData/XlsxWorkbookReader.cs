@@ -73,6 +73,14 @@ internal sealed class XlsxWorkbookReader
         string workbookPath,
         string sheetName,
         int? maxRows = null)
+        => ReadRowsWithMetadata(workbookPath, sheetName, maxRows)
+            .Select(row => (IReadOnlyDictionary<string, string>)row.Cells)
+            .ToList();
+
+    public IReadOnlyList<XlsxRowData> ReadRowsWithMetadata(
+        string workbookPath,
+        string sheetName,
+        int? maxRows = null)
     {
         using var archive = ZipFile.OpenRead(workbookPath);
         var sharedStrings = ReadSharedStrings(archive);
@@ -86,10 +94,10 @@ internal sealed class XlsxWorkbookReader
             .Descendants(SpreadsheetNs + "row")
             .Select((row, index) => ReadRow(row, sharedStrings, index + 1))
             .ToList();
+        var mergeInfo = BuildMergedCellInfo(document);
         ApplyMergedCellValues(rawRows, document);
         var rows = rawRows
-            .Select(row => row.Cells)
-            .Where(row => row.Count > 0);
+            .Where(row => row.Cells.Count > 0);
 
         if (maxRows is not null)
         {
@@ -97,7 +105,12 @@ internal sealed class XlsxWorkbookReader
         }
 
         return rows
-            .Select(row => (IReadOnlyDictionary<string, string>)row)
+            .Select(row => new XlsxRowData(
+                row.RowNumber,
+                row.Cells,
+                mergeInfo
+                    .Where(item => item.Key.Row == row.RowNumber)
+                    .ToDictionary(item => item.Key.Column, item => item.Value, StringComparer.OrdinalIgnoreCase)))
             .ToList();
     }
 
@@ -252,6 +265,39 @@ internal sealed class XlsxWorkbookReader
         }
     }
 
+    private static Dictionary<CellAddress, XlsxMergedCellInfo> BuildMergedCellInfo(XDocument document)
+    {
+        var mergeInfo = new Dictionary<CellAddress, XlsxMergedCellInfo>();
+        foreach (var mergeRange in document.Descendants(SpreadsheetNs + "mergeCell"))
+        {
+            var reference = mergeRange.Attribute("ref")?.Value;
+            if (!TryParseCellRange(reference, out var start, out var end))
+            {
+                continue;
+            }
+
+            var startColumn = ColumnLetterToIndex(start.Column);
+            var endColumn = ColumnLetterToIndex(end.Column);
+            var rowSpan = Math.Max(1, end.Row - start.Row + 1);
+            var columnSpan = Math.Max(1, endColumn - startColumn + 1);
+            for (var rowNumber = start.Row; rowNumber <= end.Row; rowNumber++)
+            {
+                for (var columnIndex = startColumn; columnIndex <= endColumn; columnIndex++)
+                {
+                    var column = ColumnIndexToLetter(columnIndex);
+                    mergeInfo[new CellAddress(column, rowNumber)] = new XlsxMergedCellInfo(
+                        start.Row,
+                        start.Column,
+                        rowSpan,
+                        columnSpan,
+                        rowNumber == start.Row && columnIndex == startColumn);
+                }
+            }
+        }
+
+        return mergeInfo;
+    }
+
     private static bool TryParseCellRange(
         string? reference,
         out CellAddress start,
@@ -321,6 +367,18 @@ internal sealed class XlsxWorkbookReader
     }
 
     private sealed record RawXlsxRow(int RowNumber, Dictionary<string, string> Cells);
+
+    internal sealed record XlsxRowData(
+        int RowNumber,
+        IReadOnlyDictionary<string, string> Cells,
+        IReadOnlyDictionary<string, XlsxMergedCellInfo> MergeInfo);
+
+    internal sealed record XlsxMergedCellInfo(
+        int StartRow,
+        string StartColumn,
+        int RowSpan,
+        int ColumnSpan,
+        bool IsStart);
 
     private readonly record struct CellAddress(string Column, int Row);
 }
