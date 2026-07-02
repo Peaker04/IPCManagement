@@ -11,6 +11,13 @@ namespace IPCManagement.Api.Services;
 
 public class InventoryIssueService : IInventoryIssueService
 {
+    private static readonly HashSet<string> IssuableDemandStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "MANAGERAPPROVED",
+        "APPROVED",
+        "SENTTOWAREHOUSE"
+    };
+
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
@@ -59,6 +66,15 @@ public class InventoryIssueService : IInventoryIssueService
         var receivedByBytes = dto.ReceivedBy is not null
             ? GuidHelper.ParseGuidString(dto.ReceivedBy)
             : null;
+        var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
+            ?? throw new InvalidOperationException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
+        if (!IssuableDemandStatuses.Contains(materialRequest.Status))
+        {
+            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
+        }
+
+        var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
+        var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
@@ -76,16 +92,14 @@ public class InventoryIssueService : IInventoryIssueService
                 CreatedAt = DateTime.UtcNow
             };
 
-            issue.Inventoryissuelines = dto.Lines.Select(line => new Inventoryissueline
+            issue.Inventoryissuelines = issueLines.Select(line => new Inventoryissueline
             {
                 IssueLineId = GuidHelper.NewId(),
                 IssueId = issue.IssueId,
-                IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
-                    ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-                RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
-                IssuedQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
-                UnitId = GuidHelper.ParseGuidString(line.UnitId)
-                    ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.")
+                IngredientId = line.IngredientId,
+                RequestedQty = line.RequestedQty,
+                IssuedQty = line.IssuedQty,
+                UnitId = line.UnitId
             }).ToList();
 
             // Add issue using sync change tracking
@@ -122,5 +136,142 @@ public class InventoryIssueService : IInventoryIssueService
             throw;
         }
     }
+
+    private static IReadOnlyList<ResolvedIssueLine> ResolveIssueLines(
+        CreateInventoryIssueDto dto,
+        Materialrequest materialRequest,
+        IReadOnlyList<Inventoryissueline> issuedLines)
+    {
+        var demandByItem = materialRequest.Materialrequestlines
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .ToDictionary(
+                group => group.Key,
+                group => new DemandLineSummary(
+                    group.First().IngredientId,
+                    group.First().UnitId,
+                    group.First().Ingredient.IngredientName,
+                    group.First().Unit.UnitName,
+                    DecimalPolicy.RoundQuantity(group.Sum(line => line.TotalRequiredQty))));
+
+        if (demandByItem.Count == 0)
+        {
+            throw new InvalidOperationException("Nhu cầu nguyên liệu chưa có dòng để xuất kho.");
+        }
+
+        var alreadyIssuedByItem = issuedLines
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(line => line.IssuedQty)));
+
+        var inputLines = dto.Lines ?? [];
+        var requestedLines = inputLines.Count == 0
+            ? BuildLinesFromRemainingDemand(demandByItem, alreadyIssuedByItem)
+            : BuildLinesFromRequest(inputLines, demandByItem, alreadyIssuedByItem);
+
+        if (requestedLines.Count == 0)
+        {
+            throw new InvalidOperationException("Nhu cầu nguyên liệu đã được xuất đủ.");
+        }
+
+        return requestedLines;
+    }
+
+    private static List<ResolvedIssueLine> BuildLinesFromRemainingDemand(
+        IReadOnlyDictionary<string, DemandLineSummary> demandByItem,
+        IReadOnlyDictionary<string, decimal> alreadyIssuedByItem)
+    {
+        var lines = new List<ResolvedIssueLine>();
+        foreach (var (key, demand) in demandByItem)
+        {
+            var remaining = CalculateRemaining(demand.TotalRequiredQty, alreadyIssuedByItem.GetValueOrDefault(key));
+            if (DecimalPolicy.GreaterThanQuantity(remaining, 0))
+            {
+                lines.Add(new ResolvedIssueLine(demand.IngredientId, demand.UnitId, remaining, remaining));
+            }
+        }
+
+        return lines;
+    }
+
+    private static List<ResolvedIssueLine> BuildLinesFromRequest(
+        IReadOnlyList<CreateInventoryIssueLineDto> inputLines,
+        IReadOnlyDictionary<string, DemandLineSummary> demandByItem,
+        IReadOnlyDictionary<string, decimal> alreadyIssuedByItem)
+    {
+        var groupedLines = inputLines
+            .Select(line =>
+            {
+                var ingredientId = GuidHelper.ParseGuidString(line.IngredientId)
+                    ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ.");
+                var unitId = GuidHelper.ParseGuidString(line.UnitId)
+                    ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ.");
+                return new ResolvedIssueLine(
+                    ingredientId,
+                    unitId,
+                    DecimalPolicy.RoundQuantity(line.RequestedQty),
+                    DecimalPolicy.RoundQuantity(line.IssuedQty));
+            })
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .Select(group => new
+            {
+                Key = group.Key,
+                Line = new ResolvedIssueLine(
+                    group.First().IngredientId,
+                    group.First().UnitId,
+                    DecimalPolicy.RoundQuantity(group.Sum(line => line.RequestedQty)),
+                    DecimalPolicy.RoundQuantity(group.Sum(line => line.IssuedQty)))
+            })
+            .ToList();
+
+        var result = new List<ResolvedIssueLine>();
+        foreach (var item in groupedLines)
+        {
+            if (!demandByItem.TryGetValue(item.Key, out var demand))
+            {
+                throw new InvalidOperationException("Dòng xuất kho không nằm trong nhu cầu nguyên liệu đã duyệt.");
+            }
+
+            if (!DecimalPolicy.GreaterThanQuantity(item.Line.RequestedQty, 0) ||
+                !DecimalPolicy.GreaterThanQuantity(item.Line.IssuedQty, 0))
+            {
+                throw new InvalidOperationException("Số lượng xuất kho phải lớn hơn 0.");
+            }
+            if (DecimalPolicy.GreaterThanQuantity(item.Line.IssuedQty, item.Line.RequestedQty))
+            {
+                throw new InvalidOperationException("Số lượng xuất không được lớn hơn số lượng yêu cầu.");
+            }
+
+            var remaining = CalculateRemaining(demand.TotalRequiredQty, alreadyIssuedByItem.GetValueOrDefault(item.Key));
+            if (DecimalPolicy.GreaterThanQuantity(item.Line.RequestedQty, remaining))
+            {
+                throw new InvalidOperationException(
+                    $"Dòng xuất kho '{demand.IngredientName}' vượt nhu cầu còn lại. Yêu cầu: {item.Line.RequestedQty}, còn lại: {remaining}.");
+            }
+
+            result.Add(item.Line);
+        }
+
+        return result;
+    }
+
+    private static decimal CalculateRemaining(decimal requiredQty, decimal issuedQty)
+        => DecimalPolicy.RoundQuantity(requiredQty - issuedQty);
+
+    private static string BuildKey(byte[] ingredientId, byte[] unitId)
+        => $"{Convert.ToHexString(ingredientId)}:{Convert.ToHexString(unitId)}";
+
+    private sealed record DemandLineSummary(
+        byte[] IngredientId,
+        byte[] UnitId,
+        string? IngredientName,
+        string? UnitName,
+        decimal TotalRequiredQty);
+
+    private sealed record ResolvedIssueLine(
+        byte[] IngredientId,
+        byte[] UnitId,
+        decimal RequestedQty,
+        decimal IssuedQty);
 
 }

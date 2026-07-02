@@ -45,4 +45,19 @@ public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInve
             .Include(issue => issue.Inventoryissuelines)
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(issue => issue.IssueId == id);
+
+    public async Task<Materialrequest?> GetMaterialRequestForIssueAsync(byte[] id)
+        => await _context.Materialrequests
+            .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Unit)
+            .FirstOrDefaultAsync(request => request.RequestId == id);
+
+    public async Task<IReadOnlyList<Inventoryissueline>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId)
+        => await _context.Inventoryissuelines
+            .AsNoTracking()
+            .Include(line => line.Issue)
+            .Where(line => line.Issue.MaterialRequestId == materialRequestId)
+            .ToListAsync();
 }
