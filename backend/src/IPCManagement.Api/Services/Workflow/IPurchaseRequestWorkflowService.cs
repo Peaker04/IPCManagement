@@ -13,5 +13,11 @@ public interface IPurchaseRequestWorkflowService
         string requestId,
         string lineId,
         UpdatePurchaseRequestLineSupplierDto request,
+        string? userId,
+        CancellationToken cancellationToken = default);
+
+    Task<PurchaseRequestWorkflowResultDto?> SubmitAsync(
+        string requestId,
+        string? userId,
         CancellationToken cancellationToken = default);
 }

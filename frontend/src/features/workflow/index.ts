@@ -6,6 +6,7 @@ export {
   useGetDataQualityQuery,
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
+  useSubmitPurchaseRequestMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,

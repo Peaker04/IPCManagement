@@ -1,10 +1,12 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.Approvals;
 using IPCManagement.Api.Services.SampleData;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
@@ -411,6 +413,402 @@ public class WorkflowGenerationTests
             purchase.Should().NotBeNull();
             purchase!.Lines.Should().ContainSingle();
             purchase.Lines.Single().EstimatedUnitPrice.Should().Be(10000m);
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePurchaseRequest_Should_AssignOnlyActiveSupplier_ToEveryLine()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        var inactiveSupplierId = GuidHelper.NewId();
+        await using (var context = fixture.CreateContext())
+        {
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = inactiveSupplierId,
+                SupplierCode = "SUP-INACTIVE",
+                SupplierName = "Inactive Supplier",
+                IsActive = false
+            });
+            context.Inventoryreceipts.Add(new Inventoryreceipt
+            {
+                ReceiptId = GuidHelper.NewId(),
+                ReceiptCode = "NK-INACTIVE-SUPPLIER",
+                ReceiptDate = new DateOnly(2026, 6, 14),
+                WarehouseId = fixture.WarehouseId,
+                SupplierId = inactiveSupplierId,
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                Inventoryreceiptlines =
+                [
+                    new Inventoryreceiptline
+                    {
+                        ReceiptLineId = GuidHelper.NewId(),
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        Quantity = 10m,
+                        UnitPrice = 900m,
+                        Amount = 9000m
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            purchase.Should().NotBeNull();
+            var line = purchase!.Lines.Should().ContainSingle().Subject;
+            line.SupplierId.Should().Be(GuidHelper.ToGuidString(fixture.SupplierId));
+            line.SupplierId.Should().NotBe(GuidHelper.ToGuidString(inactiveSupplierId));
+
+            var savedLine = await context.Purchaserequestlines
+                .Include(item => item.Supplier)
+                .AsNoTracking()
+                .SingleAsync();
+            savedLine.Supplier.IsActive.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePurchaseRequest_Should_Block_WhenNoActiveSupplierAvailable()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var supplier = await context.Suppliers.SingleAsync();
+            supplier.IsActive = false;
+            await context.SaveChangesAsync();
+        }
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Chưa có nhà cung cấp để tạo đề xuất mua cho 'Ingredient'.");
+
+            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        }
+    }
+
+    [Fact]
+    public async Task UpdatePurchaseRequestLine_Should_SaveSupplierPriceDeliveryNote_AndAuditActor()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        var newSupplierId = GuidHelper.NewId();
+        await using (var context = fixture.CreateContext())
+        {
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = newSupplierId,
+                SupplierCode = "SUP-ALT",
+                SupplierName = "Alternate Supplier",
+                IsActive = true
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            await service.UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(newSupplierId),
+                    EstimatedUnitPrice = 12345.678m,
+                    ExpectedDeliveryDate = "2026-06-16",
+                    Note = "Giao trước 9h"
+                },
+                fixture.UserIdString);
+
+            var savedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
+            savedLine.SupplierId.Should().Equal(newSupplierId);
+            savedLine.EstimatedUnitPrice.Should().Be(12345.68m);
+            savedLine.ExpectedDeliveryDate.Should().Be(new DateOnly(2026, 6, 16));
+            savedLine.Note.Should().Be("Giao trước 9h");
+
+            var audit = await context.Auditlogs.AsNoTracking()
+                .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "SupplierPriceDelivery")
+                .SingleAsync();
+            audit.ChangedBy.Should().Equal(fixture.UserId);
+            audit.EntityId.Should().Equal(savedLine.PurchaseRequestLineId);
+            audit.OldValue.Should().Contain(GuidHelper.ToGuidString(fixture.SupplierId));
+            audit.NewValue.Should().Contain(GuidHelper.ToGuidString(newSupplierId));
+            audit.NewValue.Should().Contain("price=12345.68");
+            audit.NewValue.Should().Contain("delivery=2026-06-16");
+            audit.NewValue.Should().Contain("note=Giao trước 9h");
+        }
+    }
+
+    [Fact]
+    public async Task PurchaseRequestApproval_Should_Block_WhenLinePriceExceedsWarningThreshold()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            await service.UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    EstimatedUnitPrice = 1200m
+                },
+                fixture.UserIdString);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var reportLine = (await new WorkflowReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
+            {
+                Limit = 100
+            })).Single();
+
+            reportLine.ReferenceUnitPrice.Should().Be(1000m);
+            reportLine.PriceVariancePercent.Should().Be(20m);
+            reportLine.IsPriceWarning.Should().BeTrue();
+
+            var handler = new PurchaseRequestApprovalHandler(context);
+            var act = async () => await handler.HandleAsync(
+                purchaseRequestId,
+                new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Approve PR" },
+                fixture.UserId);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
+
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
+            (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
+        }
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseRequest_Should_RequireApprovedDemand_AndPersistSubmittedStatus()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        string purchaseRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+            purchaseRequestId = purchase!.PurchaseRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var submitted = await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+            submitted.Should().NotBeNull();
+            submitted!.Status.Should().Be("SENTTOSUPPLIER");
+            submitted.Lines.Should().ContainSingle();
+
+            var savedStatus = await context.Purchaserequests.AsNoTracking()
+                .Select(item => item.Status)
+                .SingleAsync();
+            savedStatus.Should().Be("SENTTOSUPPLIER");
+
+            var audit = await context.Auditlogs.AsNoTracking()
+                .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "Submit")
+                .SingleAsync();
+            audit.OldValue.Should().Be("DRAFT");
+            audit.NewValue.Should().Be("SENTTOSUPPLIER");
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var submittedAgain = await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+            submittedAgain.Should().NotBeNull();
+            submittedAgain!.Status.Should().Be("SENTTOSUPPLIER");
+
+            var submitAuditCount = await context.Auditlogs.AsNoTracking()
+                .CountAsync(item => item.BusinessArea == "Purchasing" && item.FieldName == "Submit");
+            submitAuditCount.Should().Be(1);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var materialLine = await context.Materialrequestlines.SingleAsync();
+            materialLine.SuggestedPurchaseQty = 0;
+            await context.SaveChangesAsync();
+
+            var regenerated = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            regenerated.Should().NotBeNull();
+            regenerated!.Status.Should().Be("SENTTOSUPPLIER");
+            regenerated.Lines.Should().ContainSingle();
+            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+        }
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseRequest_Should_Block_WhenDemandNotApprovedOrStale()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            purchaseRequestId = purchase!.PurchaseRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            var materialLine = await context.Materialrequestlines.SingleAsync();
+            materialLine.SuggestedPurchaseQty = 0;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
+        }
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseRequest_Should_Block_WhenLineInvalid()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            purchaseRequestId = purchase!.PurchaseRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var purchaseLine = await context.Purchaserequestlines.SingleAsync();
+            purchaseLine.EstimatedUnitPrice = 0;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
         }
     }
 
@@ -1850,7 +2248,9 @@ public class WorkflowGenerationTests
                     requiredQty TEXT NOT NULL,
                     currentStockQty TEXT NOT NULL,
                     purchaseQty TEXT NOT NULL,
-                    estimatedUnitPrice TEXT NOT NULL
+                    estimatedUnitPrice TEXT NOT NULL,
+                    expectedDeliveryDate TEXT NULL,
+                    note TEXT NULL
                 );
                 CREATE TABLE currentstock (
                     warehouseId BLOB NOT NULL,

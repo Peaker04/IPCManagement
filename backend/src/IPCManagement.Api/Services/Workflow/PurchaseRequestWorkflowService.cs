@@ -8,6 +8,14 @@ namespace IPCManagement.Api.Services.Workflow;
 
 public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 {
+    private const string PurchaseDraftStatus = "DRAFT";
+    private const string PurchaseSubmittedStatus = "SENTTOSUPPLIER";
+    private static readonly HashSet<string> ApprovedDemandStatuses = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "MANAGERAPPROVED",
+        "APPROVED"
+    };
+
     private readonly IpcManagementContext _context;
 
     public PurchaseRequestWorkflowService(IpcManagementContext context)
@@ -55,6 +63,10 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .Include(line => line.Unit)
             .Where(line => line.PurchaseRequestId == purchaseRequest.PurchaseRequestId)
             .ToListAsync(cancellationToken);
+        if (purchaseRequest.Status == PurchaseSubmittedStatus)
+        {
+            return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
+        }
 
         foreach (var line in shortageLines)
         {
@@ -101,19 +113,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new PurchaseRequestWorkflowResultDto
-        {
-            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
-            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
-            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
-            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
-            ShiftName = purchaseRequest.ShiftName,
-            Status = purchaseRequest.Status,
-            Lines = existingLines
-                .OrderBy(line => line.Ingredient.IngredientName)
-                .Select(MapLine)
-            .ToList()
-        };
+        return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
     }
 
     private async Task<PurchaseRequestWorkflowResultDto?> ClearStalePurchaseRequestAsync(
@@ -124,10 +124,20 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         var requestCode = BuildPurchaseRequestCode(materialRequest);
         var purchaseRequest = await _context.Purchaserequests
             .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Supplier)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
         if (purchaseRequest is null)
         {
             return null;
+        }
+
+        if (purchaseRequest.Status == PurchaseSubmittedStatus)
+        {
+            return MapResult(purchaseRequest, materialRequest.RequestId, purchaseRequest.Purchaserequestlines);
         }
 
         var staleCount = purchaseRequest.Purchaserequestlines.Count;
@@ -136,7 +146,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
         }
 
-        purchaseRequest.Status = purchaseRequest.Status == "SENTTOSUPPLIER" ? purchaseRequest.Status : "DRAFT";
+        purchaseRequest.Status = purchaseRequest.Status == PurchaseSubmittedStatus ? purchaseRequest.Status : PurchaseDraftStatus;
         _context.Auditlogs.Add(new Auditlog
         {
             AuditId = GuidHelper.NewId(),
@@ -153,31 +163,35 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return new PurchaseRequestWorkflowResultDto
-        {
-            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
-            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
-            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
-            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
-            ShiftName = purchaseRequest.ShiftName,
-            Status = purchaseRequest.Status,
-            Lines = []
-        };
+        return MapResult(purchaseRequest, materialRequest.RequestId, []);
     }
 
     public async Task UpdateLineSupplierAsync(
         string requestId,
         string lineId,
         UpdatePurchaseRequestLineSupplierDto request,
+        string? userId,
         CancellationToken cancellationToken = default)
     {
         var prIdBytes = GuidHelper.ParseGuidString(requestId);
         var prLineIdBytes = GuidHelper.ParseGuidString(lineId);
         var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
 
-        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null)
+        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null || userIdBytes is null)
         {
             throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        DateOnly? expectedDeliveryDate = null;
+        if (!string.IsNullOrWhiteSpace(request.ExpectedDeliveryDate))
+        {
+            if (!DateOnly.TryParse(request.ExpectedDeliveryDate, out var parsedDeliveryDate))
+            {
+                throw new ArgumentException("Ngày giao dự kiến không hợp lệ.");
+            }
+
+            expectedDeliveryDate = parsedDeliveryDate;
         }
 
         var pr = await _context.Purchaserequests
@@ -189,7 +203,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             throw new KeyNotFoundException("Không tìm thấy Purchase Request.");
         }
 
-        if (pr.Status != "DRAFT")
+        if (pr.Status != PurchaseDraftStatus)
         {
             throw new InvalidOperationException("Chỉ được đổi nhà cung cấp khi Đề xuất mua ở trạng thái DRAFT.");
         }
@@ -206,11 +220,92 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             throw new KeyNotFoundException("Nhà cung cấp không tồn tại hoặc đã bị khóa.");
         }
 
+        var oldValue = BuildPurchaseLineAuditValue(line);
         line.SupplierId = supplierIdBytes;
         line.EstimatedUnitPrice = DecimalPolicy.RoundMoney(request.EstimatedUnitPrice);
+        line.ExpectedDeliveryDate = expectedDeliveryDate;
+        line.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequestline),
+            EntityId = line.PurchaseRequestLineId,
+            FieldName = "SupplierPriceDelivery",
+            OldValue = oldValue,
+            NewValue = BuildPurchaseLineAuditValue(line),
+            Reason = "Cập nhật nhà cung cấp, giá dự kiến, ngày giao và ghi chú dòng mua."
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<PurchaseRequestWorkflowResultDto?> SubmitAsync(
+        string requestId,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        var prIdBytes = GuidHelper.ParseGuidString(requestId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (prIdBytes is null || userIdBytes is null)
+        {
+            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        var purchaseRequest = await _context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Supplier)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Unit)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.MaterialRequestLine)
+            .FirstOrDefaultAsync(item => item.PurchaseRequestId == prIdBytes, cancellationToken);
+        if (purchaseRequest is null)
+        {
+            return null;
+        }
+
+        var materialRequest = await ResolveMaterialRequestForSubmitAsync(purchaseRequest, cancellationToken);
+        await ValidateSubmitAsync(purchaseRequest, materialRequest, cancellationToken);
+
+        if (purchaseRequest.Status == PurchaseSubmittedStatus)
+        {
+            return MapResult(purchaseRequest, materialRequest.RequestId, purchaseRequest.Purchaserequestlines);
+        }
+
+        if (purchaseRequest.Status != PurchaseDraftStatus)
+        {
+            throw new InvalidOperationException("Chỉ được gửi đơn mua khi danh sách còn ở trạng thái nháp.");
+        }
+
+        var oldStatus = purchaseRequest.Status;
+        purchaseRequest.Status = PurchaseSubmittedStatus;
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequest),
+            EntityId = purchaseRequest.PurchaseRequestId,
+            FieldName = "Submit",
+            OldValue = oldStatus,
+            NewValue = PurchaseSubmittedStatus,
+            Reason = "Gửi đơn mua chính thức từ nhu cầu đã duyệt."
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return MapResult(purchaseRequest, materialRequest.RequestId, purchaseRequest.Purchaserequestlines);
+    }
+
+    private static string BuildPurchaseLineAuditValue(Purchaserequestline line)
+        => $"supplier={GuidHelper.ToGuidString(line.SupplierId)}; price={DecimalPolicy.RoundMoney(line.EstimatedUnitPrice)}; delivery={line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-"}; note={line.Note ?? "-"}";
 
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
         Materialrequest materialRequest,
@@ -222,7 +317,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
         if (existing is not null)
         {
-            existing.Status = existing.Status == "SENTTOSUPPLIER" ? existing.Status : "DRAFT";
+            existing.Status = existing.Status == PurchaseSubmittedStatus ? existing.Status : PurchaseDraftStatus;
             return existing;
         }
 
@@ -233,7 +328,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
             PurchaseForDate = materialRequest.RequestDate,
             ShiftName = materialRequest.RequestScope == "FULLDAY" ? null : materialRequest.RequestScope,
-            Status = "DRAFT",
+            Status = PurchaseDraftStatus,
             CreatedBy = userId
         };
 
@@ -246,7 +341,9 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         var latestReceiptSupplier = await _context.Inventoryreceiptlines
             .Include(line => line.Receipt)
                 .ThenInclude(receipt => receipt.Supplier)
-            .Where(line => line.IngredientId == ingredientId)
+            .Where(line =>
+                line.IngredientId == ingredientId &&
+                line.Receipt.Supplier.IsActive != false)
             .OrderByDescending(line => line.Receipt.ReceiptDate)
             .Select(line => line.Receipt.Supplier)
             .FirstOrDefaultAsync(cancellationToken);
@@ -363,6 +460,118 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
 
+    private async Task<Materialrequest> ResolveMaterialRequestForSubmitAsync(
+        Purchaserequest purchaseRequest,
+        CancellationToken cancellationToken)
+    {
+        if (purchaseRequest.Purchaserequestlines.Count == 0)
+        {
+            throw new InvalidOperationException("Danh sách mua chưa có dòng nguyên liệu hợp lệ.");
+        }
+
+        if (purchaseRequest.Purchaserequestlines.Any(line => line.MaterialRequestLine is null))
+        {
+            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+        }
+
+        var requestIds = purchaseRequest.Purchaserequestlines
+            .Select(line => BuildKey(line.MaterialRequestLine.RequestId))
+            .Distinct()
+            .ToList();
+        if (requestIds.Count != 1)
+        {
+            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+        }
+
+        var requestId = purchaseRequest.Purchaserequestlines.First().MaterialRequestLine.RequestId;
+        var materialRequest = await _context.Materialrequests
+            .Include(item => item.Materialrequestlines)
+            .FirstOrDefaultAsync(item => item.RequestId == requestId, cancellationToken);
+
+        return materialRequest
+            ?? throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+    }
+
+    private async Task ValidateSubmitAsync(
+        Purchaserequest purchaseRequest,
+        Materialrequest materialRequest,
+        CancellationToken cancellationToken)
+    {
+        if (!ApprovedDemandStatuses.Contains(materialRequest.Status))
+        {
+            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
+        }
+
+        var currentShortageLineIds = materialRequest.Materialrequestlines
+            .Where(line => PurchaseRequestPlanner.CalculatePurchaseQty(line.SuggestedPurchaseQty) > 0)
+            .Select(line => BuildKey(line.RequestLineId))
+            .ToHashSet();
+        var purchaseLineDemandIds = purchaseRequest.Purchaserequestlines
+            .Select(line => BuildKey(line.MaterialRequestLineId))
+            .ToHashSet();
+        if (!currentShortageLineIds.SetEquals(purchaseLineDemandIds))
+        {
+            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+        }
+
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
+            if (line.Supplier is null || line.Supplier.IsActive == false)
+            {
+                throw new InvalidOperationException("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
+            }
+
+            if (line.PurchaseQty <= 0 || line.EstimatedUnitPrice <= 0)
+            {
+                throw new InvalidOperationException("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
+            }
+
+            var referencePrice = await ResolveReferencePriceAsync(line, cancellationToken);
+            var variance = WorkflowReportCalculator.CalculateVariancePercent(referencePrice, line.EstimatedUnitPrice);
+            if (WorkflowReportCalculator.IsPriceIncreaseWarning(variance))
+            {
+                throw new InvalidOperationException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
+            }
+        }
+    }
+
+    private async Task<decimal> ResolveReferencePriceAsync(
+        Purchaserequestline line,
+        CancellationToken cancellationToken)
+    {
+        var latestReceiptPrice = await _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(item => item.Receipt)
+            .Where(item =>
+                item.IngredientId.SequenceEqual(line.IngredientId) &&
+                item.Receipt.SupplierId.SequenceEqual(line.SupplierId) &&
+                item.UnitId.SequenceEqual(line.UnitId) &&
+                item.UnitPrice > 0)
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .Select(item => item.UnitPrice)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        return latestReceiptPrice > 0 ? latestReceiptPrice : DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice);
+    }
+
+    private static PurchaseRequestWorkflowResultDto MapResult(
+        Purchaserequest purchaseRequest,
+        byte[] materialRequestId,
+        IEnumerable<Purchaserequestline> lines)
+        => new()
+        {
+            PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
+            PurchaseRequestCode = purchaseRequest.PurchaseRequestCode,
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequestId),
+            PurchaseForDate = purchaseRequest.PurchaseForDate.ToString("yyyy-MM-dd"),
+            ShiftName = purchaseRequest.ShiftName,
+            Status = purchaseRequest.Status,
+            Lines = lines
+                .OrderBy(line => line.Ingredient.IngredientName)
+                .Select(MapLine)
+                .ToList()
+        };
+
     private static PurchaseRequestWorkflowLineDto MapLine(Purchaserequestline line)
         => new()
         {
@@ -377,6 +586,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             RequiredQty = line.RequiredQty,
             CurrentStockQty = line.CurrentStockQty,
             PurchaseQty = line.PurchaseQty,
-            EstimatedUnitPrice = line.EstimatedUnitPrice
+            EstimatedUnitPrice = line.EstimatedUnitPrice,
+            ExpectedDeliveryDate = line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd"),
+            Note = line.Note
         };
 }

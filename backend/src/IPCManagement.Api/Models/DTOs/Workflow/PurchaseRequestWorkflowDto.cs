@@ -30,4 +30,6 @@ public class PurchaseRequestWorkflowLineDto
     public decimal CurrentStockQty { get; set; }
     public decimal PurchaseQty { get; set; }
     public decimal EstimatedUnitPrice { get; set; }
+    public string? ExpectedDeliveryDate { get; set; }
+    public string? Note { get; set; }
 }
