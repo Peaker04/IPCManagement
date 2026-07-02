@@ -1,8 +1,10 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
+using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
@@ -902,6 +904,138 @@ public class WorkflowGenerationTests
                 .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
+        }
+    }
+
+    [Fact]
+    public async Task CreateInventoryIssue_Should_AutoBuildLinesFromApprovedDemand_AndDecreaseStock()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = CreateInventoryIssueService(context);
+            var result = await service.CreateAsync(new CreateInventoryIssueDto
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId
+            }, fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            var issueLine = await context.Inventoryissuelines.AsNoTracking().SingleAsync();
+            issueLine.RequestedQty.Should().Be(200m);
+            issueLine.IssuedQty.Should().Be(200m);
+
+            var currentStock = await context.Currentstocks.AsNoTracking().SingleAsync();
+            currentStock.CurrentQty.Should().Be(50m);
+
+            var movement = await context.Stockmovements.AsNoTracking().SingleAsync();
+            movement.QuantityOut.Should().Be(200m);
+            movement.MovementType.Should().Be("ISSUE");
+        }
+    }
+
+    [Fact]
+    public async Task CreateInventoryIssue_Should_Block_WhenLineExceedsDemandRemaining()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 300m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            context.Inventoryissues.Add(new Inventoryissue
+            {
+                IssueId = GuidHelper.NewId(),
+                IssueCode = "PX-OLD",
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = fixture.WarehouseId,
+                MaterialRequestId = materialRequest.RequestId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow.AddMinutes(-10),
+                Inventoryissuelines =
+                [
+                    new Inventoryissueline
+                    {
+                        IssueLineId = GuidHelper.NewId(),
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        RequestedQty = 195m,
+                        IssuedQty = 195m
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = CreateInventoryIssueService(context);
+            var act = async () => await service.CreateAsync(new CreateInventoryIssueDto
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId,
+                Lines =
+                [
+                    new CreateInventoryIssueLineDto
+                    {
+                        IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+                        UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                        RequestedQty = 10m,
+                        IssuedQty = 10m
+                    }
+                ]
+            }, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*vượt nhu cầu còn lại*");
+            (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
+                .Should().Be(300m);
         }
     }
 
@@ -2148,6 +2282,14 @@ public class WorkflowGenerationTests
     private static ClaimsPrincipal BuildPrincipal(string roleName)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, roleName)], "TestAuth"));
 
+    private static InventoryIssueService CreateInventoryIssueService(IpcManagementContext context)
+        => new(
+            new InventoryIssueRepository(context),
+            new UnitOfWork(context),
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)));
+
     private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
     {
         await using var context = fixture.CreateContext();
@@ -2648,6 +2790,21 @@ public class WorkflowGenerationTests
                     lastUpdated TEXT NOT NULL,
                     rowVersion BLOB NOT NULL DEFAULT (X'01'),
                     PRIMARY KEY (warehouseId, ingredientId)
+                );
+                CREATE TABLE stockmovements (
+                    movementId BLOB PRIMARY KEY,
+                    movementDate TEXT NOT NULL,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    movementType TEXT NOT NULL,
+                    refTable TEXT NULL,
+                    refId BLOB NULL,
+                    quantityIn TEXT NOT NULL,
+                    quantityOut TEXT NOT NULL,
+                    reason TEXT NULL,
+                    note TEXT NULL,
+                    performedBy BLOB NOT NULL
                 );
                 CREATE TABLE auditlogs (
                     auditId BLOB PRIMARY KEY,

@@ -128,7 +128,6 @@ public class CreateInventoryIssueDto
 
     public string? ReceivedBy { get; set; }
 
-    [Required, MinLength(1)]
     public List<CreateInventoryIssueLineDto> Lines { get; set; } = new();
 }
 
