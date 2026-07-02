@@ -194,6 +194,69 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_NotDuplicateHeaderOrLines_WhenRunAgain()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var setupContext = fixture.CreateContext())
+        {
+            setupContext.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 25m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        string firstRequestId;
+        string firstLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var demand = await service.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            demand.Should().NotBeNull();
+            firstRequestId = demand!.MaterialRequestId;
+            var line = demand.Lines.Should().ContainSingle().Subject;
+            firstLineId = line.MaterialRequestLineId;
+            line.TotalServings.Should().Be(100);
+            line.GrossQtyPerServing.Should().Be(2m);
+            line.TotalRequiredQty.Should().Be(200m);
+            line.CurrentStockQty.Should().Be(25m);
+            line.SuggestedPurchaseQty.Should().Be(175m);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var demand = await service.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            demand.Should().NotBeNull();
+            demand!.MaterialRequestId.Should().Be(firstRequestId);
+            demand.ProductionPlanLineCount.Should().Be(1);
+            demand.Lines.Should().ContainSingle()
+                .Which.MaterialRequestLineId.Should().Be(firstLineId);
+
+            var requestCount = await context.Materialrequests.AsNoTracking().CountAsync();
+            var requestLineCount = await context.Materialrequestlines.AsNoTracking().CountAsync();
+            var productionLineCount = await context.Productionplanlines.AsNoTracking().CountAsync();
+
+            requestCount.Should().Be(1);
+            requestLineCount.Should().Be(1);
+            productionLineCount.Should().Be(1);
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ReportMissingConversion_WhenStockUnitCannotConvertToBomUnit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
