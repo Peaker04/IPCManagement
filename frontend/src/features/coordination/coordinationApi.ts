@@ -6,9 +6,11 @@ import type {
   CustomerContractDto,
   MealQuantityPlanDto,
   MealQuantityPlanQuery,
+  MenuVersionRollbackResult,
   MenuScheduleDto,
   MenuScheduleQuery,
   OrderRow,
+  RollbackMenuVersionRequest,
   ShiftType,
   SignoffOrderRequest,
   SignoffOrderResult,
@@ -267,6 +269,14 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'WorkflowReports'],
     }),
+    rollbackMenuVersion: builder.mutation<ApiResponse<MenuVersionRollbackResult>, RollbackMenuVersionRequest>({
+      query: (body) => ({
+        url: '/coordination/menu-versions/rollback',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Coordination', 'WorkflowReports'],
+    }),
     getMealQuantityPlans: builder.query<ApiResponse<MealQuantityPlanDto[]>, MealQuantityPlanQuery>({
       query: (params) => ({
         url: '/coordination/meal-quantity-plans',
@@ -391,6 +401,7 @@ export const {
   useGetMenuSchedulesQuery,
   useUpdateMenuScheduleRulesMutation,
   useUpdateMenuScheduleVersionMutation,
+  useRollbackMenuVersionMutation,
   useGetMealQuantityPlansQuery,
   useGetCoordinationOrdersQuery,
   useLockCoordinationOrdersMutation,

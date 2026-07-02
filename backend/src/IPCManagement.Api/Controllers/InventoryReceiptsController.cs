@@ -60,4 +60,32 @@ public class InventoryReceiptsController : ControllerBase
             new { id = result.ReceiptId },
             ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Tạo phiếu nhập kho thành công."));
     }
+
+    /// <summary>Tạo phiếu nhập kho từ phiếu mua đã gửi nhà cung cấp.</summary>
+    [HttpPost("from-purchase")]
+    public async Task<IActionResult> CreateFromPurchase([FromBody] CreateInventoryReceiptFromPurchaseDto dto)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _inventoryReceiptService.CreateFromPurchaseRequestAsync(dto, userId);
+            if (result is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.ReceiptId },
+                ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Đã nhập kho từ phiếu mua."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }
