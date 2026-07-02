@@ -257,6 +257,23 @@ public class CoordinationController : ControllerBase
         }
     }
 
+    [HttpPost("menu-versions/rollback")]
+    [ProducesResponseType(typeof(ApiResponse<MenuVersionRollbackResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RollbackMenuVersion([FromBody] RollbackMenuVersionDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.RollbackMenuVersionAsync(request, userId);
+            return Ok(ApiResponse<MenuVersionRollbackResultDto>.SuccessResult(result, "Đã quay lại version thực đơn trước đó."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("meal-quantity-plans")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMealQuantityPlans([FromQuery] MealQuantityPlanQueryDto query)

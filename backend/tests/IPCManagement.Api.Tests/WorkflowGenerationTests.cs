@@ -2137,6 +2137,97 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task MenuVersionRollback_Should_PublishPreviousVersion_AndInvalidateDemand()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        byte[] customerId;
+        byte[] versionOneId;
+        byte[] versionTwoId;
+        await using (var setupContext = fixture.CreateContext())
+        {
+            customerId = await setupContext.Customers.Select(item => item.CustomerId).SingleAsync();
+            versionOneId = GuidHelper.NewId();
+            versionTwoId = GuidHelper.NewId();
+            setupContext.Menuversions.AddRange(
+                new Menuversion
+                {
+                    MenuVersionId = versionOneId,
+                    CustomerId = customerId,
+                    WeekStartDate = new DateOnly(2026, 6, 15),
+                    VersionNo = 1,
+                    Status = "SUPERSEDED",
+                    SourceImportBatch = "MENU-CUS-20260615-V01",
+                    CreatedBy = fixture.UserId,
+                    CreatedAt = DateTime.UtcNow.AddHours(-2),
+                    PublishedBy = fixture.UserId,
+                    PublishedAt = DateTime.UtcNow.AddHours(-2),
+                    UpdatedAt = DateTime.UtcNow.AddHours(-2)
+                },
+                new Menuversion
+                {
+                    MenuVersionId = versionTwoId,
+                    CustomerId = customerId,
+                    WeekStartDate = new DateOnly(2026, 6, 15),
+                    VersionNo = 2,
+                    Status = "PUBLISHED",
+                    SourceImportBatch = "MENU-CUS-20260615-V02",
+                    CreatedBy = fixture.UserId,
+                    CreatedAt = DateTime.UtcNow.AddHours(-1),
+                    PublishedBy = fixture.UserId,
+                    PublishedAt = DateTime.UtcNow.AddHours(-1),
+                    UpdatedAt = DateTime.UtcNow.AddHours(-1)
+                });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                CustomerId = GuidHelper.ToGuidString(customerId),
+                Scope = "FULLDAY"
+            },
+            fixture.UserIdString);
+        demand.Should().NotBeNull();
+        var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+        purchase.Should().NotBeNull();
+
+        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var result = await service.RollbackMenuVersionAsync(
+            new RollbackMenuVersionDto
+            {
+                CustomerId = GuidHelper.ToGuidString(customerId),
+                WeekStartDate = "2026-06-15",
+                Reason = "Excel published bị sai món chính"
+            },
+            fixture.UserIdString);
+
+        result.ActiveVersionNo.Should().Be(1);
+        result.RolledBackFromVersionNo.Should().Be(2);
+        result.CancelledDemandCount.Should().Be(1);
+        result.CancelledPurchaseCount.Should().Be(1);
+
+        var versions = await context.Menuversions.AsNoTracking().ToListAsync();
+        versions.Single(item => item.MenuVersionId.SequenceEqual(versionOneId)).Status.Should().Be("PUBLISHED");
+        versions.Single(item => item.MenuVersionId.SequenceEqual(versionTwoId)).Status.Should().Be("SUPERSEDED");
+        (await context.Materialrequests.AsNoTracking().Select(item => item.Status).SingleAsync()).Should().Be("CANCELLED");
+        (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync()).Should().Be("CANCELLED");
+
+        var audits = await context.Auditlogs.AsNoTracking()
+            .Where(item => item.Reason != null && item.Reason.Contains("Excel published bị sai món chính"))
+            .Select(item => new { item.BusinessArea, item.FieldName })
+            .ToListAsync();
+        audits.Should().Contain(item => item.BusinessArea == "MenuVersion" && item.FieldName == "Rollback");
+        audits.Should().Contain(item => item.BusinessArea == "Demand" && item.FieldName == nameof(Materialrequest.Status));
+        audits.Should().Contain(item => item.BusinessArea == "Purchase" && item.FieldName == nameof(Purchaserequest.Status));
+    }
+
+    [Fact]
     public async Task WeeklyMenuReimport_Should_CancelDownstreamDemandAndPurchase_ForCustomerWeek()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

@@ -95,6 +95,28 @@ public class UpdateMenuScheduleVersionDto
     public string? Reason { get; set; }
 }
 
+public class RollbackMenuVersionDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string WeekStartDate { get; set; } = string.Empty;
+    public int? TargetVersionNo { get; set; }
+    public string? TargetMenuVersionId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
+public class MenuVersionRollbackResultDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string WeekStartDate { get; set; } = string.Empty;
+    public string ActiveMenuVersionId { get; set; } = string.Empty;
+    public int ActiveVersionNo { get; set; }
+    public string RolledBackFromMenuVersionId { get; set; } = string.Empty;
+    public int RolledBackFromVersionNo { get; set; }
+    public int CancelledDemandCount { get; set; }
+    public int CancelledPurchaseCount { get; set; }
+    public string Reason { get; set; } = string.Empty;
+}
+
 public class MenuScheduleDishDto
 {
     public string DishId { get; set; } = string.Empty;
