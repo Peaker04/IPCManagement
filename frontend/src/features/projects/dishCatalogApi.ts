@@ -185,7 +185,7 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
     updateDishBomLine: builder.mutation<DishCatalogBomLineDto, UpsertDishBomLineRequest>({
       query: ({ dishId, bomId, ...body }) => ({
@@ -194,14 +194,14 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
     closeDishBomLine: builder.mutation<void, { dishId: string; bomId: string }>({
       query: ({ dishId, bomId }) => ({
         url: `/dishes/${dishId}/bom/${bomId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
   }),
   overrideExisting: false,
