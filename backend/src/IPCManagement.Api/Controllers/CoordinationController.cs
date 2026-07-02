@@ -471,7 +471,16 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> AdjustServings([FromRoute] string id, [FromBody] AdjustServingsRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.AdjustServingsAsync(id, request, userId);
+        AdjustServingsResultDto? result;
+        try
+        {
+            result = await _coordinationService.AdjustServingsAsync(id, request, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
