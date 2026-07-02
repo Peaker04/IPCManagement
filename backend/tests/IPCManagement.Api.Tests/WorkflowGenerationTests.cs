@@ -1183,6 +1183,191 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task WarehouseUat_Should_KeepStockLedgerBalanced_AndRollbackFailedWarehouseActions()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchaseService = new PurchaseRequestWorkflowService(context);
+            var purchase = await purchaseService.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+            await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+
+            purchaseRequestId = purchase.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var receiptService = CreateInventoryReceiptService(context);
+            var overReceipt = async () => await receiptService.CreateFromPurchaseRequestAsync(
+                new CreateInventoryReceiptFromPurchaseDto
+                {
+                    PurchaseRequestId = purchaseRequestId,
+                    ReceiptDate = new DateOnly(2026, 6, 15),
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                    Lines =
+                    [
+                        new CreateInventoryReceiptFromPurchaseLineDto
+                        {
+                            PurchaseRequestLineId = purchaseRequestLineId,
+                            UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                            ReceivedQty = 201m
+                        }
+                    ]
+                },
+                fixture.UserIdString);
+
+            await overReceipt.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*vượt số còn lại*");
+            (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(0);
+            (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(0);
+            (await context.Currentstocks.AsNoTracking().CountAsync()).Should().Be(0);
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("SENTTOSUPPLIER");
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var receiptService = CreateInventoryReceiptService(context);
+            await receiptService.CreateFromPurchaseRequestAsync(
+                new CreateInventoryReceiptFromPurchaseDto
+                {
+                    PurchaseRequestId = purchaseRequestId,
+                    ReceiptDate = new DateOnly(2026, 6, 15),
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                    Lines =
+                    [
+                        new CreateInventoryReceiptFromPurchaseLineDto
+                        {
+                            PurchaseRequestLineId = purchaseRequestLineId,
+                            UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                            ReceivedQty = 200m,
+                            LotNumber = "UAT-LOT"
+                        }
+                    ]
+                },
+                fixture.UserIdString);
+
+            var materialRequestBytes = GuidHelper.ParseGuidString(materialRequestId)!;
+            var materialRequest = await context.Materialrequests
+                .SingleAsync(item => item.RequestId == materialRequestBytes);
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var issueService = CreateInventoryIssueService(context);
+            await issueService.CreateAsync(
+                new CreateInventoryIssueDto
+                {
+                    IssueDate = new DateOnly(2026, 6, 15),
+                    ShiftName = "MORNING",
+                    WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                    MaterialRequestId = materialRequestId,
+                    Lines =
+                    [
+                        new CreateInventoryIssueLineDto
+                        {
+                            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+                            UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                            RequestedQty = 150m,
+                            IssuedQty = 150m
+                        }
+                    ]
+                },
+                fixture.UserIdString);
+
+            var shortageRequestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new Materialrequest
+            {
+                RequestId = shortageRequestId,
+                RequestCode = "MR-UAT-SHORTAGE",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = new DateOnly(2026, 6, 15),
+                RequestScope = "FULLDAY",
+                Status = "SENTTOWAREHOUSE",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = shortageRequestId,
+                        PlanLineId = GuidHelper.NewId(),
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        TotalServings = 1,
+                        GrossQtyPerServing = 75m,
+                        BomRatePercent = 100m,
+                        AppliedPortionRatePercent = 100m,
+                        AppliedPortionRuleSource = "UAT",
+                        TotalRequiredQty = 75m,
+                        CurrentStockQty = 50m,
+                        SuggestedPurchaseQty = 25m
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+
+            var shortage = async () => await issueService.CreateAsync(
+                new CreateInventoryIssueDto
+                {
+                    IssueDate = new DateOnly(2026, 6, 15),
+                    ShiftName = "AFTERNOON",
+                    WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                    MaterialRequestId = GuidHelper.ToGuidString(shortageRequestId)
+                },
+                fixture.UserIdString);
+
+            var exception = await shortage.Should().ThrowAsync<StockShortageException>();
+            exception.Which.Shortage.Lines.Should().ContainSingle(line =>
+                line.RequiredQty == 75m &&
+                line.AvailableQty == 50m &&
+                line.MissingQty == 25m);
+
+            (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(2);
+            (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
+                .Should().Be(50m);
+            (await context.Currentstocks.AsNoTracking().AnyAsync(item => item.CurrentQty < 0))
+                .Should().BeFalse();
+
+            var reconciliation = await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+                new WorkflowReportQueryDto
+                {
+                    WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                    IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+                    Limit = 10
+                });
+            var row = reconciliation.Should().ContainSingle().Subject;
+            row.CurrentQty.Should().Be(50m);
+            row.LedgerQty.Should().Be(50m);
+            row.DifferenceQty.Should().Be(0m);
+            row.IsMatched.Should().BeTrue();
+        }
+    }
+
+    [Fact]
     public async Task ApprovalInbox_Should_FilterPendingItems_ByApproverRole()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
