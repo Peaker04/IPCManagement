@@ -345,12 +345,14 @@ public class CoordinationController : ControllerBase
         }
 
         var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+        var userId = _currentUserService.GetUserId(User);
         using var stream = file.OpenReadStream();
         var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
             stream,
             file.FileName,
             customerId,
             parsedWeekStart,
+            userId,
             cancellationToken);
 
         return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));

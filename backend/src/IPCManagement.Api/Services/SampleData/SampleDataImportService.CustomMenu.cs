@@ -215,6 +215,7 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
@@ -237,7 +238,7 @@ public partial class SampleDataImportService
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, cancellationToken);
+            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, actorUserId, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
@@ -339,9 +340,10 @@ public partial class SampleDataImportService
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
-        var version = await CreateMenuVersionHeaderAsync(plan, customer, cancellationToken);
+        var version = await CreateMenuVersionHeaderAsync(plan, customer, actorUserId, cancellationToken);
         var result = await BuildWeeklyMenuImportResultAsync(
             plan,
             customer,
@@ -479,6 +481,7 @@ public partial class SampleDataImportService
             plan.WeekStartDate,
             plan.WeekEndDate,
             version,
+            actorUserId,
             cancellationToken);
         if (invalidatedCount > 0)
         {
@@ -495,9 +498,10 @@ public partial class SampleDataImportService
         DateOnly weekStartDate,
         DateOnly weekEndDate,
         Menuversion version,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
-        var actorId = await ResolveAuditActorIdAsync(cancellationToken);
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
         var changedAt = DateTime.UtcNow;
         var reason = $"Menu re-import {version.SourceImportBatch} invalidated downstream demand/PR; regenerate required.";
         var invalidatedCount = 0;
@@ -566,8 +570,20 @@ public partial class SampleDataImportService
         return invalidatedCount;
     }
 
-    private async Task<byte[]> ResolveAuditActorIdAsync(CancellationToken cancellationToken)
+    private async Task<byte[]> ResolveAuditActorIdAsync(string? actorUserId, CancellationToken cancellationToken)
     {
+        var requestedActorId = GuidHelper.ParseGuidString(actorUserId);
+        if (requestedActorId is not null)
+        {
+            var exists = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.UserId.SequenceEqual(requestedActorId), cancellationToken);
+            if (exists)
+            {
+                return requestedActorId;
+            }
+        }
+
         var actor = await _context.Users
             .AsNoTracking()
             .OrderByDescending(user => user.Role != null && user.Role.RoleName.ToLower().Contains("admin"))
@@ -1678,9 +1694,11 @@ public partial class SampleDataImportService
     private async Task<Menuversion> CreateMenuVersionHeaderAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
         var changedAt = DateTime.UtcNow;
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
         var versions = await _context.Menuversions
             .Where(version => version.WeekStartDate == plan.WeekStartDate)
             .OrderByDescending(version => version.VersionNo)
@@ -1707,6 +1725,7 @@ public partial class SampleDataImportService
             SourceFileName = plan.FileName,
             SourceChecksum = plan.SourceChecksum,
             SourceImportBatch = importBatch,
+            CreatedBy = actorId,
             CreatedAt = changedAt,
             UpdatedAt = changedAt
         };
