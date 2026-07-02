@@ -80,6 +80,41 @@ public class InventoryReceiptCreatedDto
     public string ReceiptCode { get; set; } = string.Empty;
 }
 
+public class CreateInventoryReceiptFromPurchaseDto
+{
+    [Required]
+    public string PurchaseRequestId { get; set; } = string.Empty;
+
+    [Required]
+    public DateOnly ReceiptDate { get; set; }
+
+    [Required]
+    public string SupplierId { get; set; } = string.Empty;
+
+    [Required]
+    public string WarehouseId { get; set; } = string.Empty;
+
+    [Required, MinLength(1)]
+    public List<CreateInventoryReceiptFromPurchaseLineDto> Lines { get; set; } = new();
+}
+
+public class CreateInventoryReceiptFromPurchaseLineDto
+{
+    [Required]
+    public string PurchaseRequestLineId { get; set; } = string.Empty;
+
+    [Required]
+    public string UnitId { get; set; } = string.Empty;
+
+    [Required, Range(0.000001, double.MaxValue)]
+    public decimal ReceivedQty { get; set; }
+
+    public decimal? UnitPrice { get; set; }
+    public string? LotNumber { get; set; }
+    public DateOnly? ManufactureDate { get; set; }
+    public DateOnly? ExpiredDate { get; set; }
+}
+
 // ─── Inventory Issue (Xuất kho) ─────────────────────────────────────────
 
 public class InventoryIssueDto

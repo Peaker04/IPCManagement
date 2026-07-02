@@ -8,6 +8,7 @@ export {
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
+  useCreateInventoryReceiptFromPurchaseMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -22,6 +23,7 @@ export {
 export type {
   AuditLogRow,
   ApprovalDecisionRequest,
+  CreateInventoryReceiptFromPurchaseRequest,
   CurrentStockRow,
   DataQualityIssueRow,
   DataQualityReport,

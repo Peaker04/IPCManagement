@@ -908,6 +908,84 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task CreateInventoryReceiptFromPurchase_Should_CreateReceipt_IncreaseStock_AndMarkPurchaseReceived()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchaseService = new PurchaseRequestWorkflowService(context);
+            var purchase = await purchaseService.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+            purchaseRequestId = purchase.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = CreateInventoryReceiptService(context);
+            var result = await service.CreateFromPurchaseRequestAsync(new CreateInventoryReceiptFromPurchaseDto
+            {
+                PurchaseRequestId = purchaseRequestId,
+                ReceiptDate = new DateOnly(2026, 6, 15),
+                SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                Lines =
+                [
+                    new CreateInventoryReceiptFromPurchaseLineDto
+                    {
+                        PurchaseRequestLineId = purchaseRequestLineId,
+                        UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                        ReceivedQty = 200m,
+                        LotNumber = "LOT-001",
+                        ExpiredDate = new DateOnly(2026, 6, 30)
+                    }
+                ]
+            }, fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            var receipt = await context.Inventoryreceipts
+                .Include(item => item.Inventoryreceiptlines)
+                .AsNoTracking()
+                .SingleAsync();
+            receipt.PurchaseRequestId.Should().NotBeNull();
+            receipt.PurchaseRequestId!.Should().Equal(GuidHelper.ParseGuidString(purchaseRequestId)!);
+            receipt.Inventoryreceiptlines.Should().ContainSingle();
+            receipt.Inventoryreceiptlines.Single().Quantity.Should().Be(200m);
+            receipt.Inventoryreceiptlines.Single().LotNumber.Should().Be("LOT-001");
+
+            var currentStock = await context.Currentstocks.AsNoTracking().SingleAsync();
+            currentStock.CurrentQty.Should().Be(200m);
+
+            var movement = await context.Stockmovements.AsNoTracking().SingleAsync();
+            movement.MovementType.Should().Be("RECEIPT");
+            movement.QuantityIn.Should().Be(200m);
+
+            var purchaseStatus = await context.Purchaserequests.AsNoTracking()
+                .Select(item => item.Status)
+                .SingleAsync();
+            purchaseStatus.Should().Be("RECEIVED");
+
+            var audit = await context.Auditlogs.AsNoTracking()
+                .SingleAsync(item => item.BusinessArea == "Receipt" && item.FieldName == nameof(Purchaserequest.Status));
+            audit.OldValue.Should().Be("SENTTOSUPPLIER");
+            audit.NewValue.Should().Be("RECEIVED");
+        }
+    }
+
+    [Fact]
     public async Task CreateInventoryIssue_Should_AutoBuildLinesFromApprovedDemand_AndDecreaseStock()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2380,6 +2458,15 @@ public class WorkflowGenerationTests
             new StockLedgerService(
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)));
+
+    private static InventoryReceiptService CreateInventoryReceiptService(IpcManagementContext context)
+        => new(
+            new InventoryReceiptRepository(context),
+            new UnitOfWork(context),
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)),
+            context);
 
     private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
     {

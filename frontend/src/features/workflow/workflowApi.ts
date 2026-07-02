@@ -31,6 +31,29 @@ export interface WorkflowReportQuery {
   limit?: number;
 }
 
+export interface CreateInventoryReceiptFromPurchaseLineRequest {
+  purchaseRequestLineId: string;
+  unitId: string;
+  receivedQty: number;
+  unitPrice?: number;
+  lotNumber?: string;
+  manufactureDate?: string;
+  expiredDate?: string;
+}
+
+export interface CreateInventoryReceiptFromPurchaseRequest {
+  purchaseRequestId: string;
+  receiptDate: string;
+  supplierId: string;
+  warehouseId: string;
+  lines: CreateInventoryReceiptFromPurchaseLineRequest[];
+}
+
+export interface InventoryReceiptCreatedResult {
+  receiptId: string;
+  receiptCode: string;
+}
+
 interface WorkflowDocumentDto {
   documentId: string;
   documentCode: string;
@@ -772,6 +795,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
+      query: (body) => ({
+        url: '/inventory-receipts/from-purchase',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -874,6 +905,7 @@ export const {
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
+  useCreateInventoryReceiptFromPurchaseMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
