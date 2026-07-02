@@ -85,6 +85,8 @@ interface PurchaseDemandReportDto {
   purchaseQty: number;
   estimatedUnitPrice: number;
   estimatedAmount: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
 }
 
 interface StockMovementViewDto {
@@ -114,6 +116,8 @@ export interface SupplierDto {
 export interface UpdatePurchaseRequestLineSupplierDto {
   supplierId: string;
   estimatedUnitPrice: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
 }
 
 interface ReceiptPriceVarianceReportDto {
@@ -459,6 +463,8 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     purchaseRequestLineId: item.purchaseRequestLineId,
     supplierId: item.supplierId,
     estimatedUnitPrice: item.estimatedUnitPrice,
+    expectedDeliveryDate: item.expectedDeliveryDate?.split('T')[0],
+    note: item.note ?? undefined,
     sourceDocumentCode: item.purchaseRequestCode,
     serviceDate: item.purchaseForDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,

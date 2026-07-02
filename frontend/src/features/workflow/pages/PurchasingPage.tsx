@@ -131,6 +131,8 @@ export default function PurchasingPage() {
                     <th className="text-right">SL Cần mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Giá dự kiến (đ)</th>
+                    <th>Ngày giao</th>
+                    <th>Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -146,7 +148,7 @@ export default function PurchasingPage() {
                     />
                   ))}
                   {purchaseDemandLines.length === 0 && (
-                    <tr><td colSpan={6} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
+                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
                   )}
                 </tbody>
               </table>
@@ -177,6 +179,8 @@ function SupplierLineItem({
 }) {
   const [selectedSupplierId, setSelectedSupplierId] = useState(line.supplierId ?? '');
   const [estimatedPrice, setEstimatedPrice] = useState<number>(line.estimatedUnitPrice ?? 0);
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '');
+  const [note, setNote] = useState(line.note ?? '');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleSave = async () => {
@@ -195,7 +199,9 @@ function SupplierLineItem({
         purchaseRequestLineId: line.purchaseRequestLineId,
         data: {
           supplierId: selectedSupplierId,
-          estimatedUnitPrice: estimatedPrice
+          estimatedUnitPrice: estimatedPrice,
+          expectedDeliveryDate: expectedDeliveryDate || null,
+          note: note.trim() || null,
         }
       }).unwrap();
       alert('Đã cập nhật Nhà cung cấp thành công!');
@@ -234,6 +240,22 @@ function SupplierLineItem({
           placeholder="VD: 150000" 
           value={estimatedPrice || ''}
           onChange={(e) => setEstimatedPrice(Number(e.target.value))}
+        />
+      </td>
+      <td>
+        <input
+          type="date"
+          className="ipc-input w-full"
+          value={expectedDeliveryDate}
+          onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+        />
+      </td>
+      <td>
+        <input
+          className="ipc-input w-full"
+          placeholder="Ghi chú"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
         />
       </td>
       <td>

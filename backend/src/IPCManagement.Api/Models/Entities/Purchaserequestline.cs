@@ -25,6 +25,10 @@ public partial class Purchaserequestline
 
     public decimal EstimatedUnitPrice { get; set; }
 
+    public DateOnly? ExpectedDeliveryDate { get; set; }
+
+    public string? Note { get; set; }
+
     public virtual Ingredient Ingredient { get; set; } = null!;
 
     public virtual Materialrequestline MaterialRequestLine { get; set; } = null!;

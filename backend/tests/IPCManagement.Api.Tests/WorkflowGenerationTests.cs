@@ -520,6 +520,74 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task UpdatePurchaseRequestLine_Should_SaveSupplierPriceDeliveryNote_AndAuditActor()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        var newSupplierId = GuidHelper.NewId();
+        await using (var context = fixture.CreateContext())
+        {
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = newSupplierId,
+                SupplierCode = "SUP-ALT",
+                SupplierName = "Alternate Supplier",
+                IsActive = true
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            await service.UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(newSupplierId),
+                    EstimatedUnitPrice = 12345.678m,
+                    ExpectedDeliveryDate = "2026-06-16",
+                    Note = "Giao trước 9h"
+                },
+                fixture.UserIdString);
+
+            var savedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
+            savedLine.SupplierId.Should().Equal(newSupplierId);
+            savedLine.EstimatedUnitPrice.Should().Be(12345.68m);
+            savedLine.ExpectedDeliveryDate.Should().Be(new DateOnly(2026, 6, 16));
+            savedLine.Note.Should().Be("Giao trước 9h");
+
+            var audit = await context.Auditlogs.AsNoTracking()
+                .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "SupplierPriceDelivery")
+                .SingleAsync();
+            audit.ChangedBy.Should().Equal(fixture.UserId);
+            audit.EntityId.Should().Equal(savedLine.PurchaseRequestLineId);
+            audit.OldValue.Should().Contain(GuidHelper.ToGuidString(fixture.SupplierId));
+            audit.NewValue.Should().Contain(GuidHelper.ToGuidString(newSupplierId));
+            audit.NewValue.Should().Contain("price=12345.68");
+            audit.NewValue.Should().Contain("delivery=2026-06-16");
+            audit.NewValue.Should().Contain("note=Giao trước 9h");
+        }
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1955,7 +2023,9 @@ public class WorkflowGenerationTests
                     requiredQty TEXT NOT NULL,
                     currentStockQty TEXT NOT NULL,
                     purchaseQty TEXT NOT NULL,
-                    estimatedUnitPrice TEXT NOT NULL
+                    estimatedUnitPrice TEXT NOT NULL,
+                    expectedDeliveryDate TEXT NULL,
+                    note TEXT NULL
                 );
                 CREATE TABLE currentstock (
                     warehouseId BLOB NOT NULL,

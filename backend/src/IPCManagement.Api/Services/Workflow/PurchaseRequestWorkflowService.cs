@@ -169,15 +169,28 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         string requestId,
         string lineId,
         UpdatePurchaseRequestLineSupplierDto request,
+        string? userId,
         CancellationToken cancellationToken = default)
     {
         var prIdBytes = GuidHelper.ParseGuidString(requestId);
         var prLineIdBytes = GuidHelper.ParseGuidString(lineId);
         var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
 
-        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null)
+        if (prIdBytes is null || prLineIdBytes is null || supplierIdBytes is null || userIdBytes is null)
         {
             throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        DateOnly? expectedDeliveryDate = null;
+        if (!string.IsNullOrWhiteSpace(request.ExpectedDeliveryDate))
+        {
+            if (!DateOnly.TryParse(request.ExpectedDeliveryDate, out var parsedDeliveryDate))
+            {
+                throw new ArgumentException("Ngày giao dự kiến không hợp lệ.");
+            }
+
+            expectedDeliveryDate = parsedDeliveryDate;
         }
 
         var pr = await _context.Purchaserequests
@@ -206,11 +219,31 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             throw new KeyNotFoundException("Nhà cung cấp không tồn tại hoặc đã bị khóa.");
         }
 
+        var oldValue = BuildPurchaseLineAuditValue(line);
         line.SupplierId = supplierIdBytes;
         line.EstimatedUnitPrice = DecimalPolicy.RoundMoney(request.EstimatedUnitPrice);
+        line.ExpectedDeliveryDate = expectedDeliveryDate;
+        line.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchaserequestline),
+            EntityId = line.PurchaseRequestLineId,
+            FieldName = "SupplierPriceDelivery",
+            OldValue = oldValue,
+            NewValue = BuildPurchaseLineAuditValue(line),
+            Reason = "Cập nhật nhà cung cấp, giá dự kiến, ngày giao và ghi chú dòng mua."
+        });
 
         await _context.SaveChangesAsync(cancellationToken);
     }
+
+    private static string BuildPurchaseLineAuditValue(Purchaserequestline line)
+        => $"supplier={GuidHelper.ToGuidString(line.SupplierId)}; price={DecimalPolicy.RoundMoney(line.EstimatedUnitPrice)}; delivery={line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-"}; note={line.Note ?? "-"}";
 
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
         Materialrequest materialRequest,
@@ -379,6 +412,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             RequiredQty = line.RequiredQty,
             CurrentStockQty = line.CurrentStockQty,
             PurchaseQty = line.PurchaseQty,
-            EstimatedUnitPrice = line.EstimatedUnitPrice
+            EstimatedUnitPrice = line.EstimatedUnitPrice,
+            ExpectedDeliveryDate = line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd"),
+            Note = line.Note
         };
 }

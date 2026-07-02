@@ -363,7 +363,9 @@ public class WorkflowReportService : IWorkflowReportService
                 CurrentStockQty = DecimalPolicy.RoundQuantity(item.CurrentStockQty),
                 PurchaseQty = DecimalPolicy.RoundQuantity(item.PurchaseQty),
                 EstimatedUnitPrice = DecimalPolicy.RoundMoney(item.EstimatedUnitPrice),
-                EstimatedAmount = DecimalPolicy.CalculateLineAmount(item.PurchaseQty, item.EstimatedUnitPrice)
+                EstimatedAmount = DecimalPolicy.CalculateLineAmount(item.PurchaseQty, item.EstimatedUnitPrice),
+                ExpectedDeliveryDate = item.ExpectedDeliveryDate,
+                Note = item.Note
             })
             .ToList();
     }

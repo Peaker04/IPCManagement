@@ -106,6 +106,8 @@ export interface DemandLine {
   purchaseRequestLineId?: string;
   supplierId?: string;
   estimatedUnitPrice?: number;
+  expectedDeliveryDate?: string;
+  note?: string;
   sourceDocumentCode?: string;
   serviceDate?: string;
   material: string;

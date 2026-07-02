@@ -46,6 +46,7 @@ public class PurchaseWorkflowController : ControllerBase
 
     /// <summary>Gắn nhà cung cấp và đơn giá vào dòng đề xuất mua hàng.</summary>
     [HttpPatch("requests/{id}/lines/{lineId}/supplier")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -57,7 +58,8 @@ public class PurchaseWorkflowController : ControllerBase
     {
         try
         {
-            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, cancellationToken);
+            var userId = _currentUserService.GetUserId(User);
+            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, userId, cancellationToken);
             return Ok(ApiResponse.SuccessResult("Cập nhật nhà cung cấp và đơn giá thành công."));
         }
         catch (KeyNotFoundException ex)
