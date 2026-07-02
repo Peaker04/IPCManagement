@@ -813,6 +813,98 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task SubmitPurchaseRequest_Should_Block_WhenSupplierInactive()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            purchaseRequestId = purchase!.PurchaseRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var supplier = await context.Suppliers.SingleAsync(item => item.SupplierId == fixture.SupplierId);
+            supplier.IsActive = false;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
+        }
+    }
+
+    [Fact]
+    public async Task SubmitPurchaseRequest_Should_Block_WhenPriceVarianceExceedsThreshold()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            await service.UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    EstimatedUnitPrice = 1200m
+                },
+                fixture.UserIdString);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
+        }
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
