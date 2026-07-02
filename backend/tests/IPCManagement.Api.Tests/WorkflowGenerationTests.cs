@@ -16,6 +16,40 @@ namespace IPCManagement.Api.Tests;
 public class WorkflowGenerationTests
 {
     [Fact]
+    public async Task GenerateDemand_Should_CreateDemandLines_ForHappyPath()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var service = new MaterialDemandService(context);
+
+        var result = await service.GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        result.Should().NotBeNull();
+        result!.RequestCode.Should().Be("MR-CUS-20260615-FULLDAY");
+        result.Status.Should().Be("DRAFT");
+        result.MissingBomDishes.Should().BeEmpty();
+        result.MissingConversionIssues.Should().BeEmpty();
+        result.ProductionPlanLineCount.Should().Be(1);
+
+        var line = result.Lines.Should().ContainSingle().Subject;
+        line.DishName.Should().Be("Dish with BOM");
+        line.IngredientName.Should().Be("Ingredient");
+        line.TotalServings.Should().Be(100);
+        line.GrossQtyPerServing.Should().Be(2m);
+        line.TotalRequiredQty.Should().Be(200m);
+        line.SuggestedPurchaseQty.Should().Be(200m);
+
+        (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+        (await context.Productionplanlines.AsNoTracking().CountAsync()).Should().Be(1);
+        var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item => item.BusinessArea == "Demand");
+        audit.NewValue.Should().Be("1 demand lines; 0 missing BOM dishes; 0 missing unit conversions");
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ReportMissingBom_And_WriteDemandAudit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
