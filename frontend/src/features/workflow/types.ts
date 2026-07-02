@@ -78,10 +78,12 @@ export interface WorkflowDocument {
   tone: WorkflowTone;
 }
 
-export type ApprovalType = 'purchase' | 'issue' | 'adjustment';
+export type ApprovalType = 'purchase' | 'issue' | 'adjustment' | 'price-alert';
 
 export interface ApprovalRecord {
   id: string;
+  targetType?: string;
+  targetId?: string;
   type: ApprovalType;
   title: string;
   source: string;

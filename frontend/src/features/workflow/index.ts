@@ -1,6 +1,7 @@
 export { getWorkflowContextForPath, workflowLaneDefinitions } from './workflowConfig';
 export {
   useGetApprovalRecordsQuery,
+  useExecuteApprovalDecisionMutation,
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
   useGetDataQualityQuery,
@@ -20,6 +21,7 @@ export {
 } from './workflowApi';
 export type {
   AuditLogRow,
+  ApprovalDecisionRequest,
   CurrentStockRow,
   DataQualityIssueRow,
   DataQualityReport,
