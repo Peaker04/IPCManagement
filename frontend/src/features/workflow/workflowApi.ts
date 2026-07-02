@@ -31,6 +31,29 @@ export interface WorkflowReportQuery {
   limit?: number;
 }
 
+export interface CreateInventoryReceiptFromPurchaseLineRequest {
+  purchaseRequestLineId: string;
+  unitId: string;
+  receivedQty: number;
+  unitPrice?: number;
+  lotNumber?: string;
+  manufactureDate?: string;
+  expiredDate?: string;
+}
+
+export interface CreateInventoryReceiptFromPurchaseRequest {
+  purchaseRequestId: string;
+  receiptDate: string;
+  supplierId: string;
+  warehouseId: string;
+  lines: CreateInventoryReceiptFromPurchaseLineRequest[];
+}
+
+export interface InventoryReceiptCreatedResult {
+  receiptId: string;
+  receiptCode: string;
+}
+
 interface WorkflowDocumentDto {
   documentId: string;
   documentCode: string;
@@ -130,6 +153,20 @@ interface StockMovementViewDto {
   refId?: string;
   reason?: string;
   note?: string;
+}
+
+interface StockLedgerReconciliationDto {
+  warehouseId: string;
+  warehouseName?: string;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
 }
 
 export interface SupplierDto {
@@ -369,6 +406,18 @@ export interface CurrentStockRow {
   lastUpdated: string;
 }
 
+export interface StockLedgerReconciliationRow {
+  id: string;
+  warehouse: string;
+  ingredient: string;
+  unit: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
+}
+
 export interface KitchenIssueRow {
   id: string;
   issueCode: string;
@@ -578,6 +627,18 @@ const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   lastUpdated: item.lastUpdated,
 });
 
+const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): StockLedgerReconciliationRow => ({
+  id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouse: item.warehouseName ?? item.warehouseId,
+  ingredient: item.ingredientName ?? item.ingredientId,
+  unit: item.unitName ?? item.unitId,
+  currentQty: item.currentQty,
+  ledgerQty: item.ledgerQty,
+  differenceQty: item.differenceQty,
+  isMatched: item.isMatched,
+  lastMovementAt: item.lastMovementAt,
+});
+
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   id: `${item.issueId}-${item.ingredientId}`,
   issueCode: item.issueCode,
@@ -772,6 +833,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
+      query: (body) => ({
+        url: '/inventory-receipts/from-purchase',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -818,6 +887,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
+      providesTags: ['WorkflowReports'],
+    }),
+    getStockLedgerReconciliation: builder.query<StockLedgerReconciliationRow[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/stock-ledger-reconciliation',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<StockLedgerReconciliationDto[]>) => getData(response).map(mapStockLedgerReconciliation),
       providesTags: ['WorkflowReports'],
     }),
     getKitchenIssues: builder.query<KitchenIssueRow[], WorkflowReportQuery | void>({
@@ -874,12 +951,14 @@ export const {
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
+  useCreateInventoryReceiptFromPurchaseMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
   useGetStockMovementsQuery,
   useGetPriceVarianceQuery,
   useGetCurrentStockQuery,
+  useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,

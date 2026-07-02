@@ -15,6 +15,7 @@ public interface ICoordinationService
     Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query);
     Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(string menuScheduleId, UpdateMenuScheduleRulesDto request, string? userId);
     Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(string menuScheduleId, UpdateMenuScheduleVersionDto request, string? userId);
+    Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(RollbackMenuVersionDto request, string? userId);
     Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query);
     Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequestDto request, string? userId);
     Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(AdjustOrderAfterLockRequestDto request, string? userId);

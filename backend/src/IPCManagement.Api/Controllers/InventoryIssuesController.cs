@@ -49,15 +49,30 @@ public class InventoryIssuesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateInventoryIssueDto dto)
     {
-        var userId = _currentUserService.GetUserId(User);
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
 
-        var result = await _inventoryIssueService.CreateAsync(dto, userId);
-        if (result is null)
-            return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            var result = await _inventoryIssueService.CreateAsync(dto, userId);
+            if (result is null)
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
-        return CreatedAtAction(
-            nameof(GetById),
-            new { id = result.IssueId },
-            ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
+            return CreatedAtAction(
+                nameof(GetById),
+                new { id = result.IssueId },
+                ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
+        }
+        catch (StockShortageException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message, ex.Shortage));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 }

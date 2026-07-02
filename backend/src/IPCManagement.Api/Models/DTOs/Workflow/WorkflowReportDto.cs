@@ -45,6 +45,21 @@ public class StockMovementViewDto
     public string? Note { get; set; }
 }
 
+public class StockLedgerReconciliationDto
+{
+    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseName { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal CurrentQty { get; set; }
+    public decimal LedgerQty { get; set; }
+    public decimal DifferenceQty { get; set; }
+    public bool IsMatched { get; set; }
+    public DateTime? LastMovementAt { get; set; }
+}
+
 public class IngredientDemandReportDto
 {
     public string MaterialRequestId { get; set; } = string.Empty;

@@ -213,6 +213,26 @@ export interface UpdateMenuScheduleVersionRequest {
   reason?: string
 }
 
+export interface RollbackMenuVersionRequest {
+  customerId: string
+  weekStartDate: string
+  targetVersionNo?: number
+  targetMenuVersionId?: string
+  reason: string
+}
+
+export interface MenuVersionRollbackResult {
+  customerId: string
+  weekStartDate: string
+  activeMenuVersionId: string
+  activeVersionNo: number
+  rolledBackFromMenuVersionId: string
+  rolledBackFromVersionNo: number
+  cancelledDemandCount: number
+  cancelledPurchaseCount: number
+  reason: string
+}
+
 export interface MealQuantityPlanQuery {
   customerId?: string
   serviceDate?: string
