@@ -1404,7 +1404,11 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("productionplans");
 
+            entity.HasIndex(e => e.CustomerId, "customerId");
+
             entity.HasIndex(e => e.CreatedBy, "createdBy");
+
+            entity.HasIndex(e => e.MenuVersionId, "menuVersionId");
 
             entity.HasIndex(e => e.PlanCode, "planCode").IsUnique();
 
@@ -1420,6 +1424,14 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("createdBy");
+            entity.Property(e => e.CustomerId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("customerId");
+            entity.Property(e => e.MenuVersionId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("menuVersionId");
             entity.Property(e => e.PlanCode)
                 .HasMaxLength(50)
                 .HasColumnName("planCode");
@@ -1428,6 +1440,15 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'CREATED'")
                 .HasColumnType("enum('CREATED','SENTTOKITCHEN','COMPLETED','CANCELLED')")
                 .HasColumnName("status");
+            entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+
+            entity.HasOne(d => d.Customer).WithMany()
+                .HasForeignKey(d => d.CustomerId)
+                .HasConstraintName("productionplans_ibfk_2");
+
+            entity.HasOne(d => d.MenuVersion).WithMany()
+                .HasForeignKey(d => d.MenuVersionId)
+                .HasConstraintName("productionplans_ibfk_3");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Productionplans)
                 .HasForeignKey(d => d.CreatedBy)

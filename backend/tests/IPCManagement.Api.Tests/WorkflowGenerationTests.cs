@@ -881,6 +881,64 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_CreateProductionPlanWithCustomerWeekVersionAndStatus()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        byte[] menuVersionId;
+        byte[] customerId;
+        await using (var setupContext = fixture.CreateContext())
+        {
+            customerId = await setupContext.Customers.Select(item => item.CustomerId).SingleAsync();
+            menuVersionId = GuidHelper.NewId();
+            setupContext.Menuversions.Add(new Menuversion
+            {
+                MenuVersionId = menuVersionId,
+                CustomerId = customerId,
+                WeekStartDate = new DateOnly(2026, 6, 15),
+                VersionNo = 2,
+                Status = "PUBLISHED",
+                SourceImportBatch = "MENU-CUS-20260615-V02",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow.AddMinutes(-10),
+                PublishedBy = fixture.UserId,
+                PublishedAt = DateTime.UtcNow.AddMinutes(-5),
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-5)
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto
+                {
+                    ServiceDate = "2026-06-15",
+                    CustomerId = GuidHelper.ToGuidString(customerId),
+                    Scope = "FULLDAY"
+                },
+                fixture.UserIdString);
+
+            demand.Should().NotBeNull();
+            var plan = await context.Productionplans
+                .Include(item => item.Customer)
+                .Include(item => item.MenuVersion)
+                .SingleAsync(item => item.PlanCode == "KHSX-CUS-20260615-FULLDAY");
+
+            plan.CustomerId.Should().NotBeNull();
+            plan.CustomerId!.Should().Equal(customerId);
+            plan.WeekStartDate.Should().Be(new DateOnly(2026, 6, 15));
+            plan.MenuVersionId.Should().NotBeNull();
+            plan.MenuVersionId!.Should().Equal(menuVersionId);
+            plan.Status.Should().Be("CREATED");
+            plan.Customer!.CustomerCode.Should().Be("CUS");
+            plan.MenuVersion!.VersionNo.Should().Be(2);
+            plan.MenuVersion.Status.Should().Be("PUBLISHED");
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ApplyDifferentPortionRules_ByShift()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1616,6 +1674,9 @@ public class WorkflowGenerationTests
                     planId BLOB PRIMARY KEY,
                     planCode TEXT NOT NULL,
                     planDate TEXT NOT NULL,
+                    customerId BLOB NULL,
+                    weekStartDate TEXT NULL,
+                    menuVersionId BLOB NULL,
                     status TEXT NOT NULL,
                     createdBy BLOB NOT NULL,
                     createdAt TEXT NOT NULL
