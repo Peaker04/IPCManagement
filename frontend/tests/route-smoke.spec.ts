@@ -52,6 +52,14 @@ async function login(page: Page) {
 }
 
 async function stubWorkflowReports(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
   await page.route('**/api/workflow-reports/**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -76,6 +84,146 @@ async function stubWorkflowReports(page: Page) {
           { receiptId: 'r6', receiptCode: 'PN-06', receiptDate: '2026-06-18', supplierId: 's2', supplierName: 'Nhà cung cấp B', ingredientId: 'i6', ingredientName: 'Tôm tươi', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 180000, referencePrice: 180000, variancePercent: 0, isWarning: false },
           { receiptId: 'r7', receiptCode: 'PN-07', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i7', ingredientName: 'Thịt ba chỉ', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 125000, referencePrice: 120000, variancePercent: 4.1, isWarning: false },
         ],
+      }),
+    });
+  });
+}
+
+async function stubPurchasingSubmitFailure(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
+  await page.route('**/api/workflow-reports/**', async (route) => {
+    const url = route.request().url();
+    if (url.includes('/purchase-demand')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'OK',
+          data: [
+            {
+              purchaseRequestId: 'pr-1',
+              purchaseRequestLineId: 'prl-1',
+              purchaseRequestCode: 'PR-20260615-FULLDAY',
+              purchaseForDate: '2026-06-15',
+              status: 'DRAFT',
+              ingredientId: 'ing-1',
+              ingredientName: 'Sườn heo',
+              supplierId: 'sup-1',
+              supplierName: 'Nhà cung cấp A',
+              unitId: 'unit-1',
+              unitName: 'kg',
+              requiredQty: 10,
+              currentStockQty: 0,
+              purchaseQty: 10,
+              estimatedUnitPrice: 120000,
+              estimatedAmount: 1200000,
+              referenceUnitPrice: 100000,
+              priceVariancePercent: 20,
+              isPriceWarning: true,
+            },
+          ],
+        }),
+      });
+      return;
+    }
+
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
+  await page.route('**/api/suppliers', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: [{ supplierId: 'sup-1', supplierCode: 'SUP-A', supplierName: 'Nhà cung cấp A' }],
+      }),
+    });
+  });
+
+  await page.route('**/api/purchase-workflow/requests/pr-1/submit', async (route) => {
+    await route.fulfill({
+      status: 400,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: false,
+        message: 'Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.',
+      }),
+    });
+  });
+}
+
+async function stubApprovalDecisionSuccess(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: [
+          {
+            inboxItemId: 'purchase-pr-1',
+            targetType: 'purchase-request',
+            targetId: 'pr-1',
+            targetCode: 'PR-20260615-FULLDAY',
+            itemType: 'purchase',
+            title: 'Duyệt đơn mua',
+            source: 'PR-20260615-FULLDAY',
+            ownerRole: 'Thu mua / Quản lý',
+            submittedBy: 'Đinh Thu Mua',
+            dueDate: '2026-06-15',
+            status: 'PENDING',
+            reason: 'Đơn mua đã gửi, chờ duyệt trước khi mua hàng.',
+            nextAction: 'Duyệt đơn mua',
+            tone: 'warning',
+            route: '/approvals',
+            materials: [{ name: 'Sườn heo', quantity: 10, unit: 'kg' }],
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.route('**/api/workflow-reports/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
+  await page.route('**/api/approvals/purchase-request/pr-1', async (route) => {
+    const body = await route.request().postDataJSON();
+    expect(body).toMatchObject({ status: 'Approve', reason: 'Đồng ý mua' });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'Thực hiện phê duyệt thành công.',
+        data: {
+          targetType: 'purchase-request',
+          targetId: 'pr-1',
+          status: 'APPROVE',
+          oldStatus: 'SENTTOSUPPLIER',
+          newStatus: 'APPROVED',
+          historyId: 'hist-1',
+          actionAt: '2026-07-02T13:00:00Z',
+        },
       }),
     });
   });
@@ -139,5 +287,36 @@ test.describe('route smoke', () => {
     await expect(page.getByText('Hiển thị 1-6 / 7')).toBeVisible();
     await page.getByLabel('Trang sau').click();
     await expect(page.getByText('Hiển thị 7-7 / 7')).toBeVisible();
+  });
+
+  test('purchasing submit surfaces API validation errors', async ({ page }) => {
+    await stubPurchasingSubmitFailure(page);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.goto(ROUTES.PURCHASING);
+
+    await expect(page.getByRole('button', { name: 'Gửi đơn mua' })).toBeEnabled();
+    const dialogPromise = page.waitForEvent('dialog');
+    await page.getByRole('button', { name: 'Gửi đơn mua' }).click();
+    const dialog = await dialogPromise;
+    expect(dialog.message()).toContain('Có dòng mua vượt ngưỡng giá');
+    await dialog.accept();
+  });
+
+  test('approval inbox executes approve decision with reason', async ({ page }) => {
+    await stubApprovalDecisionSuccess(page);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.goto(ROUTES.APPROVALS);
+
+    await expect(page.getByText('PR-20260615-FULLDAY').first()).toBeVisible();
+    const dialogMessages: string[] = [];
+    page.on('dialog', async (dialog) => {
+      dialogMessages.push(dialog.message());
+      await dialog.accept(dialog.type() === 'prompt' ? 'Đồng ý mua' : undefined);
+    });
+    await page.getByRole('button', { name: 'Duyệt' }).first().click();
+    await expect.poll(() => dialogMessages).toContain('Ghi chú duyệt');
+    await expect.poll(() => dialogMessages).toContain('Đã duyệt.');
   });
 });

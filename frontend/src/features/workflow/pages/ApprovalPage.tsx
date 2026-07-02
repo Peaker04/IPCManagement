@@ -14,19 +14,57 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
+  useExecuteApprovalDecisionMutation,
   useGetApprovalRecordsQuery,
   useGetWorkflowDocumentsQuery,
 } from '@/features/workflow';
+import type { ApprovalRecord } from '@/features/workflow';
 
 export default function ApprovalPage() {
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const [executeApprovalDecision, { isLoading: isDeciding }] = useExecuteApprovalDecisionMutation();
   const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Danh sách mua thêm');
   const sourceDocument = workflowDocuments.find((document) => document.type === 'KHSX')
     ?? purchaseDocuments[0]
     ?? workflowDocuments[0];
   const nearestDeadline = approvalRecords.find((record) => record.deadline)?.deadline;
+  const firstActionableRecord = approvalRecords.find((record) => record.type !== 'price-alert') ?? approvalRecords[0];
+  const handleDecision = async (record: ApprovalRecord, status: 'Approve' | 'Reject') => {
+    if (!record.targetType || !record.targetId) {
+      alert('Chưa có mã chứng từ để xử lý.');
+      return;
+    }
+
+    const reason = status === 'Reject'
+      ? window.prompt('Nhập lý do từ chối')
+      : window.prompt('Ghi chú duyệt', 'Đã duyệt');
+    if (reason === null) {
+      return;
+    }
+
+    if (status === 'Reject' && !reason.trim()) {
+      alert('Vui lòng nhập lý do từ chối.');
+      return;
+    }
+
+    try {
+      await executeApprovalDecision({
+        targetType: record.targetType,
+        targetId: record.targetId,
+        status,
+        reason: reason.trim() || null,
+      }).unwrap();
+      alert(status === 'Approve' ? 'Đã duyệt.' : 'Đã từ chối.');
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Chưa thể xử lý: ' + message);
+    }
+  };
 
   return (
     <OperationalFrame
@@ -34,8 +72,22 @@ export default function ApprovalPage() {
         <CommandBar
           actions={
             <>
-              <button className="ipc-button ipc-button-success" type="button">Duyệt danh sách mua thêm</button>
-              <button className="ipc-button ipc-button-ghost" type="button">Trả lại để bổ sung</button>
+              <button
+                className="ipc-button ipc-button-success"
+                type="button"
+                onClick={() => firstActionableRecord && handleDecision(firstActionableRecord, 'Approve')}
+                disabled={!firstActionableRecord || firstActionableRecord.type === 'price-alert' || isDeciding}
+              >
+                Duyệt
+              </button>
+              <button
+                className="ipc-button ipc-button-ghost"
+                type="button"
+                onClick={() => firstActionableRecord && handleDecision(firstActionableRecord, 'Reject')}
+                disabled={!firstActionableRecord || isDeciding}
+              >
+                Từ chối
+              </button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.PURCHASING}>
                 <FileCheck2 size={16} />
                 Sang thu mua
@@ -98,9 +150,24 @@ export default function ApprovalPage() {
                 records={approvalRecords}
                 title={null}
                 actionForRecord={(record) => (
-                  <button className="ipc-button ipc-button-ghost" type="button">
-                    {record.nextAction}
-                  </button>
+                  <>
+                    <button
+                      className="ipc-button ipc-button-success"
+                      type="button"
+                      onClick={() => handleDecision(record, 'Approve')}
+                      disabled={isDeciding || record.type === 'price-alert'}
+                    >
+                      Duyệt
+                    </button>
+                    <button
+                      className="ipc-button ipc-button-ghost"
+                      type="button"
+                      onClick={() => handleDecision(record, 'Reject')}
+                      disabled={isDeciding}
+                    >
+                      Từ chối
+                    </button>
+                  </>
                 )}
               />
             </SectionPanel>
