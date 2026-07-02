@@ -162,6 +162,7 @@ public class DataQualityReportDto
     public int WarningCount { get; set; }
     public int MissingBomCount { get; set; }
     public int InvalidUnitCount { get; set; }
+    public int MissingConversionCount { get; set; }
     public int NegativeStockCount { get; set; }
     public int OrphanDocumentCount { get; set; }
     public IReadOnlyList<DataQualityIssueDto> Issues { get; set; } = [];

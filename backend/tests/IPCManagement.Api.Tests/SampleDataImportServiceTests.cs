@@ -258,6 +258,44 @@ public class SampleDataImportServiceTests
         GetProperty<bool>(wednesdayPolicy, "UsedFallback").Should().BeFalse();
     }
 
+    [Fact]
+    public async Task PreviewWeeklyMenuImport_Should_ReturnValidationDto_WhenCustomerIsUnknown()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE customers (
+                customerId BLOB PRIMARY KEY,
+                customerCode TEXT NOT NULL,
+                customerName TEXT NOT NULL,
+                note TEXT NULL,
+                isActive INTEGER NULL
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new IpcManagementContext(options);
+        var service = new SampleDataImportService(context, null!);
+        await using var stream = new MemoryStream([1, 2, 3]);
+
+        var result = await service.PreviewWeeklyMenuImportAsync(
+            stream,
+            "menu.xlsx",
+            Guid.NewGuid().ToString(),
+            new DateOnly(2026, 6, 15));
+
+        result.Validation.HasCriticalErrors.Should().BeTrue();
+        result.Validation.IsValid.Should().BeFalse();
+        result.Validation.ErrorCount.Should().Be(1);
+        result.Validation.Issues.Should().ContainSingle(issue =>
+            issue.Code == "UNKNOWN_CUSTOMER" &&
+            issue.Field == "customerId" &&
+            issue.Severity == "error");
+    }
+
     private static T InvokePrivateStatic<T>(string methodName, params object?[] args)
     {
         var method = typeof(SampleDataImportService).GetMethod(

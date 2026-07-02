@@ -194,6 +194,117 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_ReportMissingConversion_WhenStockUnitCannotConvertToBomUnit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var boxUnitId = GuidHelper.NewId();
+            context.Units.Add(new Unit
+            {
+                UnitId = boxUnitId,
+                UnitCode = "BOX",
+                UnitName = "box",
+                BaseUnitCode = "BOX",
+                ConvertRateToBase = 1
+            });
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = boxUnitId,
+                CurrentQty = 10m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var result = await service.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            var line = result!.Lines.Single();
+            line.TotalRequiredQty.Should().Be(200m);
+            line.CurrentStockQty.Should().Be(0m);
+            line.SuggestedPurchaseQty.Should().Be(200m);
+            result.MissingConversionIssues.Should().ContainSingle(issue =>
+                issue.IngredientId == fixture.IngredientIdString &&
+                issue.SourceUnitName == "box" &&
+                issue.TargetUnitName == "kg");
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePurchaseRequest_Should_ConvertLatestReceiptPrice_ToDemandUnit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var gramUnitId = GuidHelper.NewId();
+            context.Units.Add(new Unit
+            {
+                UnitId = gramUnitId,
+                UnitCode = "G",
+                UnitName = "gram",
+                BaseUnitCode = "KG",
+                ConvertRateToBase = 0.001m
+            });
+            context.Inventoryreceipts.Add(new Inventoryreceipt
+            {
+                ReceiptId = GuidHelper.NewId(),
+                ReceiptCode = "NK-GRAM",
+                ReceiptDate = new DateOnly(2026, 6, 14),
+                WarehouseId = fixture.WarehouseId,
+                SupplierId = fixture.SupplierId,
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                Inventoryreceiptlines =
+                [
+                    new Inventoryreceiptline
+                    {
+                        ReceiptLineId = GuidHelper.NewId(),
+                        IngredientId = fixture.IngredientId,
+                        UnitId = gramUnitId,
+                        Quantity = 1000m,
+                        UnitPrice = 10m,
+                        Amount = 10000m
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            purchase.Should().NotBeNull();
+            purchase!.Lines.Should().ContainSingle();
+            purchase.Lines.Single().EstimatedUnitPrice.Should().Be(10000m);
+        }
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -235,6 +346,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var badUnitId = GuidHelper.NewId();
         var badIngredientId = GuidHelper.NewId();
+        var missingConversionUnitId = GuidHelper.NewId();
         var orphanRequestId = GuidHelper.NewId();
         var orphanPurchaseRequestId = GuidHelper.NewId();
         var orphanIssueId = GuidHelper.NewId();
@@ -244,6 +356,14 @@ public class WorkflowGenerationTests
             UnitId = badUnitId,
             UnitCode = "",
             UnitName = "Invalid unit",
+            ConvertRateToBase = 1
+        });
+        context.Units.Add(new Unit
+        {
+            UnitId = missingConversionUnitId,
+            UnitCode = "BOX",
+            UnitName = "Box",
+            BaseUnitCode = "BOX",
             ConvertRateToBase = 1
         });
         context.Ingredients.Add(new Ingredient
@@ -261,7 +381,7 @@ public class WorkflowGenerationTests
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
-            UnitId = fixture.UnitId,
+            UnitId = missingConversionUnitId,
             CurrentQty = -2,
             LastUpdated = DateTime.UtcNow
         });
@@ -310,21 +430,29 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
 
         var service = new WorkflowReportService(context);
-        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
 
         report.TotalIssues.Should().BeGreaterThanOrEqualTo(5);
         report.ErrorCount.Should().BeGreaterThanOrEqualTo(3);
         report.WarningCount.Should().BeGreaterThanOrEqualTo(3);
         report.MissingBomCount.Should().BeGreaterThanOrEqualTo(1);
         report.InvalidUnitCount.Should().BeGreaterThanOrEqualTo(1);
+        report.MissingConversionCount.Should().BeGreaterThanOrEqualTo(1);
         report.NegativeStockCount.Should().Be(1);
         report.OrphanDocumentCount.Should().BeGreaterThanOrEqualTo(3);
         report.Issues.Select(issue => issue.Category).Should().Contain([
             "missing_bom",
             "invalid_unit",
+            "missing_conversion",
             "negative_stock",
             "orphan_document"
         ]);
+        var missingBomIssue = report.Issues.Single(issue => issue.Category == "missing_bom");
+        missingBomIssue.Route.Should().Contain("/admin-data?");
+        missingBomIssue.Route.Should().Contain("view=adjustments");
+        missingBomIssue.Route.Should().Contain("remediate=missing_bom");
+        missingBomIssue.Route.Should().Contain("dishId=");
+        missingBomIssue.Route.Should().Contain("serviceDate=2026-06-15");
     }
 
     [Fact]
@@ -1025,6 +1153,7 @@ public class WorkflowGenerationTests
         public byte[] UnitId { get; } = GuidHelper.NewId();
         public byte[] WarehouseId { get; } = GuidHelper.NewId();
         public byte[] IngredientId { get; } = GuidHelper.NewId();
+        public string IngredientIdString => GuidHelper.ToGuidString(IngredientId);
         public byte[] SupplierId { get; } = GuidHelper.NewId();
         public byte[] QuantityPlanId { get; } = GuidHelper.NewId();
         public byte[] ProductionPlanId { get; } = GuidHelper.NewId();

@@ -1,6 +1,6 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { BarChart3, Bell, CalendarCheck, Database, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, UserPlus, Users, XCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import {
   ApprovalQueue,
@@ -8,6 +8,7 @@ import {
   ContextStrip,
   DocumentRail,
   FieldRow,
+  InlineAlert,
   OperationalFrame,
   RoleInbox,
   PaginationBar,
@@ -26,6 +27,7 @@ import {
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
   useGetDataQualityQuery,
+  useGenerateMaterialDemandMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -190,17 +192,36 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const isAdminView = (value: string | null): value is AdminView =>
+  value === 'adjustments' ||
+  value === 'contracts' ||
+  value === 'cleanup' ||
+  value === 'inventory' ||
+  value === 'audit' ||
+  value === 'statistics' ||
+  value === 'employees';
+
+const getDemandScope = (value: string | null): 'FULLDAY' | 'MORNING' | 'AFTERNOON' => {
+  const normalized = (value ?? '').trim().toUpperCase();
+  if (normalized === 'MORNING' || normalized === 'AFTERNOON') return normalized;
+  return 'FULLDAY';
+};
+
 export default function AdminDataPage() {
   const currentUser = useAppSelector(selectCurrentUser);
+  const [searchParams] = useSearchParams();
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
-  const [activeView, setActiveView] = useState<AdminView>('adjustments');
+  const initialView = isAdminView(searchParams.get('view')) && (searchParams.get('view') !== 'employees' || canManageEmployees)
+    ? searchParams.get('view') as AdminView
+    : 'adjustments';
+  const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditPage, setAuditPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
   const [employeeNotice, setEmployeeNotice] = useState<string | null>(null);
-  const [selectedDishId, setSelectedDishId] = useState('');
+  const [selectedDishId, setSelectedDishId] = useState(searchParams.get('dishId') ?? '');
   const [editingDishId, setEditingDishId] = useState<string | null>(null);
   const [dishForm, setDishForm] = useState<DishFormState>(defaultDishForm);
   const [selectedContractCustomerId, setSelectedContractCustomerId] = useState('');
@@ -254,6 +275,7 @@ export default function AdminDataPage() {
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: auditLogs = [] } = useGetAuditChangesQuery({ limit: 100 });
   const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
+  const [generateMaterialDemand, generateMaterialDemandState] = useGenerateMaterialDemandMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: purchaseDemandRows = [] } = useGetPurchaseDemandQuery({ limit: 100 });
@@ -288,6 +310,12 @@ export default function AdminDataPage() {
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
   const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
   const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
+  const remediationType = searchParams.get('remediate');
+  const remediationDishId = searchParams.get('dishId');
+  const remediationServiceDate = searchParams.get('serviceDate') || getTodayInputValue();
+  const remediationCustomerId = searchParams.get('customerId') || undefined;
+  const remediationScope = getDemandScope(searchParams.get('scope'));
+  const isMissingBomRemediation = remediationType === 'missing_bom' && Boolean(remediationDishId);
   const selectedDish = useMemo(
     () => catalogDishes.find((dish) => dish.id === selectedDishId) ?? catalogDishes[0],
     [catalogDishes, selectedDishId],
@@ -675,11 +703,37 @@ export default function AdminDataPage() {
         setBomFeedback({ type: 'success', message: 'Đã cập nhật dòng BOM.' });
       } else {
         await addDishBomLine(request).unwrap();
-        setBomFeedback({ type: 'success', message: 'Đã thêm dòng BOM cho món ăn.' });
+        setBomFeedback({
+          type: 'success',
+          message: isMissingBomRemediation ? 'Đã thêm BOM. Có thể chạy lại demand cho context đang xử lý.' : 'Đã thêm dòng BOM cho món ăn.',
+        });
       }
       resetBomForm();
     } catch {
       setBomFeedback({ type: 'error', message: 'Chưa lưu được BOM. Kiểm tra trùng nguyên liệu hoặc dữ liệu nhập.' });
+    }
+  };
+
+  const handleRerunRemediationDemand = async () => {
+    try {
+      const response = await generateMaterialDemand({
+        serviceDate: remediationServiceDate,
+        customerId: remediationCustomerId,
+        scope: remediationScope,
+      }).unwrap();
+      if (!response.success) {
+        throw new Error(response.message || 'Không tạo lại được demand.');
+      }
+
+      const missingBomCount = response.data?.missingBomDishes.length ?? 0;
+      setBomFeedback({
+        type: missingBomCount > 0 ? 'error' : 'success',
+        message: missingBomCount > 0
+          ? `Đã chạy lại demand nhưng vẫn còn ${missingBomCount} món thiếu BOM.`
+          : 'Đã chạy lại demand, không còn missing BOM trong context này.',
+      });
+    } catch (error) {
+      setBomFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa chạy lại được demand.') });
     }
   };
 
@@ -866,6 +920,26 @@ export default function AdminDataPage() {
                     </div>
                   )}
                 </div>
+
+                {isMissingBomRemediation && selectedDish && (
+                  <InlineAlert
+                    title="Đang xử lý thiếu BOM"
+                    variant="warning"
+                    action={(
+                      <button
+                        className="ipc-button ipc-button-primary"
+                        type="button"
+                        disabled={generateMaterialDemandState.isLoading}
+                        onClick={() => void handleRerunRemediationDemand()}
+                      >
+                        <CalendarCheck size={15} />
+                        Chạy lại demand
+                      </button>
+                    )}
+                  >
+                    {selectedDish.name} / {remediationServiceDate} / {remediationScope}
+                  </InlineAlert>
+                )}
 
                 {dishFeedback && (
                   <div
@@ -1530,7 +1604,7 @@ export default function AdminDataPage() {
               items={[
                 { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
                 { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
-                { label: 'Unit/quy đổi', value: `${dataQualityReport?.invalidUnitCount ?? 0}`, tone: (dataQualityReport?.invalidUnitCount ?? 0) ? 'danger' : 'success' },
+                { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Phiếu orphan', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
               ]}
@@ -1564,7 +1638,18 @@ export default function AdminDataPage() {
                       <td className="text-left text-slate-700">{issue.message}</td>
                       <td className="text-left text-slate-600">{issue.suggestedAction}</td>
                       <td>
-                        <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={issue.route || ROUTES.ADMIN_DATA}>
+                        <Link
+                          className="ipc-button ipc-button-ghost ipc-button-bounded"
+                          to={issue.route || ROUTES.ADMIN_DATA}
+                          onClick={() => {
+                            if (issue.category === 'missing_bom' && issue.entityId) {
+                              setActiveView('adjustments');
+                              setSelectedDishId(issue.entityId);
+                              setEditingBomId(null);
+                              setBomFeedback({ type: 'error', message: 'Đang mở form BOM cho món thiếu định lượng.' });
+                            }
+                          }}
+                        >
                           Sửa
                         </Link>
                       </td>
@@ -1600,7 +1685,7 @@ export default function AdminDataPage() {
         <div id="admin-statistics-panel" role="tabpanel" aria-labelledby="admin-statistics-tab" className="flex flex-col gap-4">
           <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
             <DataTableShell ariaLabel="Bảng chỉ số thống kê vận hành">
-              <table className="ipc-data-table">
+              <table className="ipc-data-table ipc-status-action-table">
                 <thead>
                   <tr>
                     <th>Nhóm thống kê</th>

@@ -18,6 +18,7 @@ public class MaterialDemandResultDto
     public int ProductionPlanLineCount { get; set; }
     public IReadOnlyList<MaterialDemandLineDto> Lines { get; set; } = [];
     public IReadOnlyList<MissingBomDishDto> MissingBomDishes { get; set; } = [];
+    public IReadOnlyList<MissingUnitConversionIssueDto> MissingConversionIssues { get; set; } = [];
 }
 
 public class MissingBomDishDto
@@ -32,6 +33,18 @@ public class MissingBomDishDto
     public string MenuName { get; set; } = string.Empty;
     public string ShiftName { get; set; } = string.Empty;
     public int TotalServings { get; set; }
+    public string Message { get; set; } = string.Empty;
+}
+
+public class MissingUnitConversionIssueDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string IngredientId { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public string SourceUnitId { get; set; } = string.Empty;
+    public string SourceUnitName { get; set; } = string.Empty;
+    public string TargetUnitId { get; set; } = string.Empty;
+    public string TargetUnitName { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
 }
 

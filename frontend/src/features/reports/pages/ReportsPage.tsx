@@ -442,7 +442,7 @@ const ReportsPage = () => {
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
           <DataTableShell ariaLabel="Bảng nhu cầu nguyên liệu">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table ipc-status-action-table">
               <thead>
                 <tr>
                   <th>Nguyên liệu</th>
@@ -475,7 +475,7 @@ const ReportsPage = () => {
       {activeView === 'purchase' && (
         <SectionPanel title="Nhu cầu mua theo nhà cung cấp, ngày và ca" icon={<ShoppingCart size={18} />}>
           <DataTableShell ariaLabel="Bảng nhu cầu mua">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table ipc-status-action-table">
               <thead>
                 <tr>
                   <th>Nguyên liệu</th>

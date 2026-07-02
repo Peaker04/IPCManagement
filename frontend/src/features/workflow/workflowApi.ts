@@ -207,6 +207,7 @@ interface DataQualityReportDto {
   warningCount: number;
   missingBomCount: number;
   invalidUnitCount: number;
+  missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueDto[];
@@ -223,6 +224,17 @@ interface MissingBomDishDto {
   menuName: string;
   shiftName: string;
   totalServings: number;
+  message: string;
+}
+
+interface MissingUnitConversionIssueDto {
+  issueId: string;
+  ingredientId: string;
+  ingredientName: string;
+  sourceUnitId: string;
+  sourceUnitName: string;
+  targetUnitId: string;
+  targetUnitName: string;
   message: string;
 }
 
@@ -254,6 +266,7 @@ interface MaterialDemandResultDto {
     suggestedPurchaseQty: number;
   }>;
   missingBomDishes: MissingBomDishDto[];
+  missingConversionIssues: MissingUnitConversionIssueDto[];
 }
 
 export interface GenerateMaterialDemandRequest {
@@ -364,6 +377,7 @@ export interface DataQualityReport {
   warningCount: number;
   missingBomCount: number;
   invalidUnitCount: number;
+  missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
@@ -573,6 +587,7 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   warningCount: item.warningCount,
   missingBomCount: item.missingBomCount,
   invalidUnitCount: item.invalidUnitCount,
+  missingConversionCount: item.missingConversionCount,
   negativeStockCount: item.negativeStockCount,
   orphanDocumentCount: item.orphanDocumentCount,
   issues: (item.issues ?? []).map((issue) => ({
@@ -795,6 +810,7 @@ export const workflowApi = apiSlice.injectEndpoints({
           warningCount: 0,
           missingBomCount: 0,
           invalidUnitCount: 0,
+          missingConversionCount: 0,
           negativeStockCount: 0,
           orphanDocumentCount: 0,
           issues: [],

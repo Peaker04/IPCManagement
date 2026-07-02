@@ -9,6 +9,7 @@ namespace IPCManagement.Api.Services.Workflow;
 public class WorkflowReportService : IWorkflowReportService
 {
     private readonly IpcManagementContext _context;
+    private const string PublishedBomStatus = "PUBLISHED";
 
     public WorkflowReportService(IpcManagementContext context)
     {
@@ -752,15 +753,16 @@ public class WorkflowReportService : IWorkflowReportService
     public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
     {
         var limit = NormalizeLimit(query.Limit);
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom) ?? DateOnly.FromDateTime(DateTime.Today);
         var issues = new List<DataQualityIssueDto>();
 
         var missingBomDishes = await _context.Dishes
             .AsNoTracking()
             .Where(dish => (dish.IsActive ?? true) && !_context.Dishboms.Any(bom =>
                 bom.DishId == dish.DishId &&
-                bom.EffectiveFrom <= today &&
-                (bom.EffectiveTo == null || bom.EffectiveTo >= today)))
+                bom.BomStatus == PublishedBomStatus &&
+                bom.EffectiveFrom <= serviceDate &&
+                (bom.EffectiveTo == null || bom.EffectiveTo >= serviceDate)))
             .OrderBy(dish => dish.DishCode)
             .Take(limit)
             .ToListAsync();
@@ -774,7 +776,7 @@ public class WorkflowReportService : IWorkflowReportService
             dish.DishName,
             "Món đang hoạt động nhưng chưa có dòng BOM/định lượng hiệu lực.",
             "Mở Quản trị dữ liệu > Điều chỉnh để thêm BOM.",
-            "/admin-data")));
+            BuildMissingBomRemediationRoute(dish.DishId, serviceDate, query))));
 
         var invalidUnitIngredients = await _context.Ingredients
             .AsNoTracking()
@@ -798,13 +800,88 @@ public class WorkflowReportService : IWorkflowReportService
             "Chuẩn hóa đơn vị hoặc cập nhật nguyên liệu trước khi tính BOM/kho.",
             "/admin-data")));
 
+        var activeBomLines = await _context.Dishboms
+            .AsNoTracking()
+            .Include(item => item.Dish)
+            .Include(item => item.Ingredient)
+                .ThenInclude(ingredient => ingredient.Unit)
+            .Include(item => item.Unit)
+            .Where(item =>
+                item.BomStatus == PublishedBomStatus &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
+            .OrderBy(item => item.Dish.DishCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(activeBomLines
+            .Where(line => !CanConvertUnits(line.Unit, line.Ingredient.Unit))
+            .Select(line => BuildDataQualityIssue(
+                "missing_conversion",
+                "error",
+                nameof(Dishbom),
+                GuidHelper.ToGuidString(line.BomId),
+                line.Dish.DishCode,
+                line.Ingredient.IngredientName,
+                $"BOM dùng đơn vị '{line.Unit.UnitName}' nhưng nguyên liệu đang theo '{line.Ingredient.Unit.UnitName}' và chưa có cấu hình quy đổi hợp lệ.",
+                "Cập nhật base unit / hệ số quy đổi của đơn vị trước khi tính demand hoặc sinh mua thêm.",
+                "/admin-data")));
+
+        var stockUnitLines = await _context.Currentstocks
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+                .ThenInclude(ingredient => ingredient.Unit)
+            .Include(item => item.Unit)
+            .OrderBy(item => item.Warehouse.WarehouseCode)
+            .ThenBy(item => item.Ingredient.IngredientCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(stockUnitLines
+            .Where(stock => !CanConvertUnits(stock.Unit, stock.Ingredient.Unit))
+            .Select(stock => BuildDataQualityIssue(
+                "missing_conversion",
+                "error",
+                nameof(Currentstock),
+                $"{GuidHelper.ToGuidString(stock.WarehouseId)}:{GuidHelper.ToGuidString(stock.IngredientId)}",
+                stock.Warehouse.WarehouseCode,
+                stock.Ingredient.IngredientName,
+                $"Tồn kho đang dùng đơn vị '{stock.Unit.UnitName}' nhưng nguyên liệu đang theo '{stock.Ingredient.Unit.UnitName}' và chưa có cấu hình quy đổi hợp lệ.",
+                "Cập nhật quy đổi unit hoặc chuẩn hóa đơn vị tồn kho trước khi generate demand.",
+                "/admin-data")));
+
+        var receiptUnitLines = await _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(item => item.Receipt)
+            .Include(item => item.Ingredient)
+                .ThenInclude(ingredient => ingredient.Unit)
+            .Include(item => item.Unit)
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(receiptUnitLines
+            .Where(line => !CanConvertUnits(line.Unit, line.Ingredient.Unit))
+            .Select(line => BuildDataQualityIssue(
+                "missing_conversion",
+                "warning",
+                nameof(Inventoryreceiptline),
+                GuidHelper.ToGuidString(line.ReceiptLineId),
+                line.Receipt.ReceiptCode,
+                line.Ingredient.IngredientName,
+                $"Lịch sử nhập hàng dùng đơn vị '{line.Unit.UnitName}' nhưng nguyên liệu đang theo '{line.Ingredient.Unit.UnitName}' và chưa có cấu hình quy đổi hợp lệ.",
+                "Bổ sung quy đổi unit để giá mua tham chiếu không lệch khi sinh purchase request.",
+                "/reports")));
+
         var inactiveBomIngredients = await _context.Dishboms
             .AsNoTracking()
             .Include(item => item.Dish)
             .Include(item => item.Ingredient)
             .Where(item =>
-                item.EffectiveFrom <= today &&
-                (item.EffectiveTo == null || item.EffectiveTo >= today) &&
+                item.BomStatus == PublishedBomStatus &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate) &&
                 item.Ingredient.IsActive == false)
             .OrderBy(item => item.Dish.DishCode)
             .Take(limit)
@@ -914,6 +991,7 @@ public class WorkflowReportService : IWorkflowReportService
             WarningCount = sortedIssues.Count(issue => issue.Severity == "warning"),
             MissingBomCount = sortedIssues.Count(issue => issue.Category == "missing_bom"),
             InvalidUnitCount = sortedIssues.Count(issue => issue.Category is "invalid_unit" or "inactive_bom_ingredient"),
+            MissingConversionCount = sortedIssues.Count(issue => issue.Category == "missing_conversion"),
             NegativeStockCount = sortedIssues.Count(issue => issue.Category == "negative_stock"),
             OrphanDocumentCount = sortedIssues.Count(issue => issue.Category == "orphan_document"),
             Issues = sortedIssues
@@ -1166,6 +1244,43 @@ public class WorkflowReportService : IWorkflowReportService
             SuggestedAction = suggestedAction,
             Route = route
         };
+
+    private static string BuildMissingBomRemediationRoute(byte[] dishId, DateOnly serviceDate, WorkflowReportQueryDto query)
+    {
+        var scope = NormalizeShiftName(query.ShiftName) ?? "FULLDAY";
+        var parts = new List<string>
+        {
+            "view=adjustments",
+            "remediate=missing_bom",
+            $"dishId={Uri.EscapeDataString(GuidHelper.ToGuidString(dishId))}",
+            $"serviceDate={Uri.EscapeDataString(serviceDate.ToString("yyyy-MM-dd"))}",
+            $"scope={Uri.EscapeDataString(scope)}"
+        };
+
+        if (!string.IsNullOrWhiteSpace(query.CustomerId))
+        {
+            parts.Add($"customerId={Uri.EscapeDataString(query.CustomerId.Trim())}");
+        }
+
+        return $"/admin-data?{string.Join("&", parts)}";
+    }
+
+    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
+    {
+        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            return true;
+        }
+
+        return sourceUnit.ConvertRateToBase > 0 &&
+               targetUnit.ConvertRateToBase > 0 &&
+               string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizedBaseUnitCode(Unit unit)
+        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
+            ? unit.UnitCode.Trim().ToUpperInvariant()
+            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private static string BuildUsageKey(byte[] issueId, byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToBase64String(issueId)}|{Convert.ToBase64String(ingredientId)}|{Convert.ToBase64String(unitId)}";

@@ -64,7 +64,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 throw new InvalidOperationException($"Chưa có nhà cung cấp để tạo đề xuất mua cho '{line.Ingredient.IngredientName}'.");
             }
 
-            var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, cancellationToken);
+            var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, line.Unit, cancellationToken);
             EnsurePurchaseRequestLine(
                 purchaseRequest,
                 line,
@@ -261,12 +261,49 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, CancellationToken cancellationToken)
-        => await _context.Inventoryreceiptlines
+    private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, Unit targetUnit, CancellationToken cancellationToken)
+    {
+        var latestReceiptLine = await _context.Inventoryreceiptlines
+            .Include(line => line.Unit)
+            .Include(line => line.Receipt)
             .Where(line => line.IngredientId == ingredientId)
             .OrderByDescending(line => line.Receipt.ReceiptDate)
-            .Select(line => line.UnitPrice)
             .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestReceiptLine is null || latestReceiptLine.UnitPrice <= 0)
+        {
+            return 0m;
+        }
+
+        if (latestReceiptLine.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            return latestReceiptLine.UnitPrice;
+        }
+
+        if (!CanConvertUnits(latestReceiptLine.Unit, targetUnit))
+        {
+            return 0m;
+        }
+
+        return DecimalPolicy.RoundMoney(latestReceiptLine.UnitPrice * targetUnit.ConvertRateToBase / latestReceiptLine.Unit.ConvertRateToBase);
+    }
+
+    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
+    {
+        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            return true;
+        }
+
+        return sourceUnit.ConvertRateToBase > 0 &&
+               targetUnit.ConvertRateToBase > 0 &&
+               string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizedBaseUnitCode(Unit unit)
+        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
+            ? unit.UnitCode.Trim().ToUpperInvariant()
+            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private void EnsurePurchaseRequestLine(
         Purchaserequest purchaseRequest,

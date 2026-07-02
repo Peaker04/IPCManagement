@@ -147,6 +147,25 @@ export interface WeeklyMenuImportDiff {
   rows: WeeklyMenuImportDiffRow[]
 }
 
+export interface WeeklyMenuImportValidationIssue {
+  severity: 'error' | 'warning' | 'info' | string
+  code: string
+  message: string
+  sheetName?: string | null
+  rowNumber?: number | null
+  column?: string | null
+  cell?: string | null
+  field?: string | null
+}
+
+export interface WeeklyMenuImportValidation {
+  isValid: boolean
+  hasCriticalErrors: boolean
+  errorCount: number
+  warningCount: number
+  issues: WeeklyMenuImportValidationIssue[]
+}
+
 export interface WeeklyMenuImportResult {
   committed: boolean
   fileName: string
@@ -163,6 +182,7 @@ export interface WeeklyMenuImportResult {
   sourceImportBatch?: string | null
   detectedLayout: WeeklyMenuImportLayout
   warnings: string[]
+  validation: WeeklyMenuImportValidation
   rows: WeeklyMenuImportRow[]
   previewDiff: WeeklyMenuImportDiff
   importedWeeklyMenu: WeeklyMenuState

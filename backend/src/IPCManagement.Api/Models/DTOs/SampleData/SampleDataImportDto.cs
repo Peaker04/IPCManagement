@@ -42,9 +42,31 @@ public class WeeklyMenuImportResultDto
     public WeeklyMenuImportLayoutDto DetectedLayout { get; set; } = new();
     public SampleDataImportCountsDto Counts { get; set; } = new();
     public List<string> Warnings { get; set; } = [];
+    public WeeklyMenuImportValidationDto Validation { get; set; } = new();
     public List<WeeklyMenuImportRowDto> Rows { get; set; } = [];
     public WeeklyMenuImportDiffDto PreviewDiff { get; set; } = new();
     public Dictionary<string, ImportedDayMenuDto> ImportedWeeklyMenu { get; set; } = new();
+}
+
+public class WeeklyMenuImportValidationDto
+{
+    public bool IsValid { get; set; } = true;
+    public bool HasCriticalErrors { get; set; }
+    public int ErrorCount { get; set; }
+    public int WarningCount { get; set; }
+    public List<WeeklyMenuImportValidationIssueDto> Issues { get; set; } = [];
+}
+
+public class WeeklyMenuImportValidationIssueDto
+{
+    public string Severity { get; set; } = "info";
+    public string Code { get; set; } = string.Empty;
+    public string Message { get; set; } = string.Empty;
+    public string? SheetName { get; set; }
+    public int? RowNumber { get; set; }
+    public string? Column { get; set; }
+    public string? Cell { get; set; }
+    public string? Field { get; set; }
 }
 
 public class WeeklyMenuImportLayoutDto

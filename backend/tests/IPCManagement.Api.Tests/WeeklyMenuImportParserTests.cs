@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Security;
 using FluentAssertions;
+using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services.SampleData;
 
@@ -42,6 +43,75 @@ public class WeeklyMenuImportParserTests
             GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
             GetEnumerable(plan, "Sections").Should().HaveCount(4);
             GetEnumerable(plan, "Items").Should().HaveCount(30);
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_Warn_When_ImportedSlotRowsAreDuplicated()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "MENU", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                [],
+                ["", "", "", "15/06/2026"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá kho"],
+                ["", "", "Món mặn chính", "Gà kho"],
+            ]);
+
+            var plan = InvokeParse(tempFile, "duplicate-slot.xlsx", null);
+            var warnings = GetStrings(plan, "Warnings");
+
+            GetEnumerable(plan, "Items").Should().HaveCount(2);
+            warnings.Should().ContainSingle(item =>
+                item.Contains("dòng trùng", StringComparison.OrdinalIgnoreCase) &&
+                item.Contains("2026-06-15", StringComparison.OrdinalIgnoreCase) &&
+                item.Contains("Món mặn chính", StringComparison.OrdinalIgnoreCase),
+                $"warnings were: {string.Join(" | ", warnings)}");
+
+            var validation = InvokeValidation(plan, [
+                new WeeklyMenuImportRowDto
+                {
+                    ServiceDate = new DateOnly(2026, 6, 15),
+                    SourceRowNumber = 9,
+                    SourceColumn = "D",
+                    DbShiftName = "MORNING",
+                    Variant = "Mặn",
+                    Slot = "main",
+                    SlotLabel = "Món mặn chính",
+                    DishName = "Cá kho",
+                    ExistingDish = true
+                },
+                new WeeklyMenuImportRowDto
+                {
+                    ServiceDate = new DateOnly(2026, 6, 15),
+                    SourceRowNumber = 10,
+                    SourceColumn = "D",
+                    DbShiftName = "MORNING",
+                    Variant = "Mặn",
+                    Slot = "main",
+                    SlotLabel = "Món mặn chính",
+                    DishName = "Gà kho",
+                    ExistingDish = true
+                }
+            ]);
+
+            validation.HasCriticalErrors.Should().BeTrue();
+            validation.Issues.Should().ContainSingle(issue =>
+                issue.Code == "DUPLICATE_SLOT" &&
+                issue.RowNumber == 9 &&
+                issue.Column == "D" &&
+                issue.Cell == "D9");
         }
         finally
         {
@@ -327,6 +397,18 @@ public class WeeklyMenuImportParserTests
 
     private static IReadOnlyList<string> GetStrings(object source, string propertyName)
         => GetEnumerable(source, propertyName).Cast<string>().ToList();
+
+    private static WeeklyMenuImportValidationDto InvokeValidation(
+        object plan,
+        IReadOnlyList<WeeklyMenuImportRowDto> rows)
+    {
+        var method = typeof(SampleDataImportService).GetMethod(
+            "BuildWeeklyMenuImportValidation",
+            BindingFlags.NonPublic | BindingFlags.Static);
+
+        method.Should().NotBeNull();
+        return (WeeklyMenuImportValidationDto)method!.Invoke(null, [plan, rows])!;
+    }
 
     private static void CreateWorkbook(
         string path,

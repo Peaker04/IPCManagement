@@ -32,7 +32,7 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
   return (
     <div className={cn('ipc-demand-summary', className)}>
       <DataTableShell className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu">
-        <table className="ipc-data-table ipc-demand-table table-fixed w-full">
+        <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
           <thead>
             <tr>
               <th style={{ width: '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>

@@ -92,7 +92,7 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
       <DataTableShell ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell">
-        <table className="ipc-data-table ipc-stock-table">
+        <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
           <thead>
             <tr>
               <th className="text-left">Chứng từ</th>
