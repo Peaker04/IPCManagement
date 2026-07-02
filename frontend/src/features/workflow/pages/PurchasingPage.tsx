@@ -1,6 +1,6 @@
 import { Fragment, useState, type FormEvent } from 'react';
 import { PackageCheck, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
@@ -32,8 +32,15 @@ import {
 import type { DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 
+type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
+const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
+
 export default function PurchasingPage() {
-  const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff'>('demand');
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view');
+  const [activeView, setActiveView] = useState<PurchasingView>(
+    validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
+  );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -102,7 +109,7 @@ export default function PurchasingPage() {
           { id: 'purchasing-handoff', label: 'Handoff kho' },
         ]}
         activeTab={`purchasing-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff')}
+        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as PurchasingView)}
       />
 
       {/* Bảng danh sách chọn Nhà Cung Cấp */}

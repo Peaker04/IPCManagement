@@ -70,6 +70,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesAsync(query)));
 
+    [HttpGet("operational-kpis")]
+    public async Task<IActionResult> GetOperationalKpis()
+        => Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(
+            await _workflowReportService.GetOperationalKpisAsync()));
+
     [HttpGet("issue-vs-return")]
     public async Task<IActionResult> GetIssueVsReturn([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>.SuccessResult(

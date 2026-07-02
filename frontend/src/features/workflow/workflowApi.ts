@@ -237,6 +237,15 @@ export interface PriceVarianceByDishGroupDto {
   topIngredients: PriceVarianceDishGroupIngredientDto[];
 }
 
+export interface OperationalKpiSummaryDto {
+  shortageCount: number;
+  lowStockCount: number;
+  overduePurchaseRequestCount: number;
+  lateReceiptCount: number;
+  pendingKitchenConfirmationCount: number;
+  generatedAt: string;
+}
+
 interface CurrentStockSummaryDto {
   warehouseId: string;
   warehouseName?: string;
@@ -962,6 +971,11 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
       providesTags: ['WorkflowReports'],
     }),
+    getOperationalKpis: builder.query<OperationalKpiSummaryDto, void>({
+      query: () => '/workflow-reports/operational-kpis',
+      transformResponse: (response: ApiResponse<OperationalKpiSummaryDto>) => response.data!,
+      providesTags: ['WorkflowReports'],
+    }),
     getCurrentStock: builder.query<CurrentStockRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/current-stock',
@@ -1030,6 +1044,7 @@ export const {
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
+  useGetOperationalKpisQuery,
   useGetCurrentStockQuery,
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,

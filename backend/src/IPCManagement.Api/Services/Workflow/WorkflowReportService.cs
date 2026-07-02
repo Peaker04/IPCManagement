@@ -8,6 +8,8 @@ namespace IPCManagement.Api.Services.Workflow;
 
 public class WorkflowReportService : IWorkflowReportService
 {
+    private const int LateReceiptThresholdDays = 3;
+
     private readonly IpcManagementContext _context;
 
     public WorkflowReportService(IpcManagementContext context)
@@ -1150,6 +1152,83 @@ public class WorkflowReportService : IWorkflowReportService
                 BomRatePercent = item.MenuSchedule.BomRatePercent
             })
             .ToListAsync();
+    }
+
+    public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var demandWindowStart = today.AddDays(-7);
+        var lateReceiptCutoff = today.AddDays(-LateReceiptThresholdDays);
+
+        var shortageCount = await _context.Materialrequestlines
+            .AsNoTracking()
+            .CountAsync(line => line.SuggestedPurchaseQty > 0 && line.Request.Status != "CANCELLED");
+
+        var candidateOverdueRequests = await _context.Purchaserequests
+            .AsNoTracking()
+            .Include(pr => pr.Purchaserequestlines)
+                .ThenInclude(line => line.Purchaseorderline)
+            .Where(pr => (pr.Status == "DRAFT" || pr.Status == "APPROVED") && pr.PurchaseForDate < today)
+            .ToListAsync();
+
+        var overduePurchaseRequestCount = candidateOverdueRequests.Count(pr => pr.Purchaserequestlines.Any(line =>
+            line.Purchaseorderline is null ||
+            DecimalPolicy.LessThanQuantity(line.Purchaseorderline.ReceivedQty, line.Purchaseorderline.OrderedQty)));
+
+        var lateReceiptCount = await _context.Purchaseorders
+            .AsNoTracking()
+            .CountAsync(po => (po.Status == "ORDERED" || po.Status == "PARTIALLY_RECEIVED") && po.OrderDate <= lateReceiptCutoff);
+
+        var pendingKitchenConfirmationCount = await _context.Inventoryissues
+            .AsNoTracking()
+            .CountAsync(issue => issue.ReceivedBy == null);
+
+        var lowStockCount = await ComputeLowStockCountAsync(demandWindowStart, today);
+
+        return new OperationalKpiSummaryDto
+        {
+            ShortageCount = shortageCount,
+            LowStockCount = lowStockCount,
+            OverduePurchaseRequestCount = overduePurchaseRequestCount,
+            LateReceiptCount = lateReceiptCount,
+            PendingKitchenConfirmationCount = pendingKitchenConfirmationCount,
+            GeneratedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>Tồn thấp = tồn hiện tại không đủ dùng cho 1 ngày nữa nếu nhu cầu giữ nguyên như trung bình 7 ngày gần nhất
+    /// (chưa có ngưỡng tối thiểu cấu hình theo từng nguyên liệu, nên suy ra từ lịch sử nhu cầu thay vì hardcode).</summary>
+    private async Task<int> ComputeLowStockCountAsync(DateOnly demandWindowStart, DateOnly today)
+    {
+        var avgDailyDemandByIngredient = await _context.Materialrequestlines
+            .AsNoTracking()
+            .Where(line => line.Request.RequestDate >= demandWindowStart && line.Request.RequestDate <= today)
+            .GroupBy(line => line.IngredientId)
+            .Select(group => new { IngredientId = group.Key, TotalRequiredQty = group.Sum(line => line.TotalRequiredQty) })
+            .ToListAsync();
+
+        if (avgDailyDemandByIngredient.Count == 0)
+        {
+            return 0;
+        }
+
+        var currentStockByIngredient = await _context.Currentstocks
+            .AsNoTracking()
+            .GroupBy(stock => stock.IngredientId)
+            .Select(group => new { IngredientId = group.Key, CurrentQty = group.Sum(stock => stock.CurrentQty) })
+            .ToDictionaryAsync(item => Convert.ToBase64String(item.IngredientId), item => item.CurrentQty);
+
+        return avgDailyDemandByIngredient.Count(demand =>
+        {
+            var avgDailyQty = demand.TotalRequiredQty / 7m;
+            if (avgDailyQty <= 0)
+            {
+                return false;
+            }
+
+            var currentQty = currentStockByIngredient.GetValueOrDefault(Convert.ToBase64String(demand.IngredientId), 0);
+            return DecimalPolicy.LessThanQuantity(currentQty, avgDailyQty);
+        });
     }
 
     private IQueryable<Inventoryissueline> QueryIssueLines(WorkflowReportQueryDto query)

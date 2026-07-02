@@ -14,6 +14,16 @@ public class WorkflowReportQueryDto
     public int Limit { get; set; } = 100;
 }
 
+public class OperationalKpiSummaryDto
+{
+    public int ShortageCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int OverduePurchaseRequestCount { get; set; }
+    public int LateReceiptCount { get; set; }
+    public int PendingKitchenConfirmationCount { get; set; }
+    public DateTime GeneratedAt { get; set; }
+}
+
 public class CurrentStockSummaryDto
 {
     public string WarehouseId { get; set; } = string.Empty;

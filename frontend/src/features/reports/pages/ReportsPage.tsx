@@ -13,7 +13,7 @@ import {
   Warehouse,
 } from 'lucide-react';
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
@@ -107,8 +107,14 @@ const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
   { id: 'dishGroup', label: 'Theo nhóm món' },
 ];
 
+const validReportViews: ReportView[] = ['price', 'demand', 'purchase', 'stock', 'movement', 'kitchen', 'usage', 'audit'];
+
 const ReportsPage = () => {
-  const [activeView, setActiveView] = useState<ReportView>('price');
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view');
+  const [activeView, setActiveView] = useState<ReportView>(
+    validReportViews.includes(initialView as ReportView) ? (initialView as ReportView) : 'price'
+  );
   const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
   const [pricePage, setPricePage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
