@@ -474,7 +474,20 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> UpdateForecastServings([FromRoute] string id, [FromBody] UpdateForecastServingsRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        AdjustServingsResultDto? result;
+        try
+        {
+            result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để cập nhật."));

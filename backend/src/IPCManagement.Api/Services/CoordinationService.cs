@@ -1046,6 +1046,11 @@ public class CoordinationService : ICoordinationService
         UpdateForecastServingsRequestDto request,
         string? userId)
     {
+        if (request.ServingsQuantity < 0)
+        {
+            throw new ArgumentException("Số suất dự kiến phải lớn hơn hoặc bằng 0.");
+        }
+
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         var lineId = GuidHelper.ParseGuidString(orderId);
         if (userIdBytes is null || lineId is null)
