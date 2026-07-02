@@ -1098,6 +1098,87 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task ApprovalDecision_Should_RejectWithReason_AndUpdateDownstreamStatus()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        var purchaseRequestId = await SeedSubmittedPurchaseRequestAsync(fixture);
+
+        await using var context = fixture.CreateContext();
+        var service = new ApprovalWorkflowService([new PurchaseRequestApprovalHandler(context)]);
+        var result = await service.ExecuteAsync(
+            "purchase-request",
+            purchaseRequestId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Thiếu báo giá" },
+            fixture.UserIdString,
+            BuildPrincipal("Thu mua"));
+
+        result.Should().NotBeNull();
+        result!.OldStatus.Should().Be("SENTTOSUPPLIER");
+        result.NewStatus.Should().Be("REJECTED");
+
+        (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+            .Should().Be("REJECTED");
+        var history = await context.Approvalhistories.AsNoTracking().SingleAsync();
+        history.Decision.Should().Be("REJECT");
+        history.Reason.Should().Be("Thiếu báo giá");
+        history.ActionBy.Should().Equal(fixture.UserId);
+    }
+
+    [Fact]
+    public async Task ApprovalDecision_Should_BlockUnauthorizedApproverRole()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        var purchaseRequestId = await SeedSubmittedPurchaseRequestAsync(fixture);
+
+        await using var context = fixture.CreateContext();
+        var service = new ApprovalWorkflowService([new PurchaseRequestApprovalHandler(context)]);
+        var act = async () => await service.ExecuteAsync(
+            "purchase-request",
+            purchaseRequestId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không đúng quyền" },
+            fixture.UserIdString,
+            BuildPrincipal("Điều phối"));
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>()
+            .WithMessage("Không có quyền phê duyệt chứng từ này.");
+        (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+            .Should().Be("SENTTOSUPPLIER");
+        (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ApprovalDecision_Should_BlockDoubleApprove_WithoutDuplicateHistory()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        var purchaseRequestId = await SeedSubmittedPurchaseRequestAsync(fixture);
+
+        await using var context = fixture.CreateContext();
+        var service = new ApprovalWorkflowService([new PurchaseRequestApprovalHandler(context)]);
+        await service.ExecuteAsync(
+            "purchase-request",
+            purchaseRequestId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần đầu" },
+            fixture.UserIdString,
+            BuildPrincipal("Thu mua"));
+
+        var act = async () => await service.ExecuteAsync(
+            "purchase-request",
+            purchaseRequestId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần hai" },
+            fixture.UserIdString,
+            BuildPrincipal("Thu mua"));
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Phiếu này đã được xử lý.");
+        (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+            .Should().Be("APPROVED");
+        (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2066,6 +2147,25 @@ public class WorkflowGenerationTests
 
     private static ClaimsPrincipal BuildPrincipal(string roleName)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, roleName)], "TestAuth"));
+
+    private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
+    {
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        var materialRequest = await context.Materialrequests.SingleAsync();
+        materialRequest.Status = "MANAGERAPPROVED";
+        await context.SaveChangesAsync();
+
+        var purchaseService = new PurchaseRequestWorkflowService(context);
+        var purchase = await purchaseService.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+        await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+
+        return purchase.PurchaseRequestId;
+    }
 
     private sealed class WorkflowFixture : IAsyncDisposable
     {

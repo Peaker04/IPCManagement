@@ -60,6 +60,14 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         string? oldStatus,
         string? newStatus)
     {
+        var alreadyResolved = await Context.Approvalhistories
+            .AsNoTracking()
+            .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId);
+        if (alreadyResolved)
+        {
+            throw new InvalidOperationException("Phiếu này đã được xử lý.");
+        }
+
         var actionAt = DateTime.UtcNow;
         var historyId = GuidHelper.NewId();
 

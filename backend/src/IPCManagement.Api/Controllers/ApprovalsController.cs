@@ -42,7 +42,11 @@ public class ApprovalsController : ControllerBase
         ApprovalResultDto? result;
         try
         {
-            result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId);
+            result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId, User);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
         }
         catch (InvalidOperationException ex)
         {
