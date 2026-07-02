@@ -327,7 +327,7 @@ public class CoordinationTransactionTests
     }
 
     [Fact]
-    public async Task OrderAdjustmentApproval_Should_ApplyServingsAndRegenerateDemand_WhenApproved()
+    public async Task OrderAdjustmentApproval_Should_ApplyServingsAndWaitForSignoff_WhenApproved()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -350,7 +350,7 @@ public class CoordinationTransactionTests
             fixture.UserId);
 
         await using var approvalContext = new IpcManagementContext(BuildOptions(connection));
-        var handler = new InventoryAdjustmentApprovalHandler(approvalContext, materialDemandService);
+        var handler = new InventoryAdjustmentApprovalHandler(approvalContext);
 
         var approval = await handler.HandleAsync(
             pending!.ApprovalTargetId,
@@ -381,12 +381,44 @@ public class CoordinationTransactionTests
         history.TargetType.Should().Be("order-adjustment");
         history.Decision.Should().Be("APPROVE");
 
-        await materialDemandService.Received(1).GenerateAsync(
-            Arg.Is<GenerateMaterialDemandRequestDto>(request =>
-                request.ServiceDate == "2026-06-15" &&
-                request.Scope == "FULLDAY"),
-            fixture.UserId,
-            Arg.Any<CancellationToken>());
+        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task SignoffOrderAsync_Should_WriteAuditWithActor()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var planId = GuidHelper.ToGuidString(fixture.PlanId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var result = await service.SignoffOrderAsync(
+            planId,
+            new SignoffOrderRequestDto { Note = "Chốt số suất trước khi tạo demand" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatus.Should().Be(OrderStatus.Confirmed);
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        var audit = await verifyContext.Auditlogs.AsNoTracking().SingleAsync();
+
+        persistedPlan.Status.Should().Be(OrderStatus.Completed);
+        audit.BusinessArea.Should().Be("Coordination");
+        audit.EntityName.Should().Be(nameof(Mealquantityplan));
+        audit.FieldName.Should().Be(nameof(Mealquantityplan.Status));
+        audit.OldValue.Should().Be(OrderStatus.Confirmed);
+        audit.NewValue.Should().Be(OrderStatus.Completed);
+        audit.ChangedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.UserId)!);
+        audit.Reason.Should().Be("Chốt số suất trước khi tạo demand");
     }
 
     private static DbContextOptions<IpcManagementContext> BuildOptions(

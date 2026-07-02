@@ -51,16 +51,11 @@ public class MaterialDemandService : IMaterialDemandService
             .ToListAsync(cancellationToken);
         if (quantityLines.Count == 0)
         {
-            quantityLines = await EnsureDefaultImportQuantityLinesAsync(
-                serviceDate,
-                shiftName,
-                customerId,
-                userIdBytes,
-                cancellationToken);
-        }
+            if (await HasUnsignedOffQuantityLinesAsync(serviceDate, shiftName, customerId, cancellationToken))
+            {
+                throw new InvalidOperationException("Cần hoàn tất số suất trước khi tạo nhu cầu nguyên liệu.");
+            }
 
-        if (quantityLines.Count == 0)
-        {
             return null;
         }
 
@@ -193,7 +188,7 @@ public class MaterialDemandService : IMaterialDemandService
             .Include(line => line.QuantityPlan)
             .Where(line =>
                 line.QuantityPlan.ServiceDate == serviceDate &&
-                (line.QuantityPlan.Status == "CONFIRMED" || line.QuantityPlan.Status == "ADJUSTED"))
+                line.QuantityPlan.Status == "COMPLETED")
             .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(shiftName))
@@ -207,6 +202,31 @@ public class MaterialDemandService : IMaterialDemandService
         }
 
         return query;
+    }
+
+    private async Task<bool> HasUnsignedOffQuantityLinesAsync(
+        DateOnly serviceDate,
+        string? shiftName,
+        byte[]? customerId,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Mealquantityplanlines
+            .Include(line => line.QuantityPlan)
+            .Where(line =>
+                line.QuantityPlan.ServiceDate == serviceDate &&
+                (line.QuantityPlan.Status == "CONFIRMED" || line.QuantityPlan.Status == "ADJUSTED"));
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            query = query.Where(line => line.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            query = query.Where(line => line.CustomerId.SequenceEqual(customerId));
+        }
+
+        return await query.AnyAsync(cancellationToken);
     }
 
     private async Task<List<Mealquantityplanline>> EnsureDefaultImportQuantityLinesAsync(

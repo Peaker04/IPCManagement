@@ -2,9 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.Approvals;
@@ -167,14 +165,8 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
 public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Quantityadjustment>
 {
     private const string OrderAdjustmentTargetType = "order-adjustment";
-    private readonly IMaterialDemandService _materialDemandService;
 
-    public InventoryAdjustmentApprovalHandler(
-        IpcManagementContext context,
-        IMaterialDemandService materialDemandService) : base(context)
-    {
-        _materialDemandService = materialDemandService;
-    }
+    public InventoryAdjustmentApprovalHandler(IpcManagementContext context) : base(context) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryAdjustment;
 
@@ -224,15 +216,6 @@ public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Qua
                 Reason = adjustment.Reason
             });
 
-            await Context.SaveChangesAsync();
-
-            await _materialDemandService.GenerateAsync(
-                new GenerateMaterialDemandRequestDto
-                {
-                    ServiceDate = line.QuantityPlan.ServiceDate.ToString("yyyy-MM-dd"),
-                    Scope = "FULLDAY"
-                },
-                GuidHelper.ToGuidString(actorId));
         }
 
         return result;
