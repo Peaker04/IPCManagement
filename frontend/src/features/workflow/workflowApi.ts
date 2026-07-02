@@ -116,6 +116,37 @@ export interface UpdatePurchaseRequestLineSupplierDto {
   estimatedUnitPrice: number;
 }
 
+export interface SupplierQuotationDto {
+  quotationId: string;
+  supplierId: string;
+  supplierName: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+  isBestPrice: boolean;
+}
+
+export interface CreateSupplierQuotationDto {
+  supplierId: string;
+  ingredientId: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+}
+
+export interface UpdateSupplierQuotationDto {
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+}
+
 interface ReceiptPriceVarianceReportDto {
   receiptId: string;
   receiptCode: string;
@@ -457,6 +488,7 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     purchaseRequestId: item.purchaseRequestId,
     purchaseRequestLineId: item.purchaseRequestLineId,
     supplierId: item.supplierId,
+    ingredientId: item.ingredientId,
     estimatedUnitPrice: item.estimatedUnitPrice,
     sourceDocumentCode: item.purchaseRequestCode,
     serviceDate: item.purchaseForDate?.split('T')[0],
@@ -704,6 +736,36 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    getSupplierQuotationsByIngredient: builder.query<SupplierQuotationDto[], string>({
+      query: (ingredientId) => `/supplier-quotations/ingredient/${ingredientId}`,
+      transformResponse: (response: ApiResponse<SupplierQuotationDto[]>) => getData(response),
+      providesTags: ['SupplierQuotations'],
+    }),
+    createSupplierQuotation: builder.mutation<SupplierQuotationDto, CreateSupplierQuotationDto>({
+      query: (body) => ({
+        url: '/supplier-quotations',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    updateSupplierQuotation: builder.mutation<SupplierQuotationDto, { quotationId: string; data: UpdateSupplierQuotationDto }>({
+      query: ({ quotationId, data }) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    deactivateSupplierQuotation: builder.mutation<ApiResponse<void>, string>({
+      query: (quotationId) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['SupplierQuotations'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -842,6 +904,10 @@ export const {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useGetSupplierQuotationsByIngredientQuery,
+  useCreateSupplierQuotationMutation,
+  useUpdateSupplierQuotationMutation,
+  useDeactivateSupplierQuotationMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

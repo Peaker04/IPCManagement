@@ -2,6 +2,7 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Coordination;
+using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
@@ -115,7 +116,7 @@ public class WorkflowGenerationTests
                 fixture.UserIdString);
             materialRequestId = demand!.MaterialRequestId;
 
-            var purchaseService = new PurchaseRequestWorkflowService(context);
+            var purchaseService = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
             var purchase = await purchaseService.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
                 fixture.UserIdString);
@@ -132,7 +133,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var purchaseService = new PurchaseRequestWorkflowService(context);
+            var purchaseService = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
             var purchase = await purchaseService.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
                 fixture.UserIdString);
@@ -878,7 +879,7 @@ public class WorkflowGenerationTests
             new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
         demand.Should().NotBeNull();
-        var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+        var purchase = await new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context)).GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
             fixture.UserIdString);
         purchase.Should().NotBeNull();
@@ -1007,6 +1008,135 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
         return materialRequest;
+    }
+
+    [Fact]
+    public async Task CreateSupplierQuotation_Should_RejectOverlappingEffectivePeriod_ForSameSupplierAndIngredient()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        await SeedSupplierAndIngredientAsync(context, fixture, fixture.SupplierId, "Nhà cung cấp Demo");
+
+        var service = new SupplierQuotationService(context);
+        await service.CreateAsync(new CreateSupplierQuotationDto
+        {
+            SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitPrice = 10000,
+            EffectiveFrom = "2026-01-01",
+            EffectiveTo = "2026-06-30"
+        });
+
+        var act = () => service.CreateAsync(new CreateSupplierQuotationDto
+        {
+            SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitPrice = 12000,
+            EffectiveFrom = "2026-05-01",
+            EffectiveTo = null
+        });
+
+        await act.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Fact]
+    public async Task GetBestPriceEntityAsync_Should_TieBreak_ByEffectiveFromThenSupplierName_WhenPricesEqual()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+
+        var supplierEarlyZ = GuidHelper.NewId();
+        var supplierLateA = GuidHelper.NewId();
+        var supplierLateB = GuidHelper.NewId();
+        await SeedSupplierAndIngredientAsync(context, fixture, supplierEarlyZ, "Nhà cung cấp Z (báo giá cũ hơn)");
+        await SeedSupplierAsync(context, supplierLateA, "Nhà cung cấp A (mới, cùng giá)");
+        await SeedSupplierAsync(context, supplierLateB, "Nhà cung cấp B (mới, cùng giá)");
+
+        var service = new SupplierQuotationService(context);
+        await service.CreateAsync(new CreateSupplierQuotationDto
+        {
+            SupplierId = GuidHelper.ToGuidString(supplierEarlyZ),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitPrice = 10000,
+            EffectiveFrom = "2026-01-01",
+            EffectiveTo = null
+        });
+        await service.CreateAsync(new CreateSupplierQuotationDto
+        {
+            SupplierId = GuidHelper.ToGuidString(supplierLateB),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitPrice = 10000,
+            EffectiveFrom = "2026-06-01",
+            EffectiveTo = null
+        });
+        await service.CreateAsync(new CreateSupplierQuotationDto
+        {
+            SupplierId = GuidHelper.ToGuidString(supplierLateA),
+            IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+            UnitPrice = 10000,
+            EffectiveFrom = "2026-06-01",
+            EffectiveTo = null
+        });
+
+        var best = await service.GetBestPriceEntityAsync(fixture.IngredientId, new DateOnly(2026, 7, 1));
+
+        // Cùng giá 10000: 2 báo giá "2026-06-01" (A, B) mới hơn báo giá "2026-01-01" (Z) nên thắng theo EffectiveFrom desc;
+        // giữa A và B cùng ngày hiệu lực thì A thắng theo thứ tự tên A-Z.
+        best.Should().NotBeNull();
+        best!.SupplierId.Should().BeEquivalentTo(supplierLateA);
+    }
+
+    private static async Task SeedSupplierAndIngredientAsync(
+        IpcManagementContext context,
+        WorkflowFixture fixture,
+        byte[] supplierId,
+        string supplierName)
+    {
+        context.Units.Add(new Unit
+        {
+            UnitId = fixture.UnitId,
+            UnitCode = "KG",
+            UnitName = "Kilogram",
+            ConvertRateToBase = 1
+        });
+        context.Warehouses.Add(new Warehouse
+        {
+            WarehouseId = fixture.WarehouseId,
+            WarehouseCode = "WH-DEMO",
+            WarehouseName = "Kho demo",
+            WarehouseType = "DRY"
+        });
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = fixture.IngredientId,
+            IngredientCode = "ING-DEMO",
+            IngredientName = "Nguyên liệu demo",
+            UnitId = fixture.UnitId,
+            WarehouseId = fixture.WarehouseId,
+            ReferencePrice = 9000,
+            IsFreshDaily = false,
+            IsActive = true
+        });
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = supplierId,
+            SupplierCode = $"SUP-{GuidHelper.ToGuidString(supplierId)[..8]}",
+            SupplierName = supplierName,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SeedSupplierAsync(IpcManagementContext context, byte[] supplierId, string supplierName)
+    {
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = supplierId,
+            SupplierCode = $"SUP-{GuidHelper.ToGuidString(supplierId)[..8]}",
+            SupplierName = supplierName,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
     }
 
     private sealed class WorkflowFixture : IAsyncDisposable
@@ -1280,6 +1410,18 @@ public class WorkflowGenerationTests
                     customerName TEXT NOT NULL,
                     note TEXT NULL,
                     isActive INTEGER NOT NULL
+                );
+                CREATE TABLE supplierquotations (
+                    quotationId BLOB PRIMARY KEY,
+                    supplierId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitPrice TEXT NOT NULL,
+                    effectiveFrom TEXT NOT NULL,
+                    effectiveTo TEXT NULL,
+                    note TEXT NULL,
+                    isActive INTEGER NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL
                 );
                 CREATE TABLE customercontracts (
                     contractId BLOB PRIMARY KEY,

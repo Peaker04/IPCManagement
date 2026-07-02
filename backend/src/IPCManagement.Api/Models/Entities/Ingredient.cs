@@ -37,6 +37,8 @@ public partial class Ingredient
 
     public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
 
+    public virtual ICollection<Supplierquotation> Supplierquotations { get; set; } = new List<Supplierquotation>();
+
     public virtual Unit Unit { get; set; } = null!;
 
     public virtual Warehouse Warehouse { get; set; } = null!;
