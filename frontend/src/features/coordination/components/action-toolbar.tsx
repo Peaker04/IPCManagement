@@ -105,7 +105,7 @@ export function ActionToolbar({ status }: { status?: string }) {
 
   const normalizedStatus = (status ?? '').toUpperCase()
   const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED'
-  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'LOCKED' || isLocked
+  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'ADJUSTED' || normalizedStatus === 'LOCKED' || isLocked
   const currentPlanId = orders.find((order) => order.quantityPlanId)?.quantityPlanId
   const isBusy = isLocking || isExporting || isSigningOff
 
@@ -316,7 +316,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         <p className="text-sm text-slate-600">
           Trạng thái ca:{' '}
           <span className={`font-semibold ${isTerminal ? 'text-emerald-700' : isConfirmed ? 'text-teal-700' : 'text-amber-700'}`}>
-            {isTerminal ? 'Đã hoàn tất' : isConfirmed ? 'Đã khóa' : normalizedStatus === 'SYNCING' ? 'Đang đồng bộ...' : 'Chưa chốt'}
+            {isTerminal ? 'Đã hoàn tất' : normalizedStatus === 'ADJUSTED' ? 'Đã khóa, có điều chỉnh' : isConfirmed ? 'Đã khóa' : normalizedStatus === 'SYNCING' ? 'Đang đồng bộ...' : 'Chưa chốt'}
           </span>
         </p>
 

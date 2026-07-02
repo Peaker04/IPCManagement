@@ -344,16 +344,29 @@ public class CoordinationController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Vui lòng tải lên file Excel hợp lệ."));
         }
 
-        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        using var stream = file.OpenReadStream();
-        var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
-            stream,
-            file.FileName,
-            customerId,
-            parsedWeekStart,
-            cancellationToken);
+        try
+        {
+            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            var userId = _currentUserService.GetUserId(User);
+            using var stream = file.OpenReadStream();
+            var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
+                stream,
+                file.FileName,
+                customerId,
+                parsedWeekStart,
+                userId,
+                cancellationToken);
 
-        return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+            return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpGet("customers/{customerId}/import-mapping")]
@@ -461,7 +474,20 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> UpdateForecastServings([FromRoute] string id, [FromBody] UpdateForecastServingsRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        AdjustServingsResultDto? result;
+        try
+        {
+            result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để cập nhật."));

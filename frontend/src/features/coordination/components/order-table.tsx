@@ -35,6 +35,8 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
     dispatch(updateOrder(payload))
   }
 
+  const parseServingInput = (value: string) => Math.max(0, parseInt(value, 10) || 0)
+
   const rememberForecastValue = (order: OrderRow) => {
     setForecastRollbackValues((current) => ({
       ...current,
@@ -213,13 +215,13 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   value={order.forecastQuantity}
                   onFocus={() => rememberForecastValue(order)}
                   onBlur={(e) =>
-                    handleForecastQuantitySave(order, parseInt(e.target.value) || 0)
+                    handleForecastQuantitySave(order, parseServingInput(e.target.value))
                   }
                   onChange={(e) =>
                     handleOrderChange({
                       id: order.id,
                       field: 'forecastQuantity',
-                      value: parseInt(e.target.value) || 0,
+                      value: parseServingInput(e.target.value),
                     })
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
@@ -239,7 +241,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   disabled={!isLocked || pendingOrderIds[order.id]}
                   value={order.actualQuantity}
                   onChange={(e) =>
-                    handleActualQuantityChange(order, parseInt(e.target.value) || 0)
+                    handleActualQuantityChange(order, parseServingInput(e.target.value))
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
                     isLocked

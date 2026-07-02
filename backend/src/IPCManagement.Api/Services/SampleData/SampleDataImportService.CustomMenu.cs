@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Xml;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.DTOs.Coordination;
@@ -195,6 +196,15 @@ public partial class SampleDataImportService
                 committed: false,
                 cancellationToken);
         }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            return BuildInvalidWeeklyMenuImportResult(
+                fileName,
+                GuidHelper.ToGuidString(customer.CustomerId),
+                "FILE_READ_ERROR",
+                UnreadableWorkbookMessage,
+                "file");
+        }
         catch (InvalidOperationException ex)
         {
             return BuildInvalidWeeklyMenuImportResult(
@@ -215,6 +225,7 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
@@ -237,10 +248,14 @@ public partial class SampleDataImportService
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, cancellationToken);
+            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, actorUserId, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
+        }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            throw new InvalidOperationException(UnreadableWorkbookMessage, ex);
         }
         finally
         {
@@ -339,9 +354,10 @@ public partial class SampleDataImportService
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
-        var version = await CreateMenuVersionHeaderAsync(plan, customer, cancellationToken);
+        var version = await CreateMenuVersionHeaderAsync(plan, customer, actorUserId, cancellationToken);
         var result = await BuildWeeklyMenuImportResultAsync(
             plan,
             customer,
@@ -479,6 +495,7 @@ public partial class SampleDataImportService
             plan.WeekStartDate,
             plan.WeekEndDate,
             version,
+            actorUserId,
             cancellationToken);
         if (invalidatedCount > 0)
         {
@@ -495,9 +512,10 @@ public partial class SampleDataImportService
         DateOnly weekStartDate,
         DateOnly weekEndDate,
         Menuversion version,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
-        var actorId = await ResolveAuditActorIdAsync(cancellationToken);
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
         var changedAt = DateTime.UtcNow;
         var reason = $"Menu re-import {version.SourceImportBatch} invalidated downstream demand/PR; regenerate required.";
         var invalidatedCount = 0;
@@ -566,8 +584,20 @@ public partial class SampleDataImportService
         return invalidatedCount;
     }
 
-    private async Task<byte[]> ResolveAuditActorIdAsync(CancellationToken cancellationToken)
+    private async Task<byte[]> ResolveAuditActorIdAsync(string? actorUserId, CancellationToken cancellationToken)
     {
+        var requestedActorId = GuidHelper.ParseGuidString(actorUserId);
+        if (requestedActorId is not null)
+        {
+            var exists = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.UserId.SequenceEqual(requestedActorId), cancellationToken);
+            if (exists)
+            {
+                return requestedActorId;
+            }
+        }
+
         var actor = await _context.Users
             .AsNoTracking()
             .OrderByDescending(user => user.Role != null && user.Role.RoleName.ToLower().Contains("admin"))
@@ -1539,6 +1569,14 @@ public partial class SampleDataImportService
         };
     }
 
+    private const string UnreadableWorkbookMessage =
+        "File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.";
+
+    private static bool IsUnreadableWorkbookException(Exception ex)
+        => ex is InvalidDataException or IOException or XmlException ||
+           ex is InvalidOperationException invalidOperation &&
+           invalidOperation.Message.StartsWith("Workbook không có", StringComparison.OrdinalIgnoreCase);
+
     private static void AddValidationIssue(
         WeeklyMenuImportValidationDto validation,
         string severity,
@@ -1678,9 +1716,11 @@ public partial class SampleDataImportService
     private async Task<Menuversion> CreateMenuVersionHeaderAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
         var changedAt = DateTime.UtcNow;
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
         var versions = await _context.Menuversions
             .Where(version => version.WeekStartDate == plan.WeekStartDate)
             .OrderByDescending(version => version.VersionNo)
@@ -1707,6 +1747,7 @@ public partial class SampleDataImportService
             SourceFileName = plan.FileName,
             SourceChecksum = plan.SourceChecksum,
             SourceImportBatch = importBatch,
+            CreatedBy = actorId,
             CreatedAt = changedAt,
             UpdatedAt = changedAt
         };

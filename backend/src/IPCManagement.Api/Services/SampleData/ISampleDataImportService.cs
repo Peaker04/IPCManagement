@@ -29,6 +29,7 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        string? actorUserId = null,
         CancellationToken cancellationToken = default);
 
     Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
