@@ -344,18 +344,29 @@ public class CoordinationController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Vui lòng tải lên file Excel hợp lệ."));
         }
 
-        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        var userId = _currentUserService.GetUserId(User);
-        using var stream = file.OpenReadStream();
-        var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
-            stream,
-            file.FileName,
-            customerId,
-            parsedWeekStart,
-            userId,
-            cancellationToken);
+        try
+        {
+            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            var userId = _currentUserService.GetUserId(User);
+            using var stream = file.OpenReadStream();
+            var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
+                stream,
+                file.FileName,
+                customerId,
+                parsedWeekStart,
+                userId,
+                cancellationToken);
 
-        return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+            return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpGet("customers/{customerId}/import-mapping")]

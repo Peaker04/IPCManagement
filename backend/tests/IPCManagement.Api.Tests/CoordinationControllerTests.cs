@@ -40,4 +40,34 @@ public class CoordinationControllerTests
         response.Success.Should().BeFalse();
         response.Message.Should().Be("File Excel không có bảng thực đơn tuần hợp lệ.");
     }
+
+    [Fact]
+    public async Task CommitWeeklyMenuImport_Should_Return_BadRequest_When_Parsing_Fails()
+    {
+        var sampleDataImportService = Substitute.For<ISampleDataImportService>();
+        sampleDataImportService.CommitWeeklyMenuImportAsync(
+                Arg.Any<Stream>(),
+                Arg.Any<string>(),
+                Arg.Any<string>(),
+                Arg.Any<DateOnly?>(),
+                Arg.Any<string?>(),
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
+        var currentUserService = Substitute.For<ICurrentUserService>();
+        currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
+
+        var controller = new CoordinationController(
+            Substitute.For<ICoordinationService>(),
+            currentUserService,
+            sampleDataImportService);
+
+        var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
+
+        var result = await controller.CommitWeeklyMenuImport(file, "customer-id", null, CancellationToken.None);
+
+        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
+        response.Success.Should().BeFalse();
+        response.Message.Should().Be("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.");
+    }
 }

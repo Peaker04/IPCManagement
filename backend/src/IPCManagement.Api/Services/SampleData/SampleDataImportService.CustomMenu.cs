@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Xml;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.DTOs.Coordination;
@@ -195,6 +196,15 @@ public partial class SampleDataImportService
                 committed: false,
                 cancellationToken);
         }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            return BuildInvalidWeeklyMenuImportResult(
+                fileName,
+                GuidHelper.ToGuidString(customer.CustomerId),
+                "FILE_READ_ERROR",
+                UnreadableWorkbookMessage,
+                "file");
+        }
         catch (InvalidOperationException ex)
         {
             return BuildInvalidWeeklyMenuImportResult(
@@ -242,6 +252,10 @@ public partial class SampleDataImportService
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
+        }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            throw new InvalidOperationException(UnreadableWorkbookMessage, ex);
         }
         finally
         {
@@ -1554,6 +1568,14 @@ public partial class SampleDataImportService
             Warnings = [message]
         };
     }
+
+    private const string UnreadableWorkbookMessage =
+        "File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.";
+
+    private static bool IsUnreadableWorkbookException(Exception ex)
+        => ex is InvalidDataException or IOException or XmlException ||
+           ex is InvalidOperationException invalidOperation &&
+           invalidOperation.Message.StartsWith("Workbook không có", StringComparison.OrdinalIgnoreCase);
 
     private static void AddValidationIssue(
         WeeklyMenuImportValidationDto validation,
