@@ -415,6 +415,111 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GeneratePurchaseRequest_Should_AssignOnlyActiveSupplier_ToEveryLine()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        var inactiveSupplierId = GuidHelper.NewId();
+        await using (var context = fixture.CreateContext())
+        {
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = inactiveSupplierId,
+                SupplierCode = "SUP-INACTIVE",
+                SupplierName = "Inactive Supplier",
+                IsActive = false
+            });
+            context.Inventoryreceipts.Add(new Inventoryreceipt
+            {
+                ReceiptId = GuidHelper.NewId(),
+                ReceiptCode = "NK-INACTIVE-SUPPLIER",
+                ReceiptDate = new DateOnly(2026, 6, 14),
+                WarehouseId = fixture.WarehouseId,
+                SupplierId = inactiveSupplierId,
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                Inventoryreceiptlines =
+                [
+                    new Inventoryreceiptline
+                    {
+                        ReceiptLineId = GuidHelper.NewId(),
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        Quantity = 10m,
+                        UnitPrice = 900m,
+                        Amount = 9000m
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            purchase.Should().NotBeNull();
+            var line = purchase!.Lines.Should().ContainSingle().Subject;
+            line.SupplierId.Should().Be(GuidHelper.ToGuidString(fixture.SupplierId));
+            line.SupplierId.Should().NotBe(GuidHelper.ToGuidString(inactiveSupplierId));
+
+            var savedLine = await context.Purchaserequestlines
+                .Include(item => item.Supplier)
+                .AsNoTracking()
+                .SingleAsync();
+            savedLine.Supplier.IsActive.Should().BeTrue();
+        }
+    }
+
+    [Fact]
+    public async Task GeneratePurchaseRequest_Should_Block_WhenNoActiveSupplierAvailable()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var supplier = await context.Suppliers.SingleAsync();
+            supplier.IsActive = false;
+            await context.SaveChangesAsync();
+        }
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            var act = async () => await service.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Chưa có nhà cung cấp để tạo đề xuất mua cho 'Ingredient'.");
+
+            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        }
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

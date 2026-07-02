@@ -246,7 +246,9 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         var latestReceiptSupplier = await _context.Inventoryreceiptlines
             .Include(line => line.Receipt)
                 .ThenInclude(receipt => receipt.Supplier)
-            .Where(line => line.IngredientId == ingredientId)
+            .Where(line =>
+                line.IngredientId == ingredientId &&
+                line.Receipt.Supplier.IsActive != false)
             .OrderByDescending(line => line.Receipt.ReceiptDate)
             .Select(line => line.Receipt.Supplier)
             .FirstOrDefaultAsync(cancellationToken);
