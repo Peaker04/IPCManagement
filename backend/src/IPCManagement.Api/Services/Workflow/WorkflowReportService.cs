@@ -598,6 +598,11 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
 
         var returnTotals = returnLines
+            .Where(item => item.Return.ReturnType == "RETURN")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var wasteTotals = returnLines
+            .Where(item => item.Return.ReturnType == "WASTE")
             .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
 
@@ -607,6 +612,10 @@ public class WorkflowReportService : IWorkflowReportService
                 var returnedQty = returnTotals.GetValueOrDefault(
                     BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
                     0);
+                var wastedQty = wasteTotals.GetValueOrDefault(
+                    BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
+                    0);
+                var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
 
                 return new IssueVsReturnUsageReportDto
                 {
@@ -620,7 +629,9 @@ public class WorkflowReportService : IWorkflowReportService
                     UnitName = item.Unit.UnitName,
                     IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
                     ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
-                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, returnedQty)
+                    WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
+                    VarianceQty = varianceQty,
+                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
                 };
             })
             .ToList();
@@ -1433,13 +1444,15 @@ public class WorkflowReportService : IWorkflowReportService
             {
                 DocumentId = GuidHelper.ToGuidString(item.ReturnId),
                 DocumentCode = item.ReturnCode,
-                DocumentType = "Phiếu hoàn kho",
+                DocumentType = item.ReturnType == "WASTE" ? "Phiếu hao hụt" : "Phiếu hoàn kho",
                 DocumentDate = item.ReturnDate,
                 ShiftName = item.ShiftName,
                 Status = "Đã ghi nhận",
                 OwnerLane = "Bếp trưởng",
                 Route = "/chef",
-                Summary = "Nguyên liệu dư được hoàn lại kho"
+                Summary = item.ReturnType == "WASTE"
+                    ? "Hao hụt thực tế sau sản xuất được ghi nhận"
+                    : "Nguyên liệu dư được hoàn lại kho"
             })
             .ToListAsync();
     }

@@ -799,6 +799,10 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("returnCode");
             entity.Property(e => e.ReturnDate).HasColumnName("returnDate");
+            entity.Property(e => e.ReturnType)
+                .HasMaxLength(20)
+                .HasDefaultValue("RETURN")
+                .HasColumnName("returnType");
             entity.Property(e => e.ShiftName)
                 .HasColumnType("enum('MORNING','AFTERNOON')")
                 .HasColumnName("shiftName");

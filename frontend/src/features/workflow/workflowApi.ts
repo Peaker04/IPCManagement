@@ -263,7 +263,9 @@ interface IssueVsReturnUsageReportDto {
   unitName?: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 interface AuditChangeReportDto {
@@ -472,7 +474,9 @@ export interface UsageReportRow {
   unit: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 export interface DataQualityIssueRow {
@@ -699,7 +703,9 @@ const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
   unit: item.unitName ?? '',
   issuedQty: item.issuedQty,
   returnedQty: item.returnedQty,
+  wastedQty: item.wastedQty,
   usedQty: item.usedQty,
+  varianceQty: item.varianceQty,
 });
 
 const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({

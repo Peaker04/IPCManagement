@@ -78,6 +78,7 @@ public static class InventoryMapper
         ReturnCode = inventoryReturn.ReturnCode,
         ReturnDate = inventoryReturn.ReturnDate,
         ShiftName = inventoryReturn.ShiftName,
+        ReturnType = inventoryReturn.ReturnType,
         WarehouseId = GuidHelper.ToGuidString(inventoryReturn.WarehouseId),
         WarehouseName = inventoryReturn.Warehouse?.WarehouseName,
         IssueId = GuidHelper.ToGuidString(inventoryReturn.IssueId),

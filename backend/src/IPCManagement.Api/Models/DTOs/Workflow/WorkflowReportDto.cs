@@ -161,7 +161,9 @@ public class IssueVsReturnUsageReportDto
     public string? UnitName { get; set; }
     public decimal IssuedQty { get; set; }
     public decimal ReturnedQty { get; set; }
+    public decimal WastedQty { get; set; }
     public decimal UsedQty { get; set; }
+    public decimal VarianceQty { get; set; }
 }
 
 public class AuditChangeReportDto

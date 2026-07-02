@@ -1129,6 +1129,120 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task InventoryReturnAndWaste_Should_RecordProductionVariance_AndFeedUsageReport()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 300m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string issueId;
+        await using (var context = fixture.CreateContext())
+        {
+            var issueService = CreateInventoryIssueService(context);
+            var created = await issueService.CreateAsync(new CreateInventoryIssueDto
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId
+            }, fixture.UserIdString);
+            issueId = created!.IssueId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var returnService = CreateInventoryReturnService(context);
+            await returnService.CreateAsync(new CreateInventoryReturnDto
+            {
+                ReturnDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                ReturnType = "RETURN",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                IssueId = issueId,
+                Reason = "Bếp trả nguyên liệu dư sau ca sáng.",
+                Lines =
+                [
+                    new CreateInventoryReturnLineDto
+                    {
+                        IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+                        UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                        Quantity = 30m
+                    }
+                ]
+            }, fixture.UserIdString);
+
+            await returnService.CreateAsync(new CreateInventoryReturnDto
+            {
+                ReturnDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                ReturnType = "WASTE",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                IssueId = issueId,
+                Reason = "Hao hụt sơ chế thực tế.",
+                Lines =
+                [
+                    new CreateInventoryReturnLineDto
+                    {
+                        IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
+                        UnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                        Quantity = 20m
+                    }
+                ]
+            }, fixture.UserIdString);
+
+            var returnTypes = await context.Inventoryreturns
+                .AsNoTracking()
+                .OrderBy(item => item.ReturnCode)
+                .Select(item => item.ReturnType)
+                .ToListAsync();
+            returnTypes.Should().BeEquivalentTo(["RETURN", "WASTE"]);
+
+            (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
+                .Should().Be(130m);
+            var movementTypes = await context.Stockmovements
+                .AsNoTracking()
+                .OrderBy(item => item.MovementDate)
+                .Select(item => item.MovementType)
+                .ToListAsync();
+            movementTypes.Should().BeEquivalentTo(["ISSUE", "RETURN"]);
+
+            var varianceAudit = await context.Auditlogs.AsNoTracking()
+                .SingleAsync(item => item.BusinessArea == "ProductionVariance" && item.FieldName == "Waste");
+            varianceAudit.NewValue.Should().Be("wasteQty=20");
+            varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
+
+            var usage = await new WorkflowReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var row = usage.Should().ContainSingle().Subject;
+            row.IssuedQty.Should().Be(200m);
+            row.ReturnedQty.Should().Be(30m);
+            row.WastedQty.Should().Be(20m);
+            row.VarianceQty.Should().Be(50m);
+            row.UsedQty.Should().Be(150m);
+        }
+    }
+
+    [Fact]
     public async Task CreateInventoryIssue_Should_Block_WhenLineExceedsDemandRemaining()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2855,6 +2969,16 @@ public class WorkflowGenerationTests
                 new StockMovementRepository(context)),
             context);
 
+    private static InventoryReturnService CreateInventoryReturnService(IpcManagementContext context)
+        => new(
+            new InventoryReturnRepository(context),
+            new InventoryIssueRepository(context),
+            new UnitOfWork(context),
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)),
+            context);
+
     private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
     {
         await using var context = fixture.CreateContext();
@@ -3435,6 +3559,25 @@ public class WorkflowGenerationTests
                     unitId BLOB NOT NULL,
                     requestedQty TEXT NOT NULL,
                     issuedQty TEXT NOT NULL
+                );
+                CREATE TABLE inventoryreturns (
+                    returnId BLOB PRIMARY KEY,
+                    returnCode TEXT NOT NULL,
+                    returnDate TEXT NOT NULL,
+                    shiftName TEXT NULL,
+                    returnType TEXT NOT NULL DEFAULT 'RETURN',
+                    warehouseId BLOB NOT NULL,
+                    issueId BLOB NOT NULL,
+                    reason TEXT NULL,
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL
+                );
+                CREATE TABLE inventoryreturnlines (
+                    returnLineId BLOB PRIMARY KEY,
+                    returnId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    quantity TEXT NOT NULL
                 );
                 CREATE TABLE quantityadjustments (
                     adjustmentId BLOB PRIMARY KEY,

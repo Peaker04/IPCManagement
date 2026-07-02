@@ -225,6 +225,7 @@ public class InventoryReturnDto
     public string ReturnCode { get; set; } = string.Empty;
     public DateOnly ReturnDate { get; set; }
     public string? ShiftName { get; set; }
+    public string ReturnType { get; set; } = "RETURN";
     public string WarehouseId { get; set; } = string.Empty;
     public string? WarehouseName { get; set; }
     public string IssueId { get; set; } = string.Empty;
@@ -255,6 +256,8 @@ public class CreateInventoryReturnDto
     public DateOnly ReturnDate { get; set; }
 
     public string? ShiftName { get; set; }
+
+    public string ReturnType { get; set; } = "RETURN";
 
     [Required]
     public string WarehouseId { get; set; } = string.Empty;

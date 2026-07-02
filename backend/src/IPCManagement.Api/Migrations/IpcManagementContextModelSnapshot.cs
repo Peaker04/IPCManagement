@@ -830,6 +830,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("returnDate");
 
+                    b.Property<string>("ReturnType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("returnType")
+                        .HasDefaultValue("RETURN");
+
                     b.Property<string>("ShiftName")
                         .HasColumnType("enum('MORNING','AFTERNOON')")
                         .HasColumnName("shiftName");
