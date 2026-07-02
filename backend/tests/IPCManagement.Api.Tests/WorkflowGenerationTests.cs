@@ -827,6 +827,34 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_UseAdjustedLockedOrderFinalServings()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var quantityPlan = await context.Mealquantityplans.SingleAsync();
+            var quantityLine = await context.Mealquantityplanlines.SingleAsync();
+            quantityPlan.Status = OrderStatus.Adjusted;
+            quantityLine.ConfirmedServings = 100;
+            quantityLine.AdjustedServings = 20;
+            quantityLine.FinalServings = 120;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            demand.Should().NotBeNull();
+            demand!.Lines.Single().TotalRequiredQty.Should().Be(240m);
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ApplyDifferentPortionRules_ByShift()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

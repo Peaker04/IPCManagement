@@ -244,7 +244,7 @@ export interface MealQuantityPlanDto {
   planCode: string
   serviceDate: string
   dayOfWeek: string
-  status: 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'ARCHIVED' | string
+  status: 'DRAFT' | 'FORECASTED' | 'CONFIRMED' | 'ADJUSTED' | 'COMPLETED' | 'ARCHIVED' | string
   forecastReceivedAt?: string
   confirmedAt?: string
   lines: MealQuantityPlanLineDto[]

@@ -25,8 +25,15 @@ export default function CoordinationPage() {
   const shiftName = toApiShiftName(currentShift)
   const menusQuery = useGetMenuSchedulesQuery({ dayOfWeek: currentDayOfWeek, shiftName })
   const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, shiftName })
+  const backendStatus = plansQuery.data?.data?.[0]?.status
+  const normalizedBackendStatus = (backendStatus ?? '').toUpperCase()
   // Use countdown lock time if it reaches 8:30 AM, or if manually locked
-  const effectiveIsLocked = reduxLocked || countdownLocked
+  const effectiveIsLocked =
+    reduxLocked ||
+    countdownLocked ||
+    normalizedBackendStatus === 'CONFIRMED' ||
+    normalizedBackendStatus === 'ADJUSTED' ||
+    normalizedBackendStatus === 'COMPLETED'
 
   useEffect(() => {
     if (ordersQuery.data?.success && ordersQuery.data.data) {
@@ -57,7 +64,6 @@ export default function CoordinationPage() {
   const error = ordersQuery.isError
     ? 'Không tải được danh sách suất ăn từ API điều phối.'
     : localError
-  const backendStatus = plansQuery.data?.data?.[0]?.status
   const orderStatus = loading ? 'syncing' : backendStatus || (effectiveIsLocked ? 'locked' : 'draft')
 
   return (

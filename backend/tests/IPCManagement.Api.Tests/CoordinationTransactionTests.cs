@@ -194,6 +194,94 @@ public class CoordinationTransactionTests
         (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
+    [Fact]
+    public async Task LockOrderPlanAsync_Should_LockPlanAndBlockDirectForecastEdits()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var lockResult = await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                Scope = "FULLDAY",
+                Lines =
+                [
+                    new LockOrderPlanLineDto
+                    {
+                        QuantityPlanLineId = lineId,
+                        FinalServings = 140
+                    }
+                ]
+            },
+            fixture.UserId);
+
+        lockResult.Should().NotBeNull();
+        await using (var verifyContext = new IpcManagementContext(BuildOptions(connection)))
+        {
+            var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+            var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+
+            persistedPlan.Status.Should().Be(OrderStatus.Confirmed);
+            persistedLine.ConfirmedServings.Should().Be(140);
+            persistedLine.FinalServings.Should().Be(140);
+        }
+
+        var directForecastEdit = async () => await service.UpdateForecastServingsAsync(
+            lineId,
+            new UpdateForecastServingsRequestDto
+            {
+                ServingsQuantity = 150,
+                Reason = "Không được sửa trực tiếp sau khóa"
+            },
+            fixture.UserId);
+
+        await directForecastEdit.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
+    }
+
+    [Fact]
+    public async Task AdjustServingsAsync_Should_MoveLockedPlanToAdjustedStatus()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var result = await service.AdjustServingsAsync(
+            lineId,
+            new AdjustServingsRequestDto
+            {
+                ServingsQuantity = 125,
+                Reason = "Khách tăng suất sau khóa"
+            },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+
+        persistedPlan.Status.Should().Be(OrderStatus.Adjusted);
+        persistedLine.ConfirmedServings.Should().Be(100);
+        persistedLine.AdjustedServings.Should().Be(25);
+        persistedLine.FinalServings.Should().Be(125);
+    }
+
     private static DbContextOptions<IpcManagementContext> BuildOptions(
         SqliteConnection connection,
         IInterceptor? interceptor = null)

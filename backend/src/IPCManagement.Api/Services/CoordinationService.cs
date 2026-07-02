@@ -889,7 +889,7 @@ public class CoordinationService : ICoordinationService
                 line.ConfirmedServings = finalServings;
                 line.AdjustedServings = 0;
                 line.FinalServings = finalServings;
-                line.QuantityPlan.Status = "CONFIRMED";
+                line.QuantityPlan.Status = OrderStatus.Confirmed;
                 line.QuantityPlan.ConfirmedAt = lockedAt;
                 line.QuantityPlan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
                 line.QuantityPlan.ConfirmedBy = userIdBytes;
@@ -974,7 +974,7 @@ public class CoordinationService : ICoordinationService
             return null;
         }
 
-        if (!string.Equals(line.QuantityPlan.Status, "CONFIRMED", StringComparison.OrdinalIgnoreCase))
+        if (!OrderStatus.IsLocked(line.QuantityPlan.Status))
         {
             throw new InvalidOperationException("Chỉ có thể điều chỉnh sau khi kế hoạch đã được chốt.");
         }
@@ -989,6 +989,7 @@ public class CoordinationService : ICoordinationService
 
             line.AdjustedServings = request.ServingsQuantity - line.ConfirmedServings;
             line.FinalServings = request.ServingsQuantity;
+            line.QuantityPlan.Status = OrderStatus.Adjusted;
 
             _context.Auditlogs.Add(new Auditlog
             {
@@ -1067,8 +1068,7 @@ public class CoordinationService : ICoordinationService
             return null;
         }
 
-        if (!string.Equals(line.QuantityPlan.Status, "DRAFT", StringComparison.OrdinalIgnoreCase) &&
-            !string.Equals(line.QuantityPlan.Status, "FORECASTED", StringComparison.OrdinalIgnoreCase))
+        if (!OrderStatus.CanEditForecast(line.QuantityPlan.Status))
         {
             throw new InvalidOperationException("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
         }
