@@ -88,6 +88,9 @@ public class PurchaseDemandReportDto
     public decimal PurchaseQty { get; set; }
     public decimal EstimatedUnitPrice { get; set; }
     public decimal EstimatedAmount { get; set; }
+    public decimal ReferenceUnitPrice { get; set; }
+    public decimal PriceVariancePercent { get; set; }
+    public bool IsPriceWarning { get; set; }
     public DateOnly? ExpectedDeliveryDate { get; set; }
     public string? Note { get; set; }
 }

@@ -1,10 +1,12 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.Approvals;
 using IPCManagement.Api.Services.SampleData;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
@@ -584,6 +586,67 @@ public class WorkflowGenerationTests
             audit.NewValue.Should().Contain("price=12345.68");
             audit.NewValue.Should().Contain("delivery=2026-06-16");
             audit.NewValue.Should().Contain("note=Giao trước 9h");
+        }
+    }
+
+    [Fact]
+    public async Task PurchaseRequestApproval_Should_Block_WhenLinePriceExceedsWarningThreshold()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new PurchaseRequestWorkflowService(context);
+            await service.UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    EstimatedUnitPrice = 1200m
+                },
+                fixture.UserIdString);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var reportLine = (await new WorkflowReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
+            {
+                Limit = 100
+            })).Single();
+
+            reportLine.ReferenceUnitPrice.Should().Be(1000m);
+            reportLine.PriceVariancePercent.Should().Be(20m);
+            reportLine.IsPriceWarning.Should().BeTrue();
+
+            var handler = new PurchaseRequestApprovalHandler(context);
+            var act = async () => await handler.HandleAsync(
+                purchaseRequestId,
+                new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Approve PR" },
+                fixture.UserId);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
+
+            (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+                .Should().Be("DRAFT");
+            (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
         }
     }
 

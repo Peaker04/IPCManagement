@@ -3,6 +3,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.Approvals;
@@ -96,17 +97,57 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
     {
-        var entity = await Context.Purchaserequests.FirstOrDefaultAsync(item => item.PurchaseRequestId == targetId);
+        var entity = await Context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .FirstOrDefaultAsync(item => item.PurchaseRequestId == targetId);
         if (entity is null) return null;
 
         var oldStatus = entity.Status;
         var newStatus = request.Status == ApprovalDecision.Approve ? "APPROVED" : "REJECTED";
+
+        if (request.Status == ApprovalDecision.Approve && await HasPriceWarningAsync(entity))
+        {
+            throw new InvalidOperationException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
+        }
 
         entity.Status = newStatus;
         entity.ApprovedBy = actorId;
         entity.ApprovedAt = DateTime.UtcNow;
 
         return await SaveHistoryAsync("purchase-request", targetId, request, actorId, oldStatus, newStatus);
+    }
+
+    private async Task<bool> HasPriceWarningAsync(Purchaserequest purchaseRequest)
+    {
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
+            var referencePrice = await ResolveReferencePriceAsync(line);
+            var variance = WorkflowReportCalculator.CalculateVariancePercent(referencePrice, line.EstimatedUnitPrice);
+            if (WorkflowReportCalculator.IsPriceIncreaseWarning(variance))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private async Task<decimal> ResolveReferencePriceAsync(Purchaserequestline line)
+    {
+        var latestReceiptPrice = await Context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(item => item.Receipt)
+            .Where(item =>
+                item.IngredientId.SequenceEqual(line.IngredientId) &&
+                item.Receipt.SupplierId.SequenceEqual(line.SupplierId) &&
+                item.UnitId.SequenceEqual(line.UnitId) &&
+                item.UnitPrice > 0)
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .Select(item => item.UnitPrice)
+            .FirstOrDefaultAsync();
+
+        return latestReceiptPrice > 0 ? latestReceiptPrice : line.Ingredient.ReferencePrice;
     }
 }
 

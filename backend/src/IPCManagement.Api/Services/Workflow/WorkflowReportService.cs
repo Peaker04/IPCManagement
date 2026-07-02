@@ -344,6 +344,8 @@ public class WorkflowReportService : IWorkflowReportService
             .Take(NormalizeLimit(query.Limit))
             .ToListAsync();
 
+        var latestReceiptPrices = await LoadLatestReceiptPriceLookupAsync(purchaseLines);
+
         return purchaseLines
             .Select(item => new PurchaseDemandReportDto
             {
@@ -364,11 +366,59 @@ public class WorkflowReportService : IWorkflowReportService
                 PurchaseQty = DecimalPolicy.RoundQuantity(item.PurchaseQty),
                 EstimatedUnitPrice = DecimalPolicy.RoundMoney(item.EstimatedUnitPrice),
                 EstimatedAmount = DecimalPolicy.CalculateLineAmount(item.PurchaseQty, item.EstimatedUnitPrice),
+                ReferenceUnitPrice = ResolvePurchaseReferencePrice(item, latestReceiptPrices),
+                PriceVariancePercent = WorkflowReportCalculator.CalculateVariancePercent(
+                    ResolvePurchaseReferencePrice(item, latestReceiptPrices),
+                    item.EstimatedUnitPrice),
+                IsPriceWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(
+                    WorkflowReportCalculator.CalculateVariancePercent(
+                        ResolvePurchaseReferencePrice(item, latestReceiptPrices),
+                        item.EstimatedUnitPrice)),
                 ExpectedDeliveryDate = item.ExpectedDeliveryDate,
                 Note = item.Note
             })
             .ToList();
     }
+
+    private async Task<Dictionary<string, decimal>> LoadLatestReceiptPriceLookupAsync(IReadOnlyCollection<Purchaserequestline> purchaseLines)
+    {
+        if (purchaseLines.Count == 0)
+        {
+            return [];
+        }
+
+        var ingredientIds = purchaseLines.Select(item => item.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
+        var supplierIds = purchaseLines.Select(item => item.SupplierId).Distinct(ByteArrayComparer.Instance).ToList();
+        var unitIds = purchaseLines.Select(item => item.UnitId).Distinct(ByteArrayComparer.Instance).ToList();
+
+        var receiptLines = await _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(item => item.Receipt)
+            .Where(item =>
+                ingredientIds.Contains(item.IngredientId) &&
+                supplierIds.Contains(item.Receipt.SupplierId) &&
+                unitIds.Contains(item.UnitId) &&
+                item.UnitPrice > 0)
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .ToListAsync();
+
+        return receiptLines
+            .GroupBy(item => BuildPurchasePriceKey(item.IngredientId, item.Receipt.SupplierId, item.UnitId))
+            .ToDictionary(group => group.Key, group => DecimalPolicy.RoundMoney(group.First().UnitPrice));
+    }
+
+    private static decimal ResolvePurchaseReferencePrice(
+        Purchaserequestline line,
+        IReadOnlyDictionary<string, decimal> latestReceiptPrices)
+    {
+        var key = BuildPurchasePriceKey(line.IngredientId, line.SupplierId, line.UnitId);
+        return latestReceiptPrices.TryGetValue(key, out var latestPrice) && latestPrice > 0
+            ? latestPrice
+            : DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice);
+    }
+
+    private static string BuildPurchasePriceKey(byte[] ingredientId, byte[] supplierId, byte[] unitId)
+        => $"{Convert.ToBase64String(ingredientId)}:{Convert.ToBase64String(supplierId)}:{Convert.ToBase64String(unitId)}";
 
     public async Task<IReadOnlyList<ReceiptPriceVarianceReportDto>> GetReceiptPriceVarianceAsync(WorkflowReportQueryDto query)
     {
