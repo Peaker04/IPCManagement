@@ -1114,6 +1114,10 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.ShiftName)
                 .HasColumnType("enum('MORNING','AFTERNOON')")
                 .HasColumnName("shiftName");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Mealquantityplanlines)
                 .HasForeignKey(d => d.CustomerId)
@@ -1242,6 +1246,10 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'DRAFT'")
                 .HasColumnName("status");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+            entity.Property(e => e.MenuVersionId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("menuVersionId");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Menuschedules)
                 .HasForeignKey(d => d.CustomerId)
@@ -1252,6 +1260,11 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.MenuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("menuschedules_ibfk_2");
+
+            entity.HasOne(d => d.MenuVersion).WithMany(p => p.Menuschedules)
+                .HasForeignKey(d => d.MenuVersionId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("menuschedules_ibfk_3");
         });
 
         modelBuilder.Entity<Menuversion>(entity =>
@@ -1309,6 +1322,15 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("updatedAt");
             entity.Property(e => e.VersionNo).HasColumnName("versionNo");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+            entity.Property(e => e.SuccessRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("successRowCount");
+            entity.Property(e => e.ErrorRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("errorRowCount");
+            entity.Property(e => e.WarningRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("warningRowCount");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Menuversions)
                 .HasForeignKey(d => d.CustomerId)

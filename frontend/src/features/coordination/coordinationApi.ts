@@ -174,6 +174,29 @@ export interface CustomerImportMapping {
   labelColumn?: string
 }
 
+export interface WeeklyMenuImportHistoryItem {
+  menuVersionId: string
+  customerId: string
+  customerCode: string
+  customerName: string
+  weekStartDate: string
+  versionNo: number
+  status: string
+  sourceFileName?: string | null
+  createdByName?: string | null
+  createdAt: string
+  successRowCount: number
+  errorRowCount: number
+  warningRowCount: number
+  canRollback: boolean
+  cannotRollbackReason?: string | null
+}
+
+export interface RollbackWeeklyMenuImportResult {
+  menuVersionId: string
+  menuSchedulesRemoved: number
+}
+
 const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
   formData.append('file', file)
@@ -351,6 +374,20 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, { customerId?: string } | void>({
+      query: (params) => ({
+        url: '/coordination/weekly-menu/import-history',
+        params: params?.customerId ? { customerId: params.customerId } : undefined,
+      }),
+      providesTags: ['Coordination'],
+    }),
+    rollbackWeeklyMenuImport: builder.mutation<ApiResponse<RollbackWeeklyMenuImportResult>, string>({
+      query: (menuVersionId) => ({
+        url: `/coordination/weekly-menu/import/${menuVersionId}/rollback`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Coordination', 'DishCatalog'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -376,4 +413,6 @@ export const {
   useGetCustomerImportMappingQuery,
   useSaveCustomerImportMappingMutation,
   useUpdateWeeklyMenuBulkMutation,
+  useGetWeeklyMenuImportHistoryQuery,
+  useRollbackWeeklyMenuImportMutation,
 } = coordinationApi

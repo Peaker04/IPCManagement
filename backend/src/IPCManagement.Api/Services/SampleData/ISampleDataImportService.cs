@@ -29,6 +29,16 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        string? userId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+        string? customerId,
+        CancellationToken cancellationToken = default);
+
+    Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
+        string menuVersionId,
+        string? userId,
         CancellationToken cancellationToken = default);
 
     Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(

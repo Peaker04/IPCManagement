@@ -196,6 +196,7 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        string? userId = null,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
@@ -206,7 +207,7 @@ public partial class SampleDataImportService
             var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, cancellationToken);
+            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, userId, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
@@ -296,9 +297,10 @@ public partial class SampleDataImportService
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? userId,
         CancellationToken cancellationToken)
     {
-        var version = await CreateMenuVersionHeaderAsync(plan, customer, cancellationToken);
+        var version = await CreateMenuVersionHeaderAsync(plan, customer, userId, cancellationToken);
         var result = await BuildWeeklyMenuImportResultAsync(
             plan,
             customer,
@@ -428,7 +430,8 @@ public partial class SampleDataImportService
                 existingSchedules,
                 dryRun: false,
                 result.Counts,
-                contractPolicy);
+                contractPolicy,
+                version.MenuVersionId);
         }
 
         var invalidatedCount = await InvalidateWorkflowDocumentsForMenuReimportAsync(
@@ -442,6 +445,10 @@ public partial class SampleDataImportService
             result.Warnings.Add(
                 $"Đã đánh dấu {invalidatedCount} demand/PR cũ là CANCELLED vì thực đơn tuần được import lại. Vui lòng tạo lại demand và danh sách mua thêm.");
         }
+
+        version.SuccessRowCount = plan.Items.Count;
+        version.ErrorRowCount = plan.RowsSkipped;
+        version.WarningRowCount = result.Warnings.Count;
 
         ApplyCommittedDishIds(result, plan.Items);
         return result;
@@ -1468,9 +1475,11 @@ public partial class SampleDataImportService
     private async Task<Menuversion> CreateMenuVersionHeaderAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? userId,
         CancellationToken cancellationToken)
     {
         var changedAt = DateTime.UtcNow;
+        var createdBy = GuidHelper.ParseGuidString(userId) ?? await ResolveAuditActorIdAsync(cancellationToken);
         var versions = await _context.Menuversions
             .Where(version => version.WeekStartDate == plan.WeekStartDate)
             .OrderByDescending(version => version.VersionNo)
@@ -1497,6 +1506,7 @@ public partial class SampleDataImportService
             SourceFileName = plan.FileName,
             SourceChecksum = plan.SourceChecksum,
             SourceImportBatch = importBatch,
+            CreatedBy = createdBy,
             CreatedAt = changedAt,
             UpdatedAt = changedAt
         };
@@ -1517,6 +1527,161 @@ public partial class SampleDataImportService
             .ToListAsync(cancellationToken);
 
         return versions.FirstOrDefault(version => version.CustomerId.SequenceEqual(customerId));
+    }
+
+    public async Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+        string? customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Menuversions
+            .AsNoTracking()
+            .Include(version => version.Customer)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            var customerBytes = GuidHelper.ParseGuidString(customerId)
+                ?? throw new ArgumentException("Khách hàng không hợp lệ.");
+            query = query.Where(version => version.CustomerId.SequenceEqual(customerBytes));
+        }
+
+        var versions = await query
+            .OrderByDescending(version => version.CreatedAt)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        var userNamesById = await _context.Users
+            .AsNoTracking()
+            .ToDictionaryAsync(user => GuidHelper.ToGuidString(user.UserId), user => user.FullName, cancellationToken);
+
+        var items = new List<WeeklyMenuImportHistoryItemDto>();
+        foreach (var version in versions)
+        {
+            var (canRollback, reason) = await EvaluateRollbackEligibilityAsync(version, cancellationToken);
+            items.Add(new WeeklyMenuImportHistoryItemDto
+            {
+                MenuVersionId = GuidHelper.ToGuidString(version.MenuVersionId),
+                CustomerId = GuidHelper.ToGuidString(version.CustomerId),
+                CustomerCode = version.Customer.CustomerCode,
+                CustomerName = version.Customer.CustomerName,
+                WeekStartDate = version.WeekStartDate,
+                VersionNo = version.VersionNo,
+                Status = version.Status,
+                SourceFileName = version.SourceFileName,
+                CreatedByName = version.CreatedBy is null
+                    ? null
+                    : userNamesById.GetValueOrDefault(GuidHelper.ToGuidString(version.CreatedBy)),
+                CreatedAt = version.CreatedAt,
+                SuccessRowCount = version.SuccessRowCount,
+                ErrorRowCount = version.ErrorRowCount,
+                WarningRowCount = version.WarningRowCount,
+                CanRollback = canRollback,
+                CannotRollbackReason = reason
+            });
+        }
+
+        return items;
+    }
+
+    private async Task<(bool CanRollback, string? Reason)> EvaluateRollbackEligibilityAsync(
+        Menuversion version,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, $"Phiên import đã ở trạng thái {version.Status}, không thể rollback.");
+        }
+
+        var schedules = await _context.Menuschedules
+            .AsNoTracking()
+            .Where(schedule => schedule.MenuVersionId != null && schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
+            .ToListAsync(cancellationToken);
+
+        if (schedules.Count == 0)
+        {
+            return (false, "Không tìm thấy lịch thực đơn nào thuộc phiên import này.");
+        }
+
+        var lockedSchedule = schedules.FirstOrDefault(schedule =>
+            !string.Equals(schedule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
+        if (lockedSchedule is not null)
+        {
+            return (false, $"Lịch {lockedSchedule.ServiceDate:dd/MM/yyyy} đã ở trạng thái {lockedSchedule.Status}.");
+        }
+
+        var scheduleIds = schedules.Select(schedule => schedule.MenuScheduleId).ToList();
+        var hasQuantityLines = await _context.Mealquantityplanlines
+            .AsNoTracking()
+            .AnyAsync(line => scheduleIds.Any(id => line.MenuScheduleId.SequenceEqual(id)), cancellationToken);
+        if (hasQuantityLines)
+        {
+            return (false, "Đã có số suất liên kết với lịch thực đơn này.");
+        }
+
+        return (true, null);
+    }
+
+    public async Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
+        string menuVersionId,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        var versionBytes = GuidHelper.ParseGuidString(menuVersionId)
+            ?? throw new ArgumentException("Phiên import không hợp lệ.");
+        var version = await _context.Menuversions
+            .FirstOrDefaultAsync(item => item.MenuVersionId.SequenceEqual(versionBytes), cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy phiên import.");
+
+        var (canRollback, reason) = await EvaluateRollbackEligibilityAsync(version, cancellationToken);
+        if (!canRollback)
+        {
+            throw new InvalidOperationException(reason ?? "Không thể rollback phiên import này.");
+        }
+
+        var schedules = await _context.Menuschedules
+            .Where(schedule => schedule.MenuVersionId != null && schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
+            .ToListAsync(cancellationToken);
+        var menuIds = schedules.Select(schedule => schedule.MenuId).ToList();
+
+        var menuItems = await _context.Menuitems
+            .Where(item => menuIds.Any(id => item.MenuId.SequenceEqual(id)))
+            .ToListAsync(cancellationToken);
+        _context.Menuitems.RemoveRange(menuItems);
+
+        var scheduleCount = schedules.Count;
+        _context.Menuschedules.RemoveRange(schedules);
+
+        var menus = await _context.Menus
+            .Where(menu => menuIds.Any(id => menu.MenuId.SequenceEqual(id)))
+            .ToListAsync(cancellationToken);
+        _context.Menus.RemoveRange(menus);
+
+        var oldStatus = version.Status;
+        version.Status = "ROLLED_BACK";
+        version.UpdatedAt = DateTime.UtcNow;
+
+        var actorId = GuidHelper.ParseGuidString(userId) ?? await ResolveAuditActorIdAsync(cancellationToken);
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = actorId,
+            BusinessArea = "Menu",
+            EntityName = nameof(Menuversion),
+            EntityId = version.MenuVersionId,
+            FieldName = "Status",
+            OldValue = oldStatus,
+            NewValue = "ROLLED_BACK",
+            Reason = $"Rollback lần import {version.SourceImportBatch} theo yêu cầu người dùng."
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new RollbackWeeklyMenuImportResultDto
+        {
+            MenuVersionId = menuVersionId,
+            MenuSchedulesRemoved = scheduleCount
+        };
     }
 
     private static void ApplyMenuVersion(WeeklyMenuImportResultDto result, Menuversion? version)
