@@ -155,6 +155,20 @@ interface StockMovementViewDto {
   note?: string;
 }
 
+interface StockLedgerReconciliationDto {
+  warehouseId: string;
+  warehouseName?: string;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
+}
+
 export interface SupplierDto {
   supplierId: string;
   supplierCode: string;
@@ -392,6 +406,18 @@ export interface CurrentStockRow {
   lastUpdated: string;
 }
 
+export interface StockLedgerReconciliationRow {
+  id: string;
+  warehouse: string;
+  ingredient: string;
+  unit: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
+}
+
 export interface KitchenIssueRow {
   id: string;
   issueCode: string;
@@ -599,6 +625,18 @@ const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   unit: item.unitName ?? '',
   currentQty: item.currentQty,
   lastUpdated: item.lastUpdated,
+});
+
+const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): StockLedgerReconciliationRow => ({
+  id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouse: item.warehouseName ?? item.warehouseId,
+  ingredient: item.ingredientName ?? item.ingredientId,
+  unit: item.unitName ?? item.unitId,
+  currentQty: item.currentQty,
+  ledgerQty: item.ledgerQty,
+  differenceQty: item.differenceQty,
+  isMatched: item.isMatched,
+  lastMovementAt: item.lastMovementAt,
 });
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
@@ -851,6 +889,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
       providesTags: ['WorkflowReports'],
     }),
+    getStockLedgerReconciliation: builder.query<StockLedgerReconciliationRow[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/stock-ledger-reconciliation',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<StockLedgerReconciliationDto[]>) => getData(response).map(mapStockLedgerReconciliation),
+      providesTags: ['WorkflowReports'],
+    }),
     getKitchenIssues: builder.query<KitchenIssueRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/kitchen-issues',
@@ -912,6 +958,7 @@ export const {
   useGetStockMovementsQuery,
   useGetPriceVarianceQuery,
   useGetCurrentStockQuery,
+  useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,

@@ -1628,6 +1628,52 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task StockLedgerReconciliation_Should_ReportCurrentStockMismatch()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        context.Currentstocks.Add(new Currentstock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 8m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = [1]
+        });
+        context.Stockmovements.Add(new Stockmovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = DateTime.UtcNow.AddMinutes(-5),
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            MovementType = "RECEIPT",
+            QuantityIn = 10m,
+            QuantityOut = 0m,
+            PerformedBy = fixture.UserId,
+            Reason = "Seed ledger",
+            Note = "Ledger should recompute to 10"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var rows = await service.GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 10 });
+        var mismatch = rows.Should().ContainSingle().Subject;
+        mismatch.CurrentQty.Should().Be(8m);
+        mismatch.LedgerQty.Should().Be(10m);
+        mismatch.DifferenceQty.Should().Be(-2m);
+        mismatch.IsMatched.Should().BeFalse();
+
+        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+        report.Issues.Should().Contain(issue =>
+            issue.Category == "inventory_ledger_mismatch" &&
+            issue.Message.Contains("Current stock 8"));
+    }
+
+    [Fact]
     public async Task CustomerContract_Should_UpdateCustomerContract_AndWriteAudit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

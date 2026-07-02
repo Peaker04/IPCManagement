@@ -114,6 +114,84 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query)
+    {
+        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var limit = NormalizeLimit(query.Limit);
+
+        var stocksQuery = _context.Currentstocks
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .AsQueryable();
+        var movementsQuery = _context.Stockmovements
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .AsQueryable();
+
+        if (warehouseId is not null)
+        {
+            stocksQuery = stocksQuery.Where(item => item.WarehouseId == warehouseId);
+            movementsQuery = movementsQuery.Where(item => item.WarehouseId == warehouseId);
+        }
+
+        if (ingredientId is not null)
+        {
+            stocksQuery = stocksQuery.Where(item => item.IngredientId == ingredientId);
+            movementsQuery = movementsQuery.Where(item => item.IngredientId == ingredientId);
+        }
+
+        var stocks = await stocksQuery.ToListAsync();
+        var movements = await movementsQuery.ToListAsync();
+        var stockByKey = stocks.ToDictionary(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId));
+        var movementByKey = movements
+            .GroupBy(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var keys = stockByKey.Keys
+            .Concat(movementByKey.Keys)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        var rows = new List<StockLedgerReconciliationDto>();
+        foreach (var key in keys)
+        {
+            stockByKey.TryGetValue(key, out var stock);
+            movementByKey.TryGetValue(key, out var keyMovements);
+            var latestMovement = keyMovements?
+                .OrderByDescending(item => item.MovementDate)
+                .FirstOrDefault();
+            var ledgerQty = DecimalPolicy.RoundQuantity(keyMovements?.Sum(item => item.QuantityIn - item.QuantityOut) ?? 0m);
+            var currentQty = DecimalPolicy.RoundQuantity(stock?.CurrentQty ?? 0m);
+            var difference = DecimalPolicy.RoundQuantity(currentQty - ledgerQty);
+
+            rows.Add(new StockLedgerReconciliationDto
+            {
+                WarehouseId = GuidHelper.ToGuidString(stock?.WarehouseId ?? latestMovement!.WarehouseId),
+                WarehouseName = stock?.Warehouse.WarehouseName ?? latestMovement?.Warehouse.WarehouseName,
+                IngredientId = GuidHelper.ToGuidString(stock?.IngredientId ?? latestMovement!.IngredientId),
+                IngredientName = stock?.Ingredient.IngredientName ?? latestMovement?.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(stock?.UnitId ?? latestMovement!.UnitId),
+                UnitName = stock?.Unit.UnitName ?? latestMovement?.Unit.UnitName,
+                CurrentQty = currentQty,
+                LedgerQty = ledgerQty,
+                DifferenceQty = difference,
+                IsMatched = DecimalPolicy.RoundQuantity(difference) == 0,
+                LastMovementAt = latestMovement?.MovementDate
+            });
+        }
+
+        return rows
+            .OrderBy(item => item.IsMatched)
+            .ThenBy(item => item.WarehouseName)
+            .ThenBy(item => item.IngredientName)
+            .Take(limit)
+            .ToList();
+    }
+
     public async Task<IReadOnlyList<WorkflowDocumentDto>> GetWorkflowDocumentsAsync(WorkflowReportQueryDto query)
     {
         var limit = NormalizeLimit(query.Limit);
@@ -1022,6 +1100,26 @@ public class WorkflowReportService : IWorkflowReportService
             "Kiểm tra phiếu xuất/nhập hoặc tạo điều chỉnh tồn.",
             "/admin-data")));
 
+        var ledgerMismatches = (await GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto
+        {
+            WarehouseId = query.WarehouseId,
+            IngredientId = query.IngredientId,
+            Limit = limit
+        }))
+            .Where(item => !item.IsMatched)
+            .ToList();
+
+        issues.AddRange(ledgerMismatches.Select(item => BuildDataQualityIssue(
+            "inventory_ledger_mismatch",
+            "error",
+            nameof(Currentstock),
+            $"{item.WarehouseId}:{item.IngredientId}",
+            item.WarehouseName ?? item.WarehouseId,
+            item.IngredientName ?? item.IngredientId,
+            $"Current stock {item.CurrentQty} {item.UnitName} không khớp ledger {item.LedgerQty} {item.UnitName}. Lệch {item.DifferenceQty} {item.UnitName}.",
+            "Đối chiếu stock movements và tạo điều chỉnh tồn qua ledger, không sửa trực tiếp current stock.",
+            "/reports")));
+
         var stockShortageAudits = await _context.Auditlogs
             .AsNoTracking()
             .Where(log => log.BusinessArea == "StockException" && log.FieldName == "StockShortage")
@@ -1404,6 +1502,9 @@ public class WorkflowReportService : IWorkflowReportService
 
     private static string BuildUsageKey(byte[] issueId, byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToBase64String(issueId)}|{Convert.ToBase64String(ingredientId)}|{Convert.ToBase64String(unitId)}";
+
+    private static string BuildStockLedgerKey(byte[] warehouseId, byte[] ingredientId)
+        => $"{Convert.ToBase64String(warehouseId)}|{Convert.ToBase64String(ingredientId)}";
 
     private static DateOnly? ParseDateOnly(string? value)
         => DateOnly.TryParse(value, out var date) ? date : null;
