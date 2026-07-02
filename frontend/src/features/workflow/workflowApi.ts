@@ -332,6 +332,13 @@ export interface GeneratePurchaseRequestFromDemandRequest {
   materialRequestId: string;
 }
 
+export interface ApprovalDecisionRequest {
+  targetType: string;
+  targetId: string;
+  status: 'Approve' | 'Reject';
+  reason?: string | null;
+}
+
 export interface PriceVarianceRow {
   id: string;
   name: string;
@@ -781,6 +788,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<ApprovalInboxItemDto[]>) => getData(response).map(mapApprovalInboxItem),
       providesTags: ['WorkflowReports'],
     }),
+    executeApprovalDecision: builder.mutation<ApiResponse<unknown>, ApprovalDecisionRequest>({
+      query: ({ targetType, targetId, status, reason }) => ({
+        url: `/approvals/${targetType}/${targetId}`,
+        method: 'POST',
+        body: { status, reason },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getStockMovements: builder.query<StockMovement[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/stock-movements',
@@ -861,6 +876,7 @@ export const {
   useSubmitPurchaseRequestMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
+  useExecuteApprovalDecisionMutation,
   useGetStockMovementsQuery,
   useGetPriceVarianceQuery,
   useGetCurrentStockQuery,

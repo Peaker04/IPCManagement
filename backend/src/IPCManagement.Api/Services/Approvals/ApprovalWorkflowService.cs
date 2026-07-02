@@ -24,6 +24,12 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
             return null;
         }
 
+        request.Reason = string.IsNullOrWhiteSpace(request.Reason) ? null : request.Reason.Trim();
+        if (request.Status == ApprovalDecision.Reject && string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ArgumentException("Lý do từ chối không được để trống.");
+        }
+
         var normalizedTargetType = ApprovalTargetTypeParser.Parse(targetType);
         if (normalizedTargetType is null || !_handlers.TryGetValue(normalizedTargetType.Value, out var handler))
         {

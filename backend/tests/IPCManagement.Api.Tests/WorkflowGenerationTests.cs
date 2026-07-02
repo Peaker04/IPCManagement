@@ -1027,6 +1027,77 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task ApprovalDecision_Should_WriteActorTimestampReason_AndUpdateDownstreamStatus()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            await new PurchaseRequestWorkflowService(context).SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+            purchaseRequestId = purchase.PurchaseRequestId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new ApprovalWorkflowService([new PurchaseRequestApprovalHandler(context)]);
+            var before = DateTime.UtcNow.AddSeconds(-1);
+            var result = await service.ExecuteAsync(
+                "purchase-request",
+                purchaseRequestId,
+                new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện mua" },
+                fixture.UserIdString);
+            var after = DateTime.UtcNow.AddSeconds(1);
+
+            result.Should().NotBeNull();
+            result!.OldStatus.Should().Be("SENTTOSUPPLIER");
+            result.NewStatus.Should().Be("APPROVED");
+            result.ActionAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+
+            var purchaseStatus = await context.Purchaserequests.AsNoTracking()
+                .Select(item => item.Status)
+                .SingleAsync();
+            purchaseStatus.Should().Be("APPROVED");
+
+            var history = await context.Approvalhistories.AsNoTracking().SingleAsync();
+            history.TargetType.Should().Be("purchase-request");
+            history.ActionBy.Should().Equal(fixture.UserId);
+            history.Reason.Should().Be("Đủ điều kiện mua");
+            history.ActionAt.Should().BeOnOrAfter(before).And.BeOnOrBefore(after);
+        }
+    }
+
+    [Fact]
+    public async Task ApprovalDecision_Should_RequireReason_WhenRejecting()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var service = new ApprovalWorkflowService([new PurchaseRequestApprovalHandler(context)]);
+        var act = async () => await service.ExecuteAsync(
+            "purchase-request",
+            GuidHelper.ToGuidString(GuidHelper.NewId()),
+            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = " " },
+            fixture.UserIdString);
+
+        await act.Should().ThrowAsync<ArgumentException>()
+            .WithMessage("Lý do từ chối không được để trống.");
+        (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
     public async Task AuditReport_Should_IncludeImportApprovalReceiptIssueAndSignoffRows()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

@@ -166,6 +166,69 @@ async function stubPurchasingSubmitFailure(page: Page) {
   });
 }
 
+async function stubApprovalDecisionSuccess(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: [
+          {
+            inboxItemId: 'purchase-pr-1',
+            targetType: 'purchase-request',
+            targetId: 'pr-1',
+            targetCode: 'PR-20260615-FULLDAY',
+            itemType: 'purchase',
+            title: 'Duyệt đơn mua',
+            source: 'PR-20260615-FULLDAY',
+            ownerRole: 'Thu mua / Quản lý',
+            submittedBy: 'Đinh Thu Mua',
+            dueDate: '2026-06-15',
+            status: 'PENDING',
+            reason: 'Đơn mua đã gửi, chờ duyệt trước khi mua hàng.',
+            nextAction: 'Duyệt đơn mua',
+            tone: 'warning',
+            route: '/approvals',
+            materials: [{ name: 'Sườn heo', quantity: 10, unit: 'kg' }],
+          },
+        ],
+      }),
+    });
+  });
+
+  await page.route('**/api/workflow-reports/**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
+  await page.route('**/api/approvals/purchase-request/pr-1', async (route) => {
+    const body = await route.request().postDataJSON();
+    expect(body).toMatchObject({ status: 'Approve', reason: 'Đồng ý mua' });
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'Thực hiện phê duyệt thành công.',
+        data: {
+          targetType: 'purchase-request',
+          targetId: 'pr-1',
+          status: 'APPROVE',
+          oldStatus: 'SENTTOSUPPLIER',
+          newStatus: 'APPROVED',
+          historyId: 'hist-1',
+          actionAt: '2026-07-02T13:00:00Z',
+        },
+      }),
+    });
+  });
+}
+
 async function expectNoPageOverflow(page: Page) {
   const overflow = await page.evaluate(() => {
     const documentWidth = Math.max(
@@ -238,5 +301,22 @@ test.describe('route smoke', () => {
     const dialog = await dialogPromise;
     expect(dialog.message()).toContain('Có dòng mua vượt ngưỡng giá');
     await dialog.accept();
+  });
+
+  test('approval inbox executes approve decision with reason', async ({ page }) => {
+    await stubApprovalDecisionSuccess(page);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.goto(ROUTES.APPROVALS);
+
+    await expect(page.getByText('PR-20260615-FULLDAY').first()).toBeVisible();
+    const dialogMessages: string[] = [];
+    page.on('dialog', async (dialog) => {
+      dialogMessages.push(dialog.message());
+      await dialog.accept(dialog.type() === 'prompt' ? 'Đồng ý mua' : undefined);
+    });
+    await page.getByRole('button', { name: 'Duyệt' }).first().click();
+    await expect.poll(() => dialogMessages).toContain('Ghi chú duyệt');
+    await expect.poll(() => dialogMessages).toContain('Đã duyệt.');
   });
 });
