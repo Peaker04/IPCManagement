@@ -313,6 +313,21 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var materialRequest = await SeedReportDocumentsAsync(context, fixture);
+            var customerId = await context.Customers.Select(item => item.CustomerId).SingleAsync();
+            context.Menuversions.Add(new Menuversion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = customerId,
+                WeekStartDate = new DateOnly(2026, 6, 15),
+                VersionNo = 1,
+                Status = "DRAFT",
+                SourceFileName = "THUC DON DEMO.xlsx",
+                SourceChecksum = "sha256-demo",
+                SourceImportBatch = "MENU-CUS-20260615-V01",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow.AddMinutes(-25),
+                UpdatedAt = DateTime.UtcNow.AddMinutes(-25)
+            });
             context.Auditlogs.Add(new Auditlog
             {
                 AuditId = GuidHelper.NewId(),
@@ -333,6 +348,12 @@ public class WorkflowGenerationTests
             var areas = rows.Select(item => item.BusinessArea).ToList();
 
             areas.Should().Contain(["Import", "Approval", "Receipt", "Issue", "Signoff"]);
+            var menuImport = rows.Single(item => item.EntityName == nameof(Menuversion) && item.FieldName == "WeeklyMenu");
+            menuImport.OldValue.Should().Be("THUC DON DEMO.xlsx");
+            menuImport.NewValue.Should().Be("MENU-CUS-20260615-V01 - DRAFT");
+            menuImport.ChangedBy.Should().Be(fixture.UserIdString);
+            menuImport.ChangedByName.Should().Be("Workflow Test");
+            menuImport.Reason.Should().Be("sha256-demo");
             rows.Single(item => item.BusinessArea == "Issue").OldValue.Should().Be(GuidHelper.ToGuidString(materialRequest.RequestId));
         }
     }
@@ -806,6 +827,34 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_UseAdjustedLockedOrderFinalServings()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var quantityPlan = await context.Mealquantityplans.SingleAsync();
+            var quantityLine = await context.Mealquantityplanlines.SingleAsync();
+            quantityPlan.Status = OrderStatus.Adjusted;
+            quantityLine.ConfirmedServings = 100;
+            quantityLine.AdjustedServings = 20;
+            quantityLine.FinalServings = 120;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            demand.Should().NotBeNull();
+            demand!.Lines.Single().TotalRequiredQty.Should().Be(240m);
+        }
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ApplyDifferentPortionRules_ByShift()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1037,6 +1086,7 @@ public class WorkflowGenerationTests
             new DateOnly(2026, 6, 15),
             new DateOnly(2026, 6, 20),
             version,
+            fixture.UserIdString,
             CancellationToken.None
         ])!;
         var invalidated = await task;

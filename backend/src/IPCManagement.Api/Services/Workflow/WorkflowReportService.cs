@@ -572,6 +572,55 @@ public class WorkflowReportService : IWorkflowReportService
             })
             .ToListAsync();
 
+        var menuImports = _context.Menuversions
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            menuImports = menuImports.Where(item => item.CreatedAt >= dateFrom);
+        }
+
+        if (dateToExclusive is not null)
+        {
+            menuImports = menuImports.Where(item => item.CreatedAt < dateToExclusive);
+        }
+
+        var menuImportVersions = await menuImports
+            .OrderByDescending(item => item.CreatedAt)
+            .Take(limit)
+            .ToListAsync();
+        var menuImportActorIds = menuImportVersions
+            .Where(item => item.CreatedBy is not null)
+            .Select(item => GuidHelper.ToGuidString(item.CreatedBy!))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var menuImportActors = (await _context.Users
+                .AsNoTracking()
+                .ToListAsync())
+            .Where(user => menuImportActorIds.Contains(GuidHelper.ToGuidString(user.UserId), StringComparer.OrdinalIgnoreCase))
+            .ToDictionary(user => GuidHelper.ToGuidString(user.UserId), user => user.FullName, StringComparer.OrdinalIgnoreCase);
+        var menuImportRows = menuImportVersions
+            .Select(item =>
+            {
+                var actorId = item.CreatedBy is null ? string.Empty : GuidHelper.ToGuidString(item.CreatedBy);
+                return new AuditChangeReportDto
+                {
+                    AuditId = GuidHelper.ToGuidString(item.MenuVersionId),
+                    ChangedAt = item.CreatedAt,
+                    ChangedBy = actorId,
+                    ChangedByName = !string.IsNullOrWhiteSpace(actorId) && menuImportActors.TryGetValue(actorId, out var actorName) ? actorName : null,
+                    BusinessArea = "Import",
+                    EntityName = nameof(Menuversion),
+                    EntityId = GuidHelper.ToGuidString(item.MenuVersionId),
+                    FieldName = "WeeklyMenu",
+                    OldValue = item.SourceFileName,
+                    NewValue = $"{item.SourceImportBatch ?? $"V{item.VersionNo}"} - {item.Status}",
+                    Reason = item.SourceChecksum
+                };
+            })
+            .ToList();
+
         var approvals = _context.Approvalhistories
             .AsNoTracking()
             .Include(item => item.ActionByNavigation)
@@ -740,6 +789,7 @@ public class WorkflowReportService : IWorkflowReportService
 
         return auditRows
             .Concat(importRows)
+            .Concat(menuImportRows)
             .Concat(approvalRows)
             .Concat(receiptRows)
             .Concat(issueRows)

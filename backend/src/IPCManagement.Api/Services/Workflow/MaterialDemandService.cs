@@ -193,7 +193,7 @@ public class MaterialDemandService : IMaterialDemandService
             .Include(line => line.QuantityPlan)
             .Where(line =>
                 line.QuantityPlan.ServiceDate == serviceDate &&
-                line.QuantityPlan.Status == "CONFIRMED")
+                (line.QuantityPlan.Status == "CONFIRMED" || line.QuantityPlan.Status == "ADJUSTED"))
             .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(shiftName))

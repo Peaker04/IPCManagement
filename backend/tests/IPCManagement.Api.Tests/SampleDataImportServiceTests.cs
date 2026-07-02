@@ -296,6 +296,52 @@ public class SampleDataImportServiceTests
             issue.Severity == "error");
     }
 
+    [Fact]
+    public async Task PreviewWeeklyMenuImport_Should_ReturnReadableValidation_WhenWorkbookCannotBeRead()
+    {
+        var setup = await CreateWeeklyMenuImportContextAsync();
+        await using var connection = setup.Connection;
+        await using var context = setup.Context;
+        var service = new SampleDataImportService(context, null!);
+        await using var stream = new MemoryStream([1, 2, 3, 4]);
+
+        var result = await service.PreviewWeeklyMenuImportAsync(
+            stream,
+            "broken.xlsx",
+            setup.CustomerIdString,
+            new DateOnly(2026, 6, 15));
+
+        result.Validation.HasCriticalErrors.Should().BeTrue();
+        result.Validation.Issues.Should().ContainSingle(issue =>
+            issue.Code == "FILE_READ_ERROR" &&
+            issue.Field == "file" &&
+            issue.Message == "File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.");
+    }
+
+    [Fact]
+    public async Task CommitWeeklyMenuImport_Should_NotChangeExistingMenu_WhenWorkbookCannotBeRead()
+    {
+        var setup = await CreateWeeklyMenuImportContextAsync();
+        await using var connection = setup.Connection;
+        await using var context = setup.Context;
+        var service = new SampleDataImportService(context, null!);
+        await using var stream = new MemoryStream([1, 2, 3, 4]);
+
+        var act = async () => await service.CommitWeeklyMenuImportAsync(
+            stream,
+            "broken.xlsx",
+            setup.CustomerIdString,
+            new DateOnly(2026, 6, 15),
+            setup.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.");
+        (await context.Menuversions.CountAsync()).Should().Be(1);
+        (await context.Menuschedules.CountAsync()).Should().Be(1);
+        (await context.Menuversions.Select(item => item.SourceImportBatch).SingleAsync()).Should().Be("MENU-CUS-20260615-V01");
+        (await context.Menuschedules.Select(item => item.Status).SingleAsync()).Should().Be("ACTIVE");
+    }
+
     private static T InvokePrivateStatic<T>(string methodName, params object?[] args)
     {
         var method = typeof(SampleDataImportService).GetMethod(
@@ -358,10 +404,159 @@ public class SampleDataImportServiceTests
         return (connection, new IpcManagementContext(options));
     }
 
+    private static async Task<WeeklyMenuImportContext> CreateWeeklyMenuImportContextAsync()
+    {
+        var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            CREATE TABLE customers (
+                customerId BLOB PRIMARY KEY,
+                customerCode TEXT NOT NULL,
+                customerName TEXT NOT NULL,
+                note TEXT NULL,
+                isActive INTEGER NULL
+            );
+            CREATE TABLE customerimportmappings (
+                mappingId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                sheetNameHint TEXT NULL,
+                labelColumn TEXT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            CREATE TABLE users (
+                userId BLOB PRIMARY KEY,
+                username TEXT NOT NULL,
+                fullName TEXT NOT NULL,
+                passwordHash TEXT NOT NULL,
+                roleId BLOB NOT NULL,
+                isActive INTEGER NULL,
+                createdAt TEXT NOT NULL
+            );
+            CREATE TABLE roles (
+                roleId BLOB PRIMARY KEY,
+                roleCode TEXT NOT NULL,
+                roleName TEXT NOT NULL
+            );
+            CREATE TABLE menus (
+                menuId BLOB PRIMARY KEY,
+                menuCode TEXT NOT NULL,
+                menuName TEXT NOT NULL,
+                fromDate TEXT NULL,
+                toDate TEXT NULL,
+                isActive INTEGER NULL
+            );
+            CREATE TABLE menuversions (
+                menuVersionId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                weekStartDate TEXT NOT NULL,
+                versionNo INTEGER NOT NULL,
+                status TEXT NOT NULL,
+                sourceFileName TEXT NULL,
+                sourceChecksum TEXT NULL,
+                sourceImportBatch TEXT NULL,
+                createdBy BLOB NULL,
+                createdAt TEXT NOT NULL,
+                publishedBy BLOB NULL,
+                publishedAt TEXT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            CREATE TABLE menuschedules (
+                menuScheduleId BLOB PRIMARY KEY,
+                customerId BLOB NOT NULL,
+                menuId BLOB NOT NULL,
+                serviceDate TEXT NOT NULL,
+                weekStartDate TEXT NOT NULL,
+                shiftName TEXT NOT NULL,
+                menuPrice TEXT NOT NULL,
+                bomRatePercent TEXT NOT NULL,
+                status TEXT NOT NULL
+            );
+            """;
+        await command.ExecuteNonQueryAsync();
+
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        var context = new IpcManagementContext(options);
+        var customerId = GuidHelper.NewId();
+        var roleId = GuidHelper.NewId();
+        var userId = GuidHelper.NewId();
+        var menuId = GuidHelper.NewId();
+        context.Customers.Add(new Customer
+        {
+            CustomerId = customerId,
+            CustomerCode = "CUS",
+            CustomerName = "Customer",
+            IsActive = true
+        });
+        context.Roles.Add(new Role
+        {
+            RoleId = roleId,
+            RoleCode = "ADMIN",
+            RoleName = "Admin"
+        });
+        context.Users.Add(new User
+        {
+            UserId = userId,
+            Username = "importer",
+            FullName = "Importer",
+            PasswordHash = "hash",
+            RoleId = roleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Menus.Add(new Menu
+        {
+            MenuId = menuId,
+            MenuCode = "MENU-OLD",
+            MenuName = "Existing menu",
+            IsActive = true
+        });
+        context.Menuversions.Add(new Menuversion
+        {
+            MenuVersionId = GuidHelper.NewId(),
+            CustomerId = customerId,
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            VersionNo = 1,
+            Status = "DRAFT",
+            SourceFileName = "old.xlsx",
+            SourceImportBatch = "MENU-CUS-20260615-V01",
+            CreatedBy = userId,
+            CreatedAt = DateTime.UtcNow.AddDays(-1),
+            UpdatedAt = DateTime.UtcNow.AddDays(-1)
+        });
+        context.Menuschedules.Add(new Menuschedule
+        {
+            MenuScheduleId = GuidHelper.NewId(),
+            CustomerId = customerId,
+            MenuId = menuId,
+            ServiceDate = new DateOnly(2026, 6, 15),
+            WeekStartDate = new DateOnly(2026, 6, 15),
+            ShiftName = "MORNING",
+            MenuPrice = 25000,
+            BomRatePercent = 100,
+            Status = "ACTIVE"
+        });
+        await context.SaveChangesAsync();
+        return new WeeklyMenuImportContext(
+            connection,
+            context,
+            GuidHelper.ToGuidString(customerId),
+            GuidHelper.ToGuidString(userId));
+    }
+
     private static T GetProperty<T>(object instance, string propertyName)
     {
         var property = instance.GetType().GetProperty(propertyName);
         property.Should().NotBeNull();
         return (T)property!.GetValue(instance)!;
     }
+
+    private sealed record WeeklyMenuImportContext(
+        SqliteConnection Connection,
+        IpcManagementContext Context,
+        string CustomerIdString,
+        string UserIdString);
 }
