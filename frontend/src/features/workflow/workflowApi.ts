@@ -745,6 +745,13 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -838,6 +845,7 @@ export const {
   useGetIngredientDemandQuery,
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
+  useSubmitPurchaseRequestMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useGetStockMovementsQuery,

@@ -19,6 +19,7 @@ import {
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
+  useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
 } from '@/features/workflow';
 import type { DemandLine, SupplierDto } from '@/features/workflow';
@@ -32,12 +33,32 @@ export default function PurchasingPage() {
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
+  const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
   const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
+  const submitTargetId = primaryPurchaseDemand?.purchaseRequestId;
   const purchaseSummaryDocument = purchasingDocuments.find((document) => document.type === 'Danh sách mua thêm')
     ?? purchasingDocuments[0];
+
+  const handleSubmitPurchaseRequest = async () => {
+    if (!submitTargetId) {
+      alert('Chưa có đơn mua để gửi.');
+      return;
+    }
+
+    try {
+      await submitPurchaseRequest(submitTargetId).unwrap();
+      alert('Đã gửi đơn mua chính thức.');
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Chưa thể gửi đơn mua: ' + message);
+    }
+  };
 
   return (
     <OperationalFrame
@@ -51,6 +72,14 @@ export default function PurchasingPage() {
                 onClick={() => setActiveView('supplier')}
               >
                 Chọn nhà cung cấp
+              </button>
+              <button
+                className="ipc-button ipc-button-primary"
+                type="button"
+                onClick={handleSubmitPurchaseRequest}
+                disabled={!submitTargetId || isSubmittingPurchaseRequest}
+              >
+                {isSubmittingPurchaseRequest ? 'Đang gửi...' : 'Gửi đơn mua'}
               </button>
               <button className="ipc-button ipc-button-warning" type="button">Gửi cảnh báo biến động giá</button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>

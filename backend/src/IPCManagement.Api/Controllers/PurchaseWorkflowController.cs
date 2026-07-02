@@ -75,4 +75,35 @@ public class PurchaseWorkflowController : ControllerBase
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
     }
+
+    /// <summary>Gửi đơn mua chính thức sau khi nhu cầu nguyên liệu đã được duyệt.</summary>
+    [HttpPost("requests/{id}/submit")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Submit(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _purchaseRequestWorkflowService.SubmitAsync(id, userId, cancellationToken);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy đơn mua."));
+            }
+
+            return Ok(ApiResponse<PurchaseRequestWorkflowResultDto>.SuccessResult(result, "Đã gửi đơn mua chính thức."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }
