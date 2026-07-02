@@ -108,6 +108,50 @@ public class ReceiptPriceVarianceReportDto
     public bool IsWarning { get; set; }
 }
 
+public class PriceVarianceBySupplierDto
+{
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string SupplierId { get; set; } = string.Empty;
+    public string? SupplierName { get; set; }
+    public int ReceiptCount { get; set; }
+    public decimal AvgUnitPrice { get; set; }
+    public decimal MinUnitPrice { get; set; }
+    public decimal MaxUnitPrice { get; set; }
+    public decimal ReferencePrice { get; set; }
+    public decimal VariancePercent { get; set; }
+    public bool IsWarning { get; set; }
+}
+
+public class PriceVarianceByPeriodDto
+{
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string PeriodLabel { get; set; } = string.Empty;
+    public DateOnly PeriodStart { get; set; }
+    public decimal AvgUnitPrice { get; set; }
+    public decimal ReferencePrice { get; set; }
+    public decimal VariancePercentVsReference { get; set; }
+    public decimal? VariancePercentVsPreviousPeriod { get; set; }
+    public bool IsWarning { get; set; }
+}
+
+public class PriceVarianceDishGroupIngredientDto
+{
+    public string IngredientName { get; set; } = string.Empty;
+    public decimal VariancePercent { get; set; }
+    public decimal Weight { get; set; }
+}
+
+public class PriceVarianceByDishGroupDto
+{
+    public string DishGroup { get; set; } = string.Empty;
+    public int IngredientCount { get; set; }
+    public int WarningIngredientCount { get; set; }
+    public decimal WeightedAvgVariancePercent { get; set; }
+    public List<PriceVarianceDishGroupIngredientDto> TopIngredients { get; set; } = [];
+}
+
 public class KitchenIssueReportDto
 {
     public string IssueId { get; set; } = string.Empty;

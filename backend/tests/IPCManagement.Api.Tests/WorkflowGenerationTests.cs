@@ -1139,6 +1139,57 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
     }
 
+    [Fact]
+    public async Task GetPriceVarianceByDishGroupAsync_Should_WeightByBomQuantity_NotSimpleAverage()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+
+        var supplierId = GuidHelper.NewId();
+        var ingredientAId = GuidHelper.NewId();
+        var ingredientBId = GuidHelper.NewId();
+        var dishId = GuidHelper.NewId();
+
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-DEMO", WarehouseName = "Kho demo", WarehouseType = "DRY" });
+        context.Suppliers.Add(new Supplier { SupplierId = supplierId, SupplierCode = "SUP-DEMO", SupplierName = "NCC Demo", IsActive = true });
+        // Ingredient A: reference 100, avg receipt price 150 -> variance 50%
+        context.Ingredients.Add(new Ingredient { IngredientId = ingredientAId, IngredientCode = "ING-A", IngredientName = "Nguyên liệu A", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        // Ingredient B: reference 100, avg receipt price 110 -> variance 10%
+        context.Ingredients.Add(new Ingredient { IngredientId = ingredientBId, IngredientCode = "ING-B", IngredientName = "Nguyên liệu B", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        context.Dishes.Add(new Dish { DishId = dishId, DishCode = "DISH-DEMO", DishName = "Món demo", DishGroup = "Món chính", IsActive = true });
+        // A dùng ít (weight 1), B dùng nhiều (weight 9) trong cùng món -> trung bình có trọng số phải lệch về phía B
+        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientAId, UnitId = fixture.UnitId, GrossQtyPerServing = 1, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientBId, UnitId = fixture.UnitId, GrossQtyPerServing = 9, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+
+        var receiptId = GuidHelper.NewId();
+        context.Inventoryreceipts.Add(new Inventoryreceipt
+        {
+            ReceiptId = receiptId,
+            ReceiptCode = "PN-DEMO",
+            ReceiptDate = new DateOnly(2026, 6, 1),
+            WarehouseId = fixture.WarehouseId,
+            SupplierId = supplierId,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryreceiptlines =
+            [
+                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientAId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 150 },
+                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientBId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 110 }
+            ]
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var result = await service.GetPriceVarianceByDishGroupAsync(new WorkflowReportQueryDto());
+
+        var group = result.Should().ContainSingle(g => g.DishGroup == "Món chính").Subject;
+        group.IngredientCount.Should().Be(2);
+        // Trọng số theo BOM: (1*50 + 9*10) / (1+9) = 14, khác hẳn trung bình cộng đơn giản (50+10)/2 = 30
+        group.WeightedAvgVariancePercent.Should().Be(14);
+    }
+
     private sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;

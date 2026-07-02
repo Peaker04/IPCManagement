@@ -164,6 +164,46 @@ interface ReceiptPriceVarianceReportDto {
   isWarning: boolean;
 }
 
+export interface PriceVarianceBySupplierDto {
+  ingredientId: string;
+  ingredientName?: string;
+  supplierId: string;
+  supplierName?: string;
+  receiptCount: number;
+  avgUnitPrice: number;
+  minUnitPrice: number;
+  maxUnitPrice: number;
+  referencePrice: number;
+  variancePercent: number;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceByPeriodDto {
+  ingredientId: string;
+  ingredientName?: string;
+  periodLabel: string;
+  periodStart: string;
+  avgUnitPrice: number;
+  referencePrice: number;
+  variancePercentVsReference: number;
+  variancePercentVsPreviousPeriod?: number | null;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceDishGroupIngredientDto {
+  ingredientName: string;
+  variancePercent: number;
+  weight: number;
+}
+
+export interface PriceVarianceByDishGroupDto {
+  dishGroup: string;
+  ingredientCount: number;
+  warningIngredientCount: number;
+  weightedAvgVariancePercent: number;
+  topIngredients: PriceVarianceDishGroupIngredientDto[];
+}
+
 interface CurrentStockSummaryDto {
   warehouseId: string;
   warehouseName?: string;
@@ -832,6 +872,30 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<ReceiptPriceVarianceReportDto[]>) => getData(response).map(mapPriceVariance),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVarianceBySupplier: builder.query<PriceVarianceBySupplierDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-supplier',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceBySupplierDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByPeriod: builder.query<PriceVarianceByPeriodDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-period',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByPeriodDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByDishGroup: builder.query<PriceVarianceByDishGroupDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-dish-group',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
     getCurrentStock: builder.query<CurrentStockRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/current-stock',
@@ -897,6 +961,9 @@ export const {
   useGetApprovalRecordsQuery,
   useGetStockMovementsQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVarianceBySupplierQuery,
+  useGetPriceVarianceByPeriodQuery,
+  useGetPriceVarianceByDishGroupQuery,
   useGetCurrentStockQuery,
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,

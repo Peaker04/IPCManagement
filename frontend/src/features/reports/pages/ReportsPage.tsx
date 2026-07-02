@@ -36,6 +36,9 @@ import {
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVarianceBySupplierQuery,
+  useGetPriceVarianceByPeriodQuery,
+  useGetPriceVarianceByDishGroupQuery,
   useGetPurchaseDemandQuery,
   useGetStockMovementsQuery,
   type StockMovement,
@@ -95,8 +98,18 @@ const EmptyRow = ({ colSpan }: { colSpan: number }) => (
   </tr>
 );
 
+type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
+
+const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
+  { id: 'lines', label: 'Theo dòng nhập' },
+  { id: 'supplier', label: 'Theo NCC' },
+  { id: 'period', label: 'Theo thời gian' },
+  { id: 'dishGroup', label: 'Theo nhóm món' },
+];
+
 const ReportsPage = () => {
   const [activeView, setActiveView] = useState<ReportView>('price');
+  const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
   const [pricePage, setPricePage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -111,6 +124,12 @@ const ReportsPage = () => {
   };
 
   const priceVarianceResult = useGetPriceVarianceQuery(reportQuery);
+  const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
+  const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'period' });
+  const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
+  const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data ?? [];
+  const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data ?? [];
+  const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data ?? [];
   const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
   const purchaseDemandResult = useGetPurchaseDemandQuery(reportQuery);
   const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
@@ -354,6 +373,140 @@ const ReportsPage = () => {
             empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
           />
 
+          <ViewSwitcher
+            compact
+            ariaLabel="Chọn cách phân tích biến động giá"
+            tabs={priceSubViewTabs.map((tab) => ({ id: `price-sub-${tab.id}`, label: tab.label }))}
+            activeTab={`price-sub-${priceSubView}`}
+            onTabChange={(id) => setPriceSubView(id.replace('price-sub-', '') as PriceSubView)}
+          />
+
+          {priceSubView === 'supplier' && (
+            <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="#475569" />}>
+              <DataTableShell ariaLabel="Bảng biến động giá theo nhà cung cấp">
+                <table className="ipc-data-table">
+                  <thead>
+                    <tr>
+                      <th>Nguyên liệu</th>
+                      <th>Nhà cung cấp</th>
+                      <th>Số lần nhập</th>
+                      <th>Giá TB</th>
+                      <th>Giá thấp nhất</th>
+                      <th>Giá cao nhất</th>
+                      <th>Giá tham chiếu</th>
+                      <th>% biến động</th>
+                      <th>Đánh giá</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {priceVarianceBySupplierRows.length === 0 ? (
+                      <EmptyRow colSpan={9} />
+                    ) : (
+                      priceVarianceBySupplierRows.map((row) => (
+                        <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                          <td>{row.ingredientName}</td>
+                          <td>{row.supplierName}</td>
+                          <td className="ipc-numeric-cell">{row.receiptCount}</td>
+                          <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
+                          <td className="ipc-numeric-cell">{formatCurrency(row.minUnitPrice)}</td>
+                          <td className="ipc-numeric-cell">{formatCurrency(row.maxUnitPrice)}</td>
+                          <td className="ipc-numeric-cell">{formatCurrency(row.referencePrice)}</td>
+                          <td className="ipc-numeric-cell">{formatPercent(row.variancePercent)}</td>
+                          <td className="ipc-badge-cell">
+                            {row.isWarning ? (
+                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                            ) : (
+                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </DataTableShell>
+            </SectionPanel>
+          )}
+
+          {priceSubView === 'period' && (
+            <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="#475569" />}>
+              <DataTableShell ariaLabel="Bảng biến động giá theo thời gian">
+                <table className="ipc-data-table">
+                  <thead>
+                    <tr>
+                      <th>Nguyên liệu</th>
+                      <th>Tháng</th>
+                      <th>Giá TB</th>
+                      <th>% so với tham chiếu</th>
+                      <th>% so với tháng trước</th>
+                      <th>Đánh giá</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {priceVarianceByPeriodRows.length === 0 ? (
+                      <EmptyRow colSpan={6} />
+                    ) : (
+                      priceVarianceByPeriodRows.map((row) => (
+                        <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                          <td>{row.ingredientName}</td>
+                          <td>{row.periodLabel}</td>
+                          <td className="ipc-numeric-cell">{formatCurrency(row.avgUnitPrice)}</td>
+                          <td className="ipc-numeric-cell">{formatPercent(row.variancePercentVsReference)}</td>
+                          <td className="ipc-numeric-cell">
+                            {row.variancePercentVsPreviousPeriod == null ? '—' : formatPercent(row.variancePercentVsPreviousPeriod)}
+                          </td>
+                          <td className="ipc-badge-cell">
+                            {row.isWarning ? (
+                              <StatusBadge variant="danger" className="ipc-table-badge ipc-table-badge--status">Vượt ngưỡng</StatusBadge>
+                            ) : (
+                              <StatusBadge variant="success" className="ipc-table-badge ipc-table-badge--status">Ổn định</StatusBadge>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </DataTableShell>
+            </SectionPanel>
+          )}
+
+          {priceSubView === 'dishGroup' && (
+            <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng BOM)" icon={<ClipboardList size={18} color="#475569" />}>
+              <DataTableShell ariaLabel="Bảng biến động giá theo nhóm món">
+                <table className="ipc-data-table">
+                  <thead>
+                    <tr>
+                      <th>Nhóm món</th>
+                      <th>Số nguyên liệu</th>
+                      <th>Số NL vượt ngưỡng</th>
+                      <th>% biến động (có trọng số)</th>
+                      <th>Nguyên liệu ảnh hưởng nhiều nhất</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {priceVarianceByDishGroupRows.length === 0 ? (
+                      <EmptyRow colSpan={5} />
+                    ) : (
+                      priceVarianceByDishGroupRows.map((row) => (
+                        <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                          <td>{row.dishGroup}</td>
+                          <td className="ipc-numeric-cell">{row.ingredientCount}</td>
+                          <td className="ipc-numeric-cell">{row.warningIngredientCount}</td>
+                          <td className="ipc-numeric-cell">{formatPercent(row.weightedAvgVariancePercent)}</td>
+                          <td className="text-left">
+                            {row.topIngredients.map((ing) => `${ing.ingredientName} (${formatPercent(ing.variancePercent)})`).join(', ')}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </DataTableShell>
+            </SectionPanel>
+          )}
+
+          {priceSubView === 'lines' && (
           <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="#475569" />}>
             <DataTableShell ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
               <table className="ipc-data-table ipc-report-table">
@@ -412,8 +565,9 @@ const ReportsPage = () => {
             </DataTableShell>
             <PaginationBar page={safePricePage} pageSize={pricePageSize} totalItems={priceVarianceRows.length} onPageChange={setPricePage} />
           </SectionPanel>
+          )}
 
-          {selectedWarning && (
+          {priceSubView === 'lines' && selectedWarning && (
             <div className="ipc-split-detail-strip ipc-report-warning-detail">
               <div className="ipc-split-detail-label mb-3">Tác động vận hành — {selectedWarning.name}</div>
               <div className="flex flex-wrap items-start gap-4">
