@@ -1039,6 +1039,96 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task ConfirmInventoryIssueReceipt_Should_MarkKitchenReceipt_AndCreateDiscrepancyIssue()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 250m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        string issueId;
+        await using (var context = fixture.CreateContext())
+        {
+            var issueService = CreateInventoryIssueService(context);
+            var created = await issueService.CreateAsync(new CreateInventoryIssueDto
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId
+            }, fixture.UserIdString);
+            issueId = created!.IssueId;
+
+            var beforeConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            beforeConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
+                row.IsReceivedByKitchen == false &&
+                row.ReceivedAt == null &&
+                row.ReceiptStatus == "Chờ bếp nhận");
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var issueService = CreateInventoryIssueService(context);
+            var confirmed = await issueService.ConfirmReceiptAsync(
+                issueId,
+                new ConfirmInventoryIssueReceiptDto
+                {
+                    HasDiscrepancy = true,
+                    DiscrepancyNote = "Bếp nhận thiếu 2 kg so với phiếu xuất."
+                },
+                fixture.UserIdString);
+
+            confirmed.Should().NotBeNull();
+            confirmed!.ReceivedBy.Should().Be(fixture.UserIdString);
+            confirmed.ReceivedAt.Should().NotBeNull();
+            confirmed.Lines.Should().ContainSingle();
+
+            var issue = await context.Inventoryissues.AsNoTracking().SingleAsync();
+            issue.ReceivedBy.Should().Equal(fixture.UserId);
+            issue.ReceivedAt.Should().NotBeNull();
+
+            var auditFields = await context.Auditlogs
+                .AsNoTracking()
+                .Where(item => item.BusinessArea == "KitchenReceipt")
+                .Select(item => item.FieldName)
+                .ToListAsync();
+            auditFields.Should().BeEquivalentTo(["KitchenReceived", "KitchenReceiptDiscrepancy"]);
+
+            var afterConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            afterConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
+                row.IsReceivedByKitchen &&
+                row.ReceivedBy == fixture.UserIdString &&
+                row.ReceivedAt != null &&
+                row.ReceiptStatus == "Bếp đã nhận");
+
+            var dataQuality = await new WorkflowReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+            dataQuality.Issues.Should().Contain(issue =>
+                issue.Category == "kitchen_receipt_discrepancy" &&
+                issue.Message.Contains("Bếp báo chênh lệch"));
+        }
+    }
+
+    [Fact]
     public async Task CreateInventoryIssue_Should_Block_WhenLineExceedsDemandRemaining()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3335,6 +3425,7 @@ public class WorkflowGenerationTests
                     materialRequestId BLOB NOT NULL,
                     issuedBy BLOB NOT NULL,
                     receivedBy BLOB NULL,
+                    receivedAt TEXT NULL,
                     createdAt TEXT NOT NULL
                 );
                 CREATE TABLE inventoryissuelines (

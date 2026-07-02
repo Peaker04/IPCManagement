@@ -54,6 +54,7 @@ public static class InventoryMapper
         IssuedByName = issue.IssuedByNavigation?.FullName,
         ReceivedBy = issue.ReceivedBy is not null ? GuidHelper.ToGuidString(issue.ReceivedBy) : null,
         ReceivedByName = issue.ReceivedByNavigation?.FullName,
+        ReceivedAt = issue.ReceivedAt,
         CreatedAt = issue.CreatedAt,
         Lines = includeLines
             ? issue.Inventoryissuelines.Select(MapIssueLine).ToList()

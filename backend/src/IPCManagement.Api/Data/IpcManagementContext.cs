@@ -555,6 +555,9 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("receivedBy");
+            entity.Property(e => e.ReceivedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("receivedAt");
             entity.Property(e => e.ShiftName)
                 .HasColumnType("enum('MORNING','AFTERNOON')")
                 .HasColumnName("shiftName");

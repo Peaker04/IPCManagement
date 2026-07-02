@@ -1138,6 +1138,24 @@ public class WorkflowReportService : IWorkflowReportService
             "Nhập kho bổ sung, giảm số lượng xuất hoặc tạo đề xuất mua thêm trước khi xuất kho.",
             "/warehouse")));
 
+        var kitchenReceiptDiscrepancies = await _context.Auditlogs
+            .AsNoTracking()
+            .Where(log => log.BusinessArea == "KitchenReceipt" && log.FieldName == "KitchenReceiptDiscrepancy")
+            .OrderByDescending(log => log.ChangedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(kitchenReceiptDiscrepancies.Select(log => BuildDataQualityIssue(
+            "kitchen_receipt_discrepancy",
+            "warning",
+            log.EntityName,
+            log.EntityId == null ? null : GuidHelper.ToGuidString(log.EntityId),
+            log.ChangedAt.ToString("yyyy-MM-dd HH:mm"),
+            log.NewValue ?? "Bếp báo chênh lệch khi nhận nguyên liệu",
+            log.Reason ?? "Bếp báo nguyên liệu nhận thực tế khác phiếu xuất.",
+            "Đối chiếu phiếu xuất với bếp và tạo phiếu điều chỉnh/hoàn kho nếu cần.",
+            "/chef")));
+
         var orphanMaterialRequests = await _context.Materialrequests
             .AsNoTracking()
             .Where(request => !_context.Productionplans.Any(plan => plan.PlanId == request.PlanId))
@@ -1271,6 +1289,8 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Include(item => item.Issue)
                 .ThenInclude(item => item.Warehouse)
+            .Include(item => item.Issue)
+                .ThenInclude(item => item.ReceivedByNavigation)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
             .AsQueryable();
@@ -1372,10 +1392,12 @@ public class WorkflowReportService : IWorkflowReportService
                 DocumentType = "Phiếu xuất kho",
                 DocumentDate = item.IssueDate,
                 ShiftName = item.ShiftName,
-                Status = "Đã ghi nhận",
-                OwnerLane = "Thủ kho",
-                Route = "/warehouse",
-                Summary = "Phiếu xuất kho theo danh sách nguyên liệu đã duyệt"
+                Status = item.ReceivedAt == null ? "Chờ bếp nhận" : "Bếp đã nhận",
+                OwnerLane = item.ReceivedAt == null ? "Bếp trưởng" : "Bếp",
+                Route = "/chef",
+                Summary = item.ReceivedAt == null
+                    ? "Kho đã xuất, chờ bếp xác nhận nhận nguyên liệu"
+                    : "Bếp đã xác nhận nhận nguyên liệu từ phiếu xuất"
             })
             .ToListAsync();
     }
@@ -1436,7 +1458,12 @@ public class WorkflowReportService : IWorkflowReportService
             UnitId = GuidHelper.ToGuidString(item.UnitId),
             UnitName = item.Unit.UnitName,
             RequestedQty = DecimalPolicy.RoundQuantity(item.RequestedQty),
-            IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty)
+            IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
+            ReceivedBy = item.Issue.ReceivedBy is null ? null : GuidHelper.ToGuidString(item.Issue.ReceivedBy),
+            ReceivedByName = item.Issue.ReceivedByNavigation?.FullName,
+            ReceivedAt = item.Issue.ReceivedAt,
+            IsReceivedByKitchen = item.Issue.ReceivedAt is not null,
+            ReceiptStatus = item.Issue.ReceivedAt is null ? "Chờ bếp nhận" : "Bếp đã nhận"
         };
 
     private static DataQualityIssueDto BuildDataQualityIssue(

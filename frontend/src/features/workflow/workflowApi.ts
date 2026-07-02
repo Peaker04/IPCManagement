@@ -54,6 +54,28 @@ export interface InventoryReceiptCreatedResult {
   receiptCode: string;
 }
 
+export interface ConfirmInventoryIssueReceiptRequest {
+  issueId: string;
+  hasDiscrepancy?: boolean;
+  discrepancyNote?: string;
+}
+
+export interface InventoryIssueResult {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  warehouseName?: string;
+  materialRequestId: string;
+  issuedBy: string;
+  issuedByName?: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  createdAt: string;
+}
+
 interface WorkflowDocumentDto {
   documentId: string;
   documentCode: string;
@@ -223,6 +245,11 @@ interface KitchenIssueReportDto {
   unitName?: string;
   requestedQty: number;
   issuedQty: number;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
 
 interface IssueVsReturnUsageReportDto {
@@ -420,6 +447,7 @@ export interface StockLedgerReconciliationRow {
 
 export interface KitchenIssueRow {
   id: string;
+  issueId: string;
   issueCode: string;
   issueDate: string;
   shiftName?: string;
@@ -428,6 +456,11 @@ export interface KitchenIssueRow {
   unit: string;
   requestedQty: number;
   issuedQty: number;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
 
 export interface UsageReportRow {
@@ -641,6 +674,7 @@ const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): Stock
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   id: `${item.issueId}-${item.ingredientId}`,
+  issueId: item.issueId,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
@@ -649,6 +683,11 @@ const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
   issuedQty: item.issuedQty,
+  receivedBy: item.receivedBy,
+  receivedByName: item.receivedByName,
+  receivedAt: item.receivedAt,
+  isReceivedByKitchen: item.isReceivedByKitchen,
+  receiptStatus: item.receiptStatus,
 });
 
 const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
@@ -841,6 +880,17 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
+      query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
+        url: `/inventory-issues/${issueId}/confirm-receipt`,
+        method: 'POST',
+        body: {
+          hasDiscrepancy,
+          discrepancyNote,
+        },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -952,6 +1002,7 @@ export const {
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
+  useConfirmInventoryIssueReceiptMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,

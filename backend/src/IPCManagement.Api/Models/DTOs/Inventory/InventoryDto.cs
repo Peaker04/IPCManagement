@@ -130,6 +130,7 @@ public class InventoryIssueDto
     public string?  IssuedByName      { get; set; }
     public string?  ReceivedBy        { get; set; }
     public string?  ReceivedByName    { get; set; }
+    public DateTime? ReceivedAt        { get; set; }
     public DateTime CreatedAt         { get; set; }
 
     public List<InventoryIssueLineDto> Lines { get; set; } = new();
@@ -185,6 +186,14 @@ public class InventoryIssueCreatedDto
 {
     public string IssueId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
+}
+
+public class ConfirmInventoryIssueReceiptDto
+{
+    public bool HasDiscrepancy { get; set; }
+
+    [MaxLength(1000)]
+    public string? DiscrepancyNote { get; set; }
 }
 
 public class StockShortageIssueDto

@@ -561,6 +561,10 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("receivedBy")
                         .IsFixedLength();
 
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("receivedAt");
+
                     b.Property<string>("ShiftName")
                         .HasColumnType("enum('MORNING','AFTERNOON')")
                         .HasColumnName("shiftName");

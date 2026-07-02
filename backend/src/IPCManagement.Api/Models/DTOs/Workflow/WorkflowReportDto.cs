@@ -142,6 +142,11 @@ public class KitchenIssueReportDto
     public string? UnitName { get; set; }
     public decimal RequestedQty { get; set; }
     public decimal IssuedQty { get; set; }
+    public string? ReceivedBy { get; set; }
+    public string? ReceivedByName { get; set; }
+    public DateTime? ReceivedAt { get; set; }
+    public bool IsReceivedByKitchen { get; set; }
+    public string ReceiptStatus { get; set; } = string.Empty;
 }
 
 public class IssueVsReturnUsageReportDto
