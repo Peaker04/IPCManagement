@@ -46,6 +46,7 @@ public class PurchaseWorkflowController : ControllerBase
 
     /// <summary>Gắn nhà cung cấp và đơn giá vào dòng đề xuất mua hàng.</summary>
     [HttpPatch("requests/{id}/lines/{lineId}/supplier")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -57,12 +58,44 @@ public class PurchaseWorkflowController : ControllerBase
     {
         try
         {
-            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, cancellationToken);
+            var userId = _currentUserService.GetUserId(User);
+            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, userId, cancellationToken);
             return Ok(ApiResponse.SuccessResult("Cập nhật nhà cung cấp và đơn giá thành công."));
         }
         catch (KeyNotFoundException ex)
         {
             return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    /// <summary>Gửi đơn mua chính thức sau khi nhu cầu nguyên liệu đã được duyệt.</summary>
+    [HttpPost("requests/{id}/submit")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Submit(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _purchaseRequestWorkflowService.SubmitAsync(id, userId, cancellationToken);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy đơn mua."));
+            }
+
+            return Ok(ApiResponse<PurchaseRequestWorkflowResultDto>.SuccessResult(result, "Đã gửi đơn mua chính thức."));
         }
         catch (InvalidOperationException ex)
         {

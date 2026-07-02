@@ -23,11 +23,24 @@ public class ApprovalsController : ControllerBase
 
     [HttpPost("{targetType}/{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Execute([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequestDto request)
     {
         var actorUserId = _currentUserService.GetUserId(User);
-        var result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId);
+        ApprovalResultDto? result;
+        try
+        {
+            result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
 
         if (result is null)
         {

@@ -1605,6 +1605,9 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.EstimatedUnitPrice)
                 .HasPrecision(18, 2)
                 .HasColumnName("estimatedUnitPrice");
+            entity.Property(e => e.ExpectedDeliveryDate)
+                .HasColumnType("date")
+                .HasColumnName("expectedDeliveryDate");
             entity.Property(e => e.IngredientId)
                 .HasMaxLength(16)
                 .IsFixedLength()
@@ -1613,6 +1616,9 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("materialRequestLineId");
+            entity.Property(e => e.Note)
+                .HasColumnType("text")
+                .HasColumnName("note");
             entity.Property(e => e.PurchaseQty)
                 .HasPrecision(18, 6)
                 .HasColumnName("purchaseQty");

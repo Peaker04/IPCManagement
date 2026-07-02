@@ -19,6 +19,7 @@ import {
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
+  useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
 } from '@/features/workflow';
 import type { DemandLine, SupplierDto } from '@/features/workflow';
@@ -32,12 +33,32 @@ export default function PurchasingPage() {
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
+  const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
   const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
+  const submitTargetId = primaryPurchaseDemand?.purchaseRequestId;
   const purchaseSummaryDocument = purchasingDocuments.find((document) => document.type === 'Danh sách mua thêm')
     ?? purchasingDocuments[0];
+
+  const handleSubmitPurchaseRequest = async () => {
+    if (!submitTargetId) {
+      alert('Chưa có đơn mua để gửi.');
+      return;
+    }
+
+    try {
+      await submitPurchaseRequest(submitTargetId).unwrap();
+      alert('Đã gửi đơn mua chính thức.');
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Chưa thể gửi đơn mua: ' + message);
+    }
+  };
 
   return (
     <OperationalFrame
@@ -51,6 +72,14 @@ export default function PurchasingPage() {
                 onClick={() => setActiveView('supplier')}
               >
                 Chọn nhà cung cấp
+              </button>
+              <button
+                className="ipc-button ipc-button-primary"
+                type="button"
+                onClick={handleSubmitPurchaseRequest}
+                disabled={!submitTargetId || isSubmittingPurchaseRequest}
+              >
+                {isSubmittingPurchaseRequest ? 'Đang gửi...' : 'Gửi đơn mua'}
               </button>
               <button className="ipc-button ipc-button-warning" type="button">Gửi cảnh báo biến động giá</button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
@@ -131,6 +160,8 @@ export default function PurchasingPage() {
                     <th className="text-right">SL Cần mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Giá dự kiến (đ)</th>
+                    <th>Ngày giao</th>
+                    <th>Ghi chú</th>
                     <th>Thao tác</th>
                   </tr>
                 </thead>
@@ -146,7 +177,7 @@ export default function PurchasingPage() {
                     />
                   ))}
                   {purchaseDemandLines.length === 0 && (
-                    <tr><td colSpan={6} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
+                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
                   )}
                 </tbody>
               </table>
@@ -177,6 +208,8 @@ function SupplierLineItem({
 }) {
   const [selectedSupplierId, setSelectedSupplierId] = useState(line.supplierId ?? '');
   const [estimatedPrice, setEstimatedPrice] = useState<number>(line.estimatedUnitPrice ?? 0);
+  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '');
+  const [note, setNote] = useState(line.note ?? '');
   const [isUpdating, setIsUpdating] = useState(false);
 
   const handleSave = async () => {
@@ -195,7 +228,9 @@ function SupplierLineItem({
         purchaseRequestLineId: line.purchaseRequestLineId,
         data: {
           supplierId: selectedSupplierId,
-          estimatedUnitPrice: estimatedPrice
+          estimatedUnitPrice: estimatedPrice,
+          expectedDeliveryDate: expectedDeliveryDate || null,
+          note: note.trim() || null,
         }
       }).unwrap();
       alert('Đã cập nhật Nhà cung cấp thành công!');
@@ -234,6 +269,22 @@ function SupplierLineItem({
           placeholder="VD: 150000" 
           value={estimatedPrice || ''}
           onChange={(e) => setEstimatedPrice(Number(e.target.value))}
+        />
+      </td>
+      <td>
+        <input
+          type="date"
+          className="ipc-input w-full"
+          value={expectedDeliveryDate}
+          onChange={(e) => setExpectedDeliveryDate(e.target.value)}
+        />
+      </td>
+      <td>
+        <input
+          className="ipc-input w-full"
+          placeholder="Ghi chú"
+          value={note}
+          onChange={(e) => setNote(e.target.value)}
         />
       </td>
       <td>

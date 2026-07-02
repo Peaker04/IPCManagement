@@ -85,6 +85,11 @@ interface PurchaseDemandReportDto {
   purchaseQty: number;
   estimatedUnitPrice: number;
   estimatedAmount: number;
+  referenceUnitPrice?: number;
+  priceVariancePercent?: number;
+  isPriceWarning?: boolean;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
 }
 
 interface StockMovementViewDto {
@@ -114,6 +119,8 @@ export interface SupplierDto {
 export interface UpdatePurchaseRequestLineSupplierDto {
   supplierId: string;
   estimatedUnitPrice: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
 }
 
 interface ReceiptPriceVarianceReportDto {
@@ -459,6 +466,11 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     purchaseRequestLineId: item.purchaseRequestLineId,
     supplierId: item.supplierId,
     estimatedUnitPrice: item.estimatedUnitPrice,
+    referenceUnitPrice: item.referenceUnitPrice,
+    priceVariancePercent: item.priceVariancePercent,
+    isPriceWarning: item.isPriceWarning,
+    expectedDeliveryDate: item.expectedDeliveryDate?.split('T')[0],
+    note: item.note ?? undefined,
     sourceDocumentCode: item.purchaseRequestCode,
     serviceDate: item.purchaseForDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
@@ -467,9 +479,9 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     reserved: Math.max(item.purchaseQty, 0),
     unit: item.unitName ?? '',
     source: item.supplierName || item.purchaseRequestCode,
-    status: isCancelled ? 'Cần tạo lại danh sách mua' : item.status,
-    nextAction: isCancelled ? 'Demand/menu đã thay đổi, sinh lại danh sách mua thêm' : item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
-    tone,
+    status: isCancelled ? 'Cần tạo lại danh sách mua' : item.isPriceWarning ? 'Cần duyệt giá' : item.status,
+    nextAction: isCancelled ? 'Demand/menu đã thay đổi, sinh lại danh sách mua thêm' : item.isPriceWarning ? 'Kiểm tra giá vượt ngưỡng trước khi duyệt' : item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
+    tone: item.isPriceWarning ? 'danger' : tone,
   };
 };
 
@@ -733,6 +745,13 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/purchase-demand',
@@ -826,6 +845,7 @@ export const {
   useGetIngredientDemandQuery,
   useGenerateMaterialDemandMutation,
   useGeneratePurchaseRequestFromDemandMutation,
+  useSubmitPurchaseRequestMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useGetStockMovementsQuery,
