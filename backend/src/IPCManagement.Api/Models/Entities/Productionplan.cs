@@ -17,6 +17,8 @@ public partial class Productionplan
 
     public DateTime CreatedAt { get; set; }
 
+    public DateTime UpdatedAt { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
 
     public virtual ICollection<Materialrequest> Materialrequests { get; set; } = new List<Materialrequest>();

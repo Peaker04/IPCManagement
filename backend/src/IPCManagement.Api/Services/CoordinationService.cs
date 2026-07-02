@@ -989,6 +989,7 @@ public class CoordinationService : ICoordinationService
 
             line.AdjustedServings = request.ServingsQuantity - line.ConfirmedServings;
             line.FinalServings = request.ServingsQuantity;
+            line.UpdatedAt = changedAt;
 
             _context.Auditlogs.Add(new Auditlog
             {
@@ -1078,6 +1079,7 @@ public class CoordinationService : ICoordinationService
 
             line.ForecastServings = request.ServingsQuantity;
             line.FinalServings = request.ServingsQuantity;
+            line.UpdatedAt = changedAt;
 
             _context.Auditlogs.Add(new Auditlog
             {

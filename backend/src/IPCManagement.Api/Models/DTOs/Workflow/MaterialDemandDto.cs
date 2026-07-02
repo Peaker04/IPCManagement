@@ -20,6 +20,14 @@ public class MaterialDemandResultDto
     public IReadOnlyList<MissingBomDishDto> MissingBomDishes { get; set; } = [];
 }
 
+public class MaterialDemandStalenessDto
+{
+    public bool HasExistingPlan { get; set; }
+    public bool IsStale { get; set; }
+    public string? LastGeneratedAt { get; set; }
+    public List<string> Reasons { get; set; } = [];
+}
+
 public class MissingBomDishDto
 {
     public string DishId { get; set; } = string.Empty;

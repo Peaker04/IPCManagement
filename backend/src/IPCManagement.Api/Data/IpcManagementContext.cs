@@ -1450,6 +1450,10 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'CREATED'")
                 .HasColumnType("enum('CREATED','SENTTOKITCHEN','COMPLETED','CANCELLED')")
                 .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Productionplans)
                 .HasForeignKey(d => d.CreatedBy)

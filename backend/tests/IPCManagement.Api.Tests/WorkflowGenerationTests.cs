@@ -1418,7 +1418,8 @@ public class WorkflowGenerationTests
                     planDate TEXT NOT NULL,
                     status TEXT NOT NULL,
                     createdBy BLOB NOT NULL,
-                    createdAt TEXT NOT NULL
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'
                 );
                 CREATE TABLE productionplanlines (
                     planLineId BLOB PRIMARY KEY,

@@ -263,6 +263,19 @@ export interface GenerateMaterialDemandRequest {
   scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
 }
 
+export interface MaterialDemandStalenessQuery {
+  serviceDate: string;
+  customerId?: string;
+  scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
+}
+
+export interface MaterialDemandStaleness {
+  hasExistingPlan: boolean;
+  isStale: boolean;
+  lastGeneratedAt?: string | null;
+  reasons: string[];
+}
+
 interface PurchaseRequestWorkflowResultDto {
   purchaseRequestId: string;
   purchaseRequestCode: string;
@@ -708,7 +721,14 @@ export const workflowApi = apiSlice.injectEndpoints({
           ...body,
         },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: ['WorkflowReports', 'MaterialDemandStaleness'],
+    }),
+    getMaterialDemandStaleness: builder.query<ApiResponse<MaterialDemandStaleness>, MaterialDemandStalenessQuery>({
+      query: ({ serviceDate, customerId, scope }) => ({
+        url: '/material-demand/staleness',
+        params: { serviceDate, ...(customerId ? { customerId } : {}), ...(scope ? { scope } : {}) },
+      }),
+      providesTags: ['MaterialDemandStaleness'],
     }),
     generatePurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, GeneratePurchaseRequestFromDemandRequest>({
       query: (body) => ({
@@ -809,6 +829,7 @@ export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
   useGenerateMaterialDemandMutation,
+  useGetMaterialDemandStalenessQuery,
   useGeneratePurchaseRequestFromDemandMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,

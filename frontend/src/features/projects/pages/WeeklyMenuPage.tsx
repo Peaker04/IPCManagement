@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
-import { useGenerateMaterialDemandMutation, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -1769,6 +1769,12 @@ const WeeklyMenuPage = () => {
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
   const weeklyRowsUsingImportDefault = weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default');
   const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
+  const demandStalenessServiceDate = weeklyPlanRows[0]?.serviceDate;
+  const { data: demandStalenessData } = useGetMaterialDemandStalenessQuery(
+    { serviceDate: demandStalenessServiceDate ?? '', customerId: effectiveMenuCustomerId, scope: 'FULLDAY' },
+    { skip: !demandStalenessServiceDate || !effectiveMenuCustomerId },
+  );
+  const demandStaleness = demandStalenessData?.data;
   const weeklyPlanCatalogDishIds = new Set(weeklyRowsWithBom.map((row) => row.dishId));
   const demandDayPages = displayDays
     .map((day) => ({
@@ -2210,6 +2216,11 @@ const WeeklyMenuPage = () => {
                 {demandFeedback.message}
               </InlineAlert>
             )}
+            {demandStaleness?.isStale && (
+              <InlineAlert title="Demand đã lỗi thời, cần tính lại" variant="warning">
+                {demandStaleness.reasons.join(' | ')}
+              </InlineAlert>
+            )}
 
             <Toolbar className="justify-end">
               <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
@@ -2220,7 +2231,11 @@ const WeeklyMenuPage = () => {
                   disabled={isGeneratingDemand || weeklyPlanRows.length === 0}
                 >
                   <Scale size={16} />
-                  {isGeneratingDemand ? 'Đang tạo demand...' : 'Tạo demand từ KHSX'}
+                  {isGeneratingDemand
+                    ? 'Đang tạo demand...'
+                    : demandStaleness?.isStale
+                      ? 'Tính lại demand (dữ liệu đã thay đổi)'
+                      : 'Tạo demand từ KHSX'}
                 </button>
               </ActionGuard>
               <ActionGuard allowedRoles={['quanly', 'thumua']} requiredPermissions={['purchase.generate']}>
