@@ -147,6 +147,39 @@ export interface UpdateSupplierQuotationDto {
   isActive: boolean;
 }
 
+export interface PurchaseOrderLineDto {
+  purchaseOrderLineId: string;
+  purchaseRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  orderedQty: number;
+  receivedQty: number;
+  unitPrice: number;
+}
+
+export interface PurchaseOrderDto {
+  purchaseOrderId: string;
+  purchaseOrderCode: string;
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  supplierId: string;
+  supplierName: string;
+  orderDate: string;
+  status: string;
+  lines: PurchaseOrderLineDto[];
+}
+
+export interface RecordPurchaseOrderReceiptLineDto {
+  purchaseOrderLineId: string;
+  receivedQty: number;
+}
+
+export interface RecordPurchaseOrderReceiptDto {
+  lines: RecordPurchaseOrderReceiptLineDto[];
+}
+
 interface ReceiptPriceVarianceReportDto {
   receiptId: string;
   receiptCode: string;
@@ -806,6 +839,39 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['SupplierQuotations'],
     }),
+    getPurchaseOrders: builder.query<PurchaseOrderDto[], { status?: string } | void>({
+      query: (query) => ({
+        url: '/purchase-orders',
+        params: query?.status ? { status: query.status } : undefined,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      providesTags: ['PurchaseOrders'],
+    }),
+    createPurchaseOrdersFromRequest: builder.mutation<PurchaseOrderDto[], string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-orders/from-request/${purchaseRequestId}`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+    }),
+    recordPurchaseOrderReceipt: builder.mutation<PurchaseOrderDto, { purchaseOrderId: string; data: RecordPurchaseOrderReceiptDto }>({
+      query: ({ purchaseOrderId, data }) => ({
+        url: `/purchase-orders/${purchaseOrderId}/receive`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders'],
+    }),
+    cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
+      query: (purchaseOrderId) => ({
+        url: `/purchase-orders/${purchaseOrderId}/cancel`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -975,6 +1041,10 @@ export const {
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
+  useGetPurchaseOrdersQuery,
+  useCreatePurchaseOrdersFromRequestMutation,
+  useRecordPurchaseOrderReceiptMutation,
+  useCancelPurchaseOrderMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

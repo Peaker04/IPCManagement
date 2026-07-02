@@ -34,4 +34,6 @@ public partial class Purchaserequestline
     public virtual Supplier Supplier { get; set; } = null!;
 
     public virtual Unit Unit { get; set; } = null!;
+
+    public virtual Purchaseorderline? Purchaseorderline { get; set; }
 }

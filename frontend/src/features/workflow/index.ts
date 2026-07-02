@@ -24,6 +24,10 @@ export {
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
+  useGetPurchaseOrdersQuery,
+  useCreatePurchaseOrdersFromRequestMutation,
+  useRecordPurchaseOrderReceiptMutation,
+  useCancelPurchaseOrderMutation,
 } from './workflowApi';
 export type {
   AuditLogRow,
@@ -42,6 +46,10 @@ export type {
   CreateSupplierQuotationDto,
   UpdateSupplierQuotationDto,
   UpdatePurchaseRequestLineSupplierDto,
+  PurchaseOrderDto,
+  PurchaseOrderLineDto,
+  RecordPurchaseOrderReceiptDto,
+  RecordPurchaseOrderReceiptLineDto,
   UsageReportRow,
   WorkflowReportQuery,
 } from './workflowApi';

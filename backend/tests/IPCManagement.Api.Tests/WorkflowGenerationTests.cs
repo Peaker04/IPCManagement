@@ -1139,6 +1139,188 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
     }
 
+    private static async Task<byte[]> SeedApprovedPurchaseRequestWithTwoSuppliersAsync(
+        IpcManagementContext context,
+        WorkflowFixture fixture,
+        byte[] supplierA,
+        byte[] supplierB)
+    {
+        await SeedSupplierAndIngredientAsync(context, fixture, supplierA, "NCC A");
+        await SeedSupplierAsync(context, supplierB, "NCC B");
+
+        var purchaseRequestId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = purchaseRequestId,
+            PurchaseRequestCode = $"PR-DEMO-{GuidHelper.ToGuidString(purchaseRequestId)[..8]}",
+            RequestDate = new DateOnly(2026, 6, 1),
+            PurchaseForDate = new DateOnly(2026, 6, 2),
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierA,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 10,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 10,
+                    EstimatedUnitPrice = 1000
+                },
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierB,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 5,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 5,
+                    EstimatedUnitPrice = 2000
+                }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        return purchaseRequestId;
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_SplitBySupplier_WhenPurchaseRequestHasMultipleSuppliers()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        orders.Should().HaveCount(2);
+        orders.Should().OnlyContain(order => order.Lines.Count == 1);
+        orders.Should().Contain(order => order.SupplierId == GuidHelper.ToGuidString(supplierA) && order.Lines[0].OrderedQty == 10);
+        orders.Should().Contain(order => order.SupplierId == GuidHelper.ToGuidString(supplierB) && order.Lines[0].OrderedQty == 5);
+        orders.Should().OnlyContain(order => order.Status == "ORDERED");
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_Throw_WhenPurchaseRequestNotApproved()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+        var purchaseRequest = await context.Purchaserequests.FirstAsync(pr => pr.PurchaseRequestId == purchaseRequestId);
+        purchaseRequest.Status = "DRAFT";
+        await context.SaveChangesAsync();
+
+        var service = new PurchaseOrderService(context);
+        var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_Throw_WhenCalledAgainAfterAllLinesConverted()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task RecordReceipt_Should_TransitionStatus_FromOrderedToPartialToReceived()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        var afterPartial = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 4 }]
+        });
+        afterPartial.Status.Should().Be("PARTIALLY_RECEIVED");
+        afterPartial.Lines[0].ReceivedQty.Should().Be(4);
+
+        var afterFull = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 6 }]
+        });
+        afterFull.Status.Should().Be("RECEIVED");
+        afterFull.Lines[0].ReceivedQty.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task RecordReceipt_Should_Throw_WhenExceedingOrderedQty()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        var act = () => service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 11 }]
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Cancel_Should_Throw_WhenAnyLineAlreadyReceived()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 2 }]
+        });
+
+        var act = () => service.CancelAsync(orderForSupplierA.PurchaseOrderId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
     [Fact]
     public async Task GetPriceVarianceByDishGroupAsync_Should_WeightByBomQuantity_NotSimpleAverage()
     {
@@ -1674,6 +1856,27 @@ public class WorkflowGenerationTests
                     currentStockQty TEXT NOT NULL,
                     purchaseQty TEXT NOT NULL,
                     estimatedUnitPrice TEXT NOT NULL
+                );
+                CREATE TABLE purchaseorders (
+                    purchaseOrderId BLOB PRIMARY KEY,
+                    purchaseOrderCode TEXT NOT NULL,
+                    purchaseRequestId BLOB NOT NULL,
+                    supplierId BLOB NOT NULL,
+                    orderDate TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'ORDERED',
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL
+                );
+                CREATE TABLE purchaseorderlines (
+                    purchaseOrderLineId BLOB PRIMARY KEY,
+                    purchaseOrderId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    orderedQty TEXT NOT NULL,
+                    receivedQty TEXT NOT NULL,
+                    unitPrice TEXT NOT NULL
                 );
                 CREATE TABLE currentstock (
                     warehouseId BLOB NOT NULL,

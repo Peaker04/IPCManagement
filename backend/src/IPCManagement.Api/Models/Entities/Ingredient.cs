@@ -39,6 +39,8 @@ public partial class Ingredient
 
     public virtual ICollection<Supplierquotation> Supplierquotations { get; set; } = new List<Supplierquotation>();
 
+    public virtual ICollection<Purchaseorderline> Purchaseorderlines { get; set; } = new List<Purchaseorderline>();
+
     public virtual Unit Unit { get; set; } = null!;
 
     public virtual Warehouse Warehouse { get; set; } = null!;
