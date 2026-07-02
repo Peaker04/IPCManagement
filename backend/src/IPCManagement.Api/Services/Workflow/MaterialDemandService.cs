@@ -51,22 +51,17 @@ public class MaterialDemandService : IMaterialDemandService
             .ToListAsync(cancellationToken);
         if (quantityLines.Count == 0)
         {
-            quantityLines = await EnsureDefaultImportQuantityLinesAsync(
-                serviceDate,
-                shiftName,
-                customerId,
-                userIdBytes,
-                cancellationToken);
-        }
+            if (await HasUnsignedOffQuantityLinesAsync(serviceDate, shiftName, customerId, cancellationToken))
+            {
+                throw new InvalidOperationException("Cần hoàn tất số suất trước khi tạo nhu cầu nguyên liệu.");
+            }
 
-        if (quantityLines.Count == 0)
-        {
             return null;
         }
 
-        var customerCode = customerId is null ? null : quantityLines.First().Customer.CustomerCode;
-        var plan = await EnsureProductionPlanAsync(serviceDate, scope, customerCode, userIdBytes, cancellationToken);
-        var materialRequest = await EnsureMaterialRequestAsync(plan, serviceDate, scope, customerCode, userIdBytes, cancellationToken);
+        var planContext = await ResolveProductionPlanContextAsync(quantityLines, customerId, cancellationToken);
+        var plan = await EnsureProductionPlanAsync(serviceDate, scope, planContext, userIdBytes, cancellationToken);
+        var materialRequest = await EnsureMaterialRequestAsync(plan, serviceDate, scope, planContext.CustomerCode, userIdBytes, cancellationToken);
         
         var requiredIngredientIds = quantityLines
             .SelectMany(line => line.Menu.Menuitems)
@@ -193,7 +188,7 @@ public class MaterialDemandService : IMaterialDemandService
             .Include(line => line.QuantityPlan)
             .Where(line =>
                 line.QuantityPlan.ServiceDate == serviceDate &&
-                (line.QuantityPlan.Status == "CONFIRMED" || line.QuantityPlan.Status == "ADJUSTED"))
+                line.QuantityPlan.Status == "COMPLETED")
             .AsSplitQuery();
 
         if (!string.IsNullOrWhiteSpace(shiftName))
@@ -207,6 +202,31 @@ public class MaterialDemandService : IMaterialDemandService
         }
 
         return query;
+    }
+
+    private async Task<bool> HasUnsignedOffQuantityLinesAsync(
+        DateOnly serviceDate,
+        string? shiftName,
+        byte[]? customerId,
+        CancellationToken cancellationToken)
+    {
+        var query = _context.Mealquantityplanlines
+            .Include(line => line.QuantityPlan)
+            .Where(line =>
+                line.QuantityPlan.ServiceDate == serviceDate &&
+                (line.QuantityPlan.Status == "CONFIRMED" || line.QuantityPlan.Status == "ADJUSTED"));
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            query = query.Where(line => line.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            query = query.Where(line => line.CustomerId.SequenceEqual(customerId));
+        }
+
+        return await query.AnyAsync(cancellationToken);
     }
 
     private async Task<List<Mealquantityplanline>> EnsureDefaultImportQuantityLinesAsync(
@@ -341,16 +361,20 @@ public class MaterialDemandService : IMaterialDemandService
     private async Task<Productionplan> EnsureProductionPlanAsync(
         DateOnly serviceDate,
         string scope,
-        string? customerCode,
+        ProductionPlanContext planContext,
         byte[] userId,
         CancellationToken cancellationToken)
     {
-        var planCode = BuildWorkflowCode("KHSX", serviceDate, scope, customerCode);
+        var planCode = BuildWorkflowCode("KHSX", serviceDate, scope, planContext.CustomerCode);
         var existing = await _context.Productionplans
             .Include(plan => plan.Productionplanlines)
             .FirstOrDefaultAsync(plan => plan.PlanCode == planCode, cancellationToken);
         if (existing is not null)
         {
+            existing.CustomerId = planContext.CustomerId;
+            existing.WeekStartDate = planContext.WeekStartDate;
+            existing.MenuVersionId = planContext.MenuVersionId;
+            existing.Status = string.IsNullOrWhiteSpace(existing.Status) ? "CREATED" : existing.Status;
             return existing;
         }
 
@@ -359,6 +383,9 @@ public class MaterialDemandService : IMaterialDemandService
             PlanId = GuidHelper.NewId(),
             PlanCode = planCode,
             PlanDate = serviceDate,
+            CustomerId = planContext.CustomerId,
+            WeekStartDate = planContext.WeekStartDate,
+            MenuVersionId = planContext.MenuVersionId,
             Status = "CREATED",
             CreatedBy = userId,
             CreatedAt = DateTime.UtcNow
@@ -366,6 +393,47 @@ public class MaterialDemandService : IMaterialDemandService
 
         _context.Productionplans.Add(plan);
         return plan;
+    }
+
+    private async Task<ProductionPlanContext> ResolveProductionPlanContextAsync(
+        IReadOnlyCollection<Mealquantityplanline> quantityLines,
+        byte[]? requestedCustomerId,
+        CancellationToken cancellationToken)
+    {
+        var customerGroups = quantityLines
+            .Select(line => line.CustomerId)
+            .Distinct(ByteArrayComparer.Instance)
+            .ToList();
+        var customerId = requestedCustomerId ?? (customerGroups.Count == 1 ? customerGroups[0] : null);
+        var customerCode = customerId is null
+            ? null
+            : quantityLines.FirstOrDefault(line => line.CustomerId.SequenceEqual(customerId))?.Customer.CustomerCode;
+
+        var weekStarts = quantityLines
+            .Select(line => line.MenuSchedule.WeekStartDate)
+            .Distinct()
+            .ToList();
+        DateOnly? weekStartDate = weekStarts.Count == 1 ? weekStarts[0] : null;
+        byte[]? menuVersionId = null;
+
+        if (customerId is not null && weekStartDate is not null)
+        {
+            menuVersionId = await _context.Menuversions
+                .AsNoTracking()
+                .Where(version => version.WeekStartDate == weekStartDate.Value)
+                .Where(version => version.CustomerId.SequenceEqual(customerId))
+                .OrderByDescending(version => version.PublishedAt.HasValue)
+                .ThenByDescending(version => version.VersionNo)
+                .Select(version => version.MenuVersionId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (menuVersionId is not { Length: > 0 })
+            {
+                menuVersionId = null;
+            }
+        }
+
+        return new ProductionPlanContext(customerId, customerCode, weekStartDate, menuVersionId);
     }
 
     private async Task<Materialrequest> EnsureMaterialRequestAsync(
@@ -822,4 +890,29 @@ public class MaterialDemandService : IMaterialDemandService
         decimal PortionRatePercent,
         decimal BomRatePercent,
         decimal? YieldLossPercent);
+
+    private sealed record ProductionPlanContext(
+        byte[]? CustomerId,
+        string? CustomerCode,
+        DateOnly? WeekStartDate,
+        byte[]? MenuVersionId);
+
+    private sealed class ByteArrayComparer : IEqualityComparer<byte[]>
+    {
+        public static readonly ByteArrayComparer Instance = new();
+
+        public bool Equals(byte[]? x, byte[]? y)
+            => ReferenceEquals(x, y) || (x is not null && y is not null && x.SequenceEqual(y));
+
+        public int GetHashCode(byte[] obj)
+        {
+            var hash = new HashCode();
+            foreach (var item in obj)
+            {
+                hash.Add(item);
+            }
+
+            return hash.ToHashCode();
+        }
+    }
 }
