@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart } from 'lucide-react';
+import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
@@ -191,7 +191,7 @@ const summarizeImportWarnings = (warnings: string[]) => {
 
   const firstMatch = /cho\s+(.+?)\s+ngày/i.exec(contractWarnings[0]);
   const customer = firstMatch?.[1]?.trim();
-  const priceMatch = /dùng giá mặc định\s+([^;]+?)(?:\s+và|\.)/i.exec(contractWarnings[0]);
+  const priceMatch = /dùng giá mặc định\s+(.+?)(?:\s+và\s+BOM|$)/i.exec(contractWarnings[0]);
   const price = priceMatch?.[1]?.trim();
   const summary = [
     `Không có hợp đồng hiệu lực${customer ? ` cho ${customer}` : ''}: ${contractWarnings.length} ca/ngày đang dùng giá mặc định${price ? ` ${price}` : ''} và BOM 100%.`,
@@ -577,17 +577,17 @@ const getApiErrorMessage = (err: unknown, fallback: string) => {
 const getImportJobStatusLabel = (status: WeeklyMenuImportJobStatus) => {
   switch (status) {
     case 'previewing':
-      return 'Đang xem trước';
+      return 'Đang kiểm tra';
     case 'previewed':
-      return 'Sẵn sàng lưu';
+      return 'Có thể lưu';
     case 'committing':
       return 'Đang lưu';
     case 'committed':
       return 'Đã lưu';
     case 'failed':
-      return 'Lỗi';
+      return 'Cần sửa';
     default:
-      return 'Chưa xem trước';
+      return 'Chưa kiểm tra';
   }
 };
 
@@ -604,9 +604,9 @@ const getImportJobStatusClass = (status: WeeklyMenuImportJobStatus) =>
 const duplicateImportWarningPattern = /dòng trùng/i;
 
 const importWizardSteps: Array<{ key: ImportWizardStep; label: string; hint: string }> = [
-  { key: 'upload', label: 'Upload', hint: 'Chọn khách, tuần và file Excel' },
-  { key: 'validate', label: 'Validate', hint: 'Kiểm tra template, tuần, món và trùng dòng' },
-  { key: 'commit', label: 'Commit', hint: 'Lưu batch hợp lệ vào DB' },
+  { key: 'upload', label: 'Chọn file', hint: 'Chọn khách hàng, tuần và file Excel' },
+  { key: 'validate', label: 'Kiểm tra', hint: 'Xem lỗi ngày, món ăn hoặc dòng trùng' },
+  { key: 'commit', label: 'Lưu thực đơn', hint: 'Lưu các file đã kiểm tra xong' },
 ];
 
 const getImportWizardStep = (jobs: WeeklyMenuImportJob[]): ImportWizardStep => {
@@ -620,16 +620,6 @@ const getImportWizardStepClass = (step: ImportWizardStep, activeStep: ImportWiza
     'rounded-md border px-3 py-2',
     step === activeStep && 'border-blue-300 bg-blue-50 text-blue-900',
     step !== activeStep && 'border-slate-200 bg-white text-slate-600',
-  );
-
-const getImportValidationToneClass = (tone: ImportValidationTone) =>
-  cn(
-    'rounded-md border p-3',
-    tone === 'success' && 'border-emerald-200 bg-emerald-50 text-emerald-900',
-    tone === 'warning' && 'border-amber-200 bg-amber-50 text-amber-900',
-    tone === 'danger' && 'border-red-200 bg-red-50 text-red-900',
-    tone === 'info' && 'border-blue-200 bg-blue-50 text-blue-900',
-    tone === 'neutral' && 'border-slate-200 bg-slate-50 text-slate-800',
   );
 
 const buildImportDuplicateGroups = (rows: WeeklyMenuImportResult['rows'] = []): ImportDuplicateGroup[] => {
@@ -663,7 +653,7 @@ const getBlockingImportIssues = (result?: WeeklyMenuImportResult | null) => {
 
   const duplicateGroups = buildImportDuplicateGroups(result.rows);
   if (duplicateGroups.length > 0 || result.warnings.some((warning) => duplicateImportWarningPattern.test(warning))) {
-    issues.push('Có dòng import trùng cùng ngày/ca/loại/ô món. Vui lòng xử lý trước khi lưu DB.');
+    issues.push('Có dòng bị trùng trong cùng ngày, ca và vị trí món. Vui lòng sửa file rồi kiểm tra lại.');
   }
 
   return Array.from(new Set(issues));
@@ -677,9 +667,9 @@ const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportValidatio
     return [
       {
         key: 'empty',
-        label: 'Chưa có batch',
-        value: 'Chưa upload',
-        detail: 'Thêm ít nhất một file Excel để bắt đầu validate.',
+        label: 'Chưa có file',
+        value: 'Chưa chọn',
+        detail: 'Thêm ít nhất một file Excel để bắt đầu kiểm tra.',
         tone: 'neutral',
       },
     ];
@@ -695,46 +685,46 @@ const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportValidatio
   return [
     {
       key: 'template',
-      label: 'Template',
-      value: result ? `${result.detectedLayout.sheetName || 'Sheet'} / ${result.detectedLayout.dayColumns.length} ngày` : 'Chưa validate',
+      label: 'File Excel',
+      value: result ? `${result.detectedLayout.sheetName || 'Trang tính'} / ${result.detectedLayout.dayColumns.length} ngày` : 'Chưa kiểm tra',
       detail: result
         ? `${result.detectedLayout.rowsImported} dòng món hợp lệ, ${result.detectedLayout.rowsSkipped} dòng bỏ qua.`
-        : 'Bấm Xem trước để backend đọc template Excel.',
+        : 'Bấm Kiểm tra để đọc file Excel.',
       tone: result ? 'success' : job.status === 'failed' ? 'danger' : 'neutral',
       blocking: job.status === 'failed' && !result,
     },
     {
       key: 'customer',
-      label: 'Customer',
+      label: 'Khách hàng',
       value: result ? `${result.customerCode} - ${result.customerName}` : `${job.customerCode} - ${job.customerName}`,
-      detail: result ? 'Customer đã resolve từ lựa chọn import.' : 'Customer sẽ được gửi cùng file khi validate.',
+      detail: result ? 'Đã nhận đúng khách hàng đã chọn.' : 'Khách hàng này sẽ dùng cho file vừa chọn.',
       tone: result ? 'success' : 'neutral',
     },
     {
       key: 'week',
-      label: 'Week',
+      label: 'Tuần',
       value: result?.weekStartDate
         ? `${formatImportDate(result.weekStartDate)} - ${formatImportDate(result.weekEndDate)}`
         : job.weekStartDate
           ? formatImportDate(job.weekStartDate)
-          : 'Backend tự nhận diện',
+          : 'Tự nhận theo file',
       detail: weekMatches ? 'Tuần import đã có mốc ngày rõ ràng.' : 'Tuần trong file khác ngày bắt đầu đã chọn.',
       tone: weekMatches ? (result ? 'success' : 'neutral') : 'danger',
       blocking: !weekMatches,
     },
     {
       key: 'dish',
-      label: 'Dish mapping',
-      value: result ? `${result.rows.length - newDishCount} đã có / ${newDishCount} món mới` : 'Chưa validate',
+      label: 'Món ăn',
+      value: result ? `${result.rows.length - newDishCount} đã có / ${newDishCount} món mới` : 'Chưa kiểm tra',
       detail: newDishCount > 0
-        ? 'Món mới sẽ được tạo khi commit; kiểm tra tên món trong preview.'
-        : 'Các món trong preview đã khớp catalog hiện có.',
+        ? 'Món mới sẽ được tạo khi lưu; kiểm tra lại tên món.'
+        : 'Các món trong file đã khớp với danh sách món hiện có.',
       tone: !result ? 'neutral' : newDishCount > 0 ? 'warning' : 'success',
     },
     {
       key: 'duplicate',
-      label: 'Duplicate rows',
-      value: result ? `${duplicateGroups.length} nhóm trùng` : 'Chưa validate',
+      label: 'Dòng trùng',
+      value: result ? `${duplicateGroups.length} nhóm trùng` : 'Chưa kiểm tra',
       detail: duplicateGroups.length > 0
         ? duplicateGroups.slice(0, 2).map((group) => `${group.label}: ${group.locations.join(', ')}`).join(' | ')
         : 'Không thấy dòng trùng cùng ngày/ca/loại/ô món.',
@@ -743,19 +733,19 @@ const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportValidatio
     },
     {
       key: 'critical',
-      label: 'Critical errors',
-      value: result ? `${errorCount} lỗi` : 'Chưa validate',
+      label: 'Lỗi cần sửa',
+      value: result ? `${errorCount} lỗi` : 'Chưa kiểm tra',
       detail: errorCount > 0
-        ? result?.validation?.issues.filter((issue) => issue.severity.toLowerCase() === 'error').slice(0, 2).map((issue) => `${issue.cell ?? issue.field ?? issue.code}: ${issue.message}`).join(' | ') ?? 'Có lỗi critical.'
-        : 'Không có lỗi critical; batch có thể commit nếu các bước khác hợp lệ.',
+        ? result?.validation?.issues.filter((issue) => issue.severity.toLowerCase() === 'error').slice(0, 2).map((issue) => `${issue.cell ?? issue.field ?? issue.code}: ${issue.message}`).join(' | ') ?? 'Có lỗi cần sửa.'
+        : 'Không có lỗi bắt buộc sửa; file có thể lưu nếu các mục khác ổn.',
       tone: errorCount > 0 ? 'danger' : result ? 'success' : 'neutral',
       blocking: errorCount > 0,
     },
     {
       key: 'warnings',
-      label: 'Warnings',
-      value: result ? `${warningCount} cảnh báo` : 'Chưa validate',
-      detail: warningCount > 0 ? summarizeImportWarnings(result?.warnings ?? []).slice(0, 2).join(' | ') : 'Không có cảnh báo từ backend.',
+      label: 'Nhắc nhở',
+      value: result ? `${warningCount} nhắc nhở` : 'Chưa kiểm tra',
+      detail: warningCount > 0 ? summarizeImportWarnings(result?.warnings ?? []).slice(0, 2).join(' | ') : 'Không có nhắc nhở.',
       tone: warningCount > 0 ? 'warning' : result ? 'success' : 'neutral',
     },
   ];
@@ -868,7 +858,7 @@ const ImportedLayoutMatrix = ({
           {rows.length === 0 && (
             <tr>
               <td className="p-4 text-center text-sm text-slate-500" colSpan={displayDays.length + 1}>
-                Chưa có dữ liệu layout import cho khách hàng và tuần đang chọn.
+                Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.
               </td>
             </tr>
           )}
@@ -1030,7 +1020,46 @@ const WeeklyMenuPage = () => {
     () => buildImportDuplicateGroups(selectedImportPreview?.rows ?? []),
     [selectedImportPreview],
   );
+  const selectedImportIssues = useMemo(
+    () => selectedImportPreview?.validation?.issues ?? [],
+    [selectedImportPreview],
+  );
+  const selectedImportDiffRows = useMemo(
+    () => selectedImportPreview?.previewDiff.rows.filter(isMeaningfulMenuDiff) ?? [],
+    [selectedImportPreview],
+  );
+  const selectedImportWarningSummary = useMemo(
+    () => summarizeImportWarnings(selectedImportPreview?.warnings ?? []),
+    [selectedImportPreview],
+  );
+  const selectedImportWarningMessages = selectedImportWarningSummary.slice(0, 4);
   const selectedImportBlockingIssueCount = selectedImportValidationChecks.filter((check) => check.blocking).length;
+  const selectedImportProblemMessages = (() => {
+    if (selectedImportIssues.length > 0) {
+      return selectedImportIssues.slice(0, 5).map((issue) =>
+        `${issue.cell ?? issue.column ?? issue.field ?? 'Trong file'}: ${issue.message}`,
+      );
+    }
+
+    if (selectedImportDuplicateGroups.length > 0) {
+      return selectedImportDuplicateGroups
+        .slice(0, 3)
+        .map((group) => `${group.label}: ${group.rowCount} dòng bị trùng`);
+    }
+
+    if (selectedImportJob?.error) {
+      return [selectedImportJob.error];
+    }
+
+    if (selectedImportBlockingIssueCount > 0) {
+      return ['Sửa lỗi trong file Excel rồi bấm Kiểm tra lại.'];
+    }
+
+    return [];
+  })();
+  const hiddenImportFeedbackByDetail =
+    (importFeedback?.variant === 'danger' && selectedImportProblemMessages.length > 0) ||
+    (importFeedback?.variant === 'warning' && selectedImportWarningMessages.length > 0);
   const readyImportJobs = importJobs.filter((job) =>
     job.status === 'previewed' &&
     job.previewResult &&
@@ -1080,7 +1109,7 @@ const WeeklyMenuPage = () => {
     const body: CreateCustomerContractRequest = {
       customerCode,
       customerName,
-      note: 'Tạo nhanh từ modal import thực đơn',
+      note: 'Tạo nhanh khi nhập thực đơn từ Excel',
       isActive: true,
       activeWeekDays: ['t2', 't3', 't4', 't5', 't6', 't7'],
       shiftNames: ['MORNING', 'AFTERNOON'],
@@ -1091,7 +1120,7 @@ const WeeklyMenuPage = () => {
     try {
       setImportFeedback({
         title: 'Đang tạo khách hàng',
-        message: `Hệ thống đang tạo ${customerCode} để import thực đơn.`,
+        message: `Hệ thống đang tạo ${customerCode} để nhập thực đơn.`,
         variant: 'info',
       });
       const response = await createCustomerContract(body).unwrap();
@@ -1109,7 +1138,7 @@ const WeeklyMenuPage = () => {
       setIsQuickCustomerFormOpen(false);
       setImportFeedback({
         title: 'Đã tạo khách hàng mới',
-        message: `${response.data.customerCode} - ${response.data.customerName} đã được chọn cho dòng import.`,
+        message: `${response.data.customerCode} - ${response.data.customerName} đã được chọn cho file này.`,
         variant: 'info',
       });
     } catch (err: unknown) {
@@ -1126,8 +1155,8 @@ const WeeklyMenuPage = () => {
     const customer = customers.find((item) => item.customerId === customerId);
     if (!customer || !selectedImportFile) {
       setImportFeedback({
-        title: 'Thiếu thông tin dòng import',
-        message: 'Vui lòng chọn khách hàng và file Excel trước khi xem trước.',
+        title: 'Thiếu thông tin',
+        message: 'Vui lòng chọn khách hàng và file Excel trước khi kiểm tra.',
         variant: 'warning',
       });
       return;
@@ -1136,7 +1165,7 @@ const WeeklyMenuPage = () => {
     if (!isValidWeekStartDate(importWeekStartDate)) {
       setImportFeedback({
         title: 'Ngày bắt đầu tuần không hợp lệ',
-        message: 'Vui lòng chọn ngày thứ 2 để backend gắn đúng cột Thứ 2 - Thứ 7.',
+        message: 'Vui lòng chọn ngày thứ 2 để hệ thống đọc đúng các cột trong tuần.',
         variant: 'warning',
       });
       return;
@@ -1171,8 +1200,8 @@ const WeeklyMenuPage = () => {
       importFileInputRef.current.value = '';
     }
     setImportFeedback({
-      title: 'Đã thêm vào danh sách import',
-      message: `${nextJob.customerCode} - ${nextJob.customerName} đã sẵn sàng để xem trước. Nếu khách này đã có trong danh sách, hệ thống đã thay bằng file mới.`,
+      title: 'Đã thêm file',
+      message: `${nextJob.customerCode} - ${nextJob.customerName} đã sẵn sàng để kiểm tra. Nếu khách này đã có trong danh sách, hệ thống đã thay bằng file mới.`,
       variant: 'info',
     });
   };
@@ -1202,8 +1231,8 @@ const WeeklyMenuPage = () => {
         ),
       );
       setImportFeedback({
-        title: 'Đang phân tích file',
-        message: `Backend đang đọc ${job.fileName} cho ${job.customerCode}.`,
+        title: 'Đang kiểm tra file',
+        message: `Hệ thống đang đọc ${job.fileName} cho ${job.customerCode}.`,
         variant: 'info',
       });
       const response = await previewImport({
@@ -1231,12 +1260,12 @@ const WeeklyMenuPage = () => {
         ),
       );
       setImportFeedback({
-        title: blockingIssues.length > 0 ? 'Preview có lỗi cần xử lý' : 'Đã tạo bản xem trước',
-        message: blockingIssues[0] ?? `${result.customerCode}: tìm thấy ${result.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${result.detectedLayout.rowsSkipped} dòng trên sheet ${result.detectedLayout.sheetName}.`,
+        title: blockingIssues.length > 0 ? 'File có lỗi cần sửa' : 'File đã kiểm tra xong',
+        message: blockingIssues[0] ?? `${result.customerCode}: tìm thấy ${result.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`,
         variant: blockingIssues.length > 0 ? 'danger' : result.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
-      const message = getApiErrorMessage(err, 'Không thể phân tích file thực đơn.');
+      const message = getApiErrorMessage(err, 'Không thể kiểm tra file thực đơn.');
       setImportJobs((currentJobs) =>
         currentJobs.map((item) =>
           item.jobId === jobId
@@ -1245,7 +1274,7 @@ const WeeklyMenuPage = () => {
         ),
       );
       setImportFeedback({
-        title: 'Xem trước thất bại',
+        title: 'Kiểm tra file thất bại',
         message,
         variant: 'danger',
       });
@@ -1255,8 +1284,8 @@ const WeeklyMenuPage = () => {
   const handlePreviewAllImportJobs = async () => {
     if (importJobs.length === 0) {
       setImportFeedback({
-        title: 'Chưa có dòng import',
-        message: 'Vui lòng thêm ít nhất một khách hàng và file Excel vào danh sách.',
+        title: 'Chưa có file',
+        message: 'Vui lòng thêm ít nhất một khách hàng và file Excel.',
         variant: 'warning',
       });
       return;
@@ -1273,8 +1302,8 @@ const WeeklyMenuPage = () => {
     const job = importJobs.find((item) => item.jobId === jobId);
     if (!job?.previewResult) {
       setImportFeedback({
-        title: 'Chưa có bản xem trước',
-        message: 'Vui lòng xem trước dòng import trước khi lưu vào hệ thống.',
+        title: 'Chưa kiểm tra file',
+        message: 'Vui lòng kiểm tra file trước khi lưu.',
         variant: 'warning',
       });
       return;
@@ -1283,7 +1312,7 @@ const WeeklyMenuPage = () => {
     const blockingIssues = getBlockingImportIssues(job.previewResult);
     if (blockingIssues.length > 0) {
       setImportFeedback({
-        title: 'Import chưa đạt validate',
+        title: 'File chưa thể lưu',
         message: blockingIssues[0],
         variant: 'danger',
       });
@@ -1345,7 +1374,7 @@ const WeeklyMenuPage = () => {
         variant: result.warnings.length > 0 ? 'warning' : 'info',
       });
     } catch (err: unknown) {
-      const message = getApiErrorMessage(err, 'Không thể lưu thực đơn vào backend.');
+      const message = getApiErrorMessage(err, 'Không thể lưu thực đơn.');
       setImportJobs((currentJobs) =>
         currentJobs.map((item) =>
           item.jobId === jobId
@@ -1354,7 +1383,7 @@ const WeeklyMenuPage = () => {
         ),
       );
       setImportFeedback({
-        title: 'Lưu import thất bại',
+        title: 'Lưu thực đơn thất bại',
         message,
         variant: 'danger',
       });
@@ -1373,14 +1402,14 @@ const WeeklyMenuPage = () => {
         labelColumn: selectedImportPreview.detectedLayout.labelColumn,
       }).unwrap();
       setImportFeedback({
-        title: 'Đã lưu mẫu mapping cho khách hàng',
-        message: `Lần import sau của ${selectedImportJob.customerCode} sẽ tự dùng sheet "${selectedImportPreview.detectedLayout.sheetName}", cột nhãn "${selectedImportPreview.detectedLayout.labelColumn}".`,
+        title: 'Đã ghi nhớ cách đọc file',
+        message: `Lần sau của ${selectedImportJob.customerCode}, hệ thống sẽ đọc file theo mẫu này nhanh hơn.`,
         variant: 'info',
       });
     } catch (err: unknown) {
       setImportFeedback({
-        title: 'Lưu mapping thất bại',
-        message: getApiErrorMessage(err, 'Không thể lưu cấu hình mapping cho khách hàng.'),
+        title: 'Chưa ghi nhớ được cách đọc file',
+        message: getApiErrorMessage(err, 'Không thể lưu cách đọc file cho khách hàng này.'),
         variant: 'danger',
       });
     }
@@ -1391,7 +1420,7 @@ const WeeklyMenuPage = () => {
     if (jobsToCommit.length === 0) {
       setImportFeedback({
         title: 'Chưa có dòng hợp lệ để lưu',
-        message: 'Chỉ những dòng đã xem trước thành công mới được lưu vào hệ thống.',
+        message: 'Chỉ những file đã kiểm tra xong và không có lỗi mới được lưu.',
         variant: 'warning',
       });
       return;
@@ -2182,7 +2211,7 @@ const WeeklyMenuPage = () => {
                 className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap"
               >
                 <Upload size={14} className="text-[var(--ipc-slate-500)]" />
-                {isImporting ? 'Đang import...' : 'Import Excel'}
+                {isImporting ? 'Đang nhập...' : 'Nhập Excel'}
               </button>
 
               <button
@@ -2760,12 +2789,12 @@ const WeeklyMenuPage = () => {
                 )}
               </thead>
               <tbody>
-                {purchaseDemandPageRows.map((line) => {
+                {purchaseDemandPageRows.map((line, index) => {
                   const availableAfterReserve = line.available - line.reserved;
                   const variance = availableAfterReserve - line.required;
 
                   return (
-                    <tr key={line.id} className="table-row">
+                    <tr key={`${line.id}-${safePurchaseSummaryPageIndex}-${index}`} className="table-row">
                       <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td>
                       <td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
                       <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td>
@@ -2867,15 +2896,15 @@ const WeeklyMenuPage = () => {
                   disabled={catalogDishes.length === 0}
                 >
                   <optgroup label="Ca Sáng">
-                    {catalogDishes.filter(d => matchesShift(d, 'morning')).map(d => (
-                      <option key={d.id} value={d.id}>
+                    {catalogDishes.filter(d => matchesShift(d, 'morning')).map((d, index) => (
+                      <option key={`morning-${d.id}-${index}`} value={d.id}>
                         {d.name}{weeklyPlanCatalogDishIds.has(d.id) ? ' - trong KH tuần' : ''}
                       </option>
                     ))}
                   </optgroup>
                   <optgroup label="Ca Chiều">
-                    {catalogDishes.filter(d => matchesShift(d, 'afternoon')).map(d => (
-                      <option key={d.id} value={d.id}>
+                    {catalogDishes.filter(d => matchesShift(d, 'afternoon')).map((d, index) => (
+                      <option key={`afternoon-${d.id}-${index}`} value={d.id}>
                         {d.name}{weeklyPlanCatalogDishIds.has(d.id) ? ' - trong KH tuần' : ''}
                       </option>
                     ))}
@@ -2970,39 +2999,24 @@ const WeeklyMenuPage = () => {
           }}
         >
           <DialogContent className="ipc-weekly-dialog max-w-6xl">
-            <DialogHeader className="border-b border-slate-100 pb-3">
+            <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
               <DialogTitle className="text-lg font-bold text-slate-900">
-                Import thực đơn theo khách hàng
+                Nhập thực đơn từ Excel
               </DialogTitle>
+              <button
+                type="button"
+                onClick={() => setIsImportDialogOpen(false)}
+                className="ipc-button ipc-button-ghost ipc-button-bounded"
+                aria-label="Đóng modal nhập thực đơn"
+                title="Đóng"
+              >
+                <X size={16} />
+                <span>Đóng</span>
+              </button>
             </DialogHeader>
 
-            <div className="mt-4 flex flex-col gap-5">
-              <ContextStrip
-                items={[
-                  {
-                    label: 'Khách đang xem',
-                    value: selectedCustomer ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}` : 'Chưa chọn',
-                    tone: selectedCustomer ? 'neutral' : 'warning',
-                  },
-                  {
-                    label: 'Tuần đang xem',
-                    value: committedMenuWeekStartDate ? formatImportDate(committedMenuWeekStartDate) : 'Chưa chọn',
-                    tone: committedMenuWeekStartDate ? 'info' : 'neutral',
-                  },
-                  {
-                    label: 'Dòng import',
-                    value: `${importJobs.length} khách hàng`,
-                    tone: importJobs.length > 0 ? 'success' : 'neutral',
-                  },
-                  {
-                    label: 'Sẵn sàng lưu',
-                    value: `${readyImportJobs.length} dòng`,
-                    tone: readyImportJobs.length > 0 ? 'success' : 'neutral',
-                  },
-                ]}
-              />
-
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            <div className="mt-5 flex flex-col gap-5">
+              <div className="grid grid-cols-1 gap-3 p-0.5 md:grid-cols-3">
                 {importWizardSteps.map((step, index) => (
                   <div key={step.key} className={getImportWizardStepClass(step.key, importWizardStep)}>
                     <div className="flex items-center justify-between gap-2">
@@ -3019,70 +3033,87 @@ const WeeklyMenuPage = () => {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 gap-4 rounded-md border border-slate-200 bg-slate-50 p-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,220px)_minmax(260px,1.35fr)_auto]">
-                <FieldRow label="Khách hàng import" hint="Chọn đúng đơn vị nhận file">
-                  <select
-                    value={draftImportCustomerId}
-                    onChange={(event) => {
-                      setDraftImportCustomerId(event.target.value);
-                      setImportFeedback(null);
-                    }}
-                    className="ipc-select"
-                    disabled={isCustomerLoading || customers.length === 0}
-                  >
-                    <option value="">Chọn khách hàng</option>
-                    {customers.map((customer) => (
-                      <option key={customer.customerId} value={customer.customerId}>
-                        {customer.customerCode} - {customer.customerName}
-                      </option>
-                    ))}
-                    {customers.length === 0 && <option value="">Chưa có khách hàng</option>}
-                  </select>
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,220px)_minmax(260px,1.35fr)_140px]">
+                  <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="[&_.ipc-field-label]:min-h-[34px]">
+                    <select
+                      value={draftImportCustomerId}
+                      onChange={(event) => {
+                        setDraftImportCustomerId(event.target.value);
+                        setImportFeedback(null);
+                      }}
+                      className="ipc-select h-9 min-h-9"
+                      disabled={isCustomerLoading || customers.length === 0}
+                    >
+                      <option value="">Chọn khách hàng</option>
+                      {customers.map((customer) => (
+                        <option key={customer.customerId} value={customer.customerId}>
+                          {customer.customerCode} - {customer.customerName}
+                        </option>
+                      ))}
+                      {customers.length === 0 && <option value="">Chưa có khách hàng</option>}
+                    </select>
+                  </FieldRow>
+                  <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="[&_.ipc-field-label]:min-h-[34px]">
+                    <input
+                      type="date"
+                      value={importWeekStartDate}
+                      onChange={(event) => {
+                        setImportWeekStartDate(event.target.value);
+                        setImportFeedback(null);
+                      }}
+                      className="ipc-input h-9 min-h-9"
+                    />
+                  </FieldRow>
+                  <FieldRow label="File Excel" hint="Chọn file thực đơn" className="[&_.ipc-field-label]:min-h-[34px]">
+                    <input
+                      id="weekly-menu-import-file"
+                      ref={importFileInputRef}
+                      type="file"
+                      accept=".xlsx,.xlsm,.xls"
+                      onChange={(event) => {
+                        setSelectedImportFile(event.target.files?.[0] ?? null);
+                        setImportFeedback(null);
+                      }}
+                      className="sr-only"
+                      aria-describedby="weekly-menu-import-file-meta"
+                      disabled={isImporting}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => importFileInputRef.current?.click()}
+                      disabled={isImporting}
+                      className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center px-3 py-0"
+                    >
+                      Chọn file Excel
+                    </button>
+                  </FieldRow>
+                  <div className="flex flex-col gap-1.5 md:pt-[40px]">
+                    <button
+                      type="button"
+                      onClick={handleAddImportJob}
+                      disabled={isImporting || !selectedImportFile || !draftImportCustomer}
+                      className="ipc-button ipc-button-primary h-9 min-h-9 w-full whitespace-nowrap px-3 py-0"
+                    >
+                      Thêm file
+                    </button>
+                  </div>
+                </div>
+                <div className="mt-3 flex min-h-8 flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-3">
                   <button
                     type="button"
                     onClick={() => {
                       setIsQuickCustomerFormOpen((open) => !open);
                       setImportFeedback(null);
                     }}
-                    className="ipc-button ipc-button-ghost mt-2 w-full justify-center"
+                    className="ipc-button ipc-button-ghost ipc-button-bounded"
                     disabled={isImporting}
                   >
-                    {isQuickCustomerFormOpen ? 'Đóng tạo khách' : 'Tạo khách hàng mới'}
+                    {isQuickCustomerFormOpen ? 'Đóng thêm khách hàng' : 'Thêm khách hàng mới'}
                   </button>
-                </FieldRow>
-                <FieldRow label="Ngày bắt đầu tuần" hint="Chọn thứ 2 của tuần menu">
-                  <input
-                    type="date"
-                    value={importWeekStartDate}
-                    onChange={(event) => {
-                      setImportWeekStartDate(event.target.value);
-                      setImportFeedback(null);
-                    }}
-                    className="ipc-input"
-                  />
-                </FieldRow>
-                <FieldRow label="File Excel" hint="Hỗ trợ .xlsx, .xlsm, .xls">
-                  <input
-                    ref={importFileInputRef}
-                    type="file"
-                    accept=".xlsx,.xlsm,.xls"
-                    onChange={(event) => {
-                      setSelectedImportFile(event.target.files?.[0] ?? null);
-                      setImportFeedback(null);
-                    }}
-                    className="ipc-input"
-                  />
-                  <div className="mt-1 text-xs font-medium text-slate-500">{selectedImportFileMeta}</div>
-                </FieldRow>
-                <div className="flex items-end">
-                  <button
-                    type="button"
-                    onClick={handleAddImportJob}
-                    disabled={isImporting || !selectedImportFile || !draftImportCustomer}
-                    className="ipc-button ipc-button-primary w-full whitespace-nowrap"
-                  >
-                    Thêm vào validate
-                  </button>
+                  <span id="weekly-menu-import-file-meta" className="text-xs font-medium text-slate-500">
+                    {selectedImportFileMeta}
+                  </span>
                 </div>
               </div>
 
@@ -3098,7 +3129,7 @@ const WeeklyMenuPage = () => {
                       disabled={isCreatingImportCustomer}
                     />
                   </FieldRow>
-                  <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị khi import">
+                  <FieldRow label="Tên khách hàng" hint="Tên đơn vị sẽ hiển thị trong danh sách">
                     <input
                       type="text"
                       value={quickCustomerName}
@@ -3123,10 +3154,10 @@ const WeeklyMenuPage = () => {
 
               {isCustomerError && (
                 <InlineAlert title="Chưa tải được danh sách khách hàng" variant="warning">
-                  Kiểm tra backend hoặc quyền truy cập trước khi import thực đơn.
+                  Kiểm tra kết nối hoặc quyền truy cập trước khi nhập thực đơn.
                 </InlineAlert>
               )}
-              {importFeedback && (
+              {importFeedback && !hiddenImportFeedbackByDetail && (
                 <InlineAlert title={importFeedback.title} variant={importFeedback.variant}>
                   {importFeedback.message}
                 </InlineAlert>
@@ -3135,8 +3166,8 @@ const WeeklyMenuPage = () => {
               <div className="flex flex-col gap-3">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">Bước 2 - Validate import batch</h3>
-                    <p className="text-sm font-medium text-slate-500">Preview sẽ kiểm tra template, khách hàng, tuần, mapping món và dòng trùng trước khi commit DB.</p>
+                    <h3 className="text-base font-bold text-slate-900">File cần kiểm tra</h3>
+                    <p className="text-sm font-medium text-slate-500">Kiểm tra lỗi ngày, món ăn hoặc dòng trùng trước khi lưu thực đơn.</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <button
@@ -3145,7 +3176,7 @@ const WeeklyMenuPage = () => {
                       disabled={isImporting || importJobs.length === 0}
                       className="ipc-button ipc-button-ghost"
                     >
-                      {isPreviewingImport ? 'Đang validate...' : 'Validate tất cả'}
+                      {isPreviewingImport ? 'Đang kiểm tra...' : 'Kiểm tra tất cả'}
                     </button>
                     <button
                       type="button"
@@ -3153,19 +3184,19 @@ const WeeklyMenuPage = () => {
                       disabled={isImporting || readyImportJobs.length === 0}
                       className="ipc-button ipc-button-primary"
                     >
-                      {isCommittingImport ? 'Đang lưu...' : 'Commit batch hợp lệ'}
+                      {isCommittingImport ? 'Đang lưu...' : 'Lưu file hợp lệ'}
                     </button>
                   </div>
                 </div>
 
-                <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách khách hàng chờ import">
+                <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
                         <th className="text-left">Khách hàng</th>
                         <th className="text-left">Tuần</th>
                         <th className="text-left">File</th>
-                        <th className="text-center">Bố cục</th>
+                        <th className="text-center">File đọc</th>
                         <th className="text-center">Dòng món</th>
                         <th className="text-center">Trạng thái</th>
                         <th className="text-right">Thao tác</th>
@@ -3186,7 +3217,7 @@ const WeeklyMenuPage = () => {
                                 {job.customerCode} - {job.customerName}
                               </button>
                             </td>
-                            <td className="text-left font-medium">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Backend tự nhận diện'}</td>
+                            <td className="text-left font-medium">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
                             <td className="text-left">
                               <div className="flex flex-col">
                                 <span className="font-semibold text-slate-800">{job.fileName}</span>
@@ -3194,7 +3225,7 @@ const WeeklyMenuPage = () => {
                               </div>
                             </td>
                             <td className="text-center">
-                              {preview ? `${preview.detectedLayout.sections.length} section / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}
+                              {preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}
                             </td>
                             <td className="text-center">
                               {preview ? preview.detectedLayout.rowsImported.toLocaleString('vi-VN') : '-'}
@@ -3212,7 +3243,7 @@ const WeeklyMenuPage = () => {
                                   disabled={isImporting || job.status === 'committed'}
                                   className="ipc-button ipc-button-ghost"
                                 >
-                                  Validate
+                                  Kiểm tra
                                 </button>
                                 <button
                                   type="button"
@@ -3220,7 +3251,7 @@ const WeeklyMenuPage = () => {
                                   disabled={isImporting || job.status !== 'previewed'}
                                   className="ipc-button ipc-button-primary"
                                 >
-                                  Commit
+                                  Lưu
                                 </button>
                                 <button
                                   type="button"
@@ -3238,7 +3269,7 @@ const WeeklyMenuPage = () => {
                       {importJobs.length === 0 && (
                         <tr>
                           <td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">
-                            Chưa có dòng import. Chọn khách hàng, tuần và file Excel rồi bấm Thêm vào danh sách.
+                            Chưa có file nào. Chọn khách hàng, tuần và file Excel rồi bấm Thêm file.
                           </td>
                         </tr>
                       )}
@@ -3252,7 +3283,7 @@ const WeeklyMenuPage = () => {
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-base font-bold text-slate-900">
-                        Chi tiết import {selectedImportJob.customerCode}
+                        Kết quả kiểm tra {selectedImportJob.customerCode}
                       </h3>
                       <p className="text-sm font-medium text-slate-500">{selectedImportJob.fileName}</p>
                     </div>
@@ -3261,100 +3292,28 @@ const WeeklyMenuPage = () => {
                     </span>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-                    {selectedImportValidationChecks.map((check) => (
-                      <div key={check.key} className={getImportValidationToneClass(check.tone)}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs font-bold uppercase">{check.label}</span>
-                          {check.blocking && (
-                            <span className="rounded bg-white px-2 py-0.5 text-[11px] font-bold text-red-700">
-                              Chặn
-                            </span>
-                          )}
-                        </div>
-                        <div className="mt-1 text-sm font-bold">{check.value}</div>
-                        <div className="mt-1 text-xs font-medium leading-relaxed">{check.detail}</div>
-                      </div>
-                    ))}
-                  </div>
-
-                  {selectedImportBlockingIssueCount > 0 && (
-                    <InlineAlert title="Batch chưa thể commit" variant="danger">
-                      Sửa các lỗi validate đang bị block rồi bấm Validate lại trước khi lưu vào DB.
-                    </InlineAlert>
-                  )}
-
-                  {selectedImportJob.error && (
-                    <InlineAlert title={`Lỗi import ${selectedImportJob.customerCode}`} variant="danger">
-                      {selectedImportJob.error}
-                    </InlineAlert>
-                  )}
-
-                  {selectedImportDuplicateGroups.length > 0 && (
-                    <InlineAlert title="Dòng import bị trùng" variant="danger">
-                      {selectedImportDuplicateGroups
-                        .slice(0, 3)
-                        .map((group) => `${group.label}: ${group.rowCount} dòng (${group.locations.join(', ')})`)
-                        .join(' | ')}
+                  {selectedImportProblemMessages.length > 0 && (
+                    <InlineAlert title="Cần sửa file Excel" variant="danger">
+                      <ul className="list-disc space-y-1 pl-4">
+                        {selectedImportProblemMessages.map((message, index) => (
+                          <li key={`${message}-${index}`}>{message}</li>
+                        ))}
+                      </ul>
+                      {selectedImportIssues.length > selectedImportProblemMessages.length && (
+                        <p className="mt-1 font-medium">
+                          Còn {selectedImportIssues.length - selectedImportProblemMessages.length} mục khác. Sửa các lỗi đầu rồi bấm Kiểm tra lại.
+                        </p>
+                      )}
                     </InlineAlert>
                   )}
 
                   {selectedImportPreview && (
                     <>
-                      {selectedImportPreview.validation?.issues.length > 0 && (
-                        <DataTableShell className="max-h-[220px]" ariaLabel="Danh sách lỗi validate import">
-                          <table className="ipc-data-table">
-                            <thead>
-                              <tr>
-                                <th className="text-left">Mức</th>
-                                <th className="text-left">Code</th>
-                                <th className="text-left">Cell</th>
-                                <th className="text-left">Thông báo</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {selectedImportPreview.validation.issues.slice(0, 80).map((issue, index) => (
-                                <tr key={`${issue.code}-${issue.cell ?? issue.field ?? index}`}>
-                                  <td className="text-left font-bold">
-                                    {issue.severity.toLowerCase() === 'error' ? 'Lỗi' : issue.severity.toLowerCase() === 'warning' ? 'Cảnh báo' : 'Info'}
-                                  </td>
-                                  <td className="text-left font-medium">{issue.code}</td>
-                                  <td className="text-left font-medium">{issue.cell ?? issue.column ?? issue.field ?? '-'}</td>
-                                  <td className="text-left">{issue.message}</td>
-                                </tr>
-                              ))}
-                            </tbody>
-                          </table>
-                        </DataTableShell>
-                      )}
-
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <ContextStrip
                           items={[
-                            { label: 'Sheet', value: selectedImportPreview.detectedLayout.sheetName, tone: 'neutral' },
                             { label: 'Tuần trong file', value: `${formatImportDate(selectedImportPreview.weekStartDate)} - ${formatImportDate(selectedImportPreview.weekEndDate)}`, tone: 'info' },
-                            { label: 'Bố cục', value: `${selectedImportPreview.detectedLayout.sections.length} section`, tone: 'info' },
-                            { label: 'Dòng món hợp lệ', value: selectedImportPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
-                            {
-                              label: 'Dòng bỏ qua',
-                              value: selectedImportPreview.detectedLayout.rowsSkipped.toString(),
-                              tone: selectedImportPreview.detectedLayout.rowsSkipped > 0 ? 'warning' : 'neutral',
-                            },
-                            {
-                              label: 'Món thêm mới',
-                              value: selectedImportPreview.previewDiff.addedSlots.toString(),
-                              tone: selectedImportPreview.previewDiff.addedSlots > 0 ? 'info' : 'neutral',
-                            },
-                            {
-                              label: 'Món thay đổi',
-                              value: selectedImportPreview.previewDiff.changedSlots.toString(),
-                              tone: selectedImportPreview.previewDiff.changedSlots > 0 ? 'warning' : 'neutral',
-                            },
-                            {
-                              label: 'Món bị bỏ',
-                              value: selectedImportPreview.previewDiff.removedSlots.toString(),
-                              tone: selectedImportPreview.previewDiff.removedSlots > 0 ? 'danger' : 'neutral',
-                            },
+                            { label: 'Số món đọc được', value: selectedImportPreview.detectedLayout.rowsImported.toString(), tone: 'success' },
                           ]}
                         />
                         <button
@@ -3362,25 +3321,47 @@ const WeeklyMenuPage = () => {
                           onClick={() => void handleSaveImportMapping()}
                           disabled={isSavingImportMapping}
                           className="ipc-button ipc-button-ghost ipc-button-bounded"
-                          title="Ghi nhớ sheet và cột nhãn đã dò được cho khách hàng này, dùng lại cho lần import sau"
+                          title="Ghi nhớ cách đọc file này cho khách hàng, dùng lại cho lần sau"
                         >
-                          {isSavingImportMapping ? 'Đang lưu mẫu...' : 'Lưu làm mẫu cho khách hàng này'}
+                          {isSavingImportMapping ? 'Đang ghi nhớ...' : 'Ghi nhớ cách đọc file'}
                         </button>
                       </div>
 
-                      {selectedImportPreview.previewDiff.rows.some(isMeaningfulMenuDiff) && (
-                        <InlineAlert title={`Diff ${selectedImportJob.customerCode} so với thực đơn đang lưu`} variant="info">
-                          {selectedImportPreview.previewDiff.rows
-                            .filter(isMeaningfulMenuDiff)
-                            .slice(0, 4)
-                            .map((row) => `${formatImportDate(row.serviceDate)} ${row.shiftName}: ${formatMenuDishName(row.currentDishName)} -> ${formatMenuDishName(row.importedDishName)}`)
-                            .join(' | ')}
+                      {selectedImportDiffRows.length > 0 && (
+                        <InlineAlert title={`${selectedImportJob.customerCode}: file Excel khác thực đơn đang lưu`} variant="info">
+                          <div className="space-y-1">
+                            <p>Nếu bấm Lưu, các món trong file Excel sẽ thay cho các món đang lưu ở những vị trí này.</p>
+                            <ul className="list-disc space-y-1 pl-4">
+                              {selectedImportDiffRows
+                                .slice(0, 3)
+                                .map((row, index) => (
+                                  <li key={`${row.serviceDate}-${row.shiftName}-${row.slot}-${index}`}>
+                                    {formatImportDate(row.serviceDate)} {row.shiftName}: đang lưu "{formatMenuDishName(row.currentDishName)}", file Excel "{formatMenuDishName(row.importedDishName)}"
+                                  </li>
+                                ))}
+                            </ul>
+                            {selectedImportDiffRows.length > 3 && (
+                              <p className="font-medium">Còn {selectedImportDiffRows.length - 3} vị trí khác.</p>
+                            )}
+                          </div>
                         </InlineAlert>
                       )}
 
-                      {selectedImportPreview.warnings.length > 0 && (
-                        <InlineAlert title={`Cảnh báo khi đọc file ${selectedImportJob.customerCode}`} variant="warning">
-                          {summarizeImportWarnings(selectedImportPreview.warnings).slice(0, 4).join(' | ')}
+                      {selectedImportWarningMessages.length > 0 && (
+                        <InlineAlert
+                          title={selectedImportJob.status === 'committed' ? 'Đã lưu thực đơn, cần chú ý' : 'Cần chú ý khi đọc file'}
+                          variant="warning"
+                        >
+                          <ul className="list-disc space-y-1 pl-4">
+                            {selectedImportWarningMessages.map((message, index) => (
+                              <li key={`${message}-${index}`}>{message}</li>
+                            ))}
+                          </ul>
+                          {selectedImportWarningSummary.length > selectedImportWarningMessages.length && (
+                            <p className="mt-1 font-medium">
+                              Còn {selectedImportWarningSummary.length - selectedImportWarningMessages.length} nhắc nhở khác.
+                            </p>
+                          )}
                         </InlineAlert>
                       )}
 
@@ -3390,38 +3371,6 @@ const WeeklyMenuPage = () => {
                         activeDayKey={selectedImportPreviewActiveDayKey}
                         maxBodyHeight="max-h-[300px]"
                       />
-
-                      <DataTableShell className="max-h-[300px]" ariaLabel="Bảng xem trước thực đơn import">
-                        <table className="ipc-data-table">
-                          <thead>
-                            <tr>
-                              <th className="text-left">Ngày</th>
-                              <th className="text-left">Section</th>
-                              <th className="text-left">Dòng</th>
-                              <th className="text-left">Món</th>
-                              <th className="text-center">Catalog</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {selectedImportPreview.rows.slice(0, 60).map((row, index) => (
-                              <tr key={`${selectedImportJob.jobId}-${row.serviceDate}-${row.sourceSection}-${row.slot}-${row.dishName}-${index}`}>
-                                <td className="text-left font-medium">{formatImportDate(row.serviceDate)}</td>
-                                <td className="text-left">
-                                  <div className="flex flex-col">
-                                    <span className="font-semibold text-slate-800">{row.sourceSection}</span>
-                                    <span className="text-xs text-slate-500">{getShiftLabel(row.dbShiftName)} / {getVariantLabel(row.variant)}</span>
-                                  </div>
-                                </td>
-                                <td className="text-left">{row.slotLabel || importSlotLabels[row.slot] || row.slot}</td>
-                                <td className="text-left font-semibold text-slate-800">{formatMenuDishName(row.dishName)}</td>
-                                <td className="text-center">
-                                  {row.existingDish ? 'Đã có' : 'Món mới'}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </DataTableShell>
                     </>
                   )}
                 </div>
@@ -3432,7 +3381,7 @@ const WeeklyMenuPage = () => {
               <div className="text-sm font-medium text-slate-600">
                 {importJobs.length === 0
                   ? 'Thêm ít nhất một khách hàng và file Excel để bắt đầu'
-                  : `${readyImportJobs.length}/${importJobs.length} dòng đã xem trước hợp lệ`}
+                  : `${readyImportJobs.length}/${importJobs.length} file đã kiểm tra xong`}
               </div>
               <div className="flex flex-wrap justify-end gap-2">
               <button
@@ -3440,7 +3389,7 @@ const WeeklyMenuPage = () => {
                 onClick={() => setIsImportDialogOpen(false)}
                 className="ipc-button ipc-button-ghost"
               >
-                Hủy
+                Đóng
               </button>
               </div>
             </DialogFooter>
@@ -3501,8 +3450,8 @@ const WeeklyMenuPage = () => {
                               className="ipc-select text-[12px] h-9 p-1 w-full"
                               disabled={getSectionDishes(sec).length === 0}
                             >
-                              {getSectionDishes(sec).map((d) => (
-                                <option key={d.id} value={d.id}>
+                              {getSectionDishes(sec).map((d, index) => (
+                                <option key={`${sec.slotType}-${d.id}-${index}`} value={d.id}>
                                   {d.name}
                                 </option>
                               ))}
