@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { canAccessRole, logOut, ROLE_LABELS, selectCurrentUser, useRevokeTokenMutation, type AppRole } from '../../features/auth';
+import { canAccessRole, ROLE_LABELS, selectCurrentUser, type AppRole } from '../../features/auth';
+import { store } from '../../app/store';
+import { logoutSession } from '../../features/auth/logoutSession';
 import { ROUTES } from '../../routes/routeConfig';
 import { getWorkflowContextForPath } from '../../features/workflow';
 import {
@@ -49,20 +51,10 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
-  const refreshToken = useAppSelector((state) => state.auth.refreshToken);
-  const [revokeToken] = useRevokeTokenMutation();
 
   const handleLogout = async () => {
-    if (refreshToken && !refreshToken.startsWith('dev-fallback-refresh')) {
-      try {
-        await revokeToken({ refreshToken }).unwrap();
-      } catch {
-        // Logout must remain available even when the API cannot revoke.
-      }
-    }
-
-    dispatch(logOut());
-    navigate(ROUTES.LOGIN);
+    await logoutSession(dispatch, store.getState);
+    navigate(ROUTES.LOGIN, { replace: true });
   };
 
   const menuItems: Array<{ path: string; label: string; icon: ReactNode; allowedRoles?: AppRole[] }> = [

@@ -71,6 +71,8 @@ public class DishCatalogBomLineDto
     public string UnitName { get; set; } = string.Empty;
     public decimal GrossQtyPerServing { get; set; }
     public decimal WasteRatePercent { get; set; }
+    public string BomStatus { get; set; } = string.Empty;
+    public string BomStatusLabel { get; set; } = string.Empty;
     public DateOnly EffectiveFrom { get; set; }
     public DateOnly? EffectiveTo { get; set; }
     public decimal ReferencePrice { get; set; }
@@ -181,6 +183,9 @@ public class CreateDishBomLineDto
     [Range(0, 100)]
     public decimal WasteRatePercent { get; set; }
 
+    [MaxLength(20)]
+    public string? BomStatus { get; set; }
+
     public DateOnly? EffectiveFrom { get; set; }
 
     public DateOnly? EffectiveTo { get; set; }
@@ -201,6 +206,9 @@ public class UpdateDishBomLineDto
 
     [Range(0, 100)]
     public decimal? WasteRatePercent { get; set; }
+
+    [MaxLength(20)]
+    public string? BomStatus { get; set; }
 
     public DateOnly? EffectiveFrom { get; set; }
 

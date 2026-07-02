@@ -43,6 +43,7 @@ export default function ChefDashboardPage() {
   const isLocked = !!lockedShifts[lockKey]
   const isCatalogEmpty = !isCatalogLoading && !isCatalogError && catalogDishes.length === 0
   const khsxDocuments = workflowDocuments.filter((document) => document.type === 'KHSX')
+  const activeKhsxDocument = khsxDocuments[0]
   const returnDocuments = workflowDocuments.filter((document) => document.type === 'Phiếu trả')
   const kitchenMovements = [
     ...stockMovements.filter((movement) => movement.type === 'issue'),
@@ -259,7 +260,7 @@ export default function ChefDashboardPage() {
         <>
           <ContextStrip
             items={[
-              { label: 'KHSX', value: 'KHSX-0613-TRUA', tone: 'success' },
+              { label: 'KHSX', value: activeKhsxDocument?.title ?? 'Chưa có KHSX', tone: activeKhsxDocument ? 'success' : 'warning' },
               { label: 'Chứng từ bếp', value: `${khsxDocuments.length + returnDocuments.length} chứng từ`, tone: 'neutral' },
               { label: 'Trạng thái nhận', value: isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: isLocked ? 'warning' : 'neutral' },
               { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },

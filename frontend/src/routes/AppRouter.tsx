@@ -4,6 +4,7 @@ import { ROUTES } from './routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '../components/layout/MainLayout';
+import { SessionTimeoutModal } from '../features/auth/components/SessionTimeoutModal';
 import LoginPage from '../features/auth/pages/LoginPage';
 import ForbiddenPage from '../features/auth/pages/ForbiddenPage';
 
@@ -26,6 +27,7 @@ const routeFallback = (
 export const AppRouter = () => {
   return (
     <BrowserRouter>
+      <SessionTimeoutModal />
       <Routes>
         {/* Public Routes */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />

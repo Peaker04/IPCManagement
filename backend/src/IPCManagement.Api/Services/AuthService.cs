@@ -208,13 +208,22 @@ public class AuthService : IAuthService
         }
 
         var permissions = new List<string>();
-        AddPermissionIfMatches(permissions, "catalog:read", roleCode, roleName, AuthorizationPolicies.CatalogRoles);
-        AddPermissionIfMatches(permissions, "coordination:read", roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, "coordination:write", roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, "inventory:read", roleCode, roleName, AuthorizationPolicies.InventoryRoles);
-        AddPermissionIfMatches(permissions, "production:read", roleCode, roleName, AuthorizationPolicies.ProductionRoles);
-        AddPermissionIfMatches(permissions, "purchasing:read", roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
-        AddPermissionIfMatches(permissions, "warehouse:read", roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CatalogRead, roleCode, roleName, AuthorizationPolicies.CatalogRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CatalogWrite, roleCode, roleName, AuthorizationPolicies.CatalogRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationRead, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderLock, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderAdjust, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderSignoff, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.DemandGenerate, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.InventoryRead, roleCode, roleName, AuthorizationPolicies.InventoryRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.ProductionRead, roleCode, roleName, AuthorizationPolicies.ProductionRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.PurchaseRead, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.PurchaseGenerate, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.WarehouseRead, roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
+        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.ProductionRoles);
         return permissions;
     }
 
@@ -227,7 +236,10 @@ public class AuthService : IAuthService
     {
         if (MatchesAny(roleCode, roleName, allowedRoles))
         {
-            permissions.Add(permission);
+            if (!permissions.Contains(permission))
+            {
+                permissions.Add(permission);
+            }
         }
     }
 

@@ -3,6 +3,9 @@ export {
   useGetApprovalRecordsQuery,
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
+  useGetDataQualityQuery,
+  useGenerateMaterialDemandMutation,
+  useGeneratePurchaseRequestFromDemandMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -11,12 +14,18 @@ export {
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
+  useGetSuppliersQuery,
+  useUpdatePurchaseRequestLineSupplierMutation,
 } from './workflowApi';
 export type {
   AuditLogRow,
   CurrentStockRow,
+  DataQualityIssueRow,
+  DataQualityReport,
   KitchenIssueRow,
   PriceVarianceRow,
+  SupplierDto,
+  UpdatePurchaseRequestLineSupplierDto,
   UsageReportRow,
   WorkflowReportQuery,
 } from './workflowApi';

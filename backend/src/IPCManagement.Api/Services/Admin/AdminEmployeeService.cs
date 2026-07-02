@@ -229,4 +229,39 @@ public class AdminEmployeeService : IAdminEmployeeService
             IsActive = user.IsActive ?? false,
             CreatedAt = user.CreatedAt
         };
+
+    public async Task SeedSampleUsersAsync()
+    {
+        await EnsureDefaultRolesAsync();
+
+        var sampleUsers = new[]
+        {
+            (Guid.Parse("00000000-0000-0000-0000-000000000001"), "admin", "admin", "Admin User"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000002"), "quanly", "quanly", "Quản lý"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000003"), "dieuphoi", "dieuphoi", "Điều phối"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000004"), "beptruong", "beptruong", "Bếp trưởng"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000005"), "thukho", "thukho", "Thủ kho"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000006"), "thumua", "thumua", "Thu mua")
+        };
+
+        foreach (var (roleId, username, password, fullName) in sampleUsers)
+        {
+            var existingUser = await _context.Users.AnyAsync(u => u.Username == username);
+            if (!existingUser)
+            {
+                _context.Users.Add(new User
+                {
+                    UserId = GuidHelper.NewId(),
+                    FullName = fullName,
+                    Username = username,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                    RoleId = GuidHelper.ToBytes(roleId),
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }

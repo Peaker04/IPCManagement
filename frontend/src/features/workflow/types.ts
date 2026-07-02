@@ -101,12 +101,24 @@ export interface ApprovalRecord {
 
 export interface DemandLine {
   id: string;
+  materialRequestId?: string;
+  purchaseRequestId?: string;
+  purchaseRequestLineId?: string;
+  supplierId?: string;
+  estimatedUnitPrice?: number;
+  sourceDocumentCode?: string;
+  serviceDate?: string;
   material: string;
   required: number;
   available: number;
   reserved: number;
   unit: string;
   source: string;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  bomRatePercent?: number;
+  yieldLossPercent?: number | null;
   status: string;
   nextAction: string;
   tone: WorkflowTone;

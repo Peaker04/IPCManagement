@@ -4,8 +4,10 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -30,6 +32,8 @@ Log.Logger = new LoggerConfiguration()
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
+
+DeploymentConfigurationValidator.Validate(builder.Configuration, builder.Environment);
 
 builder.Services.AddBackendServices(builder.Configuration);
 
@@ -100,7 +104,11 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
+    options.AddPolicy(AuthorizationPolicies.DemandGenerateAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.PurchaseAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
+    options.AddPolicy(AuthorizationPolicies.PurchaseGenerateAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
@@ -130,6 +138,10 @@ builder.Services.AddControllers()
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         opts.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
     });
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = ApiResponseModelStateFactory.CreateInvalidModelStateResponse;
+});
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options =>

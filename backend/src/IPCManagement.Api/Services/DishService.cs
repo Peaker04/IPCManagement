@@ -16,6 +16,9 @@ public class DishService : IDishService
     private readonly IpcManagementContext _context;
     private readonly IMemoryCache _cache;
     private const string CatalogCacheKey = "DishCatalog";
+    private const string BomStatusDraft = "DRAFT";
+    private const string BomStatusPublished = "PUBLISHED";
+    private const string BomStatusArchived = "ARCHIVED";
 
     public DishService(IDishRepository dishRepo, IpcManagementContext context, IMemoryCache cache)
     {
@@ -36,19 +39,30 @@ public class DishService : IDishService
             request.PageSize);
     }
 
-    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync()
+    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync(bool includeInactive = false)
     {
-        if (_cache.TryGetValue(CatalogCacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
+        var cacheKey = includeInactive ? $"{CatalogCacheKey}:all" : CatalogCacheKey;
+        if (_cache.TryGetValue(cacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
         {
             return cachedCatalog;
         }
 
-        var dishes = await _dishRepo.GetCatalogAsync();
+        var dishes = includeInactive
+            ? await _context.Dishes
+                .AsNoTracking()
+                .Include(d => d.Dishboms)
+                    .ThenInclude(bom => bom.Ingredient)
+                .Include(d => d.Dishboms)
+                    .ThenInclude(bom => bom.Unit)
+                .Include(d => d.Menuitems)
+                .OrderBy(d => d.DishCode)
+                .ToListAsync()
+            : await _dishRepo.GetCatalogAsync();
         var result = dishes.Select(MapToCatalogDto).ToList();
 
         var cacheOptions = new MemoryCacheEntryOptions()
             .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
-        _cache.Set(CatalogCacheKey, result, cacheOptions);
+        _cache.Set(cacheKey, result, cacheOptions);
 
         return result;
     }
@@ -63,7 +77,10 @@ public class DishService : IDishService
             .ToListAsync();
         var activeBomLines = await _context.Dishboms
             .AsNoTracking()
-            .Where(line => line.EffectiveTo == null || line.EffectiveTo >= today)
+            .Where(line =>
+                line.BomStatus == BomStatusPublished &&
+                line.EffectiveFrom <= today &&
+                (line.EffectiveTo == null || line.EffectiveTo >= today))
             .ToListAsync();
         var bomCountByDish = activeBomLines
             .GroupBy(line => GuidHelper.ToGuidString(line.DishId))
@@ -112,7 +129,10 @@ public class DishService : IDishService
             .AsNoTracking()
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
-            .Where(line => line.EffectiveTo == null || line.EffectiveTo >= today)
+            .Where(line =>
+                line.BomStatus == BomStatusPublished &&
+                line.EffectiveFrom <= today &&
+                (line.EffectiveTo == null || line.EffectiveTo >= today))
             .ToListAsync();
         var linesByDish = activeBomLines
             .GroupBy(line => GuidHelper.ToGuidString(line.DishId))
@@ -335,7 +355,7 @@ public class DishService : IDishService
         };
 
         await _dishRepo.AddAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return MapToDto(entity);
     }
 
@@ -353,7 +373,7 @@ public class DishService : IDishService
         if (dto.IsActive  is not null) entity.IsActive  = dto.IsActive;
 
         await _dishRepo.UpdateAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return MapToDto(entity);
     }
 
@@ -368,7 +388,7 @@ public class DishService : IDishService
         // Soft-delete: giữ lại dữ liệu cho BOM, menu, kế hoạch sản xuất
         entity.IsActive = false;
         await _dishRepo.UpdateAsync(entity);
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return true;
     }
 
@@ -409,19 +429,17 @@ public class DishService : IDishService
             throw new ArgumentException("Đơn vị tính không tồn tại.");
         }
 
-        if (dto.EffectiveTo is not null && dto.EffectiveTo < (dto.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today)))
+        var effectiveFrom = dto.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today);
+        var bomStatus = NormalizeBomStatus(dto.BomStatus);
+        if (dto.EffectiveTo is not null && dto.EffectiveTo < effectiveFrom)
         {
             throw new ArgumentException("Ngày hết hiệu lực phải sau ngày bắt đầu.");
         }
 
-        var hasActiveDuplicate = await _context.Dishboms.AnyAsync(line =>
-            line.DishId == dishBytes &&
-            line.IngredientId == ingredientBytes &&
-            line.UnitId == unitBytes &&
-            line.EffectiveTo == null);
-        if (hasActiveDuplicate)
+        if (bomStatus == BomStatusPublished &&
+            await HasOverlappingBomLineAsync(dishBytes, ingredientBytes, unitBytes, effectiveFrom, dto.EffectiveTo))
         {
-            throw new InvalidOperationException("Món ăn đã có dòng BOM đang áp dụng cho nguyên liệu này.");
+            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
         }
 
         var entity = new Dishbom
@@ -432,7 +450,8 @@ public class DishService : IDishService
             UnitId = unitBytes,
             GrossQtyPerServing = DecimalPolicy.RoundQuantity(dto.GrossQtyPerServing),
             WasteRatePercent = dto.WasteRatePercent,
-            EffectiveFrom = dto.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today),
+            BomStatus = bomStatus,
+            EffectiveFrom = effectiveFrom,
             EffectiveTo = dto.EffectiveTo,
             Ingredient = ingredient,
             Unit = unit
@@ -440,7 +459,7 @@ public class DishService : IDishService
 
         _context.Dishboms.Add(entity);
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
 
         return MapCatalogBomLine(entity);
     }
@@ -467,22 +486,30 @@ public class DishService : IDishService
 
         var oldGrossQty = entity.GrossQtyPerServing;
         var oldWasteRate = entity.WasteRatePercent;
+        var targetIngredientId = entity.IngredientId;
+        var targetIngredient = entity.Ingredient;
+        var targetUnitId = entity.UnitId;
+        var targetUnit = entity.Unit;
+        var targetGrossQty = entity.GrossQtyPerServing;
+        var targetWasteRate = entity.WasteRatePercent;
+        var targetEffectiveFrom = dto.EffectiveFrom ?? entity.EffectiveFrom;
+        var targetEffectiveTo = dto.EffectiveTo ?? entity.EffectiveTo;
+        var targetStatus = NormalizeBomStatus(dto.BomStatus, entity.BomStatus);
 
         if (!string.IsNullOrWhiteSpace(dto.IngredientId))
         {
             var ingredientBytes = GuidHelper.ParseGuidString(dto.IngredientId)
                 ?? throw new ArgumentException("Nguyên liệu không hợp lệ.");
-            var ingredient = await _context.Ingredients
+            targetIngredient = await _context.Ingredients
                 .Include(item => item.Unit)
                 .FirstOrDefaultAsync(item => item.IngredientId == ingredientBytes && (item.IsActive ?? true))
                 ?? throw new ArgumentException("Nguyên liệu không tồn tại hoặc đã ngừng sử dụng.");
 
-            entity.IngredientId = ingredientBytes;
-            entity.Ingredient = ingredient;
+            targetIngredientId = ingredientBytes;
             if (string.IsNullOrWhiteSpace(dto.UnitId))
             {
-                entity.UnitId = ingredient.UnitId;
-                entity.Unit = ingredient.Unit;
+                targetUnitId = targetIngredient.UnitId;
+                targetUnit = targetIngredient.Unit;
             }
         }
 
@@ -490,68 +517,108 @@ public class DishService : IDishService
         {
             var unitBytes = GuidHelper.ParseGuidString(dto.UnitId)
                 ?? throw new ArgumentException("Đơn vị tính không hợp lệ.");
-            var unit = await _context.Units.FirstOrDefaultAsync(item => item.UnitId == unitBytes)
+            targetUnit = await _context.Units.FirstOrDefaultAsync(item => item.UnitId == unitBytes)
                 ?? throw new ArgumentException("Đơn vị tính không tồn tại.");
 
-            entity.UnitId = unitBytes;
-            entity.Unit = unit;
+            targetUnitId = unitBytes;
         }
 
         if (dto.GrossQtyPerServing is not null)
         {
-            entity.GrossQtyPerServing = DecimalPolicy.RoundQuantity(dto.GrossQtyPerServing.Value);
+            targetGrossQty = DecimalPolicy.RoundQuantity(dto.GrossQtyPerServing.Value);
         }
         if (dto.WasteRatePercent is not null)
         {
-            entity.WasteRatePercent = dto.WasteRatePercent.Value;
+            targetWasteRate = dto.WasteRatePercent.Value;
         }
-        if (dto.EffectiveFrom is not null)
-        {
-            entity.EffectiveFrom = dto.EffectiveFrom.Value;
-        }
-        if (dto.EffectiveTo is not null)
-        {
-            entity.EffectiveTo = dto.EffectiveTo;
-        }
-        if (entity.EffectiveTo is not null && entity.EffectiveTo < entity.EffectiveFrom)
+        if (targetEffectiveTo is not null && targetEffectiveTo < targetEffectiveFrom)
         {
             throw new ArgumentException("Ngày hết hiệu lực phải sau ngày bắt đầu.");
         }
 
-        if (entity.EffectiveTo is null)
+        var versionedFieldsChanged =
+            !targetIngredientId.SequenceEqual(entity.IngredientId) ||
+            !targetUnitId.SequenceEqual(entity.UnitId) ||
+            targetGrossQty != entity.GrossQtyPerServing ||
+            targetWasteRate != entity.WasteRatePercent ||
+            targetEffectiveFrom != entity.EffectiveFrom;
+        var shouldCreateNewVersion = IsPublishedBomLine(entity) && versionedFieldsChanged;
+
+        if (shouldCreateNewVersion)
         {
-            var hasActiveDuplicate = await _context.Dishboms.AnyAsync(line =>
-                line.DishId == dishBytes &&
-                line.BomId != entity.BomId &&
-                line.IngredientId == entity.IngredientId &&
-                line.UnitId == entity.UnitId &&
-                line.EffectiveTo == null);
-            if (hasActiveDuplicate)
+            if (targetStatus == BomStatusPublished)
             {
-                throw new InvalidOperationException("Món ăn đã có dòng BOM đang áp dụng cho nguyên liệu này.");
+                if (targetEffectiveFrom <= entity.EffectiveFrom)
+                {
+                    throw new ArgumentException("Ngày hiệu lực version mới phải sau ngày bắt đầu của dòng BOM published hiện tại.");
+                }
+
+                if (await HasOverlappingBomLineAsync(
+                    dishBytes,
+                    targetIngredientId,
+                    targetUnitId,
+                    targetEffectiveFrom,
+                    targetEffectiveTo,
+                    entity.BomId))
+                {
+                    throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
+                }
+
+                if (entity.EffectiveTo is null || entity.EffectiveTo >= targetEffectiveFrom)
+                {
+                    entity.EffectiveTo = targetEffectiveFrom.AddDays(-1);
+                }
             }
+
+            var newVersion = new Dishbom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = entity.DishId,
+                IngredientId = targetIngredientId,
+                UnitId = targetUnitId,
+                GrossQtyPerServing = targetGrossQty,
+                WasteRatePercent = targetWasteRate,
+                BomStatus = targetStatus,
+                EffectiveFrom = targetEffectiveFrom,
+                EffectiveTo = targetEffectiveTo,
+                Ingredient = targetIngredient,
+                Unit = targetUnit
+            };
+            _context.Dishboms.Add(newVersion);
+
+            AddBomAdjustmentIfNeeded(newVersion.BomId, oldGrossQty, targetGrossQty, oldWasteRate, targetWasteRate, dto.Reason, userId);
+            await _context.SaveChangesAsync();
+            ClearCatalogCache();
+
+            return MapCatalogBomLine(newVersion);
         }
 
-        var userBytes = GuidHelper.ParseGuidString(userId);
-        var quantityChanged = oldGrossQty != entity.GrossQtyPerServing || oldWasteRate != entity.WasteRatePercent;
-        if (userBytes is not null && quantityChanged)
+        if (targetStatus == BomStatusPublished &&
+            await HasOverlappingBomLineAsync(
+            dishBytes,
+            targetIngredientId,
+            targetUnitId,
+            targetEffectiveFrom,
+            targetEffectiveTo,
+            entity.BomId))
         {
-            _context.Bomadjustments.Add(new Bomadjustment
-            {
-                BomAdjustmentId = GuidHelper.NewId(),
-                BomId = entity.BomId,
-                OldGrossQtyPerServing = oldGrossQty,
-                NewGrossQtyPerServing = entity.GrossQtyPerServing,
-                OldWasteRatePercent = oldWasteRate,
-                NewWasteRatePercent = entity.WasteRatePercent,
-                Reason = dto.Reason,
-                AdjustedBy = userBytes,
-                AdjustedAt = DateTime.UtcNow
-            });
+            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
         }
+
+        entity.IngredientId = targetIngredientId;
+        entity.Ingredient = targetIngredient;
+        entity.UnitId = targetUnitId;
+        entity.Unit = targetUnit;
+        entity.GrossQtyPerServing = targetGrossQty;
+        entity.WasteRatePercent = targetWasteRate;
+        entity.BomStatus = targetStatus;
+        entity.EffectiveFrom = targetEffectiveFrom;
+        entity.EffectiveTo = targetEffectiveTo;
+
+        AddBomAdjustmentIfNeeded(entity.BomId, oldGrossQty, targetGrossQty, oldWasteRate, targetWasteRate, dto.Reason, userId);
 
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
 
         return MapCatalogBomLine(entity);
     }
@@ -580,8 +647,14 @@ public class DishService : IDishService
         }
 
         await _context.SaveChangesAsync();
-        _cache.Remove(CatalogCacheKey);
+        ClearCatalogCache();
         return true;
+    }
+
+    private void ClearCatalogCache()
+    {
+        _cache.Remove(CatalogCacheKey);
+        _cache.Remove($"{CatalogCacheKey}:all");
     }
 
     private static BomValidationIssueDto CreateValidationIssue(
@@ -663,6 +736,8 @@ public class DishService : IDishService
         UnitName = bom.Unit.UnitName,
         GrossQtyPerServing = bom.GrossQtyPerServing,
         WasteRatePercent = bom.WasteRatePercent,
+        BomStatus = NormalizeBomStatus(bom.BomStatus),
+        BomStatusLabel = MapBomStatusLabel(bom.BomStatus),
         EffectiveFrom = bom.EffectiveFrom,
         EffectiveTo = bom.EffectiveTo,
         ReferencePrice = bom.Ingredient.ReferencePrice
@@ -673,4 +748,81 @@ public class DishService : IDishService
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
             .Where(line => line.DishId == dishBytes);
+
+    private Task<bool> HasOverlappingBomLineAsync(
+        byte[] dishId,
+        byte[] ingredientId,
+        byte[] unitId,
+        DateOnly effectiveFrom,
+        DateOnly? effectiveTo,
+        byte[]? excludeBomId = null)
+    {
+        var effectiveToValue = effectiveTo ?? DateOnly.MaxValue;
+        var query = _context.Dishboms.Where(line =>
+            line.DishId == dishId &&
+            line.IngredientId == ingredientId &&
+            line.UnitId == unitId);
+
+        if (excludeBomId is not null)
+        {
+            query = query.Where(line => line.BomId != excludeBomId);
+        }
+
+        return query.AnyAsync(line =>
+            line.BomStatus == BomStatusPublished &&
+            line.EffectiveFrom <= effectiveToValue &&
+            (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom));
+    }
+
+    private void AddBomAdjustmentIfNeeded(
+        byte[] bomId,
+        decimal oldGrossQty,
+        decimal newGrossQty,
+        decimal oldWasteRate,
+        decimal newWasteRate,
+        string? reason,
+        string? userId)
+    {
+        var userBytes = GuidHelper.ParseGuidString(userId);
+        var quantityChanged = oldGrossQty != newGrossQty || oldWasteRate != newWasteRate;
+        if (userBytes is null || !quantityChanged)
+        {
+            return;
+        }
+
+        _context.Bomadjustments.Add(new Bomadjustment
+        {
+            BomAdjustmentId = GuidHelper.NewId(),
+            BomId = bomId,
+            OldGrossQtyPerServing = oldGrossQty,
+            NewGrossQtyPerServing = newGrossQty,
+            OldWasteRatePercent = oldWasteRate,
+            NewWasteRatePercent = newWasteRate,
+            Reason = reason,
+            AdjustedBy = userBytes,
+            AdjustedAt = DateTime.UtcNow
+        });
+    }
+
+    private static bool IsPublishedBomLine(Dishbom bom) => NormalizeBomStatus(bom.BomStatus) == BomStatusPublished;
+
+    private static string NormalizeBomStatus(string? status, string fallback = BomStatusPublished)
+    {
+        var value = string.IsNullOrWhiteSpace(status) ? fallback : status.Trim().ToUpperInvariant();
+        return value switch
+        {
+            BomStatusDraft => BomStatusDraft,
+            BomStatusPublished => BomStatusPublished,
+            BomStatusArchived => BomStatusArchived,
+            _ => throw new ArgumentException("Trạng thái BOM không hợp lệ.")
+        };
+    }
+
+    private static string MapBomStatusLabel(string? status) => NormalizeBomStatus(status) switch
+    {
+        BomStatusDraft => "Draft",
+        BomStatusPublished => "Published",
+        BomStatusArchived => "Archived",
+        _ => "Published"
+    };
 }
