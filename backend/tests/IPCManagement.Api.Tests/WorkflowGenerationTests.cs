@@ -1118,6 +1118,71 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task CreateInventoryIssue_Should_ReturnStockShortageIssue_WhenStockIsInsufficient()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string materialRequestId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            materialRequestId = demand!.MaterialRequestId;
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "SENTTOWAREHOUSE";
+            context.Currentstocks.Add(new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 50m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = [1]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = CreateInventoryIssueService(context);
+            var act = async () => await service.CreateAsync(new CreateInventoryIssueDto
+            {
+                IssueDate = new DateOnly(2026, 6, 15),
+                ShiftName = "MORNING",
+                WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+                MaterialRequestId = materialRequestId
+            }, fixture.UserIdString);
+
+            var exception = await act.Should().ThrowAsync<StockShortageException>();
+            var shortage = exception.Which.Shortage;
+            shortage.MaterialRequestId.Should().Be(materialRequestId);
+            shortage.IssueDate.Should().Be(new DateOnly(2026, 6, 15));
+            var line = shortage.Lines.Should().ContainSingle().Subject;
+            line.IngredientName.Should().Be("Ingredient");
+            line.RequiredQty.Should().Be(200m);
+            line.AvailableQty.Should().Be(50m);
+            line.MissingQty.Should().Be(150m);
+
+            (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(0);
+            (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(0);
+            (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
+                .Should().Be(50m);
+
+            var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item => item.BusinessArea == "StockException");
+            audit.FieldName.Should().Be("StockShortage");
+            audit.NewValue.Should().Contain("missing=150");
+
+            var report = await new WorkflowReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 100 });
+            report.Issues.Should().Contain(issue =>
+                issue.Category == "stock_shortage" &&
+                issue.Message.Contains("Thiếu tồn kho Ingredient"));
+        }
+    }
+
+    [Fact]
     public async Task ApprovalInbox_Should_FilterPendingItems_ByApproverRole()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2457,7 +2522,8 @@ public class WorkflowGenerationTests
             new UnitOfWork(context),
             new StockLedgerService(
                 new CurrentStockRepository(context),
-                new StockMovementRepository(context)));
+                new StockMovementRepository(context)),
+            context);
 
     private static InventoryReceiptService CreateInventoryReceiptService(IpcManagementContext context)
         => new(

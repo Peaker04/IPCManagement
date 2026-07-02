@@ -6,6 +6,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services;
 
@@ -21,15 +22,18 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IpcManagementContext? _context;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
         IUnitOfWork unitOfWork,
-        IStockLedgerService stockLedgerService)
+        IStockLedgerService stockLedgerService,
+        IpcManagementContext? context = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _context = context;
     }
 
     public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(PagedRequestDto request)
@@ -75,6 +79,7 @@ public class InventoryIssueService : IInventoryIssueService
 
         var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
         var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
+        await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
@@ -135,6 +140,103 @@ public class InventoryIssueService : IInventoryIssueService
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    private async Task EnsureStockAvailableAsync(
+        byte[] warehouseId,
+        DateOnly issueDate,
+        Materialrequest materialRequest,
+        IReadOnlyList<ResolvedIssueLine> issueLines,
+        byte[] actorId)
+    {
+        if (_context is null)
+        {
+            return;
+        }
+
+        var stocks = await _context.Currentstocks
+            .AsNoTracking()
+            .Include(stock => stock.Warehouse)
+            .Include(stock => stock.Ingredient)
+            .Include(stock => stock.Unit)
+            .Where(stock => stock.WarehouseId == warehouseId)
+            .ToListAsync();
+        var warehouse = await _context.Warehouses
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.WarehouseId == warehouseId);
+        var demandInfo = materialRequest.Materialrequestlines
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .ToDictionary(
+                group => group.Key,
+                group => group.First());
+
+        var shortageLines = new List<StockShortageLineDto>();
+        foreach (var line in issueLines)
+        {
+            var stock = stocks.FirstOrDefault(item => item.IngredientId.SequenceEqual(line.IngredientId));
+            var availableQty = DecimalPolicy.RoundQuantity(stock?.CurrentQty ?? 0);
+            if (!DecimalPolicy.LessThanQuantity(availableQty, line.IssuedQty))
+            {
+                continue;
+            }
+
+            var demandLine = demandInfo.GetValueOrDefault(BuildKey(line.IngredientId, line.UnitId));
+            shortageLines.Add(new StockShortageLineDto
+            {
+                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+                IngredientName = demandLine?.Ingredient.IngredientName ?? stock?.Ingredient.IngredientName ?? GuidHelper.ToGuidString(line.IngredientId),
+                UnitId = GuidHelper.ToGuidString(line.UnitId),
+                UnitName = demandLine?.Unit.UnitName ?? stock?.Unit.UnitName ?? GuidHelper.ToGuidString(line.UnitId),
+                RequiredQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
+                AvailableQty = availableQty,
+                MissingQty = DecimalPolicy.RoundQuantity(line.IssuedQty - availableQty)
+            });
+        }
+
+        if (shortageLines.Count == 0)
+        {
+            return;
+        }
+
+        var shortage = new StockShortageIssueDto
+        {
+            MaterialRequestId = GuidHelper.ToGuidString(materialRequest.RequestId),
+            MaterialRequestCode = materialRequest.RequestCode,
+            WarehouseId = GuidHelper.ToGuidString(warehouseId),
+            WarehouseName = warehouse?.WarehouseName,
+            IssueDate = issueDate,
+            Lines = shortageLines
+        };
+        await WriteStockShortageAuditAsync(shortage, materialRequest.RequestId, actorId);
+        throw new StockShortageException(shortage);
+    }
+
+    private async Task WriteStockShortageAuditAsync(StockShortageIssueDto shortage, byte[] materialRequestId, byte[] actorId)
+    {
+        if (_context is null)
+        {
+            return;
+        }
+
+        var changedAt = DateTime.UtcNow;
+        foreach (var line in shortage.Lines)
+        {
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = actorId,
+                BusinessArea = "StockException",
+                EntityName = nameof(Materialrequest),
+                EntityId = materialRequestId,
+                FieldName = "StockShortage",
+                OldValue = $"available={line.AvailableQty}",
+                NewValue = $"ingredient={line.IngredientName}; required={line.RequiredQty}; available={line.AvailableQty}; missing={line.MissingQty}; unit={line.UnitName}; date={shortage.IssueDate:yyyy-MM-dd}",
+                Reason = $"Thiếu tồn kho {line.IngredientName}: cần {line.RequiredQty} {line.UnitName}, hiện có {line.AvailableQty} {line.UnitName} tại {shortage.WarehouseName ?? shortage.WarehouseId}."
+            });
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     private static IReadOnlyList<ResolvedIssueLine> ResolveIssueLines(

@@ -187,6 +187,27 @@ public class InventoryIssueCreatedDto
     public string IssueCode { get; set; } = string.Empty;
 }
 
+public class StockShortageIssueDto
+{
+    public string MaterialRequestId { get; set; } = string.Empty;
+    public string MaterialRequestCode { get; set; } = string.Empty;
+    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseName { get; set; }
+    public DateOnly IssueDate { get; set; }
+    public IReadOnlyList<StockShortageLineDto> Lines { get; set; } = [];
+}
+
+public class StockShortageLineDto
+{
+    public string IngredientId { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public string UnitId { get; set; } = string.Empty;
+    public string UnitName { get; set; } = string.Empty;
+    public decimal RequiredQty { get; set; }
+    public decimal AvailableQty { get; set; }
+    public decimal MissingQty { get; set; }
+}
+
 // ─── Inventory Return (Trả nguyên liệu dư) ───────────────────────────────
 
 public class InventoryReturnDto

@@ -1022,6 +1022,24 @@ public class WorkflowReportService : IWorkflowReportService
             "Kiểm tra phiếu xuất/nhập hoặc tạo điều chỉnh tồn.",
             "/admin-data")));
 
+        var stockShortageAudits = await _context.Auditlogs
+            .AsNoTracking()
+            .Where(log => log.BusinessArea == "StockException" && log.FieldName == "StockShortage")
+            .OrderByDescending(log => log.ChangedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(stockShortageAudits.Select(log => BuildDataQualityIssue(
+            "stock_shortage",
+            "error",
+            log.EntityName,
+            log.EntityId == null ? null : GuidHelper.ToGuidString(log.EntityId),
+            log.ChangedAt.ToString("yyyy-MM-dd HH:mm"),
+            log.NewValue ?? "Thiếu tồn kho",
+            log.Reason ?? "Không đủ tồn kho để xuất nguyên liệu.",
+            "Nhập kho bổ sung, giảm số lượng xuất hoặc tạo đề xuất mua thêm trước khi xuất kho.",
+            "/warehouse")));
+
         var orphanMaterialRequests = await _context.Materialrequests
             .AsNoTracking()
             .Where(request => !_context.Productionplans.Any(plan => plan.PlanId == request.PlanId))
