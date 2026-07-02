@@ -71,9 +71,16 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var service = new MaterialDemandService(context);
-            await service.GenerateAsync(
+            var demand = await service.GenerateAsync(
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+            demand.Should().NotBeNull();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            purchase.Should().NotBeNull();
+            purchase!.Lines.Should().ContainSingle();
         }
 
         await using (var context = fixture.CreateContext())
@@ -95,8 +102,14 @@ public class WorkflowGenerationTests
             result.MissingBomDishes.Should().ContainSingle();
             var demandLineCount = await context.Materialrequestlines.AsNoTracking().CountAsync();
             var productionLineCount = await context.Productionplanlines.AsNoTracking().CountAsync();
+            var purchaseLineCount = await context.Purchaserequestlines.AsNoTracking().CountAsync();
+            var staleBomProductionLines = await context.Productionplanlines.AsNoTracking()
+                .CountAsync(item => item.DishId == fixture.DishWithBomId);
+
             demandLineCount.Should().Be(0);
             productionLineCount.Should().Be(1);
+            purchaseLineCount.Should().Be(0);
+            staleBomProductionLines.Should().Be(0);
         }
     }
 
