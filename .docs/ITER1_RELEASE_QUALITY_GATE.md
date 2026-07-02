@@ -12,7 +12,7 @@ This closes PRD-002. The release candidate is blocked until every required gate 
 | Frontend build | `npm run build:fe` |
 | Frontend smoke | `npm run test:smoke -w frontend` |
 | Seed reset | `powershell -ExecutionPolicy Bypass -File .docs/MVP_DEMO_SEED_RESET.ps1 -BaseUrl <api-url>` |
-| Selected E2E | Provide a dated log path with `-E2ELogPath <path>` |
+| Selected E2E | Provide a dated log path with `-E2ELogPath <path>` and cover `.docs/ITER1_UAT_MATRIX.md` actor/action cases |
 
 ## Runbook
 

@@ -53,10 +53,11 @@ Before release, the reviewer should confirm:
 1. Tracker hygiene: every P0 row is `Done` or explicitly blocked with owner, reason, and next action.
 2. Build gate: backend build, frontend build/lint, backend tests, smoke tests, seed reset, and selected E2E tests have dated evidence from `.docs/ITER1_RELEASE_QUALITY_GATE.md`.
 3. Role gate: direct API calls are rejected when the actor lacks the required role or permission.
-4. Workflow gate: menu import, quantity confirmation, demand generation, purchase submission, approval, receipt, issue, kitchen signoff, and reports are connected by persisted records.
-5. Data gate: missing BOM, missing conversion, price warning, stock shortage, orphan document, and stale workflow data are visible as data-quality issues or validation errors.
-6. Deployment gate: environment config, migration plan, seed mode, and release verification command are documented.
-7. Documentation gate: actor runbook and daily checklist are current with the implemented UI/API labels.
+4. UAT gate: `.docs/ITER1_UAT_MATRIX.md` has at least one happy path and one exception path for each actor.
+5. Workflow gate: menu import, quantity confirmation, demand generation, purchase submission, approval, receipt, issue, kitchen signoff, and reports are connected by persisted records.
+6. Data gate: missing BOM, missing conversion, price warning, stock shortage, orphan document, and stale workflow data are visible as data-quality issues or validation errors.
+7. Deployment gate: environment config, migration plan, seed mode, and release verification command are documented.
+8. Documentation gate: actor runbook and daily checklist are current with the implemented UI/API labels.
 
 ## Evidence Rules
 
