@@ -923,33 +923,95 @@ public class CoordinationService : ICoordinationService
         AdjustOrderAfterLockRequestDto request,
         string? userId)
     {
+        if (request.NewValue < 0)
+        {
+            throw new ArgumentException("Số suất điều chỉnh phải lớn hơn hoặc bằng 0.");
+        }
+
+        if (string.IsNullOrWhiteSpace(request.Reason))
+        {
+            throw new ArgumentException("Lý do điều chỉnh không được để trống.");
+        }
+
         if (!string.Equals(request.Field, "actualQuantity", StringComparison.OrdinalIgnoreCase) &&
             !string.Equals(request.Field, "finalServings", StringComparison.OrdinalIgnoreCase))
         {
             throw new ArgumentException("Chỉ hỗ trợ điều chỉnh số suất thực tế sau khi chốt.");
         }
 
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
         var lineId = !string.IsNullOrWhiteSpace(request.QuantityPlanLineId)
-            ? request.QuantityPlanLineId
-            : request.OrderId;
+            ? GuidHelper.ParseGuidString(request.QuantityPlanLineId)
+            : GuidHelper.ParseGuidString(request.OrderId);
 
-        var result = await AdjustServingsAsync(
-            lineId,
-            new AdjustServingsRequestDto
-            {
-                ServingsQuantity = request.NewValue,
-                Reason = request.Reason
-            },
-            userId);
-
-        if (result is null)
+        if (userIdBytes is null || lineId is null)
         {
             return null;
         }
+
+        var line = await _context.Mealquantityplanlines
+            .Include(item => item.QuantityPlan)
+            .Include(item => item.Quantityadjustments)
+            .FirstOrDefaultAsync(item => item.QuantityPlanLineId == lineId);
+
+        if (line is null)
+        {
+            return null;
+        }
+
+        if (!OrderStatus.IsLocked(line.QuantityPlan.Status))
+        {
+            throw new InvalidOperationException("Chỉ có thể điều chỉnh sau khi kế hoạch đã được chốt.");
+        }
+
+        var adjustmentIds = line.Quantityadjustments
+            .Select(item => item.AdjustmentId)
+            .ToList();
+
+        if (adjustmentIds.Count > 0)
+        {
+            var resolvedIds = await _context.Approvalhistories
+                .AsNoTracking()
+                .Where(item => item.TargetType == "order-adjustment")
+                .Select(item => item.TargetId)
+                .ToListAsync();
+
+            var hasPendingAdjustment = adjustmentIds.Any(adjustmentId =>
+                !resolvedIds.Any(resolvedId => resolvedId.SequenceEqual(adjustmentId)));
+
+            if (hasPendingAdjustment)
+            {
+                throw new InvalidOperationException("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
+            }
+        }
+
+        var requestedAt = DateTime.UtcNow;
+        var adjustmentId = GuidHelper.NewId();
+
+        _context.Quantityadjustments.Add(new Quantityadjustment
+        {
+            AdjustmentId = adjustmentId,
+            QuantityPlanLineId = line.QuantityPlanLineId,
+            OldServings = line.FinalServings,
+            NewServings = request.NewValue,
+            Reason = request.Reason.Trim(),
+            AdjustedBy = userIdBytes,
+            AdjustedAt = requestedAt
+        });
+
+        await _context.SaveChangesAsync();
+
         return new AdjustOrderAfterLockResultDto
         {
             Success = true,
-            Timestamp = result.ChangedAt
+            Timestamp = requestedAt,
+            RequiresApproval = true,
+            ApprovalStatus = "PENDING",
+            ApprovalTargetType = "order-adjustment",
+            ApprovalTargetId = GuidHelper.ToGuidString(adjustmentId),
+            OldValue = line.FinalServings,
+            NewValue = request.NewValue,
+            Reason = request.Reason.Trim()
         };
     }
 

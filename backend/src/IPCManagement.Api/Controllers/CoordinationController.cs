@@ -417,13 +417,26 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> AdjustOrderAfterLock([FromBody] AdjustOrderAfterLockRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.AdjustOrderAfterLockAsync(request, userId);
+        AdjustOrderAfterLockResultDto? result;
+        try
+        {
+            result = await _coordinationService.AdjustOrderAfterLockAsync(request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
         }
 
-        return Ok(ApiResponse<AdjustOrderAfterLockResultDto>.SuccessResult(result, "Điều chỉnh đơn thành công."));
+        return Ok(ApiResponse<AdjustOrderAfterLockResultDto>.SuccessResult(result, "Đã gửi yêu cầu duyệt điều chỉnh."));
     }
 
     [HttpPost("orders/{id}/signoff")]

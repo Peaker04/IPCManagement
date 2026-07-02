@@ -1,7 +1,10 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
+using IPCManagement.Api.Models.DTOs.Coordination;
+using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.Approvals;
@@ -163,18 +166,75 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
 
 public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Quantityadjustment>
 {
-    public InventoryAdjustmentApprovalHandler(IpcManagementContext context) : base(context) { }
+    private const string OrderAdjustmentTargetType = "order-adjustment";
+    private readonly IMaterialDemandService _materialDemandService;
+
+    public InventoryAdjustmentApprovalHandler(
+        IpcManagementContext context,
+        IMaterialDemandService materialDemandService) : base(context)
+    {
+        _materialDemandService = materialDemandService;
+    }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryAdjustment;
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
     {
-        var adjustment = await Context.Quantityadjustments.FirstOrDefaultAsync(item => item.AdjustmentId == targetId);
+        var adjustment = await Context.Quantityadjustments
+            .Include(item => item.QuantityPlanLine)
+            .ThenInclude(item => item.QuantityPlan)
+            .FirstOrDefaultAsync(item => item.AdjustmentId == targetId);
         if (adjustment is null) return null;
+
+        var alreadyResolved = await Context.Approvalhistories
+            .AsNoTracking()
+            .AnyAsync(item => item.TargetType == OrderAdjustmentTargetType && item.TargetId == targetId);
+
+        if (alreadyResolved)
+        {
+            throw new InvalidOperationException("Yêu cầu điều chỉnh này đã được xử lý.");
+        }
 
         var oldStatus = "PENDING";
         var newStatus = request.Status == ApprovalDecision.Approve ? "APPROVED" : "REJECTED";
 
-        return await SaveHistoryAsync("inventory-adjustment", targetId, request, actorId, oldStatus, newStatus);
+        var result = await SaveHistoryAsync(OrderAdjustmentTargetType, targetId, request, actorId, oldStatus, newStatus);
+
+        if (request.Status == ApprovalDecision.Approve)
+        {
+            var line = adjustment.QuantityPlanLine;
+            var oldValue = line.FinalServings;
+            var changedAt = DateTime.UtcNow;
+
+            line.AdjustedServings = adjustment.NewServings - line.ConfirmedServings;
+            line.FinalServings = adjustment.NewServings;
+            line.QuantityPlan.Status = OrderStatus.Adjusted;
+
+            Context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = actorId,
+                BusinessArea = "Coordination",
+                EntityName = nameof(Mealquantityplanline),
+                EntityId = line.QuantityPlanLineId,
+                FieldName = "finalServings",
+                OldValue = oldValue.ToString(),
+                NewValue = adjustment.NewServings.ToString(),
+                Reason = adjustment.Reason
+            });
+
+            await Context.SaveChangesAsync();
+
+            await _materialDemandService.GenerateAsync(
+                new GenerateMaterialDemandRequestDto
+                {
+                    ServiceDate = line.QuantityPlan.ServiceDate.ToString("yyyy-MM-dd"),
+                    Scope = "FULLDAY"
+                },
+                GuidHelper.ToGuidString(actorId));
+        }
+
+        return result;
     }
 }

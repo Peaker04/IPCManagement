@@ -51,6 +51,13 @@ export interface AdjustOrderAfterLockRequest {
 export interface AdjustOrderAfterLockResult {
   success: boolean
   timestamp: string
+  requiresApproval: boolean
+  approvalStatus: string
+  approvalTargetType: string
+  approvalTargetId: string
+  oldValue: number
+  newValue: number
+  reason: string
 }
 
 export interface UpdateForecastServingsRequest {
