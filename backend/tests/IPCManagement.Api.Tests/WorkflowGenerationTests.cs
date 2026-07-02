@@ -12,6 +12,7 @@ using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
+using System.Security.Claims;
 
 namespace IPCManagement.Api.Tests;
 
@@ -901,6 +902,127 @@ public class WorkflowGenerationTests
                 .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
+        }
+    }
+
+    [Fact]
+    public async Task ApprovalInbox_Should_FilterPendingItems_ByApproverRole()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        var materialRequest = await context.Materialrequests.SingleAsync();
+        materialRequest.Status = "MANAGERAPPROVED";
+        await context.SaveChangesAsync();
+
+        var purchaseService = new PurchaseRequestWorkflowService(context);
+        var purchase = await purchaseService.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+        await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+
+        materialRequest.Status = "SENTTOWAREHOUSE";
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-PENDING",
+            IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = materialRequest.RequestId,
+            IssuedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryissuelines =
+            [
+                new Inventoryissueline
+                {
+                    IssueLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    RequestedQty = 4,
+                    IssuedQty = 4
+                }
+            ]
+        });
+        var quantityLineId = await context.Mealquantityplanlines
+            .Select(item => item.QuantityPlanLineId)
+            .SingleAsync();
+        context.Quantityadjustments.Add(new Quantityadjustment
+        {
+            AdjustmentId = GuidHelper.NewId(),
+            QuantityPlanLineId = quantityLineId,
+            OldServings = 100,
+            NewServings = 120,
+            Reason = "Khách tăng suất",
+            AdjustedBy = fixture.UserId,
+            AdjustedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ApprovalInboxService(context);
+        var purchaseInbox = await service.GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+        var warehouseInbox = await service.GetPendingAsync(BuildPrincipal("Thủ kho"), new ApprovalInboxQueryDto { Limit = 100 });
+
+        purchaseInbox.Select(item => item.ItemType).Should().Contain("purchase");
+        purchaseInbox.Select(item => item.ItemType).Should().NotContain(["issue", "adjustment"]);
+        purchaseInbox.Should().OnlyContain(item => item.Status == "PENDING");
+        purchaseInbox.Single(item => item.ItemType == "purchase").TargetType.Should().Be("purchase-request");
+
+        warehouseInbox.Select(item => item.ItemType).Should().Contain(["issue", "adjustment"]);
+        warehouseInbox.Select(item => item.ItemType).Should().NotContain("purchase");
+        warehouseInbox.Should().OnlyContain(item => item.Status == "PENDING");
+    }
+
+    [Fact]
+    public async Task ApprovalInbox_Should_SurfacePriceAlerts_AsPendingPurchaseApprovalItems()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        string purchaseRequestId;
+        string purchaseRequestLineId;
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+
+            var purchase = await new PurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            purchaseRequestId = purchase!.PurchaseRequestId;
+            purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new PurchaseRequestWorkflowService(context).UpdateLineSupplierAsync(
+                purchaseRequestId,
+                purchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    EstimatedUnitPrice = 1200m
+                },
+                fixture.UserIdString);
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var inbox = await new ApprovalInboxService(context)
+                .GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+
+            var alert = inbox.Should().ContainSingle(item => item.ItemType == "price-alert").Subject;
+            alert.TargetType.Should().Be("purchase-request");
+            alert.TargetId.Should().Be(purchaseRequestId);
+            alert.Tone.Should().Be("danger");
+            alert.Materials.Should().ContainSingle(item => item.Name == "Ingredient" && item.Quantity == 200m);
         }
     }
 
@@ -1870,6 +1992,9 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
         return materialRequest;
     }
+
+    private static ClaimsPrincipal BuildPrincipal(string roleName)
+        => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, roleName)], "TestAuth"));
 
     private sealed class WorkflowFixture : IAsyncDisposable
     {

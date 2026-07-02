@@ -9,7 +9,6 @@ import {
 } from './workflowConfig';
 import type {
   ApprovalRecord,
-  ApprovalType,
   DemandLine,
   RoleInboxItem,
   StockMovement,
@@ -90,6 +89,29 @@ interface PurchaseDemandReportDto {
   isPriceWarning?: boolean;
   expectedDeliveryDate?: string | null;
   note?: string | null;
+}
+
+interface ApprovalInboxItemDto {
+  inboxItemId: string;
+  targetType: string;
+  targetId: string;
+  targetCode: string;
+  itemType: string;
+  title: string;
+  source: string;
+  ownerRole: string;
+  submittedBy: string;
+  dueDate?: string | null;
+  status: string;
+  reason: string;
+  nextAction: string;
+  tone: WorkflowTone;
+  route: string;
+  materials: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+  }>;
 }
 
 interface StockMovementViewDto {
@@ -485,31 +507,22 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
   };
 };
 
-const mapApprovalRecord = (item: PurchaseDemandReportDto): ApprovalRecord => {
-  const type: ApprovalType = item.purchaseQty > 0 ? 'purchase' : 'issue';
-  const tone = toneFromStatus(item.status);
-
-  return {
-    id: item.purchaseRequestCode || item.purchaseRequestId,
-    type,
-    title: item.purchaseQty > 0 ? 'Duyệt danh sách mua thêm' : 'Duyệt nhu cầu xuất kho',
-    source: item.purchaseRequestCode,
-    owner: 'Quản lí vận hành',
-    submittedBy: 'KHSX',
-    deadline: item.shiftName ?? 'Trong ca',
-    status: item.status,
-    reason: item.purchaseQty > 0 ? 'Có thiếu hụt sau kiểm tồn kho.' : 'Tồn kho đã đủ để xuất.',
-    nextAction: item.purchaseQty > 0 ? 'Duyệt danh sách mua thêm' : 'Duyệt nhu cầu xuất',
-    tone,
-    materials: [
-      {
-        name: item.ingredientName ?? item.ingredientId,
-        quantity: item.purchaseQty || item.requiredQty,
-        unit: item.unitName ?? '',
-      },
-    ],
-  };
-};
+const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
+  id: item.inboxItemId || item.targetCode || item.targetId,
+  targetType: item.targetType,
+  targetId: item.targetId,
+  type: item.itemType === 'price-alert' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
+  title: item.title,
+  source: item.source || item.targetCode,
+  owner: item.ownerRole,
+  submittedBy: item.submittedBy,
+  deadline: item.dueDate ? new Date(item.dueDate).toLocaleDateString('vi-VN') : 'Trong ca',
+  status: item.status,
+  reason: item.reason,
+  nextAction: item.nextAction,
+  tone: item.tone ?? toneFromStatus(item.status),
+  materials: item.materials ?? [],
+});
 
 const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
   const movementType = item.movementType.toUpperCase();
@@ -762,10 +775,10 @@ export const workflowApi = apiSlice.injectEndpoints({
     }),
     getApprovalRecords: builder.query<ApprovalRecord[], WorkflowReportQuery | void>({
       query: (query) => ({
-        url: '/workflow-reports/purchase-demand',
+        url: '/approvals/inbox',
         params: queryWithLimit(query || undefined),
       }),
-      transformResponse: (response: ApiResponse<PurchaseDemandReportDto[]>) => getData(response).map(mapApprovalRecord),
+      transformResponse: (response: ApiResponse<ApprovalInboxItemDto[]>) => getData(response).map(mapApprovalInboxItem),
       providesTags: ['WorkflowReports'],
     }),
     getStockMovements: builder.query<StockMovement[], WorkflowReportQuery | void>({

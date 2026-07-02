@@ -12,14 +12,25 @@ namespace IPCManagement.Api.Controllers;
 [Authorize]
 public class ApprovalsController : ControllerBase
 {
+    private readonly IApprovalInboxService _approvalInboxService;
     private readonly IApprovalWorkflowService _approvalWorkflowService;
     private readonly ICurrentUserService _currentUserService;
 
-    public ApprovalsController(IApprovalWorkflowService approvalWorkflowService, ICurrentUserService currentUserService)
+    public ApprovalsController(
+        IApprovalInboxService approvalInboxService,
+        IApprovalWorkflowService approvalWorkflowService,
+        ICurrentUserService currentUserService)
     {
+        _approvalInboxService = approvalInboxService;
         _approvalWorkflowService = approvalWorkflowService;
         _currentUserService = currentUserService;
     }
+
+    [HttpGet("inbox")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalInboxItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInbox([FromQuery] ApprovalInboxQueryDto query, CancellationToken cancellationToken)
+        => Ok(ApiResponse<IReadOnlyList<ApprovalInboxItemDto>>.SuccessResult(
+            await _approvalInboxService.GetPendingAsync(User, query, cancellationToken)));
 
     [HttpPost("{targetType}/{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
