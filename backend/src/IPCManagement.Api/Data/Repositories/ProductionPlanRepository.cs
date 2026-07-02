@@ -20,6 +20,8 @@ public class ProductionPlanRepository : IProductionPlanRepository
     {
         var query = _context.Productionplans
             .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Include(plan => plan.MenuVersion)
             .Include(plan => plan.CreatedByNavigation)
             .OrderByDescending(plan => plan.PlanDate)
             .AsQueryable();
@@ -36,6 +38,8 @@ public class ProductionPlanRepository : IProductionPlanRepository
     public async Task<Productionplan?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Productionplans
             .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Include(plan => plan.MenuVersion)
             .Include(plan => plan.CreatedByNavigation)
             .Include(plan => plan.Productionplanlines)
                 .ThenInclude(line => line.Dish)

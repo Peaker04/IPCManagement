@@ -29,15 +29,25 @@ public class MaterialDemandController : ControllerBase
     [HttpPost("generate")]
     [ProducesResponseType(typeof(ApiResponse<MaterialDemandResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Generate(
         [FromBody] GenerateMaterialDemandRequestDto request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _materialDemandService.GenerateAsync(request, userId, cancellationToken);
+        MaterialDemandResultDto? result;
+        try
+        {
+            result = await _materialDemandService.GenerateAsync(request, userId, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
-            return NotFound(ApiResponse.FailResult("Không tìm thấy số suất đã chốt để tính nhu cầu nguyên liệu."));
+            return NotFound(ApiResponse.FailResult("Không tìm thấy số suất đã hoàn tất để tính nhu cầu nguyên liệu."));
         }
 
         return Ok(ApiResponse<MaterialDemandResultDto>.SuccessResult(result, "Tính nhu cầu nguyên liệu thành công."));

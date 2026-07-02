@@ -1371,6 +1371,18 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("createdBy")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("CustomerId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("MenuVersionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("menuVersionId")
+                        .IsFixedLength();
+
                     b.Property<string>("PlanCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1388,11 +1400,19 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'CREATED'");
 
+                    b.Property<DateOnly?>("WeekStartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("weekStartDate");
+
                     b.HasKey("PlanId")
                         .HasName("PRIMARY");
 
+                    b.HasIndex(new[] { "CustomerId" }, "customerId");
+
                     b.HasIndex(new[] { "CreatedBy" }, "createdBy")
                         .HasDatabaseName("createdBy3");
+
+                    b.HasIndex(new[] { "MenuVersionId" }, "menuVersionId");
 
                     b.HasIndex(new[] { "PlanCode" }, "planCode")
                         .IsUnique()
@@ -2579,13 +2599,27 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
                 {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .HasConstraintName("productionplans_ibfk_2");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
                         .WithMany("Productionplans")
                         .HasForeignKey("CreatedBy")
                         .IsRequired()
                         .HasConstraintName("productionplans_ibfk_1");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
+                        .WithMany()
+                        .HasForeignKey("MenuVersionId")
+                        .HasConstraintName("productionplans_ibfk_3");
+
+                    b.Navigation("Customer");
+
                     b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("MenuVersion");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>

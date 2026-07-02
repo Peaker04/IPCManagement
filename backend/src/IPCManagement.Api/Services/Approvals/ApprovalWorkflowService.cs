@@ -44,8 +44,9 @@ internal static class ApprovalTargetTypeParser
             "purchase" or "purchase-request" or "purchaserequest" => ApprovalTargetType.PurchaseRequest,
             "receipt" or "inventory-receipt" or "inventoryreceipt" => ApprovalTargetType.InventoryReceipt,
             "issue" or "inventory-issue" or "inventoryissue" => ApprovalTargetType.InventoryIssue,
-            "adjustment" or "inventory-adjustment" or "inventoryadjustment" => ApprovalTargetType.InventoryAdjustment,
+            "adjustment" or "order-adjustment" or "orderadjustment" or
+            "inventory-adjustment" or "inventoryadjustment" => ApprovalTargetType.InventoryAdjustment,
             _ => null
         };
-    }
+}
 }

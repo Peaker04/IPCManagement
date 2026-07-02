@@ -6,9 +6,12 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
+using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.Approvals;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -70,15 +73,13 @@ public class CoordinationTransactionTests
     }
 
     [Fact]
-    public async Task AdjustServingsAsync_Should_Rollback_LineUpdate_When_AuditLog_Insert_Fails()
+    public async Task AdjustServingsAsync_Should_BlockDirectPostLockAdjustment()
     {
         // Arrange
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
 
-        var options = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
-
-        var userId = Guid.NewGuid().ToString();
+        var options = BuildOptions(connection);
 
         await CreateMinimalSchemaAsync(connection);
 
@@ -91,26 +92,24 @@ public class CoordinationTransactionTests
         var request = new AdjustServingsRequestDto
         {
             ServingsQuantity = 120,
-            Reason = "Điều chỉnh theo thực tế"
+            Reason = "Điều chỉnh trực tiếp không qua duyệt"
         };
 
         // Act
-        Func<Task> act = async () => await service.AdjustServingsAsync(lineId, request, userId);
+        Func<Task> act = async () => await service.AdjustServingsAsync(lineId, request, fixture.UserId);
 
         // Assert
         await act.Should().ThrowAsync<InvalidOperationException>()
-            .WithMessage("*Simulated audit log failure*");
+            .WithMessage("Không thể điều chỉnh trực tiếp sau khi chốt. Hãy gửi yêu cầu duyệt điều chỉnh.");
 
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
         var persistedLine = await verifyContext.Mealquantityplanlines
             .AsNoTracking()
             .FirstAsync(item => item.QuantityPlanLineId == fixture.LineId);
 
-        var auditCount = await verifyContext.Auditlogs.AsNoTracking().CountAsync();
-
         persistedLine.FinalServings.Should().Be(100);
         persistedLine.AdjustedServings.Should().Be(0);
-        auditCount.Should().Be(0);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
     [Fact]
@@ -249,7 +248,7 @@ public class CoordinationTransactionTests
     }
 
     [Fact]
-    public async Task AdjustServingsAsync_Should_MoveLockedPlanToAdjustedStatus()
+    public async Task AdjustOrderAfterLockAsync_Should_BlockDuplicatePendingAdjustment()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -262,24 +261,227 @@ public class CoordinationTransactionTests
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
-        var result = await service.AdjustServingsAsync(
-            lineId,
-            new AdjustServingsRequestDto
+        var first = await service.AdjustOrderAfterLockAsync(
+            new AdjustOrderAfterLockRequestDto
             {
-                ServingsQuantity = 125,
-                Reason = "Khách tăng suất sau khóa"
+                OrderId = lineId,
+                Field = "actualQuantity",
+                NewValue = 125,
+                Reason = "Khách tăng suất sau chốt"
+            },
+            fixture.UserId);
+
+        first.Should().NotBeNull();
+
+        var duplicate = async () => await service.AdjustOrderAfterLockAsync(
+            new AdjustOrderAfterLockRequestDto
+            {
+                OrderId = lineId,
+                Field = "actualQuantity",
+                NewValue = 130,
+                Reason = "Gửi trùng khi chưa duyệt"
+            },
+            fixture.UserId);
+
+        await duplicate.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+        var pendingCount = await verifyContext.Quantityadjustments.AsNoTracking().CountAsync();
+
+        pendingCount.Should().Be(1);
+        persistedLine.FinalServings.Should().Be(100);
+        persistedLine.AdjustedServings.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task AdjustOrderAfterLockAsync_Should_CreatePendingApproval_AndKeepLockedServings()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var result = await service.AdjustOrderAfterLockAsync(
+            new AdjustOrderAfterLockRequestDto
+            {
+                OrderId = lineId,
+                Field = "actualQuantity",
+                NewValue = 125,
+                Reason = "Khách tăng suất sau chốt"
             },
             fixture.UserId);
 
         result.Should().NotBeNull();
+        result!.RequiresApproval.Should().BeTrue();
+        result.ApprovalStatus.Should().Be("PENDING");
+        result.ApprovalTargetType.Should().Be("order-adjustment");
+        result.OldValue.Should().Be(100);
+        result.NewValue.Should().Be(125);
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+        var pendingAdjustment = await verifyContext.Quantityadjustments.AsNoTracking().SingleAsync();
+
+        persistedLine.FinalServings.Should().Be(100);
+        persistedLine.AdjustedServings.Should().Be(0);
+        pendingAdjustment.OldServings.Should().Be(100);
+        pendingAdjustment.NewServings.Should().Be(125);
+    }
+
+    [Fact]
+    public async Task OrderAdjustmentApproval_Should_ApplyServingsAndWaitForSignoff_WhenApproved()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var pending = await coordinationService.AdjustOrderAfterLockAsync(
+            new AdjustOrderAfterLockRequestDto
+            {
+                OrderId = lineId,
+                Field = "actualQuantity",
+                NewValue = 130,
+                Reason = "Khách tăng suất sau chốt"
+            },
+            fixture.UserId);
+
+        await using var approvalContext = new IpcManagementContext(BuildOptions(connection));
+        var handler = new InventoryAdjustmentApprovalHandler(approvalContext);
+
+        var approval = await handler.HandleAsync(
+            pending!.ApprovalTargetId,
+            new ApprovalRequestDto
+            {
+                Status = ApprovalDecision.Approve,
+                Reason = "Đã kiểm tra"
+            },
+            GuidHelper.ParseGuidString(fixture.UserId)!);
+
+        approval.Should().NotBeNull();
+        approval!.TargetType.Should().Be("order-adjustment");
+        approval.NewStatus.Should().Be("APPROVED");
+
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
         var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
         var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+        var audit = await verifyContext.Auditlogs.AsNoTracking().SingleAsync();
+        var history = await verifyContext.Approvalhistories.AsNoTracking().SingleAsync();
 
         persistedPlan.Status.Should().Be(OrderStatus.Adjusted);
         persistedLine.ConfirmedServings.Should().Be(100);
-        persistedLine.AdjustedServings.Should().Be(25);
-        persistedLine.FinalServings.Should().Be(125);
+        persistedLine.AdjustedServings.Should().Be(30);
+        persistedLine.FinalServings.Should().Be(130);
+        audit.FieldName.Should().Be("finalServings");
+        audit.OldValue.Should().Be("100");
+        audit.NewValue.Should().Be("130");
+        history.TargetType.Should().Be("order-adjustment");
+        history.Decision.Should().Be("APPROVE");
+
+        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task OrderAdjustmentApproval_Should_KeepServings_WhenRejected()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var lineId = GuidHelper.ToGuidString(fixture.LineId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var pending = await coordinationService.AdjustOrderAfterLockAsync(
+            new AdjustOrderAfterLockRequestDto
+            {
+                OrderId = lineId,
+                Field = "actualQuantity",
+                NewValue = 130,
+                Reason = "Khách tăng suất sau chốt"
+            },
+            fixture.UserId);
+
+        await using var approvalContext = new IpcManagementContext(BuildOptions(connection));
+        var handler = new InventoryAdjustmentApprovalHandler(approvalContext);
+
+        var rejection = await handler.HandleAsync(
+            pending!.ApprovalTargetId,
+            new ApprovalRequestDto
+            {
+                Status = ApprovalDecision.Reject,
+                Reason = "Không đủ căn cứ"
+            },
+            GuidHelper.ParseGuidString(fixture.UserId)!);
+
+        rejection.Should().NotBeNull();
+        rejection!.TargetType.Should().Be("order-adjustment");
+        rejection.NewStatus.Should().Be("REJECTED");
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        var persistedLine = await verifyContext.Mealquantityplanlines.AsNoTracking().SingleAsync();
+        var history = await verifyContext.Approvalhistories.AsNoTracking().SingleAsync();
+
+        persistedPlan.Status.Should().Be(OrderStatus.Confirmed);
+        persistedLine.ConfirmedServings.Should().Be(100);
+        persistedLine.AdjustedServings.Should().Be(0);
+        persistedLine.FinalServings.Should().Be(100);
+        history.Decision.Should().Be("REJECT");
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
+    }
+
+    [Fact]
+    public async Task SignoffOrderAsync_Should_WriteAuditWithActor()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var planId = GuidHelper.ToGuidString(fixture.PlanId);
+        var materialDemandService = Substitute.For<IMaterialDemandService>();
+        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+
+        var result = await service.SignoffOrderAsync(
+            planId,
+            new SignoffOrderRequestDto { Note = "Chốt số suất trước khi tạo demand" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatus.Should().Be(OrderStatus.Confirmed);
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+
+        await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        var audit = await verifyContext.Auditlogs.AsNoTracking().SingleAsync();
+
+        persistedPlan.Status.Should().Be(OrderStatus.Completed);
+        audit.BusinessArea.Should().Be("Coordination");
+        audit.EntityName.Should().Be(nameof(Mealquantityplan));
+        audit.FieldName.Should().Be(nameof(Mealquantityplan.Status));
+        audit.OldValue.Should().Be(OrderStatus.Confirmed);
+        audit.NewValue.Should().Be(OrderStatus.Completed);
+        audit.ChangedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.UserId)!);
+        audit.Reason.Should().Be("Chốt số suất trước khi tạo demand");
     }
 
     private static DbContextOptions<IpcManagementContext> BuildOptions(
@@ -417,6 +619,8 @@ public class CoordinationTransactionTests
             "CREATE TABLE menuschedules (menuScheduleId BLOB NOT NULL PRIMARY KEY, customerId BLOB NOT NULL, menuId BLOB NOT NULL, serviceDate TEXT NOT NULL, weekStartDate TEXT NOT NULL, shiftName TEXT NOT NULL, menuPrice TEXT NOT NULL, bomRatePercent TEXT NOT NULL, status TEXT NOT NULL);",
             "CREATE TABLE mealquantityplans (quantityPlanId BLOB NOT NULL PRIMARY KEY, importBatchId BLOB NULL, planCode TEXT NOT NULL UNIQUE, serviceDate TEXT NOT NULL, status TEXT NOT NULL, forecastReceivedAt TEXT NULL, confirmedAt TEXT NULL, confirmationTime TEXT NOT NULL, confirmedBy BLOB NULL);",
             "CREATE TABLE mealquantityplanlines (quantityPlanLineId BLOB NOT NULL PRIMARY KEY, quantityPlanId BLOB NOT NULL, menuScheduleId BLOB NOT NULL, customerId BLOB NOT NULL, menuId BLOB NOT NULL, shiftName TEXT NOT NULL, forecastServings INTEGER NOT NULL, confirmedServings INTEGER NOT NULL, adjustedServings INTEGER NOT NULL, finalServings INTEGER NOT NULL);",
+            "CREATE TABLE quantityadjustments (adjustmentId BLOB NOT NULL PRIMARY KEY, quantityPlanLineId BLOB NOT NULL, oldServings INTEGER NOT NULL, newServings INTEGER NOT NULL, reason TEXT NULL, adjustedBy BLOB NOT NULL, adjustedAt TEXT NOT NULL);",
+            "CREATE TABLE approvalhistories (approvalHistoryId BLOB NOT NULL PRIMARY KEY, targetType TEXT NOT NULL, targetId BLOB NOT NULL, decision TEXT NOT NULL, oldStatus TEXT NULL, newStatus TEXT NULL, reason TEXT NULL, actionBy BLOB NOT NULL, actionAt TEXT NOT NULL);",
             "CREATE TABLE auditlogs (auditId BLOB NOT NULL PRIMARY KEY, changedAt TEXT NOT NULL, changedBy BLOB NOT NULL, businessArea TEXT NOT NULL, entityName TEXT NOT NULL, entityId BLOB NULL, fieldName TEXT NULL, oldValue TEXT NULL, newValue TEXT NULL, reason TEXT NULL);"
         };
 
