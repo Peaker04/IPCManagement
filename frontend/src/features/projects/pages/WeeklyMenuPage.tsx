@@ -731,11 +731,18 @@ const WeeklyMenuPage = () => {
   const { data: importHistoryData } = useGetWeeklyMenuImportHistoryQuery();
   const importHistory = useMemo(() => importHistoryData?.data ?? [], [importHistoryData]);
   const [rollbackImport, { isLoading: isRollingBackImport }] = useRollbackWeeklyMenuImportMutation();
+  const [rollbackTarget, setRollbackTarget] = useState<{ menuVersionId: string; label: string } | null>(null);
 
-  const handleRollbackImport = async (menuVersionId: string, label: string) => {
-    if (!window.confirm(`Hủy phiên import "${label}"? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.`)) {
+  const requestRollbackImport = (menuVersionId: string, label: string) => {
+    setRollbackTarget({ menuVersionId, label });
+  };
+
+  const confirmRollbackImport = async () => {
+    if (!rollbackTarget) {
       return;
     }
+    const { menuVersionId, label } = rollbackTarget;
+    setRollbackTarget(null);
 
     try {
       await rollbackImport(menuVersionId).unwrap();
@@ -3105,7 +3112,7 @@ const WeeklyMenuPage = () => {
                             <td className="text-right">
                               <button
                                 type="button"
-                                onClick={() => void handleRollbackImport(item.menuVersionId, label)}
+                                onClick={() => requestRollbackImport(item.menuVersionId, label)}
                                 disabled={!item.canRollback || isRollingBackImport}
                                 title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể rollback'}
                                 className="ipc-button ipc-button-ghost ipc-button-bounded"
@@ -3359,6 +3366,34 @@ const WeeklyMenuPage = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={rollbackTarget !== null} onOpenChange={(open) => !open && setRollbackTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Xác nhận hủy phiên import</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-sm font-medium text-slate-600">
+            Hủy phiên import <span className="font-bold text-slate-900">"{rollbackTarget?.label}"</span>? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setRollbackTarget(null)}
+              className="ipc-button ipc-button-ghost"
+            >
+              Không hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmRollbackImport()}
+              disabled={isRollingBackImport}
+              className="ipc-button ipc-button-danger"
+            >
+              {isRollingBackImport ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
   );
 };
