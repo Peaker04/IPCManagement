@@ -352,6 +352,8 @@ public class MaterialDemandService : IMaterialDemandService
             return [];
         }
 
+        var changedAt = DateTime.UtcNow;
+
         foreach (var customerGroup in schedules.GroupBy(schedule => Convert.ToBase64String(schedule.CustomerId)))
         {
             var customerSchedules = customerGroup.ToList();
@@ -403,7 +405,8 @@ public class MaterialDemandService : IMaterialDemandService
                         ForecastServings = servings,
                         ConfirmedServings = servings,
                         AdjustedServings = 0,
-                        FinalServings = servings
+                        FinalServings = servings,
+                        UpdatedAt = changedAt
                     });
                     continue;
                 }
@@ -416,6 +419,7 @@ public class MaterialDemandService : IMaterialDemandService
                 existingLine.ConfirmedServings = servings;
                 existingLine.AdjustedServings = 0;
                 existingLine.FinalServings = servings;
+                existingLine.UpdatedAt = changedAt;
             }
         }
 
