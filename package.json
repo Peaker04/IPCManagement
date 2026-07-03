@@ -8,7 +8,7 @@
     "frontend"
   ],
   "scripts": {
-    "prepare": "node -e \"import('child_process').then(m=>{ if(!process.env.CI&&!process.env.VERCEL) m.execSync('husky',{stdio:'inherit'}) })\"",
+    "prepare": "husky",
     "fe": "npm run dev -w frontend",
     "be": "dotnet run --project backend/src/IPCManagement.Api",
     "build:be": "dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
