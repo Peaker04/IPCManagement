@@ -42,6 +42,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Ingredient> Ingredients { get; set; }
 
+    public virtual DbSet<Supplierquotation> Supplierquotations { get; set; }
+
     public virtual DbSet<Inventoryissue> Inventoryissues { get; set; }
 
     public virtual DbSet<Inventoryissueline> Inventoryissuelines { get; set; }
@@ -1121,6 +1123,10 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.ShiftName)
                 .HasColumnType("enum('MORNING','AFTERNOON')")
                 .HasColumnName("shiftName");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Mealquantityplanlines)
                 .HasForeignKey(d => d.CustomerId)
@@ -1249,6 +1255,10 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'DRAFT'")
                 .HasColumnName("status");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+            entity.Property(e => e.MenuVersionId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("menuVersionId");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Menuschedules)
                 .HasForeignKey(d => d.CustomerId)
@@ -1259,6 +1269,11 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.MenuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("menuschedules_ibfk_2");
+
+            entity.HasOne(d => d.MenuVersion).WithMany(p => p.Menuschedules)
+                .HasForeignKey(d => d.MenuVersionId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("menuschedules_ibfk_3");
         });
 
         modelBuilder.Entity<Menuversion>(entity =>
@@ -1316,6 +1331,15 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("updatedAt");
             entity.Property(e => e.VersionNo).HasColumnName("versionNo");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+            entity.Property(e => e.SuccessRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("successRowCount");
+            entity.Property(e => e.ErrorRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("errorRowCount");
+            entity.Property(e => e.WarningRowCount)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("warningRowCount");
 
             entity.HasOne(d => d.Customer).WithMany(p => p.Menuversions)
                 .HasForeignKey(d => d.CustomerId)
@@ -1447,6 +1471,11 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("'CREATED'")
                 .HasColumnType("enum('CREATED','SENTTOKITCHEN','COMPLETED','CANCELLED')")
                 .HasColumnName("status");
+            entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
 
             entity.HasOne(d => d.Customer).WithMany()
@@ -1904,6 +1933,62 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.SupplierName)
                 .HasMaxLength(200)
                 .HasColumnName("supplierName");
+        });
+
+        modelBuilder.Entity<Supplierquotation>(entity =>
+        {
+            entity.HasKey(e => e.QuotationId).HasName("PRIMARY");
+
+            entity.ToTable("supplierquotations");
+
+            entity.HasIndex(e => new { e.SupplierId, e.IngredientId, e.EffectiveFrom }, "ixSupplierQuotationsSupplierIngredientEffective");
+
+            entity.HasIndex(e => e.IngredientId, "ixSupplierQuotationsIngredient");
+
+            entity.Property(e => e.QuotationId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("quotationId");
+            entity.Property(e => e.SupplierId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("supplierId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitPrice)
+                .HasPrecision(18, 2)
+                .HasColumnName("unitPrice");
+            entity.Property(e => e.EffectiveFrom)
+                .HasColumnName("effectiveFrom");
+            entity.Property(e => e.EffectiveTo)
+                .HasColumnName("effectiveTo");
+            entity.Property(e => e.Note)
+                .HasMaxLength(255)
+                .HasColumnName("note");
+            entity.Property(e => e.IsActive)
+                .IsRequired()
+                .HasDefaultValueSql("'1'")
+                .HasColumnName("isActive");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.Supplierquotations)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("supplierquotations_ibfk_1");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Supplierquotations)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("supplierquotations_ibfk_2");
         });
 
         modelBuilder.Entity<Unit>(entity =>

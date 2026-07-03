@@ -211,3 +211,28 @@ public class SaveCustomerImportMappingDto
     public string? SheetNameHint { get; set; }
     public string? LabelColumn { get; set; }
 }
+
+public class WeeklyMenuImportHistoryItemDto
+{
+    public string MenuVersionId { get; set; } = string.Empty;
+    public string CustomerId { get; set; } = string.Empty;
+    public string CustomerCode { get; set; } = string.Empty;
+    public string CustomerName { get; set; } = string.Empty;
+    public DateOnly WeekStartDate { get; set; }
+    public int VersionNo { get; set; }
+    public string Status { get; set; } = string.Empty;
+    public string? SourceFileName { get; set; }
+    public string? CreatedByName { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public int SuccessRowCount { get; set; }
+    public int ErrorRowCount { get; set; }
+    public int WarningRowCount { get; set; }
+    public bool CanRollback { get; set; }
+    public string? CannotRollbackReason { get; set; }
+}
+
+public class RollbackWeeklyMenuImportResultDto
+{
+    public string MenuVersionId { get; set; } = string.Empty;
+    public int MenuSchedulesRemoved { get; set; }
+}

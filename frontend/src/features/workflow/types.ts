@@ -107,6 +107,7 @@ export interface DemandLine {
   purchaseRequestId?: string;
   purchaseRequestLineId?: string;
   supplierId?: string;
+  ingredientId?: string;
   estimatedUnitPrice?: number;
   referenceUnitPrice?: number;
   priceVariancePercent?: number;

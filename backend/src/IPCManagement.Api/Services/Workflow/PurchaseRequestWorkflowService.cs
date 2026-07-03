@@ -2,6 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.Workflow;
@@ -17,10 +18,12 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     };
 
     private readonly IpcManagementContext _context;
+    private readonly ISupplierQuotationService _supplierQuotationService;
 
-    public PurchaseRequestWorkflowService(IpcManagementContext context)
+    public PurchaseRequestWorkflowService(IpcManagementContext context, ISupplierQuotationService supplierQuotationService)
     {
         _context = context;
+        _supplierQuotationService = supplierQuotationService;
     }
 
     public async Task<PurchaseRequestWorkflowResultDto?> GenerateFromDemandAsync(
@@ -68,8 +71,16 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
         }
 
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
         foreach (var line in shortageLines)
         {
+            var bestQuotation = await _supplierQuotationService.GetBestPriceEntityAsync(line.IngredientId, today, cancellationToken);
+            if (bestQuotation is not null)
+            {
+                EnsurePurchaseRequestLine(purchaseRequest, line, bestQuotation.Supplier, bestQuotation.UnitPrice, existingLines);
+                continue;
+            }
+
             var supplier = await ResolveSupplierAsync(line.IngredientId, cancellationToken);
             if (supplier is null)
             {

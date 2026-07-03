@@ -386,6 +386,45 @@ public class CoordinationController : ControllerBase
         }
     }
 
+    [HttpGet("weekly-menu/import-history")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWeeklyMenuImportHistory(
+        [FromQuery] string? customerId,
+        CancellationToken cancellationToken)
+    {
+        var history = await _sampleDataImportService.GetWeeklyMenuImportHistoryAsync(customerId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
+    }
+
+    [HttpPost("weekly-menu/import/{menuVersionId}/rollback")]
+    [ProducesResponseType(typeof(ApiResponse<RollbackWeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RollbackWeeklyMenuImport(
+        string menuVersionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _sampleDataImportService.RollbackWeeklyMenuImportAsync(
+                menuVersionId,
+                _currentUserService.GetUserId(User),
+                cancellationToken);
+            return Ok(ApiResponse<RollbackWeeklyMenuImportResultDto>.SuccessResult(result, "Đã hủy phiên import thực đơn."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("customers/{customerId}/import-mapping")]
     [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto?>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCustomerImportMapping(
