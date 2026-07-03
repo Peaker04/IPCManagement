@@ -205,7 +205,6 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
         var newStatus = request.Status == ApprovalDecision.Approve ? "CONFIRMED" : "REJECTED";
 
         issue.MaterialRequest.Status = newStatus;
-        issue.ReceivedBy = actorId;
 
         return await SaveHistoryAsync("inventory-issue", targetId, request, actorId, oldStatus, newStatus);
     }

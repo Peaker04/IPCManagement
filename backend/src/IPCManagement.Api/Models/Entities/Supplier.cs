@@ -26,4 +26,6 @@ public partial class Supplier
     public virtual ICollection<Inventoryreceipt> Inventoryreceipts { get; set; } = new List<Inventoryreceipt>();
 
     public virtual ICollection<Purchaserequestline> Purchaserequestlines { get; set; } = new List<Purchaserequestline>();
+
+    public virtual ICollection<Supplierquotation> Supplierquotations { get; set; } = new List<Supplierquotation>();
 }

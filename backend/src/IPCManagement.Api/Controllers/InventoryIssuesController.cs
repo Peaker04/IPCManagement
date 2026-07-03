@@ -75,4 +75,30 @@ public class InventoryIssuesController : ControllerBase
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
     }
+
+    /// <summary>Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất kho.</summary>
+    [HttpPost("{id}/confirm-receipt")]
+    public async Task<IActionResult> ConfirmReceipt(string id, [FromBody] ConfirmInventoryIssueReceiptDto dto)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+
+            var result = await _inventoryIssueService.ConfirmReceiptAsync(id, dto, userId);
+            if (result is null)
+                return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu xuất kho với ID: {id}"));
+
+            return Ok(ApiResponse<InventoryIssueDto>.SuccessResult(result, "Bếp đã xác nhận nhận nguyên liệu."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }

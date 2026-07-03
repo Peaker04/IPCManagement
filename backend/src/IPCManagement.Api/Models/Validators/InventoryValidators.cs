@@ -119,6 +119,12 @@ public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInvento
             .NotEmpty().WithMessage("Phiếu xuất gốc không được để trống.")
             .Must(BeValidGuid).WithMessage("IssueId phải là GUID hợp lệ.");
 
+        RuleFor(x => x.ReturnType)
+            .Must(BeValidReturnType).WithMessage("Loại ghi nhận phải là RETURN hoặc WASTE.");
+
+        RuleFor(x => x.Reason)
+            .NotEmpty().WithMessage("Cần ghi lý do trả kho hoặc hao hụt thực tế.");
+
         RuleFor(x => x.Lines)
             .NotEmpty().WithMessage("Phiếu trả phải có ít nhất 1 dòng chi tiết.");
 
@@ -126,6 +132,10 @@ public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInvento
     }
 
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+
+    private static bool BeValidReturnType(string value)
+        => string.Equals(value, "RETURN", StringComparison.OrdinalIgnoreCase) ||
+           string.Equals(value, "WASTE", StringComparison.OrdinalIgnoreCase);
 }
 
 public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInventoryReturnLineDto>

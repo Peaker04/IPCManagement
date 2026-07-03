@@ -131,6 +131,7 @@ public class InventoryReturnServiceTests
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = warehouseId,
             IssueId = issueId,
+            Reason = "Trả vượt còn lại",
             Lines = new List<CreateInventoryReturnLineDto>
             {
                 new()
@@ -162,6 +163,68 @@ public class InventoryReturnServiceTests
             Arg.Any<string>(),
             Arg.Any<string>());
         await _transaction.Received(1).RollbackAsync();
+    }
+
+    [Fact]
+    public async Task CreateAsync_Should_RecordWasteWithoutAddingStockMovement_WhenReturnTypeIsWaste()
+    {
+        // Arrange
+        var userId = Guid.NewGuid().ToString();
+        var warehouseId = Guid.NewGuid().ToString();
+        var issueId = Guid.NewGuid().ToString();
+        var ingredientId = Guid.NewGuid().ToString();
+        var unitId = Guid.NewGuid().ToString();
+
+        _issueRepository.GetByIdWithLinesAsync(Arg.Any<byte[]>()).Returns(CreateIssue(
+            issueId,
+            warehouseId,
+            ingredientId,
+            unitId,
+            issuedQty: 5));
+        _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
+            .Returns(new Dictionary<string, decimal>());
+
+        var dto = new CreateInventoryReturnDto
+        {
+            ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            ReturnType = "WASTE",
+            WarehouseId = warehouseId,
+            IssueId = issueId,
+            Reason = "Hao hụt sơ chế",
+            Lines =
+            [
+                new CreateInventoryReturnLineDto
+                {
+                    IngredientId = ingredientId,
+                    Quantity = 1,
+                    UnitId = unitId
+                }
+            ]
+        };
+
+        // Act
+        var result = await _service.CreateAsync(dto, userId);
+
+        // Assert
+        result.Should().NotBeNull();
+        result!.ReturnCode.Should().StartWith("WST-");
+        _returnRepository.Received(1).Add(Arg.Is<Inventoryreturn>(inventoryReturn =>
+            inventoryReturn.ReturnType == "WASTE" &&
+            inventoryReturn.Reason == "Hao hụt sơ chế" &&
+            inventoryReturn.Inventoryreturnlines.Count == 1));
+        await _stockLedgerService.DidNotReceive().AddStockAsync(
+            Arg.Any<byte[]>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<decimal>(),
+            Arg.Any<string>(),
+            Arg.Any<string>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<string>(),
+            Arg.Any<string>());
+        await _unitOfWork.Received(1).SaveChangesAsync();
+        await _transaction.Received(1).CommitAsync();
     }
 
     private static Inventoryissue CreateIssue(

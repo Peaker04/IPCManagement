@@ -598,6 +598,11 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
 
         var returnTotals = returnLines
+            .Where(item => item.Return.ReturnType == "RETURN")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var wasteTotals = returnLines
+            .Where(item => item.Return.ReturnType == "WASTE")
             .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
             .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
 
@@ -607,6 +612,10 @@ public class WorkflowReportService : IWorkflowReportService
                 var returnedQty = returnTotals.GetValueOrDefault(
                     BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
                     0);
+                var wastedQty = wasteTotals.GetValueOrDefault(
+                    BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId),
+                    0);
+                var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
 
                 return new IssueVsReturnUsageReportDto
                 {
@@ -620,7 +629,9 @@ public class WorkflowReportService : IWorkflowReportService
                     UnitName = item.Unit.UnitName,
                     IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
                     ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
-                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, returnedQty)
+                    WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
+                    VarianceQty = varianceQty,
+                    UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
                 };
             })
             .ToList();
@@ -1138,6 +1149,24 @@ public class WorkflowReportService : IWorkflowReportService
             "Nhập kho bổ sung, giảm số lượng xuất hoặc tạo đề xuất mua thêm trước khi xuất kho.",
             "/warehouse")));
 
+        var kitchenReceiptDiscrepancies = await _context.Auditlogs
+            .AsNoTracking()
+            .Where(log => log.BusinessArea == "KitchenReceipt" && log.FieldName == "KitchenReceiptDiscrepancy")
+            .OrderByDescending(log => log.ChangedAt)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(kitchenReceiptDiscrepancies.Select(log => BuildDataQualityIssue(
+            "kitchen_receipt_discrepancy",
+            "warning",
+            log.EntityName,
+            log.EntityId == null ? null : GuidHelper.ToGuidString(log.EntityId),
+            log.ChangedAt.ToString("yyyy-MM-dd HH:mm"),
+            log.NewValue ?? "Bếp báo chênh lệch khi nhận nguyên liệu",
+            log.Reason ?? "Bếp báo nguyên liệu nhận thực tế khác phiếu xuất.",
+            "Đối chiếu phiếu xuất với bếp và tạo phiếu điều chỉnh/hoàn kho nếu cần.",
+            "/chef")));
+
         var orphanMaterialRequests = await _context.Materialrequests
             .AsNoTracking()
             .Where(request => !_context.Productionplans.Any(plan => plan.PlanId == request.PlanId))
@@ -1271,6 +1300,8 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Include(item => item.Issue)
                 .ThenInclude(item => item.Warehouse)
+            .Include(item => item.Issue)
+                .ThenInclude(item => item.ReceivedByNavigation)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
             .AsQueryable();
@@ -1372,10 +1403,12 @@ public class WorkflowReportService : IWorkflowReportService
                 DocumentType = "Phiếu xuất kho",
                 DocumentDate = item.IssueDate,
                 ShiftName = item.ShiftName,
-                Status = "Đã ghi nhận",
-                OwnerLane = "Thủ kho",
-                Route = "/warehouse",
-                Summary = "Phiếu xuất kho theo danh sách nguyên liệu đã duyệt"
+                Status = item.ReceivedAt == null ? "Chờ bếp nhận" : "Bếp đã nhận",
+                OwnerLane = item.ReceivedAt == null ? "Bếp trưởng" : "Bếp",
+                Route = "/chef",
+                Summary = item.ReceivedAt == null
+                    ? "Kho đã xuất, chờ bếp xác nhận nhận nguyên liệu"
+                    : "Bếp đã xác nhận nhận nguyên liệu từ phiếu xuất"
             })
             .ToListAsync();
     }
@@ -1411,13 +1444,15 @@ public class WorkflowReportService : IWorkflowReportService
             {
                 DocumentId = GuidHelper.ToGuidString(item.ReturnId),
                 DocumentCode = item.ReturnCode,
-                DocumentType = "Phiếu hoàn kho",
+                DocumentType = item.ReturnType == "WASTE" ? "Phiếu hao hụt" : "Phiếu hoàn kho",
                 DocumentDate = item.ReturnDate,
                 ShiftName = item.ShiftName,
                 Status = "Đã ghi nhận",
                 OwnerLane = "Bếp trưởng",
                 Route = "/chef",
-                Summary = "Nguyên liệu dư được hoàn lại kho"
+                Summary = item.ReturnType == "WASTE"
+                    ? "Hao hụt thực tế sau sản xuất được ghi nhận"
+                    : "Nguyên liệu dư được hoàn lại kho"
             })
             .ToListAsync();
     }
@@ -1436,7 +1471,12 @@ public class WorkflowReportService : IWorkflowReportService
             UnitId = GuidHelper.ToGuidString(item.UnitId),
             UnitName = item.Unit.UnitName,
             RequestedQty = DecimalPolicy.RoundQuantity(item.RequestedQty),
-            IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty)
+            IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
+            ReceivedBy = item.Issue.ReceivedBy is null ? null : GuidHelper.ToGuidString(item.Issue.ReceivedBy),
+            ReceivedByName = item.Issue.ReceivedByNavigation?.FullName,
+            ReceivedAt = item.Issue.ReceivedAt,
+            IsReceivedByKitchen = item.Issue.ReceivedAt is not null,
+            ReceiptStatus = item.Issue.ReceivedAt is null ? "Chờ bếp nhận" : "Bếp đã nhận"
         };
 
     private static DataQualityIssueDto BuildDataQualityIssue(

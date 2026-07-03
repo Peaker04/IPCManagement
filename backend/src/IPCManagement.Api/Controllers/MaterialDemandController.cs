@@ -52,4 +52,17 @@ public class MaterialDemandController : ControllerBase
 
         return Ok(ApiResponse<MaterialDemandResultDto>.SuccessResult(result, "Tính nhu cầu nguyên liệu thành công."));
     }
+
+    /// <summary>Kiểm tra xem demand đã tính có bị lỗi thời so với dữ liệu hiện tại không.</summary>
+    [HttpGet("staleness")]
+    [ProducesResponseType(typeof(ApiResponse<MaterialDemandStalenessDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetStaleness(
+        [FromQuery] string serviceDate,
+        [FromQuery] string? customerId,
+        [FromQuery] string? scope,
+        CancellationToken cancellationToken)
+    {
+        var result = await _materialDemandService.GetStalenessAsync(serviceDate, customerId, scope, cancellationToken);
+        return Ok(ApiResponse<MaterialDemandStalenessDto>.SuccessResult(result));
+    }
 }

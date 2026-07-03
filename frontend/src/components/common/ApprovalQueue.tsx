@@ -34,8 +34,8 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
   return (
     <div className={cn('ipc-approval-queue', className)} role="region" aria-label="Hàng đợi duyệt vận hành">
       {title && <h4>{title}</h4>}
-      {pageRecords.map((record) => (
-        <article key={record.id} className={cn('ipc-approval-record', toneClasses[record.tone])}>
+      {pageRecords.map((record, index) => (
+        <article key={`${record.id}-${safePage}-${index}`} className={cn('ipc-approval-record', toneClasses[record.tone])}>
           {/* Zone 1: Title + Source + Action */}
           <div className="ipc-approval-zone-identity">
             <strong>{record.title}</strong>
@@ -70,8 +70,8 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
 
           {/* Zone 4: Materials */}
           <ul className="ipc-approval-zone-materials">
-            {record.materials.map((material) => (
-              <li key={`${record.id}-${material.name}`}>
+            {record.materials.map((material, materialIndex) => (
+              <li key={`${record.id}-${material.name}-${materialIndex}`}>
                 <span>{material.name}</span>
                 <strong>{formatQuantityWithUnit(material.quantity, material.unit)}</strong>
               </li>

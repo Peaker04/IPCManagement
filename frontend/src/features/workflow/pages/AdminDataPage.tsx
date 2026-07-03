@@ -1623,8 +1623,8 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} /> : dataQualityIssues.map((issue) => (
-                    <tr key={issue.id}>
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} /> : dataQualityIssues.map((issue, index) => (
+                    <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
                         <StatusBadge variant={issue.severity === 'error' ? 'danger' : 'warning'}>
@@ -1750,8 +1750,8 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockRows.slice(0, 8).length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.slice(0, 8).map((row) => (
-                    <tr key={row.id}>
+                  {currentStockRows.slice(0, 8).length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.slice(0, 8).map((row, index) => (
+                    <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
                       <td className="ipc-numeric-cell">{row.currentQty} {row.unit}</td>
@@ -1776,8 +1776,8 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {priceWarnings.slice(0, 8).length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.slice(0, 8).map((row) => (
-                    <tr key={row.id}>
+                  {priceWarnings.slice(0, 8).length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.slice(0, 8).map((row, index) => (
+                    <tr key={`${row.id}-${index}`}>
                       <td>{row.name}</td>
                       <td>{row.supplier}</td>
                       <td className="ipc-numeric-cell">{row.pricePrev.toLocaleString('vi-VN')} đ</td>

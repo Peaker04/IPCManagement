@@ -1009,7 +1009,8 @@ public partial class SampleDataImportService : ISampleDataImportService
         List<Menuschedule> schedules,
         bool dryRun,
         SampleDataImportCountsDto counts,
-        CustomerContractPolicy? contractPolicy = null)
+        CustomerContractPolicy? contractPolicy = null,
+        byte[]? menuVersionId = null)
     {
         contractPolicy ??= ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
         var existing = schedules.FirstOrDefault(item =>
@@ -1023,6 +1024,7 @@ public partial class SampleDataImportService : ISampleDataImportService
             existing.MenuPrice = contractPolicy.MenuPrice;
             existing.BomRatePercent = contractPolicy.BomRatePercent;
             existing.Status = "DRAFT";
+            existing.MenuVersionId = menuVersionId;
             counts.MenuSchedulesUpdated++;
             return;
         }
@@ -1038,7 +1040,8 @@ public partial class SampleDataImportService : ISampleDataImportService
             ShiftName = shiftName,
             MenuPrice = contractPolicy.MenuPrice,
             BomRatePercent = contractPolicy.BomRatePercent,
-            Status = "DRAFT"
+            Status = "DRAFT",
+            MenuVersionId = menuVersionId
         };
 
         if (!dryRun)

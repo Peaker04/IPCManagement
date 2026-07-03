@@ -54,8 +54,8 @@ export function RoleInbox({
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((item) => (
-              <tr key={item.id} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
+            {pageItems.map((item, index) => (
+              <tr key={`${item.id}-${safePage}-${index}`} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
                 <td className="!text-left">
                   <div className="ipc-work-cell">
                     <strong>{item.title}</strong>

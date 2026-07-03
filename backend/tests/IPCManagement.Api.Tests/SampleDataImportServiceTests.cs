@@ -460,7 +460,10 @@ public class SampleDataImportServiceTests
                 createdAt TEXT NOT NULL,
                 publishedBy BLOB NULL,
                 publishedAt TEXT NULL,
-                updatedAt TEXT NOT NULL
+                updatedAt TEXT NOT NULL,
+                successRowCount INTEGER NOT NULL DEFAULT 0,
+                errorRowCount INTEGER NOT NULL DEFAULT 0,
+                warningRowCount INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE menuschedules (
                 menuScheduleId BLOB PRIMARY KEY,
@@ -471,7 +474,8 @@ public class SampleDataImportServiceTests
                 shiftName TEXT NOT NULL,
                 menuPrice TEXT NOT NULL,
                 bomRatePercent TEXT NOT NULL,
-                status TEXT NOT NULL
+                status TEXT NOT NULL,
+                menuVersionId BLOB NULL
             );
             """;
         await command.ExecuteNonQueryAsync();

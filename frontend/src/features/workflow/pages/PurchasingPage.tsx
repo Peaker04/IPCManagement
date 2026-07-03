@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { PackageCheck, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -21,11 +21,16 @@ import {
   useGetSuppliersQuery,
   useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
+  useGetSupplierQuotationsByIngredientQuery,
+  useCreateSupplierQuotationMutation,
+  useUpdateSupplierQuotationMutation,
+  useDeactivateSupplierQuotationMutation,
 } from '@/features/workflow';
-import type { DemandLine, SupplierDto } from '@/features/workflow';
+import type { DemandLine, SupplierDto, SupplierQuotationDto } from '@/features/workflow';
+import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 
 export default function PurchasingPage() {
-  const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'handoff'>('demand');
+  const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'quotation' | 'handoff'>('demand');
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -117,10 +122,11 @@ export default function PurchasingPage() {
         tabs={[
           { id: 'purchasing-demand', label: 'Nhu cầu mua' },
           { id: 'purchasing-supplier', label: 'Giá và NCC' },
+          { id: 'purchasing-quotation', label: 'Báo giá NCC' },
           { id: 'purchasing-handoff', label: 'Handoff kho' },
         ]}
         activeTab={`purchasing-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'handoff')}
+        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'quotation' | 'handoff')}
       />
 
       {/* Bảng danh sách chọn Nhà Cung Cấp */}
@@ -186,6 +192,14 @@ export default function PurchasingPage() {
         </SectionPanel>
       )}
 
+      {activeView === 'quotation' && (
+        <SectionPanel title="Quản lý báo giá nhà cung cấp">
+          <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab">
+            <SupplierQuotationManager suppliers={suppliers} />
+          </div>
+        </SectionPanel>
+      )}
+
       {activeView === 'handoff' && (
         <SectionPanel title="Handoff sang kho" icon={<PackageCheck size={18} />}>
           <div id="purchasing-handoff-panel" role="tabpanel" aria-labelledby="purchasing-handoff-tab">
@@ -211,6 +225,20 @@ function SupplierLineItem({
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '');
   const [note, setNote] = useState(line.note ?? '');
   const [isUpdating, setIsUpdating] = useState(false);
+
+  const { data: quotations = [] } = useGetSupplierQuotationsByIngredientQuery(line.ingredientId ?? '', {
+    skip: !line.ingredientId,
+  });
+
+  const handleSupplierChange = (supplierId: string) => {
+    setSelectedSupplierId(supplierId);
+    const matched = quotations.find((q) => q.supplierId === supplierId && q.isActive);
+    if (matched) {
+      setEstimatedPrice(matched.unitPrice);
+    }
+  };
+
+  const bestQuotation = quotations.find((q) => q.isBestPrice);
 
   const handleSave = async () => {
     if (!line.purchaseRequestId || !line.purchaseRequestLineId || !selectedSupplierId) {
@@ -251,16 +279,21 @@ function SupplierLineItem({
       <td className="font-medium text-slate-800">{line.material}</td>
       <td className="text-right">{line.reserved} <span className="text-slate-500">{line.unit}</span></td>
       <td>
-        <select 
-          className="ipc-input w-full" 
-          value={selectedSupplierId} 
-          onChange={(e) => setSelectedSupplierId(e.target.value)}
+        <select
+          className="ipc-input w-full"
+          value={selectedSupplierId}
+          onChange={(e) => handleSupplierChange(e.target.value)}
         >
           <option value="">-- Chọn Nhà cung cấp --</option>
           {suppliers.map(s => (
             <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
           ))}
         </select>
+        {bestQuotation && bestQuotation.supplierId !== selectedSupplierId && (
+          <div className="text-xs text-emerald-600 mt-1">
+            Giá tốt nhất: {bestQuotation.supplierName} — {bestQuotation.unitPrice.toLocaleString('vi-VN')}đ
+          </div>
+        )}
       </td>
       <td>
         <input 
@@ -288,8 +321,8 @@ function SupplierLineItem({
         />
       </td>
       <td>
-        <button 
-          className="ipc-button ipc-button-primary" 
+        <button
+          className="ipc-button ipc-button-primary"
           onClick={handleSave}
           disabled={isUpdating}
         >
@@ -297,5 +330,222 @@ function SupplierLineItem({
         </button>
       </td>
     </tr>
+  );
+}
+
+function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
+  const { data: ingredients = [] } = useGetIngredientsQuery();
+  const [selectedIngredientId, setSelectedIngredientId] = useState('');
+  const { data: quotations = [], isFetching } = useGetSupplierQuotationsByIngredientQuery(selectedIngredientId, {
+    skip: !selectedIngredientId,
+  });
+  const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
+  const [updateQuotation] = useUpdateSupplierQuotationMutation();
+  const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();
+
+  const [form, setForm] = useState({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setForm({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
+    setEditingId(null);
+  };
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!selectedIngredientId) {
+      alert('Vui lòng chọn nguyên liệu');
+      return;
+    }
+    if (!editingId && !form.supplierId) {
+      alert('Vui lòng chọn nhà cung cấp');
+      return;
+    }
+    const unitPrice = Number(form.unitPrice);
+    if (!unitPrice || unitPrice <= 0) {
+      alert('Vui lòng nhập đơn giá lớn hơn 0');
+      return;
+    }
+    if (!form.effectiveFrom) {
+      alert('Vui lòng nhập ngày bắt đầu hiệu lực');
+      return;
+    }
+
+    try {
+      if (editingId) {
+        await updateQuotation({
+          quotationId: editingId,
+          data: {
+            unitPrice,
+            effectiveFrom: form.effectiveFrom,
+            effectiveTo: form.effectiveTo || null,
+            note: form.note || null,
+            isActive: true,
+          },
+        }).unwrap();
+      } else {
+        await createQuotation({
+          supplierId: form.supplierId,
+          ingredientId: selectedIngredientId,
+          unitPrice,
+          effectiveFrom: form.effectiveFrom,
+          effectiveTo: form.effectiveTo || null,
+          note: form.note || null,
+        }).unwrap();
+      }
+      resetForm();
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Lỗi khi lưu báo giá: ' + message);
+    }
+  };
+
+  const handleEdit = (q: SupplierQuotationDto) => {
+    setEditingId(q.quotationId);
+    setForm({
+      supplierId: q.supplierId,
+      unitPrice: String(q.unitPrice),
+      effectiveFrom: q.effectiveFrom,
+      effectiveTo: q.effectiveTo ?? '',
+      note: q.note ?? '',
+    });
+  };
+
+  const handleDeactivate = async (quotationId: string) => {
+    if (!confirm('Ngừng báo giá này?')) {
+      return;
+    }
+    try {
+      await deactivateQuotation(quotationId).unwrap();
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      alert('Lỗi khi ngừng báo giá: ' + message);
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-4">
+      <div>
+        <label className="text-sm font-medium text-slate-700 mr-2">Nguyên liệu:</label>
+        <select
+          className="ipc-input"
+          value={selectedIngredientId}
+          onChange={(e) => {
+            setSelectedIngredientId(e.target.value);
+            resetForm();
+          }}
+        >
+          <option value="">-- Chọn nguyên liệu --</option>
+          {ingredients.map((ingredient: IngredientLookup) => (
+            <option key={ingredient.ingredientId} value={ingredient.ingredientId}>{ingredient.ingredientName}</option>
+          ))}
+        </select>
+      </div>
+
+      {selectedIngredientId && (
+        <>
+          <div className="ipc-table-container">
+            <table className="ipc-table">
+              <thead>
+                <tr>
+                  <th>Nhà cung cấp</th>
+                  <th className="text-right">Đơn giá (đ)</th>
+                  <th>Hiệu lực từ</th>
+                  <th>Hiệu lực đến</th>
+                  <th>Ghi chú</th>
+                  <th>Trạng thái</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {quotations.map((q) => (
+                  <tr key={q.quotationId} className={q.isBestPrice ? 'bg-emerald-50' : ''}>
+                    <td>
+                      {q.supplierName}
+                      {q.isBestPrice && <span className="ml-2 text-xs text-emerald-700 font-medium">Tốt nhất</span>}
+                    </td>
+                    <td className="text-right">{q.unitPrice.toLocaleString('vi-VN')}</td>
+                    <td>{q.effectiveFrom}</td>
+                    <td>{q.effectiveTo ?? '—'}</td>
+                    <td>{q.note ?? ''}</td>
+                    <td>
+                      {q.isActive
+                        ? <span className="text-emerald-600">Đang hoạt động</span>
+                        : <span className="text-slate-400">Đã ngừng</span>}
+                    </td>
+                    <td className="space-x-2">
+                      <button type="button" className="ipc-button ipc-button-ghost" onClick={() => handleEdit(q)}>Sửa</button>
+                      {q.isActive && (
+                        <button type="button" className="ipc-button ipc-button-danger" onClick={() => handleDeactivate(q.quotationId)}>Ngừng</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {quotations.length === 0 && !isFetching && (
+                  <tr><td colSpan={7} className="text-center text-slate-500 py-4">Chưa có báo giá nào cho nguyên liệu này</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <form onSubmit={handleSubmit} className="border-t border-slate-200 pt-4">
+            <div className="font-medium text-slate-700 mb-2">{editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+              <select
+                className="ipc-input"
+                value={form.supplierId}
+                onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                disabled={!!editingId}
+              >
+                <option value="">-- Nhà cung cấp --</option>
+                {suppliers.map((s) => (
+                  <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
+                ))}
+              </select>
+              <input
+                type="number"
+                className="ipc-input"
+                placeholder="Đơn giá"
+                value={form.unitPrice}
+                onChange={(e) => setForm({ ...form, unitPrice: e.target.value })}
+              />
+              <input
+                type="date"
+                className="ipc-input"
+                value={form.effectiveFrom}
+                onChange={(e) => setForm({ ...form, effectiveFrom: e.target.value })}
+              />
+              <input
+                type="date"
+                className="ipc-input"
+                value={form.effectiveTo}
+                onChange={(e) => setForm({ ...form, effectiveTo: e.target.value })}
+              />
+              <input
+                type="text"
+                className="ipc-input"
+                placeholder="Ghi chú"
+                value={form.note}
+                onChange={(e) => setForm({ ...form, note: e.target.value })}
+              />
+            </div>
+            <div className="flex gap-2 mt-3">
+              <button type="submit" className="ipc-button ipc-button-primary" disabled={isCreating}>
+                {editingId ? 'Cập nhật báo giá' : 'Thêm báo giá'}
+              </button>
+              {editingId && (
+                <button type="button" className="ipc-button ipc-button-ghost" onClick={resetForm}>Hủy</button>
+              )}
+            </div>
+          </form>
+        </>
+      )}
+    </div>
   );
 }
