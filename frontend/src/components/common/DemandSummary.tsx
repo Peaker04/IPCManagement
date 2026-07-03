@@ -45,12 +45,12 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
             </tr>
           </thead>
           <tbody>
-            {pageLines.map((line) => {
+            {pageLines.map((line, index) => {
               const availableAfterReserve = line.available - line.reserved;
               const variance = availableAfterReserve - line.required;
 
               return (
-                <tr key={line.id}>
+                <tr key={`${line.id}-${safePage}-${index}`}>
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
                   <td className="ipc-numeric-cell text-right whitespace-nowrap">

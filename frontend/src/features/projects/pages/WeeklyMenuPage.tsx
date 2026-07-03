@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
-import { useGenerateMaterialDemandMutation, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -24,6 +24,8 @@ import {
   usePreviewWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
   useUpdateWeeklyMenuBulkMutation,
+  useGetWeeklyMenuImportHistoryQuery,
+  useRollbackWeeklyMenuImportMutation,
 } from '../../coordination/coordinationApi';
 import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
 
@@ -894,6 +896,37 @@ const WeeklyMenuPage = () => {
   const [saveImportMapping, { isLoading: isSavingImportMapping }] = useSaveCustomerImportMappingMutation();
   const [createCustomerContract, { isLoading: isCreatingImportCustomer }] = useCreateCustomerContractMutation();
   const [updateWeeklyMenuBulk, { isLoading: isSavingEdit }] = useUpdateWeeklyMenuBulkMutation();
+  const { data: importHistoryData } = useGetWeeklyMenuImportHistoryQuery();
+  const importHistory = useMemo(() => importHistoryData?.data ?? [], [importHistoryData]);
+  const [rollbackImport, { isLoading: isRollingBackImport }] = useRollbackWeeklyMenuImportMutation();
+  const [rollbackTarget, setRollbackTarget] = useState<{ menuVersionId: string; label: string } | null>(null);
+
+  const requestRollbackImport = (menuVersionId: string, label: string) => {
+    setRollbackTarget({ menuVersionId, label });
+  };
+
+  const confirmRollbackImport = async () => {
+    if (!rollbackTarget) {
+      return;
+    }
+    const { menuVersionId, label } = rollbackTarget;
+    setRollbackTarget(null);
+
+    try {
+      await rollbackImport(menuVersionId).unwrap();
+      setImportFeedback({
+        title: 'Đã hủy phiên import',
+        message: `Lịch thực đơn của "${label}" đã bị xóa. Có thể import lại file khác cho tuần này.`,
+        variant: 'info',
+      });
+    } catch (err: unknown) {
+      setImportFeedback({
+        title: 'Hủy phiên import thất bại',
+        message: getApiErrorMessage(err, 'Không thể hủy phiên import này.'),
+        variant: 'danger',
+      });
+    }
+  };
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const importFileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedMenuCustomerId, setSelectedMenuCustomerId] = useState(
@@ -1976,6 +2009,12 @@ const WeeklyMenuPage = () => {
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
   const weeklyRowsUsingImportDefault = weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default');
   const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
+  const demandStalenessServiceDate = weeklyPlanRows[0]?.serviceDate;
+  const { data: demandStalenessData } = useGetMaterialDemandStalenessQuery(
+    { serviceDate: demandStalenessServiceDate ?? '', customerId: effectiveMenuCustomerId, scope: 'FULLDAY' },
+    { skip: !demandStalenessServiceDate || !effectiveMenuCustomerId },
+  );
+  const demandStaleness = demandStalenessData?.data;
   const weeklyPlanCatalogDishIds = new Set(weeklyRowsWithBom.map((row) => row.dishId));
   const demandDayPages = displayDays
     .map((day) => ({
@@ -2417,6 +2456,11 @@ const WeeklyMenuPage = () => {
                 {demandFeedback.message}
               </InlineAlert>
             )}
+            {demandStaleness?.isStale && (
+              <InlineAlert title="Demand đã lỗi thời, cần tính lại" variant="warning">
+                {demandStaleness.reasons.join(' | ')}
+              </InlineAlert>
+            )}
 
             <Toolbar className="justify-end">
               <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
@@ -2427,7 +2471,11 @@ const WeeklyMenuPage = () => {
                   disabled={isGeneratingDemand || weeklyPlanRows.length === 0}
                 >
                   <Scale size={16} />
-                  {isGeneratingDemand ? 'Đang tạo demand...' : 'Tạo demand từ KHSX'}
+                  {isGeneratingDemand
+                    ? 'Đang tạo demand...'
+                    : demandStaleness?.isStale
+                      ? 'Tính lại demand (dữ liệu đã thay đổi)'
+                      : 'Tạo demand từ KHSX'}
                 </button>
               </ActionGuard>
               <ActionGuard allowedRoles={['quanly', 'thumua']} requiredPermissions={['purchase.generate']}>
@@ -3278,6 +3326,67 @@ const WeeklyMenuPage = () => {
                 </DataTableShell>
               </div>
 
+              <SectionPanel title="Lịch sử import thực đơn tuần">
+                <DataTableShell className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th className="text-left">Khách hàng</th>
+                        <th className="text-left">Tuần</th>
+                        <th className="text-center">Phiên bản</th>
+                        <th className="text-center">Trạng thái</th>
+                        <th className="text-center">Dòng</th>
+                        <th className="text-left">Người tạo</th>
+                        <th className="text-right">Thao tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {importHistory.map((item) => {
+                        const label = `${item.customerCode} - tuần ${formatImportDate(item.weekStartDate)} (v${item.versionNo})`;
+                        return (
+                          <tr key={item.menuVersionId}>
+                            <td>{item.customerCode} - {item.customerName}</td>
+                            <td>{formatImportDate(item.weekStartDate)}</td>
+                            <td className="text-center">v{item.versionNo}</td>
+                            <td className="text-center">
+                              <StatusBadge
+                                variant={item.status === 'DRAFT' ? 'success' : item.status === 'ROLLED_BACK' ? 'danger' : 'neutral'}
+                              >
+                                {item.status}
+                              </StatusBadge>
+                            </td>
+                            <td className="text-center text-xs">
+                              {item.successRowCount} thành công
+                              {item.errorRowCount > 0 ? ` / ${item.errorRowCount} lỗi` : ''}
+                              {item.warningRowCount > 0 ? ` / ${item.warningRowCount} cảnh báo` : ''}
+                            </td>
+                            <td>{item.createdByName ?? '-'}</td>
+                            <td className="text-right">
+                              <button
+                                type="button"
+                                onClick={() => requestRollbackImport(item.menuVersionId, label)}
+                                disabled={!item.canRollback || isRollingBackImport}
+                                title={item.canRollback ? undefined : item.cannotRollbackReason ?? 'Không thể rollback'}
+                                className="ipc-button ipc-button-ghost ipc-button-bounded"
+                              >
+                                Rollback
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {importHistory.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">
+                            Chưa có lịch sử import thực đơn tuần.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </SectionPanel>
+
               {selectedImportJob && (
                 <div className="flex flex-col gap-3 rounded-md border border-slate-200 bg-white p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
@@ -3486,6 +3595,34 @@ const WeeklyMenuPage = () => {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={rollbackTarget !== null} onOpenChange={(open) => !open && setRollbackTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-slate-900">Xác nhận hủy phiên import</DialogTitle>
+          </DialogHeader>
+          <div className="py-2 text-sm font-medium text-slate-600">
+            Hủy phiên import <span className="font-bold text-slate-900">"{rollbackTarget?.label}"</span>? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.
+          </div>
+          <DialogFooter>
+            <button
+              type="button"
+              onClick={() => setRollbackTarget(null)}
+              className="ipc-button ipc-button-ghost"
+            >
+              Không hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => void confirmRollbackImport()}
+              disabled={isRollingBackImport}
+              className="ipc-button ipc-button-danger"
+            >
+              {isRollingBackImport ? 'Đang hủy...' : 'Xác nhận hủy'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
   );
 };

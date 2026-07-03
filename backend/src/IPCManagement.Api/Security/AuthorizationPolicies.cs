@@ -73,6 +73,7 @@ public static class AuthorizationPolicies
     public const string PurchaseRead = "purchase.read";
     public const string PurchaseGenerate = "purchase.generate";
     public const string PurchaseRequestApprove = "purchase.request.approve";
+    public const string PurchaseQuotationManage = "purchase.quotation.manage";
     public const string InventoryReceiptApprove = "inventory.receipt.approve";
     public const string InventoryIssueApprove = "inventory.issue.approve";
     public const string InventoryAdjustmentApprove = "inventory.adjustment.approve";
@@ -95,6 +96,7 @@ public static class AuthorizationPolicies
         PurchaseRead,
         PurchaseGenerate,
         PurchaseRequestApprove,
+        PurchaseQuotationManage,
         InventoryReceiptApprove,
         InventoryIssueApprove,
         InventoryAdjustmentApprove,
@@ -118,6 +120,7 @@ public static class AuthorizationPolicies
         PurchaseRead,
         PurchaseGenerate,
         PurchaseRequestApprove,
+        PurchaseQuotationManage,
         InventoryReceiptApprove,
         InventoryIssueApprove,
         InventoryAdjustmentApprove,
@@ -146,6 +149,7 @@ public static class AuthorizationPolicies
         PurchaseRead,
         PurchaseGenerate,
         PurchaseRequestApprove,
+        PurchaseQuotationManage,
         InventoryReceiptApprove,
         ReportRead
     ];

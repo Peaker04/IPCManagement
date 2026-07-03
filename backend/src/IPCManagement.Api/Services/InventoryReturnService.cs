@@ -10,21 +10,27 @@ namespace IPCManagement.Api.Services;
 
 public class InventoryReturnService : IInventoryReturnService
 {
+    private const string ReturnTypeReturn = "RETURN";
+    private const string ReturnTypeWaste = "WASTE";
+
     private readonly IInventoryReturnRepository _returnRepository;
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IpcManagementContext? _context;
 
     public InventoryReturnService(
         IInventoryReturnRepository returnRepository,
         IInventoryIssueRepository issueRepository,
         IUnitOfWork unitOfWork,
-        IStockLedgerService stockLedgerService)
+        IStockLedgerService stockLedgerService,
+        IpcManagementContext? context = null)
     {
         _returnRepository = returnRepository;
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _context = context;
     }
 
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(PagedRequestDto request)
@@ -69,7 +75,13 @@ public class InventoryReturnService : IInventoryReturnService
             throw new InvalidOperationException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
         }
 
-        var returnedQuantities = await _returnRepository.GetReturnedQuantitiesByIssueAsync(issueBytes);
+        var returnType = NormalizeReturnType(dto.ReturnType);
+        if (string.IsNullOrWhiteSpace(dto.Reason))
+        {
+            throw new ArgumentException("Cần ghi lý do trả kho hoặc hao hụt thực tế.");
+        }
+
+        var accountedQuantities = await _returnRepository.GetReturnedQuantitiesByIssueAsync(issueBytes);
         var issueQuantities = issue.Inventoryissuelines
             .GroupBy(line => InventoryReturnRepository.BuildLineKey(line.IngredientId, line.UnitId))
             .ToDictionary(group => group.Key, group => group.Sum(line => line.IssuedQty));
@@ -80,12 +92,13 @@ public class InventoryReturnService : IInventoryReturnService
             var inventoryReturn = new Inventoryreturn
             {
                 ReturnId = GuidHelper.NewId(),
-                ReturnCode = $"RET-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
+                ReturnCode = $"{ResolveReturnCodePrefix(returnType)}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
                 ReturnDate = dto.ReturnDate,
                 ShiftName = dto.ShiftName,
+                ReturnType = returnType,
                 WarehouseId = warehouseBytes,
                 IssueId = issueBytes,
-                Reason = dto.Reason,
+                Reason = dto.Reason.Trim(),
                 CreatedBy = userIdBytes,
                 CreatedAt = DateTime.UtcNow
             };
@@ -100,7 +113,7 @@ public class InventoryReturnService : IInventoryReturnService
                 var quantity = DecimalPolicy.RoundQuantity(line.Quantity);
                 ValidateReturnQuantity(
                     issueQuantities,
-                    returnedQuantities,
+                    accountedQuantities,
                     ingredientBytes,
                     unitBytes,
                     quantity);
@@ -117,19 +130,26 @@ public class InventoryReturnService : IInventoryReturnService
 
             _returnRepository.Add(inventoryReturn);
 
-            foreach (var line in inventoryReturn.Inventoryreturnlines)
+            if (returnType == ReturnTypeReturn)
             {
-                await _stockLedgerService.AddStockAsync(
-                    warehouseBytes,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.Quantity,
-                    "RETURN",
-                    "inventoryreturns",
-                    inventoryReturn.ReturnId,
-                    userIdBytes,
-                    "Trả nguyên liệu dư sau sản xuất",
-                    $"Phiếu trả {inventoryReturn.ReturnCode}");
+                foreach (var line in inventoryReturn.Inventoryreturnlines)
+                {
+                    await _stockLedgerService.AddStockAsync(
+                        warehouseBytes,
+                        line.IngredientId,
+                        line.UnitId,
+                        line.Quantity,
+                        "RETURN",
+                        "inventoryreturns",
+                        inventoryReturn.ReturnId,
+                        userIdBytes,
+                        "Trả nguyên liệu dư sau sản xuất",
+                        $"Phiếu trả {inventoryReturn.ReturnCode}");
+                }
+            }
+            else
+            {
+                AddWasteAudit(inventoryReturn, issue, userIdBytes);
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -148,12 +168,35 @@ public class InventoryReturnService : IInventoryReturnService
         }
     }
 
+    private void AddWasteAudit(Inventoryreturn inventoryReturn, Inventoryissue issue, byte[] userId)
+    {
+        if (_context is null)
+        {
+            return;
+        }
+
+        var totalWasteQty = DecimalPolicy.RoundQuantity(inventoryReturn.Inventoryreturnlines.Sum(line => line.Quantity));
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = inventoryReturn.CreatedAt,
+            ChangedBy = userId,
+            BusinessArea = "ProductionVariance",
+            EntityName = nameof(Inventoryreturn),
+            EntityId = inventoryReturn.ReturnId,
+            FieldName = "Waste",
+            OldValue = issue.IssueCode,
+            NewValue = $"wasteQty={totalWasteQty}",
+            Reason = $"Ghi nhận hao hụt thực tế sau sản xuất từ phiếu xuất {issue.IssueCode}: {inventoryReturn.Reason}"
+        });
+    }
+
     private static void ValidateReturnQuantity(
         IReadOnlyDictionary<string, decimal> issueQuantities,
-        IReadOnlyDictionary<string, decimal> returnedQuantities,
+        IReadOnlyDictionary<string, decimal> accountedQuantities,
         byte[] ingredientId,
         byte[] unitId,
-        decimal returnQuantity)
+        decimal accountedQuantity)
     {
         var key = InventoryReturnRepository.BuildLineKey(ingredientId, unitId);
 
@@ -163,11 +206,25 @@ public class InventoryReturnService : IInventoryReturnService
                 "Nguyên liệu trả phải tồn tại trong phiếu xuất gốc và cùng đơn vị tính.");
         }
 
-        var alreadyReturned = returnedQuantities.GetValueOrDefault(key);
-        if (DecimalPolicy.GreaterThanQuantity(alreadyReturned + returnQuantity, issuedQuantity))
+        var alreadyAccounted = accountedQuantities.GetValueOrDefault(key);
+        if (DecimalPolicy.GreaterThanQuantity(alreadyAccounted + accountedQuantity, issuedQuantity))
         {
             throw new InvalidOperationException(
-                $"Số lượng trả vượt quá số lượng đã xuất. Đã xuất: {issuedQuantity}, đã trả: {alreadyReturned}, trả thêm: {returnQuantity}.");
+                $"Số lượng trả/hao hụt vượt quá số lượng đã xuất. Đã xuất: {issuedQuantity}, đã ghi nhận: {alreadyAccounted}, ghi thêm: {accountedQuantity}.");
         }
     }
+
+    private static string NormalizeReturnType(string? returnType)
+    {
+        var normalized = string.IsNullOrWhiteSpace(returnType)
+            ? ReturnTypeReturn
+            : returnType.Trim().ToUpperInvariant();
+
+        return normalized is ReturnTypeReturn or ReturnTypeWaste
+            ? normalized
+            : throw new ArgumentException("Loại ghi nhận phải là RETURN hoặc WASTE.");
+    }
+
+    private static string ResolveReturnCodePrefix(string returnType)
+        => returnType == ReturnTypeWaste ? "WST" : "RET";
 }

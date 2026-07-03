@@ -67,9 +67,6 @@ public class InventoryIssueService : IInventoryIssueService
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
-        var receivedByBytes = dto.ReceivedBy is not null
-            ? GuidHelper.ParseGuidString(dto.ReceivedBy)
-            : null;
         var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
             ?? throw new InvalidOperationException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
         if (!IssuableDemandStatuses.Contains(materialRequest.Status))
@@ -93,7 +90,6 @@ public class InventoryIssueService : IInventoryIssueService
                 WarehouseId = warehouseBytes,
                 MaterialRequestId = materialRequestBytes,
                 IssuedBy = userIdBytes,
-                ReceivedBy = receivedByBytes,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -140,6 +136,87 @@ public class InventoryIssueService : IInventoryIssueService
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<InventoryIssueDto?> ConfirmReceiptAsync(
+        string id,
+        ConfirmInventoryIssueReceiptDto dto,
+        string? userId)
+    {
+        if (_context is null)
+        {
+            throw new InvalidOperationException("Chưa cấu hình dữ liệu để xác nhận bếp nhận nguyên liệu.");
+        }
+
+        var issueId = GuidHelper.ParseGuidString(id);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (issueId is null || userIdBytes is null)
+        {
+            return null;
+        }
+
+        if (dto.HasDiscrepancy && string.IsNullOrWhiteSpace(dto.DiscrepancyNote))
+        {
+            throw new ArgumentException("Vui lòng ghi rõ chênh lệch khi bếp nhận nguyên liệu.");
+        }
+
+        var issue = await _context.Inventoryissues
+            .Include(item => item.Warehouse)
+            .Include(item => item.IssuedByNavigation)
+            .Include(item => item.ReceivedByNavigation)
+            .Include(item => item.Inventoryissuelines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Inventoryissuelines)
+                .ThenInclude(line => line.Unit)
+            .FirstOrDefaultAsync(item => item.IssueId == issueId);
+        if (issue is null)
+        {
+            return null;
+        }
+
+        if (issue.ReceivedAt is not null)
+        {
+            throw new InvalidOperationException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
+        }
+
+        var confirmedAt = DateTime.UtcNow;
+        issue.ReceivedBy = userIdBytes;
+        issue.ReceivedAt = confirmedAt;
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = confirmedAt,
+            ChangedBy = userIdBytes,
+            BusinessArea = "KitchenReceipt",
+            EntityName = nameof(Inventoryissue),
+            EntityId = issue.IssueId,
+            FieldName = "KitchenReceived",
+            OldValue = null,
+            NewValue = $"receivedAt={confirmedAt:O}",
+            Reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {issue.IssueCode}."
+        });
+
+        if (dto.HasDiscrepancy)
+        {
+            var note = dto.DiscrepancyNote!.Trim();
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = confirmedAt,
+                ChangedBy = userIdBytes,
+                BusinessArea = "KitchenReceipt",
+                EntityName = nameof(Inventoryissue),
+                EntityId = issue.IssueId,
+                FieldName = "KitchenReceiptDiscrepancy",
+                OldValue = "expected=issued_qty",
+                NewValue = note,
+                Reason = $"Bếp báo chênh lệch khi nhận phiếu xuất {issue.IssueCode}: {note}"
+            });
+        }
+
+        await _context.SaveChangesAsync();
+        return InventoryMapper.MapIssue(issue, includeLines: true);
     }
 
     private async Task EnsureStockAvailableAsync(

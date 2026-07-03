@@ -99,6 +99,14 @@ Cập nhật connection string trong `appsettings.json`:
 }
 ```
 
+Với database mới, tạo database `ipcmanagement` rồi chạy EF migration từ thư mục gốc repo:
+
+```bash
+dotnet ef database update --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+```
+
+Với database local cũ được tạo từ file SQL/dump trước đây, chạy script `.docs/Init_EF_History_For_Old_DB.sql` trên database đó trước. Script này đồng bộ bảng `__EFMigrationsHistory` với schema đã có, sau đó chạy lại lệnh `dotnet ef database update` ở trên.
+
 ### CORS
 
 Backend đã cấu hình CORS cho phép FE truy cập trong development mode. Xem `appsettings.json` > `Cors.AllowedOrigins`.

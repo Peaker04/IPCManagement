@@ -1,6 +1,13 @@
--- Chạy script này 1 lần duy nhất trên các Database cũ (tạo từ IPCmanagement.sql)
--- Script này sẽ tạo bảng lịch sử và đánh dấu 4 migration đầu tiên là đã chạy, 
--- giúp tránh lỗi "Table already exists" khi các thành viên dùng lệnh dotnet ef database update.
+-- Chạy script này trên các database local cũ trước khi chạy:
+-- dotnet ef database update --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+--
+-- Mục tiêu:
+-- 1. Tạo bảng lịch sử EF nếu database được tạo từ file SQL cũ.
+-- 2. Đánh dấu các migration đã có sẵn schema tương ứng để tránh lỗi "table/column already exists".
+-- 3. Dọn các migration ID cũ đã được thay bằng migration hợp nhất trong code hiện tại.
+--
+-- Script idempotent: có thể chạy lại nhiều lần. Với database trống, script không đánh dấu
+-- các migration chưa có bảng/cột; EF sẽ tự tạo khi chạy database update.
 
 CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
   `MigrationId` varchar(150) NOT NULL,
@@ -8,8 +15,138 @@ CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
   PRIMARY KEY (`MigrationId`)
 ) CHARACTER SET=utf8mb4;
 
+-- Baseline cho database được tạo từ IPCmanagement.sql.
 INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VALUES
   ('20260605013906_AddCurrentStockTable', '9.0.16'),
   ('20260605020053_AddRefreshTokenTable', '9.0.16'),
   ('20260621180049_AddConcurrencyToCurrentStock', '9.0.16'),
   ('20260626043000_SeedTemporaryBomData', '9.0.16');
+
+-- Một số máy local từng có 3 migration tách nhỏ này. Code hiện tại đã thay bằng
+-- migration hợp nhất 20260630031911_AddCustomerContractsAndMenuVersions.
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260630031911_AddCustomerContractsAndMenuVersions', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM `__EFMigrationsHistory`
+  WHERE `MigrationId` = '20260629161000_AddCustomerContracts'
+)
+AND EXISTS (
+  SELECT 1 FROM `__EFMigrationsHistory`
+  WHERE `MigrationId` = '20260629233000_AddMenuVersions'
+)
+AND EXISTS (
+  SELECT 1 FROM `__EFMigrationsHistory`
+  WHERE `MigrationId` = '20260629234500_UpdateMenuScheduleStatusForVersioning'
+);
+
+DELETE FROM `__EFMigrationsHistory`
+WHERE `MigrationId` IN (
+  '20260629161000_AddCustomerContracts',
+  '20260629233000_AddMenuVersions',
+  '20260629234500_UpdateMenuScheduleStatusForVersioning'
+)
+AND EXISTS (
+  SELECT 1 FROM (
+    SELECT 1 FROM `__EFMigrationsHistory`
+    WHERE `MigrationId` = '20260630031911_AddCustomerContractsAndMenuVersions'
+  ) AS replacement
+);
+
+-- Nếu schema đã được tạo thủ công hoặc từ dump mới hơn, đánh dấu đúng migration
+-- tương ứng. Nếu bảng/cột chưa tồn tại thì không làm gì, để EF tự migrate.
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260630031911_AddCustomerContractsAndMenuVersions', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customercontracts'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'menuversions'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260630062000_AddPortionRules', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'portionrules'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260630065000_AddPortionRuleTraceToDemandLines', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'materialrequestlines'
+    AND COLUMN_NAME = 'appliedPortionRuleId'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'materialrequestlines'
+    AND COLUMN_NAME = 'appliedPortionRatePercent'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260630161000_AddBomVersionStatus', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'dishbom'
+    AND COLUMN_NAME = 'bomStatus'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260701175833_AddCustomerImportMapping', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'customerimportmappings'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260702121000_AddProductionPlanMetadata', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'productionplans'
+    AND COLUMN_NAME = 'menuVersionId'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'productionplans'
+    AND COLUMN_NAME = 'weekStartDate'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260702194500_AddPurchaseLineDeliveryNote', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'purchaserequestlines'
+    AND COLUMN_NAME = 'expectedDeliveryDate'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'purchaserequestlines'
+    AND COLUMN_NAME = 'note'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260702203000_AddInventoryIssueReceivedAt', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'inventoryissues'
+    AND COLUMN_NAME = 'receivedAt'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260702204500_AddInventoryReturnType', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'inventoryreturns'
+    AND COLUMN_NAME = 'returnType'
+);

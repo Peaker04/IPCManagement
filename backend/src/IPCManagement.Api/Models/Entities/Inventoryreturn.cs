@@ -13,6 +13,8 @@ public partial class Inventoryreturn
 
     public string? ShiftName { get; set; }
 
+    public string ReturnType { get; set; } = null!;
+
     public byte[] WarehouseId { get; set; } = null!;
 
     public byte[] IssueId { get; set; } = null!;

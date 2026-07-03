@@ -25,6 +25,8 @@ public partial class Mealquantityplanline
 
     public int FinalServings { get; set; }
 
+    public DateTime UpdatedAt { get; set; }
+
     public virtual Customer Customer { get; set; } = null!;
 
     public virtual Menu Menu { get; set; } = null!;

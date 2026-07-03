@@ -61,7 +61,7 @@ public class MaterialDemandService : IMaterialDemandService
 
         var planContext = await ResolveProductionPlanContextAsync(quantityLines, customerId, cancellationToken);
         var plan = await EnsureProductionPlanAsync(serviceDate, scope, planContext, userIdBytes, cancellationToken);
-        var materialRequest = await EnsureMaterialRequestAsync(plan, serviceDate, scope, planContext.CustomerCode, userIdBytes, cancellationToken);
+        var (materialRequest, isRecalculate) = await EnsureMaterialRequestAsync(plan, serviceDate, scope, planContext.CustomerCode, userIdBytes, cancellationToken);
         
         var requiredIngredientIds = quantityLines
             .SelectMany(line => line.Menu.Menuitems)
@@ -148,7 +148,7 @@ public class MaterialDemandService : IMaterialDemandService
             BusinessArea = "Demand",
             EntityName = nameof(Materialrequest),
             EntityId = materialRequest.RequestId,
-            FieldName = "Generate",
+            FieldName = isRecalculate ? "Recalculate" : "Generate",
             OldValue = null,
             NewValue = $"{outputLines.Count} demand lines; {missingBomDishes.Count} missing BOM dishes; {missingConversionIssues.Count} missing unit conversions",
             Reason = "Tạo nhu cầu nguyên liệu từ số suất, thực đơn và BOM."
@@ -167,6 +167,120 @@ public class MaterialDemandService : IMaterialDemandService
             Lines = outputLines,
             MissingBomDishes = missingBomDishes,
             MissingConversionIssues = DeduplicateConversionIssues(missingConversionIssues)
+        };
+    }
+
+    public async Task<MaterialDemandStalenessDto> GetStalenessAsync(
+        string serviceDate,
+        string? customerId,
+        string? scopeOrShift,
+        CancellationToken cancellationToken = default)
+    {
+        if (!DateOnly.TryParse(serviceDate, out var parsedServiceDate))
+        {
+            throw new ArgumentException("Ngày phục vụ không hợp lệ.");
+        }
+
+        var scope = NormalizeScope(scopeOrShift, scopeOrShift);
+
+        var customerBytes = string.IsNullOrWhiteSpace(customerId)
+            ? null
+            : GuidHelper.ParseGuidString(customerId);
+        if (!string.IsNullOrWhiteSpace(customerId) && customerBytes is null)
+        {
+            throw new ArgumentException("Khách hàng không hợp lệ.");
+        }
+
+        string? customerCode = null;
+        if (customerBytes is not null)
+        {
+            var customer = await _context.Customers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerBytes), cancellationToken);
+            customerCode = customer?.CustomerCode;
+        }
+
+        var planCode = BuildWorkflowCode("KHSX", parsedServiceDate, scope, customerCode);
+        var plan = await _context.Productionplans
+            .AsNoTracking()
+            .Include(item => item.Productionplanlines)
+            .FirstOrDefaultAsync(item => item.PlanCode == planCode, cancellationToken);
+
+        if (plan is null)
+        {
+            return new MaterialDemandStalenessDto { HasExistingPlan = false, IsStale = false };
+        }
+
+        var reasons = new List<string>();
+        var requestCode = BuildWorkflowCode("MR", parsedServiceDate, scope, customerCode);
+        var materialRequest = await _context.Materialrequests
+            .AsNoTracking()
+            .Include(request => request.Materialrequestlines)
+            .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
+
+        if (materialRequest is not null && materialRequest.Status == "CANCELLED")
+        {
+            reasons.Add("Thực đơn tuần đã được import lại, demand cũ đã bị hủy.");
+        }
+
+        var quantityPlanLineIds = plan.Productionplanlines
+            .Select(line => line.QuantityPlanLineId)
+            .ToList();
+        if (quantityPlanLineIds.Count > 0)
+        {
+            var quantityLinesUpdatedAfter = await _context.Mealquantityplanlines
+                .AsNoTracking()
+                .Where(line => quantityPlanLineIds.Any(id => line.QuantityPlanLineId.SequenceEqual(id)))
+                .Where(line => line.UpdatedAt > plan.UpdatedAt)
+                .AnyAsync(cancellationToken);
+            if (quantityLinesUpdatedAfter)
+            {
+                reasons.Add("Số suất ăn đã được chỉnh sửa sau lần tính gần nhất.");
+            }
+
+            var menuScheduleIds = await _context.Mealquantityplanlines
+                .AsNoTracking()
+                .Where(line => quantityPlanLineIds.Any(id => line.QuantityPlanLineId.SequenceEqual(id)))
+                .Select(line => line.MenuScheduleId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            var menuVersionUpdatedAfter = await _context.Menuschedules
+                .AsNoTracking()
+                .Where(schedule => menuScheduleIds.Any(id => schedule.MenuScheduleId.SequenceEqual(id)))
+                .Where(schedule => schedule.MenuVersion != null && schedule.MenuVersion.CreatedAt > plan.UpdatedAt)
+                .AnyAsync(cancellationToken);
+            if (menuVersionUpdatedAfter)
+            {
+                reasons.Add("Thực đơn tuần đã được cập nhật sau lần tính gần nhất.");
+            }
+        }
+
+        if (materialRequest is not null)
+        {
+            var ingredientIds = materialRequest.Materialrequestlines
+                .Select(line => line.IngredientId)
+                .Distinct()
+                .ToList();
+            if (ingredientIds.Count > 0)
+            {
+                var stockUpdatedAfter = await _context.Currentstocks
+                    .AsNoTracking()
+                    .Where(stock => ingredientIds.Any(id => stock.IngredientId.SequenceEqual(id)))
+                    .Where(stock => stock.LastUpdated > plan.UpdatedAt)
+                    .AnyAsync(cancellationToken);
+                if (stockUpdatedAfter)
+                {
+                    reasons.Add("Tồn kho nguyên liệu đã thay đổi sau lần tính gần nhất.");
+                }
+            }
+        }
+
+        return new MaterialDemandStalenessDto
+        {
+            HasExistingPlan = true,
+            IsStale = reasons.Count > 0,
+            LastGeneratedAt = plan.UpdatedAt.ToString("O"),
+            Reasons = reasons
         };
     }
 
@@ -268,6 +382,8 @@ public class MaterialDemandService : IMaterialDemandService
             return [];
         }
 
+        var changedAt = DateTime.UtcNow;
+
         foreach (var customerGroup in schedules.GroupBy(schedule => Convert.ToBase64String(schedule.CustomerId)))
         {
             var customerSchedules = customerGroup.ToList();
@@ -319,7 +435,8 @@ public class MaterialDemandService : IMaterialDemandService
                         ForecastServings = servings,
                         ConfirmedServings = servings,
                         AdjustedServings = 0,
-                        FinalServings = servings
+                        FinalServings = servings,
+                        UpdatedAt = changedAt
                     });
                     continue;
                 }
@@ -332,6 +449,7 @@ public class MaterialDemandService : IMaterialDemandService
                 existingLine.ConfirmedServings = servings;
                 existingLine.AdjustedServings = 0;
                 existingLine.FinalServings = servings;
+                existingLine.UpdatedAt = changedAt;
             }
         }
 
@@ -375,9 +493,11 @@ public class MaterialDemandService : IMaterialDemandService
             existing.WeekStartDate = planContext.WeekStartDate;
             existing.MenuVersionId = planContext.MenuVersionId;
             existing.Status = string.IsNullOrWhiteSpace(existing.Status) ? "CREATED" : existing.Status;
+            existing.UpdatedAt = DateTime.UtcNow;
             return existing;
         }
 
+        var now = DateTime.UtcNow;
         var plan = new Productionplan
         {
             PlanId = GuidHelper.NewId(),
@@ -388,7 +508,8 @@ public class MaterialDemandService : IMaterialDemandService
             MenuVersionId = planContext.MenuVersionId,
             Status = "CREATED",
             CreatedBy = userId,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = now,
+            UpdatedAt = now
         };
 
         _context.Productionplans.Add(plan);
@@ -436,7 +557,7 @@ public class MaterialDemandService : IMaterialDemandService
         return new ProductionPlanContext(customerId, customerCode, weekStartDate, menuVersionId);
     }
 
-    private async Task<Materialrequest> EnsureMaterialRequestAsync(
+    private async Task<(Materialrequest Request, bool IsRecalculate)> EnsureMaterialRequestAsync(
         Productionplan plan,
         DateOnly serviceDate,
         string scope,
@@ -452,7 +573,7 @@ public class MaterialDemandService : IMaterialDemandService
         if (existing is not null)
         {
             existing.Status = existing.Status == "MANAGERAPPROVED" ? existing.Status : "DRAFT";
-            return existing;
+            return (existing, true);
         }
 
         var materialRequest = new Materialrequest
@@ -467,7 +588,7 @@ public class MaterialDemandService : IMaterialDemandService
         };
 
         _context.Materialrequests.Add(materialRequest);
-        return materialRequest;
+        return (materialRequest, false);
     }
 
     private static string BuildWorkflowCode(string prefix, DateOnly serviceDate, string scope, string? customerCode)

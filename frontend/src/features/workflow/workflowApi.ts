@@ -54,6 +54,28 @@ export interface InventoryReceiptCreatedResult {
   receiptCode: string;
 }
 
+export interface ConfirmInventoryIssueReceiptRequest {
+  issueId: string;
+  hasDiscrepancy?: boolean;
+  discrepancyNote?: string;
+}
+
+export interface InventoryIssueResult {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  warehouseName?: string;
+  materialRequestId: string;
+  issuedBy: string;
+  issuedByName?: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  createdAt: string;
+}
+
 interface WorkflowDocumentDto {
   documentId: string;
   documentCode: string;
@@ -182,6 +204,37 @@ export interface UpdatePurchaseRequestLineSupplierDto {
   note?: string | null;
 }
 
+export interface SupplierQuotationDto {
+  quotationId: string;
+  supplierId: string;
+  supplierName: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+  isBestPrice: boolean;
+}
+
+export interface CreateSupplierQuotationDto {
+  supplierId: string;
+  ingredientId: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+}
+
+export interface UpdateSupplierQuotationDto {
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+}
+
 interface ReceiptPriceVarianceReportDto {
   receiptId: string;
   receiptCode: string;
@@ -223,6 +276,11 @@ interface KitchenIssueReportDto {
   unitName?: string;
   requestedQty: number;
   issuedQty: number;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
 
 interface IssueVsReturnUsageReportDto {
@@ -236,7 +294,9 @@ interface IssueVsReturnUsageReportDto {
   unitName?: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 interface AuditChangeReportDto {
@@ -342,6 +402,19 @@ export interface GenerateMaterialDemandRequest {
   scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
 }
 
+export interface MaterialDemandStalenessQuery {
+  serviceDate: string;
+  customerId?: string;
+  scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
+}
+
+export interface MaterialDemandStaleness {
+  hasExistingPlan: boolean;
+  isStale: boolean;
+  lastGeneratedAt?: string | null;
+  reasons: string[];
+}
+
 interface PurchaseRequestWorkflowResultDto {
   purchaseRequestId: string;
   purchaseRequestCode: string;
@@ -420,6 +493,7 @@ export interface StockLedgerReconciliationRow {
 
 export interface KitchenIssueRow {
   id: string;
+  issueId: string;
   issueCode: string;
   issueDate: string;
   shiftName?: string;
@@ -428,6 +502,11 @@ export interface KitchenIssueRow {
   unit: string;
   requestedQty: number;
   issuedQty: number;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
 
 export interface UsageReportRow {
@@ -439,7 +518,9 @@ export interface UsageReportRow {
   unit: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 export interface DataQualityIssueRow {
@@ -543,6 +624,7 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     purchaseRequestId: item.purchaseRequestId,
     purchaseRequestLineId: item.purchaseRequestLineId,
     supplierId: item.supplierId,
+    ingredientId: item.ingredientId,
     estimatedUnitPrice: item.estimatedUnitPrice,
     referenceUnitPrice: item.referenceUnitPrice,
     priceVariancePercent: item.priceVariancePercent,
@@ -641,6 +723,7 @@ const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): Stock
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   id: `${item.issueId}-${item.ingredientId}`,
+  issueId: item.issueId,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
@@ -649,6 +732,11 @@ const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
   issuedQty: item.issuedQty,
+  receivedBy: item.receivedBy,
+  receivedByName: item.receivedByName,
+  receivedAt: item.receivedAt,
+  isReceivedByKitchen: item.isReceivedByKitchen,
+  receiptStatus: item.receiptStatus,
 });
 
 const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
@@ -660,7 +748,9 @@ const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
   unit: item.unitName ?? '',
   issuedQty: item.issuedQty,
   returnedQty: item.returnedQty,
+  wastedQty: item.wastedQty,
   usedQty: item.usedQty,
+  varianceQty: item.varianceQty,
 });
 
 const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
@@ -799,6 +889,36 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    getSupplierQuotationsByIngredient: builder.query<SupplierQuotationDto[], string>({
+      query: (ingredientId) => `/supplier-quotations/ingredient/${ingredientId}`,
+      transformResponse: (response: ApiResponse<SupplierQuotationDto[]>) => getData(response),
+      providesTags: ['SupplierQuotations'],
+    }),
+    createSupplierQuotation: builder.mutation<SupplierQuotationDto, CreateSupplierQuotationDto>({
+      query: (body) => ({
+        url: '/supplier-quotations',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    updateSupplierQuotation: builder.mutation<SupplierQuotationDto, { quotationId: string; data: UpdateSupplierQuotationDto }>({
+      query: ({ quotationId, data }) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    deactivateSupplierQuotation: builder.mutation<ApiResponse<void>, string>({
+      query: (quotationId) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['SupplierQuotations'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -816,7 +936,14 @@ export const workflowApi = apiSlice.injectEndpoints({
           ...body,
         },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: ['WorkflowReports', 'MaterialDemandStaleness'],
+    }),
+    getMaterialDemandStaleness: builder.query<ApiResponse<MaterialDemandStaleness>, MaterialDemandStalenessQuery>({
+      query: ({ serviceDate, customerId, scope }) => ({
+        url: '/material-demand/staleness',
+        params: { serviceDate, ...(customerId ? { customerId } : {}), ...(scope ? { scope } : {}) },
+      }),
+      providesTags: ['MaterialDemandStaleness'],
     }),
     generatePurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, GeneratePurchaseRequestFromDemandRequest>({
       query: (body) => ({
@@ -838,6 +965,17 @@ export const workflowApi = apiSlice.injectEndpoints({
         url: '/inventory-receipts/from-purchase',
         method: 'POST',
         body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
+      query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
+        url: `/inventory-issues/${issueId}/confirm-receipt`,
+        method: 'POST',
+        body: {
+          hasDiscrepancy,
+          discrepancyNote,
+        },
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
@@ -949,9 +1087,11 @@ export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
   useGenerateMaterialDemandMutation,
+  useGetMaterialDemandStalenessQuery,
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
+  useConfirmInventoryIssueReceiptMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
@@ -965,6 +1105,10 @@ export const {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useGetSupplierQuotationsByIngredientQuery,
+  useCreateSupplierQuotationMutation,
+  useUpdateSupplierQuotationMutation,
+  useDeactivateSupplierQuotationMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

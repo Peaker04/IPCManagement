@@ -372,8 +372,8 @@ const ReportsPage = () => {
                   {pagedPriceVarianceRows.length === 0 ? (
                     <EmptyRow colSpan={7} />
                   ) : (
-                    pagedPriceVarianceRows.map((item) => (
-                      <tr key={item.id} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    pagedPriceVarianceRows.map((item, index) => (
+                      <tr key={`${item.id}-${safePricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="#475569" />}
@@ -455,8 +455,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : ingredientDemandRows.map((row) => (
-                  <tr key={row.id}>
+                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : ingredientDemandRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
@@ -488,8 +488,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchaseDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : purchaseDemandRows.map((row) => (
-                  <tr key={row.id}>
+                {purchaseDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : purchaseDemandRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
@@ -519,8 +519,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row) => (
-                  <tr key={row.id}>
+                {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
@@ -556,8 +556,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row) => (
-                  <tr key={row.id}>
+                {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -589,8 +589,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row) => (
-                  <tr key={row.id}>
+                {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
                     <td>{row.shiftName ?? 'Cả ngày'}</td>
@@ -621,8 +621,8 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {auditRows.length === 0 ? <EmptyRow colSpan={6} /> : auditRows.map((row) => (
-                  <tr key={row.id}>
+                {auditRows.length === 0 ? <EmptyRow colSpan={6} /> : auditRows.map((row, index) => (
+                  <tr key={`${row.id}-${index}`}>
                     <td>{new Date(row.timestamp).toLocaleString('vi-VN')}</td>
                     <td>{row.actor}</td>
                     <td>{row.fieldAffected}</td>

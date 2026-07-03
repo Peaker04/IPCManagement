@@ -1197,6 +1197,7 @@ public class CoordinationService : ICoordinationService
 
             line.ForecastServings = request.ServingsQuantity;
             line.FinalServings = request.ServingsQuantity;
+            line.UpdatedAt = changedAt;
 
             _context.Auditlogs.Add(new Auditlog
             {
