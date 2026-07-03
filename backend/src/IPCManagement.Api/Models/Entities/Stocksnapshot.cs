@@ -1,22 +1,28 @@
 using System;
-using System.ComponentModel.DataAnnotations;
 
 namespace IPCManagement.Api.Models.Entities;
 
-public partial class Currentstock
+public partial class Stocksnapshot
 {
+    public byte[] SnapshotId { get; set; } = null!;
+
     public byte[] WarehouseId { get; set; } = null!;
 
     public byte[] IngredientId { get; set; } = null!;
 
     public byte[] UnitId { get; set; } = null!;
 
-    public decimal CurrentQty { get; set; }
+    public DateOnly PeriodMonth { get; set; }
 
-    public DateTime LastUpdated { get; set; }
+    public decimal OpeningQty { get; set; }
 
-    [Timestamp]
-    public DateTime RowVersion { get; set; }
+    public decimal QuantityIn { get; set; }
+
+    public decimal QuantityOut { get; set; }
+
+    public decimal ClosingQty { get; set; }
+
+    public DateTime GeneratedAt { get; set; }
 
     public virtual Ingredient Ingredient { get; set; } = null!;
 

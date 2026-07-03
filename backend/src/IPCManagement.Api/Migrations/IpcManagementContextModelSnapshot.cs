@@ -265,6 +265,157 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("currentstock", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.Property<byte[]>("LotStockId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("lotStockId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("CurrentQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("currentQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("LastUpdated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("lastUpdated")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("LotStockId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "ExpiredDate", "LotNumber" }, "ixCurrentStockLotsFefo");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "LotNumber", "ManufactureDate", "ExpiredDate" }, "ixCurrentStockLotsIdentity");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId");
+
+                    b.ToTable("currentstocklots", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.Property<byte[]>("SnapshotId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("snapshotId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("ClosingQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("closingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("generatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("OpeningQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("openingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly>("PeriodMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("periodMonth");
+
+                    b.Property<decimal>("QuantityIn")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityIn")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<decimal>("QuantityOut")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityOut")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("SnapshotId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "PeriodMonth" }, "ixStockSnapshotsIdentity")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PeriodMonth", "WarehouseId", "IngredientId" }, "ixStockSnapshotsPeriod");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId");
+
+                    b.ToTable("stocksnapshots", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
                     b.Property<byte[]>("CustomerId")
@@ -2057,7 +2208,7 @@ namespace IPCManagement.Api.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','CANCELLED')")
+                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED')")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
@@ -2393,6 +2544,19 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
 
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
+
                     b.Property<DateTime>("MovementDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -2424,6 +2588,16 @@ namespace IPCManagement.Api.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
                         .HasColumnName("quantityOut");
+
+                    b.Property<decimal>("BeforeQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("beforeQty");
+
+                    b.Property<decimal>("AfterQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("afterQty");
 
                     b.Property<string>("Reason")
                         .HasColumnType("text")
@@ -2799,6 +2973,60 @@ namespace IPCManagement.Api.Migrations
                         .HasForeignKey("WarehouseId")
                         .IsRequired()
                         .HasConstraintName("currentstock_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_1");
 
                     b.Navigation("Ingredient");
 
@@ -3603,6 +3831,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Currentstocks");
 
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Dishboms");
 
                     b.Navigation("Inventoryissuelines");
@@ -3618,6 +3848,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
 
                     b.Navigation("Supplierquotations");
                 });
@@ -3740,6 +3972,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Currentstocks");
 
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Dishboms");
 
                     b.Navigation("Ingredients");
@@ -3757,6 +3991,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>
@@ -3800,6 +4036,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Currentstocks");
 
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Ingredients");
 
                     b.Navigation("Inventoryissues");
@@ -3809,6 +4047,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Inventoryreturns");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
                 });
 #pragma warning restore 612, 618
         }

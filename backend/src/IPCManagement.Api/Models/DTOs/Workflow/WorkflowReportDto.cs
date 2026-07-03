@@ -11,6 +11,8 @@ public class WorkflowReportQueryDto
     public string? SupplierId { get; set; }
     public string? ShiftName { get; set; }
     public string? Format { get; set; }
+    public string? CursorDate { get; set; }
+    public string? CursorId { get; set; }
     public int Limit { get; set; } = 100;
 }
 
@@ -49,6 +51,8 @@ public class StockMovementViewDto
     public string MovementType { get; set; } = string.Empty;
     public decimal QuantityIn { get; set; }
     public decimal QuantityOut { get; set; }
+    public decimal BeforeQty { get; set; }
+    public decimal AfterQty { get; set; }
     public string? RefTable { get; set; }
     public string? RefId { get; set; }
     public string? Reason { get; set; }
@@ -68,6 +72,23 @@ public class StockLedgerReconciliationDto
     public decimal DifferenceQty { get; set; }
     public bool IsMatched { get; set; }
     public DateTime? LastMovementAt { get; set; }
+}
+
+public class StockSnapshotDto
+{
+    public string SnapshotId { get; set; } = string.Empty;
+    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseName { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public DateOnly PeriodMonth { get; set; }
+    public decimal OpeningQty { get; set; }
+    public decimal QuantityIn { get; set; }
+    public decimal QuantityOut { get; set; }
+    public decimal ClosingQty { get; set; }
+    public DateTime GeneratedAt { get; set; }
 }
 
 public class IngredientDemandReportDto

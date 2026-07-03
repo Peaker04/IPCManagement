@@ -28,6 +28,8 @@ export interface WorkflowReportQuery {
   ingredientId?: string;
   supplierId?: string;
   shiftName?: string;
+  cursorDate?: string;
+  cursorId?: string;
   limit?: number;
 }
 
@@ -171,6 +173,8 @@ interface StockMovementViewDto {
   movementType: string;
   quantityIn: number;
   quantityOut: number;
+  beforeQty?: number;
+  afterQty?: number;
   refTable?: string;
   refId?: string;
   reason?: string;
@@ -763,6 +767,8 @@ const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
     documentNo: item.refTable ? `${item.refTable}${item.refId ? `-${item.refId.slice(0, 8)}` : ''}` : item.movementId.slice(0, 8),
     material: item.ingredientName ?? item.ingredientId,
     quantity,
+    beforeQty: item.beforeQty,
+    afterQty: item.afterQty,
     unit: item.unitName ?? '',
     owner: item.warehouseName ?? 'Kho',
     status: type === 'receipt' ? 'Đã nhập kho' : type === 'issue' ? 'Đã xuất kho' : type === 'return' ? 'Đã hoàn kho' : 'Đã điều chỉnh tồn',

@@ -109,7 +109,10 @@ public class InventoryReceiptService : IInventoryReceiptService
                     receipt.ReceiptId,
                     userIdBytes,
                     "Nhập kho mua hàng",
-                    $"Phiếu nhập {receipt.ReceiptCode}");
+                    $"Phiếu nhập {receipt.ReceiptCode}",
+                    line.LotNumber,
+                    line.ManufactureDate,
+                    line.ExpiredDate);
             }
 
             await _unitOfWork.SaveChangesAsync();
@@ -257,7 +260,10 @@ public class InventoryReceiptService : IInventoryReceiptService
                     receipt.ReceiptId,
                     userIdBytes,
                     "Nhập kho từ phiếu mua",
-                    $"Phiếu nhập {receipt.ReceiptCode} từ {request.PurchaseRequestCode}");
+                    $"Phiếu nhập {receipt.ReceiptCode} từ {request.PurchaseRequestCode}",
+                    line.LotNumber,
+                    line.ManufactureDate,
+                    line.ExpiredDate);
             }
 
             var oldStatus = request.Status;
@@ -298,22 +304,30 @@ public class InventoryReceiptService : IInventoryReceiptService
 
     private async Task<Dictionary<string, decimal>> LoadReceivedQuantitiesAsync(byte[] purchaseRequestId)
     {
-        var receipts = await _context!.Inventoryreceipts
+        var receivedQuantities = await _context!.Inventoryreceiptlines
             .AsNoTracking()
-            .Include(receipt => receipt.Inventoryreceiptlines)
-            .Where(receipt => receipt.PurchaseRequestId != null && receipt.PurchaseRequestId.SequenceEqual(purchaseRequestId))
+            .Where(line =>
+                line.Receipt.PurchaseRequestId != null &&
+                line.Receipt.PurchaseRequestId.SequenceEqual(purchaseRequestId))
+            .GroupBy(line => new
+            {
+                line.Receipt.SupplierId,
+                line.IngredientId,
+                line.UnitId
+            })
+            .Select(group => new
+            {
+                group.Key.SupplierId,
+                group.Key.IngredientId,
+                group.Key.UnitId,
+                Quantity = group.Sum(line => line.Quantity)
+            })
             .ToListAsync();
 
-        return receipts
-            .SelectMany(receipt => receipt.Inventoryreceiptlines.Select(line => new
-            {
-                Key = BuildReceiptLineMatchKey(receipt.SupplierId, line.IngredientId, line.UnitId),
-                line.Quantity
-            }))
-            .GroupBy(item => item.Key, StringComparer.Ordinal)
+        return receivedQuantities
             .ToDictionary(
-                group => group.Key,
-                group => DecimalPolicy.RoundQuantity(group.Sum(item => item.Quantity)),
+                item => BuildReceiptLineMatchKey(item.SupplierId, item.IngredientId, item.UnitId),
+                item => DecimalPolicy.RoundQuantity(item.Quantity),
                 StringComparer.Ordinal);
     }
 

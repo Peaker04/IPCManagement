@@ -25,6 +25,16 @@ public partial class Stockmovement
 
     public decimal QuantityOut { get; set; }
 
+    public decimal BeforeQty { get; set; }
+
+    public decimal AfterQty { get; set; }
+
+    public string? LotNumber { get; set; }
+
+    public DateOnly? ManufactureDate { get; set; }
+
+    public DateOnly? ExpiredDate { get; set; }
+
     public string? Reason { get; set; }
 
     public string? Note { get; set; }

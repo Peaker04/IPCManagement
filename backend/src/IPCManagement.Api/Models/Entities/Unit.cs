@@ -33,5 +33,9 @@ public partial class Unit
 
     public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
 
+    public virtual ICollection<Currentstocklot> Currentstocklots { get; set; } = new List<Currentstocklot>();
+
+    public virtual ICollection<Stocksnapshot> Stocksnapshots { get; set; } = new List<Stocksnapshot>();
+
     public virtual ICollection<Purchaseorderline> Purchaseorderlines { get; set; } = new List<Purchaseorderline>();
 }

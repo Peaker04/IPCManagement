@@ -1,17 +1,20 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import type { RootState } from '../app/store';
 import { logOut, setCredentials } from '../features/auth/authSlice';
+import type { AuthState } from '../features/auth/authTypes';
 import { normalizeUserRole } from '../features/auth/roleUtils';
 import type { ApiResponse, LoginData } from '../types/api';
 import { notifySessionExpired } from '../features/auth/sessionEvents';
+
+type AuthAwareState = { auth: AuthState };
 
 const baseQuery = fetchBaseQuery({
   baseUrl: import.meta.env.VITE_API_BASE_URL
     ? `${import.meta.env.VITE_API_BASE_URL}/api`
     : '/api',
+  credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.token;
+    const token = (getState() as AuthAwareState).auth.token;
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
     }
@@ -55,7 +58,6 @@ const setLoginData = (
         permissions: data.user.permissions ?? [],
       },
       token: data.accessToken,
-      refreshToken: data.refreshToken,
     })
   );
 };
@@ -71,7 +73,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 
   let result = await baseQuery(args, api, extraOptions);
 
-  const token = (api.getState() as RootState).auth.token;
+  const token = (api.getState() as AuthAwareState).auth.token;
   const devFallbackUsername = getDevFallbackUsername(token);
 
   if (result.error?.status === 401 && devFallbackUsername && !isAuthEndpoint(args)) {
@@ -115,8 +117,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
   }
 
   if (result.error?.status === 401 && !isAuthEndpoint(args)) {
-    const refreshToken = (api.getState() as RootState).auth.refreshToken;
-    if (!refreshToken || !token) {
+    if (!token) {
       api.dispatch(logOut());
       notifySessionExpired();
       return result;
@@ -129,7 +130,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
             {
               url: '/auth/refresh',
               method: 'POST',
-              body: { accessToken: token, refreshToken },
+              body: { accessToken: token },
             },
             api,
             extraOptions

@@ -1,25 +1,32 @@
-import type { User } from './authSlice';
+import type { User } from './authTypes';
 
 const ACCESS_TOKEN_KEY = 'token';
-const REFRESH_TOKEN_KEY = 'refreshToken';
+const LEGACY_REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
 const AUTH_COOKIE_NAMES = ['token', 'accessToken', 'refreshToken', 'authToken', 'user'];
 
 export interface StoredAuthSnapshot {
   user: User | null;
   token: string | null;
-  refreshToken: string | null;
 }
 
 const canUseWebStorage = () =>
   typeof window !== 'undefined' && typeof window.localStorage !== 'undefined';
 
-const readStorageValue = (key: string) => {
+const readLocalStorageValue = (key: string) => {
   if (!canUseWebStorage()) {
     return null;
   }
 
-  return window.localStorage.getItem(key) ?? window.sessionStorage.getItem(key);
+  return window.localStorage.getItem(key);
+};
+
+const readSessionStorageValue = (key: string) => {
+  if (!canUseWebStorage()) {
+    return null;
+  }
+
+  return window.sessionStorage.getItem(key);
 };
 
 const parseStoredUser = (value: string | null): User | null => {
@@ -61,11 +68,32 @@ const clearCookie = (name: string) => {
   document.cookie = `${name}=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/api; SameSite=Lax`;
 };
 
-export const readStoredAuthSnapshot = (): StoredAuthSnapshot => ({
-  token: readStorageValue(ACCESS_TOKEN_KEY),
-  refreshToken: readStorageValue(REFRESH_TOKEN_KEY),
-  user: parseStoredUser(readStorageValue(USER_KEY)),
-});
+const clearLegacyRefreshToken = () => {
+  if (!canUseWebStorage()) {
+    return;
+  }
+
+  window.localStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+  window.sessionStorage.removeItem(LEGACY_REFRESH_TOKEN_KEY);
+};
+
+const clearLegacyPersistentAccessToken = () => {
+  if (!canUseWebStorage()) {
+    return;
+  }
+
+  window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+};
+
+export const readStoredAuthSnapshot = (): StoredAuthSnapshot => {
+  clearLegacyRefreshToken();
+  clearLegacyPersistentAccessToken();
+
+  return {
+    token: readSessionStorageValue(ACCESS_TOKEN_KEY),
+    user: parseStoredUser(readLocalStorageValue(USER_KEY)),
+  };
+};
 
 export const persistAuthSnapshot = (snapshot: StoredAuthSnapshot) => {
   if (!canUseWebStorage()) {
@@ -73,16 +101,13 @@ export const persistAuthSnapshot = (snapshot: StoredAuthSnapshot) => {
   }
 
   if (snapshot.token) {
-    window.localStorage.setItem(ACCESS_TOKEN_KEY, snapshot.token);
+    window.sessionStorage.setItem(ACCESS_TOKEN_KEY, snapshot.token);
   } else {
-    window.localStorage.removeItem(ACCESS_TOKEN_KEY);
+    window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
   }
 
-  if (snapshot.refreshToken) {
-    window.localStorage.setItem(REFRESH_TOKEN_KEY, snapshot.refreshToken);
-  } else {
-    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
-  }
+  clearLegacyRefreshToken();
+  clearLegacyPersistentAccessToken();
 
   if (snapshot.user) {
     window.localStorage.setItem(USER_KEY, JSON.stringify(snapshot.user));
@@ -94,11 +119,10 @@ export const persistAuthSnapshot = (snapshot: StoredAuthSnapshot) => {
 export const clearStoredAuth = () => {
   if (canUseWebStorage()) {
     window.localStorage.removeItem(ACCESS_TOKEN_KEY);
-    window.localStorage.removeItem(REFRESH_TOKEN_KEY);
     window.localStorage.removeItem(USER_KEY);
     window.sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-    window.sessionStorage.removeItem(REFRESH_TOKEN_KEY);
     window.sessionStorage.removeItem(USER_KEY);
+    clearLegacyRefreshToken();
   }
 
   AUTH_COOKIE_NAMES.forEach(clearCookie);

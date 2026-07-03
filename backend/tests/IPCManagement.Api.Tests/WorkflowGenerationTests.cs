@@ -226,7 +226,7 @@ public class WorkflowGenerationTests
                 UnitId = gramUnitId,
                 CurrentQty = 150000m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -261,7 +261,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 25m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await setupContext.SaveChangesAsync();
         }
@@ -333,7 +333,7 @@ public class WorkflowGenerationTests
                 UnitId = boxUnitId,
                 CurrentQty = 10m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1009,7 +1009,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 250m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1062,7 +1062,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 250m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1152,7 +1152,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 300m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1266,7 +1266,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 300m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             context.Inventoryissues.Add(new Inventoryissue
             {
@@ -1345,7 +1345,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 50m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -2031,7 +2031,7 @@ public class WorkflowGenerationTests
             UnitId = fixture.UnitId,
             CurrentQty = 8m,
             LastUpdated = DateTime.UtcNow,
-            RowVersion = [1]
+            RowVersion = DateTime.UtcNow
         });
         context.Stockmovements.Add(new Stockmovement
         {
@@ -2061,6 +2061,216 @@ public class WorkflowGenerationTests
         report.Issues.Should().Contain(issue =>
             issue.Category == "inventory_ledger_mismatch" &&
             issue.Message.Contains("Current stock 8"));
+    }
+
+    [Fact]
+    public async Task StockSnapshot_Should_GenerateMonthlyOpeningInOutAndClosing_FromLedgerSnapshots()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 6, 30, 17, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 7, 5, 8, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 4m,
+                BeforeQty = 10m,
+                AfterQty = 6m,
+                PerformedBy = fixture.UserId
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 7, 12, 8, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 5m,
+                QuantityOut = 0m,
+                BeforeQty = 6m,
+                AfterQty = 11m,
+                PerformedBy = fixture.UserId
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var snapshots = await service.GenerateMonthlyStockSnapshotAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            Limit = 10
+        });
+
+        var snapshot = snapshots.Should().ContainSingle().Subject;
+        snapshot.PeriodMonth.Should().Be(new DateOnly(2026, 7, 1));
+        snapshot.OpeningQty.Should().Be(10m);
+        snapshot.QuantityIn.Should().Be(5m);
+        snapshot.QuantityOut.Should().Be(4m);
+        snapshot.ClosingQty.Should().Be(11m);
+
+        var persisted = await context.Stocksnapshots.AsNoTracking().SingleAsync();
+        persisted.OpeningQty.Should().Be(10m);
+        persisted.QuantityIn.Should().Be(5m);
+        persisted.QuantityOut.Should().Be(4m);
+        persisted.ClosingQty.Should().Be(11m);
+    }
+
+    [Fact]
+    public async Task StockMovements_Should_DefaultToRecentDateWindow_AndAllowExplicitHistoryRange()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var oldMovementDate = DateTime.UtcNow.Date.AddDays(-40).AddHours(8);
+        var recentMovementDate = DateTime.UtcNow.Date.AddDays(-1).AddHours(8);
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = oldMovementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId,
+                Note = "old"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = recentMovementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 2m,
+                BeforeQty = 10m,
+                AfterQty = 8m,
+                PerformedBy = fixture.UserId,
+                Note = "recent"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var defaultRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto { Limit = 10 });
+
+        defaultRows.Should().ContainSingle(row => row.Note == "recent");
+        defaultRows.Should().NotContain(row => row.Note == "old");
+
+        var explicitRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = DateOnly.FromDateTime(oldMovementDate).ToString("yyyy-MM-dd"),
+            DateTo = DateOnly.FromDateTime(recentMovementDate).ToString("yyyy-MM-dd"),
+            Limit = 10
+        });
+
+        explicitRows.Select(row => row.Note).Should().BeEquivalentTo("old", "recent");
+    }
+
+    [Fact]
+    public async Task StockMovements_Should_PageWithCursorDate_WithoutOffset()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var baseDate = new DateTime(2026, 7, 10, 8, 0, 0, DateTimeKind.Utc);
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId,
+                Note = "newest"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate.AddDays(-1),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 2m,
+                BeforeQty = 10m,
+                AfterQty = 8m,
+                PerformedBy = fixture.UserId,
+                Note = "cursor"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate.AddDays(-2),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RETURN",
+                QuantityIn = 1m,
+                QuantityOut = 0m,
+                BeforeQty = 8m,
+                AfterQty = 9m,
+                PerformedBy = fixture.UserId,
+                Note = "older"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var firstPage = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            Limit = 2
+        });
+
+        firstPage.Select(row => row.Note).Should().Equal("newest", "cursor");
+
+        var secondPage = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            CursorDate = firstPage.Last().MovementDate.ToString("O"),
+            CursorId = firstPage.Last().MovementId,
+            Limit = 2
+        });
+
+        secondPage.Should().ContainSingle(row => row.Note == "older");
+        secondPage.Should().NotContain(row => row.Note == "newest" || row.Note == "cursor");
     }
 
     [Fact]
@@ -4144,8 +4354,19 @@ public class WorkflowGenerationTests
                     unitId BLOB NOT NULL,
                     currentQty TEXT NOT NULL,
                     lastUpdated TEXT NOT NULL,
-                    rowVersion BLOB NOT NULL DEFAULT (X'01'),
+                    rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (warehouseId, ingredientId)
+                );
+                CREATE TABLE currentstocklots (
+                    lotStockId BLOB PRIMARY KEY,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL,
+                    expiredDate TEXT NULL,
+                    currentQty TEXT NOT NULL,
+                    lastUpdated TEXT NOT NULL
                 );
                 CREATE TABLE stockmovements (
                     movementId BLOB PRIMARY KEY,
@@ -4153,14 +4374,31 @@ public class WorkflowGenerationTests
                     warehouseId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL,
+                    expiredDate TEXT NULL,
                     movementType TEXT NOT NULL,
                     refTable TEXT NULL,
                     refId BLOB NULL,
                     quantityIn TEXT NOT NULL,
                     quantityOut TEXT NOT NULL,
+                    beforeQty TEXT NOT NULL DEFAULT '0',
+                    afterQty TEXT NOT NULL DEFAULT '0',
                     reason TEXT NULL,
                     note TEXT NULL,
                     performedBy BLOB NOT NULL
+                );
+                CREATE TABLE stocksnapshots (
+                    snapshotId BLOB PRIMARY KEY,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    periodMonth TEXT NOT NULL,
+                    openingQty TEXT NOT NULL,
+                    quantityIn TEXT NOT NULL,
+                    quantityOut TEXT NOT NULL,
+                    closingQty TEXT NOT NULL,
+                    generatedAt TEXT NOT NULL
                 );
                 CREATE TABLE auditlogs (
                     auditId BLOB PRIMARY KEY,

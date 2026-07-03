@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -190,23 +191,25 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddRateLimiter(opts =>
 {
     // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
-    opts.AddFixedWindowLimiter("auth-strict", o =>
-    {
-        o.PermitLimit         = 5;
-        o.Window              = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit          = 0;          // không xếp hàng
-    });
+    opts.AddPolicy("auth-strict", context =>
+        RateLimitPartition.GetFixedWindowLimiter(GetRateLimitPartitionKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
-    // Policy cho API nói chung: 100 lần / 1 phút theo IP
-    opts.AddSlidingWindowLimiter("api-general", o =>
-    {
-        o.PermitLimit         = 100;
-        o.Window              = TimeSpan.FromMinutes(1);
-        o.SegmentsPerWindow   = 6;
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit          = 10;
-    });
+    // Policy cho API nói chung: 100 lần / 1 phút theo user, fallback theo IP
+    opts.AddPolicy("api-general", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(GetRateLimitPartitionKey(context), _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        }));
 
     // Trả về JSON khi bị từ chối
     opts.OnRejected = async (context, _) =>
@@ -218,6 +221,18 @@ builder.Services.AddRateLimiter(opts =>
             .ConfigureAwait(false);
     };
 });
+
+static string GetRateLimitPartitionKey(HttpContext context)
+{
+    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (!string.IsNullOrWhiteSpace(userId))
+    {
+        return $"user:{userId}";
+    }
+
+    var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+    return string.IsNullOrWhiteSpace(remoteIp) ? "anonymous" : $"ip:{remoteIp}";
+}
 
 var app = builder.Build();
 
@@ -249,11 +264,11 @@ app.MapGet("/", () =>
     });
 });
 
-app.UseRateLimiter();
 app.UseResponseCompression();
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 

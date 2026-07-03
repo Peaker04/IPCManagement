@@ -28,7 +28,7 @@ public class IngredientRepository : GenericRepository<Ingredient>, IIngredientRe
         => await _dbSet
             .AsNoTracking()
             .Include(i => i.Unit)
-            .Where(i => i.WarehouseId == warehouseId)
+            .Where(i => i.WarehouseId == warehouseId && i.IsActive != false)
             .ToListAsync();
 
     public override async Task<(IEnumerable<Ingredient> Items, int TotalCount)> GetPagedAsync(
@@ -38,14 +38,15 @@ public class IngredientRepository : GenericRepository<Ingredient>, IIngredientRe
             .AsNoTracking()
             .Include(i => i.Unit)
             .Include(i => i.Warehouse)
+            .Where(i => i.IsActive != false)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchKeyword))
         {
-            var kw = searchKeyword.Trim().ToLower();
+            var pattern = $"%{EscapeLikePattern(searchKeyword.Trim())}%";
             query = query.Where(i =>
-                i.IngredientName.ToLower().Contains(kw) ||
-                i.IngredientCode.ToLower().Contains(kw));
+                EF.Functions.Like(i.IngredientName, pattern, "\\") ||
+                EF.Functions.Like(i.IngredientCode, pattern, "\\"));
         }
 
         var totalCount = await query.CountAsync();
@@ -57,4 +58,10 @@ public class IngredientRepository : GenericRepository<Ingredient>, IIngredientRe
 
         return (items, totalCount);
     }
+
+    private static string EscapeLikePattern(string value)
+        => value
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
 }

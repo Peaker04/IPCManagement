@@ -96,6 +96,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Currentstock> Currentstocks { get; set; }
 
+    public virtual DbSet<Currentstocklot> Currentstocklots { get; set; }
+
+    public virtual DbSet<Stocksnapshot> Stocksnapshots { get; set; }
+
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
@@ -418,11 +422,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("dishbom");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
 
             entity.HasIndex(e => new { e.DishId, e.EffectiveFrom, e.EffectiveTo }, "ixDishBomDishEffective");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
 
             entity.Property(e => e.BomId)
                 .HasMaxLength(16)
@@ -479,7 +485,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.IngredientCode, "ingredientCode").IsUnique();
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId1");
 
             entity.HasIndex(e => e.WarehouseId, "warehouseId");
 
@@ -598,11 +605,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("inventoryissuelines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId1");
 
             entity.HasIndex(e => e.IssueId, "issueId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId2");
 
             entity.Property(e => e.IssueLineId)
                 .HasMaxLength(16)
@@ -718,7 +727,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.ReceiptId, "receiptId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId3");
 
             entity.Property(e => e.ReceiptLineId)
                 .HasMaxLength(16)
@@ -839,11 +849,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("inventoryreturnlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId2");
 
             entity.HasIndex(e => e.ReturnId, "returnId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId4");
 
             entity.Property(e => e.ReturnLineId)
                 .HasMaxLength(16)
@@ -948,13 +960,15 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("materialrequestlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId3");
 
             entity.HasIndex(e => e.PlanLineId, "planLineId");
 
             entity.HasIndex(e => e.RequestId, "requestId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId5");
 
             entity.HasIndex(e => e.AppliedPortionRuleId, "appliedPortionRuleId");
 
@@ -1606,7 +1620,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("shiftName");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'DRAFT'")
-                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','CANCELLED')")
+                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED')")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PurchaserequestApprovedByNavigations)
@@ -1625,7 +1639,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("purchaserequestlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId4");
 
             entity.HasIndex(e => e.MaterialRequestLineId, "materialRequestLineId");
 
@@ -1633,7 +1648,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.SupplierId, "supplierId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId6");
 
             entity.Property(e => e.PurchaseRequestLineId)
                 .HasMaxLength(16)
@@ -1943,7 +1959,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("stockmovements");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId5");
 
             entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.MovementDate }, "ixStockMovementsLookup");
 
@@ -1958,7 +1975,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.PerformedBy, "performedBy");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId7");
 
             entity.Property(e => e.MovementId)
                 .HasMaxLength(16)
@@ -1975,6 +1993,11 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.MovementType)
                 .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT')")
                 .HasColumnName("movementType");
+            entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
+            entity.Property(e => e.LotNumber)
+                .HasMaxLength(100)
+                .HasColumnName("lotNumber");
+            entity.Property(e => e.ManufactureDate).HasColumnName("manufactureDate");
             entity.Property(e => e.Note)
                 .HasColumnType("text")
                 .HasColumnName("note");
@@ -1988,6 +2011,12 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.QuantityOut)
                 .HasPrecision(18, 6)
                 .HasColumnName("quantityOut");
+            entity.Property(e => e.BeforeQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("beforeQty");
+            entity.Property(e => e.AfterQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("afterQty");
             entity.Property(e => e.Reason)
                 .HasColumnType("text")
                 .HasColumnName("reason");
@@ -2026,6 +2055,139 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.WarehouseId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("stockmovements_ibfk_1");
+        });
+
+        modelBuilder.Entity<Currentstocklot>(entity =>
+        {
+            entity.HasKey(e => e.LotStockId).HasName("PRIMARY");
+
+            entity.ToTable("currentstocklots");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.ExpiredDate, e.LotNumber }, "ixCurrentStockLotsFefo");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.UnitId, e.LotNumber, e.ManufactureDate, e.ExpiredDate }, "ixCurrentStockLotsIdentity");
+
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
+
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
+
+            entity.Property(e => e.LotStockId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("lotStockId");
+            entity.Property(e => e.WarehouseId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("warehouseId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.LotNumber)
+                .HasMaxLength(100)
+                .HasColumnName("lotNumber");
+            entity.Property(e => e.ManufactureDate).HasColumnName("manufactureDate");
+            entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
+            entity.Property(e => e.CurrentQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("currentQty");
+            entity.Property(e => e.LastUpdated)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("lastUpdated");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_2");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_3");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_1");
+        });
+
+        modelBuilder.Entity<Stocksnapshot>(entity =>
+        {
+            entity.HasKey(e => e.SnapshotId).HasName("PRIMARY");
+
+            entity.ToTable("stocksnapshots");
+
+            entity.HasIndex(e => new { e.PeriodMonth, e.WarehouseId, e.IngredientId }, "ixStockSnapshotsPeriod");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.UnitId, e.PeriodMonth }, "ixStockSnapshotsIdentity")
+                .IsUnique();
+
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
+
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
+
+            entity.Property(e => e.SnapshotId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("snapshotId");
+            entity.Property(e => e.WarehouseId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("warehouseId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.PeriodMonth).HasColumnName("periodMonth");
+            entity.Property(e => e.OpeningQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("openingQty");
+            entity.Property(e => e.QuantityIn)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("quantityIn");
+            entity.Property(e => e.QuantityOut)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("quantityOut");
+            entity.Property(e => e.ClosingQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("closingQty");
+            entity.Property(e => e.GeneratedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("generatedAt");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_2");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_3");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_1");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -2256,6 +2418,7 @@ public partial class IpcManagementContext : DbContext
                 .IsRowVersion()
                 .IsConcurrencyToken()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                .HasColumnType("timestamp(6)")
                 .HasColumnName("rowVersion");
 
             entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocks)
