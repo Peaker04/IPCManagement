@@ -55,10 +55,30 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVarianceAsync(query)));
 
+    [HttpGet("price-variance/by-supplier")]
+    public async Task<IActionResult> GetPriceVarianceBySupplier([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceBySupplierAsync(query)));
+
+    [HttpGet("price-variance/by-period")]
+    public async Task<IActionResult> GetPriceVarianceByPeriod([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceByPeriodAsync(query)));
+
+    [HttpGet("price-variance/by-dish-group")]
+    public async Task<IActionResult> GetPriceVarianceByDishGroup([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceByDishGroupAsync(query)));
+
     [HttpGet("kitchen-issues")]
     public async Task<IActionResult> GetKitchenIssues([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesAsync(query)));
+
+    [HttpGet("operational-kpis")]
+    public async Task<IActionResult> GetOperationalKpis()
+        => Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(
+            await _workflowReportService.GetOperationalKpisAsync()));
 
     [HttpGet("issue-vs-return")]
     public async Task<IActionResult> GetIssueVsReturn([FromQuery] WorkflowReportQueryDto query)

@@ -8,6 +8,8 @@ namespace IPCManagement.Api.Services.Workflow;
 
 public class WorkflowReportService : IWorkflowReportService
 {
+    private const int LateReceiptThresholdDays = 3;
+
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
 
@@ -500,6 +502,226 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<ReceiptPriceVarianceReportDto>> GetReceiptPriceVarianceAsync(WorkflowReportQueryDto query)
     {
+        var receiptLines = await BuildFilteredReceiptLinesQuery(query)
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Take(NormalizeLimit(query.Limit))
+            .ToListAsync();
+
+        return receiptLines
+            .Select(item =>
+            {
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(
+                    item.Ingredient.ReferencePrice,
+                    item.UnitPrice);
+
+                return new ReceiptPriceVarianceReportDto
+                {
+                    ReceiptId = GuidHelper.ToGuidString(item.ReceiptId),
+                    ReceiptCode = item.Receipt.ReceiptCode,
+                    ReceiptDate = item.Receipt.ReceiptDate,
+                    SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
+                    SupplierName = item.Receipt.Supplier.SupplierName,
+                    IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                    IngredientName = item.Ingredient.IngredientName,
+                    UnitId = GuidHelper.ToGuidString(item.UnitId),
+                    UnitName = item.Unit.UnitName,
+                    Quantity = DecimalPolicy.RoundQuantity(item.Quantity),
+                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
+                    ReferencePrice = DecimalPolicy.RoundMoney(item.Ingredient.ReferencePrice),
+                    VariancePercent = variance,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
+                };
+            })
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierAsync(WorkflowReportQueryDto query)
+    {
+        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
+
+        return lines
+            .GroupBy(item => new
+            {
+                IngredientKey = Convert.ToBase64String(item.IngredientId),
+                SupplierKey = Convert.ToBase64String(item.Receipt.SupplierId)
+            })
+            .Select(group =>
+            {
+                var first = group.First();
+                var avgPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice));
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(first.Ingredient.ReferencePrice, avgPrice);
+
+                return new PriceVarianceBySupplierDto
+                {
+                    IngredientId = GuidHelper.ToGuidString(first.IngredientId),
+                    IngredientName = first.Ingredient.IngredientName,
+                    SupplierId = GuidHelper.ToGuidString(first.Receipt.SupplierId),
+                    SupplierName = first.Receipt.Supplier.SupplierName,
+                    ReceiptCount = group.Count(),
+                    AvgUnitPrice = avgPrice,
+                    MinUnitPrice = DecimalPolicy.RoundMoney(group.Min(x => x.UnitPrice)),
+                    MaxUnitPrice = DecimalPolicy.RoundMoney(group.Max(x => x.UnitPrice)),
+                    ReferencePrice = DecimalPolicy.RoundMoney(first.Ingredient.ReferencePrice),
+                    VariancePercent = variance,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
+                };
+            })
+            .OrderByDescending(dto => dto.VariancePercent)
+            .ThenBy(dto => dto.IngredientName)
+            .Take(NormalizeLimit(query.Limit))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<PriceVarianceByPeriodDto>> GetPriceVarianceByPeriodAsync(WorkflowReportQueryDto query)
+    {
+        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
+
+        var byIngredientAndPeriod = lines
+            .GroupBy(item => new
+            {
+                IngredientKey = Convert.ToBase64String(item.IngredientId),
+                PeriodStart = new DateOnly(item.Receipt.ReceiptDate.Year, item.Receipt.ReceiptDate.Month, 1)
+            })
+            .Select(group =>
+            {
+                var first = group.First();
+                return new
+                {
+                    first.IngredientId,
+                    first.Ingredient.IngredientName,
+                    first.Ingredient.ReferencePrice,
+                    group.Key.PeriodStart,
+                    AvgUnitPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice))
+                };
+            })
+            .ToList();
+
+        var result = new List<PriceVarianceByPeriodDto>();
+        foreach (var ingredientGroup in byIngredientAndPeriod
+            .GroupBy(x => Convert.ToBase64String(x.IngredientId))
+            .OrderBy(g => g.First().IngredientName))
+        {
+            var periods = ingredientGroup.OrderBy(x => x.PeriodStart).ToList();
+            for (var i = 0; i < periods.Count; i++)
+            {
+                var current = periods[i];
+                var varianceVsReference = WorkflowReportCalculator.CalculateVariancePercent(current.ReferencePrice, current.AvgUnitPrice);
+                decimal? varianceVsPrevious = i > 0
+                    ? WorkflowReportCalculator.CalculateVariancePercent(periods[i - 1].AvgUnitPrice, current.AvgUnitPrice)
+                    : null;
+
+                result.Add(new PriceVarianceByPeriodDto
+                {
+                    IngredientId = GuidHelper.ToGuidString(current.IngredientId),
+                    IngredientName = current.IngredientName,
+                    PeriodLabel = current.PeriodStart.ToString("yyyy-MM"),
+                    PeriodStart = current.PeriodStart,
+                    AvgUnitPrice = current.AvgUnitPrice,
+                    ReferencePrice = DecimalPolicy.RoundMoney(current.ReferencePrice),
+                    VariancePercentVsReference = varianceVsReference,
+                    VariancePercentVsPreviousPeriod = varianceVsPrevious,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(varianceVsReference)
+                });
+            }
+        }
+
+        return result.Take(NormalizeLimit(query.Limit)).ToList();
+    }
+
+    public async Task<IReadOnlyList<PriceVarianceByDishGroupDto>> GetPriceVarianceByDishGroupAsync(WorkflowReportQueryDto query)
+    {
+        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
+
+        var ingredientVariance = lines
+            .GroupBy(item => Convert.ToBase64String(item.IngredientId))
+            .Select(group =>
+            {
+                var first = group.First();
+                var avgPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice));
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(first.Ingredient.ReferencePrice, avgPrice);
+
+                return new
+                {
+                    IngredientKey = Convert.ToBase64String(first.IngredientId),
+                    first.Ingredient.IngredientName,
+                    VariancePercent = variance,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
+                };
+            })
+            .ToDictionary(x => x.IngredientKey);
+
+        if (ingredientVariance.Count == 0)
+        {
+            return [];
+        }
+
+        var today = DateOnly.FromDateTime(DateTime.Today);
+        var activeBomLines = await _context.Dishboms
+            .AsNoTracking()
+            .Include(bom => bom.Dish)
+            .Where(bom =>
+                bom.EffectiveFrom <= today &&
+                (bom.EffectiveTo == null || bom.EffectiveTo >= today))
+            .ToListAsync();
+
+        var groupIngredientWeights = activeBomLines
+            .Where(bom => ingredientVariance.ContainsKey(Convert.ToBase64String(bom.IngredientId)))
+            .GroupBy(bom => new
+            {
+                GroupName = string.IsNullOrWhiteSpace(bom.Dish.DishGroup) ? "Chưa phân nhóm" : bom.Dish.DishGroup!,
+                IngredientKey = Convert.ToBase64String(bom.IngredientId)
+            })
+            .Select(g => new
+            {
+                g.Key.GroupName,
+                g.Key.IngredientKey,
+                Weight = g.Sum(x => x.GrossQtyPerServing)
+            })
+            .ToList();
+
+        return groupIngredientWeights
+            .GroupBy(x => x.GroupName)
+            .Select(group =>
+            {
+                var items = group
+                    .Select(x => new
+                    {
+                        x.Weight,
+                        Info = ingredientVariance[x.IngredientKey]
+                    })
+                    .ToList();
+
+                var totalWeight = items.Sum(x => x.Weight);
+                var weightedAvg = totalWeight > 0
+                    ? DecimalPolicy.RoundPercent(items.Sum(x => x.Weight * x.Info.VariancePercent) / totalWeight)
+                    : 0;
+
+                return new PriceVarianceByDishGroupDto
+                {
+                    DishGroup = group.Key,
+                    IngredientCount = items.Count,
+                    WarningIngredientCount = items.Count(x => x.Info.IsWarning),
+                    WeightedAvgVariancePercent = weightedAvg,
+                    TopIngredients = items
+                        .OrderByDescending(x => x.Info.VariancePercent)
+                        .Take(3)
+                        .Select(x => new PriceVarianceDishGroupIngredientDto
+                        {
+                            IngredientName = x.Info.IngredientName,
+                            VariancePercent = x.Info.VariancePercent,
+                            Weight = DecimalPolicy.RoundQuantity(x.Weight)
+                        })
+                        .ToList()
+                };
+            })
+            .OrderByDescending(dto => dto.WeightedAvgVariancePercent)
+            .Take(NormalizeLimit(query.Limit))
+            .ToList();
+    }
+
+    private IQueryable<Inventoryreceiptline> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
+    {
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
         var supplierId = GuidHelper.ParseGuidString(query.SupplierId);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -533,38 +755,7 @@ public class WorkflowReportService : IWorkflowReportService
             lines = lines.Where(item => item.Receipt.ReceiptDate <= dateTo);
         }
 
-        var receiptLines = await lines
-            .OrderByDescending(item => item.Receipt.ReceiptDate)
-            .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
-            .ToListAsync();
-
-        return receiptLines
-            .Select(item =>
-            {
-                var variance = WorkflowReportCalculator.CalculateVariancePercent(
-                    item.Ingredient.ReferencePrice,
-                    item.UnitPrice);
-
-                return new ReceiptPriceVarianceReportDto
-                {
-                    ReceiptId = GuidHelper.ToGuidString(item.ReceiptId),
-                    ReceiptCode = item.Receipt.ReceiptCode,
-                    ReceiptDate = item.Receipt.ReceiptDate,
-                    SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
-                    SupplierName = item.Receipt.Supplier.SupplierName,
-                    IngredientId = GuidHelper.ToGuidString(item.IngredientId),
-                    IngredientName = item.Ingredient.IngredientName,
-                    UnitId = GuidHelper.ToGuidString(item.UnitId),
-                    UnitName = item.Unit.UnitName,
-                    Quantity = DecimalPolicy.RoundQuantity(item.Quantity),
-                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
-                    ReferencePrice = DecimalPolicy.RoundMoney(item.Ingredient.ReferencePrice),
-                    VariancePercent = variance,
-                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
-                };
-            })
-            .ToList();
+        return lines;
     }
 
     public async Task<IReadOnlyList<KitchenIssueReportDto>> GetKitchenIssuesAsync(WorkflowReportQueryDto query)
@@ -1286,6 +1477,83 @@ public class WorkflowReportService : IWorkflowReportService
                 BomRatePercent = item.MenuSchedule.BomRatePercent
             })
             .ToListAsync();
+    }
+
+    public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var demandWindowStart = today.AddDays(-7);
+        var lateReceiptCutoff = today.AddDays(-LateReceiptThresholdDays);
+
+        var shortageCount = await _context.Materialrequestlines
+            .AsNoTracking()
+            .CountAsync(line => line.SuggestedPurchaseQty > 0 && line.Request.Status != "CANCELLED");
+
+        var candidateOverdueRequests = await _context.Purchaserequests
+            .AsNoTracking()
+            .Include(pr => pr.Purchaserequestlines)
+                .ThenInclude(line => line.Purchaseorderline)
+            .Where(pr => (pr.Status == "DRAFT" || pr.Status == "APPROVED") && pr.PurchaseForDate < today)
+            .ToListAsync();
+
+        var overduePurchaseRequestCount = candidateOverdueRequests.Count(pr => pr.Purchaserequestlines.Any(line =>
+            line.Purchaseorderline is null ||
+            DecimalPolicy.LessThanQuantity(line.Purchaseorderline.ReceivedQty, line.Purchaseorderline.OrderedQty)));
+
+        var lateReceiptCount = await _context.Purchaseorders
+            .AsNoTracking()
+            .CountAsync(po => (po.Status == "ORDERED" || po.Status == "PARTIALLY_RECEIVED") && po.OrderDate <= lateReceiptCutoff);
+
+        var pendingKitchenConfirmationCount = await _context.Inventoryissues
+            .AsNoTracking()
+            .CountAsync(issue => issue.ReceivedBy == null);
+
+        var lowStockCount = await ComputeLowStockCountAsync(demandWindowStart, today);
+
+        return new OperationalKpiSummaryDto
+        {
+            ShortageCount = shortageCount,
+            LowStockCount = lowStockCount,
+            OverduePurchaseRequestCount = overduePurchaseRequestCount,
+            LateReceiptCount = lateReceiptCount,
+            PendingKitchenConfirmationCount = pendingKitchenConfirmationCount,
+            GeneratedAt = DateTime.UtcNow
+        };
+    }
+
+    /// <summary>Tồn thấp = tồn hiện tại không đủ dùng cho 1 ngày nữa nếu nhu cầu giữ nguyên như trung bình 7 ngày gần nhất
+    /// (chưa có ngưỡng tối thiểu cấu hình theo từng nguyên liệu, nên suy ra từ lịch sử nhu cầu thay vì hardcode).</summary>
+    private async Task<int> ComputeLowStockCountAsync(DateOnly demandWindowStart, DateOnly today)
+    {
+        var avgDailyDemandByIngredient = await _context.Materialrequestlines
+            .AsNoTracking()
+            .Where(line => line.Request.RequestDate >= demandWindowStart && line.Request.RequestDate <= today)
+            .GroupBy(line => line.IngredientId)
+            .Select(group => new { IngredientId = group.Key, TotalRequiredQty = group.Sum(line => line.TotalRequiredQty) })
+            .ToListAsync();
+
+        if (avgDailyDemandByIngredient.Count == 0)
+        {
+            return 0;
+        }
+
+        var currentStockByIngredient = await _context.Currentstocks
+            .AsNoTracking()
+            .GroupBy(stock => stock.IngredientId)
+            .Select(group => new { IngredientId = group.Key, CurrentQty = group.Sum(stock => stock.CurrentQty) })
+            .ToDictionaryAsync(item => Convert.ToBase64String(item.IngredientId), item => item.CurrentQty);
+
+        return avgDailyDemandByIngredient.Count(demand =>
+        {
+            var avgDailyQty = demand.TotalRequiredQty / 7m;
+            if (avgDailyQty <= 0)
+            {
+                return false;
+            }
+
+            var currentQty = currentStockByIngredient.GetValueOrDefault(Convert.ToBase64String(demand.IngredientId), 0);
+            return DecimalPolicy.LessThanQuantity(currentQty, avgDailyQty);
+        });
     }
 
     private IQueryable<Inventoryissueline> QueryIssueLines(WorkflowReportQueryDto query)

@@ -4,6 +4,7 @@ using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IPCManagement.Api.Migrations
 {
     [DbContext(typeof(IpcManagementContext))]
-    partial class IpcManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260702165732_FixPurchaseRequestStatusEnum")]
+    partial class FixPurchaseRequestStatusEnum
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -643,10 +646,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("materialRequestId")
                         .IsFixedLength();
 
-                    b.Property<DateTime?>("ReceivedAt")
-                        .HasColumnType("datetime")
-                        .HasColumnName("receivedAt");
-
                     b.Property<byte[]>("ReceivedBy")
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
@@ -917,14 +916,6 @@ namespace IPCManagement.Api.Migrations
                     b.Property<DateOnly>("ReturnDate")
                         .HasColumnType("date")
                         .HasColumnName("returnDate");
-
-                    b.Property<string>("ReturnType")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("varchar(20)")
-                        .HasDefaultValue("RETURN")
-                        .HasColumnName("returnType");
 
                     b.Property<string>("ShiftName")
                         .HasColumnType("enum('MORNING','AFTERNOON')")
@@ -1740,18 +1731,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("createdBy")
                         .IsFixedLength();
 
-                    b.Property<byte[]>("CustomerId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("customerId")
-                        .IsFixedLength();
-
-                    b.Property<byte[]>("MenuVersionId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("menuVersionId")
-                        .IsFixedLength();
-
                     b.Property<string>("PlanCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1769,10 +1748,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'CREATED'");
 
-                    b.Property<DateOnly?>("WeekStartDate")
-                        .HasColumnType("date")
-                        .HasColumnName("weekStartDate");
-
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -1784,11 +1759,6 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasIndex(new[] { "CreatedBy" }, "createdBy")
                         .HasDatabaseName("createdBy3");
-
-                    b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId4");
-
-                    b.HasIndex(new[] { "MenuVersionId" }, "menuVersionId");
 
                     b.HasIndex(new[] { "PlanCode" }, "planCode")
                         .IsUnique()
@@ -1853,7 +1823,7 @@ namespace IPCManagement.Api.Migrations
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId5");
+                        .HasDatabaseName("customerId4");
 
                     b.HasIndex(new[] { "DishId" }, "dishId")
                         .HasDatabaseName("dishId2");
@@ -2096,10 +2066,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("estimatedUnitPrice");
 
-                    b.Property<DateOnly?>("ExpectedDeliveryDate")
-                        .HasColumnType("date")
-                        .HasColumnName("expectedDeliveryDate");
-
                     b.Property<byte[]>("IngredientId")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -2113,10 +2079,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("materialRequestLineId")
                         .IsFixedLength();
-
-                    b.Property<string>("Note")
-                        .HasColumnType("text")
-                        .HasColumnName("note");
 
                     b.Property<decimal>("PurchaseQty")
                         .HasPrecision(18, 6)
@@ -3240,35 +3202,6 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Dish");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
-                {
-                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
-                        .WithMany("Menuversions")
-                        .HasForeignKey("CustomerId")
-                        .IsRequired()
-                        .HasConstraintName("menuversions_ibfk_1");
-
-                    b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Portionrule", b =>
-                {
-                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
-                        .WithMany("Portionrules")
-                        .HasForeignKey("CustomerId")
-                        .IsRequired()
-                        .HasConstraintName("portionrules_ibfk_1");
-
-                    b.HasOne("IPCManagement.Api.Models.Entities.Dish", "Dish")
-                        .WithMany("Portionrules")
-                        .HasForeignKey("DishId")
-                        .HasConstraintName("portionrules_ibfk_2");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("Dish");
-                });
-
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
@@ -3277,21 +3210,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("productionplans_ibfk_1");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
-                        .WithMany()
-                        .HasForeignKey("CustomerId")
-                        .HasConstraintName("productionplans_ibfk_2");
-
-                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
-                        .WithMany()
-                        .HasForeignKey("MenuVersionId")
-                        .HasConstraintName("productionplans_ibfk_3");
-
                     b.Navigation("CreatedByNavigation");
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("MenuVersion");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>

@@ -82,6 +82,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Purchaserequestline> Purchaserequestlines { get; set; }
 
+    public virtual DbSet<Purchaseorder> Purchaseorders { get; set; }
+
+    public virtual DbSet<Purchaseorderline> Purchaseorderlines { get; set; }
+
     public virtual DbSet<Quantityadjustment> Quantityadjustments { get; set; }
 
     public virtual DbSet<Quantityimportbatch> Quantityimportbatches { get; set; }
@@ -1602,7 +1606,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("shiftName");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'DRAFT'")
-                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','PARTIALRECEIVED','RECEIVED','CANCELLED')")
+                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','CANCELLED')")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PurchaserequestApprovedByNavigations)
@@ -1698,6 +1702,134 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("purchaserequestlines_ibfk_5");
+        });
+
+        modelBuilder.Entity<Purchaseorder>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseOrderId).HasName("PRIMARY");
+
+            entity.ToTable("purchaseorders");
+
+            entity.HasIndex(e => e.PurchaseOrderCode, "purchaseOrderCode").IsUnique();
+
+            entity.HasIndex(e => e.PurchaseRequestId, "ixPurchaseOrdersRequest");
+
+            entity.HasIndex(e => e.SupplierId, "ixPurchaseOrdersSupplier");
+
+            entity.HasIndex(e => new { e.PurchaseRequestId, e.SupplierId }, "ixPurchaseOrdersRequestSupplier").IsUnique();
+
+            entity.Property(e => e.PurchaseOrderId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderId");
+            entity.Property(e => e.PurchaseOrderCode)
+                .HasMaxLength(50)
+                .HasColumnName("purchaseOrderCode");
+            entity.Property(e => e.PurchaseRequestId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseRequestId");
+            entity.Property(e => e.SupplierId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("supplierId");
+            entity.Property(e => e.OrderDate).HasColumnName("orderDate");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValue("ORDERED")
+                .HasColumnName("status");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+
+            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_1");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_2");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_3");
+        });
+
+        modelBuilder.Entity<Purchaseorderline>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseOrderLineId).HasName("PRIMARY");
+
+            entity.ToTable("purchaseorderlines");
+
+            entity.HasIndex(e => e.PurchaseOrderId, "ixPurchaseOrderLinesOrder");
+
+            entity.HasIndex(e => e.PurchaseRequestLineId, "ixPurchaseOrderLinesRequestLine").IsUnique();
+
+            entity.HasIndex(e => e.IngredientId, "ixPurchaseOrderLinesIngredient");
+
+            entity.HasIndex(e => e.UnitId, "ixPurchaseOrderLinesUnit");
+
+            entity.Property(e => e.PurchaseOrderLineId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderLineId");
+            entity.Property(e => e.PurchaseOrderId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderId");
+            entity.Property(e => e.PurchaseRequestLineId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseRequestLineId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.OrderedQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("orderedQty");
+            entity.Property(e => e.ReceivedQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("receivedQty");
+            entity.Property(e => e.UnitPrice)
+                .HasPrecision(18, 2)
+                .HasColumnName("unitPrice");
+
+            entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_1");
+
+            entity.HasOne(d => d.PurchaseRequestLine).WithOne(p => p.Purchaseorderline)
+                .HasForeignKey<Purchaseorderline>(d => d.PurchaseRequestLineId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_2");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_3");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_4");
         });
 
         modelBuilder.Entity<Quantityadjustment>(entity =>

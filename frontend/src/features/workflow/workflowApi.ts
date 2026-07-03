@@ -235,6 +235,39 @@ export interface UpdateSupplierQuotationDto {
   isActive: boolean;
 }
 
+export interface PurchaseOrderLineDto {
+  purchaseOrderLineId: string;
+  purchaseRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  orderedQty: number;
+  receivedQty: number;
+  unitPrice: number;
+}
+
+export interface PurchaseOrderDto {
+  purchaseOrderId: string;
+  purchaseOrderCode: string;
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  supplierId: string;
+  supplierName: string;
+  orderDate: string;
+  status: string;
+  lines: PurchaseOrderLineDto[];
+}
+
+export interface RecordPurchaseOrderReceiptLineDto {
+  purchaseOrderLineId: string;
+  receivedQty: number;
+}
+
+export interface RecordPurchaseOrderReceiptDto {
+  lines: RecordPurchaseOrderReceiptLineDto[];
+}
+
 interface ReceiptPriceVarianceReportDto {
   receiptId: string;
   receiptCode: string;
@@ -250,6 +283,55 @@ interface ReceiptPriceVarianceReportDto {
   referencePrice: number;
   variancePercent: number;
   isWarning: boolean;
+}
+
+export interface PriceVarianceBySupplierDto {
+  ingredientId: string;
+  ingredientName?: string;
+  supplierId: string;
+  supplierName?: string;
+  receiptCount: number;
+  avgUnitPrice: number;
+  minUnitPrice: number;
+  maxUnitPrice: number;
+  referencePrice: number;
+  variancePercent: number;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceByPeriodDto {
+  ingredientId: string;
+  ingredientName?: string;
+  periodLabel: string;
+  periodStart: string;
+  avgUnitPrice: number;
+  referencePrice: number;
+  variancePercentVsReference: number;
+  variancePercentVsPreviousPeriod?: number | null;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceDishGroupIngredientDto {
+  ingredientName: string;
+  variancePercent: number;
+  weight: number;
+}
+
+export interface PriceVarianceByDishGroupDto {
+  dishGroup: string;
+  ingredientCount: number;
+  warningIngredientCount: number;
+  weightedAvgVariancePercent: number;
+  topIngredients: PriceVarianceDishGroupIngredientDto[];
+}
+
+export interface OperationalKpiSummaryDto {
+  shortageCount: number;
+  lowStockCount: number;
+  overduePurchaseRequestCount: number;
+  lateReceiptCount: number;
+  pendingKitchenConfirmationCount: number;
+  generatedAt: string;
 }
 
 interface CurrentStockSummaryDto {
@@ -919,6 +1001,39 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['SupplierQuotations'],
     }),
+    getPurchaseOrders: builder.query<PurchaseOrderDto[], { status?: string } | void>({
+      query: (query) => ({
+        url: '/purchase-orders',
+        params: query?.status ? { status: query.status } : undefined,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      providesTags: ['PurchaseOrders'],
+    }),
+    createPurchaseOrdersFromRequest: builder.mutation<PurchaseOrderDto[], string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-orders/from-request/${purchaseRequestId}`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+    }),
+    recordPurchaseOrderReceipt: builder.mutation<PurchaseOrderDto, { purchaseOrderId: string; data: RecordPurchaseOrderReceiptDto }>({
+      query: ({ purchaseOrderId, data }) => ({
+        url: `/purchase-orders/${purchaseOrderId}/receive`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders'],
+    }),
+    cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
+      query: (purchaseOrderId) => ({
+        url: `/purchase-orders/${purchaseOrderId}/cancel`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -1019,6 +1134,35 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<ReceiptPriceVarianceReportDto[]>) => getData(response).map(mapPriceVariance),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVarianceBySupplier: builder.query<PriceVarianceBySupplierDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-supplier',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceBySupplierDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByPeriod: builder.query<PriceVarianceByPeriodDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-period',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByPeriodDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByDishGroup: builder.query<PriceVarianceByDishGroupDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-dish-group',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getOperationalKpis: builder.query<OperationalKpiSummaryDto, void>({
+      query: () => '/workflow-reports/operational-kpis',
+      transformResponse: (response: ApiResponse<OperationalKpiSummaryDto>) => response.data!,
+      providesTags: ['WorkflowReports'],
+    }),
     getCurrentStock: builder.query<CurrentStockRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/current-stock',
@@ -1097,6 +1241,10 @@ export const {
   useExecuteApprovalDecisionMutation,
   useGetStockMovementsQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVarianceBySupplierQuery,
+  useGetPriceVarianceByPeriodQuery,
+  useGetPriceVarianceByDishGroupQuery,
+  useGetOperationalKpisQuery,
   useGetCurrentStockQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
@@ -1109,6 +1257,10 @@ export const {
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
+  useGetPurchaseOrdersQuery,
+  useCreatePurchaseOrdersFromRequestMutation,
+  useRecordPurchaseOrderReceiptMutation,
+  useCancelPurchaseOrderMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {
