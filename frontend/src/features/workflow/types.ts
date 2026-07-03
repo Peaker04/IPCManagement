@@ -140,6 +140,8 @@ export interface StockMovement {
   documentNo: string;
   material: string;
   quantity: number;
+  beforeQty?: number;
+  afterQty?: number;
   unit: string;
   owner: string;
   status: string;

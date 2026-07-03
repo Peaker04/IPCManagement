@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '../../../routes/routeConfig';
-import { AlertTriangle, CalendarClock, ClipboardCheck, Route } from 'lucide-react';
+import { AlertTriangle, CalendarClock, ClipboardCheck, PackageX, Route, TimerOff, TrendingDown, Truck } from 'lucide-react';
 import {
   CommandBar,
   ExceptionLane,
@@ -8,12 +8,62 @@ import {
   OperationalFrame,
   RoleInbox,
   SectionPanel,
+  StatCard,
   SwimlaneProgress,
 } from '@/components/common';
-import { useWorkflowOverview } from '@/features/workflow';
+import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/features/workflow';
 
 const DashboardPage = () => {
   const { blockedItems, isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
+  const { data: kpis } = useGetOperationalKpisQuery();
+
+  const kpiCards = [
+    {
+      key: 'shortage',
+      label: 'Thiếu hụt',
+      value: kpis?.shortageCount ?? '—',
+      icon: <PackageX size={18} color="var(--ipc-danger)" />,
+      backgroundColor: 'var(--ipc-danger-soft)',
+      valueColor: 'var(--ipc-danger)',
+      route: `${ROUTES.REPORTS}?view=demand`,
+    },
+    {
+      key: 'lowStock',
+      label: 'Tồn thấp',
+      value: kpis?.lowStockCount ?? '—',
+      icon: <TrendingDown size={18} color="var(--ipc-warning)" />,
+      backgroundColor: 'var(--ipc-warning-soft)',
+      valueColor: 'var(--ipc-warning)',
+      route: `${ROUTES.REPORTS}?view=stock`,
+    },
+    {
+      key: 'overduePr',
+      label: 'PR quá hạn',
+      value: kpis?.overduePurchaseRequestCount ?? '—',
+      icon: <TimerOff size={18} color="var(--ipc-danger)" />,
+      backgroundColor: 'var(--ipc-danger-soft)',
+      valueColor: 'var(--ipc-danger)',
+      route: `${ROUTES.REPORTS}?view=purchase`,
+    },
+    {
+      key: 'lateReceipt',
+      label: 'Receipt trễ',
+      value: kpis?.lateReceiptCount ?? '—',
+      icon: <Truck size={18} color="var(--ipc-warning)" />,
+      backgroundColor: 'var(--ipc-warning-soft)',
+      valueColor: 'var(--ipc-warning)',
+      route: `${ROUTES.PURCHASING}?view=orders`,
+    },
+    {
+      key: 'pendingConfirmation',
+      label: 'Issue chờ bếp xác nhận',
+      value: kpis?.pendingKitchenConfirmationCount ?? '—',
+      icon: <ClipboardCheck size={18} color="var(--ipc-warning)" />,
+      backgroundColor: 'var(--ipc-warning-soft)',
+      valueColor: 'var(--ipc-warning)',
+      route: `${ROUTES.REPORTS}?view=kitchen`,
+    },
+  ];
 
   return (
     <OperationalFrame
@@ -47,6 +97,22 @@ const DashboardPage = () => {
           Hệ thống đang tổng hợp chứng từ, nhu cầu và luân chuyển kho.
         </InlineAlert>
       )}
+      <SectionPanel title="KPI vận hành" icon={<AlertTriangle size={18} />}>
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+          {kpiCards.map((card) => (
+            <Link key={card.key} to={card.route} className="no-underline">
+              <StatCard
+                label={card.label}
+                value={card.value}
+                icon={card.icon}
+                backgroundColor={card.backgroundColor}
+                valueColor={card.valueColor}
+              />
+            </Link>
+          ))}
+        </div>
+      </SectionPanel>
+
       <SectionPanel title="Bảng lane vận hành" icon={<Route size={18} />}>
         <SwimlaneProgress
           lanes={workflowLanes}

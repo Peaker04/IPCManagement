@@ -150,3 +150,59 @@ WHERE EXISTS (
     AND TABLE_NAME = 'inventoryreturns'
     AND COLUMN_NAME = 'returnType'
 );
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260702165732_FixPurchaseRequestStatusEnum', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'purchaserequests'
+    AND COLUMN_NAME = 'status'
+    AND COLUMN_TYPE LIKE '%SENTTOWAREHOUSE%'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260703090000_AlignPurchaseRequestReceiptStatuses', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'purchaserequests'
+    AND COLUMN_NAME = 'status'
+    AND COLUMN_TYPE LIKE '%PARTIALRECEIVED%'
+    AND COLUMN_TYPE LIKE '%RECEIVED%'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260703093000_AddLotLevelStock', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'currentstocklots'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'stockmovements'
+    AND COLUMN_NAME = 'lotNumber'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260703100000_AddStockMovementQuantitySnapshots', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'stockmovements'
+    AND COLUMN_NAME = 'beforeQty'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'stockmovements'
+    AND COLUMN_NAME = 'afterQty'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260703103000_AddMonthlyStockSnapshots', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stocksnapshots'
+);

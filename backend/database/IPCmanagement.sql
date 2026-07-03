@@ -7,6 +7,8 @@ USE ipcManagement;
 SET FOREIGN_KEY_CHECKS = 0;
 
 DROP TABLE IF EXISTS refreshtokens;
+DROP TABLE IF EXISTS stocksnapshots;
+DROP TABLE IF EXISTS currentstocklots;
 DROP TABLE IF EXISTS currentstock;
 DROP TABLE IF EXISTS stockmovements;
 DROP TABLE IF EXISTS inventoryreturnlines;
@@ -142,6 +144,7 @@ CREATE TABLE currentstock (
   unitId BINARY(16) NOT NULL,
   currentQty DECIMAL(18,6) NOT NULL DEFAULT 0.000000,
   lastUpdated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  rowVersion TIMESTAMP(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
   PRIMARY KEY (warehouseId, ingredientId),
   FOREIGN KEY (warehouseId) REFERENCES warehouses(warehouseId),
   FOREIGN KEY (ingredientId) REFERENCES ingredients(ingredientId),
@@ -338,7 +341,7 @@ CREATE TABLE purchaserequests (
   requestDate DATE NOT NULL,
   purchaseForDate DATE NOT NULL,
   shiftName ENUM('MORNING','AFTERNOON') NULL,
-  status ENUM('DRAFT','SENTTOSUPPLIER','PARTIALRECEIVED','RECEIVED','CANCELLED') NOT NULL DEFAULT 'DRAFT',
+  status ENUM('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED') NOT NULL DEFAULT 'DRAFT',
   createdBy BINARY(16) NOT NULL,
   approvedBy BINARY(16) NULL,
   approvedAt DATETIME NULL,
@@ -460,6 +463,11 @@ CREATE TABLE stockmovements (
   refId BINARY(16) NULL,
   quantityIn DECIMAL(18,6) NOT NULL DEFAULT 0,
   quantityOut DECIMAL(18,6) NOT NULL DEFAULT 0,
+  beforeQty DECIMAL(18,6) NOT NULL DEFAULT 0,
+  afterQty DECIMAL(18,6) NOT NULL DEFAULT 0,
+  lotNumber VARCHAR(100) NULL,
+  manufactureDate DATE NULL,
+  expiredDate DATE NULL,
   reason TEXT NULL,
   note TEXT NULL,
   performedBy BINARY(16) NOT NULL,
@@ -467,6 +475,37 @@ CREATE TABLE stockmovements (
   FOREIGN KEY (ingredientId) REFERENCES ingredients(ingredientId),
   FOREIGN KEY (unitId) REFERENCES units(unitId),
   FOREIGN KEY (performedBy) REFERENCES users(userId)
+) ENGINE = InnoDB;
+
+CREATE TABLE currentstocklots (
+  lotStockId BINARY(16) PRIMARY KEY,
+  warehouseId BINARY(16) NOT NULL,
+  ingredientId BINARY(16) NOT NULL,
+  unitId BINARY(16) NOT NULL,
+  lotNumber VARCHAR(100) NULL,
+  manufactureDate DATE NULL,
+  expiredDate DATE NULL,
+  currentQty DECIMAL(18,6) NOT NULL DEFAULT 0,
+  lastUpdated DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (warehouseId) REFERENCES warehouses(warehouseId),
+  FOREIGN KEY (ingredientId) REFERENCES ingredients(ingredientId),
+  FOREIGN KEY (unitId) REFERENCES units(unitId)
+) ENGINE = InnoDB;
+
+CREATE TABLE stocksnapshots (
+  snapshotId BINARY(16) PRIMARY KEY,
+  warehouseId BINARY(16) NOT NULL,
+  ingredientId BINARY(16) NOT NULL,
+  unitId BINARY(16) NOT NULL,
+  periodMonth DATE NOT NULL,
+  openingQty DECIMAL(18,6) NOT NULL DEFAULT 0,
+  quantityIn DECIMAL(18,6) NOT NULL DEFAULT 0,
+  quantityOut DECIMAL(18,6) NOT NULL DEFAULT 0,
+  closingQty DECIMAL(18,6) NOT NULL DEFAULT 0,
+  generatedAt DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (warehouseId) REFERENCES warehouses(warehouseId),
+  FOREIGN KEY (ingredientId) REFERENCES ingredients(ingredientId),
+  FOREIGN KEY (unitId) REFERENCES units(unitId)
 ) ENGINE = InnoDB;
 
 CREATE INDEX ixAuditLogsChangedBy ON auditlogs(changedBy, changedAt);
@@ -480,6 +519,10 @@ CREATE INDEX ixStockMovementsLookup ON stockmovements(warehouseId, ingredientId,
 CREATE INDEX ixStockMovementsIngredientDate ON stockmovements(ingredientId, movementDate);
 CREATE INDEX ixStockMovementsTypeDate ON stockmovements(movementType, movementDate);
 CREATE INDEX ixStockMovementsRef ON stockmovements(refTable, refId);
+CREATE INDEX ixCurrentStockLotsFefo ON currentstocklots(warehouseId, ingredientId, expiredDate, lotNumber);
+CREATE INDEX ixCurrentStockLotsIdentity ON currentstocklots(warehouseId, ingredientId, unitId, lotNumber, manufactureDate, expiredDate);
+CREATE UNIQUE INDEX ixStockSnapshotsIdentity ON stocksnapshots(warehouseId, ingredientId, unitId, periodMonth);
+CREATE INDEX ixStockSnapshotsPeriod ON stocksnapshots(periodMonth, warehouseId, ingredientId);
 
 CREATE UNIQUE INDEX ixRefreshTokensHash ON refreshtokens(tokenHash);
 CREATE INDEX ixRefreshTokensUserExpiry ON refreshtokens(userId, expiresAt);

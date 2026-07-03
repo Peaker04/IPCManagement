@@ -51,7 +51,7 @@ export interface LoginRequest {
  */
 export interface RefreshTokenRequest {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 /**
@@ -59,5 +59,5 @@ export interface RefreshTokenRequest {
  * Khớp với RevokeTokenRequestDto ở backend.
  */
 export interface RevokeTokenRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }

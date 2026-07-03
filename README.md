@@ -105,7 +105,7 @@ Với database mới, tạo database `ipcmanagement` rồi chạy EF migration t
 dotnet ef database update --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
 ```
 
-Với database local cũ được tạo từ file SQL/dump trước đây, chạy script `.docs/Init_EF_History_For_Old_DB.sql` trên database đó trước. Script này đồng bộ bảng `__EFMigrationsHistory` với schema đã có, sau đó chạy lại lệnh `dotnet ef database update` ở trên.
+Với database local cũ được tạo từ file SQL/dump trước đây, chạy script `backend/database/Init_EF_History_For_Old_DB.sql` trên database đó trước. Script này đồng bộ bảng `__EFMigrationsHistory` với schema đã có, sau đó chạy lại lệnh `dotnet ef database update` ở trên.
 
 ### CORS
 

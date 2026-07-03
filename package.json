@@ -8,7 +8,7 @@
     "frontend"
   ],
   "scripts": {
-    "prepare": "node -e \"import('child_process').then(m=>{ if(!process.env.CI&&!process.env.VERCEL) m.execSync('husky',{stdio:'inherit'}) })\"",
+    "prepare": "husky",
     "fe": "npm run dev -w frontend",
     "be": "dotnet run --project backend/src/IPCManagement.Api",
     "build:be": "dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
@@ -16,7 +16,6 @@
     "lint:fe": "npm run lint -w frontend",
     "build:fe": "npm run build -w frontend",
     "verify": "npm run build:be && npm run test:be && npm run lint:fe && npm run build:fe",
-    "verify:release": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1",
     "commitlint": "commitlint --edit"
   },
   "repository": {
