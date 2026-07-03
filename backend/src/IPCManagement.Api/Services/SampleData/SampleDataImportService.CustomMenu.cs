@@ -605,7 +605,7 @@ public partial class SampleDataImportService
 
         var actor = await _context.Users
             .AsNoTracking()
-            .OrderByDescending(user => user.Role != null && user.Role.RoleName.ToLower().Contains("admin"))
+            .OrderByDescending(user => user.Role != null && EF.Functions.Like(user.Role.RoleName, "%admin%"))
             .ThenBy(user => user.Username)
             .FirstOrDefaultAsync(cancellationToken);
 

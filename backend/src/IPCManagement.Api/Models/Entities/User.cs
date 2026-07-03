@@ -43,6 +43,8 @@ public partial class User
 
     public virtual ICollection<Purchaserequest> PurchaserequestCreatedByNavigations { get; set; } = new List<Purchaserequest>();
 
+    public virtual ICollection<Purchaseorder> Purchaseorders { get; set; } = new List<Purchaseorder>();
+
     public virtual ICollection<Quantityadjustment> Quantityadjustments { get; set; } = new List<Quantityadjustment>();
 
     public virtual ICollection<Quantityimportbatch> Quantityimportbatches { get; set; } = new List<Quantityimportbatch>();

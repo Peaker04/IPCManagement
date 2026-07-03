@@ -2,15 +2,15 @@ import type { AppDispatch, RootState } from '../../app/store';
 import { authApi } from './authApi';
 import { logOut } from './authSlice';
 
-const isDevFallbackRefreshToken = (refreshToken: string) =>
-  refreshToken.startsWith('dev-fallback-refresh');
+const isDevFallbackToken = (token: string) =>
+  token.startsWith('dev-login-fallback-token-');
 
 export const logoutSession = async (dispatch: AppDispatch, getState: () => RootState) => {
-  const refreshToken = getState().auth.refreshToken;
+  const token = getState().auth.token;
 
-  if (refreshToken && !isDevFallbackRefreshToken(refreshToken)) {
+  if (token && !isDevFallbackToken(token)) {
     try {
-      await dispatch(authApi.endpoints.logout.initiate({ refreshToken })).unwrap();
+      await dispatch(authApi.endpoints.logout.initiate()).unwrap();
     } catch {
       // Best-effort revoke. Local cleanup still needs to happen.
     }

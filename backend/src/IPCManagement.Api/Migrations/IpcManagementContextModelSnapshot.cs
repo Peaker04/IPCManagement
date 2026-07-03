@@ -265,6 +265,157 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("currentstock", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.Property<byte[]>("LotStockId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("lotStockId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("CurrentQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("currentQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("LastUpdated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("lastUpdated")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("LotStockId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "ExpiredDate", "LotNumber" }, "ixCurrentStockLotsFefo");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "LotNumber", "ManufactureDate", "ExpiredDate" }, "ixCurrentStockLotsIdentity");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId");
+
+                    b.ToTable("currentstocklots", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.Property<byte[]>("SnapshotId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("snapshotId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("ClosingQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("closingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("generatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("OpeningQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("openingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly>("PeriodMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("periodMonth");
+
+                    b.Property<decimal>("QuantityIn")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityIn")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<decimal>("QuantityOut")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityOut")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("SnapshotId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "PeriodMonth" }, "ixStockSnapshotsIdentity")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PeriodMonth", "WarehouseId", "IngredientId" }, "ixStockSnapshotsPeriod");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId");
+
+                    b.ToTable("stocksnapshots", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
                     b.Property<byte[]>("CustomerId")
@@ -1868,6 +2019,149 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("productionplanlines", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.Property<byte[]>("PurchaseOrderId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("date")
+                        .HasColumnName("orderDate");
+
+                    b.Property<string>("PurchaseOrderCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("purchaseOrderCode");
+
+                    b.Property<byte[]>("PurchaseRequestId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("ORDERED")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupplierId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supplierId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("PurchaseOrderId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "PurchaseRequestId" }, "ixPurchaseOrdersRequest");
+
+                    b.HasIndex(new[] { "PurchaseRequestId", "SupplierId" }, "ixPurchaseOrdersRequestSupplier")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "SupplierId" }, "ixPurchaseOrdersSupplier");
+
+                    b.HasIndex(new[] { "PurchaseOrderCode" }, "purchaseOrderCode")
+                        .IsUnique();
+
+                    b.ToTable("purchaseorders", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+                {
+                    b.Property<byte[]>("PurchaseOrderLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderLineId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("OrderedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("orderedQty");
+
+                    b.Property<byte[]>("PurchaseOrderId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestLineId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("ReceivedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("receivedQty");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("unitPrice");
+
+                    b.HasKey("PurchaseOrderLineId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ixPurchaseOrderLinesIngredient");
+
+                    b.HasIndex(new[] { "PurchaseOrderId" }, "ixPurchaseOrderLinesOrder");
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId" }, "ixPurchaseOrderLinesRequestLine")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "UnitId" }, "ixPurchaseOrderLinesUnit");
+
+                    b.ToTable("purchaseorderlines", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.Property<byte[]>("PurchaseRequestId")
@@ -1914,7 +2208,7 @@ namespace IPCManagement.Api.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','PARTIALRECEIVED','RECEIVED','CANCELLED')")
+                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED')")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
@@ -2250,6 +2544,19 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
 
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
+
                     b.Property<DateTime>("MovementDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -2281,6 +2588,16 @@ namespace IPCManagement.Api.Migrations
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
                         .HasColumnName("quantityOut");
+
+                    b.Property<decimal>("BeforeQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("beforeQty");
+
+                    b.Property<decimal>("AfterQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("afterQty");
 
                     b.Property<string>("Reason")
                         .HasColumnType("text")
@@ -2656,6 +2973,60 @@ namespace IPCManagement.Api.Migrations
                         .HasForeignKey("WarehouseId")
                         .IsRequired()
                         .HasConstraintName("currentstock_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_1");
 
                     b.Navigation("Ingredient");
 
@@ -3194,6 +3565,68 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("QuantityPlanLine");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("CreatedBy")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequest", "PurchaseRequest")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("PurchaseRequestId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("SupplierId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_2");
+
+                    b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("PurchaseRequest");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaseorder", "PurchaseOrder")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                        .WithOne("Purchaseorderline")
+                        .HasForeignKey("IPCManagement.Api.Models.Entities.Purchaseorderline", "PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_4");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("PurchaseRequestLine");
+
+                    b.Navigation("Unit");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ApprovedByNavigation")
@@ -3398,6 +3831,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Currentstocks");
 
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Dishboms");
 
                     b.Navigation("Inventoryissuelines");
@@ -3408,9 +3843,13 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Materialrequestlines");
 
+                    b.Navigation("Purchaseorderlines");
+
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
 
                     b.Navigation("Supplierquotations");
                 });
@@ -3489,11 +3928,23 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Materialrequestlines");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.Navigation("Purchaseorderlines");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.Navigation("Inventoryreceipts");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("Purchaserequestlines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequestline", b =>
+                {
+                    b.Navigation("Purchaseorderline");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>
@@ -3510,6 +3961,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Inventoryreceipts");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Supplierquotations");
@@ -3518,6 +3971,8 @@ namespace IPCManagement.Api.Migrations
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unit", b =>
                 {
                     b.Navigation("Currentstocks");
+
+                    b.Navigation("Currentstocklots");
 
                     b.Navigation("Dishboms");
 
@@ -3531,9 +3986,13 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Materialrequestlines");
 
+                    b.Navigation("Purchaseorderlines");
+
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>
@@ -3558,6 +4017,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Productionplans");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("PurchaserequestApprovedByNavigations");
 
                     b.Navigation("PurchaserequestCreatedByNavigations");
@@ -3575,6 +4036,8 @@ namespace IPCManagement.Api.Migrations
                 {
                     b.Navigation("Currentstocks");
 
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Ingredients");
 
                     b.Navigation("Inventoryissues");
@@ -3584,6 +4047,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Inventoryreturns");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
                 });
 #pragma warning restore 612, 618
         }

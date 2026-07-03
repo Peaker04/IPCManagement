@@ -57,7 +57,6 @@ const LoginPage = () => {
               permissions: result.data.user.permissions ?? [],
             },
             token: result.data.accessToken,
-            refreshToken: result.data.refreshToken,
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -85,7 +84,6 @@ const LoginPage = () => {
               permissions: devAccount.permissions,
             },
             token: `dev-login-fallback-token-${username}`,
-            refreshToken: `dev-fallback-refresh-${username}`,
           })
         );
         navigate(ROUTES.DASHBOARD);

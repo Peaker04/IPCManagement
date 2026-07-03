@@ -11,7 +11,19 @@ public class WorkflowReportQueryDto
     public string? SupplierId { get; set; }
     public string? ShiftName { get; set; }
     public string? Format { get; set; }
+    public string? CursorDate { get; set; }
+    public string? CursorId { get; set; }
     public int Limit { get; set; } = 100;
+}
+
+public class OperationalKpiSummaryDto
+{
+    public int ShortageCount { get; set; }
+    public int LowStockCount { get; set; }
+    public int OverduePurchaseRequestCount { get; set; }
+    public int LateReceiptCount { get; set; }
+    public int PendingKitchenConfirmationCount { get; set; }
+    public DateTime GeneratedAt { get; set; }
 }
 
 public class CurrentStockSummaryDto
@@ -39,6 +51,8 @@ public class StockMovementViewDto
     public string MovementType { get; set; } = string.Empty;
     public decimal QuantityIn { get; set; }
     public decimal QuantityOut { get; set; }
+    public decimal BeforeQty { get; set; }
+    public decimal AfterQty { get; set; }
     public string? RefTable { get; set; }
     public string? RefId { get; set; }
     public string? Reason { get; set; }
@@ -58,6 +72,23 @@ public class StockLedgerReconciliationDto
     public decimal DifferenceQty { get; set; }
     public bool IsMatched { get; set; }
     public DateTime? LastMovementAt { get; set; }
+}
+
+public class StockSnapshotDto
+{
+    public string SnapshotId { get; set; } = string.Empty;
+    public string WarehouseId { get; set; } = string.Empty;
+    public string? WarehouseName { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public DateOnly PeriodMonth { get; set; }
+    public decimal OpeningQty { get; set; }
+    public decimal QuantityIn { get; set; }
+    public decimal QuantityOut { get; set; }
+    public decimal ClosingQty { get; set; }
+    public DateTime GeneratedAt { get; set; }
 }
 
 public class IngredientDemandReportDto
@@ -126,6 +157,50 @@ public class ReceiptPriceVarianceReportDto
     public decimal ReferencePrice { get; set; }
     public decimal VariancePercent { get; set; }
     public bool IsWarning { get; set; }
+}
+
+public class PriceVarianceBySupplierDto
+{
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string SupplierId { get; set; } = string.Empty;
+    public string? SupplierName { get; set; }
+    public int ReceiptCount { get; set; }
+    public decimal AvgUnitPrice { get; set; }
+    public decimal MinUnitPrice { get; set; }
+    public decimal MaxUnitPrice { get; set; }
+    public decimal ReferencePrice { get; set; }
+    public decimal VariancePercent { get; set; }
+    public bool IsWarning { get; set; }
+}
+
+public class PriceVarianceByPeriodDto
+{
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string PeriodLabel { get; set; } = string.Empty;
+    public DateOnly PeriodStart { get; set; }
+    public decimal AvgUnitPrice { get; set; }
+    public decimal ReferencePrice { get; set; }
+    public decimal VariancePercentVsReference { get; set; }
+    public decimal? VariancePercentVsPreviousPeriod { get; set; }
+    public bool IsWarning { get; set; }
+}
+
+public class PriceVarianceDishGroupIngredientDto
+{
+    public string IngredientName { get; set; } = string.Empty;
+    public decimal VariancePercent { get; set; }
+    public decimal Weight { get; set; }
+}
+
+public class PriceVarianceByDishGroupDto
+{
+    public string DishGroup { get; set; } = string.Empty;
+    public int IngredientCount { get; set; }
+    public int WarningIngredientCount { get; set; }
+    public decimal WeightedAvgVariancePercent { get; set; }
+    public List<PriceVarianceDishGroupIngredientDto> TopIngredients { get; set; } = [];
 }
 
 public class KitchenIssueReportDto

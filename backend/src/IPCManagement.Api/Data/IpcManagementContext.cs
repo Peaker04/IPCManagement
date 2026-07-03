@@ -82,6 +82,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Purchaserequestline> Purchaserequestlines { get; set; }
 
+    public virtual DbSet<Purchaseorder> Purchaseorders { get; set; }
+
+    public virtual DbSet<Purchaseorderline> Purchaseorderlines { get; set; }
+
     public virtual DbSet<Quantityadjustment> Quantityadjustments { get; set; }
 
     public virtual DbSet<Quantityimportbatch> Quantityimportbatches { get; set; }
@@ -91,6 +95,10 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<Stockmovement> Stockmovements { get; set; }
 
     public virtual DbSet<Currentstock> Currentstocks { get; set; }
+
+    public virtual DbSet<Currentstocklot> Currentstocklots { get; set; }
+
+    public virtual DbSet<Stocksnapshot> Stocksnapshots { get; set; }
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
@@ -414,11 +422,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("dishbom");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
 
             entity.HasIndex(e => new { e.DishId, e.EffectiveFrom, e.EffectiveTo }, "ixDishBomDishEffective");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
 
             entity.Property(e => e.BomId)
                 .HasMaxLength(16)
@@ -475,7 +485,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.IngredientCode, "ingredientCode").IsUnique();
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId1");
 
             entity.HasIndex(e => e.WarehouseId, "warehouseId");
 
@@ -594,11 +605,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("inventoryissuelines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId1");
 
             entity.HasIndex(e => e.IssueId, "issueId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId2");
 
             entity.Property(e => e.IssueLineId)
                 .HasMaxLength(16)
@@ -714,7 +727,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.ReceiptId, "receiptId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId3");
 
             entity.Property(e => e.ReceiptLineId)
                 .HasMaxLength(16)
@@ -835,11 +849,13 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("inventoryreturnlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId2");
 
             entity.HasIndex(e => e.ReturnId, "returnId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId4");
 
             entity.Property(e => e.ReturnLineId)
                 .HasMaxLength(16)
@@ -944,13 +960,15 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("materialrequestlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId3");
 
             entity.HasIndex(e => e.PlanLineId, "planLineId");
 
             entity.HasIndex(e => e.RequestId, "requestId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId5");
 
             entity.HasIndex(e => e.AppliedPortionRuleId, "appliedPortionRuleId");
 
@@ -1602,7 +1620,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("shiftName");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'DRAFT'")
-                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','PARTIALRECEIVED','RECEIVED','CANCELLED')")
+                .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED')")
                 .HasColumnName("status");
 
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.PurchaserequestApprovedByNavigations)
@@ -1621,7 +1639,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("purchaserequestlines");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId4");
 
             entity.HasIndex(e => e.MaterialRequestLineId, "materialRequestLineId");
 
@@ -1629,7 +1648,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.SupplierId, "supplierId");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId6");
 
             entity.Property(e => e.PurchaseRequestLineId)
                 .HasMaxLength(16)
@@ -1698,6 +1718,134 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("purchaserequestlines_ibfk_5");
+        });
+
+        modelBuilder.Entity<Purchaseorder>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseOrderId).HasName("PRIMARY");
+
+            entity.ToTable("purchaseorders");
+
+            entity.HasIndex(e => e.PurchaseOrderCode, "purchaseOrderCode").IsUnique();
+
+            entity.HasIndex(e => e.PurchaseRequestId, "ixPurchaseOrdersRequest");
+
+            entity.HasIndex(e => e.SupplierId, "ixPurchaseOrdersSupplier");
+
+            entity.HasIndex(e => new { e.PurchaseRequestId, e.SupplierId }, "ixPurchaseOrdersRequestSupplier").IsUnique();
+
+            entity.Property(e => e.PurchaseOrderId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderId");
+            entity.Property(e => e.PurchaseOrderCode)
+                .HasMaxLength(50)
+                .HasColumnName("purchaseOrderCode");
+            entity.Property(e => e.PurchaseRequestId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseRequestId");
+            entity.Property(e => e.SupplierId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("supplierId");
+            entity.Property(e => e.OrderDate).HasColumnName("orderDate");
+            entity.Property(e => e.Status)
+                .HasMaxLength(30)
+                .HasDefaultValue("ORDERED")
+                .HasColumnName("status");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+
+            entity.HasOne(d => d.PurchaseRequest).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.PurchaseRequestId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_1");
+
+            entity.HasOne(d => d.Supplier).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_2");
+
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Purchaseorders)
+                .HasForeignKey(d => d.CreatedBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorders_ibfk_3");
+        });
+
+        modelBuilder.Entity<Purchaseorderline>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseOrderLineId).HasName("PRIMARY");
+
+            entity.ToTable("purchaseorderlines");
+
+            entity.HasIndex(e => e.PurchaseOrderId, "ixPurchaseOrderLinesOrder");
+
+            entity.HasIndex(e => e.PurchaseRequestLineId, "ixPurchaseOrderLinesRequestLine").IsUnique();
+
+            entity.HasIndex(e => e.IngredientId, "ixPurchaseOrderLinesIngredient");
+
+            entity.HasIndex(e => e.UnitId, "ixPurchaseOrderLinesUnit");
+
+            entity.Property(e => e.PurchaseOrderLineId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderLineId");
+            entity.Property(e => e.PurchaseOrderId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseOrderId");
+            entity.Property(e => e.PurchaseRequestLineId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseRequestLineId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.OrderedQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("orderedQty");
+            entity.Property(e => e.ReceivedQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("receivedQty");
+            entity.Property(e => e.UnitPrice)
+                .HasPrecision(18, 2)
+                .HasColumnName("unitPrice");
+
+            entity.HasOne(d => d.PurchaseOrder).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.PurchaseOrderId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_1");
+
+            entity.HasOne(d => d.PurchaseRequestLine).WithOne(p => p.Purchaseorderline)
+                .HasForeignKey<Purchaseorderline>(d => d.PurchaseRequestLineId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_2");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_3");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Purchaseorderlines)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("purchaseorderlines_ibfk_4");
         });
 
         modelBuilder.Entity<Quantityadjustment>(entity =>
@@ -1811,7 +1959,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.ToTable("stockmovements");
 
-            entity.HasIndex(e => e.IngredientId, "ingredientId");
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId5");
 
             entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.MovementDate }, "ixStockMovementsLookup");
 
@@ -1826,7 +1975,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.PerformedBy, "performedBy");
 
-            entity.HasIndex(e => e.UnitId, "unitId");
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId7");
 
             entity.Property(e => e.MovementId)
                 .HasMaxLength(16)
@@ -1843,6 +1993,11 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.MovementType)
                 .HasColumnType("enum('RECEIPT','ISSUE','RETURN','ADJUSTMENT')")
                 .HasColumnName("movementType");
+            entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
+            entity.Property(e => e.LotNumber)
+                .HasMaxLength(100)
+                .HasColumnName("lotNumber");
+            entity.Property(e => e.ManufactureDate).HasColumnName("manufactureDate");
             entity.Property(e => e.Note)
                 .HasColumnType("text")
                 .HasColumnName("note");
@@ -1856,6 +2011,12 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.QuantityOut)
                 .HasPrecision(18, 6)
                 .HasColumnName("quantityOut");
+            entity.Property(e => e.BeforeQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("beforeQty");
+            entity.Property(e => e.AfterQty)
+                .HasPrecision(18, 6)
+                .HasColumnName("afterQty");
             entity.Property(e => e.Reason)
                 .HasColumnType("text")
                 .HasColumnName("reason");
@@ -1894,6 +2055,139 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.WarehouseId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("stockmovements_ibfk_1");
+        });
+
+        modelBuilder.Entity<Currentstocklot>(entity =>
+        {
+            entity.HasKey(e => e.LotStockId).HasName("PRIMARY");
+
+            entity.ToTable("currentstocklots");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.ExpiredDate, e.LotNumber }, "ixCurrentStockLotsFefo");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.UnitId, e.LotNumber, e.ManufactureDate, e.ExpiredDate }, "ixCurrentStockLotsIdentity");
+
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
+
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
+
+            entity.Property(e => e.LotStockId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("lotStockId");
+            entity.Property(e => e.WarehouseId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("warehouseId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.LotNumber)
+                .HasMaxLength(100)
+                .HasColumnName("lotNumber");
+            entity.Property(e => e.ManufactureDate).HasColumnName("manufactureDate");
+            entity.Property(e => e.ExpiredDate).HasColumnName("expiredDate");
+            entity.Property(e => e.CurrentQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("currentQty");
+            entity.Property(e => e.LastUpdated)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("lastUpdated");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_2");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_3");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Currentstocklots)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("currentstocklots_ibfk_1");
+        });
+
+        modelBuilder.Entity<Stocksnapshot>(entity =>
+        {
+            entity.HasKey(e => e.SnapshotId).HasName("PRIMARY");
+
+            entity.ToTable("stocksnapshots");
+
+            entity.HasIndex(e => new { e.PeriodMonth, e.WarehouseId, e.IngredientId }, "ixStockSnapshotsPeriod");
+
+            entity.HasIndex(e => new { e.WarehouseId, e.IngredientId, e.UnitId, e.PeriodMonth }, "ixStockSnapshotsIdentity")
+                .IsUnique();
+
+            entity.HasIndex(e => e.IngredientId, "ingredientId")
+                .HasDatabaseName("ingredientId");
+
+            entity.HasIndex(e => e.UnitId, "unitId")
+                .HasDatabaseName("unitId");
+
+            entity.Property(e => e.SnapshotId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("snapshotId");
+            entity.Property(e => e.WarehouseId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("warehouseId");
+            entity.Property(e => e.IngredientId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("unitId");
+            entity.Property(e => e.PeriodMonth).HasColumnName("periodMonth");
+            entity.Property(e => e.OpeningQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("openingQty");
+            entity.Property(e => e.QuantityIn)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("quantityIn");
+            entity.Property(e => e.QuantityOut)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("quantityOut");
+            entity.Property(e => e.ClosingQty)
+                .HasPrecision(18, 6)
+                .HasDefaultValueSql("0.000000")
+                .HasColumnName("closingQty");
+            entity.Property(e => e.GeneratedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("generatedAt");
+
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.IngredientId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_2");
+
+            entity.HasOne(d => d.Unit).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.UnitId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_3");
+
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocksnapshots)
+                .HasForeignKey(d => d.WarehouseId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("stocksnapshots_ibfk_1");
         });
 
         modelBuilder.Entity<Supplier>(entity =>
@@ -2124,6 +2418,7 @@ public partial class IpcManagementContext : DbContext
                 .IsRowVersion()
                 .IsConcurrencyToken()
                 .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                .HasColumnType("timestamp(6)")
                 .HasColumnName("rowVersion");
 
             entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocks)

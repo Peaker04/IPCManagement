@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { Fragment, useState, type FormEvent } from 'react';
 import { PackageCheck, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
@@ -25,12 +25,23 @@ import {
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
+  useGetPurchaseOrdersQuery,
+  useCreatePurchaseOrdersFromRequestMutation,
+  useRecordPurchaseOrderReceiptMutation,
+  useCancelPurchaseOrderMutation,
 } from '@/features/workflow';
-import type { DemandLine, SupplierDto, SupplierQuotationDto } from '@/features/workflow';
+import type { DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 
+type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
+const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
+
 export default function PurchasingPage() {
-  const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'quotation' | 'handoff'>('demand');
+  const [searchParams] = useSearchParams();
+  const initialView = searchParams.get('view');
+  const [activeView, setActiveView] = useState<PurchasingView>(
+    validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
+  );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -123,10 +134,11 @@ export default function PurchasingPage() {
           { id: 'purchasing-demand', label: 'Nhu cầu mua' },
           { id: 'purchasing-supplier', label: 'Giá và NCC' },
           { id: 'purchasing-quotation', label: 'Báo giá NCC' },
+          { id: 'purchasing-orders', label: 'Đơn mua hàng' },
           { id: 'purchasing-handoff', label: 'Handoff kho' },
         ]}
         activeTab={`purchasing-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'quotation' | 'handoff')}
+        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as PurchasingView)}
       />
 
       {/* Bảng danh sách chọn Nhà Cung Cấp */}
@@ -196,6 +208,14 @@ export default function PurchasingPage() {
         <SectionPanel title="Quản lý báo giá nhà cung cấp">
           <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab">
             <SupplierQuotationManager suppliers={suppliers} />
+          </div>
+        </SectionPanel>
+      )}
+
+      {activeView === 'orders' && (
+        <SectionPanel title="Đơn mua hàng (tách theo nhà cung cấp)">
+          <div id="purchasing-orders-panel" role="tabpanel" aria-labelledby="purchasing-orders-tab">
+            <PurchaseOrderManager purchaseDemandLines={purchaseDemandLines} />
           </div>
         </SectionPanel>
       )}
@@ -546,6 +566,200 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
           </form>
         </>
       )}
+    </div>
+  );
+}
+
+const purchaseOrderStatusLabel: Record<string, string> = {
+  ORDERED: 'Đã đặt hàng',
+  PARTIALLY_RECEIVED: 'Nhận một phần',
+  RECEIVED: 'Đã nhận đủ',
+  CANCELLED: 'Đã hủy',
+};
+
+function PurchaseOrderManager({ purchaseDemandLines }: { purchaseDemandLines: DemandLine[] }) {
+  const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
+  const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
+  const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
+  const [cancelOrder] = useCancelPurchaseOrderMutation();
+  const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
+
+  const supplierCountByRequest = new Map<string, Set<string>>();
+  purchaseDemandLines.forEach((line) => {
+    if (!line.purchaseRequestId || !line.supplierId) {
+      return;
+    }
+    const suppliers = supplierCountByRequest.get(line.purchaseRequestId) ?? new Set<string>();
+    suppliers.add(line.supplierId);
+    supplierCountByRequest.set(line.purchaseRequestId, suppliers);
+  });
+  const orderCountByRequest = new Map<string, number>();
+  purchaseOrders.forEach((order) => {
+    orderCountByRequest.set(order.purchaseRequestId, (orderCountByRequest.get(order.purchaseRequestId) ?? 0) + 1);
+  });
+
+  const approvedRequests = Array.from(
+    new Map(
+      purchaseDemandLines
+        .filter((line) => line.status === 'APPROVED' && line.purchaseRequestId)
+        .filter((line) => (orderCountByRequest.get(line.purchaseRequestId!) ?? 0) < (supplierCountByRequest.get(line.purchaseRequestId!)?.size ?? 0))
+        .map((line) => [line.purchaseRequestId!, line])
+    ).values()
+  );
+
+  const getErrorMessage = (err: unknown) =>
+    (err as { data?: { message?: string }; message?: string })?.data?.message ??
+    (err as { message?: string })?.message ??
+    'Đã xảy ra lỗi không xác định.';
+
+  const handleCreate = async (purchaseRequestId: string) => {
+    try {
+      await createFromRequest(purchaseRequestId).unwrap();
+    } catch (err) {
+      alert('Lỗi khi tạo đơn mua hàng: ' + getErrorMessage(err));
+    }
+  };
+
+  const handleReceive = async (order: PurchaseOrderDto) => {
+    const lines = order.lines
+      .map((line) => ({ purchaseOrderLineId: line.purchaseOrderLineId, receivedQty: Number(receiveQtyByLine[line.purchaseOrderLineId] || 0) }))
+      .filter((line) => line.receivedQty > 0);
+    if (lines.length === 0) {
+      alert('Vui lòng nhập số lượng nhận cho ít nhất một dòng.');
+      return;
+    }
+    try {
+      await recordReceipt({ purchaseOrderId: order.purchaseOrderId, data: { lines } }).unwrap();
+      setReceiveQtyByLine({});
+      setExpandedOrderId(null);
+    } catch (err) {
+      alert('Lỗi khi ghi nhận nhận hàng: ' + getErrorMessage(err));
+    }
+  };
+
+  const handleCancel = async (purchaseOrderId: string) => {
+    if (!confirm('Hủy đơn mua hàng này?')) {
+      return;
+    }
+    try {
+      await cancelOrder(purchaseOrderId).unwrap();
+    } catch (err) {
+      alert('Lỗi khi hủy đơn mua hàng: ' + getErrorMessage(err));
+    }
+  };
+
+  return (
+    <div className="mt-4 space-y-6">
+      <div>
+        <div className="font-medium text-slate-700 mb-2">Đề xuất đã duyệt, chưa tạo đơn mua hàng</div>
+        {approvedRequests.length === 0 ? (
+          <div className="text-sm text-slate-500">Không có đề xuất mua hàng nào đã duyệt.</div>
+        ) : (
+          <div className="ipc-table-container">
+            <table className="ipc-table">
+              <thead>
+                <tr>
+                  <th>Chứng từ</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {approvedRequests.map((line) => (
+                  <tr key={line.purchaseRequestId}>
+                    <td className="font-mono">{line.sourceDocumentCode}</td>
+                    <td>
+                      <button
+                        type="button"
+                        className="ipc-button ipc-button-primary"
+                        disabled={isCreating}
+                        onClick={() => handleCreate(line.purchaseRequestId!)}
+                      >
+                        Tạo đơn mua hàng
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div>
+        <div className="font-medium text-slate-700 mb-2">Danh sách đơn mua hàng</div>
+        <div className="ipc-table-container">
+          <table className="ipc-table">
+            <thead>
+              <tr>
+                <th>Mã PO</th>
+                <th>Nhà cung cấp</th>
+                <th>Đề xuất gốc</th>
+                <th>Ngày đặt</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {purchaseOrders.length === 0 && (
+                <tr><td colSpan={6} className="text-center text-slate-500 py-4">Chưa có đơn mua hàng nào</td></tr>
+              )}
+              {purchaseOrders.map((order) => (
+                <Fragment key={order.purchaseOrderId}>
+                  <tr>
+                    <td className="font-mono">{order.purchaseOrderCode}</td>
+                    <td>{order.supplierName}</td>
+                    <td className="font-mono">{order.purchaseRequestCode}</td>
+                    <td>{order.orderDate}</td>
+                    <td>{purchaseOrderStatusLabel[order.status] ?? order.status}</td>
+                    <td className="space-x-2">
+                      {order.status !== 'CANCELLED' && order.status !== 'RECEIVED' && (
+                        <button
+                          type="button"
+                          className="ipc-button ipc-button-ghost"
+                          onClick={() => setExpandedOrderId(expandedOrderId === order.purchaseOrderId ? null : order.purchaseOrderId)}
+                        >
+                          {expandedOrderId === order.purchaseOrderId ? 'Đóng' : 'Ghi nhận nhận hàng'}
+                        </button>
+                      )}
+                      {order.status === 'ORDERED' && (
+                        <button type="button" className="ipc-button ipc-button-danger" onClick={() => handleCancel(order.purchaseOrderId)}>
+                          Hủy
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                  {expandedOrderId === order.purchaseOrderId && (
+                    <tr>
+                      <td colSpan={6}>
+                        <div className="p-3 bg-slate-50 rounded-md space-y-2">
+                          {order.lines.map((line) => (
+                            <div key={line.purchaseOrderLineId} className="flex items-center gap-3">
+                              <span className="flex-1">
+                                {line.ingredientName} — đã đặt {line.orderedQty} {line.unitName}, đã nhận {line.receivedQty}
+                              </span>
+                              <input
+                                type="number"
+                                className="ipc-input w-32"
+                                placeholder="SL nhận thêm"
+                                value={receiveQtyByLine[line.purchaseOrderLineId] ?? ''}
+                                onChange={(e) => setReceiveQtyByLine({ ...receiveQtyByLine, [line.purchaseOrderLineId]: e.target.value })}
+                              />
+                            </div>
+                          ))}
+                          <button type="button" className="ipc-button ipc-button-primary" onClick={() => handleReceive(order)}>
+                            Ghi nhận
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

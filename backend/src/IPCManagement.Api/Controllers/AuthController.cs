@@ -44,7 +44,7 @@ public class AuthController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Tên đăng nhập hoặc mật khẩu không đúng."));
 
         SetRefreshTokenCookie(result.RefreshToken);
-        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Đăng nhập thành công."));
+        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Đăng nhập thành công."));
     }
 
     /// <summary>Làm mới access token bằng refresh token.</summary>
@@ -71,7 +71,7 @@ public class AuthController : ControllerBase
         }
 
         SetRefreshTokenCookie(result.RefreshToken);
-        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Làm mới token thành công."));
+        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Làm mới token thành công."));
     }
 
     /// <summary>Đăng xuất — vô hiệu hoá refresh token.</summary>
@@ -157,6 +157,16 @@ public class AuthController : ControllerBase
         => !string.IsNullOrWhiteSpace(refreshToken)
             ? refreshToken.Trim()
             : Request.Cookies[RefreshTokenCookieName] ?? string.Empty;
+
+    private static LoginResponseDto WithoutExposedRefreshToken(LoginResponseDto result)
+        => new()
+        {
+            AccessToken = result.AccessToken,
+            RefreshToken = string.Empty,
+            TokenType = result.TokenType,
+            ExpiresIn = result.ExpiresIn,
+            User = result.User
+        };
 
     private void SetRefreshTokenCookie(string refreshToken)
     {

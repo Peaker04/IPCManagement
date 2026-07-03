@@ -226,7 +226,7 @@ public class WorkflowGenerationTests
                 UnitId = gramUnitId,
                 CurrentQty = 150000m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -261,7 +261,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 25m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await setupContext.SaveChangesAsync();
         }
@@ -333,7 +333,7 @@ public class WorkflowGenerationTests
                 UnitId = boxUnitId,
                 CurrentQty = 10m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1009,7 +1009,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 250m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1062,7 +1062,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 250m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1152,7 +1152,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 300m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -1266,7 +1266,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 300m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             context.Inventoryissues.Add(new Inventoryissue
             {
@@ -1345,7 +1345,7 @@ public class WorkflowGenerationTests
                 UnitId = fixture.UnitId,
                 CurrentQty = 50m,
                 LastUpdated = DateTime.UtcNow,
-                RowVersion = [1]
+                RowVersion = DateTime.UtcNow
             });
             await context.SaveChangesAsync();
         }
@@ -2031,7 +2031,7 @@ public class WorkflowGenerationTests
             UnitId = fixture.UnitId,
             CurrentQty = 8m,
             LastUpdated = DateTime.UtcNow,
-            RowVersion = [1]
+            RowVersion = DateTime.UtcNow
         });
         context.Stockmovements.Add(new Stockmovement
         {
@@ -2061,6 +2061,216 @@ public class WorkflowGenerationTests
         report.Issues.Should().Contain(issue =>
             issue.Category == "inventory_ledger_mismatch" &&
             issue.Message.Contains("Current stock 8"));
+    }
+
+    [Fact]
+    public async Task StockSnapshot_Should_GenerateMonthlyOpeningInOutAndClosing_FromLedgerSnapshots()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 6, 30, 17, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 7, 5, 8, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 4m,
+                BeforeQty = 10m,
+                AfterQty = 6m,
+                PerformedBy = fixture.UserId
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = new DateTime(2026, 7, 12, 8, 0, 0, DateTimeKind.Utc),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 5m,
+                QuantityOut = 0m,
+                BeforeQty = 6m,
+                AfterQty = 11m,
+                PerformedBy = fixture.UserId
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var snapshots = await service.GenerateMonthlyStockSnapshotAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            Limit = 10
+        });
+
+        var snapshot = snapshots.Should().ContainSingle().Subject;
+        snapshot.PeriodMonth.Should().Be(new DateOnly(2026, 7, 1));
+        snapshot.OpeningQty.Should().Be(10m);
+        snapshot.QuantityIn.Should().Be(5m);
+        snapshot.QuantityOut.Should().Be(4m);
+        snapshot.ClosingQty.Should().Be(11m);
+
+        var persisted = await context.Stocksnapshots.AsNoTracking().SingleAsync();
+        persisted.OpeningQty.Should().Be(10m);
+        persisted.QuantityIn.Should().Be(5m);
+        persisted.QuantityOut.Should().Be(4m);
+        persisted.ClosingQty.Should().Be(11m);
+    }
+
+    [Fact]
+    public async Task StockMovements_Should_DefaultToRecentDateWindow_AndAllowExplicitHistoryRange()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var oldMovementDate = DateTime.UtcNow.Date.AddDays(-40).AddHours(8);
+        var recentMovementDate = DateTime.UtcNow.Date.AddDays(-1).AddHours(8);
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = oldMovementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId,
+                Note = "old"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = recentMovementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 2m,
+                BeforeQty = 10m,
+                AfterQty = 8m,
+                PerformedBy = fixture.UserId,
+                Note = "recent"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var defaultRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto { Limit = 10 });
+
+        defaultRows.Should().ContainSingle(row => row.Note == "recent");
+        defaultRows.Should().NotContain(row => row.Note == "old");
+
+        var explicitRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = DateOnly.FromDateTime(oldMovementDate).ToString("yyyy-MM-dd"),
+            DateTo = DateOnly.FromDateTime(recentMovementDate).ToString("yyyy-MM-dd"),
+            Limit = 10
+        });
+
+        explicitRows.Select(row => row.Note).Should().BeEquivalentTo("old", "recent");
+    }
+
+    [Fact]
+    public async Task StockMovements_Should_PageWithCursorDate_WithoutOffset()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var baseDate = new DateTime(2026, 7, 10, 8, 0, 0, DateTimeKind.Utc);
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 10m,
+                QuantityOut = 0m,
+                BeforeQty = 0m,
+                AfterQty = 10m,
+                PerformedBy = fixture.UserId,
+                Note = "newest"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate.AddDays(-1),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "ISSUE",
+                QuantityIn = 0m,
+                QuantityOut = 2m,
+                BeforeQty = 10m,
+                AfterQty = 8m,
+                PerformedBy = fixture.UserId,
+                Note = "cursor"
+            },
+            new Stockmovement
+            {
+                MovementId = GuidHelper.NewId(),
+                MovementDate = baseDate.AddDays(-2),
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RETURN",
+                QuantityIn = 1m,
+                QuantityOut = 0m,
+                BeforeQty = 8m,
+                AfterQty = 9m,
+                PerformedBy = fixture.UserId,
+                Note = "older"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var firstPage = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            Limit = 2
+        });
+
+        firstPage.Select(row => row.Note).Should().Equal("newest", "cursor");
+
+        var secondPage = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            CursorDate = firstPage.Last().MovementDate.ToString("O"),
+            CursorId = firstPage.Last().MovementId,
+            Limit = 2
+        });
+
+        secondPage.Should().ContainSingle(row => row.Note == "older");
+        secondPage.Should().NotContain(row => row.Note == "newest" || row.Note == "cursor");
     }
 
     [Fact]
@@ -3131,6 +3341,501 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
     }
 
+    private static async Task<byte[]> SeedApprovedPurchaseRequestWithTwoSuppliersAsync(
+        IpcManagementContext context,
+        WorkflowFixture fixture,
+        byte[] supplierA,
+        byte[] supplierB)
+    {
+        await SeedSupplierAndIngredientAsync(context, fixture, supplierA, "NCC A");
+        await SeedSupplierAsync(context, supplierB, "NCC B");
+
+        var purchaseRequestId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = purchaseRequestId,
+            PurchaseRequestCode = $"PR-DEMO-{GuidHelper.ToGuidString(purchaseRequestId)[..8]}",
+            RequestDate = new DateOnly(2026, 6, 1),
+            PurchaseForDate = new DateOnly(2026, 6, 2),
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierA,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 10,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 10,
+                    EstimatedUnitPrice = 1000
+                },
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierB,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 5,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 5,
+                    EstimatedUnitPrice = 2000
+                }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        return purchaseRequestId;
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_SplitBySupplier_WhenPurchaseRequestHasMultipleSuppliers()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        orders.Should().HaveCount(2);
+        orders.Should().OnlyContain(order => order.Lines.Count == 1);
+        orders.Should().Contain(order => order.SupplierId == GuidHelper.ToGuidString(supplierA) && order.Lines[0].OrderedQty == 10);
+        orders.Should().Contain(order => order.SupplierId == GuidHelper.ToGuidString(supplierB) && order.Lines[0].OrderedQty == 5);
+        orders.Should().OnlyContain(order => order.Status == "ORDERED");
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_Throw_WhenPurchaseRequestNotApproved()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+        var purchaseRequest = await context.Purchaserequests.FirstAsync(pr => pr.PurchaseRequestId == purchaseRequestId);
+        purchaseRequest.Status = "DRAFT";
+        await context.SaveChangesAsync();
+
+        var service = new PurchaseOrderService(context);
+        var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task CreatePurchaseOrders_Should_Throw_WhenCalledAgainAfterAllLinesConverted()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task RecordReceipt_Should_TransitionStatus_FromOrderedToPartialToReceived()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        var afterPartial = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 4 }]
+        });
+        afterPartial.Status.Should().Be("PARTIALLY_RECEIVED");
+        afterPartial.Lines[0].ReceivedQty.Should().Be(4);
+
+        var afterFull = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 6 }]
+        });
+        afterFull.Status.Should().Be("RECEIVED");
+        afterFull.Lines[0].ReceivedQty.Should().Be(10);
+    }
+
+    [Fact]
+    public async Task RecordReceipt_Should_Throw_WhenExceedingOrderedQty()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        var act = () => service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 11 }]
+        });
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task Cancel_Should_Throw_WhenAnyLineAlreadyReceived()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var service = new PurchaseOrderService(context);
+        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
+
+        await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
+        {
+            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 2 }]
+        });
+
+        var act = () => service.CancelAsync(orderForSupplierA.PurchaseOrderId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task GetPriceVarianceByDishGroupAsync_Should_WeightByBomQuantity_NotSimpleAverage()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+
+        var supplierId = GuidHelper.NewId();
+        var ingredientAId = GuidHelper.NewId();
+        var ingredientBId = GuidHelper.NewId();
+        var dishId = GuidHelper.NewId();
+
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-DEMO", WarehouseName = "Kho demo", WarehouseType = "DRY" });
+        context.Suppliers.Add(new Supplier { SupplierId = supplierId, SupplierCode = "SUP-DEMO", SupplierName = "NCC Demo", IsActive = true });
+        // Ingredient A: reference 100, avg receipt price 150 -> variance 50%
+        context.Ingredients.Add(new Ingredient { IngredientId = ingredientAId, IngredientCode = "ING-A", IngredientName = "Nguyên liệu A", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        // Ingredient B: reference 100, avg receipt price 110 -> variance 10%
+        context.Ingredients.Add(new Ingredient { IngredientId = ingredientBId, IngredientCode = "ING-B", IngredientName = "Nguyên liệu B", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        context.Dishes.Add(new Dish { DishId = dishId, DishCode = "DISH-DEMO", DishName = "Món demo", DishGroup = "Món chính", IsActive = true });
+        // A dùng ít (weight 1), B dùng nhiều (weight 9) trong cùng món -> trung bình có trọng số phải lệch về phía B
+        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientAId, UnitId = fixture.UnitId, GrossQtyPerServing = 1, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientBId, UnitId = fixture.UnitId, GrossQtyPerServing = 9, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+
+        var receiptId = GuidHelper.NewId();
+        context.Inventoryreceipts.Add(new Inventoryreceipt
+        {
+            ReceiptId = receiptId,
+            ReceiptCode = "PN-DEMO",
+            ReceiptDate = new DateOnly(2026, 6, 1),
+            WarehouseId = fixture.WarehouseId,
+            SupplierId = supplierId,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryreceiptlines =
+            [
+                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientAId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 150 },
+                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientBId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 110 }
+            ]
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var result = await service.GetPriceVarianceByDishGroupAsync(new WorkflowReportQueryDto());
+
+        var group = result.Should().ContainSingle(g => g.DishGroup == "Món chính").Subject;
+        group.IngredientCount.Should().Be(2);
+        // Trọng số theo BOM: (1*50 + 9*10) / (1+9) = 14, khác hẳn trung bình cộng đơn giản (50+10)/2 = 30
+        group.WeightedAvgVariancePercent.Should().Be(14);
+    }
+
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_ExcludeOverduePurchaseRequest_WhenAlreadyFullyReceivedViaPurchaseOrder()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierId = GuidHelper.NewId();
+        await SeedSupplierAndIngredientAsync(context, fixture, supplierId, "NCC KPI");
+
+        var yesterday = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1);
+
+        // PR 1: quá hạn (PurchaseForDate đã qua) và ĐÃ nhận đủ hàng qua PO -> không tính là quá hạn nữa
+        var resolvedPrId = GuidHelper.NewId();
+        var resolvedLineId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = resolvedPrId,
+            PurchaseRequestCode = $"PR-RESOLVED-{GuidHelper.ToGuidString(resolvedPrId)[..8]}",
+            RequestDate = yesterday,
+            PurchaseForDate = yesterday,
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = resolvedLineId,
+                    PurchaseRequestId = resolvedPrId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierId,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 5,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 5,
+                    EstimatedUnitPrice = 1000
+                }
+            ]
+        });
+        context.Purchaseorders.Add(new Purchaseorder
+        {
+            PurchaseOrderId = GuidHelper.NewId(),
+            PurchaseOrderCode = "PO-RESOLVED",
+            PurchaseRequestId = resolvedPrId,
+            SupplierId = supplierId,
+            OrderDate = yesterday,
+            Status = "RECEIVED",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Purchaseorderlines =
+            [
+                new Purchaseorderline { PurchaseOrderLineId = GuidHelper.NewId(), PurchaseRequestLineId = resolvedLineId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, OrderedQty = 5, ReceivedQty = 5, UnitPrice = 1000 }
+            ]
+        });
+
+        // PR 2: quá hạn và CHƯA từng tạo PO -> vẫn tính là quá hạn
+        var unresolvedPrId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = unresolvedPrId,
+            PurchaseRequestCode = $"PR-UNRESOLVED-{GuidHelper.ToGuidString(unresolvedPrId)[..8]}",
+            RequestDate = yesterday,
+            PurchaseForDate = yesterday,
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = unresolvedPrId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = supplierId,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 3,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 3,
+                    EstimatedUnitPrice = 1000
+                }
+            ]
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.OverduePurchaseRequestCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_CountLateReceipt_OnlyBeyondThreeDayThreshold()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        var supplierId = GuidHelper.NewId();
+        await SeedSupplierAndIngredientAsync(context, fixture, supplierId, "NCC KPI 2");
+        var prId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = prId,
+            PurchaseRequestCode = $"PR-LATE-{GuidHelper.ToGuidString(prId)[..8]}",
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId
+        });
+
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        // Đặt hàng 4 ngày trước (vượt ngưỡng 3 ngày) -> trễ
+        context.Purchaseorders.Add(new Purchaseorder
+        {
+            PurchaseOrderId = GuidHelper.NewId(),
+            PurchaseOrderCode = "PO-LATE",
+            PurchaseRequestId = prId,
+            SupplierId = supplierId,
+            OrderDate = today.AddDays(-4),
+            Status = "ORDERED",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        // Đặt hàng 1 ngày trước (chưa tới ngưỡng) -> chưa trễ
+        context.Purchaseorders.Add(new Purchaseorder
+        {
+            PurchaseOrderId = GuidHelper.NewId(),
+            PurchaseOrderCode = "PO-NOT-LATE",
+            PurchaseRequestId = prId,
+            SupplierId = supplierId,
+            OrderDate = today.AddDays(-1),
+            Status = "ORDERED",
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.LateReceiptCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_CountLowStock_UsingAverageDailyDemandOverLast7Days()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-KPI", WarehouseName = "Kho KPI", WarehouseType = "DRY" });
+
+        var lowStockIngredientId = GuidHelper.NewId();
+        var healthyStockIngredientId = GuidHelper.NewId();
+        context.Ingredients.Add(new Ingredient { IngredientId = lowStockIngredientId, IngredientCode = "ING-LOW", IngredientName = "NL tồn thấp", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+        context.Ingredients.Add(new Ingredient { IngredientId = healthyStockIngredientId, IngredientCode = "ING-OK", IngredientName = "NL tồn ổn", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+
+        // Nhu cầu trung bình 7 ngày: 70 / 7 = 10 mỗi ngày cho mỗi nguyên liệu
+        var planId = GuidHelper.NewId();
+        var requestId = GuidHelper.NewId();
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = requestId,
+            RequestCode = "MR-KPI",
+            PlanId = planId,
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-1),
+            RequestScope = "FULLDAY",
+            Status = "CONFIRMED",
+            CreatedBy = fixture.UserId,
+            Materialrequestlines =
+            [
+                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 },
+                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 }
+            ]
+        });
+
+        // Tồn kho hiện tại: NL tồn thấp chỉ còn 5 (< 10/ngày) -> tồn thấp; NL tồn ổn còn 50 (>= 10/ngày) -> không tính
+        context.Currentstocks.Add(new Currentstock { WarehouseId = fixture.WarehouseId, IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 5, LastUpdated = DateTime.UtcNow });
+        context.Currentstocks.Add(new Currentstock { WarehouseId = fixture.WarehouseId, IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 50, LastUpdated = DateTime.UtcNow });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.LowStockCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_CountShortageExcludingCancelled_AndPendingKitchenConfirmation()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-KPI2", WarehouseName = "Kho KPI 2", WarehouseType = "DRY" });
+        context.Ingredients.Add(new Ingredient { IngredientId = fixture.IngredientId, IngredientCode = "ING-SHORT", IngredientName = "NL thiếu", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
+
+        var activeRequestId = GuidHelper.NewId();
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = activeRequestId,
+            RequestCode = "MR-ACTIVE",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY",
+            Status = "CONFIRMED",
+            CreatedBy = fixture.UserId,
+            Materialrequestlines =
+            [
+                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = activeRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
+            ]
+        });
+
+        var cancelledRequestId = GuidHelper.NewId();
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = cancelledRequestId,
+            RequestCode = "MR-CANCELLED",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY",
+            Status = "CANCELLED",
+            CreatedBy = fixture.UserId,
+            Materialrequestlines =
+            [
+                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = cancelledRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
+            ]
+        });
+
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "IX-PENDING",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = activeRequestId,
+            IssuedBy = fixture.UserId,
+            ReceivedBy = null,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "IX-CONFIRMED",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = activeRequestId,
+            IssuedBy = fixture.UserId,
+            ReceivedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.ShortageCount.Should().Be(1);
+        kpis.PendingKitchenConfirmationCount.Should().Be(1);
+    }
+
     private sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
@@ -3622,14 +4327,46 @@ public class WorkflowGenerationTests
                     expectedDeliveryDate TEXT NULL,
                     note TEXT NULL
                 );
+                CREATE TABLE purchaseorders (
+                    purchaseOrderId BLOB PRIMARY KEY,
+                    purchaseOrderCode TEXT NOT NULL,
+                    purchaseRequestId BLOB NOT NULL,
+                    supplierId BLOB NOT NULL,
+                    orderDate TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'ORDERED',
+                    createdBy BLOB NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL
+                );
+                CREATE TABLE purchaseorderlines (
+                    purchaseOrderLineId BLOB PRIMARY KEY,
+                    purchaseOrderId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    orderedQty TEXT NOT NULL,
+                    receivedQty TEXT NOT NULL,
+                    unitPrice TEXT NOT NULL
+                );
                 CREATE TABLE currentstock (
                     warehouseId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     currentQty TEXT NOT NULL,
                     lastUpdated TEXT NOT NULL,
-                    rowVersion BLOB NOT NULL DEFAULT (X'01'),
+                    rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (warehouseId, ingredientId)
+                );
+                CREATE TABLE currentstocklots (
+                    lotStockId BLOB PRIMARY KEY,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL,
+                    expiredDate TEXT NULL,
+                    currentQty TEXT NOT NULL,
+                    lastUpdated TEXT NOT NULL
                 );
                 CREATE TABLE stockmovements (
                     movementId BLOB PRIMARY KEY,
@@ -3637,14 +4374,31 @@ public class WorkflowGenerationTests
                     warehouseId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL,
+                    expiredDate TEXT NULL,
                     movementType TEXT NOT NULL,
                     refTable TEXT NULL,
                     refId BLOB NULL,
                     quantityIn TEXT NOT NULL,
                     quantityOut TEXT NOT NULL,
+                    beforeQty TEXT NOT NULL DEFAULT '0',
+                    afterQty TEXT NOT NULL DEFAULT '0',
                     reason TEXT NULL,
                     note TEXT NULL,
                     performedBy BLOB NOT NULL
+                );
+                CREATE TABLE stocksnapshots (
+                    snapshotId BLOB PRIMARY KEY,
+                    warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL,
+                    unitId BLOB NOT NULL,
+                    periodMonth TEXT NOT NULL,
+                    openingQty TEXT NOT NULL,
+                    quantityIn TEXT NOT NULL,
+                    quantityOut TEXT NOT NULL,
+                    closingQty TEXT NOT NULL,
+                    generatedAt TEXT NOT NULL
                 );
                 CREATE TABLE auditlogs (
                     auditId BLOB PRIMARY KEY,

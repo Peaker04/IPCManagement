@@ -76,11 +76,12 @@ public class InventoryIssueService : IInventoryIssueService
 
         var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
         var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
-        await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
+            await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
+
             var issue = new Inventoryissue
             {
                 IssueId = GuidHelper.NewId(),
@@ -130,6 +131,12 @@ public class InventoryIssueService : IInventoryIssueService
                 IssueId = GuidHelper.ToGuidString(issue.IssueId),
                 IssueCode = issue.IssueCode
             };
+        }
+        catch (StockShortageException ex)
+        {
+            await transaction.RollbackAsync();
+            await WriteStockShortageAuditAsync(ex.Shortage, materialRequestBytes, userIdBytes);
+            throw;
         }
         catch
         {
@@ -251,13 +258,13 @@ public class InventoryIssueService : IInventoryIssueService
         foreach (var line in issueLines)
         {
             var stock = stocks.FirstOrDefault(item => item.IngredientId.SequenceEqual(line.IngredientId));
-            var availableQty = DecimalPolicy.RoundQuantity(stock?.CurrentQty ?? 0);
+            var demandLine = demandInfo.GetValueOrDefault(BuildKey(line.IngredientId, line.UnitId));
+            var availableQty = CalculateAvailableQuantity(stock, demandLine?.Unit);
             if (!DecimalPolicy.LessThanQuantity(availableQty, line.IssuedQty))
             {
                 continue;
             }
 
-            var demandLine = demandInfo.GetValueOrDefault(BuildKey(line.IngredientId, line.UnitId));
             shortageLines.Add(new StockShortageLineDto
             {
                 IngredientId = GuidHelper.ToGuidString(line.IngredientId),
@@ -439,6 +446,51 @@ public class InventoryIssueService : IInventoryIssueService
 
     private static string BuildKey(byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToHexString(ingredientId)}:{Convert.ToHexString(unitId)}";
+
+    private static decimal CalculateAvailableQuantity(Currentstock? stock, Unit? targetUnit)
+    {
+        if (stock is null)
+        {
+            return 0m;
+        }
+
+        if (targetUnit is not null)
+        {
+            return TryConvertQuantity(stock.CurrentQty, stock.Unit, targetUnit, out var convertedQty)
+                ? convertedQty
+                : 0m;
+        }
+
+        return DecimalPolicy.RoundQuantity(stock.CurrentQty);
+    }
+
+    private static bool TryConvertQuantity(decimal quantity, Unit sourceUnit, Unit targetUnit, out decimal convertedQty)
+    {
+        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
+        {
+            convertedQty = DecimalPolicy.RoundQuantity(quantity);
+            return true;
+        }
+
+        if (!CanConvertUnits(sourceUnit, targetUnit))
+        {
+            convertedQty = 0m;
+            return false;
+        }
+
+        convertedQty = DecimalPolicy.RoundQuantity(quantity * sourceUnit.ConvertRateToBase / targetUnit.ConvertRateToBase);
+        return true;
+    }
+
+    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
+        => sourceUnit.ConvertRateToBase > 0 &&
+           targetUnit.ConvertRateToBase > 0 &&
+           string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
+
+    private static string NormalizedBaseUnitCode(Unit unit)
+        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
+            ? unit.UnitCode.Trim().ToUpperInvariant()
+            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private sealed record DemandLineSummary(
         byte[] IngredientId,

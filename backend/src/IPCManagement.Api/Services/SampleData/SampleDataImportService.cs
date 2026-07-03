@@ -1354,6 +1354,8 @@ public partial class SampleDataImportService : ISampleDataImportService
         {
             existing.QuantityIn = quantity;
             existing.QuantityOut = 0;
+            existing.BeforeQty = 0;
+            existing.AfterQty = quantity;
             existing.UnitId = unit.UnitId;
             existing.IngredientId = ingredient.IngredientId;
             counts.StockMovementsUpdated++;
@@ -1373,6 +1375,8 @@ public partial class SampleDataImportService : ISampleDataImportService
             RefId = receiptLine.ReceiptLineId,
             QuantityIn = quantity,
             QuantityOut = 0,
+            BeforeQty = 0,
+            AfterQty = quantity,
             Reason = "Import dữ liệu mẫu từ workbook theo dõi đặt hàng",
             Note = "Sample data import",
             PerformedBy = sampleUser.UserId
