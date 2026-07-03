@@ -111,6 +111,14 @@ export interface SupplierDto {
   supplierName: string;
 }
 
+export interface CreateSupplierDto {
+  supplierCode: string;
+  supplierName: string;
+  contactName?: string | null;
+  phone?: string | null;
+  address?: string | null;
+}
+
 export interface UpdatePurchaseRequestLineSupplierDto {
   supplierId: string;
   estimatedUnitPrice: number;
@@ -178,6 +186,26 @@ export interface RecordPurchaseOrderReceiptLineDto {
 
 export interface RecordPurchaseOrderReceiptDto {
   lines: RecordPurchaseOrderReceiptLineDto[];
+}
+
+export interface CreateInventoryReceiptLineDto {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+  unitPrice: number;
+}
+
+export interface CreateInventoryReceiptDto {
+  receiptDate: string;
+  supplierId: string;
+  warehouseId: string;
+  purchaseRequestId?: string | null;
+  lines: CreateInventoryReceiptLineDto[];
+}
+
+interface InventoryReceiptCreatedDto {
+  receiptId: string;
+  receiptCode: string;
 }
 
 interface ReceiptPriceVarianceReportDto {
@@ -806,6 +834,16 @@ export const workflowApi = apiSlice.injectEndpoints({
     getSuppliers: builder.query<SupplierDto[], void>({
       query: () => '/suppliers',
       transformResponse: (response: ApiResponse<SupplierDto[]>) => getData(response),
+      providesTags: ['Suppliers'],
+    }),
+    createSupplier: builder.mutation<SupplierDto, CreateSupplierDto>({
+      query: (body) => ({
+        url: '/suppliers',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<SupplierDto>) => response.data!,
+      invalidatesTags: ['Suppliers'],
     }),
     updatePurchaseRequestLineSupplier: builder.mutation<
       ApiResponse<void>,
@@ -880,6 +918,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
       invalidatesTags: ['PurchaseOrders'],
+    }),
+    createInventoryReceipt: builder.mutation<InventoryReceiptCreatedDto, CreateInventoryReceiptDto>({
+      query: (data) => ({
+        url: '/inventory-receipts',
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<InventoryReceiptCreatedDto>) => response.data!,
+      invalidatesTags: ['WorkflowReports'],
     }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1050,6 +1097,7 @@ export const {
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,
   useGetSuppliersQuery,
+  useCreateSupplierMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
   useGetSupplierQuotationsByIngredientQuery,
@@ -1060,6 +1108,7 @@ export const {
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
+  useCreateInventoryReceiptMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

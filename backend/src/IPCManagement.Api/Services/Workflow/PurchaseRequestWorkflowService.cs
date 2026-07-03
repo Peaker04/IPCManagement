@@ -70,11 +70,6 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             }
 
             var supplier = await ResolveSupplierAsync(line.IngredientId, cancellationToken);
-            if (supplier is null)
-            {
-                throw new InvalidOperationException($"Chưa có nhà cung cấp để tạo đề xuất mua cho '{line.Ingredient.IngredientName}'.");
-            }
-
             var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, cancellationToken);
             EnsurePurchaseRequestLine(
                 purchaseRequest,
@@ -266,10 +261,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return latestReceiptSupplier;
         }
 
-        return await _context.Suppliers
-            .Where(supplier => supplier.IsActive != false)
-            .OrderBy(supplier => supplier.SupplierCode)
-            .FirstOrDefaultAsync(cancellationToken);
+        return null;
     }
 
     private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, CancellationToken cancellationToken)
@@ -282,7 +274,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     private void EnsurePurchaseRequestLine(
         Purchaserequest purchaseRequest,
         Materialrequestline materialLine,
-        Supplier supplier,
+        Supplier? supplier,
         decimal estimatedUnitPrice,
         List<Purchaserequestline> existingLines)
     {
@@ -295,7 +287,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         if (existing is not null)
         {
             existing.IngredientId = materialLine.IngredientId;
-            existing.SupplierId = supplier.SupplierId;
+            existing.SupplierId = supplier?.SupplierId;
             existing.UnitId = materialLine.UnitId;
             existing.RequiredQty = requiredQty;
             existing.CurrentStockQty = currentStockQty;
@@ -313,7 +305,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             PurchaseRequestId = purchaseRequest.PurchaseRequestId,
             MaterialRequestLineId = materialLine.RequestLineId,
             IngredientId = materialLine.IngredientId,
-            SupplierId = supplier.SupplierId,
+            SupplierId = supplier?.SupplierId,
             UnitId = materialLine.UnitId,
             RequiredQty = requiredQty,
             CurrentStockQty = currentStockQty,
@@ -344,8 +336,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             MaterialRequestLineId = GuidHelper.ToGuidString(line.MaterialRequestLineId),
             IngredientId = GuidHelper.ToGuidString(line.IngredientId),
             IngredientName = line.Ingredient.IngredientName,
-            SupplierId = GuidHelper.ToGuidString(line.SupplierId),
-            SupplierName = line.Supplier.SupplierName,
+            SupplierId = line.SupplierId is null ? null : GuidHelper.ToGuidString(line.SupplierId),
+            SupplierName = line.Supplier?.SupplierName,
             UnitId = GuidHelper.ToGuidString(line.UnitId),
             UnitName = line.Unit.UnitName,
             RequiredQty = line.RequiredQty,

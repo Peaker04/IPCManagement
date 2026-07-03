@@ -11,6 +11,7 @@ import {
   OperationalFrame,
   RoleInbox,
   PaginationBar,
+  SearchableSelect,
   SectionPanel,
   SplitWorkbench,
   StatusBadge,
@@ -42,6 +43,7 @@ import {
   useDeactivateDishMutation,
   useGetAdminDishCatalogQuery,
   useGetIngredientsQuery,
+  useSearchIngredientsQuery,
   useUpdateDishMutation,
   useUpdateDishBomLineMutation,
   type CatalogIngredient,
@@ -225,6 +227,8 @@ export default function AdminDataPage() {
   const auditPageSize = 8;
   const { data: catalogDishes = [], isLoading: isCatalogLoading } = useGetAdminDishCatalogQuery();
   const { data: ingredientLookup = [] } = useGetIngredientsQuery();
+  const [bomIngredientQuery, setBomIngredientQuery] = useState('');
+  const { data: searchedBomIngredients = [], isFetching: isSearchingBomIngredients } = useSearchIngredientsQuery(bomIngredientQuery);
   const [createDish, createDishState] = useCreateDishMutation();
   const [updateDish, updateDishState] = useUpdateDishMutation();
   const [deactivateDish, deactivateDishState] = useDeactivateDishMutation();
@@ -995,26 +999,30 @@ export default function AdminDataPage() {
                   <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-ingredient">
                     Nguyên liệu
                   </label>
-                  <select
+                  <SearchableSelect
                     id="admin-bom-ingredient"
-                    className="ipc-select w-full"
                     value={bomForm.ingredientId}
-                    onChange={(event) => {
-                      const nextIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === event.target.value);
+                    onChange={(nextValue) => {
+                      const nextIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === nextValue);
                       setBomForm((prev) => ({
                         ...prev,
-                        ingredientId: event.target.value,
+                        ingredientId: nextValue,
                         unitId: nextIngredient?.unitId ?? prev.unitId,
                       }));
                     }}
-                  >
-                    <option value="">Chọn nguyên liệu</option>
-                    {ingredientLookup.map((ingredient) => (
-                      <option key={ingredient.ingredientId} value={ingredient.ingredientId}>
-                        {ingredient.ingredientName} ({ingredient.unitName ?? 'đơn vị'})
-                      </option>
-                    ))}
-                  </select>
+                    options={searchedBomIngredients.map((ingredient) => ({
+                      value: ingredient.ingredientId,
+                      label: `${ingredient.ingredientName} (${ingredient.unitName ?? 'đơn vị'})`,
+                      hint: ingredient.ingredientCode,
+                    }))}
+                    selectedLabel={(() => {
+                      const selected = ingredientLookup.find((i) => i.ingredientId === bomForm.ingredientId);
+                      return selected ? `${selected.ingredientName} (${selected.unitName ?? 'đơn vị'})` : undefined;
+                    })()}
+                    onQueryChange={setBomIngredientQuery}
+                    isLoading={isSearchingBomIngredients}
+                    placeholder="Chọn nguyên liệu"
+                  />
 
                   <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-unit">
                     Đơn vị tính

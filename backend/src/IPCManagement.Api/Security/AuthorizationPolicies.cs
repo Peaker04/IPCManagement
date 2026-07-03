@@ -35,7 +35,8 @@ public static class AuthorizationPolicies
         "Admin", "ADMIN",
         "Manager", "MANAGER", "Quản lý",
         "ProcurementStaff", "Procurement Staff",
-        "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
+        "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho",
+        "Purchasing", "PURCHASING", "PurchaseStaff", "Purchase Staff", "Nhân viên mua hàng", "Thu mua"
     ];
 
     public static readonly string[] ProductionRoles =

@@ -31,6 +31,15 @@ public class IngredientsController : ControllerBase
         return Ok(ApiResponse<PagedResponseDto<IngredientDto>>.SuccessResult(result));
     }
 
+    /// <summary>Lấy toàn bộ danh sách nguyên liệu (không phân trang) để dùng cho các ô chọn/tìm kiếm.</summary>
+    [HttpGet("lookup")]
+    [ProducesResponseType(typeof(ApiResponse<List<IngredientDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetLookup()
+    {
+        var result = await _service.GetLookupAsync();
+        return Ok(ApiResponse<List<IngredientDto>>.SuccessResult(result));
+    }
+
     /// <summary>Lấy chi tiết một nguyên liệu theo ID.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status200OK)]

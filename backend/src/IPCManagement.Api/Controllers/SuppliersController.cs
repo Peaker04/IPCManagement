@@ -24,4 +24,21 @@ public class SuppliersController : ControllerBase
         var suppliers = await _supplierService.GetActiveSuppliersAsync(cancellationToken);
         return Ok(ApiResponse<List<SupplierDto>>.SuccessResult(suppliers));
     }
+
+    /// <summary>Tạo nhà cung cấp mới.</summary>
+    [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<SupplierDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Create([FromBody] CreateSupplierDto request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var supplier = await _supplierService.CreateAsync(request, cancellationToken);
+            return Ok(ApiResponse<SupplierDto>.SuccessResult(supplier, "Tạo nhà cung cấp thành công."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }

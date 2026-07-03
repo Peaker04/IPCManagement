@@ -341,7 +341,7 @@ public class WorkflowReportService : IWorkflowReportService
 
         var purchaseLines = await lines
             .OrderByDescending(item => item.PurchaseRequest.PurchaseForDate)
-            .ThenBy(item => item.Supplier.SupplierName)
+            .ThenBy(item => item.Supplier != null ? item.Supplier.SupplierName : null)
             .Take(NormalizeLimit(query.Limit))
             .ToListAsync();
 
@@ -356,8 +356,8 @@ public class WorkflowReportService : IWorkflowReportService
                 Status = item.PurchaseRequest.Status,
                 IngredientId = GuidHelper.ToGuidString(item.IngredientId),
                 IngredientName = item.Ingredient.IngredientName,
-                SupplierId = GuidHelper.ToGuidString(item.SupplierId),
-                SupplierName = item.Supplier.SupplierName,
+                SupplierId = item.SupplierId is null ? null : GuidHelper.ToGuidString(item.SupplierId),
+                SupplierName = item.Supplier?.SupplierName,
                 UnitId = GuidHelper.ToGuidString(item.UnitId),
                 UnitName = item.Unit.UnitName,
                 RequiredQty = DecimalPolicy.RoundQuantity(item.RequiredQty),

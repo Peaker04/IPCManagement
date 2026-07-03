@@ -93,6 +93,27 @@ export interface IngredientLookup {
   isActive: boolean;
 }
 
+export interface UnitLookup {
+  unitId: string;
+  unitCode: string;
+  unitName: string;
+}
+
+export interface WarehouseLookup {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+}
+
+export interface CreateIngredientRequest {
+  ingredientCode: string;
+  ingredientName: string;
+  unitId: string;
+  warehouseId: string;
+  referencePrice: number;
+  isFreshDaily: boolean;
+}
+
 export interface UpsertDishBomLineRequest {
   dishId: string;
   bomId?: string;
@@ -173,10 +194,36 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
       invalidatesTags: ['DishCatalog'],
     }),
     getIngredients: builder.query<IngredientLookup[], void>({
-      query: () => '/ingredients?pageNumber=1&pageSize=500',
+      query: () => '/ingredients/lookup',
+      transformResponse: (response: ApiResponse<IngredientLookup[]>) =>
+        (response.data ?? []).filter((ingredient) => ingredient.isActive),
+      providesTags: ['Ingredients'],
+    }),
+    searchIngredients: builder.query<IngredientLookup[], string>({
+      query: (searchKeyword) => ({
+        url: '/ingredients',
+        params: { pageNumber: 1, pageSize: 50, searchKeyword: searchKeyword || undefined },
+      }),
       transformResponse: (response: ApiResponse<PagedResponse<IngredientLookup>>) =>
         (response.data?.items ?? []).filter((ingredient) => ingredient.isActive),
       providesTags: ['Ingredients'],
+    }),
+    createIngredient: builder.mutation<IngredientLookup, CreateIngredientRequest>({
+      query: (body) => ({
+        url: '/ingredients',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<IngredientLookup>) => response.data!,
+      invalidatesTags: ['Ingredients'],
+    }),
+    getUnits: builder.query<UnitLookup[], void>({
+      query: () => '/units',
+      transformResponse: (response: ApiResponse<UnitLookup[]>) => response.data ?? [],
+    }),
+    getWarehouses: builder.query<WarehouseLookup[], void>({
+      query: () => '/warehouses?pageNumber=1&pageSize=100',
+      transformResponse: (response: ApiResponse<PagedResponse<WarehouseLookup>>) => response.data?.items ?? [],
     }),
     addDishBomLine: builder.mutation<DishCatalogBomLineDto, UpsertDishBomLineRequest>({
       query: ({ dishId, ...body }) => ({
@@ -214,6 +261,10 @@ export const {
   useUpdateDishMutation,
   useDeactivateDishMutation,
   useGetIngredientsQuery,
+  useSearchIngredientsQuery,
+  useCreateIngredientMutation,
+  useGetUnitsQuery,
+  useGetWarehousesQuery,
   useAddDishBomLineMutation,
   useUpdateDishBomLineMutation,
   useCloseDishBomLineMutation,

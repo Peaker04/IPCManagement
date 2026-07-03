@@ -29,6 +29,12 @@ public class IngredientService : IIngredientService
             request.PageSize);
     }
 
+    public async Task<List<IngredientDto>> GetLookupAsync()
+    {
+        var (items, _) = await _ingredientRepo.GetPagedAsync(1, 10000);
+        return items.Select(IngredientMapper.MapToDto).ToList();
+    }
+
     public async Task<IngredientDto?> GetByIdAsync(string id)
     {
         var bytes = GuidHelper.ParseGuidString(id);

@@ -41,12 +41,18 @@ public class PurchaseOrderService : IPurchaseOrderService
             throw new InvalidOperationException("Chỉ có thể tạo đơn mua hàng từ đề xuất mua hàng đã được duyệt.");
         }
 
-        var linesToConvert = purchaseRequest.Purchaserequestlines
+        var pendingLines = purchaseRequest.Purchaserequestlines
             .Where(line => line.Purchaseorderline is null)
             .ToList();
-        if (linesToConvert.Count == 0)
+        if (pendingLines.Count == 0)
         {
             throw new InvalidOperationException("Tất cả các dòng của đề xuất mua hàng này đã được tạo đơn mua hàng.");
+        }
+
+        var linesToConvert = pendingLines.Where(line => line.SupplierId is not null).ToList();
+        if (linesToConvert.Count == 0)
+        {
+            throw new InvalidOperationException("Vui lòng gán nhà cung cấp cho các dòng nguyên liệu (ở tab \"Giá và NCC\") trước khi tạo đơn mua hàng.");
         }
 
         var existingOrdersBySupplier = await _context.Purchaseorders
@@ -56,16 +62,17 @@ public class PurchaseOrderService : IPurchaseOrderService
         var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        foreach (var supplierGroup in linesToConvert.GroupBy(line => Convert.ToBase64String(line.SupplierId)))
+        foreach (var supplierGroup in linesToConvert.GroupBy(line => Convert.ToBase64String(line.SupplierId!)))
         {
             if (!existingOrdersBySupplier.TryGetValue(supplierGroup.Key, out var order))
             {
+                var groupSupplierId = supplierGroup.First().SupplierId!;
                 order = new Purchaseorder
                 {
                     PurchaseOrderId = GuidHelper.NewId(),
-                    PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierGroup.First().SupplierId),
+                    PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, groupSupplierId),
                     PurchaseRequestId = purchaseRequestIdBytes,
-                    SupplierId = supplierGroup.First().SupplierId,
+                    SupplierId = groupSupplierId,
                     OrderDate = today,
                     Status = StatusOrdered,
                     CreatedBy = userIdBytes,

@@ -102,6 +102,33 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GeneratePurchaseRequest_Should_LeaveSupplierUnassigned_WhenNoQuotationOrReceiptHistoryExists()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var demandService = new MaterialDemandService(context);
+        var demand = await demandService.GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        var purchaseService = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
+        var purchase = await purchaseService.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+
+        // No supplier quotation and no inventory receipt history exist for this ingredient in the fixture,
+        // so the line must be left without a supplier rather than silently defaulting to an unrelated one.
+        purchase!.Lines.Should().ContainSingle();
+        purchase.Lines[0].SupplierId.Should().BeNull();
+        purchase.Lines[0].SupplierName.Should().BeNull();
+
+        var persistedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
+        persistedLine.SupplierId.Should().BeNull();
+    }
+
+    [Fact]
     public async Task GeneratePurchaseRequest_Should_RemoveStalePurchaseLines_WhenDemandNoLongerShort()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2112,7 +2139,7 @@ public class WorkflowGenerationTests
                     purchaseRequestId BLOB NOT NULL,
                     materialRequestLineId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
-                    supplierId BLOB NOT NULL,
+                    supplierId BLOB,
                     unitId BLOB NOT NULL,
                     requiredQty TEXT NOT NULL,
                     currentStockQty TEXT NOT NULL,

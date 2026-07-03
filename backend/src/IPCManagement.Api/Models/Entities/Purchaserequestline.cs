@@ -13,7 +13,7 @@ public partial class Purchaserequestline
 
     public byte[] IngredientId { get; set; } = null!;
 
-    public byte[] SupplierId { get; set; } = null!;
+    public byte[]? SupplierId { get; set; }
 
     public byte[] UnitId { get; set; } = null!;
 
@@ -31,7 +31,7 @@ public partial class Purchaserequestline
 
     public virtual Purchaserequest PurchaseRequest { get; set; } = null!;
 
-    public virtual Supplier Supplier { get; set; } = null!;
+    public virtual Supplier? Supplier { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
 

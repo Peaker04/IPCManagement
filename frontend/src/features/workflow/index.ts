@@ -20,6 +20,7 @@ export {
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
   useGetSuppliersQuery,
+  useCreateSupplierMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetSupplierQuotationsByIngredientQuery,
   useCreateSupplierQuotationMutation,
@@ -29,6 +30,7 @@ export {
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
+  useCreateInventoryReceiptMutation,
 } from './workflowApi';
 export type {
   AuditLogRow,
@@ -44,6 +46,7 @@ export type {
   PriceVarianceDishGroupIngredientDto,
   OperationalKpiSummaryDto,
   SupplierDto,
+  CreateSupplierDto,
   SupplierQuotationDto,
   CreateSupplierQuotationDto,
   UpdateSupplierQuotationDto,
