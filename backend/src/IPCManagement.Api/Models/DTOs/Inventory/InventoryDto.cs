@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using IPCManagement.Api.Models.DTOs.Common;
 
 namespace IPCManagement.Api.Models.DTOs.Inventory;
 
@@ -134,6 +135,14 @@ public class InventoryIssueDto
     public DateTime CreatedAt         { get; set; }
 
     public List<InventoryIssueLineDto> Lines { get; set; } = new();
+}
+
+public class InventoryIssueFilterRequestDto : PagedRequestDto
+{
+    public string? WarehouseId { get; set; }
+    public DateOnly? IssueDate { get; set; }
+    public string? ShiftName { get; set; }
+    public bool? IsReceived { get; set; }
 }
 
 public class InventoryIssueLineDto

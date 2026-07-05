@@ -28,8 +28,12 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu xuất kho.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAll([FromQuery] InventoryIssueFilterRequestDto request)
     {
+        // TODO: The user indicated that a Chef should only see issues for their own Warehouse.
+        // However, there is currently no User-Warehouse mapping in the database or Token claims.
+        // For now, we rely on the Frontend to pass the correct WarehouseId in the query parameters.
+        // Once the DB schema is updated to link Users to Warehouses, this endpoint should enforce it.
         var result = await _inventoryIssueService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryIssueDto>>.SuccessResult(result));
     }
