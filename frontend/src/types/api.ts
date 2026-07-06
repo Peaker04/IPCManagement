@@ -17,8 +17,11 @@ export interface UserInfo {
   userId: string;
   fullName: string;
   username: string;
+  roleCode?: string;
   roleName: string;
   isActive: boolean;
+  isAdminFullAccess?: boolean;
+  permissions?: string[];
 }
 
 /**
@@ -48,7 +51,7 @@ export interface LoginRequest {
  */
 export interface RefreshTokenRequest {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }
 
 /**
@@ -56,5 +59,5 @@ export interface RefreshTokenRequest {
  * Khớp với RevokeTokenRequestDto ở backend.
  */
 export interface RevokeTokenRequest {
-  refreshToken: string;
+  refreshToken?: string;
 }

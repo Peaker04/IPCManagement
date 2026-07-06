@@ -47,30 +47,30 @@ export function RoleInbox({
         <table className="ipc-data-table ipc-logistics-table ipc-role-inbox-table">
           <thead>
             <tr>
-              <th className="text-left">Việc / chứng từ</th>
-              <th className="text-center">Hạn xử lý</th>
-              <th className="text-left">Phụ trách</th>
-              {hasActions ? <th className="text-right">Thao tác</th> : null}
+              <th className="!text-left">Việc / chứng từ</th>
+              <th className="!text-left">Hạn xử lý</th>
+              <th className="!text-left">Phụ trách</th>
+              {hasActions ? <th className="!text-right">Thao tác</th> : null}
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((item) => (
-              <tr key={item.id} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
-                <td className="text-left">
+            {pageItems.map((item, index) => (
+              <tr key={`${item.id}-${safePage}-${index}`} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
+                <td className="!text-left">
                   <div className="ipc-work-cell">
                     <strong>{item.title}</strong>
                     <span>{item.description}</span>
                   </div>
                 </td>
-                <td className="ipc-badge-cell text-left">
+                <td className="ipc-badge-cell !text-left">
                   <StatusBadge variant={item.tone} className="ipc-due-badge ipc-table-badge ipc-table-badge--due">
                     {item.due}
                   </StatusBadge>
                 </td>
-                <td className="text-left">
+                <td className="!text-left">
                   <span className="ipc-muted-cell">{item.owner}</span>
                 </td>
-                {hasActions ? <td className="ipc-row-action-cell">{actionForItem?.(item)}</td> : null}
+                {hasActions ? <td className="ipc-row-action-cell !text-right">{actionForItem?.(item)}</td> : null}
               </tr>
             ))}
           </tbody>

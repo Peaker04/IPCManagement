@@ -31,11 +31,11 @@ public static class InventoryMapper
         ReceiptLineId = GuidHelper.ToGuidString(line.ReceiptLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
         IngredientName = line.Ingredient?.IngredientName,
-        Quantity = line.Quantity,
+        Quantity = DecimalPolicy.RoundQuantity(line.Quantity),
         UnitId = GuidHelper.ToGuidString(line.UnitId),
         UnitName = line.Unit?.UnitName,
-        UnitPrice = line.UnitPrice,
-        Amount = line.Amount ?? 0,
+        UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
+        Amount = DecimalPolicy.RoundMoney(line.Amount ?? 0),
         LotNumber = line.LotNumber,
         ManufactureDate = line.ManufactureDate,
         ExpiredDate = line.ExpiredDate
@@ -54,6 +54,7 @@ public static class InventoryMapper
         IssuedByName = issue.IssuedByNavigation?.FullName,
         ReceivedBy = issue.ReceivedBy is not null ? GuidHelper.ToGuidString(issue.ReceivedBy) : null,
         ReceivedByName = issue.ReceivedByNavigation?.FullName,
+        ReceivedAt = issue.ReceivedAt,
         CreatedAt = issue.CreatedAt,
         Lines = includeLines
             ? issue.Inventoryissuelines.Select(MapIssueLine).ToList()
@@ -65,8 +66,38 @@ public static class InventoryMapper
         IssueLineId = GuidHelper.ToGuidString(line.IssueLineId),
         IngredientId = GuidHelper.ToGuidString(line.IngredientId),
         IngredientName = line.Ingredient?.IngredientName,
-        RequestedQty = line.RequestedQty,
-        IssuedQty = line.IssuedQty,
+        RequestedQty = DecimalPolicy.RoundQuantity(line.RequestedQty),
+        IssuedQty = DecimalPolicy.RoundQuantity(line.IssuedQty),
+        UnitId = GuidHelper.ToGuidString(line.UnitId),
+        UnitName = line.Unit?.UnitName
+    };
+
+    public static InventoryReturnDto MapReturn(Inventoryreturn inventoryReturn, bool includeLines = false) => new()
+    {
+        ReturnId = GuidHelper.ToGuidString(inventoryReturn.ReturnId),
+        ReturnCode = inventoryReturn.ReturnCode,
+        ReturnDate = inventoryReturn.ReturnDate,
+        ShiftName = inventoryReturn.ShiftName,
+        ReturnType = inventoryReturn.ReturnType,
+        WarehouseId = GuidHelper.ToGuidString(inventoryReturn.WarehouseId),
+        WarehouseName = inventoryReturn.Warehouse?.WarehouseName,
+        IssueId = GuidHelper.ToGuidString(inventoryReturn.IssueId),
+        IssueCode = inventoryReturn.Issue?.IssueCode,
+        Reason = inventoryReturn.Reason,
+        CreatedBy = GuidHelper.ToGuidString(inventoryReturn.CreatedBy),
+        CreatedByName = inventoryReturn.CreatedByNavigation?.FullName,
+        CreatedAt = inventoryReturn.CreatedAt,
+        Lines = includeLines
+            ? inventoryReturn.Inventoryreturnlines.Select(MapReturnLine).ToList()
+            : new List<InventoryReturnLineDto>()
+    };
+
+    public static InventoryReturnLineDto MapReturnLine(Inventoryreturnline line) => new()
+    {
+        ReturnLineId = GuidHelper.ToGuidString(line.ReturnLineId),
+        IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+        IngredientName = line.Ingredient?.IngredientName,
+        Quantity = DecimalPolicy.RoundQuantity(line.Quantity),
         UnitId = GuidHelper.ToGuidString(line.UnitId),
         UnitName = line.Unit?.UnitName
     };

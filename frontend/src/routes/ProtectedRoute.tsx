@@ -10,6 +10,7 @@ import {
   setCredentials,
   useGetCurrentUserQuery,
 } from '../features/auth';
+import { normalizeUserRole } from '../features/auth/roleUtils';
 import { ROUTES } from './routeConfig';
 
 export const ProtectedRoute = () => {
@@ -34,7 +35,11 @@ export const ProtectedRoute = () => {
             id: data.data.userId,
             username: data.data.username,
             fullName: data.data.fullName,
-            role: data.data.roleName.toLowerCase(),
+            role: normalizeUserRole(data.data.roleCode, data.data.roleName),
+            roleCode: data.data.roleCode,
+            roleName: data.data.roleName,
+            isAdminFullAccess: data.data.isAdminFullAccess ?? false,
+            permissions: data.data.permissions ?? [],
           },
           token,
         })
@@ -48,7 +53,6 @@ export const ProtectedRoute = () => {
       if (status !== 401) {
         dispatch(logOut());
       }
-
       return;
     }
 

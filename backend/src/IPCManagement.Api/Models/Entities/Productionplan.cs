@@ -11,13 +11,25 @@ public partial class Productionplan
 
     public DateOnly PlanDate { get; set; }
 
+    public byte[]? CustomerId { get; set; }
+
+    public DateOnly? WeekStartDate { get; set; }
+
+    public byte[]? MenuVersionId { get; set; }
+
     public string Status { get; set; } = null!;
 
     public byte[] CreatedBy { get; set; } = null!;
 
     public DateTime CreatedAt { get; set; }
 
+    public DateTime UpdatedAt { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual Customer? Customer { get; set; }
+
+    public virtual Menuversion? MenuVersion { get; set; }
 
     public virtual ICollection<Materialrequest> Materialrequests { get; set; } = new List<Materialrequest>();
 

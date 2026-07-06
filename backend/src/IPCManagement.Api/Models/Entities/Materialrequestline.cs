@@ -21,6 +21,14 @@ public partial class Materialrequestline
 
     public decimal BomRatePercent { get; set; }
 
+    public byte[]? AppliedPortionRuleId { get; set; }
+
+    public string AppliedPortionRuleSource { get; set; } = "CONTRACT_DEFAULT";
+
+    public decimal AppliedPortionRatePercent { get; set; } = 100;
+
+    public decimal? YieldLossPercent { get; set; }
+
     public decimal TotalRequiredQty { get; set; }
 
     public decimal CurrentStockQty { get; set; }

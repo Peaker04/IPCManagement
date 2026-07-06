@@ -1,14 +1,20 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { BaseQueryApi, BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
-import type { RootState } from '../app/store';
+import type { BaseQueryFn, FetchArgs, FetchBaseQueryError } from '@reduxjs/toolkit/query';
 import { logOut, setCredentials } from '../features/auth/authSlice';
-import type { ApiResponse, LoginData, RefreshTokenRequest } from '../types/api';
+import type { AuthState } from '../features/auth/authTypes';
+import { normalizeUserRole } from '../features/auth/roleUtils';
+import type { ApiResponse, LoginData } from '../types/api';
 import { notifySessionExpired } from '../features/auth/sessionEvents';
 
+type AuthAwareState = { auth: AuthState };
+
 const baseQuery = fetchBaseQuery({
-  baseUrl: '/api',
+  baseUrl: import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api`
+    : '/api',
+  credentials: 'include',
   prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth.token;
+    const token = (getState() as AuthAwareState).auth.token;
     if (token) {
       headers.set('authorization', `Bearer ${token}`);
     }
@@ -16,7 +22,13 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
-let refreshPromise: Promise<boolean> | null = null;
+let refreshPromise: Promise<void> | null = null;
+let devFallbackLoginPromise: Promise<boolean> | null = null;
+
+const devFallbackTokenPrefix = 'dev-login-fallback-token-';
+
+const getDevFallbackUsername = (token?: string | null) =>
+  token?.startsWith(devFallbackTokenPrefix) ? token.slice(devFallbackTokenPrefix.length) : null;
 
 const isAuthEndpoint = (args: string | FetchArgs) => {
   const url = typeof args === 'string' ? args : args.url;
@@ -24,65 +36,30 @@ const isAuthEndpoint = (args: string | FetchArgs) => {
   return (
     url.startsWith('/auth/login') ||
     url.startsWith('/auth/refresh') ||
-    url.startsWith('/auth/logout')
+    url.startsWith('/auth/logout') ||
+    url.startsWith('/auth/revoke')
   );
 };
 
-const refreshAccessToken = async (
-  api: BaseQueryApi,
-  extraOptions: Parameters<typeof baseQuery>[2]
+const setLoginData = (
+  api: Parameters<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>[1],
+  data: LoginData
 ) => {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      const state = api.getState() as RootState;
-      const currentToken = state.auth.token;
-      const currentRefreshToken = state.auth.refreshToken;
-
-      if (!currentToken || !currentRefreshToken) {
-        return false;
-      }
-
-      const refreshRequest: RefreshTokenRequest = {
-        accessToken: currentToken,
-        refreshToken: currentRefreshToken,
-      };
-
-      const refreshResult = await baseQuery(
-        {
-          url: '/auth/refresh',
-          method: 'POST',
-          body: refreshRequest,
-        },
-        api,
-        extraOptions
-      );
-
-      const refreshData = refreshResult.data as ApiResponse<LoginData> | undefined;
-
-      if (refreshData?.success && refreshData.data) {
-        api.dispatch(
-          setCredentials({
-            user: {
-              id: refreshData.data.user.userId,
-              username: refreshData.data.user.username,
-              fullName: refreshData.data.user.fullName,
-              role: refreshData.data.user.roleName.toLowerCase(),
-            },
-            token: refreshData.data.accessToken,
-            refreshToken: refreshData.data.refreshToken,
-          })
-        );
-
-        return true;
-      }
-
-      return false;
-    })().finally(() => {
-      refreshPromise = null;
-    });
-  }
-
-  return refreshPromise;
+  api.dispatch(
+    setCredentials({
+      user: {
+        id: data.user.userId,
+        username: data.user.username,
+        fullName: data.user.fullName,
+        role: normalizeUserRole(data.user.roleCode, data.user.roleName),
+        roleCode: data.user.roleCode,
+        roleName: data.user.roleName,
+        isAdminFullAccess: data.user.isAdminFullAccess ?? false,
+        permissions: data.user.permissions ?? [],
+      },
+      token: data.accessToken,
+    })
+  );
 };
 
 const baseQueryWithAuthHandling: BaseQueryFn<
@@ -90,17 +67,95 @@ const baseQueryWithAuthHandling: BaseQueryFn<
   unknown,
   FetchBaseQueryError
 > = async (args, api, extraOptions) => {
-  const result = await baseQuery(args, api, extraOptions);
+  if (refreshPromise) {
+    await refreshPromise;
+  }
 
-  if (result.error?.status === 401 && !isAuthEndpoint(args)) {
-    const didRefresh = await refreshAccessToken(api, extraOptions);
+  let result = await baseQuery(args, api, extraOptions);
 
-    if (didRefresh) {
-      return baseQuery(args, api, extraOptions);
+  const token = (api.getState() as AuthAwareState).auth.token;
+  const devFallbackUsername = getDevFallbackUsername(token);
+
+  if (result.error?.status === 401 && devFallbackUsername && !isAuthEndpoint(args)) {
+    if (!devFallbackLoginPromise) {
+      devFallbackLoginPromise = (async () => {
+        try {
+          const devLoginResult = await baseQuery(
+            {
+              url: '/auth/login',
+              method: 'POST',
+              body: {
+                username: devFallbackUsername,
+                password: devFallbackUsername,
+              },
+            },
+            api,
+            extraOptions
+          );
+
+          const data = (devLoginResult.data as ApiResponse<LoginData> | undefined)?.data;
+          if (!data) {
+            api.dispatch(logOut());
+            notifySessionExpired();
+            return false;
+          }
+
+          setLoginData(api, data);
+          return true;
+        } finally {
+          devFallbackLoginPromise = null;
+        }
+      })();
     }
 
-    api.dispatch(logOut());
-    notifySessionExpired();
+    const didUpgrade = await devFallbackLoginPromise;
+    if (!didUpgrade) {
+      return result;
+    }
+
+    return baseQuery(args, api, extraOptions);
+  }
+
+  if (result.error?.status === 401 && !isAuthEndpoint(args)) {
+    if (!token) {
+      api.dispatch(logOut());
+      notifySessionExpired();
+      return result;
+    }
+
+    if (!refreshPromise) {
+      refreshPromise = (async () => {
+        try {
+          const refreshResult = await baseQuery(
+            {
+              url: '/auth/refresh',
+              method: 'POST',
+              body: { accessToken: token },
+            },
+            api,
+            extraOptions
+          );
+
+          const data = (refreshResult.data as ApiResponse<LoginData> | undefined)?.data;
+          if (!data) {
+            api.dispatch(logOut());
+            notifySessionExpired();
+            return;
+          }
+
+          setLoginData(api, data);
+        } finally {
+          refreshPromise = null;
+        }
+      })();
+    }
+
+    await refreshPromise;
+    result = await baseQuery(args, api, extraOptions);
+    if (result.error?.status === 401) {
+      api.dispatch(logOut());
+      notifySessionExpired();
+    }
   }
 
   return result;
@@ -109,6 +164,6 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuthHandling,
-  tagTypes: ['User', 'Employee', 'Project', 'Coordination'],
+  tagTypes: ['User', 'Employee', 'Project', 'Coordination', 'WorkflowReports', 'DishCatalog', 'Customers', 'Ingredients', 'MaterialDemandStaleness', 'SupplierQuotations', 'PurchaseOrders'],
   endpoints: () => ({}),
 });

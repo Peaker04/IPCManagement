@@ -15,7 +15,10 @@ public interface IStockLedgerService
         byte[] refId,
         byte[] performedBy,
         string reason,
-        string note);
+        string note,
+        string? lotNumber = null,
+        DateOnly? manufactureDate = null,
+        DateOnly? expiredDate = null);
 
     /// <summary>
     /// Kiểm tra tồn kho và trừ số lượng khỏi tồn kho hiện tại, ghi nhận Stock Movement (xuất kho).

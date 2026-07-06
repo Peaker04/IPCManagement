@@ -23,9 +23,13 @@ public partial class Menuschedule
 
     public string Status { get; set; } = null!;
 
+    public byte[]? MenuVersionId { get; set; }
+
     public virtual Customer Customer { get; set; } = null!;
 
     public virtual ICollection<Mealquantityplanline> Mealquantityplanlines { get; set; } = new List<Mealquantityplanline>();
 
     public virtual Menu Menu { get; set; } = null!;
+
+    public virtual Menuversion? MenuVersion { get; set; }
 }

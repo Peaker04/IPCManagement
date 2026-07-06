@@ -1,6 +1,7 @@
-﻿using System.Net;
+using System.Net;
 using System.Text.Json;
 using IPCManagement.Api.Helpers;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Middlewares;
 
@@ -43,10 +44,12 @@ public class ExceptionMiddleware
 
         var (statusCode, message) = ex switch
         {
+            DbUpdateConcurrencyException => (HttpStatusCode.Conflict,             "Dữ liệu đã bị thay đổi bởi người dùng khác. Vui lòng thử lại."),
             InvalidOperationException => (HttpStatusCode.BadRequest,         ex.Message),
             ArgumentException         => (HttpStatusCode.UnprocessableEntity, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized,      "Không có quyền truy cập."),
             KeyNotFoundException      => (HttpStatusCode.NotFound,            ex.Message),
+            DirectoryNotFoundException => (HttpStatusCode.NotFound,           ex.Message),
             _                         => (HttpStatusCode.InternalServerError, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
         };
 

@@ -17,6 +17,9 @@ export const authApi = apiSlice.injectEndpoints({
         body: credentials,
       }),
     }),
+    getCurrentUser: builder.query<ApiResponse<UserInfo>, void>({
+      query: () => '/auth/profile',
+    }),
     refreshToken: builder.mutation<ApiResponse<LoginData>, RefreshTokenRequest>({
       query: (body) => ({
         url: '/auth/refresh',
@@ -24,18 +27,28 @@ export const authApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
-    logout: builder.mutation<ApiResponse<void>, RevokeTokenRequest>({
+    logout: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest | void>({
       query: (body) => ({
         url: '/auth/logout',
         method: 'POST',
-        body,
+        body: body ?? {},
       }),
     }),
-    getCurrentUser: builder.query<ApiResponse<UserInfo>, void>({
-      query: () => '/auth/profile',
+    revokeToken: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest | void>({
+      query: (body) => ({
+        url: '/auth/revoke',
+        method: 'POST',
+        body: body ?? {},
+      }),
     }),
   }),
   overrideExisting: false,
 });
 
-export const { useLoginMutation, useRefreshTokenMutation, useGetCurrentUserQuery } = authApi;
+export const {
+  useLoginMutation,
+  useGetCurrentUserQuery,
+  useRefreshTokenMutation,
+  useLogoutMutation,
+  useRevokeTokenMutation,
+} = authApi;

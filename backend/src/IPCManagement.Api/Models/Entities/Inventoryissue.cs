@@ -21,6 +21,8 @@ public partial class Inventoryissue
 
     public byte[]? ReceivedBy { get; set; }
 
+    public DateTime? ReceivedAt { get; set; }
+
     public DateTime CreatedAt { get; set; }
 
     public virtual ICollection<Inventoryissueline> Inventoryissuelines { get; set; } = new List<Inventoryissueline>();

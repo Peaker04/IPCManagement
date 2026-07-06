@@ -61,7 +61,8 @@ public class AuthController : ControllerBase
             result.User.Username,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
-        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Đăng nhập thành công."));
+        SetRefreshTokenCookie(result.RefreshToken);
+        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Đăng nhập thành công."));
     }
 
     /// <summary>Làm mới access token bằng refresh token.</summary>
@@ -97,7 +98,7 @@ public class AuthController : ControllerBase
             result.User.Username,
             HttpContext.Connection.RemoteIpAddress?.ToString());
 
-        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(result, "Làm mới token thành công."));
+        return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Làm mới token thành công."));
     }
 
     /// <summary>Đăng xuất — vô hiệu hoá refresh token.</summary>
@@ -138,7 +139,10 @@ public class AuthController : ControllerBase
 
     /// <summary>Alias tương thích ngược cho luồng thu hồi token.</summary>
     [HttpPost("revoke")]
+    [Authorize]
     [EnableRateLimiting("api-general")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public Task<IActionResult> Revoke([FromBody] RevokeTokenRequestDto? request)
         => Logout(request);
 
@@ -150,6 +154,19 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetProfile()
+        => await GetProfileInternal();
+
+    /// <summary>Lấy profile đầy đủ cho route/action guard của Frontend.</summary>
+    [HttpGet("me")]
+    [Authorize]
+    [EnableRateLimiting("api-general")]
+    [ProducesResponseType(typeof(ApiResponse<UserProfileResponseDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetMe()
+        => await GetMeInternal();
+
+    private async Task<IActionResult> GetProfileInternal()
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -163,11 +180,33 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserInfoDto>.SuccessResult(profile, "Lấy thông tin người dùng thành công."));
     }
 
+    private async Task<IActionResult> GetMeInternal()
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized(ApiResponse.FailResult("Token không hợp lệ hoặc thiếu thông tin người dùng."));
+
+        var profile = await _authService.GetMeAsync(userId);
+        if (profile is null)
+            return NotFound(ApiResponse.FailResult("Người dùng không tồn tại hoặc tài khoản đã bị khoá."));
+
+        return Ok(ApiResponse<UserProfileResponseDto>.SuccessResult(profile, "Lấy profile người dùng thành công."));
+    }
     private string ResolveRefreshToken(string? refreshToken)
         => !string.IsNullOrWhiteSpace(refreshToken)
             ? refreshToken.Trim()
             : Request.Cookies[RefreshTokenCookieName] ?? string.Empty;
 
+    private static LoginResponseDto WithoutExposedRefreshToken(LoginResponseDto result)
+        => new()
+        {
+            AccessToken = result.AccessToken,
+            RefreshToken = string.Empty,
+            TokenType = result.TokenType,
+            ExpiresIn = result.ExpiresIn,
+            User = result.User
+        };
     private void SetRefreshTokenCookie(string refreshToken)
     {
         var cookieOptions = new CookieOptions
