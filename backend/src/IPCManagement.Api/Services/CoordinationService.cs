@@ -1261,6 +1261,8 @@ public class CoordinationService : ICoordinationService
 
         var signedOffAt = DateTime.UtcNow;
         plan.Status = OrderStatus.Completed;
+        plan.CompletedAt = signedOffAt;
+        plan.CompletedBy = userIdBytes;
 
         _context.Auditlogs.Add(new Auditlog
         {
@@ -1278,7 +1280,15 @@ public class CoordinationService : ICoordinationService
                 : request.Note.Trim()
         });
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new InvalidOperationException(
+                "Kế hoạch này đã được người khác chỉnh sửa trước đó. Vui lòng tải lại trang.");
+        }
 
         return new SignoffOrderResultDto
         {
@@ -1288,6 +1298,79 @@ public class CoordinationService : ICoordinationService
             OldStatus = oldStatus,
             NewStatus = OrderStatus.Completed,
             SignedOffAt = signedOffAt
+        };
+    }
+
+    public async Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(
+        string quantityPlanId,
+        string? userId)
+    {
+        var planIdBytes = GuidHelper.ParseGuidString(quantityPlanId);
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (planIdBytes is null || userIdBytes is null)
+        {
+            return null;
+        }
+
+        var plan = await _context.Mealquantityplans
+            .Include(item => item.Mealquantityplanlines)
+            .FirstOrDefaultAsync(item => item.QuantityPlanId == planIdBytes);
+        if (plan is null)
+        {
+            return null;
+        }
+
+        var oldStatus = OrderStatus.Normalize(plan.Status);
+        if (oldStatus != OrderStatus.Confirmed && oldStatus != OrderStatus.Adjusted)
+        {
+            throw new InvalidOperationException(
+                "Chỉ có thể mở khóa kế hoạch đang ở trạng thái chốt hoặc điều chỉnh.");
+        }
+
+        var unlockedAt = DateTime.UtcNow;
+        plan.Status = OrderStatus.Draft;
+        plan.ConfirmedAt = null;
+        plan.ConfirmedBy = null;
+        plan.ConfirmationTime = new TimeOnly(8, 30);
+        plan.CompletedAt = null;
+        plan.CompletedBy = null;
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = unlockedAt,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Coordination",
+            EntityName = nameof(Mealquantityplan),
+            EntityId = planIdBytes,
+            FieldName = nameof(Mealquantityplan.Status),
+            OldValue = oldStatus,
+            NewValue = OrderStatus.Draft,
+            Reason = "Mở khóa kế hoạch (revert về Draft)"
+        });
+
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            throw new InvalidOperationException(
+                "Kế hoạch này đã được người khác chỉnh sửa trước đó. Vui lòng tải lại trang.");
+        }
+
+        return new LockOrderPlanResultDto
+        {
+            Success = true,
+            LockedAt = unlockedAt,
+            ServiceDate = plan.ServiceDate.ToString("yyyy-MM-dd"),
+            Scope = "FULLDAY",
+            LockedShiftNames = plan.Mealquantityplanlines
+                .Select(line => line.ShiftName)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(shift => shift)
+                .ToList(),
+            LockedLineCount = plan.Mealquantityplanlines.Count
         };
     }
 

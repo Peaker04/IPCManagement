@@ -4,6 +4,7 @@ using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace IPCManagement.Api.Migrations
 {
     [DbContext(typeof(IpcManagementContext))]
-    partial class IpcManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20260706033326_AddMealQuantityPlanCompletedAndConcurrency")]
+    partial class AddMealQuantityPlanCompletedAndConcurrency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -23,53 +26,6 @@ namespace IPCManagement.Api.Migrations
 
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
-                {
-                    b.Property<byte[]>("AssignmentId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("assignmentId")
-                        .IsFixedLength();
-
-                    b.Property<string>("ApproverRole")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("approverRole");
-
-                    b.Property<byte[]>("ApproverUserId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("approverUserId")
-                        .IsFixedLength();
-
-                    b.Property<bool>("IsRequired")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasColumnName("isRequired");
-
-                    b.Property<byte[]>("RuleId")
-                        .IsRequired()
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("ruleId")
-                        .IsFixedLength();
-
-                    b.Property<int>("Sequence")
-                        .HasColumnType("int")
-                        .HasColumnName("sequence");
-
-                    b.HasKey("AssignmentId")
-                        .HasName("PRIMARY");
-
-                    b.HasIndex("ApproverUserId");
-
-                    b.HasIndex("RuleId");
-
-                    b.ToTable("approvalassignments", (string)null);
-                });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
                 {
@@ -133,58 +89,6 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "TargetType", "TargetId", "ActionAt" }, "ixApprovalHistoriesTarget");
 
                     b.ToTable("approvalhistories", (string)null);
-                });
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
-                {
-                    b.Property<byte[]>("RuleId")
-                        .HasMaxLength(16)
-                        .HasColumnType("binary(16)")
-                        .HasColumnName("ruleId")
-                        .IsFixedLength();
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime")
-                        .HasColumnName("createdAt")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-                    b.Property<string>("DocumentType")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("varchar(50)")
-                        .HasColumnName("documentType");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("tinyint(1)")
-                        .HasDefaultValue(true)
-                        .HasColumnName("isActive");
-
-                    b.Property<decimal?>("MaxAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("maxAmount");
-
-                    b.Property<decimal?>("MinAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)")
-                        .HasColumnName("minAmount");
-
-                    b.Property<string>("RuleName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("varchar(200)")
-                        .HasColumnName("ruleName");
-
-                    b.Property<int?>("SlaHours")
-                        .HasColumnType("int")
-                        .HasColumnName("slaHours");
-
-                    b.HasKey("RuleId")
-                        .HasName("PRIMARY");
-
-                    b.ToTable("approvalrules", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
@@ -3037,26 +2941,6 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("warehouses", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
-                {
-                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ApproverUser")
-                        .WithMany()
-                        .HasForeignKey("ApproverUserId")
-                        .OnDelete(DeleteBehavior.SetNull)
-                        .HasConstraintName("approvalassignments_ibfk_2");
-
-                    b.HasOne("IPCManagement.Api.Models.Entities.Approvalrule", "Rule")
-                        .WithMany("Approvalassignments")
-                        .HasForeignKey("RuleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("approvalassignments_ibfk_1");
-
-                    b.Navigation("ApproverUser");
-
-                    b.Navigation("Rule");
-                });
-
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ActionByNavigation")
@@ -3914,11 +3798,6 @@ namespace IPCManagement.Api.Migrations
                         .HasConstraintName("users_ibfk_1");
 
                     b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
-                {
-                    b.Navigation("Approvalassignments");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>

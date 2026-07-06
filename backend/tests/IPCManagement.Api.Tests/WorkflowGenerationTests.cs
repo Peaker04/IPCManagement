@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+using FluentAssertions;
+using NSubstitute;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
@@ -1629,7 +1630,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new ApprovalInboxService(context);
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
         var purchaseInbox = await service.GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
         var warehouseInbox = await service.GetPendingAsync(BuildPrincipal("Thủ kho"), new ApprovalInboxQueryDto { Limit = 100 });
 
@@ -1682,7 +1683,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var inbox = await new ApprovalInboxService(context)
+            var inbox = await new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>())
                 .GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
 
             var alert = inbox.Should().ContainSingle(item => item.ItemType == "price-alert").Subject;
@@ -4237,7 +4238,10 @@ public class WorkflowGenerationTests
                     forecastReceivedAt TEXT NULL,
                     confirmedAt TEXT NULL,
                     confirmationTime TEXT NOT NULL,
-                    confirmedBy BLOB NULL
+                    confirmedBy BLOB NULL,
+                    completedAt TEXT NULL,
+                    completedBy BLOB NULL,
+                    rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
                 CREATE TABLE mealquantityplanlines (
                     quantityPlanLineId BLOB PRIMARY KEY,

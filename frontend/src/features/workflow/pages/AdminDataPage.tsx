@@ -273,7 +273,51 @@ export default function AdminDataPage() {
   const [updateMenuScheduleVersion, updateMenuScheduleVersionState] = useUpdateMenuScheduleVersionMutation();
   const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const { data: auditLogs = [] } = useGetAuditChangesQuery({ limit: 100 });
+  const [auditActor, setAuditActor] = useState('');
+  const [auditArea, setAuditArea] = useState('');
+  const [auditEntity, setAuditEntity] = useState('');
+  const [auditField, setAuditField] = useState('');
+  const authToken = useAppSelector((state) => state.auth.token);
+
+  const auditQuery = useMemo(
+    () => ({
+      limit: 100,
+      actor: auditActor.trim() || undefined,
+      businessArea: auditArea.trim() || undefined,
+      entityName: auditEntity.trim() || undefined,
+      fieldName: auditField.trim() || undefined,
+    }),
+    [auditActor, auditArea, auditEntity, auditField]
+  );
+
+  const { data: auditLogs = [] } = useGetAuditChangesQuery(auditQuery);
+
+  const handleExportAuditCsv = async () => {
+    const params = new URLSearchParams();
+    if (auditActor) params.append('actor', auditActor.trim());
+    if (auditArea) params.append('businessArea', auditArea.trim());
+    if (auditEntity) params.append('entityName', auditEntity.trim());
+    if (auditField) params.append('fieldName', auditField.trim());
+
+    try {
+      const response = await fetch(`/api/workflow-reports/audit-changes/csv?${params.toString()}`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+      });
+      if (!response.ok) throw new Error('Không thể xuất CSV');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Lỗi khi tải file CSV: ' + err);
+    }
+  };
   const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
   const [generateMaterialDemand, generateMaterialDemandState] = useGenerateMaterialDemandMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -1971,18 +2015,81 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'audit' && (
         <SectionPanel title="Nhật ký thay đổi hệ thống (Audit Trail)" icon={<History size={18} />}>
           <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
-            <div className="rounded-md border border-slate-200 bg-slate-50/60 p-4">
-              <div className="text-[13px] font-bold text-slate-700 flex items-center gap-1.5">
-                <Bell size={15} className="text-blue-600" />
-                <span>Nội dung thông báo vận hành ca</span>
+            
+            {/* Bộ lọc Audit log */}
+            <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Người thực hiện</label>
+                <input
+                  type="text"
+                  value={auditActor}
+                  onChange={(e) => { setAuditActor(e.target.value); setAuditPage(1); }}
+                  placeholder="Họ tên / tài khoản..."
+                  className="h-8 px-2 border border-slate-200 rounded text-xs w-48 focus:outline-none"
+                />
               </div>
-              <p className="mt-1.5 text-sm leading-6 text-slate-600">
-                BOM <b>Cá kho tiêu</b> đã chờ kiểm tra. Khi duyệt xong, gửi thông báo cho Điều phối, KHSX và Bếp trưởng trước ca tiếp theo để đồng bộ thông tin định lượng.
-              </p>
-              <button className="ipc-button ipc-button-ghost mt-3 shadow-sm bg-white" type="button">
-                <Bell size={15} />
-                Gửi thông báo vận hành
-              </button>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Mảng nghiệp vụ</label>
+                <select
+                  value={auditArea}
+                  onChange={(e) => { setAuditArea(e.target.value); setAuditPage(1); }}
+                  className="h-8 px-2 border border-slate-200 rounded text-xs w-40 bg-white focus:outline-none"
+                >
+                  <option value="">Tất cả</option>
+                  <option value="Signoff">Hoàn thành ca</option>
+                  <option value="Coordination">Điều phối</option>
+                  <option value="MaterialRequest">Yêu cầu nguyên liệu</option>
+                  <option value="PurchaseRequest">Đề xuất mua hàng</option>
+                  <option value="InventoryReceipt">Nhập kho</option>
+                  <option value="InventoryIssue">Xuất kho</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Tên bảng/Thực thể</label>
+                <input
+                  type="text"
+                  value={auditEntity}
+                  onChange={(e) => { setAuditEntity(e.target.value); setAuditPage(1); }}
+                  placeholder="Ví dụ: Mealquantityplan..."
+                  className="h-8 px-2 border border-slate-200 rounded text-xs w-44 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[10px] font-bold text-slate-500 uppercase">Tên cột/Trường</label>
+                <input
+                  type="text"
+                  value={auditField}
+                  onChange={(e) => { setAuditField(e.target.value); setAuditPage(1); }}
+                  placeholder="Ví dụ: Status..."
+                  className="h-8 px-2 border border-slate-200 rounded text-xs w-40 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 items-end h-8 mt-4 ml-auto">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuditActor('');
+                    setAuditArea('');
+                    setAuditEntity('');
+                    setAuditField('');
+                    setAuditPage(1);
+                  }}
+                  className="ipc-button ipc-button-ghost py-1 px-3 text-xs"
+                >
+                  Xóa bộ lọc
+                </button>
+                <button
+                  type="button"
+                  onClick={handleExportAuditCsv}
+                  className="ipc-button ipc-button-primary py-1 px-3 text-xs bg-green-600 hover:bg-green-700 text-white flex items-center gap-1 border-0"
+                >
+                  Xuất CSV
+                </button>
+              </div>
             </div>
 
             <DataTableShell ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">

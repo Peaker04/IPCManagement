@@ -24,10 +24,37 @@ public sealed class ApprovalInboxService : IApprovalInboxService
     private const string OrderAdjustmentTargetType = "order-adjustment";
 
     private readonly IpcManagementContext _context;
+    private readonly IApprovalRoutingService _routingService;
 
-    public ApprovalInboxService(IpcManagementContext context)
+    public ApprovalInboxService(IpcManagementContext context, IApprovalRoutingService routingService)
     {
         _context = context;
+        _routingService = routingService;
+    }
+
+    private async Task PopulateSlaAsync(ApprovalInboxItemDto item, byte[] targetIdBytes, DateTime? docCreationTime = null)
+    {
+        decimal? amount = null;
+        if (item.TargetType == PurchaseRequestTargetType)
+        {
+            var prId = targetIdBytes;
+            amount = await _context.Purchaserequestlines
+                .Where(l => l.PurchaseRequestId.SequenceEqual(prId))
+                .SumAsync(l => l.PurchaseQty * l.EstimatedUnitPrice);
+        }
+
+        var rule = await _routingService.GetMatchingRuleAsync(item.TargetType, amount);
+        if (rule != null && rule.SlaHours.HasValue)
+        {
+            var submitTime = await _context.Approvalhistories
+                .Where(h => h.TargetType == item.TargetType && h.TargetId.SequenceEqual(targetIdBytes) && (h.Decision == "SUBMIT" || h.Decision == "Submit"))
+                .Select(h => h.ActionAt)
+                .FirstOrDefaultAsync();
+
+            var baseTime = submitTime != default ? submitTime : (docCreationTime ?? DateTime.UtcNow);
+            item.SlaHours = rule.SlaHours;
+            item.SlaDeadline = baseTime.AddHours(rule.SlaHours.Value);
+        }
     }
 
     public async Task<IReadOnlyList<ApprovalInboxItemDto>> GetPendingAsync(
@@ -91,7 +118,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 continue;
             }
 
-            result.Add(new ApprovalInboxItemDto
+            var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = $"purchase-{GuidHelper.ToGuidString(request.PurchaseRequestId)}",
                 TargetType = PurchaseRequestTargetType,
@@ -112,7 +139,10 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                     .OrderBy(line => line.Ingredient.IngredientName)
                     .Select(MapPurchaseMaterial)
                     .ToList()
-            });
+            };
+            var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
+            await PopulateSlaAsync(itemDto, request.PurchaseRequestId, baseDocDate);
+            result.Add(itemDto);
         }
 
         return result;
@@ -156,7 +186,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 continue;
             }
 
-            result.Add(new ApprovalInboxItemDto
+            var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = $"price-alert-{GuidHelper.ToGuidString(request.PurchaseRequestId)}",
                 TargetType = PurchaseRequestTargetType,
@@ -177,7 +207,10 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                     .OrderBy(line => line.Ingredient.IngredientName)
                     .Select(MapPurchaseMaterial)
                     .ToList()
-            });
+            };
+            var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
+            await PopulateSlaAsync(itemDto, request.PurchaseRequestId, baseDocDate);
+            result.Add(itemDto);
         }
 
         return result;
@@ -205,7 +238,10 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .Take(limit)
             .ToListAsync(cancellationToken);
 
-        return issues.Select(item => new ApprovalInboxItemDto
+        var resultList = new List<ApprovalInboxItemDto>();
+        foreach (var item in issues)
+        {
+            var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = "issue-" + GuidHelper.ToGuidString(item.IssueId),
                 TargetType = InventoryIssueTargetType,
@@ -231,8 +267,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                         Unit = line.Unit.UnitName
                     })
                     .ToList()
-            })
-            .ToList();
+            };
+            await PopulateSlaAsync(itemDto, item.IssueId, item.CreatedAt);
+            resultList.Add(itemDto);
+        }
+        return resultList;
     }
 
     private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildOrderAdjustmentItemsAsync(
@@ -253,7 +292,10 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .Take(limit)
             .ToListAsync(cancellationToken);
 
-        return adjustments.Select(item => new ApprovalInboxItemDto
+        var resultList = new List<ApprovalInboxItemDto>();
+        foreach (var item in adjustments)
+        {
+            var itemDto = new ApprovalInboxItemDto
             {
                 InboxItemId = "adjustment-" + GuidHelper.ToGuidString(item.AdjustmentId),
                 TargetType = OrderAdjustmentTargetType,
@@ -279,8 +321,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                         Unit = "suất"
                     }
                 ]
-            })
-            .ToList();
+            };
+            await PopulateSlaAsync(itemDto, item.AdjustmentId, item.AdjustedAt);
+            resultList.Add(itemDto);
+        }
+        return resultList;
     }
 
     private static HashSet<string> ResolveUserPermissions(ClaimsPrincipal user)

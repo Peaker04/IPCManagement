@@ -969,6 +969,26 @@ public class WorkflowReportService : IWorkflowReportService
             changes = changes.Where(item => item.ChangedAt < cursorDate);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Actor))
+        {
+            changes = changes.Where(item => item.ChangedByNavigation.FullName.Contains(query.Actor) || item.ChangedByNavigation.Username.Contains(query.Actor));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.BusinessArea))
+        {
+            changes = changes.Where(item => item.BusinessArea != null && item.BusinessArea.Contains(query.BusinessArea));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.EntityName))
+        {
+            changes = changes.Where(item => item.EntityName != null && item.EntityName.Contains(query.EntityName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FieldName))
+        {
+            changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(query.FieldName));
+        }
+
         var auditRows = await changes
             .OrderByDescending(item => item.ChangedAt)
             .ThenByDescending(item => item.AuditId)

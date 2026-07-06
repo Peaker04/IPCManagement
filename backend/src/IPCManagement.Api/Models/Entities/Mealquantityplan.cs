@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace IPCManagement.Api.Models.Entities;
@@ -23,7 +23,15 @@ public partial class Mealquantityplan
 
     public byte[]? ConfirmedBy { get; set; }
 
+    public DateTime? CompletedAt { get; set; }
+
+    public byte[]? CompletedBy { get; set; }
+
+    public DateTime RowVersion { get; set; }
+
     public virtual User? ConfirmedByNavigation { get; set; }
+
+    public virtual User? CompletedByNavigation { get; set; }
 
     public virtual Quantityimportbatch? ImportBatch { get; set; }
 

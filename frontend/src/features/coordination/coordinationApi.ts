@@ -362,6 +362,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    unlockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, { id: string }>({
+      query: ({ id }) => ({
+        url: `/coordination/orders/${id}/unlock`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
     exportCoordinationOrders: builder.mutation<ApiResponse<ExportOrderReportResult>, ExportOrderReportRequest>({
       query: ({ dayOfWeek, shift, format }) => ({
         url: '/coordination/orders/export',
@@ -442,6 +449,7 @@ export const {
   useGetMealQuantityPlansQuery,
   useGetCoordinationOrdersQuery,
   useLockCoordinationOrdersMutation,
+  useUnlockCoordinationOrdersMutation,
   useAdjustCoordinationOrderMutation,
   useUpdateForecastServingsMutation,
   useSignoffCoordinationOrderMutation,

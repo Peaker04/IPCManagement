@@ -33,6 +33,52 @@ export interface WorkflowReportQuery {
   limit?: number;
 }
 
+export interface PurchaseRequestQuery {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseRequestResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: Array<{
+    purchaseRequestLineId: string;
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    supplierId: string;
+    supplierName: string;
+    unitId: string;
+    unitName: string;
+    requiredQty: number;
+    currentStockQty: number;
+    purchaseQty: number;
+    estimatedUnitPrice: number;
+    expectedDeliveryDate?: string;
+    note?: string;
+  }>;
+}
+
+export interface ApprovalHistoryItem {
+  historyId: string;
+  targetType: string;
+  targetId: string;
+  decision: string;
+  oldStatus?: string;
+  newStatus?: string;
+  reason?: string;
+  actionBy: string;
+  actionByName: string;
+  actionAt: string;
+}
+
 export interface CreateInventoryReceiptFromPurchaseLineRequest {
   purchaseRequestLineId: string;
   unitId: string;
@@ -154,11 +200,39 @@ interface ApprovalInboxItemDto {
   nextAction: string;
   tone: WorkflowTone;
   route: string;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
   materials: Array<{
     name: string;
     quantity: number;
     unit: string;
   }>;
+}
+
+export interface ApprovalRuleDto {
+  ruleId?: string;
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  createdAt?: string;
+  approvalassignments?: ApprovalAssignmentDto[];
+}
+
+export interface ApprovalAssignmentDto {
+  assignmentId?: string;
+  ruleId?: string;
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+  approverUser?: {
+    userId: string;
+    fullName: string;
+    username: string;
+  } | null;
 }
 
 interface StockMovementViewDto {
@@ -745,6 +819,8 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   reason: item.reason,
   nextAction: item.nextAction,
   tone: item.tone ?? toneFromStatus(item.status),
+  slaDeadline: item.slaDeadline,
+  slaHours: item.slaHours,
   materials: item.materials ?? [],
 });
 
@@ -1229,6 +1305,44 @@ export const workflowApi = apiSlice.injectEndpoints({
         },
       providesTags: ['WorkflowReports'],
     }),
+    getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests',
+        params: query || undefined,
+      }),
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
+      query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
+      query: () => '/approval-rules',
+      providesTags: ['WorkflowReports'],
+    }),
+    createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleDto>({
+      query: (body) => ({
+        url: '/approval-rules',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, { id: string; body: ApprovalRuleDto }>({
+      query: ({ id, body }) => ({
+        url: `/approval-rules/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
+      query: (id) => ({
+        url: `/approval-rules/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -1267,6 +1381,12 @@ export const {
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
+  useGetPurchaseRequestsQuery,
+  useGetApprovalHistoryQuery,
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

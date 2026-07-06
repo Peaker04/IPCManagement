@@ -521,6 +521,33 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<SignoffOrderResultDto>.SuccessResult(result, "Hoàn tất ca thành công."));
     }
 
+    [HttpPost("orders/{id}/unlock")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [ProducesResponseType(typeof(ApiResponse<LockOrderPlanResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlockOrderPlan(string id)
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        LockOrderPlanResultDto? result;
+        try
+        {
+            result = await _coordinationService.UnlockOrderPlanAsync(id, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"));
+        }
+
+        return Ok(ApiResponse<LockOrderPlanResultDto>.SuccessResult(result, "Mở khóa kế hoạch thành công."));
+    }
+
     [HttpPatch("orders/{id}/servings")]
     [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

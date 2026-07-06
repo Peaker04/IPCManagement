@@ -51,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<IAdminEmployeeService, AdminEmployeeService>();
         services.AddScoped<IApprovalInboxService, ApprovalInboxService>();
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
+        services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();
         services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
