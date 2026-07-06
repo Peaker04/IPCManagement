@@ -9,7 +9,7 @@ import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 
 // Fallback login hoạt động khi không có backend (demo mode)
-const isDevLoginFallbackEnabled = true;
+const isDevLoginFallbackEnabled = import.meta.env.MODE === 'development';
 
 const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
   admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },

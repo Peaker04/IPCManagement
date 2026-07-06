@@ -73,4 +73,33 @@ public class PurchaseWorkflowController : ControllerBase
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
     }
+
+    /// <summary>Gửi duyệt đề xuất mua hàng (chuyển sang trạng thái SENTTOSUPPLIER).</summary>
+    [HttpPost("requests/{id}/submit")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SubmitPurchaseRequest(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _purchaseRequestWorkflowService.SubmitPurchaseRequestAsync(id, cancellationToken);
+            return Ok(ApiResponse.SuccessResult("Gửi duyệt đề xuất mua hàng thành công."));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }
+

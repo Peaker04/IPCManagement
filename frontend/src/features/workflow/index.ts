@@ -14,6 +14,13 @@ export {
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
+  useGetSuppliersQuery,
+  useUpdateLineSupplierMutation,
+  useSubmitPurchaseRequestMutation,
+  useGetWarehousesQuery,
+  useCreateInventoryReceiptMutation,
+  useCreateInventoryIssueMutation,
+  useCreateInventoryReturnMutation,
 } from './workflowApi';
 export type {
   AuditLogRow,
@@ -24,7 +31,10 @@ export type {
   PriceVarianceRow,
   UsageReportRow,
   WorkflowReportQuery,
+  SupplierDto,
+  WarehouseDto,
 } from './workflowApi';
+
 export type {
   ApprovalRecord,
   ApprovalType,

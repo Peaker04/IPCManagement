@@ -306,9 +306,11 @@ public class WorkflowReportService : IWorkflowReportService
         return purchaseLines
             .Select(item => new PurchaseDemandReportDto
             {
+                PurchaseRequestLineId = GuidHelper.ToGuidString(item.PurchaseRequestLineId),
                 PurchaseRequestId = GuidHelper.ToGuidString(item.PurchaseRequestId),
                 PurchaseRequestCode = item.PurchaseRequest.PurchaseRequestCode,
                 PurchaseForDate = item.PurchaseRequest.PurchaseForDate,
+
                 ShiftName = item.PurchaseRequest.ShiftName,
                 Status = item.PurchaseRequest.Status,
                 IngredientId = GuidHelper.ToGuidString(item.IngredientId),

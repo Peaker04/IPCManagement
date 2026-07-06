@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, Fragment } from 'react';
 import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setMenuPrice, setLossRate, setWeeklyMenu } from '../../coordination/coordinationSlice';
@@ -314,13 +315,38 @@ const WeeklyMenuPage = () => {
     () => (committedMenu?.rows ? buildImportedDayDates(committedMenu.rows) : {}),
     [committedMenu],
   );
-  const displayDays = useMemo(
-    () => DEFAULT_DAYS_OF_WEEK.map((day) => ({
-      ...day,
-      date: importedMenuDates[day.key] ?? committedMenuDates[day.key] ?? day.date,
-    })),
-    [committedMenuDates, importedMenuDates],
-  );
+  const displayDays = useMemo(() => {
+    const baseDate = new Date(committedMenuWeekStartDate);
+    const dayOffsets: Record<string, number> = {
+      t2: 0,
+      t3: 1,
+      t4: 2,
+      t5: 3,
+      t6: 4,
+      t7: 5,
+      cn: 6,
+    };
+
+    return DEFAULT_DAYS_OF_WEEK.map((day) => {
+      let calcDate = '';
+      if (!isNaN(baseDate.getTime())) {
+        const offset = dayOffsets[day.key] ?? 0;
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + offset);
+        const dayVal = d.getDate();
+        const monthVal = d.getMonth() + 1;
+        const yearVal = d.getFullYear();
+        calcDate = `${dayVal}/${monthVal}/${yearVal}`;
+      }
+
+      return {
+        ...day,
+        date: (importedMenuDates[day.key] ?? committedMenuDates[day.key] ?? calcDate) || day.date,
+
+      };
+    });
+  }, [committedMenuWeekStartDate, committedMenuDates, importedMenuDates]);
+
 
   const resetImportDialog = () => {
     setSelectedImportFile(null);
@@ -470,6 +496,9 @@ const WeeklyMenuPage = () => {
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const [generatedMaterialRequests, setGeneratedMaterialRequests] = useState<GeneratedMaterialRequest[]>([]);
+  const [dismissedBoms, setDismissedBoms] = useState<Record<string, string>>({});
+  const [dismissingDish, setDismissingDish] = useState<{ id: string; name: string } | null>(null);
+  const [dismissReason, setDismissReason] = useState('Món ăn phụ không cần định lượng');
   const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
@@ -800,6 +829,15 @@ const WeeklyMenuPage = () => {
 
   const weeklyRowsWithBom = weeklyPlanRows.filter((row) => row.hasCatalogBom);
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
+  const visibleMissingBomDishes = useMemo(() => {
+    const map = new Map<string, string>();
+    weeklyRowsMissingBom.forEach((row) => {
+      if (!dismissedBoms[row.dishId]) {
+        map.set(row.dishId, row.dishName);
+      }
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [weeklyRowsMissingBom, dismissedBoms]);
   const weeklyPlanCatalogDishIds = new Set(weeklyRowsWithBom.map((row) => row.dishId));
 
   const handleExportWarehouseReport = () => {
@@ -1158,9 +1196,30 @@ const WeeklyMenuPage = () => {
               ]}
             />
 
-            {weeklyRowsMissingBom.length > 0 && (
+            {visibleMissingBomDishes.length > 0 && (
               <InlineAlert title="Một số món import chưa có BOM catalog" variant="warning">
-                Các món này vẫn được đưa vào KHSX theo tên món trong Excel, nhưng chưa sinh định lượng nguyên liệu cho đến khi được gắn với món/BOM trong catalog.
+                <div className="flex flex-col gap-2 mt-1">
+                  <div>Các món này vẫn được đưa vào KHSX theo tên món trong Excel, nhưng chưa sinh định lượng nguyên liệu cho đến khi được gắn với món/BOM trong catalog.</div>
+                  <div className="text-xs font-semibold text-amber-900 mt-1">Danh sách món chưa khớp:</div>
+                  <ul className="list-disc pl-4 space-y-1 text-xs">
+                    {visibleMissingBomDishes.map((dish) => (
+                      <li key={dish.id} className="flex items-center justify-between gap-4">
+                        <span className="font-semibold text-amber-950">{dish.name}</span>
+                        <div className="flex items-center gap-2">
+                          <Link to="/admin-data" className="text-blue-600 hover:underline">Gắn định lượng / map catalog</Link>
+                          <span className="text-slate-400">|</span>
+                          <button
+                            type="button"
+                            onClick={() => setDismissingDish(dish)}
+                            className="text-slate-600 hover:text-slate-900 font-semibold"
+                          >
+                            Bỏ qua
+                          </button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </InlineAlert>
             )}
             {demandFeedback && (
@@ -1725,6 +1784,54 @@ const WeeklyMenuPage = () => {
           </DialogContent>
         </Dialog>
       )}
+      {/* Dialog Bỏ qua cảnh báo thiếu BOM */}
+      <Dialog open={Boolean(dismissingDish)} onOpenChange={(open) => !open && setDismissingDish(null)}>
+        <DialogContent className="max-w-md bg-slate-900 text-slate-100 border border-slate-700">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-white">Bỏ qua cảnh báo thiếu BOM</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 my-4">
+            <p className="text-sm text-slate-300">
+              Bạn đang chọn bỏ qua cảnh báo thiếu định lượng cho món: <strong className="text-white">{dismissingDish?.name}</strong>.
+            </p>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-semibold text-slate-400">Lý do bỏ qua</label>
+              <select
+                aria-label="Lý do bỏ qua cảnh báo"
+                value={dismissReason}
+                onChange={(e) => setDismissReason(e.target.value)}
+                className="ipc-select bg-slate-800 text-slate-100 border border-slate-700 rounded-md p-2 text-sm"
+              >
+                <option value="Món ăn phụ không cần định lượng">Món ăn phụ không cần định lượng</option>
+                <option value="Sẽ cập nhật định lượng sau">Sẽ cập nhật định lượng sau</option>
+                <option value="Khách hàng tự chuẩn bị">Khách hàng tự chuẩn bị</option>
+                <option value="Khác">Khác</option>
+              </select>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 col-reverse sm:row">
+            <button
+              type="button"
+              onClick={() => setDismissingDish(null)}
+              className="ipc-button ipc-button-ghost text-slate-400 hover:text-white"
+            >
+              Hủy
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                if (dismissingDish) {
+                  setDismissedBoms(prev => ({ ...prev, [dismissingDish.id]: dismissReason }));
+                  setDismissingDish(null);
+                }
+              }}
+              className="ipc-button ipc-button-primary bg-amber-600 hover:bg-amber-700 text-white"
+            >
+              Xác nhận bỏ qua
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
   );
 };

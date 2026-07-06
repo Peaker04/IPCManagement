@@ -212,6 +212,54 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SubmitPurchaseRequestAsync(
+        string id,
+        CancellationToken cancellationToken = default)
+    {
+        var prIdBytes = GuidHelper.ParseGuidString(id);
+        if (prIdBytes is null)
+        {
+            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        var pr = await _context.Purchaserequests
+            .Include(x => x.Purchaserequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .FirstOrDefaultAsync(x => x.PurchaseRequestId == prIdBytes, cancellationToken);
+
+        if (pr is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy Đề xuất mua hàng.");
+        }
+
+        if (pr.Status != "DRAFT")
+        {
+            throw new InvalidOperationException("Chỉ được gửi duyệt khi Đề xuất mua ở trạng thái DRAFT.");
+        }
+
+        if (pr.Purchaserequestlines.Count == 0)
+        {
+            throw new InvalidOperationException("Đề xuất mua hàng không có dòng nguyên liệu nào.");
+        }
+
+        // Validate that all lines have a supplier and price > 0
+        foreach (var line in pr.Purchaserequestlines)
+        {
+            if (line.SupplierId == null)
+            {
+                throw new InvalidOperationException($"Nguyên liệu '{line.Ingredient.IngredientName}' chưa được chọn nhà cung cấp.");
+            }
+            if (line.EstimatedUnitPrice <= 0)
+            {
+                throw new InvalidOperationException($"Nguyên liệu '{line.Ingredient.IngredientName}' chưa cấu hình đơn giá mua.");
+            }
+        }
+
+        pr.Status = "SENTTOSUPPLIER";
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
         Materialrequest materialRequest,
         byte[] userId,

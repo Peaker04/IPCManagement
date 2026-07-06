@@ -65,12 +65,14 @@ public class IngredientDemandReportDto
 
 public class PurchaseDemandReportDto
 {
+    public string PurchaseRequestLineId { get; set; } = string.Empty;
     public string PurchaseRequestId { get; set; } = string.Empty;
     public string PurchaseRequestCode { get; set; } = string.Empty;
     public DateOnly PurchaseForDate { get; set; }
     public string? ShiftName { get; set; }
     public string Status { get; set; } = string.Empty;
     public string IngredientId { get; set; } = string.Empty;
+
     public string? IngredientName { get; set; }
     public string SupplierId { get; set; } = string.Empty;
     public string? SupplierName { get; set; }

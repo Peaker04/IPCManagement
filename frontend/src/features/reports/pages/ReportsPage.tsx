@@ -11,7 +11,7 @@ import {
   Utensils,
   Warehouse,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
   CommandBar,
@@ -39,7 +39,7 @@ import {
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 
-type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'kitchen' | 'usage' | 'audit';
+type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'kitchen' | 'usage' | 'audit' | 'cost';
 
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
@@ -49,6 +49,7 @@ const reportTabs = [
   { id: 'reports-kitchen', label: 'Xuất bếp' },
   { id: 'reports-usage', label: 'Sử dụng thực tế' },
   { id: 'reports-audit', label: 'Audit' },
+  { id: 'reports-cost', label: 'Giá vốn' },
 ];
 
 const EmptyRow = ({ colSpan }: { colSpan: number }) => (
@@ -104,8 +105,163 @@ const ReportsPage = () => {
     kitchen: kitchenIssueResult,
     usage: usageResult,
     audit: auditResult,
+    cost: ingredientDemandResult,
   };
   const activeReportState = reportStates[activeView];
+
+  // --- COST CALCULATION LOGIC ---
+  const getIngredientPrice = (ingredientId: string) => {
+    const varianceMatch = priceVarianceRows.find(item => item.id.includes(ingredientId));
+    if (varianceMatch) {
+      return varianceMatch.priceCurrent || varianceMatch.pricePrev || 0;
+    }
+    const purchaseMatch = purchaseDemandRows.find(item => item.ingredientId === ingredientId);
+    if (purchaseMatch && purchaseMatch.estimatedUnitPrice) {
+      return purchaseMatch.estimatedUnitPrice;
+    }
+    return 15000; // fallback reference price
+  };
+
+  const dishCostBreakdown = useMemo(() => {
+    const dishMap = new Map<string, { name: string; portions: number; ingredients: Array<{ name: string; required: number; unit: string; price: number; cost: number }> }>();
+
+    ingredientDemandRows.forEach(row => {
+      const dishKey = row.source || 'Món ăn khác';
+      const price = getIngredientPrice(row.ingredientId || '');
+      const cost = row.required * price;
+
+      if (!dishMap.has(dishKey)) {
+        dishMap.set(dishKey, {
+          name: dishKey,
+          portions: 150,
+          ingredients: [],
+        });
+      }
+      dishMap.get(dishKey)!.ingredients.push({
+        name: row.material,
+        required: row.required,
+        unit: row.unit,
+        price,
+        cost,
+      });
+    });
+
+    return Array.from(dishMap.values()).map(dish => {
+      const totalCost = dish.ingredients.reduce((sum, ing) => sum + ing.cost, 0);
+      return {
+        ...dish,
+        totalCost,
+      };
+    });
+  }, [ingredientDemandRows, priceVarianceRows, purchaseDemandRows]);
+
+  const totalCostInfo = useMemo(() => {
+    return dishCostBreakdown.reduce((sum, dish) => sum + dish.totalCost, 0);
+  }, [dishCostBreakdown]);
+
+  const topCostIngredients = useMemo(() => {
+    const ingMap = new Map<string, { name: string; unit: string; price: number; totalQty: number; totalCost: number }>();
+    ingredientDemandRows.forEach(row => {
+      const price = getIngredientPrice(row.ingredientId || '');
+      const cost = row.required * price;
+      if (!ingMap.has(row.material)) {
+        ingMap.set(row.material, {
+          name: row.material,
+          unit: row.unit,
+          price,
+          totalQty: 0,
+          totalCost: 0,
+        });
+      }
+      const entry = ingMap.get(row.material)!;
+      entry.totalQty += row.required;
+      entry.totalCost += cost;
+    });
+
+    return Array.from(ingMap.values())
+      .sort((a, b) => b.totalCost - a.totalCost)
+      .slice(0, 5);
+  }, [ingredientDemandRows, priceVarianceRows, purchaseDemandRows]);
+
+  // --- POLISHED EXPORT (FULL-026) ---
+  const handleExportReport = () => {
+    let csvContent = '\uFEFF'; // Add UTF-8 BOM
+    let filename = '';
+
+    if (activeView === 'price') {
+      csvContent += 'BÁO CÁO BIẾN ĐỘNG GIÁ NGUYÊN LIỆU\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Nguyên liệu,Nhà cung cấp,Đơn vị,Giá tham chiếu (đ),Giá nhập (đ),Biến động,Đánh giá\n';
+      priceVarianceRows.forEach(row => {
+        const rating = row.warning ? 'Vượt ngưỡng' : row.change > 0 ? 'Theo dõi' : 'Ổn định';
+        csvContent += `"${row.name}","${row.supplier}","${row.unit}","${row.pricePrev}","${row.priceCurrent}","${(row.change * 100).toFixed(1)}%","${rating}"\n`;
+      });
+      filename = `Bao_cao_bien_dong_gia_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'demand') {
+      csvContent += 'BÁO CÁO NHU CẦU NGUYÊN LIỆU\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Nguyên liệu,Nguồn/Món ăn,Số lượng cần,Tồn hiện tại,Trạng thái,Hành động tiếp theo\n';
+      ingredientDemandRows.forEach(row => {
+        csvContent += `"${row.material}","${row.source}","${row.required}","${row.available}","${row.status}","${row.nextAction}"\n`;
+      });
+      filename = `Bao_cao_nhu_cau_nvl_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'purchase') {
+      csvContent += 'BÁO CÁO NHU CẦU MUA HÀNG\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Nguyên liệu,Nhà cung cấp đề xuất,Số lượng cần mua,ĐVT,Trạng thái,Đơn giá ước tính (đ)\n';
+      purchaseDemandRows.forEach(row => {
+        csvContent += `"${row.material}","${row.source}","${row.reserved}","${row.unit}","${row.status}","${row.estimatedUnitPrice || 0}"\n`;
+      });
+      filename = `Bao_cao_nhu_cau_mua_hang_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'stock') {
+      csvContent += 'BÁO CÁO TỒN KHO HIỆN TẠI\n\n';
+      csvContent += 'Kho,Nguyên liệu,Số lượng tồn,Đơn vị,Thời gian cập nhật\n';
+      currentStockRows.forEach(row => {
+        csvContent += `"${row.warehouse}","${row.ingredient}","${row.currentQty}","${row.unit}","${new Date(row.lastUpdated).toLocaleString('vi-VN')}"\n`;
+      });
+      filename = `Bao_cao_ton_kho_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'kitchen') {
+      csvContent += 'BÁO CÁO PHIẾU XUẤT BẾP\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Mã phiếu,Ngày xuất,Ca,Nguyên liệu,Số lượng xuất,Đơn vị\n';
+      kitchenIssueRows.forEach(row => {
+        csvContent += `"${row.issueCode}","${new Date(row.issueDate).toLocaleDateString('vi-VN')}","${row.shiftName}","${row.ingredient}","${row.issuedQty}","${row.unit}"\n`;
+      });
+      filename = `Bao_cao_xuat_bep_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'usage') {
+      csvContent += 'BÁO CÁO SỬ DỤNG THỰC TẾ BẾP\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Phiếu xuất,Ngày,Ca,Nguyên liệu,Đã xuất,Hoàn kho,Đã dùng,Đơn vị\n';
+      usageRows.forEach(row => {
+        csvContent += `"${row.issueCode}","${new Date(row.issueDate).toLocaleDateString('vi-VN')}","${row.shiftName}","${row.ingredient}","${row.issuedQty}","${row.returnedQty}","${row.usedQty}","${row.unit}"\n`;
+      });
+      filename = `Bao_cao_su_dung_thuc_te_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'audit') {
+      csvContent += 'BÁO CÁO AUDIT HỆ THỐNG\n\n';
+      csvContent += 'Thời gian,Người thực hiện,Đối tượng thay đổi,Giá trị cũ,Giá trị mới,Lý do\n';
+      auditRows.forEach(row => {
+        csvContent += `"${new Date(row.timestamp).toLocaleString('vi-VN')}","${row.actor}","${row.fieldAffected}","${row.oldValue}","${row.newValue}","${row.reason}"\n`;
+      });
+      filename = `Bao_cao_audit_${new Date().toISOString().split('T')[0]}.csv`;
+    } else if (activeView === 'cost') {
+      csvContent += 'BÁO CÁO GIÁ VỐN HỆ THỐNG\n';
+      csvContent += `Từ ngày: ${dateFrom || 'Tất cả'}, Đến ngày: ${dateTo || 'Tất cả'}, Ca: ${shiftName || 'Tất cả'}\n\n`;
+      csvContent += 'Món ăn/Nguồn,Tổng chi phí nguyên liệu (đ)\n';
+      dishCostBreakdown.forEach(row => {
+        csvContent += `"${row.name}","${Math.round(row.totalCost)}"\n`;
+      });
+      filename = `Bao_cao_gia_von_${new Date().toISOString().split('T')[0]}.csv`;
+    }
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const warningQueue = warningItems.map((item) => ({
     title: item.name,
@@ -130,7 +286,7 @@ const ReportsPage = () => {
       command={
         <CommandBar
           actions={
-            <button type="button" className="ipc-button ipc-button-primary">
+            <button type="button" className="ipc-button ipc-button-primary" onClick={handleExportReport}>
               <Download size={16} />
               Xuất báo cáo
             </button>
@@ -469,6 +625,93 @@ const ReportsPage = () => {
             </table>
           </DataTableShell>
         </SectionPanel>
+      )}
+
+      {activeView === 'cost' && (
+        <div id="reports-cost-panel" role="tabpanel" aria-labelledby="reports-cost-tab" className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="ipc-kpi-card bg-slate-900 border border-slate-700 p-4 rounded-lg">
+              <div className="text-xs font-semibold text-slate-400 uppercase">Tổng chi phí nguyên liệu</div>
+              <div className="text-2xl font-bold text-white mt-1">{formatCurrency(totalCostInfo)}</div>
+            </div>
+            <div className="ipc-kpi-card bg-slate-900 border border-slate-700 p-4 rounded-lg">
+              <div className="text-xs font-semibold text-slate-400 uppercase">Khay ăn kế hoạch (mặc định)</div>
+              <div className="text-2xl font-bold text-white mt-1">1,500 suất</div>
+            </div>
+            <div className="ipc-kpi-card bg-slate-900 border border-slate-700 p-4 rounded-lg">
+              <div className="text-xs font-semibold text-slate-400 uppercase">Giá vốn trung bình / suất</div>
+              <div className="text-2xl font-bold text-white mt-1">{formatCurrency(Math.round(totalCostInfo / 1500))}</div>
+            </div>
+            <div className="ipc-kpi-card bg-slate-900 border border-slate-700 p-4 rounded-lg">
+              <div className="text-xs font-semibold text-slate-400 uppercase">Tỉ lệ giá vốn (Food Cost %)</div>
+              <div className="text-2xl font-bold text-green-400 mt-1">
+                {((totalCostInfo / (1500 * 35000)) * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="lg:col-span-1">
+              <SectionPanel title="Top 5 chi phí nguyên liệu cao nhất">
+                <DataTableShell ariaLabel="Bảng top 5 nguyên liệu chi phí cao">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th>Nguyên liệu</th>
+                        <th>ĐVT</th>
+                        <th className="text-right">Tổng tiền</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {topCostIngredients.length === 0 ? (
+                        <EmptyRow colSpan={3} />
+                      ) : (
+                        topCostIngredients.map((item, idx) => (
+                          <tr key={idx}>
+                            <td>{item.name}</td>
+                            <td>{formatUnit(item.unit)}</td>
+                            <td className="ipc-numeric-cell font-bold">{formatCurrency(item.totalCost)}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </SectionPanel>
+            </div>
+
+            <div className="lg:col-span-2">
+              <SectionPanel title="Chi tiết giá vốn theo món ăn kế hoạch">
+                <DataTableShell ariaLabel="Bảng phân rã chi phí món ăn">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th>Món ăn / Kế hoạch</th>
+                        <th>Thành phần chính</th>
+                        <th className="text-right">Tổng chi phí dự tính</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dishCostBreakdown.length === 0 ? (
+                        <EmptyRow colSpan={3} />
+                      ) : (
+                        dishCostBreakdown.map((row, idx) => (
+                          <tr key={idx}>
+                            <td className="font-semibold text-left">{row.name}</td>
+                            <td className="text-slate-400 text-xs text-left max-w-xs truncate">
+                              {row.ingredients.map(i => `${i.name} (${formatQuantityWithUnit(i.required, i.unit)})`).join(', ')}
+                            </td>
+                            <td className="ipc-numeric-cell font-bold">{formatCurrency(Math.round(row.totalCost))}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </SectionPanel>
+            </div>
+          </div>
+        </div>
       )}
     </OperationalFrame>
   );

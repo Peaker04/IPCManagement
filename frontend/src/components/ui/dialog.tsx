@@ -2,6 +2,8 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+import { createPortal } from "react-dom"
+
 interface DialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -9,19 +11,29 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
-  return (
+  if (!open) return null
+
+  return createPortal(
     <>
-      {open && (
-        <div className="fixed inset-0 z-50 bg-slate-600/30" onClick={() => onOpenChange(false)} />
-      )}
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="fixed inset-0 z-50 bg-slate-600/30" onClick={() => onOpenChange(false)} />
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) {
+            onOpenChange(false)
+          }
+        }}
+      >
+        <div className="pointer-events-auto w-full flex justify-center">
           {children}
         </div>
-      )}
-    </>
+
+      </div>
+    </>,
+    document.body
   )
 }
+
 
 export function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return (

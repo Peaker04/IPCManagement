@@ -20,7 +20,14 @@ import type {
   WorkflowTone,
 } from './types';
 
+export interface SupplierDto {
+  supplierId: string;
+  supplierCode?: string;
+  supplierName?: string;
+}
+
 export interface WorkflowReportQuery {
+
   serviceDate?: string;
   dateFrom?: string;
   dateTo?: string;
@@ -62,6 +69,7 @@ interface IngredientDemandReportDto {
 }
 
 interface PurchaseDemandReportDto {
+  purchaseRequestLineId: string;
   purchaseRequestId: string;
   purchaseRequestCode: string;
   purchaseForDate: string;
@@ -79,6 +87,7 @@ interface PurchaseDemandReportDto {
   estimatedUnitPrice: number;
   estimatedAmount: number;
 }
+
 
 interface StockMovementViewDto {
   movementId: string;
@@ -140,6 +149,89 @@ interface KitchenIssueReportDto {
   requestedQty: number;
   issuedQty: number;
 }
+
+export interface WarehouseDto {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  warehouseType?: string;
+  note?: string;
+}
+
+export interface PagedResponseDto<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+export interface CreateInventoryReceiptLineDto {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+  unitPrice: number;
+  lotNumber?: string;
+  manufactureDate?: string;
+  expiredDate?: string;
+}
+
+export interface CreateInventoryReceiptDto {
+  receiptDate: string;
+  supplierId: string;
+  warehouseId: string;
+  purchaseRequestId?: string;
+  lines: CreateInventoryReceiptLineDto[];
+}
+
+export interface InventoryReceiptCreatedDto {
+  receiptId: string;
+  receiptCode: string;
+}
+
+export interface CreateInventoryIssueLineDto {
+  ingredientId: string;
+  requestedQty: number;
+  issuedQty: number;
+  unitId: string;
+}
+
+export interface CreateInventoryIssueDto {
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  materialRequestId: string;
+  receivedBy?: string;
+  lines: CreateInventoryIssueLineDto[];
+}
+
+export interface InventoryIssueCreatedDto {
+  issueId: string;
+  issueCode: string;
+}
+
+export interface CreateInventoryReturnLineDto {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+}
+
+export interface CreateInventoryReturnDto {
+  returnDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  issueId: string;
+  reason?: string;
+  lines: CreateInventoryReturnLineDto[];
+}
+
+export interface InventoryReturnCreatedDto {
+  returnId: string;
+  returnCode: string;
+}
+
 
 interface IssueVsReturnUsageReportDto {
   issueId: string;
@@ -295,6 +387,8 @@ export interface CurrentStockRow {
   unit: string;
   currentQty: number;
   lastUpdated: string;
+  ingredientId?: string;
+  unitId?: string;
 }
 
 export interface KitchenIssueRow {
@@ -371,6 +465,7 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
   return {
     id: item.documentCode || item.documentId,
+    documentId: item.documentId,
     type,
     title: item.documentType,
     status: item.status,
@@ -402,6 +497,8 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
     status: shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
     nextAction: shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
     tone,
+    ingredientId: item.ingredientId,
+    unitId: item.unitId,
   };
 };
 
@@ -420,8 +517,15 @@ const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
     status: item.status,
     nextAction: item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
     tone,
+    purchaseRequestId: item.purchaseRequestId,
+    purchaseRequestLineId: item.purchaseRequestLineId,
+    supplierId: item.supplierId,
+    estimatedUnitPrice: item.estimatedUnitPrice,
+    ingredientId: item.ingredientId,
+    unitId: item.unitId,
   };
 };
+
 
 const mapApprovalRecord = (item: PurchaseDemandReportDto): ApprovalRecord => {
   const type: ApprovalType = item.purchaseQty > 0 ? 'purchase' : 'issue';
@@ -494,6 +598,8 @@ const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   unit: item.unitName ?? '',
   currentQty: item.currentQty,
   lastUpdated: item.lastUpdated,
+  ingredientId: item.ingredientId,
+  unitId: item.unitId,
 });
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
@@ -750,9 +856,58 @@ export const workflowApi = apiSlice.injectEndpoints({
         },
       providesTags: ['WorkflowReports'],
     }),
+    getSuppliers: builder.query<SupplierDto[], void>({
+      query: () => '/suppliers',
+    }),
+    updateLineSupplier: builder.mutation<ApiResponse<void>, { requestId: string; lineId: string; body: { supplierId: string; estimatedUnitPrice: number } }>({
+      query: ({ requestId, lineId, body }) => ({
+        url: `/purchase-workflow/requests/${requestId}/lines/${lineId}/supplier`,
+        method: 'PATCH',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    submitPurchaseRequest: builder.mutation<ApiResponse<void>, string>({
+      query: (requestId) => ({
+        url: `/purchase-workflow/requests/${requestId}/submit`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getWarehouses: builder.query<ApiResponse<PagedResponseDto<WarehouseDto>>, { page?: number; limit?: number } | void>({
+      query: (params) => ({
+        url: '/Warehouses',
+        params: params || { page: 1, limit: 100 }
+      })
+    }),
+    createInventoryReceipt: builder.mutation<ApiResponse<InventoryReceiptCreatedDto>, CreateInventoryReceiptDto>({
+      query: (body) => ({
+        url: '/inventory-receipts',
+        method: 'POST',
+        body
+      }),
+      invalidatesTags: ['WorkflowReports']
+    }),
+    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedDto>, CreateInventoryIssueDto>({
+      query: (body) => ({
+        url: '/inventory-issues',
+        method: 'POST',
+        body
+      }),
+      invalidatesTags: ['WorkflowReports']
+    }),
+    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedDto>, CreateInventoryReturnDto>({
+      query: (body) => ({
+        url: '/inventory-returns',
+        method: 'POST',
+        body
+      }),
+      invalidatesTags: ['WorkflowReports']
+    }),
   }),
   overrideExisting: false,
 });
+
 
 export const {
   useGetWorkflowDocumentsQuery,
@@ -768,7 +923,15 @@ export const {
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,
   useGetDataQualityQuery,
+  useGetSuppliersQuery,
+  useUpdateLineSupplierMutation,
+  useSubmitPurchaseRequestMutation,
+  useGetWarehousesQuery,
+  useCreateInventoryReceiptMutation,
+  useCreateInventoryIssueMutation,
+  useCreateInventoryReturnMutation,
 } = workflowApi;
+
 
 export function useWorkflowOverview() {
   const documentsResult = useGetWorkflowDocumentsQuery({ limit: 100 });

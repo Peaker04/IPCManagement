@@ -11,7 +11,7 @@ import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
 import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
 import type { ExcessMaterial, SupplementalRequest } from '@/lib/types'
-import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow'
+import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery, useGetWarehousesQuery, useCreateInventoryReturnMutation, useGetIngredientDemandQuery } from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 
 export default function ChefDashboardPage() {
@@ -21,6 +21,22 @@ export default function ChefDashboardPage() {
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 })
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 })
+  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 })
+
+  const uniqueIngredients = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; unitId: string; unitName: string }>();
+    demandLines.forEach(line => {
+      if (line.ingredientId) {
+        map.set(line.ingredientId, {
+          id: line.ingredientId,
+          name: line.material,
+          unitId: line.unitId || '',
+          unitName: line.unit,
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [demandLines]);
   const {
     data: catalogDishes = [],
     isLoading: isCatalogLoading,
@@ -30,14 +46,25 @@ export default function ChefDashboardPage() {
   const [activeDay, setActiveDay] = useState<string>(getTodayDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
-  const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
+  const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('chef-signed-materials')
+      return saved ? JSON.parse(saved) : {}
+    } catch {
+      return {}
+    }
+  })
   const [requests, setRequests] = useState<Array<SupplementalRequest & { day: string; shift: ShiftType }>>([])
   const [returns, setReturns] = useState<Array<ExcessMaterial & { day: string; shift: ShiftType }>>([])
   const [chefFeedback, setChefFeedback] = useState<{
-    title: string
-    message: string
-    variant: 'info' | 'warning' | 'danger'
+    title: string;
+    message: string;
+    variant: 'info' | 'warning' | 'danger';
   } | null>(null)
+
+  const { data: warehousesResponse } = useGetWarehousesQuery()
+  const warehouses = warehousesResponse?.data?.items ?? []
+  const [createReturn] = useCreateInventoryReturnMutation()
 
   const lockKey = `${activeDay}-${activeShift}`
   const isLocked = !!lockedShifts[lockKey]
@@ -148,24 +175,62 @@ export default function ChefDashboardPage() {
     })
   }
 
-  const handleExcessMaterialReturn = (data: ExcessMaterial) => {
-    setReturns([...returns, { ...data, day: activeDay, shift: activeShift }])
-    setChefFeedback({
-      title: 'Đã ghi nhận nguyên liệu thừa',
-      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.returnedQty, data.unit)} (${data.condition}) đã được thêm vào nhật ký ca ${activeShift}.`,
-      variant: 'info',
-    })
+  const handleExcessMaterialReturn = async (data: ExcessMaterial) => {
+    const defaultWarehouseId = warehouses[0]?.warehouseId || '00000000-0000-0000-0000-000000000000';
+    const issueDocument = workflowDocuments.find((d) => d.type === 'Phiếu xuất');
+    const issueId = issueDocument?.documentId || '00000000-0000-0000-0000-000000000000';
+    const foundIngredient = uniqueIngredients.find(ing => ing.id === data.ingredientId);
+    const unitId = foundIngredient?.unitId || '00000000-0000-0000-0000-000000000000';
+
+    try {
+      await createReturn({
+        returnDate: new Date().toISOString().split('T')[0],
+        shiftName: activeShift,
+        warehouseId: defaultWarehouseId,
+        issueId: issueId,
+        reason: data.condition || 'Nguyên liệu thừa sau sản xuất',
+        lines: [
+          {
+            ingredientId: data.ingredientId,
+            quantity: Number(data.returnedQty),
+            unitId: unitId,
+          }
+        ]
+      }).unwrap();
+
+      setReturns([...returns, { ...data, day: activeDay, shift: activeShift }]);
+      setChefFeedback({
+        title: 'Đã tạo phiếu trả nguyên liệu dư',
+        message: `${data.ingredientName}: ${formatQuantityWithUnit(data.returnedQty, data.unit)} đã được lưu thành công trên hệ thống.`,
+        variant: 'info',
+      });
+    } catch (err) {
+      console.error(err);
+      const apiError = err as { data?: { message?: string } };
+      setChefFeedback({
+        title: 'Lỗi khi gửi trả nguyên liệu',
+        message: apiError.data?.message || 'Có lỗi xảy ra khi gọi API của hệ thống.',
+        variant: 'danger',
+      });
+    }
   }
 
   const handleMaterialSignoff = (materialId: string, signed: boolean) => {
-    // Find the material name by its ID in receivedMaterials
     const material = productionPlan.receivedMaterials.find((m) => m.id === materialId)
     if (material) {
       const signKey = `${activeDay}-${activeShift}-${material.name}`
-      setSignedMaterials((prev) => ({
-        ...prev,
-        [signKey]: signed,
-      }))
+      setSignedMaterials((prev) => {
+        const next = {
+          ...prev,
+          [signKey]: signed,
+        };
+        try {
+          localStorage.setItem('chef-signed-materials', JSON.stringify(next));
+        } catch (e) {
+          console.error(e);
+        }
+        return next;
+      })
     }
   }
 

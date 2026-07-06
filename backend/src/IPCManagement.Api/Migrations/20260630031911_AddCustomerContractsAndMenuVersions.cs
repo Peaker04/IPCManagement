@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,15 +11,16 @@ namespace IPCManagement.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameIndex(
-                name: "customerId1",
-                table: "productionplanlines",
-                newName: "customerId3");
+            // migrationBuilder.RenameIndex(
+            //     name: "customerId1",
+            //     table: "productionplanlines",
+            //     newName: "customerId3");
 
-            migrationBuilder.RenameIndex(
-                name: "customerId",
-                table: "mealquantityplanlines",
-                newName: "customerId1");
+            // migrationBuilder.RenameIndex(
+            //     name: "customerId",
+            //     table: "mealquantityplanlines",
+            //     newName: "customerId1");
+
 
             migrationBuilder.AlterColumn<string>(
                 name: "status",
@@ -181,15 +182,16 @@ namespace IPCManagement.Api.Migrations
             migrationBuilder.DropTable(
                 name: "menuversions");
 
-            migrationBuilder.RenameIndex(
-                name: "customerId3",
-                table: "productionplanlines",
-                newName: "customerId1");
+            // migrationBuilder.RenameIndex(
+            //     name: "customerId3",
+            //     table: "productionplanlines",
+            //     newName: "customerId1");
 
-            migrationBuilder.RenameIndex(
-                name: "customerId1",
-                table: "mealquantityplanlines",
-                newName: "customerId");
+            // migrationBuilder.RenameIndex(
+            //     name: "customerId1",
+            //     table: "mealquantityplanlines",
+            //     newName: "customerId");
+
 
             migrationBuilder.AlterColumn<string>(
                 name: "status",
