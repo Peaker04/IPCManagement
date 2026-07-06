@@ -68,6 +68,7 @@ export interface WorkflowDocumentLine {
 
 export interface WorkflowDocument {
   id: string;
+  documentId?: string;
   type: WorkflowDocumentType;
   title: string;
   status: string;
@@ -101,6 +102,8 @@ export interface ApprovalRecord {
 
 export interface DemandLine {
   id: string;
+  materialRequestId?: string;
+  sourceDocumentCode?: string;
   material: string;
   required: number;
   available: number;
@@ -110,7 +113,14 @@ export interface DemandLine {
   status: string;
   nextAction: string;
   tone: WorkflowTone;
+  purchaseRequestId?: string;
+  purchaseRequestLineId?: string;
+  supplierId?: string;
+  estimatedUnitPrice?: number;
+  ingredientId?: string;
+  unitId?: string;
 }
+
 
 export type StockMovementType = 'receipt' | 'issue' | 'supplemental' | 'return' | 'adjustment';
 

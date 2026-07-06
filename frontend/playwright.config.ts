@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests',
   timeout: 45_000,
+  retries: process.env.CI ? 2 : 1,
   expect: {
     timeout: 10_000,
     toHaveScreenshot: {

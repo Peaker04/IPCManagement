@@ -15,34 +15,14 @@ const visualRoutes = [
 ] as const;
 
 async function login(page: Page) {
-  await page.route('**/api/auth/login', async (route) => {
-    await route.fulfill({
-      status: 503,
-      contentType: 'application/json',
-      body: JSON.stringify({ success: false, message: 'Playwright mock login fallback' }),
-    });
-  });
-  await page.route('**/api/auth/profile', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
-        success: true,
-        data: {
-          userId: '1',
-          username: 'admin',
-          fullName: 'Trần Văn Giám Đốc',
-          roleName: 'Admin',
-        },
-      }),
-    });
-  });
-
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
   await page.getByLabel('Mật khẩu').fill('admin');
+  await expect(page.getByLabel('Tài khoản')).toHaveValue('admin');
+  await expect(page.getByLabel('Mật khẩu')).toHaveValue('admin');
   await page.getByRole('button', { name: 'Đăng nhập' }).click();
   await expect(page).toHaveURL(ROUTES.DASHBOARD);
+  await expect(page.locator('.ipc-user-name')).toBeVisible();
 }
 
 async function stabilizeVisuals(page: Page) {
@@ -68,6 +48,7 @@ test.describe('visual routes', () => {
         await page.goto(route.path);
       } else {
         await login(page);
+        await page.waitForTimeout(1000);
         if (route.path !== ROUTES.DASHBOARD) {
           await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: route.nav }).click();
           await expect(page).toHaveURL(route.path);
@@ -78,6 +59,9 @@ test.describe('visual routes', () => {
       await stabilizeVisuals(page);
       await expect(page).toHaveScreenshot(`${route.name}.png`, {
         fullPage: true,
+        mask: [
+          page.locator('.ipc-header-context'),
+        ],
       });
     });
   }

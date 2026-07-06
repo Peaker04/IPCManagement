@@ -26,9 +26,13 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Auditlog> Auditlogs { get; set; }
 
+    public virtual DbSet<Approvalhistory> Approvalhistories { get; set; }
+
     public virtual DbSet<Bomadjustment> Bomadjustments { get; set; }
 
     public virtual DbSet<Customer> Customers { get; set; }
+
+    public virtual DbSet<Customercontract> Customercontracts { get; set; }
 
     public virtual DbSet<Dish> Dishes { get; set; }
 
@@ -61,6 +65,8 @@ public partial class IpcManagementContext : DbContext
     public virtual DbSet<Menuitem> Menuitems { get; set; }
 
     public virtual DbSet<Menuschedule> Menuschedules { get; set; }
+
+    public virtual DbSet<Menuversion> Menuversions { get; set; }
 
     public virtual DbSet<Productionplan> Productionplans { get; set; }
 
@@ -145,6 +151,52 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("auditlogs_ibfk_1");
         });
 
+        modelBuilder.Entity<Approvalhistory>(entity =>
+        {
+            entity.HasKey(e => e.ApprovalHistoryId).HasName("PRIMARY");
+
+            entity.ToTable("approvalhistories");
+
+            entity.HasIndex(e => new { e.TargetType, e.TargetId, e.ActionAt }, "ixApprovalHistoriesTarget");
+
+            entity.Property(e => e.ApprovalHistoryId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("approvalHistoryId");
+            entity.Property(e => e.ActionAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("actionAt");
+            entity.Property(e => e.ActionBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("actionBy");
+            entity.Property(e => e.Decision)
+                .HasMaxLength(20)
+                .HasColumnName("decision");
+            entity.Property(e => e.NewStatus)
+                .HasMaxLength(50)
+                .HasColumnName("newStatus");
+            entity.Property(e => e.OldStatus)
+                .HasMaxLength(50)
+                .HasColumnName("oldStatus");
+            entity.Property(e => e.Reason)
+                .HasColumnType("text")
+                .HasColumnName("reason");
+            entity.Property(e => e.TargetId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("targetId");
+            entity.Property(e => e.TargetType)
+                .HasMaxLength(50)
+                .HasColumnName("targetType");
+
+            entity.HasOne(d => d.ActionByNavigation).WithMany()
+                .HasForeignKey(d => d.ActionBy)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("approvalhistories_ibfk_1");
+        });
+
         modelBuilder.Entity<Bomadjustment>(entity =>
         {
             entity.HasKey(e => e.BomAdjustmentId).HasName("PRIMARY");
@@ -223,6 +275,58 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.Note)
                 .HasColumnType("text")
                 .HasColumnName("note");
+        });
+
+        modelBuilder.Entity<Customercontract>(entity =>
+        {
+            entity.HasKey(e => e.ContractId).HasName("PRIMARY");
+
+            entity.ToTable("customercontracts");
+
+            entity.HasIndex(e => e.CustomerId, "customerId");
+
+            entity.HasIndex(e => new { e.CustomerId, e.EffectiveFrom, e.EffectiveTo }, "ixCustomerContractsEffective");
+
+            entity.Property(e => e.ContractId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("contractId");
+            entity.Property(e => e.ActiveWeekDays)
+                .HasMaxLength(100)
+                .HasColumnName("activeWeekDays");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+            entity.Property(e => e.CustomerId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("customerId");
+            entity.Property(e => e.DefaultBomRatePercent)
+                .HasPrecision(5, 2)
+                .HasDefaultValueSql("'100.00'")
+                .HasColumnName("defaultBomRatePercent");
+            entity.Property(e => e.DefaultMenuPrice)
+                .HasPrecision(18, 2)
+                .HasColumnName("defaultMenuPrice");
+            entity.Property(e => e.EffectiveFrom).HasColumnName("effectiveFrom");
+            entity.Property(e => e.EffectiveTo).HasColumnName("effectiveTo");
+            entity.Property(e => e.ShiftNames)
+                .HasMaxLength(100)
+                .HasColumnName("shiftNames");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'ACTIVE'")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.Customercontracts)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("customercontracts_ibfk_1");
         });
 
         modelBuilder.Entity<Dish>(entity =>
@@ -1064,8 +1168,8 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnType("enum('MORNING','AFTERNOON')")
                 .HasColumnName("shiftName");
             entity.Property(e => e.Status)
+                .HasMaxLength(20)
                 .HasDefaultValueSql("'DRAFT'")
-                .HasColumnType("enum('DRAFT','CONFIRMED','CANCELLED')")
                 .HasColumnName("status");
             entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
 
@@ -1078,6 +1182,68 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.MenuId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("menuschedules_ibfk_2");
+        });
+
+        modelBuilder.Entity<Menuversion>(entity =>
+        {
+            entity.HasKey(e => e.MenuVersionId).HasName("PRIMARY");
+
+            entity.ToTable("menuversions");
+
+            entity.HasIndex(e => e.CustomerId, "customerId");
+
+            entity.HasIndex(e => new { e.CustomerId, e.WeekStartDate, e.VersionNo }, "uqMenuVersionsCustomerWeekVersion")
+                .IsUnique();
+
+            entity.HasIndex(e => new { e.CustomerId, e.WeekStartDate, e.Status }, "ixMenuVersionsCustomerWeekStatus");
+
+            entity.Property(e => e.MenuVersionId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("menuVersionId");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+            entity.Property(e => e.CreatedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("createdBy");
+            entity.Property(e => e.CustomerId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("customerId");
+            entity.Property(e => e.PublishedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("publishedAt");
+            entity.Property(e => e.PublishedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("publishedBy");
+            entity.Property(e => e.SourceChecksum)
+                .HasMaxLength(128)
+                .HasColumnName("sourceChecksum");
+            entity.Property(e => e.SourceFileName)
+                .HasMaxLength(255)
+                .HasColumnName("sourceFileName");
+            entity.Property(e => e.SourceImportBatch)
+                .HasMaxLength(80)
+                .HasColumnName("sourceImportBatch");
+            entity.Property(e => e.Status)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'DRAFT'")
+                .HasColumnName("status");
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("updatedAt");
+            entity.Property(e => e.VersionNo).HasColumnName("versionNo");
+            entity.Property(e => e.WeekStartDate).HasColumnName("weekStartDate");
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.Menuversions)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.ClientSetNull)
+                .HasConstraintName("menuversions_ibfk_1");
         });
 
         modelBuilder.Entity<Productionplan>(entity =>
@@ -1682,6 +1848,12 @@ public partial class IpcManagementContext : DbContext
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime")
                 .HasColumnName("lastUpdated");
+
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                .HasColumnName("rowVersion");
 
             entity.HasOne(d => d.Ingredient).WithMany(p => p.Currentstocks)
                 .HasForeignKey(d => d.IngredientId)

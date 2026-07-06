@@ -55,7 +55,7 @@ public class IngredientService : IIngredientService
             IngredientCode = dto.IngredientCode.Trim(),
             IngredientName = dto.IngredientName.Trim(),
             IsFreshDaily   = dto.IsFreshDaily,
-            ReferencePrice = dto.ReferencePrice,
+            ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice),
             UnitId         = unitBytes,
             WarehouseId    = warehouseBytes,
             IsActive       = true
@@ -75,7 +75,7 @@ public class IngredientService : IIngredientService
 
         if (dto.IngredientName is not null) entity.IngredientName = dto.IngredientName.Trim();
         if (dto.IsFreshDaily   is not null) entity.IsFreshDaily   = dto.IsFreshDaily.Value;
-        if (dto.ReferencePrice is not null) entity.ReferencePrice = dto.ReferencePrice.Value;
+        if (dto.ReferencePrice is not null) entity.ReferencePrice = DecimalPolicy.RoundMoney(dto.ReferencePrice.Value);
         if (dto.IsActive       is not null) entity.IsActive       = dto.IsActive.Value;
 
         if (dto.UnitId is not null)

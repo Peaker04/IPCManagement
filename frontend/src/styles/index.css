@@ -141,6 +141,7 @@ html {
   background: var(--background);
   color-scheme: light;
   overflow-x: clip;
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -149,6 +150,7 @@ body {
   background: var(--background);
   color: var(--foreground);
   overflow-x: clip;
+  scrollbar-gutter: stable;
 }
 
 #root {
@@ -1042,10 +1044,6 @@ code {
   max-width: 100%;
 }
 
-.ipc-order-status-banner {
-  min-width: 0;
-}
-
 .ipc-order-action-toolbar {
   min-width: 0;
 }
@@ -1710,8 +1708,17 @@ code {
   flex: 1;
   overflow-y: auto;
   overflow-x: clip;
+  scrollbar-gutter: stable;
   padding: 12px;
   animation: ipc-fade-in var(--ipc-transition-smooth);
+}
+
+@supports not (scrollbar-gutter: stable) {
+  html,
+  body,
+  .ipc-main {
+    overflow-y: scroll;
+  }
 }
 
 .ipc-operational-frame {
@@ -1891,8 +1898,9 @@ code {
 .ipc-context-label {
   color: currentColor;
   opacity: 0.85;
-  font-size: 0.825rem;
+  font-size: 0.875rem;
   font-weight: 500;
+  line-height: 1.5;
 }
 
 .ipc-context-value {
@@ -1900,6 +1908,7 @@ code {
   font-weight: 700;
   color: currentColor;
   font-size: 0.875rem;
+  line-height: 1.5;
 }
 
 @media (max-width: 767px) {
@@ -2749,6 +2758,7 @@ code {
 
 .ipc-approval-zone-materials {
   display: grid;
+  min-width: 0;
   gap: 3px;
   margin: 0;
   padding: 0;
@@ -2756,24 +2766,37 @@ code {
 }
 
 .ipc-approval-zone-materials li {
-  display: flex;
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  justify-content: space-between;
   gap: var(--ipc-space-2);
   color: var(--ipc-slate-700);
   font-size: 0.8125rem;
 }
 
+.ipc-approval-zone-materials li span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .ipc-approval-zone-materials li strong {
+  min-width: 0;
+  max-width: 7.75rem;
   color: var(--ipc-primary);
   font-weight: 700;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 @media (min-width: 1024px) {
   .ipc-approval-record {
     display: grid;
-    grid-template-columns: minmax(180px, 0.85fr) minmax(220px, 1.1fr) minmax(160px, 0.65fr) minmax(130px, auto);
+    grid-template-columns: minmax(180px, 0.85fr) minmax(220px, 1.1fr) minmax(160px, 0.65fr) minmax(150px, 180px);
     align-items: start;
     gap: var(--ipc-space-4);
   }
@@ -2792,7 +2815,7 @@ code {
   /* Document Card: Zone-based Grid */
   .ipc-document-card {
     display: grid;
-    grid-template-columns: minmax(150px, 0.6fr) minmax(180px, 0.8fr) minmax(360px, 2fr) minmax(110px, 0.5fr) minmax(120px, 0.5fr);
+    grid-template-columns: minmax(150px, 0.6fr) minmax(180px, 0.8fr) minmax(300px, 1.35fr) minmax(110px, 0.5fr) minmax(120px, 0.5fr);
     align-items: start;
     gap: var(--ipc-space-4);
   }
@@ -2879,6 +2902,55 @@ code {
   font-weight: 600;
   line-height: 1.35;
   overflow-wrap: anywhere;
+}
+
+.ipc-document-code-field dd {
+  display: inline-grid;
+  width: min(100%, 16rem);
+  grid-template-columns: minmax(0, 1fr) 28px;
+  align-items: center;
+  gap: 6px;
+  overflow-wrap: normal;
+}
+
+.ipc-document-code {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--ipc-slate-950);
+  font-family: ui-monospace, SFMono-Regular, Consolas, 'Liberation Mono', monospace;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ipc-document-copy-button {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #cbd8e8;
+  border-radius: var(--ipc-radius-sm);
+  background: #ffffff;
+  color: var(--ipc-slate-600);
+  cursor: pointer;
+  transition:
+    background-color var(--ipc-transition-fast),
+    border-color var(--ipc-transition-fast),
+    color var(--ipc-transition-fast);
+}
+
+.ipc-document-copy-button:hover {
+  border-color: #a9c7f1;
+  background: var(--ipc-primary-soft);
+  color: var(--ipc-primary);
+}
+
+.ipc-document-copy-button:focus-visible {
+  outline: 2px solid var(--ipc-focus-ring);
+  outline-offset: 2px;
 }
 
 .ipc-document-zone-detail dd.is-success {
@@ -3907,4 +3979,21 @@ code {
 
 .ipc-custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background: var(--ipc-slate-400);
+}
+
+/* ─── Responsive Hardening (FULL-023) ─── */
+@media (max-width: 768px) {
+  .ipc-header-context {
+    flex-wrap: wrap !important;
+    gap: 4px !important;
+  }
+  .ipc-command-bar {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: var(--ipc-space-2) !important;
+  }
+  .ipc-command-bar .ipc-button {
+    width: 100% !important;
+    justify-content: center !important;
+  }
 }

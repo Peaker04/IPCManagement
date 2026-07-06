@@ -1,41 +1,36 @@
+import type { AppRole } from './roleUtils';
 import { createSlice } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import { clearStoredAuth, persistAuthSnapshot, readStoredAuthSnapshot } from './authStorage';
+import { resetSessionExpiredNotice } from './sessionEvents';
 
 export interface User {
   id: string;
   username: string;
   fullName: string;
-  role: string;
+  role: AppRole;
+  roleCode?: string;
+  roleName?: string;
+  isAdminFullAccess: boolean;
+  permissions: string[];
 }
 
 export interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
 }
 
-const token = localStorage.getItem('token');
-const userJson = localStorage.getItem('user');
-
-const parseStoredUser = (): User | null => {
-  if (!userJson) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(userJson) as User;
-  } catch {
-    localStorage.removeItem('user');
-    return null;
-  }
-};
+const storedAuth = readStoredAuthSnapshot();
 
 const initialState: AuthState = {
-  user: parseStoredUser(),
-  token: token,
+  user: storedAuth.user,
+  token: storedAuth.token,
+  refreshToken: storedAuth.refreshToken,
   isAuthenticated: false,
-  isLoading: !!token,
+  isLoading: !!storedAuth.token,
 };
 
 const authSlice = createSlice({
@@ -44,15 +39,22 @@ const authSlice = createSlice({
   reducers: {
     setCredentials: (
       state,
-      action: PayloadAction<{ user: User; token: string }>
+      action: PayloadAction<{ user: User; token: string; refreshToken?: string }>
     ) => {
-      const { user, token } = action.payload;
+      const { user, token, refreshToken } = action.payload;
       state.user = user;
       state.token = token;
+      if (refreshToken) {
+        state.refreshToken = refreshToken;
+      }
       state.isAuthenticated = true;
       state.isLoading = false;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
+      persistAuthSnapshot({
+        user,
+        token,
+        refreshToken: state.refreshToken,
+      });
+      resetSessionExpiredNotice();
     },
     setAuthLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload;
@@ -60,10 +62,10 @@ const authSlice = createSlice({
     logOut: (state) => {
       state.user = null;
       state.token = null;
+      state.refreshToken = null;
       state.isAuthenticated = false;
       state.isLoading = false;
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearStoredAuth();
     },
   },
 });
@@ -72,5 +74,6 @@ export const { setCredentials, setAuthLoading, logOut } = authSlice.actions;
 export default authSlice.reducer;
 export const selectCurrentUser = (state: { auth: AuthState }) => state.auth.user;
 export const selectAuthToken = (state: { auth: AuthState }) => state.auth.token;
+export const selectRefreshToken = (state: { auth: AuthState }) => state.auth.refreshToken;
 export const selectIsAuthenticated = (state: { auth: AuthState }) => state.auth.isAuthenticated;
 export const selectIsAuthLoading = (state: { auth: AuthState }) => state.auth.isLoading;
