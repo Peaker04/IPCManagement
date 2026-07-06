@@ -419,10 +419,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Coordination'],
     }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, { customerId?: string } | void>({
-      query: (params) => ({
-        url: '/coordination/weekly-menu/import-history',
-        params: params?.customerId ? { customerId: params.customerId } : undefined,
-      }),
+      query: (params) => {
+        const customerId = params ? (params as { customerId?: string }).customerId : undefined;
+        return {
+          url: '/coordination/weekly-menu/import-history',
+          params: customerId ? { customerId } : undefined,
+        };
+      },
       providesTags: ['Coordination'],
     }),
     rollbackWeeklyMenuImport: builder.mutation<ApiResponse<RollbackWeeklyMenuImportResult>, string>({
