@@ -3,15 +3,32 @@ name: Verify
 on:
   pull_request:
   push:
-    branches:
-      - main
-      - develop
-      - feature/**
-      - fix/**
 
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: 123456789
+          MYSQL_DATABASE: ipcmanagement_ci
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -p123456789"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      JwtSettings__SecretKey: CI_VERIFY_SECRET_KEY_1234567890_ABCDEF
+      JwtSettings__Issuer: IPCManagementAPI
+      JwtSettings__Audience: IPCManagementClient
+      JwtSettings__ExpiryMinutes: 30
+      JwtSettings__RefreshExpiryDays: 30
 
     steps:
       - name: Checkout
@@ -36,6 +53,33 @@ jobs:
 
       - name: Test backend
         run: npm run test:be
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.16
+
+      - name: Check EF migration snapshot
+        run: >
+          ./.dotnet-tools/dotnet-ef migrations has-pending-model-changes
+          --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+          --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj
+          --no-build
+
+      - name: Install MySQL client
+        run: sudo apt-get update && sudo apt-get install -y default-mysql-client
+
+      - name: Generate MySQL schema script
+        run: |
+          mkdir -p ./.artifacts
+          ./.dotnet-tools/dotnet-ef dbcontext script \
+            --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
+            --startup-project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
+            --output ./.artifacts/ipc-schema.sql \
+            --no-build
+
+      - name: Smoke test generated MySQL schema
+        run: |
+          mysql -h 127.0.0.1 -uroot -p123456789 -e "DROP DATABASE IF EXISTS ipcmanagement_ci; CREATE DATABASE ipcmanagement_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
 
       - name: Lint frontend
         run: npm run lint:fe

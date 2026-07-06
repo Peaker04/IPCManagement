@@ -23,8 +23,10 @@ public class WarehouseRepository : IWarehouseRepository
 
         if (!string.IsNullOrWhiteSpace(searchKeyword))
         {
-            var keyword = searchKeyword.Trim().ToLower();
-            query = query.Where(warehouse => warehouse.WarehouseName.ToLower().Contains(keyword));
+            var pattern = $"%{EscapeLikePattern(searchKeyword.Trim())}%";
+            query = query.Where(warehouse =>
+                EF.Functions.Like(warehouse.WarehouseName, pattern, "\\") ||
+                EF.Functions.Like(warehouse.WarehouseCode, pattern, "\\"));
         }
 
         var totalCount = await query.CountAsync();
@@ -41,4 +43,10 @@ public class WarehouseRepository : IWarehouseRepository
         => await _context.Warehouses
             .AsNoTracking()
             .FirstOrDefaultAsync(warehouse => warehouse.WarehouseId == id);
+
+    private static string EscapeLikePattern(string value)
+        => value
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
 }

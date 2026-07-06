@@ -103,3 +103,56 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
 
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
+
+public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInventoryReturnDto>
+{
+    public CreateInventoryReturnDtoValidator()
+    {
+        RuleFor(x => x.ReturnDate)
+            .NotEmpty().WithMessage("Ngày trả nguyên liệu không được để trống.");
+
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty().WithMessage("Kho không được để trống.")
+            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.IssueId)
+            .NotEmpty().WithMessage("Phiếu xuất gốc không được để trống.")
+            .Must(BeValidGuid).WithMessage("IssueId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.ReturnType)
+            .Must(BeValidReturnType).WithMessage("Loại ghi nhận phải là RETURN hoặc WASTE.");
+
+        RuleFor(x => x.Reason)
+            .NotEmpty().WithMessage("Cần ghi lý do trả kho hoặc hao hụt thực tế.");
+
+        RuleFor(x => x.Lines)
+            .NotEmpty().WithMessage("Phiếu trả phải có ít nhất 1 dòng chi tiết.");
+
+        RuleForEach(x => x.Lines).SetValidator(new CreateInventoryReturnLineDtoValidator());
+    }
+
+    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+
+    private static bool BeValidReturnType(string value)
+        => string.Equals(value, "RETURN", StringComparison.OrdinalIgnoreCase) ||
+           string.Equals(value, "WASTE", StringComparison.OrdinalIgnoreCase);
+}
+
+public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInventoryReturnLineDto>
+{
+    public CreateInventoryReturnLineDtoValidator()
+    {
+        RuleFor(x => x.IngredientId)
+            .NotEmpty().WithMessage("Nguyên liệu không được để trống.")
+            .Must(BeValidGuid).WithMessage("IngredientId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.Quantity)
+            .GreaterThan(0).WithMessage("Số lượng trả phải lớn hơn 0.");
+
+        RuleFor(x => x.UnitId)
+            .NotEmpty().WithMessage("Đơn vị tính không được để trống.")
+            .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
+    }
+
+    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+}

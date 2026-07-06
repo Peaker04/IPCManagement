@@ -8,4 +8,7 @@ export {
   selectIsAuthenticated,
   selectIsAuthLoading,
 } from './authSlice';
-export { authApi, useLoginMutation, useGetCurrentUserQuery } from './authApi';
+export { authApi, useLoginMutation, useGetCurrentUserQuery, useRevokeTokenMutation, useLogoutMutation } from './authApi';
+export { normalizeUserRole, ROLE_LABELS, canAccessRole } from './roleUtils';
+export type { AppRole } from './roleUtils';
+export type { AuthState, User } from './authTypes';

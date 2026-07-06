@@ -1,111 +1,17 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit'
 import type { PayloadAction } from '@reduxjs/toolkit'
-import type { CoordinationState, OrderRow, AuditLogEntry, ShiftType, WeeklyMenuState, OrderUpdatePayload } from './types'
+import type { CoordinationState, OrderRow, AuditLogEntry, ShiftType, WeeklyMenuState, OrderUpdatePayload, SyncOrdersPayload, MarkOrdersLockedPayload } from './types'
 import { toDisplayShift } from './types'
 import { coordinationApi } from './coordinationApi'
 import { getTodayDayCode } from '@/lib/dateUtils'
 
-const DAYS = ['t2', 't3', 't4', 't5', 't6', 't7', 'cn']
-const SHIFTS: ShiftType[] = ['Ca Sáng', 'Ca Chiều']
-
-const DEFAULT_DISHES_BY_DAY_SHIFT: Record<string, Record<ShiftType, string>> = {
-  t2: { 'Ca Sáng': 'm1', 'Ca Chiều': 'a1' },
-  t3: { 'Ca Sáng': 'm2', 'Ca Chiều': 'a2' },
-  t4: { 'Ca Sáng': 'm3', 'Ca Chiều': 'a3' },
-  t5: { 'Ca Sáng': 'm1', 'Ca Chiều': 'a1' },
-  t6: { 'Ca Sáng': 'm2', 'Ca Chiều': 'a2' },
-  t7: { 'Ca Sáng': 'm3', 'Ca Chiều': 'a3' },
-  cn: { 'Ca Sáng': 'm1', 'Ca Chiều': 'a1' },
-}
-
-const CUSTOMERS = [
-  { id: '1', customerId: 'CUST_001', customerCode: 'DAV', customerName: 'DAV Việt Nam', mealType: 'Suất 34K', unitPrice: 34000, appliedRate: 100, forecastQtyMorning: 300, forecastQtyAfternoon: 320 },
-  { id: '2', customerId: 'CUST_002', customerCode: 'VCV', customerName: 'VCV Corporation', mealType: 'Suất 34K', unitPrice: 34000, appliedRate: 100, forecastQtyMorning: 150, forecastQtyAfternoon: 160 },
-  { id: '3', customerId: 'CUST_003', customerCode: 'AVN', customerName: 'AVN Industries', mealType: 'Suất 29K', unitPrice: 29000, appliedRate: 85, forecastQtyMorning: 240, forecastQtyAfternoon: 250 },
-  { id: '4', customerId: 'CUST_004', customerCode: 'Wendler', customerName: 'Wendler Group', mealType: 'Suất Tăng Ca', unitPrice: 42000, appliedRate: 100, forecastQtyMorning: 180, forecastQtyAfternoon: 190 },
-  { id: '5', customerId: 'CUST_005', customerCode: 'Yejin', customerName: 'Yejin Solutions', mealType: 'Suất 34K', unitPrice: 34000, appliedRate: 100, forecastQtyMorning: 120, forecastQtyAfternoon: 100 },
-]
-
-const generateMockOrders = (): OrderRow[] => {
-  const list: OrderRow[] = []
-  DAYS.forEach((day) => {
-    SHIFTS.forEach((shift) => {
-      CUSTOMERS.forEach((cust) => {
-        const defaultDish = DEFAULT_DISHES_BY_DAY_SHIFT[day][shift]
-        const forecastQty = shift === 'Ca Sáng' ? cust.forecastQtyMorning : cust.forecastQtyAfternoon
-        list.push({
-          id: `${day}-${shift === 'Ca Sáng' ? 'morning' : 'afternoon'}-${cust.customerId}`,
-          customerId: cust.customerId,
-          customerCode: cust.customerCode,
-          customerName: cust.customerName,
-          mealType: cust.mealType,
-          forecastQuantity: forecastQty,
-          actualQuantity: 0,
-          unitPrice: cust.unitPrice,
-          appliedRate: cust.appliedRate,
-          specialNotes: '',
-          dayOfWeek: day,
-          shift: shift,
-          dishId: defaultDish,
-        })
-      })
-    })
-  })
-  return list
-}
-
-
-
-const defaultWeeklyMenu: WeeklyMenuState = {
-  t2: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-  t3: {
-    morningSavory: { dishId: 'm2', portions: 970 },
-    morningVegetarian: { dishId: 'v2', portions: 170 },
-    afternoonSavory: { dishId: 'a2', portions: 990 },
-    afternoonVegetarian: { dishId: 'v5', portions: 170 },
-  },
-  t4: {
-    morningSavory: { dishId: 'm3', portions: 840 },
-    morningVegetarian: { dishId: 'v3', portions: 150 },
-    afternoonSavory: { dishId: 'a3', portions: 870 },
-    afternoonVegetarian: { dishId: 'v6', portions: 150 },
-  },
-  t5: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-  t6: {
-    morningSavory: { dishId: 'm2', portions: 970 },
-    morningVegetarian: { dishId: 'v2', portions: 170 },
-    afternoonSavory: { dishId: 'a2', portions: 990 },
-    afternoonVegetarian: { dishId: 'v5', portions: 170 },
-  },
-  t7: {
-    morningSavory: { dishId: 'm3', portions: 840 },
-    morningVegetarian: { dishId: 'v3', portions: 150 },
-    afternoonSavory: { dishId: 'a3', portions: 870 },
-    afternoonVegetarian: { dishId: 'v6', portions: 150 },
-  },
-  cn: {
-    morningSavory: { dishId: 'm1', portions: 840 },
-    morningVegetarian: { dishId: 'v1', portions: 150 },
-    afternoonSavory: { dishId: 'a1', portions: 870 },
-    afternoonVegetarian: { dishId: 'v4', portions: 150 },
-  },
-}
+const defaultWeeklyMenu: WeeklyMenuState = {}
 
 const initialDay = getTodayDayCode()
 
 const initialState: CoordinationState = {
   loading: false,
-  orders: generateMockOrders(),
+  orders: [],
   currentShift: 'Ca Sáng',
   currentDayOfWeek: initialDay,
   weeklyMenu: defaultWeeklyMenu,
@@ -118,7 +24,11 @@ const initialState: CoordinationState = {
   lastUpdated: null,
 }
 
-// Async Thunks - These will connect to .NET 9 Web API endpoints
+interface WeeklyMenuShuffleDish {
+  id: string
+  menuSlots: string[]
+}
+
 export const fetchActiveOrders = createAsyncThunk(
   'coordination/fetchActiveOrders',
   async (shift: ShiftType, { dispatch, getState, rejectWithValue }) => {
@@ -233,10 +143,53 @@ const coordinationSlice = createSlice({
       if (order && !isCurrentlyLocked) {
         if (action.payload.field === 'forecastQuantity') {
           order.forecastQuantity = action.payload.value
+          order.actualQuantity = action.payload.value
         } else {
           order.specialNotes = action.payload.value
         }
       }
+    },
+    setOrderActualQuantity: (
+      state,
+      action: PayloadAction<{ id: string; value: number }>,
+    ) => {
+      const order = state.orders.find((item) => item.id === action.payload.id)
+      if (order) {
+        order.actualQuantity = action.payload.value
+        state.lastUpdated = new Date().toISOString()
+      }
+    },
+    syncOrdersForShift: (
+      state,
+      action: PayloadAction<SyncOrdersPayload>,
+    ) => {
+      const { dayOfWeek, shift, orders } = action.payload
+      state.orders = state.orders
+        .filter((order) => !(order.dayOfWeek === dayOfWeek && order.shift === shift))
+        .concat(orders)
+      state.lastUpdated = new Date().toISOString()
+      state.error = null
+    },
+    markOrdersLocked: (
+      state,
+      action: PayloadAction<MarkOrdersLockedPayload>,
+    ) => {
+      const { dayOfWeek, shifts } = action.payload
+      shifts.forEach((shift) => {
+        state.lockedShifts[`${dayOfWeek}-${shift}`] = true
+      })
+      state.isLocked = shifts.includes(state.currentShift)
+      state.orders = state.orders.map((order) => {
+        if (order.dayOfWeek === dayOfWeek && shifts.includes(order.shift)) {
+          return {
+            ...order,
+            actualQuantity: order.forecastQuantity,
+          }
+        }
+        return order
+      })
+      state.lastUpdated = new Date().toISOString()
+      state.error = null
     },
     setCurrentShift: (state, action: PayloadAction<ShiftType>) => {
       state.currentShift = action.payload
@@ -288,6 +241,27 @@ const coordinationSlice = createSlice({
     setLossRate: (state, action: PayloadAction<number>) => {
       state.lossRate = action.payload
     },
+    setWeeklyMenu: (state, action: PayloadAction<WeeklyMenuState>) => {
+      state.weeklyMenu = action.payload
+    },
+    shuffleWeeklyMenu: (state, action: PayloadAction<{ dishes: WeeklyMenuShuffleDish[] }>) => {
+      const dishes = action.payload.dishes
+      if (!dishes || dishes.length === 0) return
+      
+      const morningSavory = dishes.filter(d => d.menuSlots.includes('MENU MẶN CA SÁNG'))
+      const morningVeg = dishes.filter(d => d.menuSlots.includes('MENU CHAY CA SÁNG'))
+      const afternoonSavory = dishes.filter(d => d.menuSlots.includes('MENU MẶN CA CHIỀU'))
+      const afternoonVeg = dishes.filter(d => d.menuSlots.includes('MENU CHAY CA CHIỀU'))
+
+      Object.keys(state.weeklyMenu).forEach((day, index) => {
+        if (state.weeklyMenu[day]) {
+          if (morningSavory.length > 0) state.weeklyMenu[day].morningSavory.dishId = morningSavory[(index * 2) % morningSavory.length].id
+          if (morningVeg.length > 0) state.weeklyMenu[day].morningVegetarian.dishId = morningVeg[(index * 2) % morningVeg.length].id
+          if (afternoonSavory.length > 0) state.weeklyMenu[day].afternoonSavory.dishId = afternoonSavory[(index * 2) % afternoonSavory.length].id
+          if (afternoonVeg.length > 0) state.weeklyMenu[day].afternoonVegetarian.dishId = afternoonVeg[(index * 2) % afternoonVeg.length].id
+        }
+      })
+    },
     addAuditLog: (state, action: PayloadAction<AuditLogEntry>) => {
       state.auditLogs.push(action.payload)
     },
@@ -305,17 +279,16 @@ const coordinationSlice = createSlice({
       .addCase(fetchActiveOrders.fulfilled, (state, action) => {
         state.loading = false
         const incomingOrders = action.payload
-        if (incomingOrders.length > 0) {
-          const incomingIds = new Set(incomingOrders.map((order) => order.id))
-          state.orders = state.orders
-            .filter((order) => !incomingIds.has(order.id))
-            .concat(incomingOrders)
-        }
+        const dayOfWeek = state.currentDayOfWeek
+        const shift = action.meta.arg
+        state.orders = state.orders
+          .filter((order) => !(order.dayOfWeek === dayOfWeek && order.shift === shift))
+          .concat(incomingOrders)
         state.lastUpdated = new Date().toISOString()
       })
       .addCase(fetchActiveOrders.rejected, (state, action) => {
         state.loading = false
-        state.error = action.error.message || 'Failed to fetch orders'
+        state.error = (action.payload as string | undefined) || action.error.message || 'Không tải được danh sách đơn.'
       })
 
       // Lock Order Plan
@@ -392,12 +365,17 @@ const coordinationSlice = createSlice({
 
 export const {
   updateOrder,
+  setOrderActualQuantity,
+  syncOrdersForShift,
+  markOrdersLocked,
   setCurrentShift,
   setCurrentDayOfWeek,
   updateOrderDish,
   updateWeeklyMenuDish,
   setMenuPrice,
   setLossRate,
+  setWeeklyMenu,
+  shuffleWeeklyMenu,
   addAuditLog,
   clearError,
 } = coordinationSlice.actions

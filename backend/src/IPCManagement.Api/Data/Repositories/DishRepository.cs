@@ -29,17 +29,32 @@ public class DishRepository : GenericRepository<Dish>, IDishRepository
             .OrderBy(d => d.DishCode)
             .ToListAsync();
 
+    public async Task<IReadOnlyList<Dish>> GetCatalogAsync()
+        => await _dbSet
+            .AsNoTracking()
+            .Include(d => d.Dishboms)
+                .ThenInclude(bom => bom.Ingredient)
+            .Include(d => d.Dishboms)
+                .ThenInclude(bom => bom.Unit)
+            .Include(d => d.Menuitems)
+            .Where(d => d.IsActive ?? true)
+            .OrderBy(d => d.DishCode)
+            .ToListAsync();
+
     public override async Task<(IEnumerable<Dish> Items, int TotalCount)> GetPagedAsync(
         int pageNumber, int pageSize, string? searchKeyword = null)
     {
-        var query = _dbSet.AsNoTracking().AsQueryable();
+        var query = _dbSet
+            .AsNoTracking()
+            .Where(d => d.IsActive ?? true)
+            .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(searchKeyword))
         {
-            var kw = searchKeyword.Trim().ToLower();
+            var pattern = $"%{EscapeLikePattern(searchKeyword.Trim())}%";
             query = query.Where(d =>
-                d.DishName.ToLower().Contains(kw) ||
-                d.DishCode.ToLower().Contains(kw));
+                EF.Functions.Like(d.DishName, pattern, "\\") ||
+                EF.Functions.Like(d.DishCode, pattern, "\\"));
         }
 
         var totalCount = await query.CountAsync();
@@ -51,4 +66,10 @@ public class DishRepository : GenericRepository<Dish>, IDishRepository
 
         return (items, totalCount);
     }
+
+    private static string EscapeLikePattern(string value)
+        => value
+            .Replace("\\", "\\\\")
+            .Replace("%", "\\%")
+            .Replace("_", "\\_");
 }

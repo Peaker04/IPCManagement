@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
+  DataTableShell,
   DemandSummary,
   DocumentRail,
   ExceptionLane,
@@ -16,30 +17,41 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  demandLines,
-  getDocumentByType,
-  getRoleInboxByLane,
-  stockMovements,
+  useGetCurrentStockQuery,
+  useGetIngredientDemandQuery,
+  useGetStockMovementsQuery,
+  useGetWorkflowDocumentsQuery,
+  useWorkflowOverview,
 } from '@/features/workflow';
+import { formatQuantityWithUnit } from '@/lib/formatters';
 
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
+  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 12 });
+  const { roleInboxItems } = useWorkflowOverview();
   const warehouseDocuments = [
-    ...getDocumentByType('Phiếu nhập'),
-    ...getDocumentByType('Phiếu xuất'),
+    ...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'),
+    ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất'),
   ];
-  const warehouseInbox = getRoleInboxByLane('warehouse');
+  const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
+  const shortageLine = demandLines.find((line) => line.tone === 'danger');
+  const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
+  const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
+  const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
 
   return (
     <OperationalFrame
-      title="Kho nguyên liệu"
-      eyebrow="Luồng Thủ kho"
       command={
         <CommandBar
           actions={
             <>
               <button className="ipc-button ipc-button-primary" type="button">Tạo phiếu xuất kho</button>
-              <button className="ipc-button ipc-button-success" type="button">Cập nhật tồn kho</button>
+              <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>
+                Xem tồn kho
+              </Link>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.CHEF_DASHBOARD}>
                 <PackageOpen size={16} />
                 Bàn giao cho bếp
@@ -52,17 +64,18 @@ export default function WarehousePage() {
         >
           <span className="ipc-command-meta">
             <Warehouse size={16} />
-            Kho mát - ca trưa
+            {warehouseName}
           </span>
-          <span className="ipc-command-meta">Bàn giao bếp: 10:30</span>
+          <span className="ipc-command-meta">Bàn giao bếp: {issueDocument?.title ?? 'Chưa có phiếu xuất'}</span>
         </CommandBar>
       }
       context={
         <ContextStrip
           items={[
-            { label: 'Phiếu nhập', value: '1 chứng từ chờ nhập', tone: 'warning' },
-            { label: 'Phiếu xuất', value: '1 phiếu chờ xuất', tone: 'warning' },
-            { label: 'Thiếu hàng', value: 'Gừng 4 kg', tone: 'danger' },
+            { label: 'Phiếu nhập', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: 'warning' },
+            { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
+            { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: currentStockRows.length > 0 ? 'success' : 'warning' },
+            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
             { label: 'Bếp nhận', value: 'Chưa ký nhận', tone: 'warning' },
           ]}
         />
@@ -98,9 +111,40 @@ export default function WarehousePage() {
               />
             }
           >
-            <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-              <StockMovementTable movements={stockMovements} />
-            </SectionPanel>
+            <div className="flex flex-col gap-4">
+              <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
+                <DataTableShell ariaLabel="Bảng tồn kho hiện tại trong kho">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th>Kho</th>
+                        <th>Nguyên liệu</th>
+                        <th>Số lượng</th>
+                        <th>Cập nhật</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {currentStockRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="text-center text-slate-500">Chưa có dữ liệu tồn kho</td>
+                        </tr>
+                      ) : currentStockRows.map((row) => (
+                        <tr key={row.id}>
+                          <td>{row.warehouse}</td>
+                          <td>{row.ingredient}</td>
+                          <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentQty, row.unit)}</td>
+                          <td>{new Date(row.lastUpdated).toLocaleString('vi-VN')}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </SectionPanel>
+
+              <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
+                <StockMovementTable movements={stockMovements} />
+              </SectionPanel>
+            </div>
           </SplitWorkbench>
         </div>
       )}
@@ -131,16 +175,20 @@ export default function WarehousePage() {
             title="Thiếu hàng cần xử lí"
             items={[
               {
-                title: 'Gừng còn thiếu 4 kg',
-                description: 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.',
+                title: shortageLine ? `${shortageLine.material} còn thiếu` : 'Không có thiếu hàng',
+                description: shortageLine
+                  ? 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.'
+                  : 'Các dòng nhu cầu hiện có đủ tồn kho để xử lí.',
                 action: 'Thủ kho: Tạo phiếu xuất kho bổ sung',
-                tone: 'danger',
+                tone: shortageLine ? 'danger' : 'info',
               },
               {
-                title: 'Bếp chưa ký nhận PX-0613-TRUA',
-                description: 'Phiếu đã soạn, cần bàn giao để bếp xác nhận nhận nguyên liệu.',
+                title: issueDocument ? `Bếp chưa ký nhận ${issueDocument.title}` : 'Chưa có phiếu xuất chờ ký nhận',
+                description: issueDocument
+                  ? `Phiếu ${issueDocument.status.toLowerCase()} cần bàn giao để bếp xác nhận nhận nguyên liệu.`
+                  : 'Khi có phiếu xuất từ workflow report, thủ kho bàn giao để bếp xác nhận nhận nguyên liệu.',
                 action: 'Thủ kho: Xuất kho cho bếp',
-                tone: 'warning',
+                tone: issueDocument ? 'warning' : 'info',
               },
             ]}
           />

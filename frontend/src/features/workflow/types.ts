@@ -78,10 +78,12 @@ export interface WorkflowDocument {
   tone: WorkflowTone;
 }
 
-export type ApprovalType = 'purchase' | 'issue' | 'adjustment';
+export type ApprovalType = 'purchase' | 'issue' | 'adjustment' | 'price-alert';
 
 export interface ApprovalRecord {
   id: string;
+  targetType?: string;
+  targetId?: string;
   type: ApprovalType;
   title: string;
   source: string;
@@ -101,12 +103,30 @@ export interface ApprovalRecord {
 
 export interface DemandLine {
   id: string;
+  materialRequestId?: string;
+  purchaseRequestId?: string;
+  purchaseRequestLineId?: string;
+  supplierId?: string;
+  ingredientId?: string;
+  estimatedUnitPrice?: number;
+  referenceUnitPrice?: number;
+  priceVariancePercent?: number;
+  isPriceWarning?: boolean;
+  expectedDeliveryDate?: string;
+  note?: string;
+  sourceDocumentCode?: string;
+  serviceDate?: string;
   material: string;
   required: number;
   available: number;
   reserved: number;
   unit: string;
   source: string;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  bomRatePercent?: number;
+  yieldLossPercent?: number | null;
   status: string;
   nextAction: string;
   tone: WorkflowTone;
@@ -120,6 +140,8 @@ export interface StockMovement {
   documentNo: string;
   material: string;
   quantity: number;
+  beforeQty?: number;
+  afterQty?: number;
   unit: string;
   owner: string;
   status: string;

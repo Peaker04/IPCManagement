@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace IPCManagement.Api.Models.Entities;
 
@@ -13,6 +14,9 @@ public partial class Currentstock
     public decimal CurrentQty { get; set; }
 
     public DateTime LastUpdated { get; set; }
+
+    [Timestamp]
+    public DateTime RowVersion { get; set; }
 
     public virtual Ingredient Ingredient { get; set; } = null!;
 
