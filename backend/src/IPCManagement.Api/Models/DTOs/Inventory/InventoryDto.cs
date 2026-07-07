@@ -213,6 +213,7 @@ public class StockShortageIssueDto
     public string? WarehouseName { get; set; }
     public DateOnly IssueDate { get; set; }
     public IReadOnlyList<StockShortageLineDto> Lines { get; set; } = [];
+    public string SuggestedAction { get; set; } = "Vui lòng tạo yêu cầu mua hàng (Purchase Request) bổ sung cho các nguyên liệu bị thiếu.";
 }
 
 public class StockShortageLineDto
@@ -296,4 +297,31 @@ public class InventoryReturnCreatedDto
 {
     public string ReturnId { get; set; } = string.Empty;
     public string ReturnCode { get; set; } = string.Empty;
+}
+
+public class ConfirmInventoryReturnReceiptDto
+{
+    public bool HasDiscrepancy { get; set; }
+
+    [MaxLength(1000)]
+    public string? DiscrepancyNote { get; set; }
+
+    public List<ConfirmInventoryReturnLineDto> AdjustedLines { get; set; } = new();
+}
+
+public class ConfirmInventoryReturnLineDto
+{
+    [Required]
+    public string ReturnLineId { get; set; } = string.Empty;
+
+    [Required, Range(0, double.MaxValue)]
+    public decimal NewQuantity { get; set; }
+}
+
+public class InventoryReturnFilterRequestDto : PagedRequestDto
+{
+    public string? WarehouseId { get; set; }
+    public string? ShiftName { get; set; }
+    public DateOnly? ReturnDate { get; set; }
+    public bool? IsReceived { get; set; }
 }

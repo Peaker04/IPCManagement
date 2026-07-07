@@ -826,11 +826,22 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("warehouseId");
+            entity.Property(e => e.ReceivedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("receivedAt");
+            entity.Property(e => e.ReceivedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("receivedBy");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Inventoryreturns)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventoryreturns_ibfk_3");
+
+            entity.HasOne(d => d.ReceivedByNavigation).WithMany()
+                .HasForeignKey(d => d.ReceivedBy)
+                .HasConstraintName("inventoryreturns_ibfk_4");
 
             entity.HasOne(d => d.Issue).WithMany(p => p.Inventoryreturns)
                 .HasForeignKey(d => d.IssueId)

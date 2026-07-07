@@ -1,4 +1,4 @@
-﻿using FluentAssertions;
+using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
@@ -1174,7 +1174,7 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var returnService = CreateInventoryReturnService(context);
-            await returnService.CreateAsync(new CreateInventoryReturnDto
+            var retDto1 = await returnService.CreateAsync(new CreateInventoryReturnDto
             {
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
@@ -1193,7 +1193,7 @@ public class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
-            await returnService.CreateAsync(new CreateInventoryReturnDto
+            var retDto2 = await returnService.CreateAsync(new CreateInventoryReturnDto
             {
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
@@ -1212,6 +1212,9 @@ public class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
+            await returnService.ConfirmReceiptAsync(retDto1!.ReturnId, new ConfirmInventoryReturnReceiptDto(), fixture.UserIdString);
+            await returnService.ConfirmReceiptAsync(retDto2!.ReturnId, new ConfirmInventoryReturnReceiptDto(), fixture.UserIdString);
+
             var returnTypes = await context.Inventoryreturns
                 .AsNoTracking()
                 .OrderBy(item => item.ReturnCode)
@@ -1229,8 +1232,8 @@ public class WorkflowGenerationTests
             movementTypes.Should().BeEquivalentTo(["ISSUE", "RETURN"]);
 
             var varianceAudit = await context.Auditlogs.AsNoTracking()
-                .SingleAsync(item => item.BusinessArea == "ProductionVariance" && item.FieldName == "Waste");
-            varianceAudit.NewValue.Should().Be("wasteQty=20");
+                .SingleAsync(item => item.BusinessArea == "ProductionWaste" && item.FieldName == "WasteQuantity");
+            varianceAudit.NewValue.Should().Be("20");
             varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
 
             var usage = await new WorkflowReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
@@ -1370,6 +1373,7 @@ public class WorkflowGenerationTests
             line.RequiredQty.Should().Be(200m);
             line.AvailableQty.Should().Be(50m);
             line.MissingQty.Should().Be(150m);
+            shortage.SuggestedAction.Should().Be("Vui lòng tạo yêu cầu mua hàng (Purchase Request) bổ sung cho các nguyên liệu bị thiếu.");
 
             (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(0);
             (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(0);
@@ -1548,6 +1552,7 @@ public class WorkflowGenerationTests
                 line.RequiredQty == 75m &&
                 line.AvailableQty == 50m &&
                 line.MissingQty == 25m);
+            exception.Which.Shortage.SuggestedAction.Should().Be("Vui lòng tạo yêu cầu mua hàng (Purchase Request) bổ sung cho các nguyên liệu bị thiếu.");
 
             (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(1);
             (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(1);
@@ -4475,7 +4480,9 @@ public class WorkflowGenerationTests
                     issueId BLOB NOT NULL,
                     reason TEXT NULL,
                     createdBy BLOB NOT NULL,
-                    createdAt TEXT NOT NULL
+                    createdAt TEXT NOT NULL,
+                    receivedBy BLOB NULL,
+                    receivedAt TEXT NULL
                 );
                 CREATE TABLE inventoryreturnlines (
                     returnLineId BLOB PRIMARY KEY,
