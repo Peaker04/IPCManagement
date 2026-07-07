@@ -108,6 +108,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Refreshtoken> Refreshtokens { get; set; }
 
+    public virtual DbSet<Stocktake> Stocktakes { get; set; }
+
+    public virtual DbSet<Stocktakeline> Stocktakelines { get; set; }
+
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -2509,6 +2513,45 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("refreshtokens_ibfk_1");
+        });
+
+        modelBuilder.Entity<Stocktake>(entity =>
+        {
+            entity.HasKey(e => e.StocktakeId).HasName("PRIMARY");
+            entity.ToTable("stocktakes");
+            entity.HasIndex(e => e.StocktakeCode, "ixStocktakeCode").IsUnique();
+            entity.HasIndex(e => e.WarehouseId, "ixStocktakeWarehouse");
+            entity.Property(e => e.StocktakeId).HasMaxLength(16).IsFixedLength().HasColumnName("stocktakeId");
+            entity.Property(e => e.StocktakeCode).HasMaxLength(50).HasColumnName("stocktakeCode");
+            entity.Property(e => e.WarehouseId).HasMaxLength(16).IsFixedLength().HasColumnName("warehouseId");
+            entity.Property(e => e.Status).HasMaxLength(50).HasColumnName("status");
+            entity.Property(e => e.Notes).HasMaxLength(1000).HasColumnName("notes");
+            entity.Property(e => e.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+            entity.Property(e => e.ApprovedBy).HasMaxLength(16).IsFixedLength().HasColumnName("approvedBy");
+            entity.Property(e => e.ApprovedAt).HasColumnType("datetime").HasColumnName("approvedAt");
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocktakes).HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.StocktakesCreatedByNavigations).HasForeignKey(d => d.CreatedBy).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.StocktakesApprovedByNavigations).HasForeignKey(d => d.ApprovedBy);
+        });
+
+        modelBuilder.Entity<Stocktakeline>(entity =>
+        {
+            entity.HasKey(e => e.LineId).HasName("PRIMARY");
+            entity.ToTable("stocktakelines");
+            entity.HasIndex(e => e.StocktakeId, "ixStocktakelineStocktake");
+            entity.HasIndex(e => e.IngredientId, "ixStocktakelineIngredient");
+            entity.Property(e => e.LineId).HasMaxLength(16).IsFixedLength().HasColumnName("lineId");
+            entity.Property(e => e.StocktakeId).HasMaxLength(16).IsFixedLength().HasColumnName("stocktakeId");
+            entity.Property(e => e.IngredientId).HasMaxLength(16).IsFixedLength().HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId).HasMaxLength(16).IsFixedLength().HasColumnName("unitId");
+            entity.Property(e => e.SystemQty).HasPrecision(18, 2).HasColumnName("systemQty");
+            entity.Property(e => e.ActualQty).HasPrecision(18, 2).HasColumnName("actualQty");
+            entity.Property(e => e.DiscrepancyQty).HasPrecision(18, 2).HasColumnName("discrepancyQty");
+            entity.Property(e => e.Reason).HasMaxLength(1000).HasColumnName("reason");
+            entity.HasOne(d => d.Stocktake).WithMany(p => p.Stocktakelines).HasForeignKey(d => d.StocktakeId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Stocktakelines).HasForeignKey(d => d.IngredientId).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Unit).WithMany().HasForeignKey(d => d.UnitId).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);
