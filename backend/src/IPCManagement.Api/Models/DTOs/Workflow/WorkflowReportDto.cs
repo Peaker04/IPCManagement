@@ -14,6 +14,10 @@ public class WorkflowReportQueryDto
     public string? CursorDate { get; set; }
     public string? CursorId { get; set; }
     public int Limit { get; set; } = 100;
+    public string? Actor { get; set; }
+    public string? BusinessArea { get; set; }
+    public string? EntityName { get; set; }
+    public string? FieldName { get; set; }
 }
 
 public class OperationalKpiSummaryDto

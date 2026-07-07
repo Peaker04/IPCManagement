@@ -39,5 +39,6 @@ public class RecordPurchaseOrderReceiptLineDto
 
 public class RecordPurchaseOrderReceiptDto
 {
+    public string WarehouseId { get; set; } = string.Empty;
     public IReadOnlyList<RecordPurchaseOrderReceiptLineDto> Lines { get; set; } = [];
 }

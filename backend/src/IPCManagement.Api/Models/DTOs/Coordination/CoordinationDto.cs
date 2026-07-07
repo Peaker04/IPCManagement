@@ -72,6 +72,15 @@ public class LockOrderPlanResultDto
     public int LockedLineCount { get; set; }
 }
 
+public class UpsertQuickServingsRequestDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string ServiceDate { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public int Servings { get; set; }
+    public bool Complete { get; set; }
+}
+
 public class AdjustOrderAfterLockRequestDto
 {
     public string OrderId { get; set; } = string.Empty;

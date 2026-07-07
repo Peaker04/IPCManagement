@@ -7,6 +7,7 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
 using NSubstitute;
+using Microsoft.Extensions.Logging;
 using Xunit;
 
 namespace IPCManagement.Api.Tests;
@@ -16,6 +17,7 @@ public class AuthServiceTests
     private readonly IUserRepository _userRepository;
     private readonly ITokenService _tokenService;
     private readonly IRefreshTokenRepository _refreshTokenRepository;
+    private readonly ILogger<AuthService> _logger;
     private readonly AuthService _service;
 
     public AuthServiceTests()
@@ -23,11 +25,13 @@ public class AuthServiceTests
         _userRepository = Substitute.For<IUserRepository>();
         _tokenService = Substitute.For<ITokenService>();
         _refreshTokenRepository = Substitute.For<IRefreshTokenRepository>();
+        _logger = Substitute.For<ILogger<AuthService>>();
 
         _service = new AuthService(
             _userRepository,
             _tokenService,
-            _refreshTokenRepository);
+            _refreshTokenRepository,
+            _logger);
     }
 
     [Fact]

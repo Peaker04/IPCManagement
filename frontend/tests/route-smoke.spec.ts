@@ -206,9 +206,17 @@ async function stubApprovalDecisionSuccess(page: Page) {
     });
   });
 
+  await page.route('**/api/purchase-requests**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
   await page.route('**/api/approvals/purchase-request/pr-1', async (route) => {
     const body = await route.request().postDataJSON();
-    expect(body).toMatchObject({ status: 'Approve', reason: 'Đồng ý mua' });
+    expect(body).toMatchObject({ status: 0, reason: 'Đồng ý mua' });
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -313,10 +321,12 @@ test.describe('route smoke', () => {
     const dialogMessages: string[] = [];
     page.on('dialog', async (dialog) => {
       dialogMessages.push(dialog.message());
-      await dialog.accept(dialog.type() === 'prompt' ? 'Đồng ý mua' : undefined);
+      await dialog.accept();
     });
     await page.getByRole('button', { name: 'Duyệt' }).first().click();
-    await expect.poll(() => dialogMessages).toContain('Ghi chú duyệt');
-    await expect.poll(() => dialogMessages).toContain('Đã duyệt.');
+    await expect(page.getByRole('heading', { name: 'Xác nhận duyệt chứng từ' })).toBeVisible();
+    await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý mua');
+    await page.getByRole('button', { name: 'Duyệt' }).last().click();
+    await expect.poll(() => dialogMessages).toContain('Đã duyệt thành công.');
   });
 });

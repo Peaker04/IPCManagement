@@ -5,6 +5,7 @@ using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Logging;
 
 
 namespace IPCManagement.Api.Controllers;
@@ -18,15 +19,18 @@ public class AuthController : ControllerBase
     private readonly IAuthService _authService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ITokenService _tokenService;
+    private readonly ILogger<AuthController> _logger;
 
     public AuthController(
         IAuthService authService,
         ICurrentUserService currentUserService,
-        ITokenService tokenService)
+        ITokenService tokenService,
+        ILogger<AuthController> logger)
     {
         _authService = authService;
         _currentUserService = currentUserService;
         _tokenService = tokenService;
+        _logger = logger;
     }
 
     /// <summary>Đăng nhập — trả về access token + refresh token.</summary>
@@ -41,7 +45,21 @@ public class AuthController : ControllerBase
 
         var result = await _authService.LoginAsync(request, deviceInfo);
         if (result is null)
+        {
+            _logger.LogWarning(
+                "Login failed for username {Username} from IP {IpAddress} with device {DeviceInfo}",
+                request.Username,
+                HttpContext.Connection.RemoteIpAddress?.ToString(),
+                deviceInfo);
             return Unauthorized(ApiResponse.FailResult("Tên đăng nhập hoặc mật khẩu không đúng."));
+        }
+
+        SetRefreshTokenCookie(result.RefreshToken);
+        _logger.LogInformation(
+            "Login succeeded for user {UserId} ({Username}) from IP {IpAddress}",
+            result.User.UserId,
+            result.User.Username,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
 
         SetRefreshTokenCookie(result.RefreshToken);
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Đăng nhập thành công."));
@@ -67,10 +85,19 @@ public class AuthController : ControllerBase
         if (result is null)
         {
             ClearRefreshTokenCookie();
+            _logger.LogWarning(
+                "Refresh token rejected from IP {IpAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             return Unauthorized(ApiResponse.FailResult("Refresh token không hợp lệ hoặc đã hết hạn."));
         }
 
         SetRefreshTokenCookie(result.RefreshToken);
+        _logger.LogInformation(
+            "Token refreshed for user {UserId} ({Username}) from IP {IpAddress}",
+            result.User.UserId,
+            result.User.Username,
+            HttpContext.Connection.RemoteIpAddress?.ToString());
+
         return Ok(ApiResponse<LoginResponseDto>.SuccessResult(WithoutExposedRefreshToken(result), "Làm mới token thành công."));
     }
 
@@ -85,13 +112,27 @@ public class AuthController : ControllerBase
         request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
 
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
+        {
+            _logger.LogWarning(
+                "Logout attempted without refresh token from IP {IpAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             return BadRequest(ApiResponse.FailResult("Thiếu refresh token."));
+        }
 
         var success = await _authService.RevokeTokenAsync(request);
-        ClearRefreshTokenCookie();
 
+        ClearRefreshTokenCookie();
         if (!success)
+        {
+            _logger.LogInformation(
+                "Logout completed with missing or already revoked token from IP {IpAddress}",
+                HttpContext.Connection.RemoteIpAddress?.ToString());
             return Ok(ApiResponse.SuccessResult("Đăng xuất thành công."));
+        }
+
+        _logger.LogInformation(
+            "Logout succeeded from IP {IpAddress}",
+            HttpContext.Connection.RemoteIpAddress?.ToString());
 
         return Ok(ApiResponse.SuccessResult("Đăng xuất thành công."));
     }
@@ -152,7 +193,6 @@ public class AuthController : ControllerBase
 
         return Ok(ApiResponse<UserProfileResponseDto>.SuccessResult(profile, "Lấy profile người dùng thành công."));
     }
-
     private string ResolveRefreshToken(string? refreshToken)
         => !string.IsNullOrWhiteSpace(refreshToken)
             ? refreshToken.Trim()
@@ -167,7 +207,6 @@ public class AuthController : ControllerBase
             ExpiresIn = result.ExpiresIn,
             User = result.User
         };
-
     private void SetRefreshTokenCookie(string refreshToken)
     {
         var cookieOptions = new CookieOptions

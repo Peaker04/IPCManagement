@@ -3,12 +3,12 @@ import type { PayloadAction } from '@reduxjs/toolkit';
 import type { AuthState, User } from './authTypes';
 import { clearStoredAuth, persistAuthSnapshot, readStoredAuthSnapshot } from './authStorage';
 import { resetSessionExpiredNotice } from './sessionEvents';
-
 const storedAuth = readStoredAuthSnapshot();
 
 const initialState: AuthState = {
   user: storedAuth.user,
   token: storedAuth.token,
+
   isAuthenticated: false,
   isLoading: !!storedAuth.token,
 };

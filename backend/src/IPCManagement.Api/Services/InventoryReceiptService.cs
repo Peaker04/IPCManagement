@@ -221,7 +221,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                     throw new ArgumentException("Số lượng nhận phải lớn hơn 0.");
                 }
 
-                var receivedKey = BuildReceiptLineMatchKey(purchaseLine.SupplierId, purchaseLine.IngredientId, purchaseLine.UnitId);
+                var receivedKey = BuildReceiptLineMatchKey(purchaseLine.PurchaseRequestLineId);
                 var alreadyReceived = existingReceived.TryGetValue(receivedKey, out var value) ? value : 0m;
                 var remainingQty = DecimalPolicy.RoundQuantity(purchaseLine.PurchaseQty - alreadyReceived);
                 if (DecimalPolicy.GreaterThanQuantity(receivedQty, remainingQty))
@@ -235,6 +235,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                 {
                     ReceiptLineId = GuidHelper.NewId(),
                     ReceiptId = receipt.ReceiptId,
+                    PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
                     IngredientId = purchaseLine.IngredientId,
                     UnitId = purchaseLine.UnitId,
                     Quantity = receivedQty,
@@ -308,25 +309,19 @@ public class InventoryReceiptService : IInventoryReceiptService
             .AsNoTracking()
             .Where(line =>
                 line.Receipt.PurchaseRequestId != null &&
-                line.Receipt.PurchaseRequestId.SequenceEqual(purchaseRequestId))
-            .GroupBy(line => new
-            {
-                line.Receipt.SupplierId,
-                line.IngredientId,
-                line.UnitId
-            })
+                line.Receipt.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
+                line.PurchaseRequestLineId != null)
+            .GroupBy(line => line.PurchaseRequestLineId!)
             .Select(group => new
             {
-                group.Key.SupplierId,
-                group.Key.IngredientId,
-                group.Key.UnitId,
+                PurchaseRequestLineId = group.Key,
                 Quantity = group.Sum(line => line.Quantity)
             })
             .ToListAsync();
 
         return receivedQuantities
             .ToDictionary(
-                item => BuildReceiptLineMatchKey(item.SupplierId, item.IngredientId, item.UnitId),
+                item => BuildReceiptLineMatchKey(item.PurchaseRequestLineId),
                 item => DecimalPolicy.RoundQuantity(item.Quantity),
                 StringComparer.Ordinal);
     }
@@ -340,7 +335,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         var receivedAll = lines.Count > 0;
         foreach (var line in lines)
         {
-            var key = BuildReceiptLineMatchKey(line.SupplierId, line.IngredientId, line.UnitId);
+            var key = BuildReceiptLineMatchKey(line.PurchaseRequestLineId);
             var received = receivedQuantities.TryGetValue(key, out var value) ? value : 0m;
             receivedAny = receivedAny || received > 0;
             receivedAll = receivedAll && !DecimalPolicy.LessThanQuantity(received, line.PurchaseQty);
@@ -349,7 +344,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         return receivedAll ? "RECEIVED" : receivedAny ? "PARTIALRECEIVED" : "SENTTOSUPPLIER";
     }
 
-    private static string BuildReceiptLineMatchKey(byte[] supplierId, byte[] ingredientId, byte[] unitId)
-        => $"{Convert.ToBase64String(supplierId)}:{Convert.ToBase64String(ingredientId)}:{Convert.ToBase64String(unitId)}";
+    private static string BuildReceiptLineMatchKey(byte[] purchaseRequestLineId)
+        => Convert.ToBase64String(purchaseRequestLineId);
 
 }

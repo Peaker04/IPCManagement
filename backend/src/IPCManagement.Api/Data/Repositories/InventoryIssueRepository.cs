@@ -1,6 +1,8 @@
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
@@ -12,18 +14,47 @@ public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInve
     }
 
     public async Task<(IEnumerable<Inventoryissue> Items, int TotalCount)> GetPagedAsync(
-        int pageNumber,
-        int pageSize)
+        InventoryIssueFilterRequestDto request)
     {
-        (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+        var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
 
         var query = _context.Inventoryissues
             .AsNoTracking()
             .Include(issue => issue.Warehouse)
             .Include(issue => issue.IssuedByNavigation)
             .Include(issue => issue.ReceivedByNavigation)
-            .OrderByDescending(issue => issue.CreatedAt)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        {
+            var warehouseBytes = GuidHelper.ParseGuidString(request.WarehouseId)
+                ?? throw new ArgumentException("WarehouseId không hợp lệ.");
+            query = query.Where(i => i.WarehouseId == warehouseBytes);
+        }
+
+        if (request.IssueDate.HasValue)
+        {
+            query = query.Where(i => i.IssueDate == request.IssueDate.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ShiftName))
+        {
+            query = query.Where(i => i.ShiftName == request.ShiftName);
+        }
+
+        if (request.IsReceived.HasValue)
+        {
+            if (request.IsReceived.Value)
+            {
+                query = query.Where(i => i.ReceivedAt != null);
+            }
+            else
+            {
+                query = query.Where(i => i.ReceivedAt == null);
+            }
+        }
+
+        query = query.OrderByDescending(issue => issue.CreatedAt);
 
         var totalCount = await query.CountAsync();
         var items = await query

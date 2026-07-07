@@ -36,11 +36,9 @@ public class InventoryIssueService : IInventoryIssueService
         _context = context;
     }
 
-    public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(PagedRequestDto request)
+    public async Task<PagedResponseDto<InventoryIssueDto>> GetPagedAsync(InventoryIssueFilterRequestDto request)
     {
-        var (items, totalCount) = await _issueRepository.GetPagedAsync(
-            request.PageNumber,
-            request.PageSize);
+        var (items, totalCount) = await _issueRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryIssueDto>.Create(
             items.Select(issue => InventoryMapper.MapIssue(issue)),
@@ -122,6 +120,8 @@ public class InventoryIssueService : IInventoryIssueService
                     "Xuất kho sản xuất",
                     $"Phiếu xuất {issue.IssueCode}");
             }
+
+            UpdateMaterialRequestStatusIfCompleted(materialRequest, issuedLines, issueLines, userIdBytes);
 
             await _unitOfWork.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -439,6 +439,68 @@ public class InventoryIssueService : IInventoryIssueService
         }
 
         return result;
+    }
+
+    private void UpdateMaterialRequestStatusIfCompleted(
+        Materialrequest materialRequest,
+        IReadOnlyList<Inventoryissueline> previouslyIssuedLines,
+        IReadOnlyList<ResolvedIssueLine> currentIssueLines,
+        byte[] userIdBytes)
+    {
+        if (_context is null) return;
+
+        var demandByItem = materialRequest.Materialrequestlines
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(line => line.TotalRequiredQty)));
+
+        var alreadyIssuedByItem = previouslyIssuedLines
+            .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
+            .ToDictionary(
+                group => group.Key,
+                group => DecimalPolicy.RoundQuantity(group.Sum(line => line.IssuedQty)));
+
+        foreach (var issueLine in currentIssueLines)
+        {
+            var key = BuildKey(issueLine.IngredientId, issueLine.UnitId);
+            var currentIssued = alreadyIssuedByItem.GetValueOrDefault(key, 0m);
+            alreadyIssuedByItem[key] = currentIssued + issueLine.IssuedQty;
+        }
+
+        var isFullyIssued = true;
+        foreach (var (key, requiredQty) in demandByItem)
+        {
+            var totalIssued = alreadyIssuedByItem.GetValueOrDefault(key, 0m);
+            if (DecimalPolicy.LessThanQuantity(totalIssued, requiredQty))
+            {
+                isFullyIssued = false;
+                break;
+            }
+        }
+
+        if (isFullyIssued)
+        {
+            var oldStatus = materialRequest.Status;
+            var newStatus = "EXPORTED";
+            if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                materialRequest.Status = newStatus;
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "InventoryIssue",
+                    EntityName = nameof(Materialrequest),
+                    EntityId = materialRequest.RequestId,
+                    FieldName = nameof(Materialrequest.Status),
+                    OldValue = oldStatus,
+                    NewValue = newStatus,
+                    Reason = "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED."
+                });
+            }
+        }
     }
 
     private static decimal CalculateRemaining(decimal requiredQty, decimal issuedQty)

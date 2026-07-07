@@ -23,6 +23,7 @@ import {
   useGetMenuSchedulesQuery,
   usePreviewWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
+  useUpsertQuickServingsMutation,
   useUpdateWeeklyMenuBulkMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
@@ -129,6 +130,26 @@ type WeeklyMenuPricingOverride = {
 };
 
 type PurchaseSummaryMaterialEntry = [string, MaterialSummaryEntry];
+type QuickServingShiftName = 'MORNING' | 'AFTERNOON';
+
+const QUICK_SERVING_SHIFTS: Array<{ shiftName: QuickServingShiftName; shiftLabel: 'Ca Sáng' | 'Ca Chiều' }> = [
+  { shiftName: 'MORNING', shiftLabel: 'Ca Sáng' },
+  { shiftName: 'AFTERNOON', shiftLabel: 'Ca Chiều' },
+];
+
+const runInBatches = async <T, R>(
+  items: T[],
+  batchSize: number,
+  worker: (item: T) => Promise<R>,
+) => {
+  const results: R[] = [];
+  for (let index = 0; index < items.length; index += batchSize) {
+    const batch = items.slice(index, index + batchSize);
+    const batchResults = await Promise.all(batch.map((item) => worker(item)));
+    results.push(...batchResults);
+  }
+  return results;
+};
 
 type LayoutCellSpan = {
   hidden: boolean;
@@ -450,6 +471,9 @@ const formatQuantityVariance = (value: number, unit: string) => {
   if (value < 0) return `-${formatQuantityWithUnit(Math.abs(value), unit)}`;
   return formatQuantityWithUnit(0, unit);
 };
+
+const getQuickServingKey = (serviceDate: string, shiftName: QuickServingShiftName) =>
+  `${serviceDate}|${shiftName}`;
 
 const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[] => {
   const groups = new Map<string, {
@@ -1488,6 +1512,7 @@ const WeeklyMenuPage = () => {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
+  const [quickServingInputs, setQuickServingInputs] = useState<Record<string, string>>({});
 
   const resetScopedWeeklyMenuUi = () => {
     dispatch(setWeeklyMenu({}));
@@ -1497,6 +1522,7 @@ const WeeklyMenuPage = () => {
     setSelectedDishId('');
     setWarehouseExportFeedback(null);
     setDemandFeedback(null);
+    setQuickServingInputs({});
   };
 
   const [generatedMaterialRequests, setGeneratedMaterialRequests] = useState<GeneratedMaterialRequest[]>([]);
@@ -1509,6 +1535,7 @@ const WeeklyMenuPage = () => {
   const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
   const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
   const [generatePurchaseRequestFromDemand, { isLoading: isGeneratingPurchaseRequest }] = useGeneratePurchaseRequestFromDemandMutation();
+  const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation();
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
@@ -1701,8 +1728,60 @@ const WeeklyMenuPage = () => {
       return;
     }
 
-    setDemandFeedback(null);
-    const results = await Promise.all(serviceDates.map(async (serviceDate) => {
+    const serviceDateSet = new Set(serviceDates);
+    const quickServingRowsToComplete = quickServingRows
+      .filter((row) => serviceDateSet.has(row.serviceDate) && !row.isCompleted)
+      .map((row) => ({
+        ...row,
+        nextServings: Math.round(Number.parseFloat(row.inputValue)),
+      }))
+      .filter((row) => Number.isFinite(row.nextServings) && row.nextServings > 0);
+
+    if (quickServingRowsToComplete.length > 0) {
+      setDemandFeedback({
+        title: 'Đang hoàn tất số suất',
+        message: `Đang lưu và chốt ${quickServingRowsToComplete.length} ca trước khi tạo nhu cầu nguyên liệu.`,
+        variant: 'info',
+      });
+
+      try {
+        await runInBatches(quickServingRowsToComplete, 3, async (row) => {
+          const response = await upsertQuickServings({
+            customerId: effectiveMenuCustomerId,
+            serviceDate: row.serviceDate,
+            shiftName: row.shiftName,
+            servings: row.nextServings,
+            complete: true,
+          }).unwrap();
+
+          if (!response.success) {
+            throw new Error(response.message || 'Không hoàn tất được số suất.');
+          }
+        });
+
+        setQuickServingInputs((current) => {
+          const next = { ...current };
+          quickServingRowsToComplete.forEach((row) => {
+            delete next[row.key];
+          });
+          return next;
+        });
+      } catch (error) {
+        setDemandFeedback({
+          title: 'Chưa hoàn tất được số suất',
+          message: getApiErrorMessage(error, 'Không lưu/chốt được số suất đang nhập. Vui lòng kiểm tra lại ngày, ca và khách hàng.'),
+          variant: 'danger',
+        });
+        return;
+      }
+    }
+
+    setDemandFeedback({
+      title: 'Đang tạo demand',
+      message: `Đang sinh nhu cầu nguyên liệu cho ${serviceDates.length} ngày trong tuần.`,
+      variant: 'info',
+    });
+    const results = await runInBatches(serviceDates, 2, async (serviceDate) => {
       try {
         const response = await generateMaterialDemand({ serviceDate, customerId: effectiveMenuCustomerId, scope: 'FULLDAY' }).unwrap();
         if (!response.success || !response.data) {
@@ -1713,7 +1792,7 @@ const WeeklyMenuPage = () => {
       } catch (error) {
         return { serviceDate, error };
       }
-    }));
+    });
 
     const succeeded = results.filter((result): result is { serviceDate: string; response: NonNullable<(typeof result)['response']> } => 'response' in result);
     const skipped = results.length - succeeded.length;
@@ -1805,6 +1884,96 @@ const WeeklyMenuPage = () => {
       message: `Xử lý ${purchaseSuccessCount}/${purchaseResults.length} demand thiếu hàng, tạo/cập nhật ${purchaseLineCount} dòng mua thêm.${failed > 0 ? ' Một số demand cần kiểm tra lại nhà cung cấp hoặc dữ liệu nguyên liệu.' : ''}`,
       variant: failed > 0 ? 'warning' : 'info',
     });
+  };
+
+  const saveQuickServingRow = async (row: (typeof quickServingRows)[number]) => {
+    if (row.isConfirmed) {
+      throw new Error('Ca đã chốt. Điều chỉnh sau chốt cần thực hiện ở Điều phối đơn.');
+    }
+
+    if (!effectiveMenuCustomerId) {
+      throw new Error('Vui lòng chọn khách hàng trước khi lưu số suất.');
+    }
+
+    const nextServings = Number(row.inputValue);
+    if (!Number.isFinite(nextServings) || nextServings < 0) {
+      throw new Error('Số suất phải lớn hơn hoặc bằng 0.');
+    }
+
+    await upsertQuickServings({
+      customerId: effectiveMenuCustomerId,
+      serviceDate: row.serviceDate,
+      shiftName: row.shiftName,
+      servings: Math.round(nextServings),
+      complete: false,
+    }).unwrap();
+
+    setQuickServingInputs((current) => {
+      const next = { ...current };
+      delete next[row.key];
+      return next;
+    });
+  };
+
+  const handleSaveQuickServings = async (row: (typeof quickServingRows)[number]) => {
+    if (!row.hasDraftChange) return;
+
+    try {
+      await saveQuickServingRow(row);
+      setDemandFeedback({
+        title: 'Đã lưu số suất',
+        message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã cập nhật số suất dự kiến.`,
+        variant: 'info',
+      });
+    } catch (error) {
+      setDemandFeedback({
+        title: 'Chưa lưu được số suất',
+        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra lại số suất.',
+        variant: 'danger',
+      });
+    }
+  };
+
+  const handleLockQuickServings = async (row: (typeof quickServingRows)[number]) => {
+    try {
+      const nextServings = Number(row.inputValue);
+      const finalServings = Number.isFinite(nextServings) && nextServings >= 0
+        ? Math.round(nextServings)
+        : row.currentServings;
+      if (finalServings <= 0) {
+        throw new Error('Cần nhập số suất lớn hơn 0 trước khi hoàn tất ca.');
+      }
+
+      if (!effectiveMenuCustomerId) {
+        throw new Error('Vui lòng chọn khách hàng trước khi hoàn tất ca.');
+      }
+
+      await upsertQuickServings({
+        customerId: effectiveMenuCustomerId,
+        serviceDate: row.serviceDate,
+        shiftName: row.shiftName,
+        servings: finalServings,
+        complete: true,
+      }).unwrap();
+
+      setQuickServingInputs((current) => {
+        const next = { ...current };
+        delete next[row.key];
+        return next;
+      });
+
+      setDemandFeedback({
+        title: 'Đã hoàn tất suất cho KHSX',
+        message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã hoàn tất kế hoạch suất. Có thể tạo demand nguyên liệu.`,
+        variant: 'info',
+      });
+    } catch (error) {
+      setDemandFeedback({
+        title: 'Chưa hoàn tất được suất',
+        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.',
+        variant: 'danger',
+      });
+    }
   };
 
   const handleSaveEdit = async () => {
@@ -2009,6 +2178,86 @@ const WeeklyMenuPage = () => {
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
   const weeklyRowsUsingImportDefault = weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default');
   const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
+  const quickServingRows = displayDays
+    .flatMap((day) => {
+      const serviceDate = getServiceDateIso(day.key) || parseDisplayDateToIso(day.date);
+      if (!serviceDate) return [];
+
+      return QUICK_SERVING_SHIFTS.map((shift) => {
+        const matchingPlans = mealQuantityPlans.filter((plan) => plan.serviceDate.split('T')[0] === serviceDate);
+        const planLines = matchingPlans.flatMap((plan) =>
+          plan.lines
+            .filter((line) => line.shiftName === shift.shiftName && (!effectiveMenuCustomerId || line.customerId === effectiveMenuCustomerId))
+            .map((line) => {
+              const servings = line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0;
+              return {
+                planStatus: plan.status,
+                quantityPlanId: plan.quantityPlanId,
+                quantityPlanLineId: line.quantityPlanLineId,
+                servings,
+              };
+            }),
+        );
+        const currentServings = planLines.reduce((sum, line) => sum + line.servings, 0);
+        const importedServings = Math.max(
+          0,
+          ...weeklyPlanRows
+            .filter((row) => row.dayKey === day.key && (
+              shift.shiftName === 'MORNING'
+                ? row.shiftLabel.toLowerCase().includes('sáng')
+                : row.shiftLabel.toLowerCase().includes('chiều')
+            ))
+            .map((row) => row.importedPortions || row.portions || 0),
+        );
+        const key = getQuickServingKey(serviceDate, shift.shiftName);
+        const inputValue = quickServingInputs[key] ?? String(currentServings > 0 ? currentServings : importedServings || '');
+        const normalizedStatuses = Array.from(new Set(planLines.map((line) => line.planStatus.toUpperCase())));
+        const isConfirmed = normalizedStatuses.some((status) => ['CONFIRMED', 'COMPLETED', 'ADJUSTED'].includes(status));
+        const isCompleted = normalizedStatuses.includes('COMPLETED');
+        const hasDraftChange = quickServingInputs[key] !== undefined && Number(quickServingInputs[key]) !== currentServings;
+
+        return {
+          key,
+          dayKey: day.key,
+          dayLabel: day.label,
+          date: day.date,
+          serviceDate,
+          shiftName: shift.shiftName,
+          shiftLabel: shift.shiftLabel,
+          quantityPlanId: planLines[0]?.quantityPlanId,
+          quantityPlanIds: Array.from(new Set(planLines.map((line) => line.quantityPlanId).filter(Boolean))),
+          lines: planLines.map((line) => ({
+            quantityPlanLineId: line.quantityPlanLineId,
+            servings: line.servings,
+          })),
+          currentServings,
+          importedServings,
+          inputValue,
+          hasPlanLines: planLines.length > 0,
+          hasDraftChange,
+          isConfirmed,
+          isCompleted,
+          statusLabel: planLines.length === 0
+            ? 'Chưa có kế hoạch suất'
+            : isCompleted
+              ? 'Đã hoàn tất'
+              : isConfirmed
+                ? 'Đã chốt'
+                : currentServings > 0
+                  ? 'Chưa chốt'
+                  : 'Chưa nhập suất',
+        };
+      });
+    });
+  const getQuickServingRowForPlanRow = (row: WeeklyPlanRow) => {
+    const shiftName: QuickServingShiftName = row.shiftLabel.toLowerCase().includes('sáng')
+      ? 'MORNING'
+      : 'AFTERNOON';
+
+    return quickServingRows.find((servingRow) =>
+      servingRow.serviceDate === row.serviceDate &&
+      servingRow.shiftName === shiftName);
+  };
   const demandStalenessServiceDate = weeklyPlanRows[0]?.serviceDate;
   const { data: demandStalenessData } = useGetMaterialDemandStalenessQuery(
     { serviceDate: demandStalenessServiceDate ?? '', customerId: effectiveMenuCustomerId, scope: 'FULLDAY' },
@@ -2039,11 +2288,52 @@ const WeeklyMenuPage = () => {
   const activeDemandDate = activeDemandDay
     ? getServiceDateIso(activeDemandDay.key) || parseDisplayDateToIso(activeDemandDay.date)
     : '';
-  const activeDemandAggregatedLines = aggregateDemandLinesByMaterial(
+  const activeDemandReportQuery = {
+    limit: 500,
+    customerId: effectiveMenuCustomerId,
+    dateFrom: activeDemandDate || undefined,
+    dateTo: activeDemandDate || undefined,
+  };
+  const {
+    currentData: activeDemandReportLines,
+    isFetching: isFetchingActiveDemandLines,
+  } = useGetIngredientDemandQuery(activeDemandReportQuery, { skip: !effectiveMenuCustomerId || !activeDemandDate });
+  const activeDemandQuickServingRows = activeDemandDay
+    ? QUICK_SERVING_SHIFTS
+      .map((shift) => quickServingRows.find((servingRow) =>
+        servingRow.serviceDate === activeDemandDate &&
+        servingRow.shiftName === shift.shiftName))
+      .filter((row): row is (typeof quickServingRows)[number] => Boolean(row))
+    : [];
+  const activeDemandSourceLines = activeDemandReportLines ?? (
     activeDemandDate
       ? demandLines.filter((line) => line.serviceDate === activeDemandDate)
-      : [],
+      : []
   );
+  const activeDemandAggregatedLines = aggregateDemandLinesByMaterial(activeDemandSourceLines);
+  const activeDemandWarningCount = activeDemandAggregatedLines.filter((line) => line.tone === 'warning').length;
+  const activeDemandShortageCount = activeDemandAggregatedLines.filter((line) => {
+    const availableAfterReserve = line.available - line.reserved;
+    return Math.max(line.required - availableAfterReserve, 0) > 0;
+  }).length;
+  const activeDemandEnoughCount = activeDemandAggregatedLines.filter((line) => {
+    const availableAfterReserve = line.available - line.reserved;
+    return Math.max(line.required - availableAfterReserve, 0) === 0 && line.tone !== 'warning';
+  }).length;
+  const activeDemandTone: DemandLine['tone'] = activeDemandAggregatedLines.length === 0
+    ? 'neutral'
+    : activeDemandWarningCount > 0
+      ? 'warning'
+      : activeDemandShortageCount > 0
+        ? 'danger'
+        : 'success';
+  const activeDemandStatus = activeDemandAggregatedLines.length === 0
+    ? 'Chưa kiểm tồn'
+    : activeDemandWarningCount > 0
+      ? 'Cần tính lại'
+      : activeDemandShortageCount > 0
+        ? 'Thiếu nguyên liệu'
+        : 'Đủ nguyên liệu';
   const demandPageRows = activeDemandDay?.rows ?? [];
   const khsxDraftDocument: WorkflowDocument | null = (() => {
     if (!activeDemandDay || weeklyPlanRows.length === 0) return null;
@@ -2468,10 +2758,12 @@ const WeeklyMenuPage = () => {
                   className="ipc-button ipc-button-primary"
                   type="button"
                   onClick={() => void handleGenerateDemand()}
-                  disabled={isGeneratingDemand || weeklyPlanRows.length === 0}
+                  disabled={isGeneratingDemand || isSavingQuickServings || weeklyPlanRows.length === 0}
                 >
                   <Scale size={16} />
-                  {isGeneratingDemand
+                  {isSavingQuickServings
+                    ? 'Đang lưu suất...'
+                    : isGeneratingDemand
                     ? 'Đang tạo demand...'
                     : demandStaleness?.isStale
                       ? 'Tính lại demand (dữ liệu đã thay đổi)'
@@ -2496,46 +2788,99 @@ const WeeklyMenuPage = () => {
                 <thead>
                   <tr>
                     <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
-                    <th style={{ width: '10%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
-                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
-                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
-                    <th style={{ width: '24%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
-                    <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
-                    <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
+                    <th style={{ width: '9%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>
+                    <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Nhóm</th>
+                    <th style={{ width: '11%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Dòng</th>
+                    <th style={{ width: '27%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món theo kế hoạch tuần</th>
+                    <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Suất</th>
+                    <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>BOM</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {demandPageRows.map((row) => (
-                    <tr key={row.key} className="table-row">
-                      <td className={`${tableCellClass} text-left font-semibold`}>
-                        {row.dayLabel}
-                        <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
-                      </td>
-                      <td className={tableCellClass}>{row.shiftLabel}</td>
-                      <td className={tableCellClass}>{row.menuTypeLabel}</td>
-                      <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
-                      <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>
-                        {row.dishName}
-                      </td>
-                      <td className={tableCellClass} title={row.servingsStatusLabel}>
-                        {row.servingsStatus === 'missing' ? (
-                          <span className="inline-flex flex-col items-center gap-0.5">
-                            <span className="font-semibold text-amber-700">Chưa chốt</span>
-                          </span>
-                        ) : (
-                          <span className="inline-flex flex-col items-center gap-0.5">
-                            <span>{row.portions.toLocaleString('vi-VN')}</span>
-                            {row.servingsStatus === 'import-default' && (
-                              <span className="text-[11px] font-normal text-amber-700">Tạm từ import</span>
-                            )}
-                          </span>
-                        )}
-                      </td>
-                      <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
-                        {row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}
-                      </td>
-                    </tr>
-                  ))}
+                  {demandPageRows.map((row) => {
+                    const quickServingRow = getQuickServingRowForPlanRow(row);
+                    const isServingBusy = isSavingQuickServings;
+
+                    return (
+                      <tr key={row.key} className="table-row">
+                        <td className={`${tableCellClass} text-left font-semibold`}>
+                          {row.dayLabel}
+                          <div className="text-[12px] font-normal text-slate-500">{row.date}</div>
+                        </td>
+                        <td className={tableCellClass}>{row.shiftLabel}</td>
+                        <td className={tableCellClass}>{row.menuTypeLabel}</td>
+                        <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
+                        <td className={`${tableCellClass} text-left font-semibold text-slate-900`}>
+                          {row.dishName}
+                        </td>
+                        <td className={tableCellClass} title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
+                          {quickServingRow ? (
+                            <div className="flex flex-col items-center gap-1.5">
+                              <input
+                                type="number"
+                                min="0"
+                                value={quickServingRow.inputValue}
+                                onChange={(event) => setQuickServingInputs((current) => ({
+                                  ...current,
+                                  [quickServingRow.key]: event.target.value,
+                                }))}
+                                onBlur={() => {
+                                  if (quickServingRow.hasDraftChange) {
+                                    void handleSaveQuickServings(quickServingRow);
+                                  }
+                                }}
+                                onKeyDown={(event) => {
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault();
+                                    event.currentTarget.blur();
+                                  }
+                                  if (event.key === 'Escape') {
+                                    setQuickServingInputs((current) => {
+                                      const next = { ...current };
+                                      delete next[quickServingRow.key];
+                                      return next;
+                                    });
+                                  }
+                                }}
+                                disabled={quickServingRow.isConfirmed}
+                                className="ipc-input h-8 w-[96px] text-center"
+                              />
+                              <span className={cn(
+                                'text-[11px] font-medium',
+                                quickServingRow.isCompleted ? 'text-emerald-700' : quickServingRow.hasDraftChange ? 'text-blue-700' : quickServingRow.hasPlanLines ? 'text-amber-700' : 'text-slate-500',
+                              )}>
+                                {quickServingRow.isCompleted
+                                  ? 'Đã hoàn tất'
+                                  : isServingBusy
+                                    ? 'Đang lưu'
+                                    : quickServingRow.hasDraftChange
+                                      ? 'Chưa lưu'
+                                  : quickServingRow.hasPlanLines
+                                    ? quickServingRow.statusLabel
+                                    : row.servingsStatus === 'import-default'
+                                      ? 'Tạm từ import'
+                                      : 'Chưa có kế hoạch'}
+                              </span>
+                            </div>
+                          ) : row.servingsStatus === 'missing' ? (
+                            <span className="inline-flex flex-col items-center gap-0.5">
+                              <span className="font-semibold text-amber-700">Chưa chốt</span>
+                            </span>
+                          ) : (
+                            <span className="inline-flex flex-col items-center gap-0.5">
+                              <span>{row.portions.toLocaleString('vi-VN')}</span>
+                              {row.servingsStatus === 'import-default' && (
+                                <span className="text-[11px] font-normal text-amber-700">Tạm từ import</span>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>
+                          {row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {demandPageRows.length === 0 && (
                     <tr>
                       <td className="p-4 text-center text-sm text-slate-500" colSpan={7}>
@@ -2546,41 +2891,74 @@ const WeeklyMenuPage = () => {
                 </tbody>
               </table>
             </DataTableShell>
-            <div className="flex min-h-[38px] items-center justify-end gap-2">
-              <span className="mr-2 text-sm font-medium text-slate-600">
-                {activeDemandDay
-                  ? `${activeDemandDay.label} ${activeDemandDay.date} (${safeDemandDayPageIndex + 1}/${demandDayPages.length})`
-                  : 'Chưa có ngày'}
-              </span>
-              <button
-                type="button"
-                className="ipc-button ipc-button-ghost"
-                disabled={safeDemandDayPageIndex <= 0}
-                onClick={() => setSelectedDemandDayKey(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
-              >
-                Ngày trước
-              </button>
-              <button
-                type="button"
-                className="ipc-button ipc-button-primary"
-                disabled={safeDemandDayPageIndex >= demandDayPages.length - 1}
-                onClick={() => setSelectedDemandDayKey(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
-              >
-                Ngày sau
-              </button>
+            <div className="flex min-h-[38px] flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {activeDemandQuickServingRows.map((row) => {
+                  const isServingBusy = isSavingQuickServings;
+                  const disabled = isServingBusy || row.isCompleted || Number(row.inputValue) <= 0;
+
+                  return (
+                    <ActionGuard key={`complete-${row.key}`} allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['orders.lock']}>
+                      <button
+                        type="button"
+                        className={cn(
+                          'ipc-button min-w-[132px] whitespace-nowrap',
+                          row.isCompleted ? 'ipc-button-ghost' : 'ipc-button-primary',
+                        )}
+                        disabled={disabled}
+                        onClick={() => void handleLockQuickServings(row)}
+                      >
+                        {row.isCompleted ? `Đã hoàn tất ${row.shiftLabel}` : `Hoàn tất ${row.shiftLabel}`}
+                      </button>
+                    </ActionGuard>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-end gap-2">
+                <span className="mr-2 text-sm font-medium text-slate-600">
+                  {activeDemandDay
+                    ? `${activeDemandDay.label} ${activeDemandDay.date} (${safeDemandDayPageIndex + 1}/${demandDayPages.length})`
+                    : 'Chưa có ngày'}
+                </span>
+                <button
+                  type="button"
+                  className="ipc-button ipc-button-ghost"
+                  disabled={safeDemandDayPageIndex <= 0}
+                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
+                >
+                  Ngày trước
+                </button>
+                <button
+                  type="button"
+                  className="ipc-button ipc-button-primary"
+                  disabled={safeDemandDayPageIndex >= demandDayPages.length - 1}
+                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
+                >
+                  Ngày sau
+                </button>
+              </div>
             </div>
 
-            {demandLines.length > 0 ? (
+            {demandLines.length > 0 || activeDemandAggregatedLines.length > 0 ? (
               <div className="flex flex-col gap-2">
                 <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
-                  <span className="text-sm font-semibold text-slate-800">
-                    Nguyên liệu ngày {activeDemandDay ? `${activeDemandDay.label} ${activeDemandDay.date}` : 'đang xem'}
-                  </span>
-                  <span className="text-xs font-medium text-slate-500">
-                    Tổng hợp mua xử lý toàn tuần
-                  </span>
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold text-slate-800">
+                      Nguyên liệu ngày {activeDemandDay ? `${activeDemandDay.label} ${activeDemandDay.date}` : 'đang xem'}
+                    </span>
+                    <span className="text-xs font-medium text-slate-500">
+                      Đủ {activeDemandEnoughCount}, thiếu {activeDemandShortageCount}, tổng {activeDemandAggregatedLines.length} nguyên liệu
+                    </span>
+                  </div>
+                  <StatusBadge variant={activeDemandTone} className="shrink-0 whitespace-nowrap">
+                    {activeDemandStatus}
+                  </StatusBadge>
                 </div>
-                <DemandSummary lines={activeDemandAggregatedLines} />
+                {isFetchingActiveDemandLines && !activeDemandReportLines ? (
+                  <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div>
+                ) : (
+                  <DemandSummary lines={activeDemandAggregatedLines} />
+                )}
               </div>
             ) : (
               <InlineAlert title="Chưa sinh nhu cầu nguyên liệu backend" variant={weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
@@ -3238,16 +3616,16 @@ const WeeklyMenuPage = () => {
                 </div>
 
                 <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
-                  <table className="ipc-data-table">
+                  <table className="ipc-data-table min-w-[980px]">
                     <thead>
                       <tr>
-                        <th className="text-left">Khách hàng</th>
-                        <th className="text-left">Tuần</th>
-                        <th className="text-left">File</th>
-                        <th className="text-center">File đọc</th>
-                        <th className="text-center">Dòng món</th>
-                        <th className="text-center">Trạng thái</th>
-                        <th className="text-right">Thao tác</th>
+                        <th className="text-left whitespace-nowrap">Khách hàng</th>
+                        <th className="text-left whitespace-nowrap">Tuần</th>
+                        <th className="text-left whitespace-nowrap">File</th>
+                        <th className="text-center whitespace-nowrap">File đọc</th>
+                        <th className="text-center whitespace-nowrap">Dòng món</th>
+                        <th className="text-center whitespace-nowrap">Trạng thái</th>
+                        <th className="text-right whitespace-nowrap">Thao tác</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -3256,7 +3634,7 @@ const WeeklyMenuPage = () => {
                         const isSelected = selectedImportJob?.jobId === job.jobId;
                         return (
                           <tr key={job.jobId} className={cn(isSelected && 'bg-blue-50/70')}>
-                            <td className="text-left">
+                            <td className="text-left min-w-[140px]">
                               <button
                                 type="button"
                                 onClick={() => setSelectedImportJobId(job.jobId)}
@@ -3265,31 +3643,31 @@ const WeeklyMenuPage = () => {
                                 {job.customerCode} - {job.customerName}
                               </button>
                             </td>
-                            <td className="text-left font-medium">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
-                            <td className="text-left">
+                            <td className="text-left font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
+                            <td className="text-left min-w-[280px]">
                               <div className="flex flex-col">
-                                <span className="font-semibold text-slate-800">{job.fileName}</span>
+                                <span className="font-semibold text-slate-800 whitespace-nowrap">{job.fileName}</span>
                                 <span className="text-xs text-slate-500">{formatFileSize(job.fileSize)}</span>
                               </div>
                             </td>
-                            <td className="text-center">
+                            <td className="text-center whitespace-nowrap">
                               {preview ? `${preview.detectedLayout.sections.length} phần / ${preview.detectedLayout.dayColumns.length} ngày` : '-'}
                             </td>
-                            <td className="text-center">
+                            <td className="text-center whitespace-nowrap">
                               {preview ? preview.detectedLayout.rowsImported.toLocaleString('vi-VN') : '-'}
                             </td>
-                            <td className="text-center">
-                              <span className={getImportJobStatusClass(job.status)}>
+                            <td className="text-center whitespace-nowrap">
+                              <span className={cn(getImportJobStatusClass(job.status), 'whitespace-nowrap')}>
                                 {getImportJobStatusLabel(job.status)}
                               </span>
                             </td>
-                            <td className="text-right">
-                              <div className="flex justify-end gap-2">
+                            <td className="text-right min-w-[220px]">
+                              <div className="flex flex-nowrap justify-end gap-2">
                                 <button
                                   type="button"
                                   onClick={() => void handlePreviewImportJob(job.jobId)}
                                   disabled={isImporting || job.status === 'committed'}
-                                  className="ipc-button ipc-button-ghost"
+                                  className="ipc-button ipc-button-ghost min-w-[76px] whitespace-nowrap"
                                 >
                                   Kiểm tra
                                 </button>
@@ -3297,7 +3675,7 @@ const WeeklyMenuPage = () => {
                                   type="button"
                                   onClick={() => void handleCommitImportJob(job.jobId)}
                                   disabled={isImporting || job.status !== 'previewed'}
-                                  className="ipc-button ipc-button-primary"
+                                  className="ipc-button ipc-button-primary min-w-[52px] whitespace-nowrap"
                                 >
                                   Lưu
                                 </button>
@@ -3305,7 +3683,7 @@ const WeeklyMenuPage = () => {
                                   type="button"
                                   onClick={() => handleRemoveImportJob(job.jobId)}
                                   disabled={isImporting}
-                                  className="ipc-button ipc-button-ghost"
+                                  className="ipc-button ipc-button-ghost min-w-[52px] whitespace-nowrap"
                                 >
                                   Xóa
                                 </button>

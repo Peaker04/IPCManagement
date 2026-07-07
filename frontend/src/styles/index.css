@@ -1659,6 +1659,46 @@ code {
   white-space: nowrap;
 }
 
+.ipc-demand-status-badge {
+  --ipc-table-badge-width: 118px;
+  min-width: var(--ipc-table-badge-width);
+}
+
+.ipc-demand-next-action {
+  display: inline-flex;
+  min-width: 88px;
+  max-width: 132px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--ipc-slate-200);
+  border-radius: var(--ipc-radius-md);
+  background: #ffffff;
+  color: var(--ipc-slate-700);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.2;
+  padding: 5px 9px;
+  vertical-align: middle;
+}
+
+.ipc-demand-next-action.is-success {
+  border-color: #b7ddd8;
+  background: var(--ipc-success-soft);
+  color: #0c5f59;
+}
+
+.ipc-demand-next-action.is-warning {
+  border-color: #f6d58b;
+  background: var(--ipc-warning-soft);
+  color: #8a4b0f;
+}
+
+.ipc-demand-next-action.is-danger {
+  border-color: #f3b7b7;
+  background: var(--ipc-danger-soft);
+  color: var(--ipc-danger);
+}
+
 .ipc-status-action-table {
   min-width: 1080px !important;
   table-layout: fixed;

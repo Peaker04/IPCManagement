@@ -79,7 +79,8 @@ public class PurchaseOrdersController : ControllerBase
     {
         try
         {
-            var order = await _purchaseOrderService.RecordReceiptAsync(id, request, cancellationToken);
+            var userId = _currentUserService.GetUserId(User);
+            var order = await _purchaseOrderService.RecordReceiptAsync(id, request, userId, cancellationToken);
             return Ok(ApiResponse<PurchaseOrderDto>.SuccessResult(order, "Ghi nhận nhận hàng thành công."));
         }
         catch (KeyNotFoundException ex)

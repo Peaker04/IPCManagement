@@ -100,6 +100,24 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
 
+    [HttpGet("audit-changes/csv")]
+    public async Task<IActionResult> ExportAuditChangesCsv([FromQuery] WorkflowReportQueryDto query)
+    {
+        query.Limit = 1000;
+        var data = await _workflowReportService.GetAuditChangesAsync(query);
+        
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Mã log,Thời gian,Người thực hiện,Mảng nghiệp vụ,Tên bảng,ID thực thể,Tên cột,Giá trị cũ,Giá trị mới,Lý do");
+        
+        foreach (var row in data)
+        {
+            sb.AppendLine($"\"{row.AuditId}\",\"{row.ChangedAt:yyyy-MM-dd HH:mm:ss}\",\"{row.ChangedByName}\",\"{row.BusinessArea}\",\"{row.EntityName}\",\"{row.EntityId}\",\"{row.FieldName}\",\"{row.OldValue?.Replace("\"", "\"\"")}\",\"{row.NewValue?.Replace("\"", "\"\"")}\",\"{row.Reason?.Replace("\"", "\"\"")}\"");
+        }
+        
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        return File(bytes, "text/csv", $"audit-log-{DateTime.Now:yyyyMMddHHmmss}.csv");
+    }
+
     [HttpGet("data-quality")]
     public async Task<IActionResult> GetDataQuality([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(

@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+using FluentAssertions;
+using NSubstitute;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
@@ -1174,7 +1175,7 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var returnService = CreateInventoryReturnService(context);
-            await returnService.CreateAsync(new CreateInventoryReturnDto
+            var retDto1 = await returnService.CreateAsync(new CreateInventoryReturnDto
             {
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
@@ -1193,7 +1194,7 @@ public class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
-            await returnService.CreateAsync(new CreateInventoryReturnDto
+            var retDto2 = await returnService.CreateAsync(new CreateInventoryReturnDto
             {
                 ReturnDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
@@ -1212,6 +1213,9 @@ public class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
+            await returnService.ConfirmReceiptAsync(retDto1!.ReturnId, new ConfirmInventoryReturnReceiptDto(), fixture.UserIdString);
+            await returnService.ConfirmReceiptAsync(retDto2!.ReturnId, new ConfirmInventoryReturnReceiptDto(), fixture.UserIdString);
+
             var returnTypes = await context.Inventoryreturns
                 .AsNoTracking()
                 .OrderBy(item => item.ReturnCode)
@@ -1229,8 +1233,8 @@ public class WorkflowGenerationTests
             movementTypes.Should().BeEquivalentTo(["ISSUE", "RETURN"]);
 
             var varianceAudit = await context.Auditlogs.AsNoTracking()
-                .SingleAsync(item => item.BusinessArea == "ProductionVariance" && item.FieldName == "Waste");
-            varianceAudit.NewValue.Should().Be("wasteQty=20");
+                .SingleAsync(item => item.BusinessArea == "ProductionWaste" && item.FieldName == "WasteQuantity");
+            varianceAudit.NewValue.Should().Be("20");
             varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
 
             var usage = await new WorkflowReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
@@ -1370,6 +1374,7 @@ public class WorkflowGenerationTests
             line.RequiredQty.Should().Be(200m);
             line.AvailableQty.Should().Be(50m);
             line.MissingQty.Should().Be(150m);
+            shortage.SuggestedAction.Should().Be("Vui lòng tạo yêu cầu mua hàng (Purchase Request) bổ sung cho các nguyên liệu bị thiếu.");
 
             (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(0);
             (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(0);
@@ -1548,6 +1553,7 @@ public class WorkflowGenerationTests
                 line.RequiredQty == 75m &&
                 line.AvailableQty == 50m &&
                 line.MissingQty == 25m);
+            exception.Which.Shortage.SuggestedAction.Should().Be("Vui lòng tạo yêu cầu mua hàng (Purchase Request) bổ sung cho các nguyên liệu bị thiếu.");
 
             (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(1);
             (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(1);
@@ -1629,7 +1635,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new ApprovalInboxService(context);
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
         var purchaseInbox = await service.GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
         var warehouseInbox = await service.GetPendingAsync(BuildPrincipal("Thủ kho"), new ApprovalInboxQueryDto { Limit = 100 });
 
@@ -1682,7 +1688,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var inbox = await new ApprovalInboxService(context)
+            var inbox = await new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>())
                 .GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
 
             var alert = inbox.Should().ContainSingle(item => item.ItemType == "price-alert").Subject;
@@ -3165,6 +3171,13 @@ public class WorkflowGenerationTests
     private static PurchaseRequestWorkflowService CreatePurchaseRequestWorkflowService(IpcManagementContext context)
         => new(context, new SupplierQuotationService(context));
 
+    private static PurchaseOrderService CreatePurchaseOrderService(IpcManagementContext context)
+        => new(
+            context,
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)));
+
     private static InventoryIssueService CreateInventoryIssueService(IpcManagementContext context)
         => new(
             new InventoryIssueRepository(context),
@@ -3403,7 +3416,7 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
 
         orders.Should().HaveCount(2);
@@ -3425,7 +3438,7 @@ public class WorkflowGenerationTests
         purchaseRequest.Status = "DRAFT";
         await context.SaveChangesAsync();
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -3440,7 +3453,7 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
 
         var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
@@ -3457,24 +3470,31 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
         var afterPartial = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
         {
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
             Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 4 }]
-        });
+        }, fixture.UserIdString);
         afterPartial.Status.Should().Be("PARTIALLY_RECEIVED");
         afterPartial.Lines[0].ReceivedQty.Should().Be(4);
 
         var afterFull = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
         {
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
             Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 6 }]
-        });
+        }, fixture.UserIdString);
         afterFull.Status.Should().Be("RECEIVED");
         afterFull.Lines[0].ReceivedQty.Should().Be(10);
+
+        (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(2);
+        (await context.Stockmovements.AsNoTracking().CountAsync(item => item.MovementType == "RECEIPT")).Should().Be(2);
+        var currentStock = await context.Currentstocks.AsNoTracking().SingleAsync(item => item.IngredientId == fixture.IngredientId);
+        currentStock.CurrentQty.Should().Be(10);
     }
 
     [Fact]
@@ -3486,15 +3506,16 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
         var act = () => service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
         {
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
             Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 11 }]
-        });
+        }, fixture.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -3508,15 +3529,16 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = new PurchaseOrderService(context);
+        var service = CreatePurchaseOrderService(context);
         var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
         await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
         {
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
             Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 2 }]
-        });
+        }, fixture.UserIdString);
 
         var act = () => service.CancelAsync(orderForSupplierA.PurchaseOrderId);
 
@@ -4237,7 +4259,10 @@ public class WorkflowGenerationTests
                     forecastReceivedAt TEXT NULL,
                     confirmedAt TEXT NULL,
                     confirmationTime TEXT NOT NULL,
-                    confirmedBy BLOB NULL
+                    confirmedBy BLOB NULL,
+                    completedAt TEXT NULL,
+                    completedBy BLOB NULL,
+                    rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 );
                 CREATE TABLE mealquantityplanlines (
                     quantityPlanLineId BLOB PRIMARY KEY,
@@ -4436,6 +4461,7 @@ public class WorkflowGenerationTests
                 CREATE TABLE inventoryreceiptlines (
                     receiptLineId BLOB PRIMARY KEY,
                     receiptId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
                     quantity TEXT NOT NULL,
@@ -4475,7 +4501,9 @@ public class WorkflowGenerationTests
                     issueId BLOB NOT NULL,
                     reason TEXT NULL,
                     createdBy BLOB NOT NULL,
-                    createdAt TEXT NOT NULL
+                    createdAt TEXT NOT NULL,
+                    receivedBy BLOB NULL,
+                    receivedAt TEXT NULL
                 );
                 CREATE TABLE inventoryreturnlines (
                     returnLineId BLOB PRIMARY KEY,

@@ -6,6 +6,7 @@ public static class AuthorizationPolicies
     public const string CatalogAccess = "CatalogAccess";
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
+    public const string InventoryIssueAccess = "InventoryIssueAccess";
     public const string ProductionAccess = "ProductionAccess";
     public const string DemandGenerateAccess = "DemandGenerateAccess";
     public const string PurchaseAccess = "PurchaseAccess";
@@ -216,6 +217,12 @@ public static class AuthorizationPolicies
 
     public static bool IsAdminRole(string? roleName)
         => MatchesRole(roleName, "Admin", "ADMIN", "Quản trị");
+
+    public static bool IsInventoryRole(string? roleName)
+        => MatchesRole(roleName, InventoryRoles);
+
+    public static bool IsProductionRole(string? roleName)
+        => MatchesRole(roleName, ProductionRoles);
 
     private static bool MatchesRole(string? roleName, params string[] candidates)
     {

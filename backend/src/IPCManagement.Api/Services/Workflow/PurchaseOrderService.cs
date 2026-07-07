@@ -2,6 +2,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Services.Workflow;
@@ -14,10 +15,12 @@ public class PurchaseOrderService : IPurchaseOrderService
     private const string StatusCancelled = "CANCELLED";
 
     private readonly IpcManagementContext _context;
+    private readonly IStockLedgerService _stockLedgerService;
 
-    public PurchaseOrderService(IpcManagementContext context)
+    public PurchaseOrderService(IpcManagementContext context, IStockLedgerService stockLedgerService)
     {
         _context = context;
+        _stockLedgerService = stockLedgerService;
     }
 
     public async Task<IReadOnlyList<PurchaseOrderDto>> CreateFromApprovedRequestAsync(
@@ -136,10 +139,15 @@ public class PurchaseOrderService : IPurchaseOrderService
     public async Task<PurchaseOrderDto> RecordReceiptAsync(
         string purchaseOrderId,
         RecordPurchaseOrderReceiptDto request,
+        string? userId,
         CancellationToken cancellationToken = default)
     {
         var purchaseOrderIdBytes = GuidHelper.ParseGuidString(purchaseOrderId)
             ?? throw new ArgumentException("Đơn mua hàng không hợp lệ.");
+        var warehouseId = GuidHelper.ParseGuidString(request.WarehouseId)
+            ?? throw new ArgumentException("Kho nhập hàng không hợp lệ.");
+        var userIdBytes = GuidHelper.ParseGuidString(userId)
+            ?? throw new ArgumentException("Không xác định được người ghi nhận nhập kho.");
 
         var order = await LoadOrderAsync(purchaseOrderIdBytes, cancellationToken)
             ?? throw new KeyNotFoundException("Không tìm thấy đơn mua hàng.");
@@ -155,6 +163,18 @@ public class PurchaseOrderService : IPurchaseOrderService
         }
 
         var linesById = order.Purchaseorderlines.ToDictionary(line => GuidHelper.ToGuidString(line.PurchaseOrderLineId));
+        var now = DateTime.UtcNow;
+        var receipt = new Inventoryreceipt
+        {
+            ReceiptId = GuidHelper.NewId(),
+            ReceiptCode = $"RCP-PO-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
+            ReceiptDate = DateOnly.FromDateTime(now),
+            SupplierId = order.SupplierId,
+            WarehouseId = warehouseId,
+            PurchaseRequestId = order.PurchaseRequestId,
+            CreatedBy = userIdBytes,
+            CreatedAt = now
+        };
 
         foreach (var receiptLine in request.Lines)
         {
@@ -177,12 +197,42 @@ public class PurchaseOrderService : IPurchaseOrderService
             }
 
             line.ReceivedQty = newTotal;
+            receipt.Inventoryreceiptlines.Add(new Inventoryreceiptline
+            {
+                ReceiptLineId = GuidHelper.NewId(),
+                ReceiptId = receipt.ReceiptId,
+                PurchaseRequestLineId = line.PurchaseRequestLineId,
+                IngredientId = line.IngredientId,
+                UnitId = line.UnitId,
+                Quantity = receivedQty,
+                UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
+                Amount = DecimalPolicy.RoundMoney(receivedQty * line.UnitPrice)
+            });
+        }
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        _context.Inventoryreceipts.Add(receipt);
+
+        foreach (var line in receipt.Inventoryreceiptlines)
+        {
+            await _stockLedgerService.AddStockAsync(
+                warehouseId,
+                line.IngredientId,
+                line.UnitId,
+                line.Quantity,
+                "RECEIPT",
+                "purchaseorders",
+                order.PurchaseOrderId,
+                userIdBytes,
+                "Nhập kho từ đơn mua hàng",
+                $"PO {order.PurchaseOrderCode}");
         }
 
         order.Status = ComputeOrderStatus(order.Purchaseorderlines);
-        order.UpdatedAt = DateTime.UtcNow;
+        order.UpdatedAt = now;
 
         await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
         return MapToDto(order);
     }

@@ -10,9 +10,35 @@ import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
 import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
-import type { ExcessMaterial, SupplementalRequest } from '@/lib/types'
-import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow'
+import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/types'
+import {
+  useConfirmInventoryIssueReceiptMutation,
+  useCreateInventoryReturnMutation,
+  useGetKitchenIssuesQuery,
+  useGetStockMovementsQuery,
+  useGetWorkflowDocumentsQuery,
+} from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
+
+type ChefMaterial = Ingredient & {
+  issueId?: string
+  issueCode?: string
+  warehouseId?: string
+  ingredientId?: string
+  unitId?: string
+  isReceivedByKitchen?: boolean
+}
+
+const getMutationErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data?: { message?: unknown } }).data
+    if (data && typeof data === 'object' && 'message' in data) {
+      return String(data.message)
+    }
+  }
+
+  return fallback
+}
 
 export default function ChefDashboardPage() {
   const orders = useAppSelector((state) => state.coordination.orders)
@@ -21,6 +47,13 @@ export default function ChefDashboardPage() {
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 })
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 })
+  const {
+    data: kitchenIssueRows = [],
+    isLoading: isKitchenIssuesLoading,
+    isError: isKitchenIssuesError,
+  } = useGetKitchenIssuesQuery({ limit: 100 })
+  const [confirmInventoryIssueReceipt, { isLoading: isConfirmingIssueReceipt }] = useConfirmInventoryIssueReceiptMutation()
+  const [createInventoryReturn, { isLoading: isCreatingInventoryReturn }] = useCreateInventoryReturnMutation()
   const {
     data: catalogDishes = [],
     isLoading: isCatalogLoading,
@@ -51,6 +84,16 @@ export default function ChefDashboardPage() {
     ...stockMovements.filter((movement) => movement.type === 'return'),
   ]
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes])
+  const activeKitchenIssueRows = useMemo(() => {
+    const normalizedShift = activeShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON'
+    const matchingRows = kitchenIssueRows.filter((row) => {
+      const rowShift = row.shiftName?.toUpperCase()
+      return !rowShift || rowShift === 'FULLDAY' || rowShift === normalizedShift || row.shiftName === activeShift
+    })
+
+    return matchingRows.length > 0 ? matchingRows : kitchenIssueRows
+  }, [kitchenIssueRows, activeShift])
+  const pendingKitchenReceiptCount = activeKitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length
 
   // Filter orders for the selected day and shift
   const dayShiftOrders = useMemo(() => {
@@ -109,7 +152,7 @@ export default function ChefDashboardPage() {
       })
     })
 
-    const receivedMaterials = Object.entries(materialTotals).map(([name, data], idx) => {
+    const plannedMaterials = Object.entries(materialTotals).map(([name, data], idx) => {
       const signKey = `${activeDay}-${activeShift}-${name}`
       const isSigned = !!signedMaterials[signKey]
       return {
@@ -122,6 +165,28 @@ export default function ChefDashboardPage() {
       }
     })
 
+    const liveReceivedMaterials: ChefMaterial[] = activeKitchenIssueRows.map((row) => {
+      const signKey = `${activeDay}-${activeShift}-${row.issueId}-${row.id}`
+      const isSigned = row.isReceivedByKitchen || !!signedMaterials[signKey]
+
+      return {
+        id: row.id,
+        name: row.ingredient,
+        unit: row.unit,
+        quantity: row.issuedQty,
+        status: 'Đã nhận',
+        signed: isSigned,
+        issueId: row.issueId,
+        issueCode: row.issueCode,
+        warehouseId: row.warehouseId,
+        ingredientId: row.ingredientId,
+        unitId: row.unitId,
+        isReceivedByKitchen: row.isReceivedByKitchen,
+      }
+    })
+
+    const receivedMaterials = liveReceivedMaterials.length > 0 ? liveReceivedMaterials : plannedMaterials
+
     return {
       date: format(new Date(), 'yyyy-MM-dd'),
       shift: activeShift,
@@ -133,11 +198,11 @@ export default function ChefDashboardPage() {
           { name: 'Võ Công Việt', shortName: 'VCV' },
         ],
       },
-      totalMeals,
+      totalMeals: totalMeals || liveReceivedMaterials.length,
       activeDishes,
       receivedMaterials,
     }
-  }, [dayShiftOrders, isLocked, menuPrice, lossRate, activeDay, activeShift, signedMaterials, dishesById])
+  }, [dayShiftOrders, isLocked, menuPrice, lossRate, activeDay, activeShift, signedMaterials, dishesById, activeKitchenIssueRows])
 
   const handleSupplementalRequest = (data: SupplementalRequest) => {
     setRequests([...requests, { ...data, day: activeDay, shift: activeShift }])
@@ -148,25 +213,135 @@ export default function ChefDashboardPage() {
     })
   }
 
-  const handleExcessMaterialReturn = (data: ExcessMaterial) => {
-    setReturns([...returns, { ...data, day: activeDay, shift: activeShift }])
-    setChefFeedback({
-      title: 'Đã ghi nhận nguyên liệu thừa',
-      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.returnedQty, data.unit)} (${data.condition}) đã được thêm vào nhật ký ca ${activeShift}.`,
-      variant: 'info',
-    })
+  const handleExcessMaterialReturn = async (data: ExcessMaterial) => {
+    const issueRow = activeKitchenIssueRows.find((row) => row.id === data.ingredientId)
+    const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
+
+    if (!issueRow || !material?.warehouseId || !material.ingredientId || !material.unitId) {
+      setChefFeedback({
+        title: 'Chưa có phiếu xuất để trả kho',
+        message: 'Bếp chỉ có thể ghi nhận trả nguyên liệu khi checklist đang lấy từ phiếu xuất kho live.',
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (!Number.isFinite(data.returnedQty) || data.returnedQty <= 0) {
+      setChefFeedback({
+        title: 'Số lượng trả không hợp lệ',
+        message: 'Số lượng trả kho phải lớn hơn 0.',
+        variant: 'warning',
+      })
+      return
+    }
+
+    if (data.returnedQty > material.quantity) {
+      setChefFeedback({
+        title: 'Số lượng trả vượt số đã xuất',
+        message: `${data.ingredientName} chỉ được ghi nhận tối đa ${formatQuantityWithUnit(material.quantity, material.unit)} từ phiếu xuất ${material.issueCode}.`,
+        variant: 'danger',
+      })
+      return
+    }
+
+    const returnType = data.condition === 'damaged' ? 'WASTE' : 'RETURN'
+    const reason = data.notes?.trim()
+      || (returnType === 'WASTE'
+        ? `Bếp ghi nhận hao hụt/hư hỏng ${data.ingredientName}.`
+        : `Bếp trả nguyên liệu thừa ${data.ingredientName} sau ca ${activeShift}.`)
+
+    try {
+      const response = await createInventoryReturn({
+        returnDate: data.returnedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+        shiftName: issueRow.shiftName,
+        returnType,
+        warehouseId: material.warehouseId,
+        issueId: material.issueId!,
+        reason,
+        lines: [
+          {
+            ingredientId: material.ingredientId,
+            quantity: data.returnedQty,
+            unitId: material.unitId,
+          },
+        ],
+      }).unwrap()
+
+      setReturns([...returns, { ...data, day: activeDay, shift: activeShift }])
+      setChefFeedback({
+        title: returnType === 'WASTE' ? 'Đã ghi nhận hao hụt thực tế' : 'Đã tạo phiếu trả kho',
+        message: response.data
+          ? `${response.data.returnCode}: ${data.ingredientName} ${formatQuantityWithUnit(data.returnedQty, data.unit)} đã được lưu bằng API.`
+          : response.message || 'Phiếu trả nguyên liệu đã được ghi nhận.',
+        variant: 'info',
+      })
+    } catch (error) {
+      setChefFeedback({
+        title: 'Chưa ghi nhận được phiếu trả',
+        message: getMutationErrorMessage(error, 'Kiểm tra số lượng đã xuất/đã trả và thử lại.'),
+        variant: 'danger',
+      })
+    }
   }
 
-  const handleMaterialSignoff = (materialId: string, signed: boolean) => {
-    // Find the material name by its ID in receivedMaterials
+  const handleMaterialSignoff = async (materialId: string, signed: boolean) => {
     const material = productionPlan.receivedMaterials.find((m) => m.id === materialId)
-    if (material) {
-      const signKey = `${activeDay}-${activeShift}-${material.name}`
+    if (!material) {
+      return
+    }
+
+    const issueRow = activeKitchenIssueRows.find((row) => row.id === materialId)
+    const signKey = issueRow
+      ? `${activeDay}-${activeShift}-${issueRow.issueId}-${issueRow.id}`
+      : `${activeDay}-${activeShift}-${material.name}`
+
+    if (!signed) {
+      if (issueRow?.isReceivedByKitchen) {
+        setChefFeedback({
+          title: 'Phiếu đã ký nhận trên hệ thống',
+          message: `Phiếu ${issueRow.issueCode} đã xác nhận nhận nguyên liệu nên không thể bỏ ký từ giao diện.`,
+          variant: 'warning',
+        })
+        return
+      }
+
       setSignedMaterials((prev) => ({
         ...prev,
-        [signKey]: signed,
+        [signKey]: false,
       }))
+      return
     }
+
+    if (issueRow?.issueId && !issueRow.isReceivedByKitchen) {
+      try {
+        const response = await confirmInventoryIssueReceipt({
+          issueId: issueRow.issueId,
+          hasDiscrepancy: false,
+        }).unwrap()
+
+        setSignedMaterials((prev) => ({
+          ...prev,
+          [signKey]: true,
+        }))
+        setChefFeedback({
+          title: 'Đã ký nhận nguyên liệu',
+          message: response.message || `Bếp đã xác nhận nhận phiếu ${issueRow.issueCode}.`,
+          variant: 'info',
+        })
+      } catch (error) {
+        setChefFeedback({
+          title: 'Chưa ký nhận được nguyên liệu',
+          message: getMutationErrorMessage(error, 'Kiểm tra quyền bếp trưởng hoặc trạng thái phiếu xuất rồi thử lại.'),
+          variant: 'danger',
+        })
+      }
+      return
+    }
+
+    setSignedMaterials((prev) => ({
+      ...prev,
+      [signKey]: true,
+    }))
   }
 
   const activeRequests = requests.filter((req) => req.day === activeDay && req.shift === activeShift)
@@ -262,7 +437,7 @@ export default function ChefDashboardPage() {
             items={[
               { label: 'KHSX', value: activeKhsxDocument?.title ?? 'Chưa có KHSX', tone: activeKhsxDocument ? 'success' : 'warning' },
               { label: 'Chứng từ bếp', value: `${khsxDocuments.length + returnDocuments.length} chứng từ`, tone: 'neutral' },
-              { label: 'Trạng thái nhận', value: isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: isLocked ? 'warning' : 'neutral' },
+              { label: 'Trạng thái nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : activeKitchenIssueRows.length > 0 ? 'Đã ký nhận' : isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: pendingKitchenReceiptCount > 0 ? 'warning' : activeKitchenIssueRows.length > 0 ? 'success' : isLocked ? 'warning' : 'neutral' },
               { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },
             ]}
           />
@@ -280,6 +455,33 @@ export default function ChefDashboardPage() {
           {isCatalogEmpty && (
             <InlineAlert title="Catalog món ăn đang trống" variant="warning">
               Chưa có món ăn hoạt động nào từ API, nên checklist nguyên liệu của ca chưa thể sinh từ BOM.
+            </InlineAlert>
+          )}
+          {isKitchenIssuesLoading && (
+            <InlineAlert title="Đang tải phiếu xuất kho" variant="info">
+              Hệ thống đang lấy danh sách nguyên liệu đã bàn giao từ kho để bếp trưởng ký nhận.
+            </InlineAlert>
+          )}
+          {isKitchenIssuesError && (
+            <InlineAlert title="Chưa tải được phiếu xuất kho" variant="warning">
+              Checklist bếp sẽ dùng BOM dự kiến cho tới khi API phiếu xuất kho phản hồi.
+            </InlineAlert>
+          )}
+          {activeKitchenIssueRows.length > 0 && (
+            <InlineAlert title="Checklist lấy từ phiếu xuất kho live" variant={pendingKitchenReceiptCount > 0 ? 'warning' : 'info'}>
+              {pendingKitchenReceiptCount > 0
+                ? `${pendingKitchenReceiptCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên API.`
+                : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'}
+            </InlineAlert>
+          )}
+          {isConfirmingIssueReceipt && (
+            <InlineAlert title="Đang ghi nhận ký nhận" variant="info">
+              Hệ thống đang cập nhật trạng thái nhận nguyên liệu cho phiếu xuất kho.
+            </InlineAlert>
+          )}
+          {isCreatingInventoryReturn && (
+            <InlineAlert title="Đang tạo phiếu trả kho" variant="info">
+              Hệ thống đang lưu nguyên liệu thừa/hao hụt và cập nhật sổ kho.
             </InlineAlert>
           )}
         </>

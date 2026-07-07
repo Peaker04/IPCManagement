@@ -18,6 +18,44 @@ const formatVariance = (value: number, unit: string) => {
   return formatQuantityWithUnit(0, unit);
 };
 
+const shortenStatus = (status: string) => {
+  const normalized = status.trim().toLocaleLowerCase('vi-VN');
+
+  if (!normalized) return 'Chưa rõ';
+  if (normalized.includes('tạo lại') || normalized.includes('sinh lại')) return 'Cần sinh lại';
+  if (normalized.includes('duyệt giá')) return 'Duyệt giá';
+  if (normalized.includes('thiếu')) return 'Thiếu hàng';
+  if (normalized.includes('tồn kho đủ')) return 'Đủ hàng';
+
+  const statusMap: Record<string, string> = {
+    draft: 'Nháp',
+    pending: 'Chờ duyệt',
+    submitted: 'Chờ duyệt',
+    approved: 'Đã duyệt',
+    ordered: 'Đã đặt',
+    completed: 'Hoàn tất',
+    cancelled: 'Đã hủy',
+  };
+
+  return statusMap[normalized] ?? status;
+};
+
+const shortenNextAction = (action: string) => {
+  const normalized = action.trim().toLocaleLowerCase('vi-VN');
+
+  if (!normalized) return 'Chưa rõ';
+  if (normalized.includes('sinh lại')) return 'Sinh lại';
+  if (normalized.includes('tạo lại demand')) return 'Tạo lại demand';
+  if (normalized.includes('kiểm tra giá')) return 'Kiểm tra giá';
+  if (normalized.includes('chọn nhà cung cấp')) return 'Chọn NCC';
+  if (normalized.includes('đặt mua')) return 'Đặt mua';
+  if (normalized.includes('đề xuất mua')) return 'Đề xuất mua';
+  if (normalized.includes('phiếu xuất kho')) return 'Xuất kho';
+  if (normalized.includes('không cần')) return 'Không cần';
+
+  return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
+};
+
 export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryProps) {
   const [page, setPage] = useState(1);
 
@@ -66,11 +104,18 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
                     {formatVariance(variance, line.unit)}
                   </td>
                   <td className="ipc-badge-cell text-center whitespace-nowrap">
-                    <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">
-                      {line.status}
+                    <StatusBadge
+                      variant={line.tone}
+                      className="ipc-table-badge ipc-table-badge--status ipc-demand-status-badge"
+                    >
+                      <span title={line.status}>{shortenStatus(line.status)}</span>
                     </StatusBadge>
                   </td>
-                  <td className="text-center whitespace-nowrap">{line.nextAction}</td>
+                  <td className="text-center whitespace-nowrap">
+                    <span className={cn('ipc-demand-next-action', `is-${line.tone}`)} title={line.nextAction}>
+                      {shortenNextAction(line.nextAction)}
+                    </span>
+                  </td>
                 </tr>
               );
             })}

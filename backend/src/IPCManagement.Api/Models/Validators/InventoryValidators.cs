@@ -71,9 +71,6 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
             .NotEmpty().WithMessage("Yêu cầu vật tư không được để trống.")
             .Must(BeValidGuid).WithMessage("MaterialRequestId phải là GUID hợp lệ.");
 
-        RuleFor(x => x.Lines)
-            .NotEmpty().WithMessage("Phiếu xuất phải có ít nhất 1 dòng chi tiết.");
-
         RuleForEach(x => x.Lines).SetValidator(new CreateInventoryIssueLineDtoValidator());
     }
 
@@ -152,6 +149,63 @@ public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInv
         RuleFor(x => x.UnitId)
             .NotEmpty().WithMessage("Đơn vị tính không được để trống.")
             .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
+    }
+
+    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+}
+
+public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseDto>
+{
+    public CreateInventoryReceiptFromPurchaseDtoValidator()
+    {
+        RuleFor(x => x.PurchaseRequestId)
+            .NotEmpty().WithMessage("PurchaseRequestId không được để trống.")
+            .Must(BeValidGuid).WithMessage("PurchaseRequestId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.ReceiptDate)
+            .NotEmpty().WithMessage("Ngày nhập kho không được để trống.")
+            .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
+            .WithMessage("Ngày nhập kho không được là ngày tương lai xa.");
+
+        RuleFor(x => x.SupplierId)
+            .NotEmpty().WithMessage("Nhà cung cấp không được để trống.")
+            .Must(BeValidGuid).WithMessage("SupplierId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.WarehouseId)
+            .NotEmpty().WithMessage("Kho không được để trống.")
+            .Must(BeValidGuid).WithMessage("WarehouseId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.Lines)
+            .NotEmpty().WithMessage("Phiếu nhập phải có ít nhất 1 dòng chi tiết.");
+
+        RuleForEach(x => x.Lines).SetValidator(new CreateInventoryReceiptFromPurchaseLineDtoValidator());
+    }
+
+    private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
+}
+
+public class CreateInventoryReceiptFromPurchaseLineDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseLineDto>
+{
+    public CreateInventoryReceiptFromPurchaseLineDtoValidator()
+    {
+        RuleFor(x => x.PurchaseRequestLineId)
+            .NotEmpty().WithMessage("PurchaseRequestLineId không được để trống.")
+            .Must(BeValidGuid).WithMessage("PurchaseRequestLineId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.ReceivedQty)
+            .GreaterThan(0).WithMessage("Số lượng nhận phải lớn hơn 0.");
+
+        RuleFor(x => x.UnitId)
+            .NotEmpty().WithMessage("Đơn vị tính không được để trống.")
+            .Must(BeValidGuid).WithMessage("UnitId phải là GUID hợp lệ.");
+
+        RuleFor(x => x.UnitPrice)
+            .GreaterThanOrEqualTo(0).When(x => x.UnitPrice.HasValue).WithMessage("Đơn giá phải >= 0.");
+
+        RuleFor(x => x.ExpiredDate)
+            .GreaterThan(x => x.ManufactureDate)
+            .When(x => x.ExpiredDate.HasValue && x.ManufactureDate.HasValue)
+            .WithMessage("Ngày hết hạn phải sau ngày sản xuất.");
     }
 
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);

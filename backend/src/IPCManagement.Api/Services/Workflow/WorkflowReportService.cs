@@ -969,6 +969,26 @@ public class WorkflowReportService : IWorkflowReportService
             changes = changes.Where(item => item.ChangedAt < cursorDate);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Actor))
+        {
+            changes = changes.Where(item => item.ChangedByNavigation.FullName.Contains(query.Actor) || item.ChangedByNavigation.Username.Contains(query.Actor));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.BusinessArea))
+        {
+            changes = changes.Where(item => item.BusinessArea != null && item.BusinessArea.Contains(query.BusinessArea));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.EntityName))
+        {
+            changes = changes.Where(item => item.EntityName != null && item.EntityName.Contains(query.EntityName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FieldName))
+        {
+            changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(query.FieldName));
+        }
+
         var auditRows = await changes
             .OrderByDescending(item => item.ChangedAt)
             .ThenByDescending(item => item.AuditId)
@@ -978,7 +998,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.AuditId),
                 ChangedAt = item.ChangedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ChangedBy),
-                ChangedByName = item.ChangedByNavigation.FullName,
+                ChangedByName = item.ChangedByNavigation.FullName ?? item.ChangedByNavigation.Username ?? "System",
                 BusinessArea = item.EntityName == nameof(Mealquantityplan)
                     && item.FieldName == nameof(Mealquantityplan.Status)
                     && item.NewValue == "COMPLETED"
@@ -1015,7 +1035,9 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ImportBatchId),
                 ChangedAt = item.ImportedAt,
                 ChangedBy = item.ImportedBy == null ? string.Empty : GuidHelper.ToGuidString(item.ImportedBy),
-                ChangedByName = item.ImportedByNavigation == null ? null : item.ImportedByNavigation.FullName,
+                ChangedByName = item.ImportedByNavigation == null
+                    ? "Sample Data Importer"
+                    : item.ImportedByNavigation.FullName ?? item.ImportedByNavigation.Username ?? "Sample Data Importer",
                 BusinessArea = "Import",
                 EntityName = nameof(Quantityimportbatch),
                 EntityId = GuidHelper.ToGuidString(item.ImportBatchId),
@@ -1063,7 +1085,9 @@ public class WorkflowReportService : IWorkflowReportService
                     AuditId = GuidHelper.ToGuidString(item.MenuVersionId),
                     ChangedAt = item.CreatedAt,
                     ChangedBy = actorId,
-                    ChangedByName = !string.IsNullOrWhiteSpace(actorId) && menuImportActors.TryGetValue(actorId, out var actorName) ? actorName : null,
+                    ChangedByName = !string.IsNullOrWhiteSpace(actorId) && menuImportActors.TryGetValue(actorId, out var actorName)
+                        ? actorName
+                        : "Sample Data Importer",
                     BusinessArea = "Import",
                     EntityName = nameof(Menuversion),
                     EntityId = GuidHelper.ToGuidString(item.MenuVersionId),
@@ -1096,7 +1120,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ApprovalHistoryId),
                 ChangedAt = item.ActionAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ActionBy),
-                ChangedByName = item.ActionByNavigation.FullName,
+                ChangedByName = item.ActionByNavigation.FullName ?? item.ActionByNavigation.Username ?? "System",
                 BusinessArea = "Approval",
                 EntityName = item.TargetType,
                 EntityId = GuidHelper.ToGuidString(item.TargetId),
@@ -1129,7 +1153,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ReceiptId),
                 ChangedAt = item.CreatedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.CreatedBy),
-                ChangedByName = item.CreatedByNavigation.FullName,
+                ChangedByName = item.CreatedByNavigation.FullName ?? item.CreatedByNavigation.Username ?? "System",
                 BusinessArea = "Receipt",
                 EntityName = nameof(Inventoryreceipt),
                 EntityId = GuidHelper.ToGuidString(item.ReceiptId),
@@ -1162,7 +1186,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.IssueId),
                 ChangedAt = item.CreatedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
-                ChangedByName = item.IssuedByNavigation.FullName,
+                ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
                 BusinessArea = "Issue",
                 EntityName = nameof(Inventoryissue),
                 EntityId = GuidHelper.ToGuidString(item.IssueId),
@@ -1194,7 +1218,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.AdjustmentId),
                 ChangedAt = item.AdjustedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.AdjustedBy),
-                ChangedByName = item.AdjustedByNavigation.FullName,
+                ChangedByName = item.AdjustedByNavigation.FullName ?? item.AdjustedByNavigation.Username ?? "System",
                 BusinessArea = "Số suất",
                 EntityName = "MealQuantityPlanLine",
                 EntityId = GuidHelper.ToGuidString(item.QuantityPlanLineId),
@@ -1230,7 +1254,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.BomAdjustmentId),
                 ChangedAt = item.AdjustedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.AdjustedBy),
-                ChangedByName = item.AdjustedByNavigation.FullName,
+                ChangedByName = item.AdjustedByNavigation.FullName ?? item.AdjustedByNavigation.Username ?? "System",
                 BusinessArea = "BOM",
                 EntityName = item.Bom.Dish.DishName,
                 EntityId = GuidHelper.ToGuidString(item.BomId),

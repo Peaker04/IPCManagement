@@ -27,6 +27,7 @@ export interface CoordinationQuery {
 }
 
 export interface LockOrderPlanRequest extends CoordinationQuery {
+  serviceDate?: string
   scope?: 'FULLDAY' | ApiShiftName
   lines?: Array<{
     quantityPlanLineId: string
@@ -76,6 +77,14 @@ export interface UpdateForecastServingsResult {
   changedAt: string
   auditId: string
   warning?: string
+}
+
+export interface UpsertQuickServingsRequest {
+  customerId: string
+  serviceDate: string
+  shiftName: ApiShiftName
+  servings: number
+  complete?: boolean
 }
 
 export interface ExportOrderReportRequest extends CoordinationQuery {
@@ -326,10 +335,11 @@ export const coordinationApi = apiSlice.injectEndpoints({
       providesTags: ['Coordination'],
     }),
     lockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, LockOrderPlanRequest>({
-      query: ({ dayOfWeek, shift, scope = 'FULLDAY', lines }) => ({
+      query: ({ dayOfWeek, serviceDate, shift, scope = 'FULLDAY', lines }) => ({
         url: '/coordination/orders/lock',
         method: 'POST',
         body: {
+          serviceDate,
           dayOfWeek,
           shiftName: toApiShiftName(shift),
           scope,
@@ -354,11 +364,29 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    upsertQuickServings: builder.mutation<ApiResponse<MealQuantityPlanDto>, UpsertQuickServingsRequest>({
+      query: (body) => ({
+        url: '/coordination/meal-quantity-plans/quick-servings',
+        method: 'POST',
+        body: {
+          ...body,
+          complete: Boolean(body.complete),
+        },
+      }),
+      invalidatesTags: ['Coordination', 'WorkflowReports'],
+    }),
     signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
       query: ({ id, body }) => ({
         url: `/coordination/orders/${id}/signoff`,
         method: 'POST',
         body,
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
+    unlockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, { id: string }>({
+      query: ({ id }) => ({
+        url: `/coordination/orders/${id}/unlock`,
+        method: 'POST',
       }),
       invalidatesTags: ['Coordination'],
     }),
@@ -412,10 +440,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       invalidatesTags: ['Coordination'],
     }),
     getWeeklyMenuImportHistory: builder.query<ApiResponse<WeeklyMenuImportHistoryItem[]>, { customerId?: string } | void>({
-      query: (params) => ({
-        url: '/coordination/weekly-menu/import-history',
-        params: params?.customerId ? { customerId: params.customerId } : undefined,
-      }),
+      query: (params) => {
+        const customerId = params ? (params as { customerId?: string }).customerId : undefined;
+        return {
+          url: '/coordination/weekly-menu/import-history',
+          params: customerId ? { customerId } : undefined,
+        };
+      },
       providesTags: ['Coordination'],
     }),
     rollbackWeeklyMenuImport: builder.mutation<ApiResponse<RollbackWeeklyMenuImportResult>, string>({
@@ -442,8 +473,10 @@ export const {
   useGetMealQuantityPlansQuery,
   useGetCoordinationOrdersQuery,
   useLockCoordinationOrdersMutation,
+  useUnlockCoordinationOrdersMutation,
   useAdjustCoordinationOrderMutation,
   useUpdateForecastServingsMutation,
+  useUpsertQuickServingsMutation,
   useSignoffCoordinationOrderMutation,
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,

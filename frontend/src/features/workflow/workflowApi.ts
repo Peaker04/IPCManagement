@@ -33,6 +33,52 @@ export interface WorkflowReportQuery {
   limit?: number;
 }
 
+export interface PurchaseRequestQuery {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseRequestResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: Array<{
+    purchaseRequestLineId: string;
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    supplierId: string;
+    supplierName: string;
+    unitId: string;
+    unitName: string;
+    requiredQty: number;
+    currentStockQty: number;
+    purchaseQty: number;
+    estimatedUnitPrice: number;
+    expectedDeliveryDate?: string;
+    note?: string;
+  }>;
+}
+
+export interface ApprovalHistoryItem {
+  historyId: string;
+  targetType: string;
+  targetId: string;
+  decision: string;
+  oldStatus?: string;
+  newStatus?: string;
+  reason?: string;
+  actionBy: string;
+  actionByName: string;
+  actionAt: string;
+}
+
 export interface CreateInventoryReceiptFromPurchaseLineRequest {
   purchaseRequestLineId: string;
   unitId: string;
@@ -54,6 +100,48 @@ export interface CreateInventoryReceiptFromPurchaseRequest {
 export interface InventoryReceiptCreatedResult {
   receiptId: string;
   receiptCode: string;
+}
+
+export interface CreateInventoryIssueLineRequest {
+  ingredientId: string;
+  requestedQty: number;
+  issuedQty: number;
+  unitId: string;
+}
+
+export interface CreateInventoryIssueRequest {
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  materialRequestId: string;
+  receivedBy?: string;
+  lines: CreateInventoryIssueLineRequest[];
+}
+
+export interface InventoryIssueCreatedResult {
+  issueId: string;
+  issueCode: string;
+}
+
+export interface CreateInventoryReturnLineRequest {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+}
+
+export interface CreateInventoryReturnRequest {
+  returnDate: string;
+  shiftName?: string;
+  returnType?: 'RETURN' | 'WASTE';
+  warehouseId: string;
+  issueId: string;
+  reason: string;
+  lines: CreateInventoryReturnLineRequest[];
+}
+
+export interface InventoryReturnCreatedResult {
+  returnId: string;
+  returnCode: string;
 }
 
 export interface ConfirmInventoryIssueReceiptRequest {
@@ -154,11 +242,56 @@ interface ApprovalInboxItemDto {
   nextAction: string;
   tone: WorkflowTone;
   route: string;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
   materials: Array<{
     name: string;
     quantity: number;
     unit: string;
   }>;
+}
+
+export interface ApprovalRuleDto {
+  ruleId?: string;
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  createdAt?: string;
+  approvalassignments?: ApprovalAssignmentDto[];
+}
+
+export interface ApprovalAssignmentDto {
+  assignmentId?: string;
+  ruleId?: string;
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+  approverUser?: {
+    userId: string;
+    fullName: string;
+    username: string;
+  } | null;
+}
+
+export interface ApprovalAssignmentRequestDto {
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+}
+
+export interface ApprovalRuleRequestDto {
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  assignments: ApprovalAssignmentRequestDto[];
 }
 
 interface StockMovementViewDto {
@@ -269,6 +402,7 @@ export interface RecordPurchaseOrderReceiptLineDto {
 }
 
 export interface RecordPurchaseOrderReceiptDto {
+  warehouseId: string;
   lines: RecordPurchaseOrderReceiptLineDto[];
 }
 
@@ -558,6 +692,7 @@ export interface AuditLogRow {
 
 export interface CurrentStockRow {
   id: string;
+  warehouseId: string;
   warehouse: string;
   ingredient: string;
   unit: string;
@@ -583,8 +718,11 @@ export interface KitchenIssueRow {
   issueCode: string;
   issueDate: string;
   shiftName?: string;
+  warehouseId: string;
   warehouse: string;
+  ingredientId: string;
   ingredient: string;
+  unitId: string;
   unit: string;
   requestedQty: number;
   issuedQty: number;
@@ -745,6 +883,8 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   reason: item.reason,
   nextAction: item.nextAction,
   tone: item.tone ?? toneFromStatus(item.status),
+  slaDeadline: item.slaDeadline,
+  slaHours: item.slaHours,
   materials: item.materials ?? [],
 });
 
@@ -790,6 +930,7 @@ const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow
 
 const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
   ingredient: item.ingredientName ?? item.ingredientId,
   unit: item.unitName ?? '',
@@ -815,8 +956,11 @@ const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
+  ingredientId: item.ingredientId,
   ingredient: item.ingredientName ?? item.ingredientId,
+  unitId: item.unitId,
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
   issuedQty: item.issuedQty,
@@ -1030,7 +1174,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
-      invalidatesTags: ['PurchaseOrders'],
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
     }),
     cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
       query: (purchaseOrderId) => ({
@@ -1089,6 +1233,22 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
+      query: (body) => ({
+        url: '/inventory-issues',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
+      query: (body) => ({
+        url: '/inventory-returns',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
       query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
         url: `/inventory-issues/${issueId}/confirm-receipt`,
@@ -1120,7 +1280,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       query: ({ targetType, targetId, status, reason }) => ({
         url: `/approvals/${targetType}/${targetId}`,
         method: 'POST',
-        body: { status, reason },
+        body: { status: status === 'Approve' ? 0 : 1, reason },
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
@@ -1229,6 +1389,44 @@ export const workflowApi = apiSlice.injectEndpoints({
         },
       providesTags: ['WorkflowReports'],
     }),
+    getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests',
+        params: query || undefined,
+      }),
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
+      query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
+      query: () => '/approval-rules',
+      providesTags: ['WorkflowReports'],
+    }),
+    createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleRequestDto>({
+      query: (body) => ({
+        url: '/approval-rules',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, { id: string; body: ApprovalRuleRequestDto }>({
+      query: ({ id, body }) => ({
+        url: `/approval-rules/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
+      query: (id) => ({
+        url: `/approval-rules/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
   }),
   overrideExisting: false,
 });
@@ -1241,6 +1439,8 @@ export const {
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
+  useCreateInventoryIssueMutation,
+  useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
@@ -1267,6 +1467,12 @@ export const {
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
+  useGetPurchaseRequestsQuery,
+  useGetApprovalHistoryQuery,
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

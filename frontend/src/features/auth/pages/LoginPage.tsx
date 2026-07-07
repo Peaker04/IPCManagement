@@ -69,7 +69,7 @@ const LoginPage = () => {
         return;
       }
 
-      const devAccount = devAccounts[username]
+      const devAccount = devAccounts[username];
       if (devAccount && password === username) {
         dispatch(
           setCredentials({

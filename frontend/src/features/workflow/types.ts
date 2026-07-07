@@ -94,6 +94,8 @@ export interface ApprovalRecord {
   reason: string;
   nextAction: string;
   tone: WorkflowTone;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
   materials: Array<{
     name: string;
     quantity: number;
