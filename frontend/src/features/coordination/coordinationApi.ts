@@ -18,6 +18,7 @@ import type {
   UpdateMenuScheduleRulesRequest,
   UpdateMenuScheduleVersionRequest,
   WeeklyMenuState,
+  ProductionPlanDto,
 } from './types'
 import { toApiShiftName, toDisplayShift } from './types'
 
@@ -456,6 +457,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
+    getProductionPlans: builder.query<ApiResponse<ProductionPlanDto[]>, { serviceDate?: string; customerId?: string }>({
+      query: (params) => ({
+        url: '/production-plans/filter',
+        params,
+      }),
+      providesTags: ['Coordination'],
+    }),
   }),
   overrideExisting: false,
 })
@@ -486,4 +494,5 @@ export const {
   useUpdateWeeklyMenuBulkMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
+  useGetProductionPlansQuery,
 } = coordinationApi

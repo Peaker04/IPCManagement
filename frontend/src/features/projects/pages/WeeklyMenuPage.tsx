@@ -21,6 +21,7 @@ import {
   useGetCommittedWeeklyMenuQuery,
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
+  useGetProductionPlansQuery,
   usePreviewWeeklyMenuImportMutation,
   useSaveCustomerImportMappingMutation,
   useUpsertQuickServingsMutation,
@@ -397,7 +398,7 @@ const normalizeDishMatchKey = (value?: string) =>
     .replace(/\s+/g, ' ')
     .toLocaleUpperCase('vi-VN');
 
-type WeeklyMenuView = 'schedule' | 'demand' | 'purchase-summary' | 'cost' | 'dish-materials';
+type WeeklyMenuView = 'schedule' | 'demand' | 'purchase-summary' | 'cost' | 'dish-materials' | 'production-plan';
 
 const addDishToMaterialSummary = (
   summary: MaterialSummaryAccumulator,
@@ -1531,6 +1532,11 @@ const WeeklyMenuPage = () => {
     [effectiveMenuCustomerId, generatedMaterialRequests],
   );
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const { currentData: productionPlansData } = useGetProductionPlansQuery(
+    { customerId: effectiveMenuCustomerId, serviceDate: selectedDemandDayKey || undefined },
+    { skip: !effectiveMenuCustomerId }
+  );
+  const productionPlans = productionPlansData?.data ?? [];
   const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines]);
   const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
   const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
@@ -2647,7 +2653,8 @@ const WeeklyMenuPage = () => {
         ariaLabel="Chọn góc nhìn kế hoạch tuần"
         tabs={[
           { id: 'schedule', label: 'Kế hoạch tuần' },
-          { id: 'demand', label: 'KHSX và nhu cầu' },
+          { id: 'demand', label: 'Nhu cầu' },
+          { id: 'production-plan', label: 'Kế hoạch sản xuất' },
           { id: 'purchase-summary', label: 'Tổng hợp mua' },
           { id: 'cost', label: 'Giá vốn' },
           { id: 'dish-materials', label: 'Nguyên liệu món' },
@@ -2708,6 +2715,70 @@ const WeeklyMenuPage = () => {
             </div>
           </SectionPanel>
         </div>
+      )}
+
+      {activeView === 'production-plan' && (
+        <SectionPanel title="Kế hoạch sản xuất chi tiết" icon={<Scale size={18} color="#475569" />}>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium text-slate-700">Ngày phục vụ:</span>
+              <select
+                className="ipc-input w-48 text-sm"
+                value={selectedDemandDayKey || ''}
+                onChange={(e) => setSelectedDemandDayKey(e.target.value || null)}
+              >
+                <option value="">Cả tuần</option>
+                {displayDays.map((d) => (
+                  <option key={d.key} value={d.key}>
+                    {d.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {productionPlans.length === 0 ? (
+              <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
+            ) : (
+              productionPlans.map((plan) => (
+                <div key={plan.planId} className="border border-slate-200 rounded-md p-4 mb-4">
+                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
+                    <h3 className="font-semibold text-slate-800">Mã KHSX: {plan.planCode}</h3>
+                    <StatusBadge variant={plan.status === 'DRAFT' ? 'warning' : 'success'}>
+                      {plan.status}
+                    </StatusBadge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-slate-600">
+                    <div>
+                      <span className="font-medium">Ngày phục vụ:</span> {new Date(plan.planDate).toLocaleDateString('vi-VN')}
+                    </div>
+                    <div>
+                      <span className="font-medium">Khách hàng:</span> {plan.customerName} ({plan.customerCode})
+                    </div>
+                  </div>
+                  <DataTableShell ariaLabel="Bảng chi tiết kế hoạch sản xuất">
+                    <table className="ipc-data-table">
+                      <thead>
+                        <tr>
+                          <th className="w-[20%] text-left">Ca</th>
+                          <th className="w-[50%] text-left">Món ăn</th>
+                          <th className="w-[30%] text-right">Số lượng (suất)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {plan.lines.map((line) => (
+                          <tr key={line.planLineId}>
+                            <td>{line.shiftName ?? 'Ca sáng'}</td>
+                            <td>{line.dishName ?? '-'}</td>
+                            <td className="text-right font-medium">{line.totalServings}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </DataTableShell>
+                </div>
+              ))
+            )}
+          </div>
+        </SectionPanel>
       )}
 
       {activeView === 'demand' && (

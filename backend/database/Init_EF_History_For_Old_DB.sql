@@ -206,3 +206,58 @@ WHERE EXISTS (
   SELECT 1 FROM INFORMATION_SCHEMA.TABLES
   WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stocksnapshots'
 );
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260706033326_AddMealQuantityPlanCompletedAndConcurrency', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'mealquantityplans'
+    AND COLUMN_NAME = 'completedAt'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'mealquantityplans'
+    AND COLUMN_NAME = 'rowVersion'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260706034750_AddApprovalRoutingAndRules', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'approvalrules'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'approvalassignments'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260706093000_AddPurchaseRequestLineToInventoryReceipts', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'inventoryreceiptlines'
+    AND COLUMN_NAME = 'purchaseRequestLineId'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260707085015_AddReceivedToInventoryReturn', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'inventoryreturns'
+    AND COLUMN_NAME = 'receivedAt'
+);
+
+INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`)
+SELECT '20260707093741_AddStocktakeEntities', '9.0.16'
+WHERE EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stocktakes'
+)
+AND EXISTS (
+  SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'stocktakelines'
+);
