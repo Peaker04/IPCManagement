@@ -30,4 +30,6 @@ public partial class Warehouse
     public virtual ICollection<Currentstocklot> Currentstocklots { get; set; } = new List<Currentstocklot>();
 
     public virtual ICollection<Stocksnapshot> Stocksnapshots { get; set; } = new List<Stocksnapshot>();
+
+    public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
 }

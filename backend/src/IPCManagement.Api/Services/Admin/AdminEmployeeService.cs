@@ -107,7 +107,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         return MapEmployee(created);
     }
 
-    public async Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request)
+    public async Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request, string? changedByUserId)
     {
         var userId = GuidHelper.ParseGuidString(id);
         if (userId is null)
@@ -120,14 +120,112 @@ public class AdminEmployeeService : IAdminEmployeeService
         var roleId = await ResolveRoleIdAsync(request.RoleId);
         await EnsureUsernameAvailableAsync(request.Username, user.UserId);
 
-        user.FullName = request.FullName.Trim();
-        user.Username = request.Username.Trim();
-        user.RoleId = roleId;
-        user.IsActive = request.IsActive;
+        byte[]? changedByBytes = null;
+        if (!string.IsNullOrEmpty(changedByUserId))
+        {
+            changedByBytes = GuidHelper.ParseGuidString(changedByUserId);
+        }
+
+        // Audit Log list to insert
+        var audits = new List<Auditlog>();
+        var changedAt = DateTime.UtcNow;
+
+        if (user.FullName != request.FullName.Trim())
+        {
+            audits.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.FullName),
+                OldValue = user.FullName,
+                NewValue = request.FullName.Trim(),
+                Reason = "Cập nhật họ tên nhân viên."
+            });
+            user.FullName = request.FullName.Trim();
+        }
+
+        if (user.Username != request.Username.Trim())
+        {
+            audits.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.Username),
+                OldValue = user.Username,
+                NewValue = request.Username.Trim(),
+                Reason = "Cập nhật tên đăng nhập nhân viên."
+            });
+            user.Username = request.Username.Trim();
+        }
+
+        if (!user.RoleId.SequenceEqual(roleId))
+        {
+            audits.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.RoleId),
+                OldValue = GuidHelper.ToGuidString(user.RoleId),
+                NewValue = request.RoleId,
+                Reason = "Thay đổi vai trò nhân viên."
+            });
+            user.RoleId = roleId;
+        }
+
+        if ((user.IsActive ?? false) != request.IsActive)
+        {
+            audits.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.IsActive),
+                OldValue = (user.IsActive ?? false).ToString(),
+                NewValue = request.IsActive.ToString(),
+                Reason = "Cập nhật trạng thái hoạt động."
+            });
+            user.IsActive = request.IsActive;
+        }
 
         if (!string.IsNullOrWhiteSpace(request.Password))
         {
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            var oldPasswordHash = user.PasswordHash;
+            var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+            user.PasswordHash = newPasswordHash;
+
+            audits.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.PasswordHash),
+                OldValue = "[HIDDEN]",
+                NewValue = "[CHANGED]",
+                Reason = "Đổi/Reset mật khẩu nhân viên."
+            });
+        }
+
+        if (audits.Count > 0)
+        {
+            _context.Auditlogs.AddRange(audits);
         }
 
         await _context.SaveChangesAsync();
@@ -138,7 +236,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         return MapEmployee(updated);
     }
 
-    public async Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request)
+    public async Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request, string? changedByUserId)
     {
         var userId = GuidHelper.ParseGuidString(id);
         if (userId is null)
@@ -148,8 +246,33 @@ public class AdminEmployeeService : IAdminEmployeeService
         if (user is null)
             return null;
 
-        user.IsActive = request.IsActive;
-        await _context.SaveChangesAsync();
+        if ((user.IsActive ?? false) != request.IsActive)
+        {
+            byte[]? changedByBytes = null;
+            if (!string.IsNullOrEmpty(changedByUserId))
+            {
+                changedByBytes = GuidHelper.ParseGuidString(changedByUserId);
+            }
+
+            var changedAt = DateTime.UtcNow;
+            var audit = new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = changedByBytes ?? GuidHelper.NewId(),
+                BusinessArea = "Admin",
+                EntityName = nameof(User),
+                EntityId = user.UserId,
+                FieldName = nameof(user.IsActive),
+                OldValue = (user.IsActive ?? false).ToString(),
+                NewValue = request.IsActive.ToString(),
+                Reason = request.IsActive ? "Kích hoạt tài khoản nhân viên." : "Khóa tài khoản nhân viên."
+            };
+
+            user.IsActive = request.IsActive;
+            _context.Auditlogs.Add(audit);
+            await _context.SaveChangesAsync();
+        }
 
         var updated = await LoadEmployeeEntityAsync(user.UserId)
             ?? throw new InvalidOperationException("Không thể tải nhân viên vừa cập nhật.");

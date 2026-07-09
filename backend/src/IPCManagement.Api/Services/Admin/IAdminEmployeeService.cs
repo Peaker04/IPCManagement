@@ -9,7 +9,7 @@ public interface IAdminEmployeeService
     Task<PagedResponseDto<EmployeeDto>> GetPagedAsync(PagedRequestDto request);
     Task<EmployeeDto?> GetByIdAsync(string id);
     Task<EmployeeDto> CreateAsync(CreateEmployeeDto request);
-    Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request);
-    Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request);
+    Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request, string? changedByUserId);
+    Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request, string? changedByUserId);
     Task SeedSampleUsersAsync();
 }

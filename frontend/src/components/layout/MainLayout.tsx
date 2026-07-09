@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import { canAccessRole, ROLE_LABELS, selectCurrentUser, type AppRole } from '../../features/auth';
+import { ROLE_LABELS, selectCurrentUser } from '../../features/auth';
 import { store } from '../../app/store';
 import { logoutSession } from '../../features/auth/logoutSession';
 import { ROUTES } from '../../routes/routeConfig';
@@ -18,6 +18,7 @@ import {
   ShoppingCart,
   Warehouse,
   Database,
+  Settings,
 } from 'lucide-react';
 
 type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -57,21 +58,25 @@ export const MainLayout = () => {
     navigate(ROUTES.LOGIN, { replace: true });
   };
 
-  const menuItems: Array<{ path: string; label: string; icon: ReactNode; allowedRoles?: AppRole[] }> = [
+  const menuItems: Array<{ path: string; label: string; icon: ReactNode; requiredPermissions?: string[] }> = [
     { path: ROUTES.DASHBOARD, label: 'Tổng quan', icon: <LayoutDashboard size={18} /> },
-    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, allowedRoles: ['quanly', 'dieuphoi'] },
-    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, allowedRoles: ['quanly', 'dieuphoi'] },
-    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, allowedRoles: ['quanly'] },
-    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, allowedRoles: ['quanly', 'thumua'] },
-    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, allowedRoles: ['quanly', 'thukho'] },
-    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, allowedRoles: ['quanly', 'beptruong'] },
-    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, allowedRoles: ['quanly'] },
-    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, allowedRoles: ['admin'] },
+    { path: ROUTES.WEEKLY_MENU, label: 'Thực đơn tuần', icon: <CalendarDays size={18} />, requiredPermissions: ['coordination.read'] },
+    { path: ROUTES.MEAL_ORDERS, label: 'Điều phối đơn', icon: <Utensils size={18} />, requiredPermissions: ['coordination.read'] },
+    { path: ROUTES.APPROVALS, label: 'Duyệt vận hành', icon: <ClipboardCheck size={18} />, requiredPermissions: ['purchase.request.approve'] },
+    { path: ROUTES.PURCHASING, label: 'Thu mua', icon: <ShoppingCart size={18} />, requiredPermissions: ['purchase.read'] },
+    { path: ROUTES.WAREHOUSE, label: 'Kho nguyên liệu', icon: <Warehouse size={18} />, requiredPermissions: ['warehouse.read'] },
+    { path: ROUTES.CHEF_DASHBOARD, label: 'Bếp trưởng', icon: <ChefHat size={18} />, requiredPermissions: ['production.read'] },
+    { path: ROUTES.REPORTS, label: 'Biến động giá', icon: <TrendingUp size={18} />, requiredPermissions: ['report.read'] },
+    { path: ROUTES.ADMIN_DATA, label: 'Quản trị dữ liệu', icon: <Database size={18} />, requiredPermissions: ['*'] },
+    { path: ROUTES.APPROVAL_RULES, label: 'Thiết lập duyệt', icon: <Settings size={18} />, requiredPermissions: ['*'] },
   ];
 
-  const visibleMenuItems = menuItems.filter((item) =>
-    !item.allowedRoles || canAccessRole(currentUser, item.allowedRoles)
-  );
+  const isAdmin = currentUser?.isAdminFullAccess || currentUser?.role === 'admin' || currentUser?.permissions?.includes('*');
+  const visibleMenuItems = menuItems.filter((item) => {
+    if (!item.requiredPermissions) return true;
+    if (isAdmin) return true;
+    return item.requiredPermissions.some((perm) => currentUser?.permissions?.includes(perm));
+  });
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 
@@ -95,6 +100,8 @@ export const MainLayout = () => {
         return { title: 'Kho nguyên liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.ADMIN_DATA:
         return { title: 'Quản trị dữ liệu', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
+      case ROUTES.APPROVAL_RULES:
+        return { title: 'Thiết lập quy trình duyệt', workflow: 'Phê duyệt', state: 'Cấu hình hệ thống' };
       default:
         return { title: 'Hệ thống Quản lý Bếp ăn', workflow: 'Vận hành', state: 'Đang hoạt động' };
     }

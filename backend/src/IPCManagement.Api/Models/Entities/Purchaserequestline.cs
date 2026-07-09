@@ -31,6 +31,8 @@ public partial class Purchaserequestline
 
     public virtual Ingredient Ingredient { get; set; } = null!;
 
+    public virtual ICollection<Inventoryreceiptline> Inventoryreceiptlines { get; set; } = new List<Inventoryreceiptline>();
+
     public virtual Materialrequestline MaterialRequestLine { get; set; } = null!;
 
     public virtual Purchaserequest PurchaseRequest { get; set; } = null!;

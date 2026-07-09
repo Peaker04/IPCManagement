@@ -29,6 +29,20 @@ public class MaterialDemandStalenessDto
     public List<string> Reasons { get; set; } = [];
 }
 
+public class MaterialDemandApproveRequestDto
+{
+    public string? Reason { get; set; }
+}
+
+public class MaterialDemandApprovalDto
+{
+    public string MaterialRequestId { get; set; } = string.Empty;
+    public string RequestCode { get; set; } = string.Empty;
+    public string OldStatus { get; set; } = string.Empty;
+    public string NewStatus { get; set; } = string.Empty;
+    public DateTime ApprovedAt { get; set; }
+}
+
 public class MissingBomDishDto
 {
     public string DishId { get; set; } = string.Empty;

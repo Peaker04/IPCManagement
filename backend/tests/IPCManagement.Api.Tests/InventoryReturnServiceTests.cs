@@ -38,7 +38,7 @@ public class InventoryReturnServiceTests
     }
 
     [Fact]
-    public async Task CreateAsync_Should_CreateReturn_AddStockMovementReturn_And_CommitTransaction()
+    public async Task CreateAsync_Should_CreateReturn_And_CommitTransaction()
     {
         // Arrange
         var userId = Guid.NewGuid().ToString();
@@ -87,17 +87,8 @@ public class InventoryReturnServiceTests
             inventoryReturn.Reason == "Nguyên liệu dư sau nấu" &&
             inventoryReturn.Inventoryreturnlines.Count == 1));
 
-        await _stockLedgerService.Received(1).AddStockAsync(
-            Arg.Any<byte[]>(),
-            Arg.Any<byte[]>(),
-            Arg.Any<byte[]>(),
-            2,
-            "RETURN",
-            "inventoryreturns",
-            Arg.Any<byte[]>(),
-            Arg.Any<byte[]>(),
-            "Trả nguyên liệu dư sau sản xuất",
-            Arg.Any<string>());
+        await _stockLedgerService.DidNotReceiveWithAnyArgs().AddStockAsync(
+            default!, default!, default!, default, default!, default!, default!, default!, default!, default!);
 
         await _unitOfWork.Received(1).SaveChangesAsync();
         await _transaction.Received(1).CommitAsync();

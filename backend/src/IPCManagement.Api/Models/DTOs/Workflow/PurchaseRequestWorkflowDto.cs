@@ -33,3 +33,9 @@ public class PurchaseRequestWorkflowLineDto
     public string? ExpectedDeliveryDate { get; set; }
     public string? Note { get; set; }
 }
+
+public class ConfirmPurchaseRequestDto
+{
+    public string PurchaseRequestId { get; set; } = string.Empty;
+    public string WarehouseId { get; set; } = string.Empty;
+}

@@ -14,4 +14,10 @@ public interface IMaterialDemandService
         string? customerId,
         string? scopeOrShift,
         CancellationToken cancellationToken = default);
+
+    Task<MaterialDemandApprovalDto?> ApproveAsync(
+        string materialRequestId,
+        string? userId,
+        string? reason,
+        CancellationToken cancellationToken = default);
 }

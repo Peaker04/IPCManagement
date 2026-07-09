@@ -65,4 +65,34 @@ public class MaterialDemandController : ControllerBase
         var result = await _materialDemandService.GetStalenessAsync(serviceDate, customerId, scope, cancellationToken);
         return Ok(ApiResponse<MaterialDemandStalenessDto>.SuccessResult(result));
     }
+
+    [HttpPost("{id}/approve")]
+    [ProducesResponseType(typeof(ApiResponse<MaterialDemandApprovalDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Approve(
+        string id,
+        [FromBody] MaterialDemandApproveRequestDto? request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _materialDemandService.ApproveAsync(id, userId, request?.Reason, cancellationToken);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy nhu cầu nguyên liệu."));
+            }
+
+            return Ok(ApiResponse<MaterialDemandApprovalDto>.SuccessResult(result, "Đã duyệt nhu cầu nguyên liệu."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }

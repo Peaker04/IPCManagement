@@ -14,6 +14,10 @@ public class WorkflowReportQueryDto
     public string? CursorDate { get; set; }
     public string? CursorId { get; set; }
     public int Limit { get; set; } = 100;
+    public string? Actor { get; set; }
+    public string? BusinessArea { get; set; }
+    public string? EntityName { get; set; }
+    public string? FieldName { get; set; }
 }
 
 public class OperationalKpiSummaryDto
@@ -262,6 +266,9 @@ public class DataQualityReportDto
     public int TotalIssues { get; set; }
     public int ErrorCount { get; set; }
     public int WarningCount { get; set; }
+    public int ResolvedIssueCount { get; set; }
+    public int ReopenedIssueCount { get; set; }
+    public int UrgentIssueCount { get; set; }
     public int MissingBomCount { get; set; }
     public int InvalidUnitCount { get; set; }
     public int MissingConversionCount { get; set; }
@@ -275,6 +282,11 @@ public class DataQualityIssueDto
     public string IssueId { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Severity { get; set; } = string.Empty;
+    public string Owner { get; set; } = string.Empty;
+    public int PriorityRank { get; set; }
+    public int SlaHours { get; set; }
+    public DateTime SlaDueAt { get; set; }
+    public string SlaLabel { get; set; } = string.Empty;
     public string EntityName { get; set; } = string.Empty;
     public string? EntityId { get; set; }
     public string EntityCode { get; set; } = string.Empty;
@@ -282,6 +294,58 @@ public class DataQualityIssueDto
     public string Message { get; set; } = string.Empty;
     public string SuggestedAction { get; set; } = string.Empty;
     public string Route { get; set; } = string.Empty;
+    public string RemediationStatus { get; set; } = "open";
+    public DateTime? RemediationAt { get; set; }
+    public string? RemediationByName { get; set; }
+    public string? RemediationNote { get; set; }
+}
+
+public class DataQualityIssueRemediationRequestDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? Note { get; set; }
+}
+
+public class DataQualityIssueRemediationDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string RemediationStatus { get; set; } = string.Empty;
+    public DateTime RemediationAt { get; set; }
+    public string? Note { get; set; }
+}
+
+public class DataQualityCleanupRequestDto
+{
+    public bool DryRun { get; set; } = true;
+    public int Limit { get; set; } = 100;
+    public IReadOnlyList<string>? Categories { get; set; }
+    public string? Note { get; set; }
+}
+
+public class DataQualityCleanupResultDto
+{
+    public bool DryRun { get; set; }
+    public DateTime ExecutedAt { get; set; }
+    public int TotalActions { get; set; }
+    public int RemovedMaterialRequests { get; set; }
+    public int RemovedMaterialRequestLines { get; set; }
+    public int RemovedPurchaseRequests { get; set; }
+    public int RemovedPurchaseRequestLines { get; set; }
+    public int RemovedInventoryIssues { get; set; }
+    public int RemovedInventoryIssueLines { get; set; }
+    public int AuditLogCount { get; set; }
+    public IReadOnlyList<DataQualityCleanupActionDto> Actions { get; set; } = [];
+}
+
+public class DataQualityCleanupActionDto
+{
+    public string Category { get; set; } = string.Empty;
+    public string EntityName { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string EntityCode { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class WorkflowDocumentDto

@@ -1,18 +1,18 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, Edit, FileDown, Lock } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Edit, FileDown, Lock, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { useAppDispatch, useIsLocked, useOrders, useCurrentShift, useAppSelector } from '@/app/hooks'
-import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
+import { addAuditLog, markOrdersLocked, unlockOrderPlan } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationOrderMutation } from '../coordinationApi'
 import { toDisplayShift } from '../types'
 import { ActionGuard } from '@/routes/ActionGuard'
 
-type ConfirmationAction = 'lock' | 'export' | 'signoff' | null
+type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
 
 interface OrderExportReportRow {
   quantityPlanLineId: string
@@ -89,6 +89,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   const [lockCoordinationOrders, { isLoading: isLocking }] = useLockCoordinationOrdersMutation()
   const [exportCoordinationOrders, { isLoading: isExporting }] = useExportCoordinationOrdersMutation()
   const [signoffCoordinationOrder, { isLoading: isSigningOff }] = useSignoffCoordinationOrderMutation()
+  const [isUnlocking, setIsUnlocking] = useState(false)
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
   const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false)
   const [editReason, setEditReason] = useState('')
@@ -107,7 +108,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED'
   const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'ADJUSTED' || normalizedStatus === 'LOCKED' || isLocked
   const currentPlanId = orders.find((order) => order.quantityPlanId)?.quantityPlanId
-  const isBusy = isLocking || isExporting || isSigningOff
+  const isBusy = isLocking || isExporting || isSigningOff || isUnlocking
 
   const closeConfirmationDialog = () => {
     if (!isBusy) {
@@ -280,6 +281,43 @@ export function ActionToolbar({ status }: { status?: string }) {
     }
   }
 
+  const handleUnlock = async () => {
+    if (!currentPlanId) {
+      setFeedback({
+        title: 'Chưa mở khóa được ca',
+        message: 'Không tìm thấy mã kế hoạch suất ăn cho ca hiện tại.',
+        variant: 'danger',
+      })
+      return
+    }
+
+    setIsUnlocking(true)
+    try {
+      await dispatch(
+        unlockOrderPlan({
+          id: currentPlanId,
+          dayOfWeek: currentDayOfWeek,
+          shift: currentShift,
+        })
+      ).unwrap()
+
+      setFeedback({
+        title: 'Đã mở khóa ca',
+        message: 'Kế hoạch ca đã được mở khóa về trạng thái nháp (Draft) thành công.',
+        variant: 'info',
+      })
+      setConfirmationAction(null)
+    } catch (error) {
+      setFeedback({
+        title: 'Chưa mở khóa được ca',
+        message: error instanceof Error ? error.message : typeof error === 'string' ? error : 'Vui lòng thử lại sau.',
+        variant: 'danger',
+      })
+    } finally {
+      setIsUnlocking(false)
+    }
+  }
+
   const confirmDialogCopy = (() => {
     if (confirmationAction === 'lock') {
       return {
@@ -297,16 +335,25 @@ export function ActionToolbar({ status }: { status?: string }) {
       }
     }
 
-    return {
-        title: 'Xuất báo cáo điều phối?',
-        description: 'Hệ thống sẽ lấy dữ liệu báo cáo ca hiện tại bằng quyền đăng nhập của bạn và tải xuống file CSV.',
-        action: 'Xuất báo cáo',
+    if (confirmationAction === 'unlock') {
+      return {
+        title: 'Mở khóa ca này?',
+        description: 'Sau khi mở khóa, trạng thái kế hoạch sẽ quay lại Draft, cho phép chỉnh sửa số suất ăn dự kiến.',
+        action: 'Mở khóa ca',
       }
+    }
+
+    return {
+      title: 'Xuất báo cáo điều phối?',
+      description: 'Hệ thống sẽ lấy dữ liệu báo cáo ca hiện tại bằng quyền đăng nhập của bạn và tải xuống file CSV.',
+      action: 'Xuất báo cáo',
+    }
   })()
 
   const handleConfirmedAction = () => {
     if (confirmationAction === 'lock') return handleLock()
     if (confirmationAction === 'signoff') return handleSignoff()
+    if (confirmationAction === 'unlock') return handleUnlock()
     return handleExportExcel()
   }
 
@@ -344,6 +391,19 @@ export function ActionToolbar({ status }: { status?: string }) {
             >
               <CheckCircle className="size-3.5" />
               {isSigningOff ? 'Đang hoàn tất...' : 'Hoàn tất ca'}
+            </Button>
+          </ActionGuard>
+
+          <ActionGuard allowedRoles={['quanly']}>
+            <Button
+              onClick={() => setConfirmationAction('unlock')}
+              disabled={!isConfirmed || isTerminal || isUnlocking || !currentPlanId}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap text-red-700 border-red-200 hover:bg-red-50 hover:text-red-800 disabled:text-slate-400 disabled:border-slate-200"
+            >
+              <Unlock className="size-3.5" />
+              {isUnlocking ? 'Đang mở khóa...' : 'Mở khóa ca'}
             </Button>
           </ActionGuard>
 

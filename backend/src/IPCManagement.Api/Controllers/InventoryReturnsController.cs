@@ -29,7 +29,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Lấy danh sách phiếu trả nguyên liệu dư.</summary>
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAll([FromQuery] InventoryReturnFilterRequestDto request)
     {
         var result = await _inventoryReturnService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryReturnDto>>.SuccessResult(result));
@@ -62,5 +62,19 @@ public class InventoryReturnsController : ControllerBase
             nameof(GetById),
             new { id = result.ReturnId },
             ApiResponse<InventoryReturnCreatedDto>.SuccessResult(result, "Tạo phiếu trả nguyên liệu thành công."));
+    }
+
+    /// <summary>Thủ kho xác nhận phiếu trả nguyên liệu và cộng tồn kho.</summary>
+    [HttpPost("{id}/confirm-receipt")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    public async Task<IActionResult> ConfirmReceipt(string id, [FromBody] ConfirmInventoryReturnReceiptDto dto)
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        var success = await _inventoryReturnService.ConfirmReceiptAsync(id, dto, userId);
+        if (!success)
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu trả nguyên liệu với ID: {id}"));
+
+        return Ok(ApiResponse.SuccessResult("Xác nhận phiếu trả nguyên liệu và cộng tồn kho thành công."));
     }
 }

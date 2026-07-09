@@ -74,6 +74,23 @@ export const lockOrderPlan = createAsyncThunk(
   }
 )
 
+export const unlockOrderPlan = createAsyncThunk(
+  'coordination/unlockOrderPlan',
+  async (payload: { id: string; dayOfWeek: string; shift: ShiftType }, { dispatch, rejectWithValue }) => {
+    const response = await dispatch(
+      coordinationApi.endpoints.unlockCoordinationOrders.initiate({
+        id: payload.id,
+      }),
+    ).unwrap()
+
+    if (!response.success || !response.data) {
+      return rejectWithValue(response.message || 'Không mở khóa ca được.')
+    }
+
+    return response.data
+  }
+)
+
 export const adjustOrderAfterLock = createAsyncThunk(
   'coordination/adjustOrderAfterLock',
   async (payload: {
@@ -324,6 +341,25 @@ const coordinationSlice = createSlice({
       .addCase(lockOrderPlan.rejected, (state, action) => {
         state.loading = false
         state.error = action.error.message || 'Failed to lock orders'
+      })
+
+      // Unlock Order Plan
+      .addCase(unlockOrderPlan.pending, (state) => {
+        state.loading = true
+        state.error = null
+      })
+      .addCase(unlockOrderPlan.fulfilled, (state, action) => {
+        state.loading = false
+        const { dayOfWeek, shift } = action.meta.arg
+        state.lockedShifts[`${dayOfWeek}-${shift}`] = false
+        if (state.currentShift === shift && state.currentDayOfWeek === dayOfWeek) {
+          state.isLocked = false
+        }
+        state.lastUpdated = new Date().toISOString()
+      })
+      .addCase(unlockOrderPlan.rejected, (state, action) => {
+        state.loading = false
+        state.error = action.error.message || 'Failed to unlock order plan'
       })
 
       // Adjust Order After Lock

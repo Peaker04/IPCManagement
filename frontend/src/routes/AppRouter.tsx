@@ -17,6 +17,7 @@ const ApprovalPage = lazy(() => import('../features/workflow/pages/ApprovalPage'
 const PurchasingPage = lazy(() => import('../features/workflow/pages/PurchasingPage'));
 const WarehousePage = lazy(() => import('../features/workflow/pages/WarehousePage'));
 const AdminDataPage = lazy(() => import('../features/workflow/pages/AdminDataPage'));
+const ApprovalRulesPage = lazy(() => import('../features/workflow/pages/ApprovalRulesPage'));
 
 const routeFallback = (
   <div className="flex min-h-[240px] items-center justify-center text-sm font-medium text-slate-500">
@@ -37,14 +38,15 @@ export const AppRouter = () => {
           <Route element={<MainLayout />}>
             <Route path={ROUTES.FORBIDDEN} element={<ForbiddenPage />} />
             <Route path={ROUTES.DASHBOARD} element={<Suspense fallback={routeFallback}><DashboardPage /></Suspense>} />
-            <Route path={ROUTES.WEEKLY_MENU} element={<RoleGuard allowedRoles={['quanly', 'dieuphoi']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.REPORTS} element={<RoleGuard allowedRoles={['quanly']}><Suspense fallback={routeFallback}><ReportsPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.MEAL_ORDERS} element={<RoleGuard allowedRoles={['quanly', 'dieuphoi']}><Suspense fallback={routeFallback}><CoordinationPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.CHEF_DASHBOARD} element={<RoleGuard allowedRoles={['quanly', 'beptruong']}><Suspense fallback={routeFallback}><ChefDashboardPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.APPROVALS} element={<RoleGuard allowedRoles={['quanly']}><Suspense fallback={routeFallback}><ApprovalPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.PURCHASING} element={<RoleGuard allowedRoles={['quanly', 'thumua']}><Suspense fallback={routeFallback}><PurchasingPage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.WAREHOUSE} element={<RoleGuard allowedRoles={['quanly', 'thukho']}><Suspense fallback={routeFallback}><WarehousePage /></Suspense></RoleGuard>} />
-            <Route path={ROUTES.ADMIN_DATA} element={<RoleGuard allowedRoles={['admin']}><Suspense fallback={routeFallback}><AdminDataPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.WEEKLY_MENU} element={<RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><WeeklyMenuPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.REPORTS} element={<RoleGuard requiredPermissions={['report.read']}><Suspense fallback={routeFallback}><ReportsPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.MEAL_ORDERS} element={<RoleGuard requiredPermissions={['coordination.read']}><Suspense fallback={routeFallback}><CoordinationPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.CHEF_DASHBOARD} element={<RoleGuard requiredPermissions={['production.read']}><Suspense fallback={routeFallback}><ChefDashboardPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.APPROVALS} element={<RoleGuard requiredPermissions={['purchase.request.approve']}><Suspense fallback={routeFallback}><ApprovalPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.PURCHASING} element={<RoleGuard requiredPermissions={['purchase.read']}><Suspense fallback={routeFallback}><PurchasingPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.WAREHOUSE} element={<RoleGuard requiredPermissions={['warehouse.read']}><Suspense fallback={routeFallback}><WarehousePage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.ADMIN_DATA} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><AdminDataPage /></Suspense></RoleGuard>} />
+            <Route path={ROUTES.APPROVAL_RULES} element={<RoleGuard requiredPermissions={['*']}><Suspense fallback={routeFallback}><ApprovalRulesPage /></Suspense></RoleGuard>} />
           </Route>
         </Route>
 

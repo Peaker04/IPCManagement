@@ -16,6 +16,7 @@ import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVarianceQuery,
   useGetPurchaseDemandQuery,
+  useGetCurrentStockQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
@@ -30,7 +31,7 @@ import {
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
 } from '@/features/workflow';
-import type { DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
+import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
@@ -45,6 +46,7 @@ export default function PurchasingPage() {
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
@@ -215,7 +217,7 @@ export default function PurchasingPage() {
       {activeView === 'orders' && (
         <SectionPanel title="Đơn mua hàng (tách theo nhà cung cấp)">
           <div id="purchasing-orders-panel" role="tabpanel" aria-labelledby="purchasing-orders-tab">
-            <PurchaseOrderManager purchaseDemandLines={purchaseDemandLines} />
+            <PurchaseOrderManager purchaseDemandLines={purchaseDemandLines} currentStockRows={currentStockRows} />
           </div>
         </SectionPanel>
       )}
@@ -577,13 +579,24 @@ const purchaseOrderStatusLabel: Record<string, string> = {
   CANCELLED: 'Đã hủy',
 };
 
-function PurchaseOrderManager({ purchaseDemandLines }: { purchaseDemandLines: DemandLine[] }) {
+function PurchaseOrderManager({
+  purchaseDemandLines,
+  currentStockRows,
+}: {
+  purchaseDemandLines: DemandLine[];
+  currentStockRows: CurrentStockRow[];
+}) {
   const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
   const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
   const [cancelOrder] = useCancelPurchaseOrderMutation();
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
+  const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
+
+  const warehouseOptions = Array.from(
+    new Map(currentStockRows.map((row) => [row.warehouseId, row.warehouse])).entries()
+  ).map(([warehouseId, warehouse]) => ({ warehouseId, warehouse }));
 
   const supplierCountByRequest = new Map<string, Set<string>>();
   purchaseDemandLines.forEach((line) => {
@@ -622,6 +635,11 @@ function PurchaseOrderManager({ purchaseDemandLines }: { purchaseDemandLines: De
   };
 
   const handleReceive = async (order: PurchaseOrderDto) => {
+    const warehouseId = receiveWarehouseByOrder[order.purchaseOrderId] || warehouseOptions[0]?.warehouseId || '';
+    if (!warehouseId) {
+      alert('Vui lòng chọn kho nhập hàng trước khi ghi nhận.');
+      return;
+    }
     const lines = order.lines
       .map((line) => ({ purchaseOrderLineId: line.purchaseOrderLineId, receivedQty: Number(receiveQtyByLine[line.purchaseOrderLineId] || 0) }))
       .filter((line) => line.receivedQty > 0);
@@ -630,8 +648,9 @@ function PurchaseOrderManager({ purchaseDemandLines }: { purchaseDemandLines: De
       return;
     }
     try {
-      await recordReceipt({ purchaseOrderId: order.purchaseOrderId, data: { lines } }).unwrap();
+      await recordReceipt({ purchaseOrderId: order.purchaseOrderId, data: { warehouseId, lines } }).unwrap();
       setReceiveQtyByLine({});
+      setReceiveWarehouseByOrder((current) => ({ ...current, [order.purchaseOrderId]: warehouseId }));
       setExpandedOrderId(null);
     } catch (err) {
       alert('Lỗi khi ghi nhận nhận hàng: ' + getErrorMessage(err));
@@ -733,6 +752,24 @@ function PurchaseOrderManager({ purchaseDemandLines }: { purchaseDemandLines: De
                     <tr>
                       <td colSpan={6}>
                         <div className="p-3 bg-slate-50 rounded-md space-y-2">
+                          <label className="flex flex-col gap-1 text-sm text-slate-700 md:max-w-xs">
+                            Kho nhập hàng
+                            <select
+                              className="ipc-input"
+                              value={receiveWarehouseByOrder[order.purchaseOrderId] || warehouseOptions[0]?.warehouseId || ''}
+                              onChange={(e) => setReceiveWarehouseByOrder({
+                                ...receiveWarehouseByOrder,
+                                [order.purchaseOrderId]: e.target.value,
+                              })}
+                            >
+                              {warehouseOptions.length === 0 && <option value="">Chưa có kho từ tồn hiện tại</option>}
+                              {warehouseOptions.map((warehouse) => (
+                                <option key={warehouse.warehouseId} value={warehouse.warehouseId}>
+                                  {warehouse.warehouse}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
                           {order.lines.map((line) => (
                             <div key={line.purchaseOrderLineId} className="flex items-center gap-3">
                               <span className="flex-1">

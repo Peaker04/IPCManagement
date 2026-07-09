@@ -15,6 +15,7 @@ public class AuthControllerTests
     private readonly IAuthService _authService = Substitute.For<IAuthService>();
     private readonly ICurrentUserService _currentUserService = Substitute.For<ICurrentUserService>();
     private readonly ITokenService _tokenService = Substitute.For<ITokenService>();
+    private readonly Microsoft.Extensions.Logging.ILogger<AuthController> _logger = Substitute.For<Microsoft.Extensions.Logging.ILogger<AuthController>>();
 
     [Fact]
     public async Task Login_Should_SetRefreshCookie_But_Not_ExposeRefreshTokenInBody()
@@ -55,7 +56,7 @@ public class AuthControllerTests
 
     private AuthController CreateController()
     {
-        var controller = new AuthController(_authService, _currentUserService, _tokenService)
+        var controller = new AuthController(_authService, _currentUserService, _tokenService, _logger)
         {
             ControllerContext = new ControllerContext
             {
