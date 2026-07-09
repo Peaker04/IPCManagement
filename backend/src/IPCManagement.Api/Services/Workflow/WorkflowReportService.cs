@@ -13,6 +13,7 @@ public class WorkflowReportService : IWorkflowReportService
     private const string DataQualityBusinessArea = "DataQuality";
     private const string DataQualityIssueEntityName = "DataQualityIssue";
     private const string DataQualityRemediationFieldName = "Remediation";
+    private const string DataQualityCleanupFieldName = "Cleanup";
 
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
@@ -1713,6 +1714,280 @@ public class WorkflowReportService : IWorkflowReportService
         };
     }
 
+    public async Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(
+        DataQualityCleanupRequestDto request,
+        string actorUserId)
+    {
+        var actorId = GuidHelper.ParseGuidString(actorUserId)
+            ?? throw new UnauthorizedAccessException("Không xác định được người dùng.");
+        var limit = NormalizeLimit(request.Limit);
+        var categories = NormalizeDataQualityCleanupCategories(request.Categories);
+        var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        var now = DateTime.UtcNow;
+        var staleStatuses = new[] { "CANCELLED", "FAILED", "IMPORT_FAILED" };
+        var orphanCleanupStatuses = new[] { "DRAFT", "CANCELLED", "FAILED", "IMPORT_FAILED" };
+        var actions = new List<DataQualityCleanupActionDto>();
+        var stalePurchaseRequestIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new DataQualityCleanupResultDto
+        {
+            DryRun = request.DryRun,
+            ExecutedAt = now
+        };
+
+        await using var transaction = request.DryRun ? null : await _context.Database.BeginTransactionAsync();
+
+        void AddAction(
+            string category,
+            string entityName,
+            byte[] entityId,
+            string entityCode,
+            string action,
+            string reason,
+            string? oldValue = null)
+        {
+            actions.Add(new DataQualityCleanupActionDto
+            {
+                Category = category,
+                EntityName = entityName,
+                EntityId = GuidHelper.ToGuidString(entityId),
+                EntityCode = entityCode,
+                Action = action,
+                Reason = reason
+            });
+
+            if (!request.DryRun)
+            {
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = now,
+                    ChangedBy = actorId,
+                    BusinessArea = DataQualityBusinessArea,
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    FieldName = DataQualityCleanupFieldName,
+                    OldValue = oldValue ?? entityCode,
+                    NewValue = action,
+                    Reason = note is null ? reason : $"{reason} Note: {note}"
+                });
+                result.AuditLogCount++;
+            }
+        }
+
+        if (categories.Contains("stale_purchase_request"))
+        {
+            var stalePurchaseRequests = await _context.Purchaserequests
+                .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
+                    .ThenInclude(line => line.Inventoryreceiptlines)
+                .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
+                    .ThenInclude(line => line.Purchaseorderline)
+                .Include(purchaseRequest => purchaseRequest.Inventoryreceipts)
+                .Include(purchaseRequest => purchaseRequest.Purchaseorders)
+                .Where(purchaseRequest => staleStatuses.Contains(purchaseRequest.Status))
+                .OrderBy(purchaseRequest => purchaseRequest.PurchaseRequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var purchaseRequest in stalePurchaseRequests)
+            {
+                if (purchaseRequest.Inventoryreceipts.Count > 0 ||
+                    purchaseRequest.Purchaseorders.Count > 0 ||
+                    purchaseRequest.Purchaserequestlines.Any(line =>
+                        line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null))
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "stale_purchase_request",
+                    nameof(Purchaserequest),
+                    purchaseRequest.PurchaseRequestId,
+                    purchaseRequest.PurchaseRequestCode,
+                    "removed",
+                    "Đề xuất mua ở trạng thái nháp/hủy/lỗi không còn được dùng cho workflow vận hành.",
+                    purchaseRequest.Status);
+                stalePurchaseRequestIds.Add(GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId));
+
+                result.RemovedPurchaseRequestLines += purchaseRequest.Purchaserequestlines.Count;
+                result.RemovedPurchaseRequests++;
+
+                if (!request.DryRun)
+                {
+                    _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
+                    _context.Purchaserequests.Remove(purchaseRequest);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("orphan_document"))
+        {
+            var orphanPurchaseLines = await _context.Purchaserequestlines
+                .Include(line => line.PurchaseRequest)
+                .Include(line => line.Inventoryreceiptlines)
+                .Include(line => line.Purchaseorderline)
+                .Include(line => line.Ingredient)
+                .Where(line =>
+                    orphanCleanupStatuses.Contains(line.PurchaseRequest.Status) &&
+                    !_context.Materialrequestlines.Any(materialLine => materialLine.RequestLineId == line.MaterialRequestLineId))
+                .OrderBy(line => line.PurchaseRequest.PurchaseRequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var line in orphanPurchaseLines)
+            {
+                if (stalePurchaseRequestIds.Contains(GuidHelper.ToGuidString(line.PurchaseRequestId)))
+                {
+                    continue;
+                }
+
+                if (line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null)
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "orphan_document",
+                    nameof(Purchaserequestline),
+                    line.PurchaseRequestLineId,
+                    $"{line.PurchaseRequest.PurchaseRequestCode}/{line.Ingredient.IngredientName}",
+                    "removed",
+                    "Dòng mua thêm không còn dòng demand gốc và chưa phát sinh receipt/order.",
+                    GuidHelper.ToGuidString(line.MaterialRequestLineId));
+
+                result.RemovedPurchaseRequestLines++;
+
+                if (!request.DryRun)
+                {
+                    _context.Purchaserequestlines.Remove(line);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("orphan_document"))
+        {
+            var stockMovementRefs = await _context.Stockmovements
+                .AsNoTracking()
+                .Where(movement => movement.RefId != null)
+                .Select(movement => movement.RefId!)
+                .ToListAsync();
+            var stockMovementRefIds = stockMovementRefs
+                .Select(GuidHelper.ToGuidString)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var orphanIssues = await _context.Inventoryissues
+                .Include(issue => issue.Inventoryissuelines)
+                .Include(issue => issue.Inventoryreturns)
+                .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+                .OrderBy(issue => issue.IssueCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var issue in orphanIssues)
+            {
+                if (issue.Inventoryreturns.Count > 0 ||
+                    issue.ReceivedAt is not null ||
+                    stockMovementRefIds.Contains(GuidHelper.ToGuidString(issue.IssueId)))
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "orphan_document",
+                    nameof(Inventoryissue),
+                    issue.IssueId,
+                    issue.IssueCode,
+                    "removed",
+                    "Phiếu xuất không còn demand gốc và chưa phát sinh nhận bếp/hoàn kho/stock movement.",
+                    GuidHelper.ToGuidString(issue.MaterialRequestId));
+
+                result.RemovedInventoryIssueLines += issue.Inventoryissuelines.Count;
+                result.RemovedInventoryIssues++;
+
+                if (!request.DryRun)
+                {
+                    _context.Inventoryissuelines.RemoveRange(issue.Inventoryissuelines);
+                    _context.Inventoryissues.Remove(issue);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("stale_demand") || categories.Contains("orphan_document"))
+        {
+            var materialRequests = await _context.Materialrequests
+                .Include(materialRequest => materialRequest.Materialrequestlines)
+                    .ThenInclude(line => line.Purchaserequestlines)
+                .Include(materialRequest => materialRequest.Inventoryissues)
+                .Where(materialRequest =>
+                    orphanCleanupStatuses.Contains(materialRequest.Status) &&
+                    ((categories.Contains("stale_demand") && materialRequest.Status == "CANCELLED") ||
+                     (categories.Contains("orphan_document") && !_context.Productionplans.Any(plan => plan.PlanId == materialRequest.PlanId))))
+                .OrderBy(materialRequest => materialRequest.RequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var materialRequest in materialRequests)
+            {
+                if (materialRequest.Inventoryissues.Count > 0 ||
+                    materialRequest.Materialrequestlines.Any(line => line.Purchaserequestlines.Count > 0))
+                {
+                    continue;
+                }
+
+                var category = await _context.Productionplans.AnyAsync(plan => plan.PlanId == materialRequest.PlanId)
+                    ? "stale_demand"
+                    : "orphan_document";
+
+                AddAction(
+                    category,
+                    nameof(Materialrequest),
+                    materialRequest.RequestId,
+                    materialRequest.RequestCode,
+                    "removed",
+                    category == "stale_demand"
+                        ? "Demand đã hủy và chưa phát sinh mua/xuất kho."
+                        : "Demand không còn KHSX gốc và chưa phát sinh mua/xuất kho.",
+                    materialRequest.Status);
+
+                result.RemovedMaterialRequestLines += materialRequest.Materialrequestlines.Count;
+                result.RemovedMaterialRequests++;
+
+                if (!request.DryRun)
+                {
+                    _context.Materialrequestlines.RemoveRange(materialRequest.Materialrequestlines);
+                    _context.Materialrequests.Remove(materialRequest);
+                }
+            }
+        }
+
+        if (!request.DryRun)
+        {
+            await _context.SaveChangesAsync();
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync();
+            }
+        }
+
+        result.TotalActions = actions.Count;
+        result.Actions = actions;
+        return result;
+    }
+
     public async Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query)
     {
         var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom);
@@ -2111,6 +2386,32 @@ public class WorkflowReportService : IWorkflowReportService
             "reopened" => "reopened",
             _ => "open"
         };
+
+    private static HashSet<string> NormalizeDataQualityCleanupCategories(IReadOnlyList<string>? categories)
+    {
+        var normalized = (categories ?? ["orphan_document", "stale_demand", "stale_purchase_request"])
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Select(category => category.Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (normalized.Count == 0)
+        {
+            normalized.Add("orphan_document");
+            normalized.Add("stale_demand");
+            normalized.Add("stale_purchase_request");
+        }
+
+        var unsupported = normalized
+            .Where(category => category is not ("orphan_document" or "stale_demand" or "stale_purchase_request"))
+            .OrderBy(category => category)
+            .ToList();
+        if (unsupported.Count > 0)
+        {
+            throw new ArgumentException($"Data-quality cleanup chỉ hỗ trợ orphan_document, stale_demand, stale_purchase_request. Không hỗ trợ: {string.Join(", ", unsupported)}.");
+        }
+
+        return normalized;
+    }
 
     private static int ResolveDataQualityPriorityRank(string category, string severity)
         => category switch

@@ -315,6 +315,39 @@ public class DataQualityIssueRemediationDto
     public string? Note { get; set; }
 }
 
+public class DataQualityCleanupRequestDto
+{
+    public bool DryRun { get; set; } = true;
+    public int Limit { get; set; } = 100;
+    public IReadOnlyList<string>? Categories { get; set; }
+    public string? Note { get; set; }
+}
+
+public class DataQualityCleanupResultDto
+{
+    public bool DryRun { get; set; }
+    public DateTime ExecutedAt { get; set; }
+    public int TotalActions { get; set; }
+    public int RemovedMaterialRequests { get; set; }
+    public int RemovedMaterialRequestLines { get; set; }
+    public int RemovedPurchaseRequests { get; set; }
+    public int RemovedPurchaseRequestLines { get; set; }
+    public int RemovedInventoryIssues { get; set; }
+    public int RemovedInventoryIssueLines { get; set; }
+    public int AuditLogCount { get; set; }
+    public IReadOnlyList<DataQualityCleanupActionDto> Actions { get; set; } = [];
+}
+
+public class DataQualityCleanupActionDto
+{
+    public string Category { get; set; } = string.Empty;
+    public string EntityName { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string EntityCode { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string Reason { get; set; } = string.Empty;
+}
+
 public class WorkflowDocumentDto
 {
     public string DocumentId { get; set; } = string.Empty;

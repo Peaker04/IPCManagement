@@ -152,6 +152,34 @@ public class WorkflowReportsController : ControllerBase
         }
     }
 
+    [HttpPost("data-quality/cleanup")]
+    public async Task<IActionResult> CleanupDataQuality([FromBody] DataQualityCleanupRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            var result = await _workflowReportService.CleanupDataQualityAsync(request, userId);
+            var message = result.DryRun
+                ? "Đã quét dữ liệu có thể dọn, chưa thay đổi dữ liệu."
+                : "Đã dọn dữ liệu mồ côi/stale theo chính sách data-quality.";
+
+            return Ok(ApiResponse<DataQualityCleanupResultDto>.SuccessResult(result, message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("order-export")]
     public async Task<IActionResult> GetOrderExport([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>.SuccessResult(

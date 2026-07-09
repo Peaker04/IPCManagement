@@ -2103,6 +2103,138 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var orphanRequestId = GuidHelper.NewId();
+        var stalePurchaseRequestId = GuidHelper.NewId();
+        var stalePurchaseRequestLineId = GuidHelper.NewId();
+        var activeDraftPurchaseRequestId = GuidHelper.NewId();
+        var orphanIssueId = GuidHelper.NewId();
+
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = orphanRequestId,
+            RequestCode = "MR-CLEANUP-ORPHAN",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = new DateOnly(2026, 6, 15),
+            RequestScope = "FULLDAY",
+            Status = "CANCELLED",
+            CreatedBy = fixture.UserId
+        });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = stalePurchaseRequestId,
+            PurchaseRequestCode = "PR-CLEANUP-STALE",
+            RequestDate = new DateOnly(2026, 6, 15),
+            PurchaseForDate = new DateOnly(2026, 6, 15),
+            Status = "CANCELLED",
+            CreatedBy = fixture.UserId
+        });
+        context.Purchaserequestlines.Add(new Purchaserequestline
+        {
+            PurchaseRequestLineId = stalePurchaseRequestLineId,
+            PurchaseRequestId = stalePurchaseRequestId,
+            MaterialRequestLineId = GuidHelper.NewId(),
+            IngredientId = fixture.IngredientId,
+            SupplierId = fixture.SupplierId,
+            UnitId = fixture.UnitId,
+            RequiredQty = 2,
+            CurrentStockQty = 0,
+            PurchaseQty = 2,
+            EstimatedUnitPrice = 1000
+        });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = activeDraftPurchaseRequestId,
+            PurchaseRequestCode = "PR-ACTIVE-DRAFT",
+            RequestDate = new DateOnly(2026, 6, 15),
+            PurchaseForDate = new DateOnly(2026, 6, 15),
+            Status = "DRAFT",
+            CreatedBy = fixture.UserId
+        });
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = orphanIssueId,
+            IssueCode = "ISS-CLEANUP-ORPHAN",
+            IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = GuidHelper.NewId(),
+            IssuedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow
+        });
+        context.Inventoryissuelines.Add(new Inventoryissueline
+        {
+            IssueLineId = GuidHelper.NewId(),
+            IssueId = orphanIssueId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            RequestedQty = 1,
+            IssuedQty = 1
+        });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var dryRun = await service.CleanupDataQualityAsync(new DataQualityCleanupRequestDto
+        {
+            DryRun = true,
+            Limit = 20
+        }, fixture.UserIdString);
+
+        dryRun.DryRun.Should().BeTrue();
+        dryRun.TotalActions.Should().BeGreaterThanOrEqualTo(3);
+        dryRun.RemovedMaterialRequests.Should().Be(1);
+        dryRun.RemovedPurchaseRequests.Should().Be(1);
+        dryRun.RemovedPurchaseRequestLines.Should().Be(1);
+        dryRun.RemovedInventoryIssues.Should().Be(1);
+        dryRun.RemovedInventoryIssueLines.Should().Be(1);
+        dryRun.AuditLogCount.Should().Be(0);
+        (await context.Materialrequests.AnyAsync(request => request.RequestId == orphanRequestId)).Should().BeTrue();
+        (await context.Purchaserequests.AnyAsync(request => request.PurchaseRequestId == stalePurchaseRequestId)).Should().BeTrue();
+        (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == orphanIssueId)).Should().BeTrue();
+
+        var applied = await service.CleanupDataQualityAsync(new DataQualityCleanupRequestDto
+        {
+            DryRun = false,
+            Limit = 20,
+            Note = "PRD-142 cleanup"
+        }, fixture.UserIdString);
+
+        applied.DryRun.Should().BeFalse();
+        applied.TotalActions.Should().BeGreaterThanOrEqualTo(3);
+        applied.RemovedMaterialRequests.Should().Be(1);
+        applied.RemovedPurchaseRequests.Should().Be(1);
+        applied.RemovedPurchaseRequestLines.Should().Be(1);
+        applied.RemovedInventoryIssues.Should().Be(1);
+        applied.RemovedInventoryIssueLines.Should().Be(1);
+        applied.AuditLogCount.Should().Be(applied.TotalActions);
+
+        (await context.Materialrequests.AnyAsync(request => request.RequestId == orphanRequestId)).Should().BeFalse();
+        (await context.Purchaserequests.AnyAsync(request => request.PurchaseRequestId == stalePurchaseRequestId)).Should().BeFalse();
+        (await context.Purchaserequests.AnyAsync(request => request.PurchaseRequestId == activeDraftPurchaseRequestId)).Should().BeTrue();
+        (await context.Purchaserequestlines.AnyAsync(line => line.PurchaseRequestLineId == stalePurchaseRequestLineId)).Should().BeFalse();
+        (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == orphanIssueId)).Should().BeFalse();
+        (await context.Inventoryissuelines.AnyAsync(line => line.IssueId == orphanIssueId)).Should().BeFalse();
+        (await context.Auditlogs.CountAsync(log =>
+            log.BusinessArea == "DataQuality" &&
+            log.FieldName == "Cleanup" &&
+            log.Reason != null &&
+            log.Reason.Contains("PRD-142 cleanup"))).Should().Be(applied.AuditLogCount);
+
+        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto
+        {
+            ServiceDate = "2026-06-15",
+            Limit = 100
+        });
+        report.Issues.Select(issue => issue.EntityCode).Should().NotContain("MR-CLEANUP-ORPHAN");
+        report.Issues.Select(issue => issue.EntityCode).Should().NotContain("PR-CLEANUP-STALE");
+        report.Issues.Select(issue => issue.EntityCode).Should().NotContain("ISS-CLEANUP-ORPHAN");
+    }
+
+    [Fact]
     public async Task StockLedgerReconciliation_Should_ReportCurrentStockMismatch()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

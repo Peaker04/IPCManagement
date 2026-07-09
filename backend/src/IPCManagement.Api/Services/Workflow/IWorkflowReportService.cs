@@ -21,6 +21,7 @@ public interface IWorkflowReportService
     Task<IReadOnlyList<AuditChangeReportDto>> GetAuditChangesAsync(WorkflowReportQueryDto query);
     Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query);
     Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(DataQualityIssueRemediationRequestDto request, string actorUserId);
+    Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(DataQualityCleanupRequestDto request, string actorUserId);
     Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query);
     Task<OperationalKpiSummaryDto> GetOperationalKpisAsync();
 }
