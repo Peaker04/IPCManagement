@@ -500,6 +500,131 @@ async function stubApprovalDecisionSuccess(page: Page) {
   });
 }
 
+async function stubMobileOperationsSuccess(page: Page) {
+  const fulfill = (route: Parameters<Parameters<Page['route']>[1]>[0], data: unknown, message = 'OK') =>
+    route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message, data }),
+    });
+
+  await page.route('**/api/approvals/inbox**', async (route) => fulfill(route, [
+    {
+      inboxItemId: 'purchase-pr-mobile',
+      targetType: 'purchase-request',
+      targetId: 'pr-mobile',
+      targetCode: 'PR-20260709-MOBILE',
+      itemType: 'purchase',
+      title: 'Duyệt đơn mua',
+      source: 'PR-20260709-MOBILE',
+      ownerRole: 'Thu mua / Quản lý',
+      submittedBy: 'Điều phối ca sáng',
+      dueDate: '2026-07-09',
+      status: 'PENDING',
+      reason: 'Đơn mua chờ duyệt trên thiết bị vận hành.',
+      nextAction: 'Duyệt đơn mua',
+      tone: 'warning',
+      route: ROUTES.APPROVALS,
+      materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
+    },
+  ]));
+
+  await page.route('**/api/workflow-reports/**', async (route) => {
+    const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
+    if (endpoint === 'ingredient-demand') {
+      await fulfill(route, [
+        {
+          materialRequestId: 'mr-mobile',
+          materialRequestCode: 'MR-20260709-MOBILE',
+          requestDate: '2026-07-09',
+          status: 'CONFIRMED',
+          shiftName: 'MORNING',
+          customerName: 'IPC Bắc Ninh',
+          dishName: 'Bún bò',
+          ingredientId: 'ing-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          totalServings: 120,
+          totalRequiredQty: 18,
+          currentStockQty: 3,
+          suggestedPurchaseQty: 15,
+        },
+      ]);
+      return;
+    }
+
+    if (endpoint === 'current-stock') {
+      await fulfill(route, [
+        {
+          warehouseId: 'wh-mobile',
+          warehouseName: 'Kho chính',
+          ingredientId: 'ing-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          currentQty: 20,
+          lastUpdated: '2026-07-09T05:00:00Z',
+        },
+      ]);
+      return;
+    }
+
+    if (endpoint === 'kitchen-issues') {
+      await fulfill(route, [
+        {
+          issueId: 'issue-mobile',
+          issueCode: 'PXB-20260709-MOBILE',
+          issueDate: '2026-07-09',
+          shiftName: 'MORNING',
+          warehouseId: 'wh-mobile',
+          warehouseName: 'Kho chính',
+          ingredientId: 'ing-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          requestedQty: 18,
+          issuedQty: 18,
+          isReceivedByKitchen: false,
+          receiptStatus: 'PENDING',
+        },
+      ]);
+      return;
+    }
+
+    await fulfill(route, []);
+  });
+
+  await page.route('**/api/purchase-requests**', async (route) => fulfill(route, []));
+  await page.route('**/api/dishes/catalog**', async (route) => fulfill(route, []));
+
+  await page.route('**/api/approvals/purchase-request/pr-mobile', async (route) => {
+    expect(await route.request().postDataJSON()).toMatchObject({ status: 0, reason: 'Đồng ý trên thiết bị' });
+    await fulfill(route, {
+      targetType: 'purchase-request',
+      targetId: 'pr-mobile',
+      status: 'APPROVE',
+      oldStatus: 'SENTTOSUPPLIER',
+      newStatus: 'APPROVED',
+      historyId: 'hist-mobile',
+      actionAt: '2026-07-09T05:10:00Z',
+    }, 'Thực hiện phê duyệt thành công.');
+  });
+
+  await page.route('**/api/inventory-issues', async (route) => {
+    expect(await route.request().postDataJSON()).toMatchObject({
+      warehouseId: 'wh-mobile',
+      materialRequestId: 'mr-mobile',
+    });
+    await fulfill(route, { issueId: 'issue-mobile', issueCode: 'PXB-20260709-MOBILE' }, 'Đã tạo phiếu xuất kho.');
+  });
+
+  await page.route('**/api/inventory-issues/issue-mobile/confirm-receipt', async (route) => {
+    expect(await route.request().postDataJSON()).toMatchObject({ hasDiscrepancy: false });
+    await fulfill(route, { issueId: 'issue-mobile', issueCode: 'PXB-20260709-MOBILE' }, 'Bếp đã ký nhận phiếu xuất kho.');
+  });
+}
+
 async function expectNoPageOverflow(page: Page) {
   const overflow = await page.evaluate(() => {
     const documentWidth = Math.max(
@@ -645,4 +770,37 @@ test.describe('route smoke', () => {
     await page.getByRole('button', { name: 'Duyệt' }).last().click();
     await expect.poll(() => dialogMessages).toContain('Đã duyệt thành công.');
   });
+
+  for (const viewport of [
+    { name: 'tablet', width: 768, height: 960 },
+    { name: 'mobile', width: 390, height: 844 },
+  ]) {
+    test(`approve, warehouse issue, and kitchen signoff work at ${viewport.name}`, async ({ page }) => {
+      await stubMobileOperationsSuccess(page);
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await login(page);
+
+      await page.goto(ROUTES.APPROVALS);
+      const dialogMessages: string[] = [];
+      page.on('dialog', async (dialog) => {
+        dialogMessages.push(dialog.message());
+        await dialog.accept();
+      });
+      await page.getByRole('button', { name: 'Duyệt' }).first().click();
+      await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý trên thiết bị');
+      await page.getByRole('button', { name: 'Duyệt' }).last().click();
+      await expect.poll(() => dialogMessages).toContain('Đã duyệt thành công.');
+      await expectNoPageOverflow(page);
+
+      await page.goto(ROUTES.WAREHOUSE);
+      await page.getByRole('button', { name: 'Tạo phiếu xuất kho' }).click();
+      await expect(page.getByText('Đã tạo phiếu xuất kho').first()).toBeVisible();
+      await expectNoPageOverflow(page);
+
+      await page.goto(ROUTES.CHEF_DASHBOARD);
+      await page.getByRole('checkbox', { name: 'Ký nhận Sườn heo' }).click();
+      await expect(page.getByText('Đã ký nhận nguyên liệu')).toBeVisible();
+      await expectNoPageOverflow(page);
+    });
+  }
 });
