@@ -27,6 +27,9 @@ public class OperationalKpiSummaryDto
     public int OverduePurchaseRequestCount { get; set; }
     public int LateReceiptCount { get; set; }
     public int PendingKitchenConfirmationCount { get; set; }
+    public int FailedWorkflowCount { get; set; }
+    public int CriticalDataQualityCount { get; set; }
+    public int OverdueApprovalCount { get; set; }
     public DateTime GeneratedAt { get; set; }
 }
 

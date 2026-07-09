@@ -4069,6 +4069,63 @@ public class WorkflowGenerationTests
         kpis.PendingKitchenConfirmationCount.Should().Be(1);
     }
 
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_SurfaceProductionMonitoringAlerts()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-MON", WarehouseName = "Kho giám sát", WarehouseType = "DRY" });
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = fixture.IngredientId,
+            IngredientCode = "ING-MON",
+            IngredientName = "Nguyên liệu giám sát",
+            UnitId = fixture.UnitId,
+            WarehouseId = fixture.WarehouseId,
+            ReferencePrice = 100,
+            IsFreshDaily = false,
+            IsActive = true
+        });
+
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = GuidHelper.NewId(),
+            RequestCode = "MR-FAILED",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY",
+            Status = "FAILED",
+            CreatedBy = fixture.UserId
+        });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = GuidHelper.NewId(),
+            PurchaseRequestCode = "PR-OVERDUE-APPROVAL",
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
+            PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1),
+            Status = "SENTTOSUPPLIER",
+            CreatedBy = fixture.UserId
+        });
+        context.Currentstocks.Add(new Currentstock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = -1,
+            LastUpdated = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.FailedWorkflowCount.Should().Be(1);
+        kpis.CriticalDataQualityCount.Should().BeGreaterThan(0);
+        kpis.OverdueApprovalCount.Should().Be(1);
+    }
+
     private sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;

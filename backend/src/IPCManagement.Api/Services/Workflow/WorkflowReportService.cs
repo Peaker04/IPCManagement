@@ -2033,9 +2033,12 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var now = DateTime.UtcNow;
+        var today = DateOnly.FromDateTime(now);
         var demandWindowStart = today.AddDays(-7);
         var lateReceiptCutoff = today.AddDays(-LateReceiptThresholdDays);
+        var approvalCutoff = now.AddHours(-24);
+        var failedStatuses = new[] { "FAILED", "IMPORT_FAILED" };
 
         var shortageCount = await _context.Materialrequestlines
             .AsNoTracking()
@@ -2060,6 +2063,38 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .CountAsync(issue => issue.ReceivedBy == null);
 
+        var failedWorkflowCount =
+            await _context.Materialrequests.AsNoTracking().CountAsync(request => failedStatuses.Contains(request.Status)) +
+            await _context.Purchaserequests.AsNoTracking().CountAsync(request => failedStatuses.Contains(request.Status)) +
+            await _context.Menuversions.AsNoTracking().CountAsync(version => failedStatuses.Contains(version.Status));
+
+        var dataQuality = await GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 200 });
+
+        var overdueApprovalCount =
+            await _context.Purchaserequests
+                .AsNoTracking()
+                .CountAsync(request =>
+                    request.Status == "SENTTOSUPPLIER" &&
+                    request.RequestDate < today &&
+                    !_context.Approvalhistories.Any(history =>
+                        history.TargetType == "purchase-request" &&
+                        history.TargetId == request.PurchaseRequestId)) +
+            await _context.Inventoryissues
+                .AsNoTracking()
+                .CountAsync(issue =>
+                    issue.CreatedAt <= approvalCutoff &&
+                    issue.MaterialRequest.Status == "SENTTOWAREHOUSE" &&
+                    !_context.Approvalhistories.Any(history =>
+                        history.TargetType == "inventory-issue" &&
+                        history.TargetId == issue.IssueId)) +
+            await _context.Quantityadjustments
+                .AsNoTracking()
+                .CountAsync(adjustment =>
+                    adjustment.AdjustedAt <= approvalCutoff &&
+                    !_context.Approvalhistories.Any(history =>
+                        history.TargetType == "order-adjustment" &&
+                        history.TargetId == adjustment.AdjustmentId));
+
         var lowStockCount = await ComputeLowStockCountAsync(demandWindowStart, today);
 
         return new OperationalKpiSummaryDto
@@ -2069,7 +2104,10 @@ public class WorkflowReportService : IWorkflowReportService
             OverduePurchaseRequestCount = overduePurchaseRequestCount,
             LateReceiptCount = lateReceiptCount,
             PendingKitchenConfirmationCount = pendingKitchenConfirmationCount,
-            GeneratedAt = DateTime.UtcNow
+            FailedWorkflowCount = failedWorkflowCount,
+            CriticalDataQualityCount = dataQuality.ErrorCount,
+            OverdueApprovalCount = overdueApprovalCount,
+            GeneratedAt = now
         };
     }
 

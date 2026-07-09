@@ -469,6 +469,9 @@ export interface OperationalKpiSummaryDto {
   overduePurchaseRequestCount: number;
   lateReceiptCount: number;
   pendingKitchenConfirmationCount: number;
+  failedWorkflowCount: number;
+  criticalDataQualityCount: number;
+  overdueApprovalCount: number;
   generatedAt: string;
 }
 
