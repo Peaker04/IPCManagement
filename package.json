@@ -16,6 +16,10 @@
     "lint:fe": "npm run lint -w frontend",
     "build:fe": "npm run build -w frontend",
     "verify": "npm run build:be && npm run test:be && npm run lint:fe && npm run build:fe",
+    "verify:release": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1",
+    "verify:release:audit": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1 -AuditOnly",
+    "e2e:happy": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1HappyPathE2E.ps1",
+    "e2e:exceptions": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1ExceptionPathE2E.ps1",
     "commitlint": "commitlint --edit"
   },
   "repository": {

@@ -60,7 +60,28 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
             </div>
             <div>
               <dt>Hạn:</dt>
-              <dd>{record.deadline}</dd>
+              <dd className="flex items-center">
+                {record.deadline}
+                {record.slaDeadline && (
+                  <span className={cn(
+                    "text-xs font-semibold px-2 py-0.5 rounded border ml-2",
+                    (() => {
+                      const diffMs = new Date(record.slaDeadline).getTime() - new Date().getTime();
+                      if (diffMs <= 0) return "bg-red-50 text-red-700 border-red-200";
+                      if (diffMs / (1000 * 60 * 60) <= 4) return "bg-yellow-50 text-yellow-700 border-yellow-200";
+                      return "bg-green-50 text-green-700 border-green-200";
+                    })()
+                  )}>
+                    SLA: {(() => {
+                      const diffMs = new Date(record.slaDeadline).getTime() - new Date().getTime();
+                      if (diffMs <= 0) return "Quá hạn";
+                      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+                      const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                      return `${hours}g ${mins}p`;
+                    })()}
+                  </span>
+                )}
+              </dd>
             </div>
             <div>
               <dt>Phụ trách:</dt>

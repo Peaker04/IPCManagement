@@ -1,4 +1,4 @@
-﻿using IPCManagement.Api.Models.DTOs.Common;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.ProductionPlan;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data.Repositories;
@@ -36,6 +36,33 @@ public class ProductionPlanService : IProductionPlanService
 
         var plan = await _productionPlanRepository.GetByIdWithLinesAsync(bytes);
         return plan is null ? null : MapPlan(plan, includeLines: true);
+    }
+
+    public async Task<IReadOnlyList<ProductionPlanDto>> GetFilteredAsync(
+        string? serviceDate,
+        string? customerId,
+        CancellationToken cancellationToken = default)
+    {
+        DateOnly? parsedDate = null;
+        if (!string.IsNullOrWhiteSpace(serviceDate))
+        {
+            if (!DateOnly.TryParse(serviceDate, out var date))
+            {
+                throw new ArgumentException("Ngày phục vụ không hợp lệ.");
+            }
+
+            parsedDate = date;
+        }
+
+        byte[]? customerIdBytes = null;
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            customerIdBytes = GuidHelper.ParseGuidString(customerId)
+                ?? throw new ArgumentException("CustomerId không hợp lệ.");
+        }
+
+        var plans = await _productionPlanRepository.GetFilteredAsync(parsedDate, customerIdBytes, cancellationToken);
+        return plans.Select(plan => MapPlan(plan, includeLines: true)).ToList();
     }
 
     private static ProductionPlanDto MapPlan(Productionplan plan, bool includeLines = false) => new()

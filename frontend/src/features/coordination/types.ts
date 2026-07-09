@@ -282,3 +282,29 @@ export interface SignoffOrderResult {
   newStatus: string
   signedOffAt: string
 }
+
+export interface ProductionPlanLineDto {
+  planLineId: string
+  dishId: string
+  dishName?: string
+  shiftName?: string
+  totalServings: number
+}
+
+export interface ProductionPlanDto {
+  planId: string
+  planCode: string
+  planDate: string
+  customerId?: string
+  customerCode?: string
+  customerName?: string
+  weekStartDate?: string
+  menuVersionId?: string
+  menuVersionNo?: number
+  menuVersionStatus?: string
+  status: string
+  createdBy?: string
+  createdByName?: string
+  createdAt: string
+  lines: ProductionPlanLineDto[]
+}

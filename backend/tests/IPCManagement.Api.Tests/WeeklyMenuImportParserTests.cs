@@ -12,6 +12,103 @@ namespace IPCManagement.Api.Tests;
 public class WeeklyMenuImportParserTests
 {
     [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_Fail_When_CustomerSheetIsMissing()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            // Tạo workbook với sheet có tên khác không phải "MENU" hay sheet hợp lệ mặc định
+            CreateWorkbook(tempFile, "RANDOM_SHEET_NAME", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá kho"]
+            ]);
+
+            var action = () => InvokeParse(tempFile, "no-sheet.xlsx", null);
+            action.Should().Throw<TargetInvocationException>();
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_Fail_When_DateHeadersAreInvalid()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            // Ngày tháng không hợp lệ (ví dụ: chuỗi chữ không chuyển đổi được)
+            CreateWorkbook(tempFile, "MENU", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                [],
+                ["", "", "", "InvalidDate1", "InvalidDate2"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Cá kho", "Gà kho"]
+            ]);
+
+            var action = () => InvokeParse(tempFile, "bad-dates.xlsx", null);
+            action.Should().Throw<TargetInvocationException>();
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void Validate_Should_Warn_When_DishNotExistsInCatalog()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "MENU", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                [],
+                ["", "", "", "15/06/2026"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "Món Ăn Siêu Lạ Không Có Thật"],
+            ]);
+
+            var plan = InvokeParse(tempFile, "no-catalog.xlsx", null);
+
+            var validation = InvokeValidation(plan, [
+                new WeeklyMenuImportRowDto
+                {
+                    ServiceDate = new DateOnly(2026, 6, 15),
+                    SourceRowNumber = 9,
+                    SourceColumn = "D",
+                    DbShiftName = "MORNING",
+                    Variant = "Mặn",
+                    Slot = "main",
+                    SlotLabel = "Món mặn chính",
+                    DishName = "Món Ăn Siêu Lạ Không Có Thật",
+                    ExistingDish = false // Món không có sẵn trong hệ thống
+                }
+            ]);
+
+            validation.Issues.Should().ContainSingle(issue =>
+                issue.Code == "NEW_DISH_WARNING" || 
+                issue.Code == "DISH_NOT_FOUND" ||
+                issue.Message.Contains("không tồn tại") ||
+                issue.Message.Contains("mới"));
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
     public void ParseWeeklyMenuWorkbook_Should_Parse_StandardSixDayMenu()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");

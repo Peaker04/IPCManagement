@@ -10,6 +10,10 @@ public class WorkflowReportService : IWorkflowReportService
 {
     private const int LateReceiptThresholdDays = 3;
     private const int DefaultStockMovementWindowDays = 31;
+    private const string DataQualityBusinessArea = "DataQuality";
+    private const string DataQualityIssueEntityName = "DataQualityIssue";
+    private const string DataQualityRemediationFieldName = "Remediation";
+    private const string DataQualityCleanupFieldName = "Cleanup";
 
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
@@ -969,6 +973,26 @@ public class WorkflowReportService : IWorkflowReportService
             changes = changes.Where(item => item.ChangedAt < cursorDate);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.Actor))
+        {
+            changes = changes.Where(item => item.ChangedByNavigation.FullName.Contains(query.Actor) || item.ChangedByNavigation.Username.Contains(query.Actor));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.BusinessArea))
+        {
+            changes = changes.Where(item => item.BusinessArea != null && item.BusinessArea.Contains(query.BusinessArea));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.EntityName))
+        {
+            changes = changes.Where(item => item.EntityName != null && item.EntityName.Contains(query.EntityName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(query.FieldName))
+        {
+            changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(query.FieldName));
+        }
+
         var auditRows = await changes
             .OrderByDescending(item => item.ChangedAt)
             .ThenByDescending(item => item.AuditId)
@@ -978,7 +1002,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.AuditId),
                 ChangedAt = item.ChangedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ChangedBy),
-                ChangedByName = item.ChangedByNavigation.FullName,
+                ChangedByName = item.ChangedByNavigation.FullName ?? item.ChangedByNavigation.Username ?? "System",
                 BusinessArea = item.EntityName == nameof(Mealquantityplan)
                     && item.FieldName == nameof(Mealquantityplan.Status)
                     && item.NewValue == "COMPLETED"
@@ -1015,7 +1039,9 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ImportBatchId),
                 ChangedAt = item.ImportedAt,
                 ChangedBy = item.ImportedBy == null ? string.Empty : GuidHelper.ToGuidString(item.ImportedBy),
-                ChangedByName = item.ImportedByNavigation == null ? null : item.ImportedByNavigation.FullName,
+                ChangedByName = item.ImportedByNavigation == null
+                    ? "Sample Data Importer"
+                    : item.ImportedByNavigation.FullName ?? item.ImportedByNavigation.Username ?? "Sample Data Importer",
                 BusinessArea = "Import",
                 EntityName = nameof(Quantityimportbatch),
                 EntityId = GuidHelper.ToGuidString(item.ImportBatchId),
@@ -1063,7 +1089,9 @@ public class WorkflowReportService : IWorkflowReportService
                     AuditId = GuidHelper.ToGuidString(item.MenuVersionId),
                     ChangedAt = item.CreatedAt,
                     ChangedBy = actorId,
-                    ChangedByName = !string.IsNullOrWhiteSpace(actorId) && menuImportActors.TryGetValue(actorId, out var actorName) ? actorName : null,
+                    ChangedByName = !string.IsNullOrWhiteSpace(actorId) && menuImportActors.TryGetValue(actorId, out var actorName)
+                        ? actorName
+                        : "Sample Data Importer",
                     BusinessArea = "Import",
                     EntityName = nameof(Menuversion),
                     EntityId = GuidHelper.ToGuidString(item.MenuVersionId),
@@ -1096,7 +1124,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ApprovalHistoryId),
                 ChangedAt = item.ActionAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ActionBy),
-                ChangedByName = item.ActionByNavigation.FullName,
+                ChangedByName = item.ActionByNavigation.FullName ?? item.ActionByNavigation.Username ?? "System",
                 BusinessArea = "Approval",
                 EntityName = item.TargetType,
                 EntityId = GuidHelper.ToGuidString(item.TargetId),
@@ -1129,7 +1157,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.ReceiptId),
                 ChangedAt = item.CreatedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.CreatedBy),
-                ChangedByName = item.CreatedByNavigation.FullName,
+                ChangedByName = item.CreatedByNavigation.FullName ?? item.CreatedByNavigation.Username ?? "System",
                 BusinessArea = "Receipt",
                 EntityName = nameof(Inventoryreceipt),
                 EntityId = GuidHelper.ToGuidString(item.ReceiptId),
@@ -1162,7 +1190,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.IssueId),
                 ChangedAt = item.CreatedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
-                ChangedByName = item.IssuedByNavigation.FullName,
+                ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
                 BusinessArea = "Issue",
                 EntityName = nameof(Inventoryissue),
                 EntityId = GuidHelper.ToGuidString(item.IssueId),
@@ -1194,7 +1222,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.AdjustmentId),
                 ChangedAt = item.AdjustedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.AdjustedBy),
-                ChangedByName = item.AdjustedByNavigation.FullName,
+                ChangedByName = item.AdjustedByNavigation.FullName ?? item.AdjustedByNavigation.Username ?? "System",
                 BusinessArea = "Số suất",
                 EntityName = "MealQuantityPlanLine",
                 EntityId = GuidHelper.ToGuidString(item.QuantityPlanLineId),
@@ -1230,7 +1258,7 @@ public class WorkflowReportService : IWorkflowReportService
                 AuditId = GuidHelper.ToGuidString(item.BomAdjustmentId),
                 ChangedAt = item.AdjustedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.AdjustedBy),
-                ChangedByName = item.AdjustedByNavigation.FullName,
+                ChangedByName = item.AdjustedByNavigation.FullName ?? item.AdjustedByNavigation.Username ?? "System",
                 BusinessArea = "BOM",
                 EntityName = item.Bom.Dish.DishName,
                 EntityId = GuidHelper.ToGuidString(item.BomId),
@@ -1462,6 +1490,88 @@ public class WorkflowReportService : IWorkflowReportService
             "Nhập kho bổ sung, giảm số lượng xuất hoặc tạo đề xuất mua thêm trước khi xuất kho.",
             "/warehouse")));
 
+        var missingContractPlans = await _context.Productionplans
+            .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Where(plan =>
+                plan.CustomerId != null &&
+                !_context.Customercontracts.Any(contract =>
+                    contract.CustomerId == plan.CustomerId &&
+                    contract.Status == "ACTIVE" &&
+                    contract.EffectiveFrom <= plan.PlanDate &&
+                    (contract.EffectiveTo == null || contract.EffectiveTo >= plan.PlanDate)))
+            .OrderBy(plan => plan.PlanCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(missingContractPlans.Select(plan => BuildDataQualityIssue(
+            "missing_contract",
+            "error",
+            nameof(Productionplan),
+            GuidHelper.ToGuidString(plan.PlanId),
+            plan.PlanCode,
+            plan.Customer?.CustomerName ?? GuidHelper.ToGuidString(plan.CustomerId!),
+            "KHSX có khách hàng nhưng không có contract hiệu lực cho ngày phục vụ.",
+            "Tạo hoặc publish contract khách hàng trước khi chốt giá/BOM.",
+            "/admin-data?view=contracts")));
+
+        var inactiveSupplierLines = await _context.Purchaserequestlines
+            .AsNoTracking()
+            .Include(line => line.PurchaseRequest)
+            .Include(line => line.Supplier)
+            .Include(line => line.Ingredient)
+            .Where(line => line.Supplier.IsActive == false)
+            .OrderBy(line => line.PurchaseRequest.PurchaseRequestCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(inactiveSupplierLines.Select(line => BuildDataQualityIssue(
+            "missing_supplier",
+            "error",
+            nameof(Purchaserequestline),
+            GuidHelper.ToGuidString(line.PurchaseRequestLineId),
+            line.PurchaseRequest.PurchaseRequestCode,
+            $"{line.Ingredient.IngredientName} / {line.Supplier.SupplierName}",
+            "Dòng mua thêm đang gán nhà cung cấp đã khóa hoặc không còn dùng được.",
+            "Chọn lại nhà cung cấp active hoặc bổ sung báo giá trước khi gửi mua.",
+            "/purchasing")));
+
+        var staleDemands = await _context.Materialrequests
+            .AsNoTracking()
+            .Where(request => request.Status == "CANCELLED")
+            .OrderBy(request => request.RequestCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(staleDemands.Select(request => BuildDataQualityIssue(
+            "stale_demand",
+            "warning",
+            nameof(Materialrequest),
+            GuidHelper.ToGuidString(request.RequestId),
+            request.RequestCode,
+            request.RequestDate.ToString("yyyy-MM-dd"),
+            "Demand đã bị hủy do menu/KHSX thay đổi và cần sinh lại trước khi mua/xuất kho.",
+            "Chạy lại generate demand từ KHSX hiện tại.",
+            "/weekly-menu")));
+
+        var stalePurchaseRequests = await _context.Purchaserequests
+            .AsNoTracking()
+            .Where(request => request.Status == "CANCELLED")
+            .OrderBy(request => request.PurchaseRequestCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(stalePurchaseRequests.Select(request => BuildDataQualityIssue(
+            "stale_purchase_request",
+            "warning",
+            nameof(Purchaserequest),
+            GuidHelper.ToGuidString(request.PurchaseRequestId),
+            request.PurchaseRequestCode,
+            request.PurchaseForDate.ToString("yyyy-MM-dd"),
+            "Đề xuất mua đã bị hủy do demand/menu thay đổi và không còn là nguồn mua hợp lệ.",
+            "Sinh lại purchase request từ demand hiện tại.",
+            "/purchasing")));
+
         var kitchenReceiptDiscrepancies = await _context.Auditlogs
             .AsNoTracking()
             .Where(log => log.BusinessArea == "KitchenReceipt" && log.FieldName == "KitchenReceiptDiscrepancy")
@@ -1537,11 +1647,14 @@ public class WorkflowReportService : IWorkflowReportService
             "/warehouse")));
 
         var sortedIssues = issues
-            .OrderBy(issue => issue.Severity == "error" ? 0 : 1)
+            .OrderBy(issue => issue.PriorityRank)
+            .ThenBy(issue => issue.Severity == "error" ? 0 : 1)
             .ThenBy(issue => issue.Category)
             .ThenBy(issue => issue.EntityCode)
             .Take(limit)
             .ToList();
+
+        await ApplyDataQualityRemediationStateAsync(sortedIssues);
 
         return new DataQualityReportDto
         {
@@ -1549,6 +1662,9 @@ public class WorkflowReportService : IWorkflowReportService
             TotalIssues = sortedIssues.Count,
             ErrorCount = sortedIssues.Count(issue => issue.Severity == "error"),
             WarningCount = sortedIssues.Count(issue => issue.Severity == "warning"),
+            ResolvedIssueCount = sortedIssues.Count(issue => issue.RemediationStatus == "resolved"),
+            ReopenedIssueCount = sortedIssues.Count(issue => issue.RemediationStatus == "reopened"),
+            UrgentIssueCount = sortedIssues.Count(issue => issue.PriorityRank <= 2),
             MissingBomCount = sortedIssues.Count(issue => issue.Category == "missing_bom"),
             InvalidUnitCount = sortedIssues.Count(issue => issue.Category is "invalid_unit" or "inactive_bom_ingredient"),
             MissingConversionCount = sortedIssues.Count(issue => issue.Category == "missing_conversion"),
@@ -1556,6 +1672,320 @@ public class WorkflowReportService : IWorkflowReportService
             OrphanDocumentCount = sortedIssues.Count(issue => issue.Category == "orphan_document"),
             Issues = sortedIssues
         };
+    }
+
+    public async Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(
+        DataQualityIssueRemediationRequestDto request,
+        string actorUserId)
+    {
+        var issueId = request.IssueId.Trim();
+        if (string.IsNullOrWhiteSpace(issueId))
+        {
+            throw new ArgumentException("Thiếu mã data-quality issue.");
+        }
+
+        var normalizedStatus = NormalizeDataQualityRemediationAction(request.Action);
+        var actorId = GuidHelper.ParseGuidString(actorUserId)
+            ?? throw new UnauthorizedAccessException("Không xác định được người dùng.");
+        var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        var now = DateTime.UtcNow;
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = now,
+            ChangedBy = actorId,
+            BusinessArea = DataQualityBusinessArea,
+            EntityName = DataQualityIssueEntityName,
+            EntityId = null,
+            FieldName = DataQualityRemediationFieldName,
+            OldValue = issueId,
+            NewValue = normalizedStatus,
+            Reason = note
+        });
+        await _context.SaveChangesAsync();
+
+        return new DataQualityIssueRemediationDto
+        {
+            IssueId = issueId,
+            RemediationStatus = normalizedStatus,
+            RemediationAt = now,
+            Note = note
+        };
+    }
+
+    public async Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(
+        DataQualityCleanupRequestDto request,
+        string actorUserId)
+    {
+        var actorId = GuidHelper.ParseGuidString(actorUserId)
+            ?? throw new UnauthorizedAccessException("Không xác định được người dùng.");
+        var limit = NormalizeLimit(request.Limit);
+        var categories = NormalizeDataQualityCleanupCategories(request.Categories);
+        var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        var now = DateTime.UtcNow;
+        var staleStatuses = new[] { "CANCELLED", "FAILED", "IMPORT_FAILED" };
+        var orphanCleanupStatuses = new[] { "DRAFT", "CANCELLED", "FAILED", "IMPORT_FAILED" };
+        var actions = new List<DataQualityCleanupActionDto>();
+        var stalePurchaseRequestIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var result = new DataQualityCleanupResultDto
+        {
+            DryRun = request.DryRun,
+            ExecutedAt = now
+        };
+
+        await using var transaction = request.DryRun ? null : await _context.Database.BeginTransactionAsync();
+
+        void AddAction(
+            string category,
+            string entityName,
+            byte[] entityId,
+            string entityCode,
+            string action,
+            string reason,
+            string? oldValue = null)
+        {
+            actions.Add(new DataQualityCleanupActionDto
+            {
+                Category = category,
+                EntityName = entityName,
+                EntityId = GuidHelper.ToGuidString(entityId),
+                EntityCode = entityCode,
+                Action = action,
+                Reason = reason
+            });
+
+            if (!request.DryRun)
+            {
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = now,
+                    ChangedBy = actorId,
+                    BusinessArea = DataQualityBusinessArea,
+                    EntityName = entityName,
+                    EntityId = entityId,
+                    FieldName = DataQualityCleanupFieldName,
+                    OldValue = oldValue ?? entityCode,
+                    NewValue = action,
+                    Reason = note is null ? reason : $"{reason} Note: {note}"
+                });
+                result.AuditLogCount++;
+            }
+        }
+
+        if (categories.Contains("stale_purchase_request"))
+        {
+            var stalePurchaseRequests = await _context.Purchaserequests
+                .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
+                    .ThenInclude(line => line.Inventoryreceiptlines)
+                .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
+                    .ThenInclude(line => line.Purchaseorderline)
+                .Include(purchaseRequest => purchaseRequest.Inventoryreceipts)
+                .Include(purchaseRequest => purchaseRequest.Purchaseorders)
+                .Where(purchaseRequest => staleStatuses.Contains(purchaseRequest.Status))
+                .OrderBy(purchaseRequest => purchaseRequest.PurchaseRequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var purchaseRequest in stalePurchaseRequests)
+            {
+                if (purchaseRequest.Inventoryreceipts.Count > 0 ||
+                    purchaseRequest.Purchaseorders.Count > 0 ||
+                    purchaseRequest.Purchaserequestlines.Any(line =>
+                        line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null))
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "stale_purchase_request",
+                    nameof(Purchaserequest),
+                    purchaseRequest.PurchaseRequestId,
+                    purchaseRequest.PurchaseRequestCode,
+                    "removed",
+                    "Đề xuất mua ở trạng thái nháp/hủy/lỗi không còn được dùng cho workflow vận hành.",
+                    purchaseRequest.Status);
+                stalePurchaseRequestIds.Add(GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId));
+
+                result.RemovedPurchaseRequestLines += purchaseRequest.Purchaserequestlines.Count;
+                result.RemovedPurchaseRequests++;
+
+                if (!request.DryRun)
+                {
+                    _context.Purchaserequestlines.RemoveRange(purchaseRequest.Purchaserequestlines);
+                    _context.Purchaserequests.Remove(purchaseRequest);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("orphan_document"))
+        {
+            var orphanPurchaseLines = await _context.Purchaserequestlines
+                .Include(line => line.PurchaseRequest)
+                .Include(line => line.Inventoryreceiptlines)
+                .Include(line => line.Purchaseorderline)
+                .Include(line => line.Ingredient)
+                .Where(line =>
+                    orphanCleanupStatuses.Contains(line.PurchaseRequest.Status) &&
+                    !_context.Materialrequestlines.Any(materialLine => materialLine.RequestLineId == line.MaterialRequestLineId))
+                .OrderBy(line => line.PurchaseRequest.PurchaseRequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var line in orphanPurchaseLines)
+            {
+                if (stalePurchaseRequestIds.Contains(GuidHelper.ToGuidString(line.PurchaseRequestId)))
+                {
+                    continue;
+                }
+
+                if (line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null)
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "orphan_document",
+                    nameof(Purchaserequestline),
+                    line.PurchaseRequestLineId,
+                    $"{line.PurchaseRequest.PurchaseRequestCode}/{line.Ingredient.IngredientName}",
+                    "removed",
+                    "Dòng mua thêm không còn dòng demand gốc và chưa phát sinh receipt/order.",
+                    GuidHelper.ToGuidString(line.MaterialRequestLineId));
+
+                result.RemovedPurchaseRequestLines++;
+
+                if (!request.DryRun)
+                {
+                    _context.Purchaserequestlines.Remove(line);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("orphan_document"))
+        {
+            var stockMovementRefs = await _context.Stockmovements
+                .AsNoTracking()
+                .Where(movement => movement.RefId != null)
+                .Select(movement => movement.RefId!)
+                .ToListAsync();
+            var stockMovementRefIds = stockMovementRefs
+                .Select(GuidHelper.ToGuidString)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            var orphanIssues = await _context.Inventoryissues
+                .Include(issue => issue.Inventoryissuelines)
+                .Include(issue => issue.Inventoryreturns)
+                .Where(issue => !_context.Materialrequests.Any(request => request.RequestId == issue.MaterialRequestId))
+                .OrderBy(issue => issue.IssueCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var issue in orphanIssues)
+            {
+                if (issue.Inventoryreturns.Count > 0 ||
+                    issue.ReceivedAt is not null ||
+                    stockMovementRefIds.Contains(GuidHelper.ToGuidString(issue.IssueId)))
+                {
+                    continue;
+                }
+
+                AddAction(
+                    "orphan_document",
+                    nameof(Inventoryissue),
+                    issue.IssueId,
+                    issue.IssueCode,
+                    "removed",
+                    "Phiếu xuất không còn demand gốc và chưa phát sinh nhận bếp/hoàn kho/stock movement.",
+                    GuidHelper.ToGuidString(issue.MaterialRequestId));
+
+                result.RemovedInventoryIssueLines += issue.Inventoryissuelines.Count;
+                result.RemovedInventoryIssues++;
+
+                if (!request.DryRun)
+                {
+                    _context.Inventoryissuelines.RemoveRange(issue.Inventoryissuelines);
+                    _context.Inventoryissues.Remove(issue);
+                }
+            }
+
+            if (!request.DryRun)
+            {
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        if (categories.Contains("stale_demand") || categories.Contains("orphan_document"))
+        {
+            var materialRequests = await _context.Materialrequests
+                .Include(materialRequest => materialRequest.Materialrequestlines)
+                    .ThenInclude(line => line.Purchaserequestlines)
+                .Include(materialRequest => materialRequest.Inventoryissues)
+                .Where(materialRequest =>
+                    orphanCleanupStatuses.Contains(materialRequest.Status) &&
+                    ((categories.Contains("stale_demand") && materialRequest.Status == "CANCELLED") ||
+                     (categories.Contains("orphan_document") && !_context.Productionplans.Any(plan => plan.PlanId == materialRequest.PlanId))))
+                .OrderBy(materialRequest => materialRequest.RequestCode)
+                .Take(limit)
+                .ToListAsync();
+
+            foreach (var materialRequest in materialRequests)
+            {
+                if (materialRequest.Inventoryissues.Count > 0 ||
+                    materialRequest.Materialrequestlines.Any(line => line.Purchaserequestlines.Count > 0))
+                {
+                    continue;
+                }
+
+                var category = await _context.Productionplans.AnyAsync(plan => plan.PlanId == materialRequest.PlanId)
+                    ? "stale_demand"
+                    : "orphan_document";
+
+                AddAction(
+                    category,
+                    nameof(Materialrequest),
+                    materialRequest.RequestId,
+                    materialRequest.RequestCode,
+                    "removed",
+                    category == "stale_demand"
+                        ? "Demand đã hủy và chưa phát sinh mua/xuất kho."
+                        : "Demand không còn KHSX gốc và chưa phát sinh mua/xuất kho.",
+                    materialRequest.Status);
+
+                result.RemovedMaterialRequestLines += materialRequest.Materialrequestlines.Count;
+                result.RemovedMaterialRequests++;
+
+                if (!request.DryRun)
+                {
+                    _context.Materialrequestlines.RemoveRange(materialRequest.Materialrequestlines);
+                    _context.Materialrequests.Remove(materialRequest);
+                }
+            }
+        }
+
+        if (!request.DryRun)
+        {
+            await _context.SaveChangesAsync();
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync();
+            }
+        }
+
+        result.TotalActions = actions.Count;
+        result.Actions = actions;
+        return result;
     }
 
     public async Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query)
@@ -1879,11 +2309,20 @@ public class WorkflowReportService : IWorkflowReportService
         string message,
         string suggestedAction,
         string route)
-        => new()
+    {
+        var priorityRank = ResolveDataQualityPriorityRank(category, severity);
+        var slaHours = ResolveDataQualitySlaHours(category, severity);
+
+        return new DataQualityIssueDto
         {
             IssueId = $"{category}:{entityName}:{entityId ?? entityCode}",
             Category = category,
             Severity = severity,
+            Owner = ResolveDataQualityOwner(category, route),
+            PriorityRank = priorityRank,
+            SlaHours = slaHours,
+            SlaDueAt = DateTime.UtcNow.AddHours(slaHours),
+            SlaLabel = FormatDataQualitySlaLabel(priorityRank, slaHours),
             EntityName = entityName,
             EntityId = entityId,
             EntityCode = entityCode,
@@ -1891,6 +2330,139 @@ public class WorkflowReportService : IWorkflowReportService
             Message = message,
             SuggestedAction = suggestedAction,
             Route = route
+        };
+    }
+
+    private async Task ApplyDataQualityRemediationStateAsync(IReadOnlyList<DataQualityIssueDto> issues)
+    {
+        if (issues.Count == 0)
+        {
+            return;
+        }
+
+        var issueIds = issues.Select(issue => issue.IssueId).ToList();
+        var remediationLogs = await _context.Auditlogs
+            .AsNoTracking()
+            .Include(log => log.ChangedByNavigation)
+            .Where(log =>
+                log.BusinessArea == DataQualityBusinessArea &&
+                log.EntityName == DataQualityIssueEntityName &&
+                log.FieldName == DataQualityRemediationFieldName &&
+                log.OldValue != null &&
+                issueIds.Contains(log.OldValue))
+            .OrderByDescending(log => log.ChangedAt)
+            .ToListAsync();
+
+        var latestByIssue = remediationLogs
+            .GroupBy(log => log.OldValue!, StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+
+        foreach (var issue in issues)
+        {
+            if (!latestByIssue.TryGetValue(issue.IssueId, out var log))
+            {
+                continue;
+            }
+
+            issue.RemediationStatus = NormalizeDataQualityRemediationStatus(log.NewValue);
+            issue.RemediationAt = log.ChangedAt;
+            issue.RemediationByName = log.ChangedByNavigation.FullName ?? log.ChangedByNavigation.Username;
+            issue.RemediationNote = log.Reason;
+        }
+    }
+
+    private static string NormalizeDataQualityRemediationAction(string action)
+        => action.Trim().ToLowerInvariant() switch
+        {
+            "resolve" or "resolved" => "resolved",
+            "reopen" or "reopened" => "reopened",
+            _ => throw new ArgumentException("Hành động data-quality issue phải là resolve hoặc reopen.")
+        };
+
+    private static string NormalizeDataQualityRemediationStatus(string? status)
+        => status?.Trim().ToLowerInvariant() switch
+        {
+            "resolved" => "resolved",
+            "reopened" => "reopened",
+            _ => "open"
+        };
+
+    private static HashSet<string> NormalizeDataQualityCleanupCategories(IReadOnlyList<string>? categories)
+    {
+        var normalized = (categories ?? ["orphan_document", "stale_demand", "stale_purchase_request"])
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Select(category => category.Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (normalized.Count == 0)
+        {
+            normalized.Add("orphan_document");
+            normalized.Add("stale_demand");
+            normalized.Add("stale_purchase_request");
+        }
+
+        var unsupported = normalized
+            .Where(category => category is not ("orphan_document" or "stale_demand" or "stale_purchase_request"))
+            .OrderBy(category => category)
+            .ToList();
+        if (unsupported.Count > 0)
+        {
+            throw new ArgumentException($"Data-quality cleanup chỉ hỗ trợ orphan_document, stale_demand, stale_purchase_request. Không hỗ trợ: {string.Join(", ", unsupported)}.");
+        }
+
+        return normalized;
+    }
+
+    private static int ResolveDataQualityPriorityRank(string category, string severity)
+        => category switch
+        {
+            "stock_shortage" or "negative_stock" or "inventory_ledger_mismatch" => 1,
+            "missing_bom" or "missing_conversion" or "invalid_unit" => 2,
+            "missing_contract" or "missing_supplier" => 2,
+            "kitchen_receipt_discrepancy" or "inactive_bom_ingredient" => 3,
+            "stale_demand" or "stale_purchase_request" => 3,
+            "orphan_document" => 4,
+            _ when severity == "error" => 2,
+            _ => 4
+        };
+
+    private static int ResolveDataQualitySlaHours(string category, string severity)
+        => category switch
+        {
+            "stock_shortage" or "negative_stock" or "inventory_ledger_mismatch" => 2,
+            "missing_bom" => 4,
+            "missing_conversion" or "invalid_unit" => 8,
+            "missing_contract" or "missing_supplier" => 8,
+            "kitchen_receipt_discrepancy" => 12,
+            "stale_demand" or "stale_purchase_request" => 24,
+            "inactive_bom_ingredient" => 24,
+            "orphan_document" => 48,
+            _ when severity == "error" => 8,
+            _ => 48
+        };
+
+    private static string FormatDataQualitySlaLabel(int priorityRank, int slaHours)
+        => priorityRank switch
+        {
+            1 => $"P1 / {slaHours}h",
+            2 => $"P2 / {slaHours}h",
+            3 => $"P3 / {slaHours}h",
+            _ => $"P4 / {slaHours}h"
+        };
+
+    private static string ResolveDataQualityOwner(string category, string route)
+        => category switch
+        {
+            "missing_bom" or "inactive_bom_ingredient" => "Kitchen Admin",
+            "invalid_unit" or "missing_conversion" => "Admin dữ liệu",
+            "missing_contract" => "Quản lý vận hành",
+            "missing_supplier" or "stale_purchase_request" => "Thu mua",
+            "stale_demand" => "Điều phối",
+            "negative_stock" or "inventory_ledger_mismatch" or "stock_shortage" => "Thủ kho",
+            "kitchen_receipt_discrepancy" => "Bếp trưởng",
+            "orphan_document" when route.Contains("weekly-menu", StringComparison.OrdinalIgnoreCase) => "Điều phối",
+            "orphan_document" when route.Contains("warehouse", StringComparison.OrdinalIgnoreCase) => "Thủ kho",
+            _ => "Quản lý vận hành"
         };
 
     private static string BuildMissingBomRemediationRoute(byte[] dishId, DateOnly serviceDate, WorkflowReportQueryDto query)

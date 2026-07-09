@@ -48,4 +48,6 @@ public partial class Ingredient
     public virtual Unit Unit { get; set; } = null!;
 
     public virtual Warehouse Warehouse { get; set; } = null!;
+
+    public virtual ICollection<Stocktakeline> Stocktakelines { get; set; } = new List<Stocktakeline>();
 }

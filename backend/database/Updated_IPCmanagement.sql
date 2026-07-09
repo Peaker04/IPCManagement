@@ -1,4 +1,16 @@
-﻿CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
+-- ⚠️  DEPRECATED — Updated_IPCmanagement.sql
+-- Script này được tạo tự động bởi EF và chỉ cover đến migration 20260703103000.
+-- Thiếu các bảng: approvalrules, approvalassignments, stocktakes, stocktakelines
+-- và các cột mới của mealquantityplans, inventoryreceiptlines, inventoryreturns.
+--
+-- THAY THẾ:
+--   • Fresh install:  backend/database/IPCmanagement.sql (đầy đủ v1.0)
+--   • Nâng cấp DB cũ: backend/database/Upgrade_From_Phase1_To_V10.sql
+--   • DB đang chạy:  dotnet ef database update (khuyến nghị)
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Nội dung gốc (EF-generated, không sửa thủ công):
+
+CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
     `MigrationId` varchar(150) CHARACTER SET utf8mb4 NOT NULL,
     `ProductVersion` varchar(32) CHARACTER SET utf8mb4 NOT NULL,
     CONSTRAINT `PK___EFMigrationsHistory` PRIMARY KEY (`MigrationId`)

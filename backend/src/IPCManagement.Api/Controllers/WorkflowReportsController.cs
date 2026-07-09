@@ -1,5 +1,6 @@
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,14 @@ namespace IPCManagement.Api.Controllers;
 public class WorkflowReportsController : ControllerBase
 {
     private readonly IWorkflowReportService _workflowReportService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public WorkflowReportsController(IWorkflowReportService workflowReportService)
+    public WorkflowReportsController(
+        IWorkflowReportService workflowReportService,
+        ICurrentUserService currentUserService)
     {
         _workflowReportService = workflowReportService;
+        _currentUserService = currentUserService;
     }
 
     [HttpGet("current-stock")]
@@ -100,10 +105,80 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
 
+    [HttpGet("audit-changes/csv")]
+    public async Task<IActionResult> ExportAuditChangesCsv([FromQuery] WorkflowReportQueryDto query)
+    {
+        query.Limit = 1000;
+        var data = await _workflowReportService.GetAuditChangesAsync(query);
+        
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("Mã log,Thời gian,Người thực hiện,Mảng nghiệp vụ,Tên bảng,ID thực thể,Tên cột,Giá trị cũ,Giá trị mới,Lý do");
+        
+        foreach (var row in data)
+        {
+            sb.AppendLine($"\"{row.AuditId}\",\"{row.ChangedAt:yyyy-MM-dd HH:mm:ss}\",\"{row.ChangedByName}\",\"{row.BusinessArea}\",\"{row.EntityName}\",\"{row.EntityId}\",\"{row.FieldName}\",\"{row.OldValue?.Replace("\"", "\"\"")}\",\"{row.NewValue?.Replace("\"", "\"\"")}\",\"{row.Reason?.Replace("\"", "\"\"")}\"");
+        }
+        
+        var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(sb.ToString())).ToArray();
+        return File(bytes, "text/csv", $"audit-log-{DateTime.Now:yyyyMMddHHmmss}.csv");
+    }
+
     [HttpGet("data-quality")]
     public async Task<IActionResult> GetDataQuality([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
             await _workflowReportService.GetDataQualityAsync(query)));
+
+    [HttpPost("data-quality/issues/remediation")]
+    public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            var result = await _workflowReportService.UpdateDataQualityIssueRemediationAsync(request, userId);
+            return Ok(ApiResponse<DataQualityIssueRemediationDto>.SuccessResult(result, "Đã cập nhật trạng thái xử lý data-quality issue."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPost("data-quality/cleanup")]
+    public async Task<IActionResult> CleanupDataQuality([FromBody] DataQualityCleanupRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            var result = await _workflowReportService.CleanupDataQualityAsync(request, userId);
+            var message = result.DryRun
+                ? "Đã quét dữ liệu có thể dọn, chưa thay đổi dữ liệu."
+                : "Đã dọn dữ liệu mồ côi/stale theo chính sách data-quality.";
+
+            return Ok(ApiResponse<DataQualityCleanupResultDto>.SuccessResult(result, message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.FailResult(ex.Message));
+        }
+    }
 
     [HttpGet("order-export")]
     public async Task<IActionResult> GetOrderExport([FromQuery] WorkflowReportQueryDto query)

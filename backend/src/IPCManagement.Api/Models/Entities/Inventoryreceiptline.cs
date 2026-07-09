@@ -9,6 +9,8 @@ public partial class Inventoryreceiptline
 
     public byte[] ReceiptId { get; set; } = null!;
 
+    public byte[]? PurchaseRequestLineId { get; set; }
+
     public byte[] IngredientId { get; set; } = null!;
 
     public byte[] UnitId { get; set; } = null!;
@@ -28,6 +30,8 @@ public partial class Inventoryreceiptline
     public virtual Ingredient Ingredient { get; set; } = null!;
 
     public virtual Inventoryreceipt Receipt { get; set; } = null!;
+
+    public virtual Purchaserequestline? PurchaseRequestLine { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
 }

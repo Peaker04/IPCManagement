@@ -30,6 +30,17 @@ public class ProductionPlansController : ControllerBase
         return Ok(ApiResponse<PagedResponseDto<ProductionPlanDto>>.SuccessResult(result));
     }
 
+    /// <summary>Lấy danh sách kế hoạch sản xuất theo ngày và khách hàng.</summary>
+    [HttpGet("filter")]
+    public async Task<IActionResult> GetFiltered(
+        [FromQuery] string? serviceDate,
+        [FromQuery] string? customerId,
+        CancellationToken cancellationToken)
+    {
+        var result = await _productionPlanService.GetFilteredAsync(serviceDate, customerId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<ProductionPlanDto>>.SuccessResult(result));
+    }
+
     /// <summary>Lấy chi tiết kế hoạch sản xuất theo ID.</summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(string id)

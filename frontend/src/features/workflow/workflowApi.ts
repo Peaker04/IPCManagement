@@ -33,6 +33,52 @@ export interface WorkflowReportQuery {
   limit?: number;
 }
 
+export interface PurchaseRequestQuery {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseRequestResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: Array<{
+    purchaseRequestLineId: string;
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    supplierId: string;
+    supplierName: string;
+    unitId: string;
+    unitName: string;
+    requiredQty: number;
+    currentStockQty: number;
+    purchaseQty: number;
+    estimatedUnitPrice: number;
+    expectedDeliveryDate?: string;
+    note?: string;
+  }>;
+}
+
+export interface ApprovalHistoryItem {
+  historyId: string;
+  targetType: string;
+  targetId: string;
+  decision: string;
+  oldStatus?: string;
+  newStatus?: string;
+  reason?: string;
+  actionBy: string;
+  actionByName: string;
+  actionAt: string;
+}
+
 export interface CreateInventoryReceiptFromPurchaseLineRequest {
   purchaseRequestLineId: string;
   unitId: string;
@@ -54,6 +100,48 @@ export interface CreateInventoryReceiptFromPurchaseRequest {
 export interface InventoryReceiptCreatedResult {
   receiptId: string;
   receiptCode: string;
+}
+
+export interface CreateInventoryIssueLineRequest {
+  ingredientId: string;
+  requestedQty: number;
+  issuedQty: number;
+  unitId: string;
+}
+
+export interface CreateInventoryIssueRequest {
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  materialRequestId: string;
+  receivedBy?: string;
+  lines: CreateInventoryIssueLineRequest[];
+}
+
+export interface InventoryIssueCreatedResult {
+  issueId: string;
+  issueCode: string;
+}
+
+export interface CreateInventoryReturnLineRequest {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+}
+
+export interface CreateInventoryReturnRequest {
+  returnDate: string;
+  shiftName?: string;
+  returnType?: 'RETURN' | 'WASTE';
+  warehouseId: string;
+  issueId: string;
+  reason: string;
+  lines: CreateInventoryReturnLineRequest[];
+}
+
+export interface InventoryReturnCreatedResult {
+  returnId: string;
+  returnCode: string;
 }
 
 export interface ConfirmInventoryIssueReceiptRequest {
@@ -154,11 +242,56 @@ interface ApprovalInboxItemDto {
   nextAction: string;
   tone: WorkflowTone;
   route: string;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
   materials: Array<{
     name: string;
     quantity: number;
     unit: string;
   }>;
+}
+
+export interface ApprovalRuleDto {
+  ruleId?: string;
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  createdAt?: string;
+  approvalassignments?: ApprovalAssignmentDto[];
+}
+
+export interface ApprovalAssignmentDto {
+  assignmentId?: string;
+  ruleId?: string;
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+  approverUser?: {
+    userId: string;
+    fullName: string;
+    username: string;
+  } | null;
+}
+
+export interface ApprovalAssignmentRequestDto {
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+}
+
+export interface ApprovalRuleRequestDto {
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  assignments: ApprovalAssignmentRequestDto[];
 }
 
 interface StockMovementViewDto {
@@ -269,6 +402,7 @@ export interface RecordPurchaseOrderReceiptLineDto {
 }
 
 export interface RecordPurchaseOrderReceiptDto {
+  warehouseId: string;
   lines: RecordPurchaseOrderReceiptLineDto[];
 }
 
@@ -403,6 +537,11 @@ interface DataQualityIssueDto {
   issueId: string;
   category: string;
   severity: 'error' | 'warning' | string;
+  owner?: string;
+  priorityRank?: number;
+  slaHours?: number;
+  slaDueAt?: string;
+  slaLabel?: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -410,6 +549,10 @@ interface DataQualityIssueDto {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus?: 'open' | 'resolved' | 'reopened' | string;
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 interface DataQualityReportDto {
@@ -417,6 +560,9 @@ interface DataQualityReportDto {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount?: number;
+  reopenedIssueCount?: number;
+  urgentIssueCount?: number;
   missingBomCount: number;
   invalidUnitCount: number;
   missingConversionCount: number;
@@ -550,6 +696,7 @@ export interface AuditLogRow {
   id: string;
   timestamp: string;
   actor: string;
+  businessArea: string;
   fieldAffected: string;
   oldValue: string;
   newValue: string;
@@ -558,6 +705,7 @@ export interface AuditLogRow {
 
 export interface CurrentStockRow {
   id: string;
+  warehouseId: string;
   warehouse: string;
   ingredient: string;
   unit: string;
@@ -583,8 +731,11 @@ export interface KitchenIssueRow {
   issueCode: string;
   issueDate: string;
   shiftName?: string;
+  warehouseId: string;
   warehouse: string;
+  ingredientId: string;
   ingredient: string;
+  unitId: string;
   unit: string;
   requestedQty: number;
   issuedQty: number;
@@ -613,6 +764,11 @@ export interface DataQualityIssueRow {
   id: string;
   category: string;
   severity: 'error' | 'warning';
+  owner: string;
+  priorityRank: number;
+  slaHours: number;
+  slaDueAt?: string;
+  slaLabel: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -620,6 +776,10 @@ export interface DataQualityIssueRow {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus: 'open' | 'resolved' | 'reopened';
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 export interface DataQualityReport {
@@ -627,12 +787,28 @@ export interface DataQualityReport {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount: number;
+  reopenedIssueCount: number;
+  urgentIssueCount: number;
   missingBomCount: number;
   invalidUnitCount: number;
   missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
+}
+
+export interface DataQualityIssueRemediationRequest {
+  issueId: string;
+  action: 'resolve' | 'reopen';
+  note?: string;
+}
+
+export interface DataQualityIssueRemediationResult {
+  issueId: string;
+  remediationStatus: 'resolved' | 'reopened';
+  remediationAt: string;
+  note?: string;
 }
 
 const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
@@ -745,6 +921,8 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   reason: item.reason,
   nextAction: item.nextAction,
   tone: item.tone ?? toneFromStatus(item.status),
+  slaDeadline: item.slaDeadline,
+  slaHours: item.slaHours,
   materials: item.materials ?? [],
 });
 
@@ -790,6 +968,7 @@ const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow
 
 const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
   ingredient: item.ingredientName ?? item.ingredientId,
   unit: item.unitName ?? '',
@@ -815,8 +994,11 @@ const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
+  ingredientId: item.ingredientId,
   ingredient: item.ingredientName ?? item.ingredientId,
+  unitId: item.unitId,
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
   issuedQty: item.issuedQty,
@@ -845,6 +1027,7 @@ const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
   id: item.auditId,
   timestamp: item.changedAt,
   actor: item.changedByName || item.changedBy,
+  businessArea: item.businessArea,
   fieldAffected: [item.entityName, item.fieldName].filter(Boolean).join(' / '),
   oldValue: item.oldValue ?? '',
   newValue: item.newValue ?? '',
@@ -856,6 +1039,9 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   totalIssues: item.totalIssues,
   errorCount: item.errorCount,
   warningCount: item.warningCount,
+  resolvedIssueCount: item.resolvedIssueCount ?? 0,
+  reopenedIssueCount: item.reopenedIssueCount ?? 0,
+  urgentIssueCount: item.urgentIssueCount ?? 0,
   missingBomCount: item.missingBomCount,
   invalidUnitCount: item.invalidUnitCount,
   missingConversionCount: item.missingConversionCount,
@@ -865,6 +1051,11 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
     id: issue.issueId,
     category: issue.category,
     severity: issue.severity === 'error' ? 'error' : 'warning',
+    owner: issue.owner || 'Quản lý vận hành',
+    priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
+    slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
+    slaDueAt: issue.slaDueAt,
+    slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
     entityName: issue.entityName,
     entityId: issue.entityId,
     entityCode: issue.entityCode,
@@ -872,6 +1063,10 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
     message: issue.message,
     suggestedAction: issue.suggestedAction,
     route: issue.route,
+    remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
+    remediationAt: issue.remediationAt,
+    remediationByName: issue.remediationByName,
+    remediationNote: issue.remediationNote,
   })),
 });
 
@@ -1030,7 +1225,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
-      invalidatesTags: ['PurchaseOrders'],
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
     }),
     cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
       query: (purchaseOrderId) => ({
@@ -1089,6 +1284,22 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
+      query: (body) => ({
+        url: '/inventory-issues',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
+      query: (body) => ({
+        url: '/inventory-returns',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
       query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
         url: `/inventory-issues/${issueId}/confirm-receipt`,
@@ -1120,7 +1331,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       query: ({ targetType, targetId, status, reason }) => ({
         url: `/approvals/${targetType}/${targetId}`,
         method: 'POST',
-        body: { status, reason },
+        body: { status: status === 'Approve' ? 0 : 1, reason },
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
@@ -1220,6 +1431,9 @@ export const workflowApi = apiSlice.injectEndpoints({
           totalIssues: 0,
           errorCount: 0,
           warningCount: 0,
+          resolvedIssueCount: 0,
+          reopenedIssueCount: 0,
+          urgentIssueCount: 0,
           missingBomCount: 0,
           invalidUnitCount: 0,
           missingConversionCount: 0,
@@ -1228,6 +1442,52 @@ export const workflowApi = apiSlice.injectEndpoints({
           issues: [],
         },
       providesTags: ['WorkflowReports'],
+    }),
+    updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
+      query: (body) => ({
+        url: '/workflow-reports/data-quality/issues/remediation',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests',
+        params: query || undefined,
+      }),
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
+      query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
+      query: () => '/approval-rules',
+      providesTags: ['WorkflowReports'],
+    }),
+    createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleRequestDto>({
+      query: (body) => ({
+        url: '/approval-rules',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, { id: string; body: ApprovalRuleRequestDto }>({
+      query: ({ id, body }) => ({
+        url: `/approval-rules/${id}`,
+        method: 'PUT',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
+      query: (id) => ({
+        url: `/approval-rules/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['WorkflowReports'],
     }),
   }),
   overrideExisting: false,
@@ -1241,6 +1501,8 @@ export const {
   useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
+  useCreateInventoryIssueMutation,
+  useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchaseDemandQuery,
   useGetApprovalRecordsQuery,
@@ -1259,6 +1521,7 @@ export const {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useUpdateDataQualityIssueRemediationMutation,
   useGetSupplierQuotationsByIngredientQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
@@ -1267,6 +1530,12 @@ export const {
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
+  useGetPurchaseRequestsQuery,
+  useGetApprovalHistoryQuery,
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
 } = workflowApi;
 
 export function useWorkflowOverview() {

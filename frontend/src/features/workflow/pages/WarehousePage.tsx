@@ -8,6 +8,7 @@ import {
   DemandSummary,
   DocumentRail,
   ExceptionLane,
+  InlineAlert,
   OperationalFrame,
   RoleInbox,
   SectionPanel,
@@ -17,20 +18,40 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
+  useCreateInventoryIssueMutation,
   useGetCurrentStockQuery,
   useGetIngredientDemandQuery,
+  useGetKitchenIssuesQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 
+const getMutationErrorMessage = (error: unknown, fallback: string) => {
+  if (error && typeof error === 'object' && 'data' in error) {
+    const data = (error as { data?: { message?: unknown } }).data;
+    if (data && typeof data === 'object' && 'message' in data) {
+      return String(data.message);
+    }
+  }
+
+  return fallback;
+};
+
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const [warehouseFeedback, setWarehouseFeedback] = useState<{
+    title: string;
+    message: string;
+    variant: 'info' | 'warning' | 'danger';
+  } | null>(null);
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 12 });
+  const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
+  const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview();
   const warehouseDocuments = [
     ...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'),
@@ -41,6 +62,58 @@ export default function WarehousePage() {
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
+  const issueCandidate = demandLines.find((line) => line.materialRequestId);
+  const selectedWarehouse = currentStockRows.find((row) => row.warehouseId);
+  const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
+
+  const handleCreateInventoryIssue = async () => {
+    setWarehouseFeedback(null);
+
+    if (!issueCandidate?.materialRequestId) {
+      setWarehouseFeedback({
+        title: 'Chưa có nhu cầu xuất kho',
+        message: 'Kho cần có demand/KHSX hợp lệ trước khi tạo phiếu xuất.',
+        variant: 'warning',
+      });
+      setActiveView('demand');
+      return;
+    }
+
+    if (!selectedWarehouse?.warehouseId) {
+      setWarehouseFeedback({
+        title: 'Chưa xác định kho xuất',
+        message: 'Chưa có dòng tồn kho live để xác định warehouseId cho phiếu xuất.',
+        variant: 'warning',
+      });
+      setActiveView('movement');
+      return;
+    }
+
+    try {
+      const response = await createInventoryIssue({
+        issueDate: issueCandidate.serviceDate ?? new Date().toISOString().slice(0, 10),
+        warehouseId: selectedWarehouse.warehouseId,
+        materialRequestId: issueCandidate.materialRequestId,
+        lines: [],
+      }).unwrap();
+
+      setWarehouseFeedback({
+        title: 'Đã tạo phiếu xuất kho',
+        message: response.data
+          ? `Phiếu ${response.data.issueCode} đã được ghi nhận và chờ bếp ký nhận.`
+          : response.message || 'Phiếu xuất kho đã được ghi nhận.',
+        variant: 'info',
+      });
+      setActiveView('movement');
+    } catch (error) {
+      setWarehouseFeedback({
+        title: 'Chưa tạo được phiếu xuất kho',
+        message: getMutationErrorMessage(error, 'Kiểm tra tồn kho, demand còn lại hoặc quyền thủ kho rồi thử lại.'),
+        variant: 'danger',
+      });
+      setActiveView('exceptions');
+    }
+  };
 
   return (
     <OperationalFrame
@@ -48,7 +121,14 @@ export default function WarehousePage() {
         <CommandBar
           actions={
             <>
-              <button className="ipc-button ipc-button-primary" type="button">Tạo phiếu xuất kho</button>
+              <button
+                className="ipc-button ipc-button-primary"
+                type="button"
+                onClick={handleCreateInventoryIssue}
+                disabled={isCreatingIssue}
+              >
+                {isCreatingIssue ? 'Đang tạo phiếu...' : 'Tạo phiếu xuất kho'}
+              </button>
               <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>
                 Xem tồn kho
               </Link>
@@ -76,12 +156,17 @@ export default function WarehousePage() {
             { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: currentStockRows.length > 0 ? 'success' : 'warning' },
             { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
-            { label: 'Bếp nhận', value: 'Chưa ký nhận', tone: 'warning' },
+            { label: 'Bếp nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký', tone: pendingKitchenReceiptCount > 0 ? 'warning' : 'success' },
           ]}
         />
       }
     >
 
+      {warehouseFeedback && (
+        <InlineAlert title={warehouseFeedback.title} variant={warehouseFeedback.variant}>
+          {warehouseFeedback.message}
+        </InlineAlert>
+      )}
 
       <ViewSwitcher
         compact

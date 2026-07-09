@@ -1,4 +1,5 @@
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
@@ -10,19 +11,49 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
     {
     }
 
-    public async Task<(IEnumerable<Inventoryreturn> Items, int TotalCount)> GetPagedAsync(
-        int pageNumber,
-        int pageSize)
+    public async Task<(IEnumerable<Inventoryreturn> Items, int TotalCount)> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
-        (pageNumber, pageSize) = NormalizePaging(pageNumber, pageSize);
+        var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
 
         var query = _context.Inventoryreturns
             .AsNoTracking()
             .Include(inventoryReturn => inventoryReturn.Warehouse)
             .Include(inventoryReturn => inventoryReturn.Issue)
             .Include(inventoryReturn => inventoryReturn.CreatedByNavigation)
-            .OrderByDescending(inventoryReturn => inventoryReturn.CreatedAt)
             .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        {
+            var warehouseBytes = GuidHelper.ParseGuidString(request.WarehouseId);
+            if (warehouseBytes != null)
+            {
+                query = query.Where(r => r.WarehouseId == warehouseBytes);
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.ShiftName))
+        {
+            query = query.Where(r => r.ShiftName == request.ShiftName);
+        }
+
+        if (request.ReturnDate.HasValue)
+        {
+            query = query.Where(r => r.ReturnDate == request.ReturnDate.Value);
+        }
+
+        if (request.IsReceived.HasValue)
+        {
+            if (request.IsReceived.Value)
+            {
+                query = query.Where(r => r.ReceivedAt != null);
+            }
+            else
+            {
+                query = query.Where(r => r.ReceivedAt == null);
+            }
+        }
+
+        query = query.OrderByDescending(inventoryReturn => inventoryReturn.CreatedAt);
 
         var totalCount = await query.CountAsync();
         var items = await query

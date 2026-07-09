@@ -64,9 +64,10 @@ public class AdminEmployeesController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateEmployeeDto request)
+    public async Task<IActionResult> Update(string id, [FromBody] UpdateEmployeeDto request, [FromServices] ICurrentUserService currentUserService)
     {
-        var updated = await _employeeService.UpdateAsync(id, request);
+        var adminId = currentUserService.GetUserId(User);
+        var updated = await _employeeService.UpdateAsync(id, request, adminId);
         if (updated is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy nhân viên với ID: {id}"));
 
@@ -76,9 +77,10 @@ public class AdminEmployeesController : ControllerBase
     [HttpPatch("{id}/status")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateEmployeeStatusDto request)
+    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateEmployeeStatusDto request, [FromServices] ICurrentUserService currentUserService)
     {
-        var updated = await _employeeService.UpdateStatusAsync(id, request);
+        var adminId = currentUserService.GetUserId(User);
+        var updated = await _employeeService.UpdateStatusAsync(id, request, adminId);
         if (updated is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy nhân viên với ID: {id}"));
 

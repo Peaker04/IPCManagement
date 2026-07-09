@@ -42,6 +42,23 @@ public class DeploymentConfigurationValidatorTests
     }
 
     [Fact]
+    public void Validate_Should_RejectProductionExamplePlaceholders()
+    {
+        var configuration = BuildConfiguration(new Dictionary<string, string?>
+        {
+            ["ConnectionStrings:DefaultConnection"] = "server=YOUR_DB_HOST;port=3306;database=ipcmanagement;user=ipc_app;password=YOUR_STRONG_DB_PASSWORD;",
+            ["JwtSettings:SecretKey"] = "GENERATE_A_UNIQUE_PRODUCTION_SECRET_KEY_AT_LEAST_32_CHARS",
+            ["Cors:AllowedOrigins:0"] = "https://YOUR_FRONTEND_DOMAIN",
+            ["AllowedHosts"] = "YOUR_API_DOMAIN"
+        });
+
+        var act = () => DeploymentConfigurationValidator.Validate(configuration, new TestEnvironment("Production"));
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*DefaultConnection*SecretKey*AllowedOrigins*AllowedHosts*");
+    }
+
+    [Fact]
     public void Validate_Should_AcceptProductionConfiguration()
     {
         var configuration = BuildConfiguration(new Dictionary<string, string?>

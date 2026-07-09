@@ -108,7 +108,15 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Refreshtoken> Refreshtokens { get; set; }
 
+    public virtual DbSet<Stocktake> Stocktakes { get; set; }
+
+    public virtual DbSet<Stocktakeline> Stocktakelines { get; set; }
+
     public virtual DbSet<Warehouse> Warehouses { get; set; }
+
+    public virtual DbSet<Approvalrule> Approvalrules { get; set; }
+
+    public virtual DbSet<Approvalassignment> Approvalassignments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -209,6 +217,75 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.ActionBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("approvalhistories_ibfk_1");
+        });
+
+        modelBuilder.Entity<Approvalrule>(entity =>
+        {
+            entity.HasKey(e => e.RuleId).HasName("PRIMARY");
+            entity.ToTable("approvalrules");
+
+            entity.Property(e => e.RuleId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ruleId");
+            entity.Property(e => e.RuleName)
+                .HasMaxLength(200)
+                .HasColumnName("ruleName");
+            entity.Property(e => e.DocumentType)
+                .HasMaxLength(50)
+                .HasColumnName("documentType");
+            entity.Property(e => e.MinAmount)
+                .HasPrecision(18, 2)
+                .HasColumnName("minAmount");
+            entity.Property(e => e.MaxAmount)
+                .HasPrecision(18, 2)
+                .HasColumnName("maxAmount");
+            entity.Property(e => e.SlaHours)
+                .HasColumnName("slaHours");
+            entity.Property(e => e.IsActive)
+                .HasColumnName("isActive")
+                .HasDefaultValue(true);
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+        });
+
+        modelBuilder.Entity<Approvalassignment>(entity =>
+        {
+            entity.HasKey(e => e.AssignmentId).HasName("PRIMARY");
+            entity.ToTable("approvalassignments");
+
+            entity.Property(e => e.AssignmentId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("assignmentId");
+            entity.Property(e => e.RuleId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("ruleId");
+            entity.Property(e => e.Sequence)
+                .HasColumnName("sequence");
+            entity.Property(e => e.ApproverRole)
+                .HasMaxLength(50)
+                .HasColumnName("approverRole");
+            entity.Property(e => e.ApproverUserId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("approverUserId");
+            entity.Property(e => e.IsRequired)
+                .HasColumnName("isRequired")
+                .HasDefaultValue(true);
+
+            entity.HasOne(d => d.Rule).WithMany(p => p.Approvalassignments)
+                .HasForeignKey(d => d.RuleId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("approvalassignments_ibfk_1");
+
+            entity.HasOne(d => d.ApproverUser).WithMany()
+                .HasForeignKey(d => d.ApproverUserId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("approvalassignments_ibfk_2");
         });
 
         modelBuilder.Entity<Bomadjustment>(entity =>
@@ -725,6 +802,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => new { e.IngredientId, e.ExpiredDate, e.LotNumber }, "ixInventoryReceiptLinesExpiry");
 
+            entity.HasIndex(e => e.PurchaseRequestLineId, "purchaseRequestLineId");
+
             entity.HasIndex(e => e.ReceiptId, "receiptId");
 
             entity.HasIndex(e => e.UnitId, "unitId")
@@ -750,6 +829,10 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.Quantity)
                 .HasPrecision(18, 6)
                 .HasColumnName("quantity");
+            entity.Property(e => e.PurchaseRequestLineId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseRequestLineId");
             entity.Property(e => e.ReceiptId)
                 .HasMaxLength(16)
                 .IsFixedLength()
@@ -771,6 +854,10 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.ReceiptId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventoryreceiptlines_ibfk_1");
+
+            entity.HasOne(d => d.PurchaseRequestLine).WithMany(p => p.Inventoryreceiptlines)
+                .HasForeignKey(d => d.PurchaseRequestLineId)
+                .HasConstraintName("inventoryreceiptlines_ibfk_4");
 
             entity.HasOne(d => d.Unit).WithMany(p => p.Inventoryreceiptlines)
                 .HasForeignKey(d => d.UnitId)
@@ -826,11 +913,22 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("warehouseId");
+            entity.Property(e => e.ReceivedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("receivedAt");
+            entity.Property(e => e.ReceivedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("receivedBy");
 
             entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.Inventoryreturns)
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventoryreturns_ibfk_3");
+
+            entity.HasOne(d => d.ReceivedByNavigation).WithMany()
+                .HasForeignKey(d => d.ReceivedBy)
+                .HasConstraintName("inventoryreturns_ibfk_4");
 
             entity.HasOne(d => d.Issue).WithMany(p => p.Inventoryreturns)
                 .HasForeignKey(d => d.IssueId)
@@ -1088,12 +1186,29 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.ServiceDate).HasColumnName("serviceDate");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'DRAFT'")
-                .HasColumnType("enum('DRAFT','FORECASTED','CONFIRMED','ADJUSTED','CANCELLED')")
+                .HasColumnType("enum('DRAFT','FORECASTED','CONFIRMED','ADJUSTED','COMPLETED','CANCELLED')")
                 .HasColumnName("status");
+            entity.Property(e => e.CompletedAt)
+                .HasColumnType("datetime")
+                .HasColumnName("completedAt");
+            entity.Property(e => e.CompletedBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("completedBy");
+            entity.Property(e => e.RowVersion)
+                .IsRowVersion()
+                .HasColumnType("timestamp(6)")
+                .HasColumnName("rowVersion")
+                .HasDefaultValueSql("CURRENT_TIMESTAMP(6)")
+                .ValueGeneratedOnAddOrUpdate();
 
             entity.HasOne(d => d.ConfirmedByNavigation).WithMany(p => p.Mealquantityplans)
                 .HasForeignKey(d => d.ConfirmedBy)
                 .HasConstraintName("mealquantityplans_ibfk_2");
+
+            entity.HasOne(d => d.CompletedByNavigation).WithMany()
+                .HasForeignKey(d => d.CompletedBy)
+                .HasConstraintName("mealquantityplans_ibfk_3");
 
             entity.HasOne(d => d.ImportBatch).WithMany(p => p.Mealquantityplans)
                 .HasForeignKey(d => d.ImportBatchId)
@@ -2498,6 +2613,45 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UserId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("refreshtokens_ibfk_1");
+        });
+
+        modelBuilder.Entity<Stocktake>(entity =>
+        {
+            entity.HasKey(e => e.StocktakeId).HasName("PRIMARY");
+            entity.ToTable("stocktakes");
+            entity.HasIndex(e => e.StocktakeCode, "ixStocktakeCode").IsUnique();
+            entity.HasIndex(e => e.WarehouseId, "ixStocktakeWarehouse");
+            entity.Property(e => e.StocktakeId).HasMaxLength(16).IsFixedLength().HasColumnName("stocktakeId");
+            entity.Property(e => e.StocktakeCode).HasMaxLength(50).HasColumnName("stocktakeCode");
+            entity.Property(e => e.WarehouseId).HasMaxLength(16).IsFixedLength().HasColumnName("warehouseId");
+            entity.Property(e => e.Status).HasMaxLength(50).HasColumnName("status");
+            entity.Property(e => e.Notes).HasMaxLength(1000).HasColumnName("notes");
+            entity.Property(e => e.CreatedBy).HasMaxLength(16).IsFixedLength().HasColumnName("createdBy");
+            entity.Property(e => e.CreatedAt).HasColumnType("datetime").HasColumnName("createdAt");
+            entity.Property(e => e.ApprovedBy).HasMaxLength(16).IsFixedLength().HasColumnName("approvedBy");
+            entity.Property(e => e.ApprovedAt).HasColumnType("datetime").HasColumnName("approvedAt");
+            entity.HasOne(d => d.Warehouse).WithMany(p => p.Stocktakes).HasForeignKey(d => d.WarehouseId).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.CreatedByNavigation).WithMany(p => p.StocktakesCreatedByNavigations).HasForeignKey(d => d.CreatedBy).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.StocktakesApprovedByNavigations).HasForeignKey(d => d.ApprovedBy);
+        });
+
+        modelBuilder.Entity<Stocktakeline>(entity =>
+        {
+            entity.HasKey(e => e.LineId).HasName("PRIMARY");
+            entity.ToTable("stocktakelines");
+            entity.HasIndex(e => e.StocktakeId, "ixStocktakelineStocktake");
+            entity.HasIndex(e => e.IngredientId, "ixStocktakelineIngredient");
+            entity.Property(e => e.LineId).HasMaxLength(16).IsFixedLength().HasColumnName("lineId");
+            entity.Property(e => e.StocktakeId).HasMaxLength(16).IsFixedLength().HasColumnName("stocktakeId");
+            entity.Property(e => e.IngredientId).HasMaxLength(16).IsFixedLength().HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId).HasMaxLength(16).IsFixedLength().HasColumnName("unitId");
+            entity.Property(e => e.SystemQty).HasPrecision(18, 2).HasColumnName("systemQty");
+            entity.Property(e => e.ActualQty).HasPrecision(18, 2).HasColumnName("actualQty");
+            entity.Property(e => e.DiscrepancyQty).HasPrecision(18, 2).HasColumnName("discrepancyQty");
+            entity.Property(e => e.Reason).HasMaxLength(1000).HasColumnName("reason");
+            entity.HasOne(d => d.Stocktake).WithMany(p => p.Stocktakelines).HasForeignKey(d => d.StocktakeId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(d => d.Ingredient).WithMany(p => p.Stocktakelines).HasForeignKey(d => d.IngredientId).OnDelete(DeleteBehavior.ClientSetNull);
+            entity.HasOne(d => d.Unit).WithMany().HasForeignKey(d => d.UnitId).OnDelete(DeleteBehavior.ClientSetNull);
         });
 
         OnModelCreatingPartial(modelBuilder);

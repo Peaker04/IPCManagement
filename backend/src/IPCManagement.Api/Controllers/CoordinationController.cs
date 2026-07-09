@@ -282,6 +282,35 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>.SuccessResult(result));
     }
 
+    [HttpPost("meal-quantity-plans/quick-servings")]
+    [ProducesResponseType(typeof(ApiResponse<MealQuantityPlanDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpsertQuickServings([FromBody] UpsertQuickServingsRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpsertQuickServingsAsync(request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy lịch menu cho ngày/ca này để tạo kế hoạch suất."));
+            }
+
+            return Ok(ApiResponse<MealQuantityPlanDto>.SuccessResult(
+                result,
+                request.Complete ? "Đã hoàn tất số suất cho KHSX." : "Đã lưu số suất cho KHSX."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpPost("orders/lock")]
     [ProducesResponseType(typeof(ApiResponse<LockOrderPlanResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -519,6 +548,33 @@ public class CoordinationController : ControllerBase
         }
 
         return Ok(ApiResponse<SignoffOrderResultDto>.SuccessResult(result, "Hoàn tất ca thành công."));
+    }
+
+    [HttpPost("orders/{id}/unlock")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [ProducesResponseType(typeof(ApiResponse<LockOrderPlanResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlockOrderPlan(string id)
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        LockOrderPlanResultDto? result;
+        try
+        {
+            result = await _coordinationService.UnlockOrderPlanAsync(id, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"));
+        }
+
+        return Ok(ApiResponse<LockOrderPlanResultDto>.SuccessResult(result, "Mở khóa kế hoạch thành công."));
     }
 
     [HttpPatch("orders/{id}/servings")]
