@@ -1906,6 +1906,83 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task AuditChanges_Should_ReturnCursorPage_AndSupportAscendingSort()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var baseDate = new DateTime(2026, 8, 10, 8, 0, 0, DateTimeKind.Utc);
+        context.Auditlogs.AddRange(
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate,
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Newest",
+                NewValue = "3"
+            },
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate.AddDays(-1),
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Middle",
+                NewValue = "2"
+            },
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate.AddDays(-2),
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Oldest",
+                NewValue = "1"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var firstPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            Limit = 2
+        });
+
+        firstPage.Items.Select(row => row.FieldName).Should().Equal("Newest", "Middle");
+        firstPage.HasNext.Should().BeTrue();
+        firstPage.NextCursorDate.Should().NotBeNullOrWhiteSpace();
+
+        var secondPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            CursorDate = firstPage.NextCursorDate,
+            CursorId = firstPage.NextCursorId,
+            Limit = 2
+        });
+
+        secondPage.Items.Should().ContainSingle(row => row.FieldName == "Oldest");
+        secondPage.HasNext.Should().BeFalse();
+
+        var ascendingPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            SortDirection = "asc",
+            Limit = 2
+        });
+
+        ascendingPage.Items.Select(row => row.FieldName).Should().Equal("Oldest", "Middle");
+        ascendingPage.HasNext.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task DataQualityReport_Should_GroupMissingBomInvalidUnitNegativeStockAndOrphans()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2488,6 +2565,28 @@ public class WorkflowGenerationTests
 
         secondPage.Should().ContainSingle(row => row.Note == "older");
         secondPage.Should().NotContain(row => row.Note == "newest" || row.Note == "cursor");
+
+        var firstCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            Limit = 2
+        });
+
+        firstCursorPage.Items.Select(row => row.Note).Should().Equal("newest", "cursor");
+        firstCursorPage.HasNext.Should().BeTrue();
+        firstCursorPage.NextCursorDate.Should().NotBeNullOrWhiteSpace();
+
+        var ascendingCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            SortDirection = "asc",
+            Limit = 2
+        });
+
+        ascendingCursorPage.Items.Select(row => row.Note).Should().Equal("older", "cursor");
+        ascendingCursorPage.HasNext.Should().BeTrue();
     }
 
     [Fact]

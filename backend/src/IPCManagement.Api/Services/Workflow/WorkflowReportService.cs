@@ -69,6 +69,7 @@ public class WorkflowReportService : IWorkflowReportService
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
         var (dateFrom, dateToExclusive) = ResolveStockMovementWindow(query);
         var cursorDate = ParseCursorDateTime(query.CursorDate);
+        var ascending = IsAscending(query);
 
         var movements = _context.Stockmovements
             .AsNoTracking()
@@ -93,12 +94,16 @@ public class WorkflowReportService : IWorkflowReportService
 
         if (cursorDate is not null)
         {
-            movements = movements.Where(item => item.MovementDate < cursorDate);
+            movements = ascending
+                ? movements.Where(item => item.MovementDate > cursorDate)
+                : movements.Where(item => item.MovementDate < cursorDate);
         }
 
-        return await movements
-            .OrderByDescending(item => item.MovementDate)
-            .ThenByDescending(item => item.MovementId)
+        var orderedMovements = ascending
+            ? movements.OrderBy(item => item.MovementDate).ThenBy(item => item.MovementId)
+            : movements.OrderByDescending(item => item.MovementDate).ThenByDescending(item => item.MovementId);
+
+        return await orderedMovements
             .Take(NormalizeLimit(query.Limit))
             .Select(item => new StockMovementViewDto
             {
@@ -121,6 +126,13 @@ public class WorkflowReportService : IWorkflowReportService
                 Note = item.Note
             })
             .ToListAsync();
+    }
+
+    public async Task<CursorPageDto<StockMovementViewDto>> GetStockMovementPageAsync(WorkflowReportQueryDto query)
+    {
+        var limit = NormalizePageLimit(query.Limit);
+        var rows = await GetStockMovementsAsync(CloneQuery(query, limit + 1));
+        return BuildCursorPage(rows, limit, row => row.MovementDate, row => row.MovementId);
     }
 
     public async Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query)
@@ -952,6 +964,8 @@ public class WorkflowReportService : IWorkflowReportService
         var dateFrom = ParseDateTimeStart(query.DateFrom);
         var dateToExclusive = ParseDateTimeEndExclusive(query.DateTo);
         var limit = NormalizeLimit(query.Limit);
+        var cursorDate = ParseCursorDateTime(query.CursorDate);
+        var ascending = IsAscending(query);
 
         var changes = _context.Auditlogs
             .AsNoTracking()
@@ -968,9 +982,11 @@ public class WorkflowReportService : IWorkflowReportService
             changes = changes.Where(item => item.ChangedAt < dateToExclusive);
         }
 
-        if (ParseCursorDateTime(query.CursorDate) is { } cursorDate)
+        if (cursorDate is not null)
         {
-            changes = changes.Where(item => item.ChangedAt < cursorDate);
+            changes = ascending
+                ? changes.Where(item => item.ChangedAt > cursorDate)
+                : changes.Where(item => item.ChangedAt < cursorDate);
         }
 
         if (!string.IsNullOrWhiteSpace(query.Actor))
@@ -993,9 +1009,11 @@ public class WorkflowReportService : IWorkflowReportService
             changes = changes.Where(item => item.FieldName != null && item.FieldName.Contains(query.FieldName));
         }
 
-        var auditRows = await changes
-            .OrderByDescending(item => item.ChangedAt)
-            .ThenByDescending(item => item.AuditId)
+        var orderedChanges = ascending
+            ? changes.OrderBy(item => item.ChangedAt).ThenBy(item => item.AuditId)
+            : changes.OrderByDescending(item => item.ChangedAt).ThenByDescending(item => item.AuditId);
+
+        var auditRows = await orderedChanges
             .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
@@ -1033,7 +1051,19 @@ public class WorkflowReportService : IWorkflowReportService
             importBatches = importBatches.Where(item => item.ImportedAt < dateToExclusive);
         }
 
-        var importRows = await importBatches
+        if (cursorDate is not null)
+        {
+            importBatches = ascending
+                ? importBatches.Where(item => item.ImportedAt > cursorDate)
+                : importBatches.Where(item => item.ImportedAt < cursorDate);
+        }
+
+        var orderedImportBatches = ascending
+            ? importBatches.OrderBy(item => item.ImportedAt).ThenBy(item => item.ImportBatchId)
+            : importBatches.OrderByDescending(item => item.ImportedAt).ThenByDescending(item => item.ImportBatchId);
+
+        var importRows = await orderedImportBatches
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ImportBatchId),
@@ -1066,8 +1096,18 @@ public class WorkflowReportService : IWorkflowReportService
             menuImports = menuImports.Where(item => item.CreatedAt < dateToExclusive);
         }
 
-        var menuImportVersions = await menuImports
-            .OrderByDescending(item => item.CreatedAt)
+        if (cursorDate is not null)
+        {
+            menuImports = ascending
+                ? menuImports.Where(item => item.CreatedAt > cursorDate)
+                : menuImports.Where(item => item.CreatedAt < cursorDate);
+        }
+
+        var orderedMenuImports = ascending
+            ? menuImports.OrderBy(item => item.CreatedAt).ThenBy(item => item.MenuVersionId)
+            : menuImports.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.MenuVersionId);
+
+        var menuImportVersions = await orderedMenuImports
             .Take(limit)
             .ToListAsync();
         var menuImportActorIds = menuImportVersions
@@ -1118,7 +1158,19 @@ public class WorkflowReportService : IWorkflowReportService
             approvals = approvals.Where(item => item.ActionAt < dateToExclusive);
         }
 
-        var approvalRows = await approvals
+        if (cursorDate is not null)
+        {
+            approvals = ascending
+                ? approvals.Where(item => item.ActionAt > cursorDate)
+                : approvals.Where(item => item.ActionAt < cursorDate);
+        }
+
+        var orderedApprovals = ascending
+            ? approvals.OrderBy(item => item.ActionAt).ThenBy(item => item.ApprovalHistoryId)
+            : approvals.OrderByDescending(item => item.ActionAt).ThenByDescending(item => item.ApprovalHistoryId);
+
+        var approvalRows = await orderedApprovals
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ApprovalHistoryId),
@@ -1151,7 +1203,19 @@ public class WorkflowReportService : IWorkflowReportService
             receipts = receipts.Where(item => item.CreatedAt < dateToExclusive);
         }
 
-        var receiptRows = await receipts
+        if (cursorDate is not null)
+        {
+            receipts = ascending
+                ? receipts.Where(item => item.CreatedAt > cursorDate)
+                : receipts.Where(item => item.CreatedAt < cursorDate);
+        }
+
+        var orderedReceipts = ascending
+            ? receipts.OrderBy(item => item.CreatedAt).ThenBy(item => item.ReceiptId)
+            : receipts.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.ReceiptId);
+
+        var receiptRows = await orderedReceipts
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ReceiptId),
@@ -1184,7 +1248,19 @@ public class WorkflowReportService : IWorkflowReportService
             issues = issues.Where(item => item.CreatedAt < dateToExclusive);
         }
 
-        var issueRows = await issues
+        if (cursorDate is not null)
+        {
+            issues = ascending
+                ? issues.Where(item => item.CreatedAt > cursorDate)
+                : issues.Where(item => item.CreatedAt < cursorDate);
+        }
+
+        var orderedIssues = ascending
+            ? issues.OrderBy(item => item.CreatedAt).ThenBy(item => item.IssueId)
+            : issues.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.IssueId);
+
+        var issueRows = await orderedIssues
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.IssueId),
@@ -1216,7 +1292,19 @@ public class WorkflowReportService : IWorkflowReportService
             quantityAdjustments = quantityAdjustments.Where(item => item.AdjustedAt < dateToExclusive);
         }
 
-        var quantityRows = await quantityAdjustments
+        if (cursorDate is not null)
+        {
+            quantityAdjustments = ascending
+                ? quantityAdjustments.Where(item => item.AdjustedAt > cursorDate)
+                : quantityAdjustments.Where(item => item.AdjustedAt < cursorDate);
+        }
+
+        var orderedQuantityAdjustments = ascending
+            ? quantityAdjustments.OrderBy(item => item.AdjustedAt).ThenBy(item => item.AdjustmentId)
+            : quantityAdjustments.OrderByDescending(item => item.AdjustedAt).ThenByDescending(item => item.AdjustmentId);
+
+        var quantityRows = await orderedQuantityAdjustments
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.AdjustmentId),
@@ -1252,7 +1340,19 @@ public class WorkflowReportService : IWorkflowReportService
             bomAdjustments = bomAdjustments.Where(item => item.AdjustedAt < dateToExclusive);
         }
 
-        var bomRows = await bomAdjustments
+        if (cursorDate is not null)
+        {
+            bomAdjustments = ascending
+                ? bomAdjustments.Where(item => item.AdjustedAt > cursorDate)
+                : bomAdjustments.Where(item => item.AdjustedAt < cursorDate);
+        }
+
+        var orderedBomAdjustments = ascending
+            ? bomAdjustments.OrderBy(item => item.AdjustedAt).ThenBy(item => item.BomAdjustmentId)
+            : bomAdjustments.OrderByDescending(item => item.AdjustedAt).ThenByDescending(item => item.BomAdjustmentId);
+
+        var bomRows = await orderedBomAdjustments
+            .Take(limit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.BomAdjustmentId),
@@ -1269,17 +1369,27 @@ public class WorkflowReportService : IWorkflowReportService
             })
             .ToListAsync();
 
-        return auditRows
+        var rows = auditRows
             .Concat(importRows)
             .Concat(menuImportRows)
             .Concat(approvalRows)
             .Concat(receiptRows)
             .Concat(issueRows)
             .Concat(quantityRows)
-            .Concat(bomRows)
-            .OrderByDescending(item => item.ChangedAt)
+            .Concat(bomRows);
+
+        return (ascending
+                ? rows.OrderBy(item => item.ChangedAt).ThenBy(item => item.AuditId)
+                : rows.OrderByDescending(item => item.ChangedAt).ThenByDescending(item => item.AuditId))
             .Take(limit)
             .ToList();
+    }
+
+    public async Task<CursorPageDto<AuditChangeReportDto>> GetAuditChangePageAsync(WorkflowReportQueryDto query)
+    {
+        var limit = NormalizePageLimit(query.Limit);
+        var rows = await GetAuditChangesAsync(CloneQuery(query, limit + 1));
+        return BuildCursorPage(rows, limit, row => row.ChangedAt, row => row.AuditId);
     }
 
     public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
@@ -2629,6 +2739,54 @@ public class WorkflowReportService : IWorkflowReportService
 
     private static int NormalizeLimit(int limit)
         => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+
+    private static int NormalizePageLimit(int limit)
+        => Math.Clamp(limit <= 0 ? 20 : limit, 1, 100);
+
+    private static bool IsAscending(WorkflowReportQueryDto query)
+        => string.Equals(query.SortDirection, "asc", StringComparison.OrdinalIgnoreCase);
+
+    private static WorkflowReportQueryDto CloneQuery(WorkflowReportQueryDto query, int limit)
+        => new()
+        {
+            ServiceDate = query.ServiceDate,
+            DateFrom = query.DateFrom,
+            DateTo = query.DateTo,
+            CustomerId = query.CustomerId,
+            WarehouseId = query.WarehouseId,
+            IngredientId = query.IngredientId,
+            SupplierId = query.SupplierId,
+            ShiftName = query.ShiftName,
+            Format = query.Format,
+            CursorDate = query.CursorDate,
+            CursorId = query.CursorId,
+            Limit = limit,
+            SortDirection = query.SortDirection,
+            Actor = query.Actor,
+            BusinessArea = query.BusinessArea,
+            EntityName = query.EntityName,
+            FieldName = query.FieldName
+        };
+
+    private static CursorPageDto<T> BuildCursorPage<T>(
+        IReadOnlyList<T> rows,
+        int limit,
+        Func<T, DateTime> getCursorDate,
+        Func<T, string> getCursorId)
+    {
+        var items = rows.Take(limit).ToList();
+        var hasNext = rows.Count > limit;
+        var cursorItem = hasNext ? items.LastOrDefault() : default;
+
+        return new CursorPageDto<T>
+        {
+            Items = items,
+            Limit = limit,
+            HasNext = hasNext,
+            NextCursorDate = cursorItem is null ? null : getCursorDate(cursorItem).ToString("O"),
+            NextCursorId = cursorItem is null ? null : getCursorId(cursorItem)
+        };
+    }
 
     private static string? NormalizeShiftName(string? shift)
         => (shift ?? string.Empty).Trim().ToUpperInvariant() switch

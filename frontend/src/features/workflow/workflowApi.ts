@@ -31,6 +31,19 @@ export interface WorkflowReportQuery {
   cursorDate?: string;
   cursorId?: string;
   limit?: number;
+  sortDirection?: 'asc' | 'desc';
+  actor?: string;
+  businessArea?: string;
+  entityName?: string;
+  fieldName?: string;
+}
+
+export interface CursorPage<T> {
+  items: T[];
+  limit: number;
+  hasNext: boolean;
+  nextCursorDate?: string;
+  nextCursorId?: string;
 }
 
 export interface PurchaseRequestQuery {
@@ -807,6 +820,14 @@ export interface DataQualityIssueRemediationRequest {
   note?: string;
 }
 
+interface CursorPageDto<T> {
+  items?: T[];
+  limit: number;
+  hasNext: boolean;
+  nextCursorDate?: string;
+  nextCursorId?: string;
+}
+
 export interface DataQualityIssueRemediationResult {
   issueId: string;
   remediationStatus: 'resolved' | 'reopened';
@@ -1035,6 +1056,17 @@ const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
   oldValue: item.oldValue ?? '',
   newValue: item.newValue ?? '',
   reason: item.reason ?? item.businessArea,
+});
+
+const mapCursorPage = <TDto, TRow>(
+  page: CursorPageDto<TDto>,
+  mapRow: (item: TDto) => TRow,
+): CursorPage<TRow> => ({
+  items: (page.items ?? []).map(mapRow),
+  limit: page.limit,
+  hasNext: page.hasNext,
+  nextCursorDate: page.nextCursorDate,
+  nextCursorId: page.nextCursorId,
 });
 
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
@@ -1346,6 +1378,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<StockMovementViewDto[]>) => getData(response).map(mapStockMovement),
       providesTags: ['WorkflowReports'],
     }),
+    getStockMovementPage: builder.query<CursorPage<StockMovement>, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/stock-movements/page',
+        params: { ...queryWithLimit(query || undefined), limit: query?.limit ?? 20 },
+      }),
+      transformResponse: (response: ApiResponse<CursorPageDto<StockMovementViewDto>>) =>
+        mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false }, mapStockMovement),
+      providesTags: ['WorkflowReports'],
+    }),
     getPriceVariance: builder.query<PriceVarianceRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/receipt-price-variance',
@@ -1421,6 +1462,15 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
+      providesTags: ['WorkflowReports'],
+    }),
+    getAuditChangePage: builder.query<CursorPage<AuditLogRow>, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/audit-changes/page',
+        params: { ...queryWithLimit(query || undefined), limit: query?.limit ?? 20 },
+      }),
+      transformResponse: (response: ApiResponse<CursorPageDto<AuditChangeReportDto>>) =>
+        mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false }, mapAuditChange),
       providesTags: ['WorkflowReports'],
     }),
     getDataQuality: builder.query<DataQualityReport, WorkflowReportQuery | void>({
@@ -1511,6 +1561,7 @@ export const {
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
   useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   useGetPriceVarianceQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
@@ -1521,6 +1572,7 @@ export const {
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,
   useGetAuditChangesQuery,
+  useGetAuditChangePageQuery,
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,

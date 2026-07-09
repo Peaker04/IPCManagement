@@ -198,6 +198,36 @@ async function stubProductionReportStages(page: Page) {
       return;
     }
 
+    if (endpoint === 'stock-movements/page') {
+      const isNextPage = url.searchParams.has('cursorDate');
+      await fulfillJson(route, {
+        items: [
+          {
+            movementId: isNextPage ? 'movement-2' : 'movement-1',
+            movementDate: isNextPage ? '2026-06-14T07:30:00Z' : '2026-06-15T07:30:00Z',
+            warehouseId: 'wh-main',
+            warehouseName: 'Kho chính',
+            ingredientId: isNextPage ? 'ing-pork-rib' : 'ing-rice',
+            ingredientName: isNextPage ? 'Sườn heo trang 2' : 'Gạo tẻ trang 1',
+            unitId: 'unit-kg',
+            unitName: 'kg',
+            movementType: isNextPage ? 'ISSUE' : 'RECEIPT',
+            quantityIn: isNextPage ? 0 : 50,
+            quantityOut: isNextPage ? 10 : 0,
+            beforeQty: isNextPage ? 240 : 190,
+            afterQty: isNextPage ? 230 : 240,
+            refTable: isNextPage ? 'InventoryIssue' : 'InventoryReceipt',
+            refId: isNextPage ? 'issue-2' : 'receipt-1',
+          },
+        ],
+        limit: 20,
+        hasNext: !isNextPage,
+        nextCursorDate: isNextPage ? null : '2026-06-15T07:30:00Z',
+        nextCursorId: isNextPage ? null : 'movement-1',
+      });
+      return;
+    }
+
     if (endpoint === 'stock-movements') {
       await fulfillJson(route, [
         {
@@ -264,6 +294,44 @@ async function stubProductionReportStages(page: Page) {
           varianceQty: 1,
         },
       ]);
+      return;
+    }
+
+    if (endpoint === 'audit-changes/page') {
+      await fulfillJson(route, {
+        items: [
+          {
+            auditId: 'audit-import-1',
+            changedAt: '2026-06-15T06:30:00Z',
+            changedBy: 'admin',
+            changedByName: 'Admin Import',
+            businessArea: 'Import',
+            entityName: 'ProductionPlan',
+            entityId: 'plan-1',
+            fieldName: 'servings',
+            oldValue: '100',
+            newValue: '120',
+            reason: 'Import thực đơn ca sáng',
+          },
+          {
+            auditId: 'audit-receipt-1',
+            changedAt: '2026-06-15T07:30:00Z',
+            changedBy: 'warehouse',
+            changedByName: 'Thủ kho Lan',
+            businessArea: 'Receipt',
+            entityName: 'InventoryReceipt',
+            entityId: 'receipt-1',
+            fieldName: 'status',
+            oldValue: 'Draft',
+            newValue: 'Received',
+            reason: 'Nhập kho từ PR-20260615-M',
+          },
+        ],
+        limit: 20,
+        hasNext: false,
+        nextCursorDate: null,
+        nextCursorId: null,
+      });
       return;
     }
 
@@ -346,7 +414,7 @@ async function stubProductionReportStages(page: Page) {
         url.searchParams.get('dateFrom') === '2026-06-15' &&
         url.searchParams.get('dateTo') === '2026-06-15' &&
         url.searchParams.get('shiftName') === 'MORNING' &&
-        url.searchParams.get('limit') === '100',
+        url.searchParams.get('limit') === (endpoint.endsWith('/page') ? '20' : '100'),
       );
     },
   };
@@ -462,10 +530,17 @@ async function stubApprovalDecisionSuccess(page: Page) {
   });
 
   await page.route('**/api/workflow-reports/**', async (route) => {
+    const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: endpoint.endsWith('/page')
+          ? { items: [], limit: 20, hasNext: false, nextCursorDate: null, nextCursorId: null }
+          : [],
+      }),
     });
   });
 
@@ -685,6 +760,21 @@ test.describe('route smoke', () => {
     await expect(page.getByText('Hiển thị 7-7 / 7')).toBeVisible();
   });
 
+  test('reports movement loads the next server cursor page', async ({ page }) => {
+    await stubProductionReportStages(page);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.goto(ROUTES.REPORTS);
+
+    await page.getByRole('tab', { name: 'Nhập/xuất kho' }).click();
+    const movementTable = page.getByLabel('Bảng biến động kho');
+    await expect(movementTable.getByText('Gạo tẻ trang 1')).toBeVisible();
+
+    await page.getByRole('button', { name: 'Trang sau' }).click();
+    await expect(movementTable.getByText('Sườn heo trang 2')).toBeVisible();
+    await expect(page.getByText('Trang 2, tải theo cursor')).toBeVisible();
+  });
+
   test('reports cover filters, export, and audit grouping with seeded workflow stages', async ({ page }) => {
     const reportRequests = await stubProductionReportStages(page);
     await page.setViewportSize({ width: 1365, height: 900 });
@@ -696,7 +786,6 @@ test.describe('route smoke', () => {
     await page.getByLabel('Đến ngày').fill('2026-06-15');
     await page.getByLabel('Ca').selectOption('MORNING');
 
-    await expect.poll(() => reportRequests.hasFilteredRequest('audit-changes')).toBe(true);
     await expect.poll(() => reportRequests.hasFilteredRequest('ingredient-demand')).toBe(true);
 
     await expect(page.getByText('Sườn heo').first()).toBeVisible();
@@ -721,6 +810,7 @@ test.describe('route smoke', () => {
     await expect(page.getByRole('link', { name: 'Xử lý' })).toHaveAttribute('href', ROUTES.WEEKLY_MENU);
 
     await page.getByRole('tab', { name: 'Audit' }).click();
+    await expect.poll(() => reportRequests.hasFilteredRequest('audit-changes/page')).toBe(true);
     await expect(page.getByText('Mảng nghiệp vụ')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Import', exact: true })).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Receipt', exact: true })).toBeVisible();
