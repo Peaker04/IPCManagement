@@ -35,6 +35,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<StockMovementViewDto>>.SuccessResult(
             await _workflowReportService.GetStockMovementsAsync(query)));
 
+    [HttpGet("stock-movements/page")]
+    public async Task<IActionResult> GetStockMovementPage([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<CursorPageDto<StockMovementViewDto>>.SuccessResult(
+            await _workflowReportService.GetStockMovementPageAsync(query)));
+
     [HttpGet("stock-ledger-reconciliation")]
     public async Task<IActionResult> GetStockLedgerReconciliation([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>.SuccessResult(
@@ -104,6 +109,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetAuditChanges([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
+
+    [HttpGet("audit-changes/page")]
+    public async Task<IActionResult> GetAuditChangePage([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<CursorPageDto<AuditChangeReportDto>>.SuccessResult(
+            await _workflowReportService.GetAuditChangePageAsync(query)));
 
     [HttpGet("audit-changes/csv")]
     public async Task<IActionResult> ExportAuditChangesCsv([FromQuery] WorkflowReportQueryDto query)

@@ -1,6 +1,8 @@
 import {
   AlertTriangle,
   ArrowLeftRight,
+  ChevronLeft,
+  ChevronRight,
   ClipboardList,
   Database,
   Download,
@@ -30,7 +32,7 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  useGetAuditChangesQuery,
+  useGetAuditChangePageQuery,
   useGetCurrentStockQuery,
   useGetDataQualityQuery,
   useGetIngredientDemandQuery,
@@ -41,7 +43,7 @@ import {
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
   useGetPurchaseDemandQuery,
-  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   type StockMovement,
   type WorkflowReportQuery,
 } from '@/features/workflow';
@@ -100,6 +102,48 @@ const EmptyRow = ({ colSpan }: { colSpan: number }) => (
   </tr>
 );
 
+interface ReportCursor {
+  cursorDate: string;
+  cursorId?: string;
+}
+
+const CursorPagination = ({
+  page,
+  hasNext,
+  onPrevious,
+  onNext,
+}: {
+  page: number;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+}) => (
+  <nav className="ipc-pagination-bar" aria-label="Phân trang báo cáo">
+    <div className="ipc-pagination-range">Trang {page}, tải theo cursor</div>
+    <div className="ipc-pagination-actions">
+      <button
+        type="button"
+        className="ipc-pagination-button"
+        disabled={page <= 1}
+        onClick={onPrevious}
+        aria-label="Trang trước"
+      >
+        <ChevronLeft size={16} />
+      </button>
+      <span className="ipc-pagination-page" aria-live="polite">Trang {page}</span>
+      <button
+        type="button"
+        className="ipc-pagination-button"
+        disabled={!hasNext}
+        onClick={onNext}
+        aria-label="Trang sau"
+      >
+        <ChevronRight size={16} />
+      </button>
+    </div>
+  </nav>
+);
+
 type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
 const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
@@ -122,7 +166,16 @@ const ReportsPage = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [shiftName, setShiftName] = useState('');
+  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
+  const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
+  const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const pricePageSize = 6;
+  const reportPageSize = 20;
+
+  const resetCursorPages = () => {
+    setMovementCursors([]);
+    setAuditCursors([]);
+  };
 
   const reportQuery: WorkflowReportQuery = {
     dateFrom: dateFrom || undefined,
@@ -141,20 +194,34 @@ const ReportsPage = () => {
   const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
   const purchaseDemandResult = useGetPurchaseDemandQuery(reportQuery);
   const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
-  const stockMovementResult = useGetStockMovementsQuery(reportQuery);
+  const movementCursor = movementCursors.at(-1);
+  const auditCursor = auditCursors.at(-1);
+  const stockMovementResult = useGetStockMovementPageQuery({
+    ...reportQuery,
+    cursorDate: movementCursor?.cursorDate,
+    cursorId: movementCursor?.cursorId,
+    limit: reportPageSize,
+    sortDirection,
+  }, { skip: activeView !== 'movement' });
   const kitchenIssueResult = useGetKitchenIssuesQuery(reportQuery);
   const usageResult = useGetIssueVsReturnUsageQuery(reportQuery);
-  const auditResult = useGetAuditChangesQuery(reportQuery);
+  const auditResult = useGetAuditChangePageQuery({
+    ...reportQuery,
+    cursorDate: auditCursor?.cursorDate,
+    cursorId: auditCursor?.cursorId,
+    limit: reportPageSize,
+    sortDirection,
+  }, { skip: activeView !== 'audit' });
   const dataQualityResult = useGetDataQualityQuery(reportQuery);
 
   const priceVarianceRows = priceVarianceResult.data ?? [];
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
   const purchaseDemandRows = purchaseDemandResult.data ?? [];
   const currentStockRows = currentStockResult.data ?? [];
-  const stockMovementRows = stockMovementResult.data ?? [];
+  const stockMovementRows = stockMovementResult.data?.items ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
   const usageRows = usageResult.data ?? [];
-  const auditRows = auditResult.data ?? [];
+  const auditRows = auditResult.data?.items ?? [];
   const dataQualityReport = dataQualityResult.data;
   const dataQualityRows = dataQualityReport?.issues ?? [];
 
@@ -312,6 +379,26 @@ const ReportsPage = () => {
     downloadCsv(csv, `${config.filename}-${timestamp}.csv`);
   };
 
+  const openNextMovementPage = () => {
+    const page = stockMovementResult.data;
+    if (page?.hasNext && page.nextCursorDate) {
+      setMovementCursors((current) => [...current, {
+        cursorDate: page.nextCursorDate!,
+        cursorId: page.nextCursorId,
+      }]);
+    }
+  };
+
+  const openNextAuditPage = () => {
+    const page = auditResult.data;
+    if (page?.hasNext && page.nextCursorDate) {
+      setAuditCursors((current) => [...current, {
+        cursorDate: page.nextCursorDate!,
+        cursorId: page.nextCursorId,
+      }]);
+    }
+  };
+
   const warningQueue = warningItems.map((item) => ({
     title: item.name,
     description: `Tăng ${formatPercent(item.change)} tại ${item.supplier}. Giá hiện tại ${formatCurrency(item.priceCurrent)}/${formatUnit(item.unit)}.`,
@@ -351,10 +438,28 @@ const ReportsPage = () => {
             <span>Bộ lọc báo cáo</span>
           </div>
           <FieldRow label="Từ ngày" htmlFor="report-date-from">
-            <input id="report-date-from" type="date" className="ipc-input" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} />
+            <input
+              id="report-date-from"
+              type="date"
+              className="ipc-input"
+              value={dateFrom}
+              onChange={(event) => {
+                setDateFrom(event.target.value);
+                resetCursorPages();
+              }}
+            />
           </FieldRow>
           <FieldRow label="Đến ngày" htmlFor="report-date-to">
-            <input id="report-date-to" type="date" className="ipc-input" value={dateTo} onChange={(event) => setDateTo(event.target.value)} />
+            <input
+              id="report-date-to"
+              type="date"
+              className="ipc-input"
+              value={dateTo}
+              onChange={(event) => {
+                setDateTo(event.target.value);
+                resetCursorPages();
+              }}
+            />
           </FieldRow>
           <FieldRow label="Ca" htmlFor="report-shift">
             <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => setShiftName(event.target.value)}>
@@ -363,6 +468,22 @@ const ReportsPage = () => {
               <option value="AFTERNOON">Ca chiều</option>
             </select>
           </FieldRow>
+          {(activeView === 'movement' || activeView === 'audit') && (
+            <FieldRow label="Sắp xếp" htmlFor="report-sort-direction">
+              <select
+                id="report-sort-direction"
+                className="ipc-select"
+                value={sortDirection}
+                onChange={(event) => {
+                  setSortDirection(event.target.value as 'desc' | 'asc');
+                  resetCursorPages();
+                }}
+              >
+                <option value="desc">Mới nhất trước</option>
+                <option value="asc">Cũ nhất trước</option>
+              </select>
+            </FieldRow>
+          )}
         </CommandBar>
       }
       context={
@@ -722,7 +843,13 @@ const ReportsPage = () => {
 
       {activeView === 'movement' && (
         <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
-          <StockMovementTable movements={stockMovementRows} />
+          <StockMovementTable movements={stockMovementRows} pageSize={reportPageSize} />
+          <CursorPagination
+            page={movementCursors.length + 1}
+            hasNext={stockMovementResult.data?.hasNext ?? false}
+            onPrevious={() => setMovementCursors((current) => current.slice(0, -1))}
+            onNext={openNextMovementPage}
+          />
         </SectionPanel>
       )}
 
@@ -892,6 +1019,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </DataTableShell>
+          <CursorPagination
+            page={auditCursors.length + 1}
+            hasNext={auditResult.data?.hasNext ?? false}
+            onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
+            onNext={openNextAuditPage}
+          />
         </SectionPanel>
       )}
     </OperationalFrame>

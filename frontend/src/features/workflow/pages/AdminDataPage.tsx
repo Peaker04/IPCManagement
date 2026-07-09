@@ -31,6 +31,7 @@ import {
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
+  useGetOperationalKpisQuery,
   useGetPriceVarianceQuery,
   useGetPurchaseDemandQuery,
   useGetStockMovementsQuery,
@@ -322,6 +323,7 @@ export default function AdminDataPage() {
     }
   };
   const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
+  const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const [generateMaterialDemand, generateMaterialDemandState] = useGenerateMaterialDemandMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -1801,6 +1803,39 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
+                  <tr>
+                    <td className="font-semibold">Workflow thất bại</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
+                    <td className="text-left">Import, nhu cầu hoặc mua hàng đang ở trạng thái FAILED/IMPORT_FAILED.</td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={(operationalKpis?.failedWorkflowCount ?? 0) ? 'danger' : 'success'}>
+                        {(operationalKpis?.failedWorkflowCount ?? 0) ? 'Cần điều tra' : 'Ổn định'}
+                      </StatusBadge>
+                    </td>
+                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
+                  </tr>
+                  <tr>
+                    <td className="font-semibold">Data quality critical</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
+                    <td className="text-left">Issue mức error cần xử lý trước khi tiếp tục luồng production.</td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={(operationalKpis?.criticalDataQualityCount ?? 0) ? 'danger' : 'success'}>
+                        {(operationalKpis?.criticalDataQualityCount ?? 0) ? 'Đang chặn' : 'Đạt'}
+                      </StatusBadge>
+                    </td>
+                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở data quality</Link></td>
+                  </tr>
+                  <tr>
+                    <td className="font-semibold">Approval chờ lâu</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
+                    <td className="text-left">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={(operationalKpis?.overdueApprovalCount ?? 0) ? 'warning' : 'success'}>
+                        {(operationalKpis?.overdueApprovalCount ?? 0) ? 'Quá SLA' : 'Trong SLA'}
+                      </StatusBadge>
+                    </td>
+                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>Mở phê duyệt</Link></td>
+                  </tr>
                   <tr>
                     <td className="font-semibold">Nhu cầu nguyên liệu</td>
                     <td className="ipc-numeric-cell">{shortageRows.length} dòng thiếu</td>
