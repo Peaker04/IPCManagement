@@ -1906,6 +1906,83 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task AuditChanges_Should_ReturnCursorPage_AndSupportAscendingSort()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var baseDate = new DateTime(2026, 8, 10, 8, 0, 0, DateTimeKind.Utc);
+        context.Auditlogs.AddRange(
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate,
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Newest",
+                NewValue = "3"
+            },
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate.AddDays(-1),
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Middle",
+                NewValue = "2"
+            },
+            new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = baseDate.AddDays(-2),
+                ChangedBy = fixture.UserId,
+                BusinessArea = "Scale",
+                EntityName = "Report",
+                FieldName = "Oldest",
+                NewValue = "1"
+            });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var firstPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            Limit = 2
+        });
+
+        firstPage.Items.Select(row => row.FieldName).Should().Equal("Newest", "Middle");
+        firstPage.HasNext.Should().BeTrue();
+        firstPage.NextCursorDate.Should().NotBeNullOrWhiteSpace();
+
+        var secondPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            CursorDate = firstPage.NextCursorDate,
+            CursorId = firstPage.NextCursorId,
+            Limit = 2
+        });
+
+        secondPage.Items.Should().ContainSingle(row => row.FieldName == "Oldest");
+        secondPage.HasNext.Should().BeFalse();
+
+        var ascendingPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-08-01",
+            DateTo = "2026-08-31",
+            SortDirection = "asc",
+            Limit = 2
+        });
+
+        ascendingPage.Items.Select(row => row.FieldName).Should().Equal("Oldest", "Middle");
+        ascendingPage.HasNext.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task DataQualityReport_Should_GroupMissingBomInvalidUnitNegativeStockAndOrphans()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2488,6 +2565,28 @@ public class WorkflowGenerationTests
 
         secondPage.Should().ContainSingle(row => row.Note == "older");
         secondPage.Should().NotContain(row => row.Note == "newest" || row.Note == "cursor");
+
+        var firstCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            Limit = 2
+        });
+
+        firstCursorPage.Items.Select(row => row.Note).Should().Equal("newest", "cursor");
+        firstCursorPage.HasNext.Should().BeTrue();
+        firstCursorPage.NextCursorDate.Should().NotBeNullOrWhiteSpace();
+
+        var ascendingCursorPage = await service.GetStockMovementPageAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-07-01",
+            DateTo = "2026-07-31",
+            SortDirection = "asc",
+            Limit = 2
+        });
+
+        ascendingCursorPage.Items.Select(row => row.Note).Should().Equal("older", "cursor");
+        ascendingCursorPage.HasNext.Should().BeTrue();
     }
 
     [Fact]
@@ -4067,6 +4166,63 @@ public class WorkflowGenerationTests
 
         kpis.ShortageCount.Should().Be(1);
         kpis.PendingKitchenConfirmationCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetOperationalKpisAsync_Should_SurfaceProductionMonitoringAlerts()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        context.Units.Add(new Unit { UnitId = fixture.UnitId, UnitCode = "KG", UnitName = "Kilogram", ConvertRateToBase = 1 });
+        context.Warehouses.Add(new Warehouse { WarehouseId = fixture.WarehouseId, WarehouseCode = "WH-MON", WarehouseName = "Kho giám sát", WarehouseType = "DRY" });
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = fixture.IngredientId,
+            IngredientCode = "ING-MON",
+            IngredientName = "Nguyên liệu giám sát",
+            UnitId = fixture.UnitId,
+            WarehouseId = fixture.WarehouseId,
+            ReferencePrice = 100,
+            IsFreshDaily = false,
+            IsActive = true
+        });
+
+        context.Materialrequests.Add(new Materialrequest
+        {
+            RequestId = GuidHelper.NewId(),
+            RequestCode = "MR-FAILED",
+            PlanId = GuidHelper.NewId(),
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            RequestScope = "FULLDAY",
+            Status = "FAILED",
+            CreatedBy = fixture.UserId
+        });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = GuidHelper.NewId(),
+            PurchaseRequestCode = "PR-OVERDUE-APPROVAL",
+            RequestDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(-2),
+            PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow).AddDays(1),
+            Status = "SENTTOSUPPLIER",
+            CreatedBy = fixture.UserId
+        });
+        context.Currentstocks.Add(new Currentstock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = -1,
+            LastUpdated = DateTime.UtcNow
+        });
+
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var kpis = await service.GetOperationalKpisAsync();
+
+        kpis.FailedWorkflowCount.Should().Be(1);
+        kpis.CriticalDataQualityCount.Should().BeGreaterThan(0);
+        kpis.OverdueApprovalCount.Should().Be(1);
     }
 
     private sealed class WorkflowFixture : IAsyncDisposable
