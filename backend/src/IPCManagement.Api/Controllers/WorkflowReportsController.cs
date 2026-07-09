@@ -1,5 +1,6 @@
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,10 +15,14 @@ namespace IPCManagement.Api.Controllers;
 public class WorkflowReportsController : ControllerBase
 {
     private readonly IWorkflowReportService _workflowReportService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public WorkflowReportsController(IWorkflowReportService workflowReportService)
+    public WorkflowReportsController(
+        IWorkflowReportService workflowReportService,
+        ICurrentUserService currentUserService)
     {
         _workflowReportService = workflowReportService;
+        _currentUserService = currentUserService;
     }
 
     [HttpGet("current-stock")]
@@ -122,6 +127,30 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetDataQuality([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
             await _workflowReportService.GetDataQualityAsync(query)));
+
+    [HttpPost("data-quality/issues/remediation")]
+    public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            var result = await _workflowReportService.UpdateDataQualityIssueRemediationAsync(request, userId);
+            return Ok(ApiResponse<DataQualityIssueRemediationDto>.SuccessResult(result, "Đã cập nhật trạng thái xử lý data-quality issue."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Unauthorized(ApiResponse.FailResult(ex.Message));
+        }
+    }
 
     [HttpGet("order-export")]
     public async Task<IActionResult> GetOrderExport([FromQuery] WorkflowReportQueryDto query)

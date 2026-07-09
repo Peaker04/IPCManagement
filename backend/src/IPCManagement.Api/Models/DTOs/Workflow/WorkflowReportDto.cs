@@ -266,6 +266,9 @@ public class DataQualityReportDto
     public int TotalIssues { get; set; }
     public int ErrorCount { get; set; }
     public int WarningCount { get; set; }
+    public int ResolvedIssueCount { get; set; }
+    public int ReopenedIssueCount { get; set; }
+    public int UrgentIssueCount { get; set; }
     public int MissingBomCount { get; set; }
     public int InvalidUnitCount { get; set; }
     public int MissingConversionCount { get; set; }
@@ -279,6 +282,11 @@ public class DataQualityIssueDto
     public string IssueId { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
     public string Severity { get; set; } = string.Empty;
+    public string Owner { get; set; } = string.Empty;
+    public int PriorityRank { get; set; }
+    public int SlaHours { get; set; }
+    public DateTime SlaDueAt { get; set; }
+    public string SlaLabel { get; set; } = string.Empty;
     public string EntityName { get; set; } = string.Empty;
     public string? EntityId { get; set; }
     public string EntityCode { get; set; } = string.Empty;
@@ -286,6 +294,25 @@ public class DataQualityIssueDto
     public string Message { get; set; } = string.Empty;
     public string SuggestedAction { get; set; } = string.Empty;
     public string Route { get; set; } = string.Empty;
+    public string RemediationStatus { get; set; } = "open";
+    public DateTime? RemediationAt { get; set; }
+    public string? RemediationByName { get; set; }
+    public string? RemediationNote { get; set; }
+}
+
+public class DataQualityIssueRemediationRequestDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string? Note { get; set; }
+}
+
+public class DataQualityIssueRemediationDto
+{
+    public string IssueId { get; set; } = string.Empty;
+    public string RemediationStatus { get; set; } = string.Empty;
+    public DateTime RemediationAt { get; set; }
+    public string? Note { get; set; }
 }
 
 public class WorkflowDocumentDto

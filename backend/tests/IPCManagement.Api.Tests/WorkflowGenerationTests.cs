@@ -1919,6 +1919,12 @@ public class WorkflowGenerationTests
         var orphanPurchaseRequestId = GuidHelper.NewId();
         var orphanIssueId = GuidHelper.NewId();
 
+        var customerId = await context.Customers.Select(customer => customer.CustomerId).SingleAsync();
+        var productionPlan = await context.Productionplans.SingleAsync(plan => plan.PlanId == fixture.ProductionPlanId);
+        productionPlan.CustomerId = customerId;
+        var inactiveSupplier = await context.Suppliers.SingleAsync(supplier => supplier.SupplierId == fixture.SupplierId);
+        inactiveSupplier.IsActive = false;
+
         context.Units.Add(new Unit
         {
             UnitId = badUnitId,
@@ -1960,7 +1966,7 @@ public class WorkflowGenerationTests
             PlanId = GuidHelper.NewId(),
             RequestDate = new DateOnly(2026, 6, 15),
             RequestScope = "FULLDAY",
-            Status = "DRAFT",
+            Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
         context.Purchaserequests.Add(new Purchaserequest
@@ -1969,7 +1975,7 @@ public class WorkflowGenerationTests
             PurchaseRequestCode = "PR-ORPHAN",
             RequestDate = new DateOnly(2026, 6, 15),
             PurchaseForDate = new DateOnly(2026, 6, 15),
-            Status = "DRAFT",
+            Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
         context.Purchaserequestlines.Add(new Purchaserequestline
@@ -2008,11 +2014,16 @@ public class WorkflowGenerationTests
         report.MissingConversionCount.Should().BeGreaterThanOrEqualTo(1);
         report.NegativeStockCount.Should().Be(1);
         report.OrphanDocumentCount.Should().BeGreaterThanOrEqualTo(3);
+        report.UrgentIssueCount.Should().BeGreaterThanOrEqualTo(2);
         report.Issues.Select(issue => issue.Category).Should().Contain([
             "missing_bom",
             "invalid_unit",
             "missing_conversion",
             "negative_stock",
+            "missing_contract",
+            "missing_supplier",
+            "stale_demand",
+            "stale_purchase_request",
             "orphan_document"
         ]);
         var missingBomIssue = report.Issues.Single(issue => issue.Category == "missing_bom");
@@ -2021,6 +2032,74 @@ public class WorkflowGenerationTests
         missingBomIssue.Route.Should().Contain("remediate=missing_bom");
         missingBomIssue.Route.Should().Contain("dishId=");
         missingBomIssue.Route.Should().Contain("serviceDate=2026-06-15");
+        missingBomIssue.Owner.Should().Be("Kitchen Admin");
+        missingBomIssue.PriorityRank.Should().Be(2);
+        missingBomIssue.SlaHours.Should().Be(4);
+        missingBomIssue.SlaLabel.Should().Be("P2 / 4h");
+
+        var negativeStockIssue = report.Issues.Single(issue => issue.Category == "negative_stock");
+        negativeStockIssue.Owner.Should().Be("Thủ kho");
+        negativeStockIssue.PriorityRank.Should().Be(1);
+        negativeStockIssue.SlaHours.Should().Be(2);
+        negativeStockIssue.SlaLabel.Should().Be("P1 / 2h");
+
+        report.Issues.Should().Contain(issue =>
+            issue.Category == "missing_contract" &&
+            issue.Owner == "Quản lý vận hành" &&
+            issue.PriorityRank == 2);
+        report.Issues.Should().Contain(issue =>
+            issue.Category == "missing_supplier" &&
+            issue.Owner == "Thu mua" &&
+            issue.SlaHours == 8);
+        report.Issues.Should().Contain(issue =>
+            issue.Category == "stale_demand" &&
+            issue.Owner == "Điều phối" &&
+            issue.SlaHours == 24);
+        report.Issues.Should().Contain(issue =>
+            issue.Category == "stale_purchase_request" &&
+            issue.Owner == "Thu mua" &&
+            issue.SlaHours == 24);
+    }
+
+    [Fact]
+    public async Task DataQualityIssueRemediation_Should_KeepPersistentIssueVisibleAfterResolveAndReopen()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
+
+        await using var context = fixture.CreateContext();
+        var service = new WorkflowReportService(context);
+        var initialReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var missingBomIssue = initialReport.Issues.Single(issue => issue.Category == "missing_bom");
+
+        await service.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequestDto
+        {
+            IssueId = missingBomIssue.IssueId,
+            Action = "resolve",
+            Note = "QA marked fixed"
+        }, fixture.UserIdString);
+
+        var resolvedReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var stillVisibleIssue = resolvedReport.Issues.Single(issue => issue.IssueId == missingBomIssue.IssueId);
+        stillVisibleIssue.RemediationStatus.Should().Be("resolved");
+        stillVisibleIssue.RemediationNote.Should().Be("QA marked fixed");
+        stillVisibleIssue.RemediationByName.Should().Be("Workflow Test");
+        resolvedReport.ResolvedIssueCount.Should().Be(1);
+        resolvedReport.TotalIssues.Should().Be(initialReport.TotalIssues);
+
+        await service.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequestDto
+        {
+            IssueId = missingBomIssue.IssueId,
+            Action = "reopen",
+            Note = "Root cause still exists"
+        }, fixture.UserIdString);
+
+        var reopenedReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var reopenedIssue = reopenedReport.Issues.Single(issue => issue.IssueId == missingBomIssue.IssueId);
+        reopenedIssue.RemediationStatus.Should().Be("reopened");
+        reopenedIssue.RemediationNote.Should().Be("Root cause still exists");
+        reopenedReport.ReopenedIssueCount.Should().Be(1);
+        reopenedReport.TotalIssues.Should().Be(initialReport.TotalIssues);
     }
 
     [Fact]

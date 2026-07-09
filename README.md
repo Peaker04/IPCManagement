@@ -124,6 +124,52 @@ AllowedHosts="YOUR_API_DOMAIN"
 
 Khi `ASPNETCORE_ENVIRONMENT` không phải `Development`, API sẽ từ chối khởi động nếu vẫn dùng password/secret mẫu, CORS localhost, hoặc `AllowedHosts=*`.
 
+Các profile cấu hình runtime:
+
+| Môi trường | File mẫu | Mục đích |
+| --- | --- | --- |
+| `Development` | `appsettings.json` + `appsettings.Development.json` | Máy dev local, Swagger bật, CORS mở trong development. |
+| `Demo` | `appsettings.Demo.example.json` | Demo nội bộ với database/demo secret riêng. Sao chép thành `appsettings.Demo.json` trước khi chạy. |
+| `Lan` | `appsettings.Lan.example.json` | Chạy API trong mạng LAN bằng IP/host nội bộ. Sao chép thành `appsettings.Lan.json` trước khi chạy. |
+| `Production` | `appsettings.Production.example.json` | Triển khai thật, dùng host/domain thật và secret mạnh. Sao chép thành `appsettings.Production.json` hoặc set env vars. |
+
+Ví dụ chạy LAN từ repo root sau khi đã thay toàn bộ `CHANGE_ME_*`, IP, host, database và secret trong `appsettings.Lan.json`:
+
+```powershell
+$env:ASPNETCORE_ENVIRONMENT="Lan"
+dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj --urls "http://0.0.0.0:5262"
+```
+
+Kế hoạch migration cho release chạy bằng một lệnh và ghi log vào `.artifacts/migrations/`:
+
+```powershell
+# Audit migration plan without touching the database
+powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1MigrationPlan.ps1 -EnvironmentName Lan
+
+# Apply EF migrations for the selected environment
+powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1MigrationPlan.ps1 -EnvironmentName Lan -Apply
+```
+
+Seed mode tách riêng demo reset và production baseline:
+
+```powershell
+# Demo reset; bị chặn nếu trỏ nhầm domain public/production
+powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1SeedMode.ps1 -Mode DemoReset -BaseUrl http://localhost:5262
+
+# Production baseline; không gọi sample-data import
+powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1SeedMode.ps1 -Mode ProductionBaseline -BaseUrl http://your-api-host:5262 -AuditOnly
+```
+
+Release verify một lệnh:
+
+```powershell
+npm run verify:release:audit
+npm run verify:release -- -BackendBaseUrl http://localhost:5262 -RunSeedReset -E2ELogPath .artifacts/e2e/<dated-e2e-log>.log
+
+# Exception-path E2E: stale demand, missing BOM, shortage, rejected approval, remediation
+npm run e2e:exceptions
+```
+
 ## 📚 Tài liệu domain
 
 Các tài liệu nghiệp vụ bổ sung được đặt trong `docs/`:
@@ -131,6 +177,9 @@ Các tài liệu nghiệp vụ bổ sung được đặt trong `docs/`:
 - [Business Flow](docs/domain/business-flow.md): luồng từ thực đơn, số suất, định lượng đến mua hàng và kho.
 - [Data Model](docs/domain/data-model.md): nhóm bảng MySQL/EF Core và các ràng buộc nghiệp vụ chính.
 - [Source Workbooks](docs/domain/source-workbooks.md): ý nghĩa các file Excel/DOCX/SQL trong `.docs`.
+- [Iter1 Actor Runbook](.docs/ITER1_ACTOR_RUNBOOK.md): hướng dẫn thao tác theo vai Admin, Operations, Planner, Purchasing, Warehouse, Chef, Manager.
+- [Iter1 Daily Checklist](.docs/ITER1_DAILY_CHECKLIST.md): checklist ngày/tuần cho import, validate, signoff, demand, approval, warehouse, kitchen, reports.
+- [Iter1 Destructive Endpoint Audit](.docs/ITER1_DESTRUCTIVE_ENDPOINT_AUDIT.md): audit endpoint reset/delete/regenerate và guard production cho sample-data.
 
 Thư mục `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ liệu runtime của ứng dụng.
 
@@ -147,6 +196,15 @@ npm run build:fe
 
 # Full local verification
 npm run verify
+
+# Release verification audit
+npm run verify:release:audit
+
+# Full release verification; append -- -RunSeedReset when a backend candidate is running
+npm run verify:release -- -BackendBaseUrl http://localhost:5262
+
+# Iter1 exception-path E2E
+npm run e2e:exceptions
 ```
 
 > Nếu backend đang chạy bằng `dotnet run`, Windows có thể khóa file trong `bin/Debug`.

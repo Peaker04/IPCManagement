@@ -537,6 +537,11 @@ interface DataQualityIssueDto {
   issueId: string;
   category: string;
   severity: 'error' | 'warning' | string;
+  owner?: string;
+  priorityRank?: number;
+  slaHours?: number;
+  slaDueAt?: string;
+  slaLabel?: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -544,6 +549,10 @@ interface DataQualityIssueDto {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus?: 'open' | 'resolved' | 'reopened' | string;
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 interface DataQualityReportDto {
@@ -551,6 +560,9 @@ interface DataQualityReportDto {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount?: number;
+  reopenedIssueCount?: number;
+  urgentIssueCount?: number;
   missingBomCount: number;
   invalidUnitCount: number;
   missingConversionCount: number;
@@ -684,6 +696,7 @@ export interface AuditLogRow {
   id: string;
   timestamp: string;
   actor: string;
+  businessArea: string;
   fieldAffected: string;
   oldValue: string;
   newValue: string;
@@ -751,6 +764,11 @@ export interface DataQualityIssueRow {
   id: string;
   category: string;
   severity: 'error' | 'warning';
+  owner: string;
+  priorityRank: number;
+  slaHours: number;
+  slaDueAt?: string;
+  slaLabel: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -758,6 +776,10 @@ export interface DataQualityIssueRow {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus: 'open' | 'resolved' | 'reopened';
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 export interface DataQualityReport {
@@ -765,12 +787,28 @@ export interface DataQualityReport {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount: number;
+  reopenedIssueCount: number;
+  urgentIssueCount: number;
   missingBomCount: number;
   invalidUnitCount: number;
   missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
+}
+
+export interface DataQualityIssueRemediationRequest {
+  issueId: string;
+  action: 'resolve' | 'reopen';
+  note?: string;
+}
+
+export interface DataQualityIssueRemediationResult {
+  issueId: string;
+  remediationStatus: 'resolved' | 'reopened';
+  remediationAt: string;
+  note?: string;
 }
 
 const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
@@ -989,6 +1027,7 @@ const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
   id: item.auditId,
   timestamp: item.changedAt,
   actor: item.changedByName || item.changedBy,
+  businessArea: item.businessArea,
   fieldAffected: [item.entityName, item.fieldName].filter(Boolean).join(' / '),
   oldValue: item.oldValue ?? '',
   newValue: item.newValue ?? '',
@@ -1000,6 +1039,9 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   totalIssues: item.totalIssues,
   errorCount: item.errorCount,
   warningCount: item.warningCount,
+  resolvedIssueCount: item.resolvedIssueCount ?? 0,
+  reopenedIssueCount: item.reopenedIssueCount ?? 0,
+  urgentIssueCount: item.urgentIssueCount ?? 0,
   missingBomCount: item.missingBomCount,
   invalidUnitCount: item.invalidUnitCount,
   missingConversionCount: item.missingConversionCount,
@@ -1009,6 +1051,11 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
     id: issue.issueId,
     category: issue.category,
     severity: issue.severity === 'error' ? 'error' : 'warning',
+    owner: issue.owner || 'Quản lý vận hành',
+    priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
+    slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
+    slaDueAt: issue.slaDueAt,
+    slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
     entityName: issue.entityName,
     entityId: issue.entityId,
     entityCode: issue.entityCode,
@@ -1016,6 +1063,10 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
     message: issue.message,
     suggestedAction: issue.suggestedAction,
     route: issue.route,
+    remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
+    remediationAt: issue.remediationAt,
+    remediationByName: issue.remediationByName,
+    remediationNote: issue.remediationNote,
   })),
 });
 
@@ -1380,6 +1431,9 @@ export const workflowApi = apiSlice.injectEndpoints({
           totalIssues: 0,
           errorCount: 0,
           warningCount: 0,
+          resolvedIssueCount: 0,
+          reopenedIssueCount: 0,
+          urgentIssueCount: 0,
           missingBomCount: 0,
           invalidUnitCount: 0,
           missingConversionCount: 0,
@@ -1388,6 +1442,14 @@ export const workflowApi = apiSlice.injectEndpoints({
           issues: [],
         },
       providesTags: ['WorkflowReports'],
+    }),
+    updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
+      query: (body) => ({
+        url: '/workflow-reports/data-quality/issues/remediation',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
     }),
     getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
       query: (query) => ({
@@ -1459,6 +1521,7 @@ export const {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useUpdateDataQualityIssueRemediationMutation,
   useGetSupplierQuotationsByIngredientQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,

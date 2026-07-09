@@ -10,6 +10,7 @@ public class MaterialDemandService : IMaterialDemandService
 {
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
+    private const string DemandApprovedStatus = "MANAGERAPPROVED";
 
     public MaterialDemandService(IpcManagementContext context)
     {
@@ -281,6 +282,78 @@ public class MaterialDemandService : IMaterialDemandService
             IsStale = reasons.Count > 0,
             LastGeneratedAt = plan.UpdatedAt.ToString("O"),
             Reasons = reasons
+        };
+    }
+
+    public async Task<MaterialDemandApprovalDto?> ApproveAsync(
+        string materialRequestId,
+        string? userId,
+        string? reason,
+        CancellationToken cancellationToken = default)
+    {
+        var requestId = GuidHelper.ParseGuidString(materialRequestId)
+            ?? throw new ArgumentException("Mã nhu cầu nguyên liệu không hợp lệ.");
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null)
+        {
+            return null;
+        }
+
+        var request = await _context.Materialrequests
+            .FirstOrDefaultAsync(item => item.RequestId == requestId, cancellationToken);
+        if (request is null)
+        {
+            return null;
+        }
+
+        if (request.Status == DemandApprovedStatus)
+        {
+            return new MaterialDemandApprovalDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(request.RequestId),
+                RequestCode = request.RequestCode,
+                OldStatus = request.Status,
+                NewStatus = request.Status,
+                ApprovedAt = request.ApprovedAt ?? DateTime.UtcNow
+            };
+        }
+
+        if (request.Status != "DRAFT")
+        {
+            throw new InvalidOperationException("Chỉ nhu cầu nguyên liệu DRAFT mới được duyệt.");
+        }
+
+        var approvedAt = DateTime.UtcNow;
+        var oldStatus = request.Status;
+        request.Status = DemandApprovedStatus;
+        request.ApprovedBy = userIdBytes;
+        request.ApprovedAt = approvedAt;
+
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = approvedAt,
+            ChangedBy = userIdBytes,
+            BusinessArea = "Demand",
+            EntityName = nameof(Materialrequest),
+            EntityId = request.RequestId,
+            FieldName = nameof(Materialrequest.Status),
+            OldValue = oldStatus,
+            NewValue = DemandApprovedStatus,
+            Reason = string.IsNullOrWhiteSpace(reason)
+                ? "Duyệt nhu cầu nguyên liệu cho luồng mua hàng."
+                : reason
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new MaterialDemandApprovalDto
+        {
+            MaterialRequestId = GuidHelper.ToGuidString(request.RequestId),
+            RequestCode = request.RequestCode,
+            OldStatus = oldStatus,
+            NewStatus = DemandApprovedStatus,
+            ApprovedAt = approvedAt
         };
     }
 

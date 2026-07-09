@@ -8,18 +8,48 @@ import { ROUTES } from '../../../routes/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 
-// Fallback login hoạt động khi không có backend (demo mode)
-const isDevLoginFallbackEnabled = true;
+// Explicit local-only fallback for UI smoke/demo runs without a backend.
+const isDevLoginFallbackEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_LOGIN === 'true';
 
-const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
-  admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
-  quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
-  dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] },
-  beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
-  thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
-  thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchase.read', 'purchase.generate'] },
-  staff: { fullName: 'Nguyễn Thị Thu Mua', role: 'staff', permissions: [] },
-}
+const getDevAccount = (value: string) => {
+  if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
+    return null;
+  }
+
+  const devAccounts: Record<string, { fullName: string; role: AppRole; permissions: string[] }> = {
+    admin: { fullName: 'Trần Văn Giám Đốc', role: 'admin', permissions: ['*'] },
+    quanly: { fullName: 'Lê Văn Quản Lý', role: 'quanly', permissions: ['coordination.read', 'catalog.read', 'purchase.read', 'purchase.generate', 'warehouse.read', 'demand.generate'] },
+    dieuphoi: { fullName: 'Trần Thị Điều Phối', role: 'dieuphoi', permissions: ['coordination.read', 'coordination.order.lock', 'coordination.order.adjust', 'coordination.order.signoff', 'demand.generate'] },
+    beptruong: { fullName: 'Phạm Bếp Trưởng', role: 'beptruong', permissions: ['production:read'] },
+    thukho: { fullName: 'Hoàng Thủ Kho', role: 'thukho', permissions: ['warehouse:read', 'inventory:read'] },
+    thumua: { fullName: 'Đinh Thu Mua', role: 'thumua', permissions: ['purchase.read', 'purchase.generate'] },
+    staff: { fullName: 'Nguyễn Thị Thu Mua', role: 'staff', permissions: [] },
+  };
+
+  return devAccounts[value] ?? null;
+};
+
+const getDevFallbackToken = (value: string) => {
+  if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
+    return '';
+  }
+
+  return `dev-login-fallback-token-${value}`;
+};
+
+const DevLoginFallbackHint = () => {
+  if (import.meta.env.PROD || !isDevLoginFallbackEnabled) {
+    return null;
+  }
+
+  return (
+    <div className="ipc-auth-footer">
+      <p className="ipc-auth-hint">Fallback dev: <b>admin/admin</b>, <b>quanly/quanly</b>, <b>dieuphoi/dieuphoi</b></p>
+      <p className="ipc-auth-hint text-xs mt-1"><b>beptruong/beptruong</b>, <b>thukho/thukho</b>, <b>thumua/thumua</b></p>
+    </div>
+  );
+};
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
@@ -69,7 +99,7 @@ const LoginPage = () => {
         return;
       }
 
-      const devAccount = devAccounts[username];
+      const devAccount = getDevAccount(username);
       if (devAccount && password === username) {
         dispatch(
           setCredentials({
@@ -83,7 +113,7 @@ const LoginPage = () => {
               isAdminFullAccess: devAccount.role === 'admin',
               permissions: devAccount.permissions,
             },
-            token: `dev-login-fallback-token-${username}`,
+            token: getDevFallbackToken(username),
           })
         );
         navigate(ROUTES.DASHBOARD);
@@ -138,12 +168,7 @@ const LoginPage = () => {
           </button>
         </form>
 
-        {isDevLoginFallbackEnabled && (
-          <div className="ipc-auth-footer">
-            <p className="ipc-auth-hint">Fallback dev: <b>admin/admin</b>, <b>quanly/quanly</b>, <b>dieuphoi/dieuphoi</b></p>
-            <p className="ipc-auth-hint text-xs mt-1"><b>beptruong/beptruong</b>, <b>thukho/thukho</b>, <b>thumua/thumua</b></p>
-          </div>
-        )}
+        <DevLoginFallbackHint />
       </div>
     </div>
   );

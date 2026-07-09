@@ -55,7 +55,7 @@ public class PurchaseRequestsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(status))
         {
             var statuses = status.Split(',').Select(s => s.Trim().ToUpperInvariant()).ToList();
-            prQuery = prQuery.Where(r => statuses.Contains(r.Status.ToUpperInvariant()));
+            prQuery = prQuery.Where(r => statuses.Contains(r.Status));
         }
 
         if (dateFrom.HasValue)

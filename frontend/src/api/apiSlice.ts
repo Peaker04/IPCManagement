@@ -25,10 +25,19 @@ const baseQuery = fetchBaseQuery({
 let refreshPromise: Promise<void> | null = null;
 let devFallbackLoginPromise: Promise<boolean> | null = null;
 
-const devFallbackTokenPrefix = 'dev-login-fallback-token-';
+const isDevLoginFallbackEnabled =
+  import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_LOGIN === 'true';
 
-const getDevFallbackUsername = (token?: string | null) =>
-  token?.startsWith(devFallbackTokenPrefix) ? token.slice(devFallbackTokenPrefix.length) : null;
+const getDevFallbackUsername = (token?: string | null) => {
+  if (import.meta.env.PROD || !isDevLoginFallbackEnabled || !token) {
+    return null;
+  }
+
+  const devFallbackTokenPrefix = 'dev-login-fallback-token-';
+  return token.startsWith(devFallbackTokenPrefix)
+    ? token.slice(devFallbackTokenPrefix.length)
+    : null;
+};
 
 const isAuthEndpoint = (args: string | FetchArgs) => {
   const url = typeof args === 'string' ? args : args.url;

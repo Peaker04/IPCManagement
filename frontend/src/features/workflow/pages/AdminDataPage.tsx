@@ -35,7 +35,9 @@ import {
   useGetPurchaseDemandQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
+  useUpdateDataQualityIssueRemediationMutation,
   useWorkflowOverview,
+  type DataQualityIssueRow,
 } from '@/features/workflow';
 import {
   useAddDishBomLineMutation,
@@ -230,6 +232,7 @@ export default function AdminDataPage() {
   const [contractForm, setContractForm] = useState<ContractFormState>(defaultContractForm);
   const [scheduleRuleForm, setScheduleRuleForm] = useState<ScheduleRuleFormState>(defaultScheduleRuleForm);
   const [contractFeedback, setContractFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [dataQualityFeedback, setDataQualityFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [editingBomId, setEditingBomId] = useState<string | null>(null);
   const [bomForm, setBomForm] = useState<BomFormState>({
     ingredientId: '',
@@ -319,6 +322,7 @@ export default function AdminDataPage() {
     }
   };
   const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
+  const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const [generateMaterialDemand, generateMaterialDemandState] = useGenerateMaterialDemandMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
@@ -778,6 +782,26 @@ export default function AdminDataPage() {
       });
     } catch (error) {
       setBomFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa chạy lại được demand.') });
+    }
+  };
+
+  const handleDataQualityRemediation = async (issue: DataQualityIssueRow, action: 'resolve' | 'reopen') => {
+    try {
+      await updateDataQualityIssueRemediation({
+        issueId: issue.id,
+        action,
+        note: action === 'resolve'
+          ? 'Đánh dấu đã xử lý từ màn Quản trị dữ liệu.'
+          : 'Mở lại issue từ màn Quản trị dữ liệu.',
+      }).unwrap();
+      setDataQualityFeedback({
+        type: 'success',
+        message: action === 'resolve'
+          ? 'Đã đánh dấu issue là resolved. Nếu lỗi gốc vẫn còn, issue vẫn nằm trong bảng để xử tiếp.'
+          : 'Đã mở lại issue để tiếp tục xử lý.',
+      });
+    } catch (error) {
+      setDataQualityFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái data-quality issue.') });
     }
   };
 
@@ -1651,8 +1675,16 @@ export default function AdminDataPage() {
                 { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Phiếu orphan', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
+                { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' : 'success' },
+                { label: 'Resolved còn lỗi', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: (dataQualityReport?.resolvedIssueCount ?? 0) ? 'warning' : 'success' },
               ]}
             />
+
+            {dataQualityFeedback && (
+              <InlineAlert title={dataQualityFeedback.type === 'success' ? 'Đã cập nhật data-quality issue' : 'Chưa cập nhật được issue'} variant={dataQualityFeedback.type === 'success' ? 'info' : 'danger'}>
+                {dataQualityFeedback.message}
+              </InlineAlert>
+            )}
 
             <DataTableShell ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
               <table className="ipc-data-table text-sm">
@@ -1660,14 +1692,18 @@ export default function AdminDataPage() {
                   <tr>
                     <th>Nhóm lỗi</th>
                     <th>Mức</th>
+                    <th>SLA</th>
+                    <th>Trạng thái xử lý</th>
+                    <th>Owner</th>
                     <th>Đối tượng</th>
                     <th className="text-left">Mô tả</th>
                     <th className="text-left">Cách xử lý</th>
                     <th>Đi tới</th>
+                    <th>Resolve</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={6} /> : dataQualityIssues.map((issue, index) => (
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={10} /> : dataQualityIssues.map((issue, index) => (
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
@@ -1675,6 +1711,21 @@ export default function AdminDataPage() {
                           {issue.severity === 'error' ? 'Lỗi' : 'Cảnh báo'}
                         </StatusBadge>
                       </td>
+                      <td>
+                        <div className="font-semibold text-slate-900">{issue.slaLabel}</div>
+                        <div className="text-xs text-slate-500">Priority {issue.priorityRank}</div>
+                      </td>
+                      <td>
+                        <StatusBadge variant={issue.remediationStatus === 'resolved' ? 'warning' : issue.remediationStatus === 'reopened' ? 'danger' : 'neutral'}>
+                          {issue.remediationStatus === 'resolved' ? 'Resolved còn lỗi' : issue.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
+                        </StatusBadge>
+                        {issue.remediationAt && (
+                          <div className="text-xs text-slate-500">
+                            {new Date(issue.remediationAt).toLocaleString('vi-VN')}
+                          </div>
+                        )}
+                      </td>
+                      <td>{issue.owner}</td>
                       <td>
                         <div className="font-semibold text-slate-900">{issue.entityCode}</div>
                         <div className="text-xs text-slate-500">{issue.entityName} / {issue.entityLabel}</div>
@@ -1696,6 +1747,16 @@ export default function AdminDataPage() {
                         >
                           Sửa
                         </Link>
+                      </td>
+                      <td>
+                        <button
+                          className="ipc-button ipc-button-ghost ipc-button-bounded"
+                          type="button"
+                          disabled={updateDataQualityIssueRemediationState.isLoading}
+                          onClick={() => void handleDataQualityRemediation(issue, issue.remediationStatus === 'resolved' ? 'reopen' : 'resolve')}
+                        >
+                          {issue.remediationStatus === 'resolved' ? 'Reopen' : 'Resolve'}
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -2098,6 +2159,7 @@ export default function AdminDataPage() {
                   <tr>
                     <th className="text-left">Thời gian</th>
                     <th>Người thực hiện</th>
+                    <th>Mảng nghiệp vụ</th>
                     <th>Đối tượng/Trường ảnh hưởng</th>
                     <th>Giá trị cũ</th>
                     <th>Giá trị mới</th>
@@ -2111,6 +2173,7 @@ export default function AdminDataPage() {
                         {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN')}
                       </td>
                       <td className="font-semibold text-slate-800">{log.actor}</td>
+                      <td>{log.businessArea}</td>
                       <td className="font-medium text-blue-700">{log.fieldAffected}</td>
                       <td className="text-slate-500 font-mono">{log.oldValue}</td>
                       <td className="font-bold text-slate-900 font-mono">{log.newValue}</td>

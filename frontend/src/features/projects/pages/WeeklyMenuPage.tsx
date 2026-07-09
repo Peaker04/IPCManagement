@@ -1532,8 +1532,11 @@ const WeeklyMenuPage = () => {
     [effectiveMenuCustomerId, generatedMaterialRequests],
   );
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const selectedProductionPlanServiceDate = selectedDemandDayKey
+    ? getServiceDateIso(selectedDemandDayKey) || parseDisplayDateToIso(displayDays.find((day) => day.key === selectedDemandDayKey)?.date)
+    : undefined;
   const { currentData: productionPlansData } = useGetProductionPlansQuery(
-    { customerId: effectiveMenuCustomerId, serviceDate: selectedDemandDayKey || undefined },
+    { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate || undefined },
     { skip: !effectiveMenuCustomerId }
   );
   const productionPlans = productionPlansData?.data ?? [];
@@ -1572,13 +1575,13 @@ const WeeklyMenuPage = () => {
     setIsEditingMenu(true);
   };
 
-  const getServiceDateIso = (dayKey: string) => {
+  function getServiceDateIso(dayKey: string) {
     const row = committedMenu?.rows?.find((r) => r.dayKey === dayKey);
     if (row?.serviceDate) {
       return row.serviceDate.split('T')[0];
     }
     return '';
-  };
+  }
 
   const activeCustomerOrders = useMemo(
     () => orders.filter((order) => order.customerId === effectiveMenuCustomerId),

@@ -32,6 +32,7 @@ import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
+  useGetDataQualityQuery,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -46,7 +47,7 @@ import {
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 
-type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit';
+type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
 
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
@@ -57,6 +58,7 @@ const reportTabs = [
   { id: 'reports-kitchen', label: 'Xuất bếp' },
   { id: 'reports-usage', label: 'Sử dụng thực tế' },
   { id: 'reports-audit', label: 'Audit' },
+  { id: 'reports-data-quality', label: 'Data quality' },
 ];
 
 const movementTypeLabel: Record<StockMovement['type'], string> = {
@@ -107,7 +109,7 @@ const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
   { id: 'dishGroup', label: 'Theo nhóm món' },
 ];
 
-const validReportViews: ReportView[] = ['price', 'demand', 'purchase', 'stock', 'movement', 'kitchen', 'usage', 'audit'];
+const validReportViews: ReportView[] = ['price', 'demand', 'purchase', 'stock', 'movement', 'kitchen', 'usage', 'audit', 'data-quality'];
 
 const ReportsPage = () => {
   const [searchParams] = useSearchParams();
@@ -143,6 +145,7 @@ const ReportsPage = () => {
   const kitchenIssueResult = useGetKitchenIssuesQuery(reportQuery);
   const usageResult = useGetIssueVsReturnUsageQuery(reportQuery);
   const auditResult = useGetAuditChangesQuery(reportQuery);
+  const dataQualityResult = useGetDataQualityQuery(reportQuery);
 
   const priceVarianceRows = priceVarianceResult.data ?? [];
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
@@ -152,6 +155,8 @@ const ReportsPage = () => {
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
   const usageRows = usageResult.data ?? [];
   const auditRows = auditResult.data ?? [];
+  const dataQualityReport = dataQualityResult.data;
+  const dataQualityRows = dataQualityReport?.issues ?? [];
 
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
@@ -168,6 +173,7 @@ const ReportsPage = () => {
     kitchen: kitchenIssueResult,
     usage: usageResult,
     audit: auditResult,
+    'data-quality': dataQualityResult,
   };
   const activeReportState = reportStates[activeView];
 
@@ -269,10 +275,29 @@ const ReportsPage = () => {
       columns: [
         ['Thời gian', (row) => new Date(row.timestamp).toLocaleString('vi-VN')],
         ['Người thực hiện', (row) => row.actor],
+        ['Mảng nghiệp vụ', (row) => row.businessArea],
         ['Đối tượng', (row) => row.fieldAffected],
         ['Giá trị cũ', (row) => row.oldValue],
         ['Giá trị mới', (row) => row.newValue],
         ['Lý do', (row) => row.reason],
+      ],
+    },
+    'data-quality': {
+      filename: 'data-quality',
+      rows: dataQualityRows,
+      columns: [
+        ['Mức độ', (row) => row.severity],
+        ['SLA', (row) => row.slaLabel],
+        ['Priority', (row) => row.priorityRank],
+        ['Trạng thái xử lý', (row) => row.remediationStatus],
+        ['Owner', (row) => row.owner],
+        ['Nhóm lỗi', (row) => row.category],
+        ['Bảng/entity', (row) => row.entityName],
+        ['Mã', (row) => row.entityCode],
+        ['Đối tượng', (row) => row.entityLabel],
+        ['Vấn đề', (row) => row.message],
+        ['Cách xử lý', (row) => row.suggestedAction],
+        ['Route', (row) => row.route],
       ],
     },
   };
@@ -347,6 +372,7 @@ const ReportsPage = () => {
             { label: 'Thiếu nguyên liệu', value: shortageItems.length.toString(), tone: shortageItems.length ? 'danger' : 'success' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: 'neutral' },
             { label: 'Audit', value: auditRows.length.toString(), tone: 'neutral' },
+            { label: 'Data quality', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
           ]}
         />
       }
@@ -774,6 +800,7 @@ const ReportsPage = () => {
                 <tr>
                   <th>Thời gian</th>
                   <th>Người thực hiện</th>
+                  <th>Mảng nghiệp vụ</th>
                   <th>Đối tượng</th>
                   <th>Giá trị cũ</th>
                   <th>Giá trị mới</th>
@@ -781,14 +808,85 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {auditRows.length === 0 ? <EmptyRow colSpan={6} /> : auditRows.map((row, index) => (
+                {auditRows.length === 0 ? <EmptyRow colSpan={7} /> : auditRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{new Date(row.timestamp).toLocaleString('vi-VN')}</td>
                     <td>{row.actor}</td>
+                    <td>{row.businessArea}</td>
                     <td>{row.fieldAffected}</td>
                     <td>{row.oldValue}</td>
                     <td>{row.newValue}</td>
                     <td className="text-left">{row.reason}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </DataTableShell>
+        </SectionPanel>
+      )}
+
+      {activeView === 'data-quality' && (
+        <SectionPanel title="Data quality trước production" icon={<AlertTriangle size={18} />}>
+          <ContextStrip
+            items={[
+              { label: 'Tổng issue', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+              { label: 'Error', value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
+              { label: 'Warning', value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
+              { label: 'SLA gấp', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
+              { label: 'Resolved còn lỗi', value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
+              { label: 'Thiếu BOM', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
+              { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
+            ]}
+          />
+          <DataTableShell ariaLabel="Bảng data quality trước production">
+            <table className="ipc-data-table">
+              <thead>
+                <tr>
+                  <th>Mức độ</th>
+                  <th>SLA</th>
+                  <th>Trạng thái xử lý</th>
+                  <th>Owner</th>
+                  <th>Nhóm lỗi</th>
+                  <th>Đối tượng</th>
+                  <th>Vấn đề</th>
+                  <th>Cách xử lý</th>
+                  <th>Thao tác</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dataQualityRows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityRows.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
+                        {row.severity === 'error' ? 'Error' : 'Warning'}
+                      </StatusBadge>
+                    </td>
+                    <td>
+                      <div className="font-semibold text-slate-800">{row.slaLabel}</div>
+                      <div className="text-xs text-slate-500">Priority {row.priorityRank}</div>
+                    </td>
+                    <td>
+                      <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
+                        {row.remediationStatus === 'resolved' ? 'Resolved còn lỗi' : row.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
+                      </StatusBadge>
+                    </td>
+                    <td>{row.owner}</td>
+                    <td>{row.category}</td>
+                    <td>
+                      <div className="font-medium text-slate-800">{row.entityLabel}</div>
+                      <div className="text-xs text-slate-500">{row.entityName} / {row.entityCode}</div>
+                    </td>
+                    <td className="text-left">{row.message}</td>
+                    <td className="text-left">{row.suggestedAction}</td>
+                    <td>
+                      {row.route ? (
+                        <Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.route}>
+                          Xử lý
+                        </Link>
+                      ) : (
+                        <span className="text-slate-500">-</span>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
