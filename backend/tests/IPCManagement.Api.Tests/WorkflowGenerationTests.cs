@@ -15,6 +15,9 @@ using IPCManagement.Api.Services.SampleData;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -4225,6 +4228,74 @@ public class WorkflowGenerationTests
         kpis.OverdueApprovalCount.Should().Be(1);
     }
 
+    [Fact]
+    [Trait("Category", "Performance")]
+    public async Task DemandAndPurchase_Should_StayBounded_ForMultiCustomerWeek()
+    {
+        const int customerCount = 12;
+        const int ingredientCount = 12;
+        var queryCounter = new SelectCommandCounter();
+        await using var fixture = await WorkflowFixture.CreateAsync(queryCounter);
+        await fixture.SeedPerformanceWeekAsync(customerCount, ingredientCount);
+
+        queryCounter.Reset();
+        var stopwatch = Stopwatch.StartNew();
+        var demandLineCount = 0;
+        var purchaseLineCount = 0;
+
+        await using var context = fixture.CreateContext();
+        var demandService = new MaterialDemandService(context);
+        var purchaseService = CreatePurchaseRequestWorkflowService(context);
+        var weekStart = new DateOnly(2026, 8, 3);
+        for (var dayOffset = 0; dayOffset < 7; dayOffset++)
+        {
+            var serviceDate = weekStart.AddDays(dayOffset).ToString("yyyy-MM-dd");
+            var demand = await demandService.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = serviceDate, Scope = "FULLDAY" },
+                fixture.UserIdString);
+            demand.Should().NotBeNull();
+            demandLineCount += demand!.Lines.Count;
+
+            var purchase = await purchaseService.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
+                fixture.UserIdString);
+            purchase.Should().NotBeNull();
+            purchaseLineCount += purchase!.Lines.Count;
+        }
+
+        stopwatch.Stop();
+
+        demandLineCount.Should().Be(customerCount * ingredientCount * 7);
+        purchaseLineCount.Should().Be(demandLineCount);
+        queryCounter.SelectCount.Should().BeLessThan(
+            120,
+            "generation must batch lookups instead of issuing SELECT queries per shortage line");
+        stopwatch.Elapsed.Should().BeLessThan(
+            TimeSpan.FromSeconds(10),
+            "a representative multi-customer week should remain usable over a LAN deployment");
+    }
+
+    private sealed class SelectCommandCounter : DbCommandInterceptor
+    {
+        public int SelectCount { get; private set; }
+
+        public void Reset() => SelectCount = 0;
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectCount++;
+            }
+
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
     private sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
@@ -4249,17 +4320,20 @@ public class WorkflowGenerationTests
         public byte[] ReceiptId { get; } = GuidHelper.NewId();
         public byte[] IssueId { get; } = GuidHelper.NewId();
 
-        public static async Task<WorkflowFixture> CreateAsync()
+        public static async Task<WorkflowFixture> CreateAsync(DbCommandInterceptor? interceptor = null)
         {
             var connection = new SqliteConnection("Data Source=:memory:");
             await connection.OpenAsync();
-            var options = new DbContextOptionsBuilder<IpcManagementContext>()
-                .UseSqlite(connection)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<IpcManagementContext>()
+                .UseSqlite(connection);
+            if (interceptor is not null)
+            {
+                optionsBuilder.AddInterceptors(interceptor);
+            }
 
             await CreateMinimalWorkflowSchemaAsync(connection);
 
-            return new WorkflowFixture(connection, options);
+            return new WorkflowFixture(connection, optionsBuilder.Options);
         }
 
         public IpcManagementContext CreateContext() => new(_options);
@@ -4429,6 +4503,155 @@ public class WorkflowGenerationTests
                 CreatedBy = UserId,
                 CreatedAt = DateTime.UtcNow
             });
+
+            await context.SaveChangesAsync();
+        }
+
+        public async Task SeedPerformanceWeekAsync(int customerCount, int ingredientCount)
+        {
+            await using var context = CreateContext();
+            var roleId = GuidHelper.NewId();
+            var menuId = GuidHelper.NewId();
+            var dishId = GuidHelper.NewId();
+            var weekStart = new DateOnly(2026, 8, 3);
+
+            context.Roles.Add(new Role { RoleId = roleId, RoleCode = "ADMIN", RoleName = "Admin" });
+            context.Users.Add(new User
+            {
+                UserId = UserId,
+                Username = "performance-test",
+                FullName = "Performance Test",
+                PasswordHash = "hash",
+                RoleId = roleId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            context.Units.Add(new Unit
+            {
+                UnitId = UnitId,
+                UnitCode = "KG",
+                UnitName = "kg",
+                ConvertRateToBase = 1
+            });
+            context.Warehouses.Add(new Warehouse
+            {
+                WarehouseId = WarehouseId,
+                WarehouseCode = "WH-PERF",
+                WarehouseName = "Performance Warehouse",
+                WarehouseType = "MAIN"
+            });
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = SupplierId,
+                SupplierCode = "SUP-PERF",
+                SupplierName = "Performance Supplier",
+                IsActive = true
+            });
+            context.Menus.Add(new Menu
+            {
+                MenuId = menuId,
+                MenuCode = "MENU-PERF",
+                MenuName = "Performance Menu",
+                IsActive = true
+            });
+            context.Dishes.Add(new Dish
+            {
+                DishId = dishId,
+                DishCode = "DISH-PERF",
+                DishName = "Performance Dish",
+                IsActive = true
+            });
+            context.Menuitems.Add(new Menuitem
+            {
+                MenuItemId = GuidHelper.NewId(),
+                MenuId = menuId,
+                DishId = dishId,
+                DisplayOrder = 1
+            });
+
+            for (var ingredientIndex = 0; ingredientIndex < ingredientCount; ingredientIndex++)
+            {
+                var ingredientId = GuidHelper.NewId();
+                context.Ingredients.Add(new Ingredient
+                {
+                    IngredientId = ingredientId,
+                    IngredientCode = $"ING-PERF-{ingredientIndex:00}",
+                    IngredientName = $"Performance Ingredient {ingredientIndex:00}",
+                    UnitId = UnitId,
+                    WarehouseId = WarehouseId,
+                    ReferencePrice = 1000 + ingredientIndex,
+                    IsFreshDaily = true,
+                    IsActive = true
+                });
+                context.Dishboms.Add(new Dishbom
+                {
+                    BomId = GuidHelper.NewId(),
+                    DishId = dishId,
+                    IngredientId = ingredientId,
+                    UnitId = UnitId,
+                    GrossQtyPerServing = 0.01m + (ingredientIndex * 0.001m),
+                    WasteRatePercent = 0,
+                    BomStatus = "PUBLISHED",
+                    EffectiveFrom = weekStart
+                });
+            }
+
+            var customers = Enumerable.Range(0, customerCount)
+                .Select(customerIndex => new Customer
+                {
+                    CustomerId = GuidHelper.NewId(),
+                    CustomerCode = $"CUS-PERF-{customerIndex:00}",
+                    CustomerName = $"Performance Customer {customerIndex:00}",
+                    IsActive = true
+                })
+                .ToList();
+            context.Customers.AddRange(customers);
+
+            for (var dayOffset = 0; dayOffset < 7; dayOffset++)
+            {
+                var serviceDate = weekStart.AddDays(dayOffset);
+                var quantityPlanId = GuidHelper.NewId();
+                context.Mealquantityplans.Add(new Mealquantityplan
+                {
+                    QuantityPlanId = quantityPlanId,
+                    PlanCode = $"QTY-PERF-{serviceDate:yyyyMMdd}",
+                    ServiceDate = serviceDate,
+                    Status = OrderStatus.Completed,
+                    ForecastReceivedAt = DateTime.UtcNow.AddHours(-3),
+                    ConfirmedAt = DateTime.UtcNow.AddHours(-2),
+                    ConfirmationTime = new TimeOnly(9, 0),
+                    ConfirmedBy = UserId
+                });
+
+                foreach (var customer in customers)
+                {
+                    var scheduleId = GuidHelper.NewId();
+                    context.Menuschedules.Add(new Menuschedule
+                    {
+                        MenuScheduleId = scheduleId,
+                        CustomerId = customer.CustomerId,
+                        MenuId = menuId,
+                        ServiceDate = serviceDate,
+                        WeekStartDate = weekStart,
+                        ShiftName = "MORNING",
+                        MenuPrice = 50000,
+                        BomRatePercent = 100,
+                        Status = "ACTIVE"
+                    });
+                    context.Mealquantityplanlines.Add(new Mealquantityplanline
+                    {
+                        QuantityPlanLineId = GuidHelper.NewId(),
+                        QuantityPlanId = quantityPlanId,
+                        MenuScheduleId = scheduleId,
+                        CustomerId = customer.CustomerId,
+                        MenuId = menuId,
+                        ShiftName = "MORNING",
+                        ForecastServings = 120,
+                        ConfirmedServings = 120,
+                        FinalServings = 120
+                    });
+                }
+            }
 
             await context.SaveChangesAsync();
         }

@@ -180,6 +180,7 @@ Các tài liệu nghiệp vụ bổ sung được đặt trong `docs/`:
 - [Iter1 Actor Runbook](.docs/ITER1_ACTOR_RUNBOOK.md): hướng dẫn thao tác theo vai Admin, Operations, Planner, Purchasing, Warehouse, Chef, Manager.
 - [Iter1 Daily Checklist](.docs/ITER1_DAILY_CHECKLIST.md): checklist ngày/tuần cho import, validate, signoff, demand, approval, warehouse, kitchen, reports.
 - [Iter1 Destructive Endpoint Audit](.docs/ITER1_DESTRUCTIVE_ENDPOINT_AUDIT.md): audit endpoint reset/delete/regenerate và guard production cho sample-data.
+- [Iter1 Workflow Performance](.docs/ITER1_WORKFLOW_PERFORMANCE.md): dataset, ngưỡng và kết quả benchmark demand/purchase nhiều khách theo tuần.
 
 Thư mục `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ liệu runtime của ứng dụng.
 
@@ -205,6 +206,9 @@ npm run verify:release -- -BackendBaseUrl http://localhost:5262
 
 # Iter1 exception-path E2E
 npm run e2e:exceptions
+
+# Demand/purchase scale benchmark
+npm run benchmark:workflow
 ```
 
 > Nếu backend đang chạy bằng `dotnet run`, Windows có thể khóa file trong `bin/Debug`.

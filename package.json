@@ -15,6 +15,7 @@
     "test:be": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj",
     "lint:fe": "npm run lint -w frontend",
     "build:fe": "npm run build -w frontend",
+    "benchmark:workflow": "dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj --filter \"Category=Performance\" --logger \"console;verbosity=normal\"",
     "verify": "npm run build:be && npm run test:be && npm run lint:fe && npm run build:fe",
     "verify:release": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1",
     "verify:release:audit": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1 -AuditOnly",
