@@ -424,7 +424,9 @@ public class DishService : IDishService
                     line.PriceTierAmount == priceTier &&
                     line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
                     (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom))
-                .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
+                .Where(line => customerId == null
+                    ? line.CustomerId == null
+                    : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
                 .OrderByDescending(line => line.EffectiveFrom)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -462,9 +464,7 @@ public class DishService : IDishService
                 WasteRatePercent = row.WasteRatePercent,
                 BomStatus = status,
                 EffectiveFrom = effectiveFrom,
-                EffectiveTo = effectiveTo,
-                Ingredient = row.Ingredient,
-                Unit = row.Unit
+                EffectiveTo = effectiveTo
             };
             _context.Dishboms.Add(entity);
             created++;
@@ -894,6 +894,35 @@ public class DishService : IDishService
             .Where(group => group.Count() > 1)
             .Select(group => group.Key)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var overlapRows = rows
+            .Where(row =>
+                !string.IsNullOrWhiteSpace(row.DishCode) &&
+                !string.IsNullOrWhiteSpace(row.IngredientCode) &&
+                !string.IsNullOrWhiteSpace(row.UnitCode))
+            .GroupBy(row => $"{row.DishCode}|{row.IngredientCode}|{row.UnitCode}", StringComparer.OrdinalIgnoreCase)
+            .SelectMany(group =>
+            {
+                var groupRows = group.ToList();
+                var rowNumbers = new HashSet<int>();
+                for (var i = 0; i < groupRows.Count; i++)
+                {
+                    for (var j = i + 1; j < groupRows.Count; j++)
+                    {
+                        if (DateRangesOverlap(
+                            groupRows[i].EffectiveFrom,
+                            groupRows[i].EffectiveTo,
+                            groupRows[j].EffectiveFrom,
+                            groupRows[j].EffectiveTo))
+                        {
+                            rowNumbers.Add(groupRows[i].RowNumber);
+                            rowNumbers.Add(groupRows[j].RowNumber);
+                        }
+                    }
+                }
+
+                return rowNumbers;
+            })
+            .ToHashSet();
 
         var previewRows = rows.Select(row =>
         {
@@ -903,6 +932,10 @@ public class DishService : IDishService
             if (duplicateKeys.Contains(key))
             {
                 errors.Add("Trùng dish/ingredient/unit/effective date trong file.");
+            }
+            if (overlapRows.Contains(row.RowNumber))
+            {
+                errors.Add("Khoảng hiệu lực BOM bị overlap trong file.");
             }
 
             return new BomImportPreviewRowDto
@@ -1173,6 +1206,9 @@ public class DishService : IDishService
 
     private static bool MatchesBomCustomerScope(byte[]? left, byte[]? right)
         => left is null ? right is null : right is not null && left.SequenceEqual(right);
+
+    private static bool DateRangesOverlap(DateOnly leftFrom, DateOnly? leftTo, DateOnly rightFrom, DateOnly? rightTo)
+        => leftFrom <= (rightTo ?? DateOnly.MaxValue) && rightFrom <= (leftTo ?? DateOnly.MaxValue);
 
     private static decimal NormalizePriceTier(decimal tier)
     {

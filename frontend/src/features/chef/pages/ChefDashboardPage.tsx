@@ -21,6 +21,7 @@ import {
   useSendDailyProductionPlanToKitchenMutation,
 } from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
+import { countPendingKitchenReceipts, getChefReadiness } from '../chefReadiness'
 
 type ChefMaterial = Ingredient & {
   issueId?: string
@@ -101,7 +102,7 @@ export default function ChefDashboardPage() {
 
     return matchingRows.length > 0 ? matchingRows : kitchenIssueRows
   }, [kitchenIssueRows, activeShift])
-  const pendingKitchenReceiptCount = activeKitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length
+  const pendingKitchenReceiptCount = countPendingKitchenReceipts(activeKitchenIssueRows)
   const dailyPlans = Array.isArray(dailyProductionPlan?.plans) ? dailyProductionPlan.plans : []
   const dailyPlanWarnings = Array.isArray(dailyProductionPlan?.warnings) ? dailyProductionPlan.warnings : []
   const dailyPlanLines = dailyPlans.flatMap((plan) =>
@@ -605,22 +606,25 @@ export default function ChefDashboardPage() {
                             Chưa có KHSX API cho ngày/ca này.
                           </td>
                         </tr>
-                      ) : dailyPlanLines.map((line) => (
-                        <tr key={`${line.planCode}-${line.planLineId}`}>
-                          <td>{line.planCode}</td>
-                          <td>{line.customerName ?? '-'}</td>
-                          <td>{line.dishName ?? line.dishId}</td>
-                          <td>{line.shiftName ?? '-'}</td>
-                          <td className="ipc-numeric-cell">{line.totalServings}</td>
-                          <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${line.bomScope}` : 'Chưa resolve'}</td>
-                          <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
-                          <td className="ipc-badge-cell">
-                            <StatusBadge variant={line.sentToKitchenAt ? 'success' : line.hasKitchenIssue ? 'warning' : 'neutral'}>
-                              {line.sentToKitchenAt ? 'Đã gửi bếp' : line.hasKitchenIssue ? 'Cần kho/thu mua' : 'Chờ gửi'}
-                            </StatusBadge>
-                          </td>
-                        </tr>
-                      ))}
+                      ) : dailyPlanLines.map((line) => {
+                        const readiness = getChefReadiness(line)
+                        return (
+                          <tr key={`${line.planCode}-${line.planLineId}`}>
+                            <td>{line.planCode}</td>
+                            <td>{line.customerName ?? '-'}</td>
+                            <td>{line.dishName ?? line.dishId}</td>
+                            <td>{line.shiftName ?? '-'}</td>
+                            <td className="ipc-numeric-cell">{line.totalServings}</td>
+                            <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${line.bomScope}` : 'Chưa resolve'}</td>
+                            <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                            <td className="ipc-badge-cell">
+                              <StatusBadge variant={readiness.variant}>
+                                {readiness.label}
+                              </StatusBadge>
+                            </td>
+                          </tr>
+                        )
+                      })}
                     </tbody>
                   </table>
                 </DataTableShell>

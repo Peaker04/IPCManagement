@@ -162,6 +162,15 @@ export interface BomImportFileRequest {
   effectiveFrom?: string;
 }
 
+export function buildBomImportFormData({ file, priceTier, customerId, effectiveFrom }: BomImportFileRequest): FormData {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('priceTier', String(priceTier));
+  if (customerId?.trim()) body.append('customerId', customerId.trim());
+  if (effectiveFrom?.trim()) body.append('effectiveFrom', effectiveFrom.trim());
+  return body;
+}
+
 const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
   id: dish.dishId,
   code: dish.dishCode,
@@ -271,33 +280,19 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
       }),
     }),
     previewBomImport: builder.mutation<BomImportPreview, BomImportFileRequest>({
-      query: ({ file, priceTier, customerId, effectiveFrom }) => {
-        const body = new FormData()
-        body.append('file', file)
-        body.append('priceTier', String(priceTier))
-        if (customerId) body.append('customerId', customerId)
-        if (effectiveFrom) body.append('effectiveFrom', effectiveFrom)
-        return {
-          url: '/dishes/bom-import/preview',
-          method: 'POST',
-          body,
-        }
-      },
+      query: (request) => ({
+        url: '/dishes/bom-import/preview',
+        method: 'POST',
+        body: buildBomImportFormData(request),
+      }),
       transformResponse: (response: ApiResponse<BomImportPreview>) => response.data!,
     }),
     commitBomImport: builder.mutation<BomImportCommitResult, BomImportFileRequest>({
-      query: ({ file, priceTier, customerId, effectiveFrom }) => {
-        const body = new FormData()
-        body.append('file', file)
-        body.append('priceTier', String(priceTier))
-        if (customerId) body.append('customerId', customerId)
-        if (effectiveFrom) body.append('effectiveFrom', effectiveFrom)
-        return {
-          url: '/dishes/bom-import/commit',
-          method: 'POST',
-          body,
-        }
-      },
+      query: (request) => ({
+        url: '/dishes/bom-import/commit',
+        method: 'POST',
+        body: buildBomImportFormData(request),
+      }),
       transformResponse: (response: ApiResponse<BomImportCommitResult>) => response.data!,
       invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),

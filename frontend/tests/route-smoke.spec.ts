@@ -155,25 +155,26 @@ async function stubProductionReportStages(page: Page) {
     }
 
     if (endpoint === 'purchase-plan') {
+      const isWeek = url.searchParams.get('groupBy') === 'week';
       await fulfillJson(route, [
         {
-          periodKey: '2026-06-15',
-          groupBy: 'day',
+          periodKey: isWeek ? '2026-06-15/2026-06-21' : '2026-06-15',
+          groupBy: isWeek ? 'week' : 'day',
           periodStart: '2026-06-15',
-          periodEnd: '2026-06-15',
+          periodEnd: isWeek ? '2026-06-21' : '2026-06-15',
           ingredientId: 'ing-pork-rib',
-          ingredientName: 'Sườn heo',
+          ingredientName: isWeek ? 'Sườn heo tuần' : 'Sườn heo',
           unitId: 'unit-kg',
           unitName: 'kg',
-          requiredQty: 18,
+          requiredQty: isWeek ? 54 : 18,
           currentStockQty: 3,
-          pendingReceiptQty: 0,
-          shortageQty: 15,
-          suggestedPurchaseQty: 15,
+          pendingReceiptQty: isWeek ? 6 : 0,
+          shortageQty: isWeek ? 45 : 15,
+          suggestedPurchaseQty: isWeek ? 51 : 15,
           estimatedUnitPrice: 134000,
-          estimatedAmount: 2010000,
+          estimatedAmount: isWeek ? 6030000 : 2010000,
           supplierId: 'supplier-a',
-          supplierName: 'Nhà cung cấp A',
+          supplierName: isWeek ? 'Nhà cung cấp Tuần' : 'Nhà cung cấp A',
           expectedDeliveryDate: '2026-06-15',
           warnings: ['price_variance'],
         },
@@ -414,6 +415,15 @@ async function stubProductionReportStages(page: Page) {
         url.searchParams.get('dateTo') === '2026-06-15' &&
         url.searchParams.get('shiftName') === 'MORNING' &&
         url.searchParams.get('limit') === (endpoint.endsWith('/page') ? '20' : '100'),
+      );
+    },
+    hasPurchasePlanGroupRequest(groupBy: 'day' | 'week') {
+      return requests.some(({ endpoint, url }) =>
+        endpoint === 'purchase-plan' &&
+        url.searchParams.get('groupBy') === groupBy &&
+        url.searchParams.get('dateFrom') === '2026-06-15' &&
+        url.searchParams.get('dateTo') === '2026-06-15' &&
+        url.searchParams.get('shiftName') === 'MORNING',
       );
     },
   };
@@ -877,6 +887,11 @@ test.describe('route smoke', () => {
 
     await page.getByRole('tab', { name: 'Kế hoạch thu mua' }).click();
     await expect(page.getByText('Nhà cung cấp A')).toBeVisible();
+    await expect.poll(() => reportRequests.hasPurchasePlanGroupRequest('day')).toBe(true);
+    await page.getByRole('button', { name: 'Tuần' }).click();
+    await expect.poll(() => reportRequests.hasPurchasePlanGroupRequest('week')).toBe(true);
+    await expect(page.getByText('Nhà cung cấp Tuần')).toBeVisible();
+    await expect(page.getByText('2026-06-15/2026-06-21')).toBeVisible();
     await page.getByRole('tab', { name: 'Tồn kho' }).click();
     await expect(page.getByText('Kho chính').first()).toBeVisible();
     await page.getByRole('tab', { name: 'Nhập/xuất kho' }).click();
