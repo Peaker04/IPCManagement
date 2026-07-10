@@ -1,19 +1,16 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { BarChart3, Bell, CalendarCheck, Database, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, UserPlus, Users, XCircle } from 'lucide-react';
+import { BarChart3, Bell, CalendarCheck, Database, Download, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, Upload, UserPlus, Users, XCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import {
-  ApprovalQueue,
   CommandBar,
   ContextStrip,
-  DocumentRail,
   FieldRow,
   InlineAlert,
   OperationalFrame,
   RoleInbox,
   PaginationBar,
   SectionPanel,
-  SplitWorkbench,
   StatusBadge,
   StockMovementTable,
   DataTableShell,
@@ -23,33 +20,25 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import { selectCurrentUser } from '@/features/auth';
 import {
-  useGetApprovalRecordsQuery,
   useGetAuditChangesQuery,
   useGetCurrentStockQuery,
   useGetDataQualityQuery,
-  useGenerateMaterialDemandMutation,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetOperationalKpisQuery,
   useGetPriceVarianceQuery,
-  useGetPurchaseDemandQuery,
+  useGetPurchasePlanQuery,
   useGetStockMovementsQuery,
-  useGetWorkflowDocumentsQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useWorkflowOverview,
   type DataQualityIssueRow,
 } from '@/features/workflow';
 import {
-  useAddDishBomLineMutation,
-  useCloseDishBomLineMutation,
-  useCreateDishMutation,
-  useDeactivateDishMutation,
-  useGetAdminDishCatalogQuery,
-  useGetIngredientsQuery,
-  useUpdateDishMutation,
-  useUpdateDishBomLineMutation,
-  type CatalogIngredient,
+  useDownloadBomTemplateMutation,
+  useCommitBomImportMutation,
+  usePreviewBomImportMutation,
+  type BomImportPreview,
 } from '@/features/projects/dishCatalogApi';
 import {
   useCreateCustomerContractMutation,
@@ -77,26 +66,7 @@ import {
   useUpdateAdminEmployeeStatusMutation,
 } from '@/features/admin/adminApi';
 
-type AdminView = 'adjustments' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees';
-
-type BomFormState = {
-  ingredientId: string;
-  unitId: string;
-  grossQtyPerServing: string;
-  wasteRatePercent: string;
-  bomStatus: string;
-  effectiveFrom: string;
-  effectiveTo: string;
-  reason: string;
-};
-
-type DishFormState = {
-  dishCode: string;
-  dishName: string;
-  dishType: string;
-  dishGroup: string;
-  isActive: boolean;
-};
+type AdminView = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees';
 
 type ContractFormState = {
   customerCode: string;
@@ -116,26 +86,6 @@ type ScheduleRuleFormState = {
   bomRatePercent: string;
   status: string;
   reason: string;
-};
-
-const defaultDishForm: DishFormState = {
-  dishCode: '',
-  dishName: '',
-  dishType: '',
-  dishGroup: '',
-  isActive: true,
-};
-
-const bomStatusOptions = [
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'PUBLISHED', label: 'Published' },
-  { value: 'ARCHIVED', label: 'Archived' },
-];
-
-const getBomStatusBadgeVariant = (status: string): 'neutral' | 'success' | 'warning' => {
-  if (status === 'PUBLISHED') return 'success';
-  if (status === 'ARCHIVED') return 'neutral';
-  return 'warning';
 };
 
 const defaultContractForm: ContractFormState = {
@@ -196,7 +146,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 };
 
 const isAdminView = (value: string | null): value is AdminView =>
-  value === 'adjustments' ||
+  value === 'bom-import' ||
   value === 'contracts' ||
   value === 'cleanup' ||
   value === 'inventory' ||
@@ -204,19 +154,13 @@ const isAdminView = (value: string | null): value is AdminView =>
   value === 'statistics' ||
   value === 'employees';
 
-const getDemandScope = (value: string | null): 'FULLDAY' | 'MORNING' | 'AFTERNOON' => {
-  const normalized = (value ?? '').trim().toUpperCase();
-  if (normalized === 'MORNING' || normalized === 'AFTERNOON') return normalized;
-  return 'FULLDAY';
-};
-
 export default function AdminDataPage() {
   const currentUser = useAppSelector(selectCurrentUser);
   const [searchParams] = useSearchParams();
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
   const initialView = isAdminView(searchParams.get('view')) && (searchParams.get('view') !== 'employees' || canManageEmployees)
     ? searchParams.get('view') as AdminView
-    : 'adjustments';
+    : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditPage, setAuditPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
@@ -224,9 +168,6 @@ export default function AdminDataPage() {
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
   const [employeeForm, setEmployeeForm] = useState<EmployeeFormState>(defaultEmployeeForm);
   const [employeeNotice, setEmployeeNotice] = useState<string | null>(null);
-  const [selectedDishId, setSelectedDishId] = useState(searchParams.get('dishId') ?? '');
-  const [editingDishId, setEditingDishId] = useState<string | null>(null);
-  const [dishForm, setDishForm] = useState<DishFormState>(defaultDishForm);
   const [selectedContractCustomerId, setSelectedContractCustomerId] = useState('');
   const [isCreatingContract, setIsCreatingContract] = useState(false);
   const [selectedScheduleId, setSelectedScheduleId] = useState('');
@@ -234,28 +175,16 @@ export default function AdminDataPage() {
   const [scheduleRuleForm, setScheduleRuleForm] = useState<ScheduleRuleFormState>(defaultScheduleRuleForm);
   const [contractFeedback, setContractFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [dataQualityFeedback, setDataQualityFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [editingBomId, setEditingBomId] = useState<string | null>(null);
-  const [bomForm, setBomForm] = useState<BomFormState>({
-    ingredientId: '',
-    unitId: '',
-    grossQtyPerServing: '',
-    wasteRatePercent: '0',
-    bomStatus: 'PUBLISHED',
-    effectiveFrom: getTodayInputValue(),
-    effectiveTo: '',
-    reason: '',
-  });
-  const [dishFeedback, setDishFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const [bomFeedback, setBomFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [bomImportTier, setBomImportTier] = useState(25000);
+  const [bomImportCustomerId, setBomImportCustomerId] = useState('');
+  const [bomImportEffectiveFrom, setBomImportEffectiveFrom] = useState(getTodayInputValue());
+  const [bomImportFile, setBomImportFile] = useState<File | null>(null);
+  const [bomImportPreview, setBomImportPreview] = useState<BomImportPreview | null>(null);
+  const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const auditPageSize = 8;
-  const { data: catalogDishes = [], isLoading: isCatalogLoading } = useGetAdminDishCatalogQuery();
-  const { data: ingredientLookup = [] } = useGetIngredientsQuery();
-  const [createDish, createDishState] = useCreateDishMutation();
-  const [updateDish, updateDishState] = useUpdateDishMutation();
-  const [deactivateDish, deactivateDishState] = useDeactivateDishMutation();
-  const [addDishBomLine, addDishBomLineState] = useAddDishBomLineMutation();
-  const [updateDishBomLine, updateDishBomLineState] = useUpdateDishBomLineMutation();
-  const [closeDishBomLine, closeDishBomLineState] = useCloseDishBomLineMutation();
+  const [downloadBomTemplate, downloadBomTemplateState] = useDownloadBomTemplateMutation();
+  const [previewBomImport, previewBomImportState] = usePreviewBomImportMutation();
+  const [commitBomImport, commitBomImportState] = useCommitBomImportMutation();
   const { data: contractResponse } = useGetCustomerContractsQuery();
   const customerContracts = useMemo(() => contractResponse?.data ?? [], [contractResponse?.data]);
   const selectedContract = useMemo(
@@ -275,8 +204,6 @@ export default function AdminDataPage() {
   const [updateCustomerContract, updateCustomerContractState] = useUpdateCustomerContractMutation();
   const [updateMenuScheduleRules, updateMenuScheduleRulesState] = useUpdateMenuScheduleRulesMutation();
   const [updateMenuScheduleVersion, updateMenuScheduleVersionState] = useUpdateMenuScheduleVersionMutation();
-  const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
   const [auditEntity, setAuditEntity] = useState('');
@@ -325,10 +252,9 @@ export default function AdminDataPage() {
   const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
-  const [generateMaterialDemand, generateMaterialDemandState] = useGenerateMaterialDemandMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
-  const { data: purchaseDemandRows = [] } = useGetPurchaseDemandQuery({ limit: 100 });
+  const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 500 });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const { data: priceVarianceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
@@ -351,52 +277,24 @@ export default function AdminDataPage() {
   const [createEmployee, { isLoading: isCreatingEmployee }] = useCreateAdminEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
-  const adjustmentDocuments = workflowDocuments.filter((document) => document.type === 'Điều chỉnh');
   const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
   const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
   const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
   const priceWarnings = priceVarianceRows.filter((row) => row.warning);
-  const totalPurchaseQty = purchaseDemandRows.reduce((total, row) => total + row.reserved, 0);
+  const totalPurchaseQty = purchasePlanRows.reduce((total, row) => total + row.shortageQty, 0);
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
   const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
   const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
-  const remediationType = searchParams.get('remediate');
-  const remediationDishId = searchParams.get('dishId');
-  const remediationServiceDate = searchParams.get('serviceDate') || getTodayInputValue();
-  const remediationCustomerId = searchParams.get('customerId') || undefined;
-  const remediationScope = getDemandScope(searchParams.get('scope'));
-  const isMissingBomRemediation = remediationType === 'missing_bom' && Boolean(remediationDishId);
-  const selectedDish = useMemo(
-    () => catalogDishes.find((dish) => dish.id === selectedDishId) ?? catalogDishes[0],
-    [catalogDishes, selectedDishId],
-  );
-  const selectedDishBomLines = useMemo(() => selectedDish?.ingredients ?? [], [selectedDish]);
-  const activeBomCount = selectedDishBomLines.filter((line) => line.bomStatus === 'PUBLISHED' && !line.effectiveTo).length;
-  const selectedIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === bomForm.ingredientId);
-  const unitOptions = useMemo(() => {
-    const options = new Map<string, string>();
-    ingredientLookup.forEach((ingredient) => {
-      if (ingredient.unitId) {
-        options.set(ingredient.unitId, ingredient.unitName ?? 'Đơn vị mặc định');
-      }
-    });
-    selectedDishBomLines.forEach((line) => {
-      options.set(line.unitId, line.unit);
-    });
-    return Array.from(options, ([unitId, unitName]) => ({ unitId, unitName }));
-  }, [ingredientLookup, selectedDishBomLines]);
   const dataQualityIssues = dataQualityReport?.issues ?? [];
   const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
-  const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading || closeDishBomLineState.isLoading;
-  const isSavingDish = createDishState.isLoading || updateDishState.isLoading || deactivateDishState.isLoading;
   const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
   const employeeMeta = employeeResponse?.data;
   const isSavingEmployee = isCreatingEmployee || isUpdatingEmployee;
-  const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'adjustments' : activeView;
+  const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'bom-import' : activeView;
   const adminTabs: ViewTab[] = [
-    { id: 'admin-adjustments', label: 'Điều chỉnh' },
+    { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
     { id: 'admin-contracts', label: 'Contract' },
     { id: 'admin-cleanup', label: 'Dữ liệu lỗi' },
     { id: 'admin-inventory', label: 'Tồn kho' },
@@ -410,99 +308,71 @@ export default function AdminDataPage() {
   const safeAuditPage = Math.min(auditPage, totalAuditPages);
   const pagedAuditLogs = displayLogs.slice((safeAuditPage - 1) * auditPageSize, safeAuditPage * auditPageSize);
 
-  const resetBomForm = () => {
-    setEditingBomId(null);
-    setBomForm({
-      ingredientId: ingredientLookup[0]?.ingredientId ?? '',
-      unitId: ingredientLookup[0]?.unitId ?? '',
-      grossQtyPerServing: '',
-      wasteRatePercent: '0',
-      bomStatus: 'PUBLISHED',
-      effectiveFrom: getTodayInputValue(),
-      effectiveTo: '',
-      reason: '',
-    });
-  };
-
-  const resetDishForm = () => {
-    setEditingDishId(null);
-    setDishForm(defaultDishForm);
-  };
-
-  const startEditDish = () => {
-    if (!selectedDish) return;
-    setEditingDishId(selectedDish.id);
-    setDishForm({
-      dishCode: selectedDish.code,
-      dishName: selectedDish.name,
-      dishType: selectedDish.dishType ?? '',
-      dishGroup: selectedDish.dishGroup ?? '',
-      isActive: selectedDish.isActive,
-    });
-    setDishFeedback(null);
-  };
-
-  const handleSaveDish = async () => {
-    if (!dishForm.dishName.trim()) {
-      setDishFeedback({ type: 'error', message: 'Vui lòng nhập tên món ăn.' });
-      return;
+  const handleDownloadBomTemplate = async () => {
+    try {
+      const blob = await downloadBomTemplate({
+        priceTier: bomImportTier,
+        customerId: bomImportCustomerId.trim() || undefined,
+      }).unwrap();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bom-template-${bomImportTier}-${bomImportCustomerId.trim() || 'global'}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      setBomImportFeedback({ type: 'success', message: 'Đã tải file mẫu BOM mở được bằng Excel.' });
+    } catch (error) {
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa tải được file mẫu BOM.') });
     }
+  };
 
-    if (!editingDishId && !dishForm.dishCode.trim()) {
-      setDishFeedback({ type: 'error', message: 'Vui lòng nhập mã món ăn khi tạo mới.' });
+  const handlePreviewBomImport = async () => {
+    if (!bomImportFile) {
+      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn file CSV/Excel-compatible trước khi preview.' });
       return;
     }
 
     try {
-      if (editingDishId) {
-        await updateDish({
-          dishId: editingDishId,
-          body: {
-            dishName: dishForm.dishName.trim(),
-            dishType: dishForm.dishType.trim() || null,
-            dishGroup: dishForm.dishGroup.trim() || null,
-            isActive: dishForm.isActive,
-          },
-        }).unwrap();
-        setDishFeedback({ type: 'success', message: 'Đã cập nhật món ăn.' });
-      } else {
-        await createDish({
-          dishCode: dishForm.dishCode.trim(),
-          dishName: dishForm.dishName.trim(),
-          dishType: dishForm.dishType.trim() || null,
-          dishGroup: dishForm.dishGroup.trim() || null,
-        }).unwrap();
-        setDishFeedback({ type: 'success', message: 'Đã tạo món ăn mới.' });
-      }
-
-      resetDishForm();
+      const result = await previewBomImport({
+        file: bomImportFile,
+        priceTier: bomImportTier,
+        customerId: bomImportCustomerId.trim() || undefined,
+        effectiveFrom: bomImportEffectiveFrom || undefined,
+      }).unwrap();
+      setBomImportPreview(result);
+      setBomImportFeedback({
+        type: result.canCommit ? 'success' : 'error',
+        message: result.canCommit
+          ? `Preview hợp lệ: ${result.validRows}/${result.totalRows} dòng có thể commit.`
+          : `Preview còn ${result.errorRows} dòng lỗi, cần sửa trước khi commit.`,
+      });
     } catch (error) {
-      setDishFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được món ăn. Kiểm tra mã trùng hoặc dữ liệu nhập.') });
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Preview import BOM thất bại.') });
     }
   };
 
-  const handleToggleDishActive = async () => {
-    if (!selectedDish) return;
+  const handleCommitBomImport = async () => {
+    if (!bomImportFile || !bomImportPreview?.canCommit) {
+      setBomImportFeedback({ type: 'error', message: 'Chỉ commit khi preview đã hợp lệ.' });
+      return;
+    }
 
     try {
-      if (selectedDish.isActive) {
-        await deactivateDish(selectedDish.id).unwrap();
-        setDishFeedback({ type: 'success', message: `Đã khóa món ${selectedDish.name}.` });
-      } else {
-        await updateDish({
-          dishId: selectedDish.id,
-          body: {
-            dishName: selectedDish.name,
-            dishType: selectedDish.dishType ?? null,
-            dishGroup: selectedDish.dishGroup ?? null,
-            isActive: true,
-          },
-        }).unwrap();
-        setDishFeedback({ type: 'success', message: `Đã mở lại món ${selectedDish.name}.` });
-      }
-      resetDishForm();
+      const result = await commitBomImport({
+        file: bomImportFile,
+        priceTier: bomImportTier,
+        customerId: bomImportCustomerId.trim() || undefined,
+        effectiveFrom: bomImportEffectiveFrom || undefined,
+      }).unwrap();
+      setBomImportPreview(result);
+      setBomImportFeedback({
+        type: 'success',
+        message: `Đã import BOM: tạo ${result.createdRows}, cập nhật ${result.updatedRows}, archive ${result.archivedRows}.`,
+      });
     } catch (error) {
-      setDishFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái món ăn.') });
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Commit import BOM thất bại.') });
     }
   };
 
@@ -701,92 +571,6 @@ export default function AdminDataPage() {
     setEmployeeForm(defaultEmployeeForm);
   };
 
-  const startEditBomLine = (line: CatalogIngredient) => {
-    setEditingBomId(line.bomId);
-    setBomForm({
-      ingredientId: line.ingredientId,
-      unitId: line.unitId,
-      grossQtyPerServing: String(line.grossQtyPerServing),
-      wasteRatePercent: String(line.wasteRatePercent),
-      bomStatus: line.bomStatus,
-      effectiveFrom: line.effectiveFrom,
-      effectiveTo: line.effectiveTo ?? '',
-      reason: '',
-    });
-    setBomFeedback(null);
-  };
-
-  const handleSaveBomLine = async () => {
-    if (!selectedDish) {
-      setBomFeedback({ type: 'error', message: 'Chưa có món ăn để cập nhật BOM.' });
-      return;
-    }
-
-    const ingredientId = bomForm.ingredientId || ingredientLookup[0]?.ingredientId;
-    const unitId = bomForm.unitId || selectedIngredient?.unitId;
-    const grossQtyPerServing = Number(bomForm.grossQtyPerServing);
-    const wasteRatePercent = Number(bomForm.wasteRatePercent || 0);
-    if (!ingredientId || !unitId || !Number.isFinite(grossQtyPerServing) || grossQtyPerServing <= 0) {
-      setBomFeedback({ type: 'error', message: 'Vui lòng chọn nguyên liệu, đơn vị và nhập định lượng lớn hơn 0.' });
-      return;
-    }
-    if (!Number.isFinite(wasteRatePercent) || wasteRatePercent < 0 || wasteRatePercent > 100) {
-      setBomFeedback({ type: 'error', message: 'Tỷ lệ hao hụt phải nằm trong khoảng 0-100%.' });
-      return;
-    }
-
-    const request = {
-      dishId: selectedDish.id,
-      ingredientId,
-      unitId,
-      grossQtyPerServing,
-      wasteRatePercent,
-      bomStatus: bomForm.bomStatus,
-      effectiveFrom: bomForm.effectiveFrom || undefined,
-      effectiveTo: bomForm.effectiveTo || null,
-      reason: bomForm.reason.trim() || undefined,
-    };
-
-    try {
-      if (editingBomId) {
-        await updateDishBomLine({ ...request, bomId: editingBomId }).unwrap();
-        setBomFeedback({ type: 'success', message: 'Đã cập nhật dòng BOM.' });
-      } else {
-        await addDishBomLine(request).unwrap();
-        setBomFeedback({
-          type: 'success',
-          message: isMissingBomRemediation ? 'Đã thêm BOM. Có thể chạy lại demand cho context đang xử lý.' : 'Đã thêm dòng BOM cho món ăn.',
-        });
-      }
-      resetBomForm();
-    } catch {
-      setBomFeedback({ type: 'error', message: 'Chưa lưu được BOM. Kiểm tra trùng nguyên liệu hoặc dữ liệu nhập.' });
-    }
-  };
-
-  const handleRerunRemediationDemand = async () => {
-    try {
-      const response = await generateMaterialDemand({
-        serviceDate: remediationServiceDate,
-        customerId: remediationCustomerId,
-        scope: remediationScope,
-      }).unwrap();
-      if (!response.success) {
-        throw new Error(response.message || 'Không tạo lại được demand.');
-      }
-
-      const missingBomCount = response.data?.missingBomDishes.length ?? 0;
-      setBomFeedback({
-        type: missingBomCount > 0 ? 'error' : 'success',
-        message: missingBomCount > 0
-          ? `Đã chạy lại demand nhưng vẫn còn ${missingBomCount} món thiếu BOM.`
-          : 'Đã chạy lại demand, không còn missing BOM trong context này.',
-      });
-    } catch (error) {
-      setBomFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa chạy lại được demand.') });
-    }
-  };
-
   const handleDataQualityRemediation = async (issue: DataQualityIssueRow, action: 'resolve' | 'reopen') => {
     try {
       await updateDataQualityIssueRemediation({
@@ -804,20 +588,6 @@ export default function AdminDataPage() {
       });
     } catch (error) {
       setDataQualityFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa cập nhật được trạng thái data-quality issue.') });
-    }
-  };
-
-  const handleCloseBomLine = async (line: CatalogIngredient) => {
-    if (!selectedDish) return;
-
-    try {
-      await closeDishBomLine({ dishId: selectedDish.id, bomId: line.bomId }).unwrap();
-      setBomFeedback({ type: 'success', message: `Đã ngừng áp dụng ${line.name} trong BOM.` });
-      if (editingBomId === line.bomId) {
-        resetBomForm();
-      }
-    } catch {
-      setBomFeedback({ type: 'error', message: 'Chưa ngừng áp dụng được dòng BOM này.' });
     }
   };
 
@@ -899,9 +669,9 @@ export default function AdminDataPage() {
         <CommandBar
           actions={
             <>
-              <button className="ipc-button ipc-button-primary" type="button" onClick={() => setActiveView('adjustments')}>
+              <button className="ipc-button ipc-button-primary" type="button" onClick={() => setActiveView('bom-import')}>
                 <PackageCheck size={16} />
-                Điều chỉnh BOM
+                BOM theo đơn giá
               </button>
               <button className="ipc-button ipc-button-ghost" type="button">
                 <Bell size={16} />
@@ -951,395 +721,159 @@ export default function AdminDataPage() {
         onTabChange={(id) => setActiveView(id.replace('admin-', '') as AdminView)}
       />
 
-      {effectiveActiveView === 'adjustments' && (
-        <div id="admin-adjustments-panel" role="tabpanel" aria-labelledby="admin-adjustments-tab" className="flex flex-col gap-4">
-          <SectionPanel title="Quản trị BOM món ăn" icon={<PackageCheck size={18} />}>
-            <div className="grid gap-4 xl:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.8fr)]">
-              <div className="flex flex-col gap-3">
-                <label className="text-[13px] font-bold text-slate-700" htmlFor="admin-bom-dish">
-                  Món ăn
-                </label>
-                <select
-                  id="admin-bom-dish"
-                  className="ipc-select w-full"
-                  value={selectedDish?.id ?? ''}
-                  disabled={isCatalogLoading || catalogDishes.length === 0}
-                  onChange={(event) => {
-                    setSelectedDishId(event.target.value);
-                    resetBomForm();
-                    setBomFeedback(null);
-                  }}
-                >
-                  {catalogDishes.map((dish) => (
-                    <option key={dish.id} value={dish.id}>
-                      {dish.name}{dish.isActive ? '' : ' - đã khóa'}
-                    </option>
-                  ))}
-                </select>
-
-                <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                  <div className="font-bold text-slate-900">{selectedDish?.name ?? 'Chưa có món'}</div>
-                  <div className="mt-1 text-xs text-slate-500">
-                    {selectedDish ? `${activeBomCount} dòng BOM đang áp dụng / ${selectedDishBomLines.length} tổng dòng` : 'Chọn món để cập nhật định lượng'}
-                  </div>
-                  {selectedDish && (
-                    <div className="mt-2">
-                      <StatusBadge variant={selectedDish.isActive ? 'success' : 'warning'}>
-                        {selectedDish.isActive ? 'Đang dùng' : 'Đã khóa'}
-                      </StatusBadge>
-                    </div>
-                  )}
-                </div>
-
-                {isMissingBomRemediation && selectedDish && (
-                  <InlineAlert
-                    title="Đang xử lý thiếu BOM"
-                    variant="warning"
-                    action={(
+      {effectiveActiveView === 'bom-import' && (
+        <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
+          <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
+            <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
+              <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+                <FieldRow label="Đơn giá BOM">
+                  <div className="grid grid-cols-3 gap-2">
+                    {[25000, 30000, 34000].map((tier) => (
                       <button
-                        className="ipc-button ipc-button-primary"
+                        key={tier}
                         type="button"
-                        disabled={generateMaterialDemandState.isLoading}
-                        onClick={() => void handleRerunRemediationDemand()}
+                        className={`ipc-button ${bomImportTier === tier ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
+                        onClick={() => {
+                          setBomImportTier(tier);
+                          setBomImportPreview(null);
+                        }}
                       >
-                        <CalendarCheck size={15} />
-                        Chạy lại demand
+                        {(tier / 1000).toFixed(0)}k
                       </button>
-                    )}
-                  >
-                    {selectedDish.name} / {remediationServiceDate} / {remediationScope}
-                  </InlineAlert>
-                )}
-
-                {dishFeedback && (
-                  <div
-                    className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                      dishFeedback.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-rose-200 bg-rose-50 text-rose-800'
-                    }`}
-                  >
-                    {dishFeedback.message}
+                    ))}
                   </div>
-                )}
+                </FieldRow>
 
-                <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[13px] font-bold text-slate-800">
-                      {editingDishId ? 'Sửa món ăn' : 'Tạo món ăn'}
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button className="ipc-button ipc-button-ghost" type="button" onClick={startEditDish} disabled={!selectedDish || isSavingDish}>
-                        <Pencil size={15} />
-                        Nạp món
-                      </button>
-                      <button className="ipc-button ipc-button-ghost" type="button" onClick={resetDishForm} disabled={isSavingDish}>
-                        <PlusCircle size={15} />
-                        Món mới
-                      </button>
-                    </div>
-                  </div>
-
-                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-code">
-                    Mã món
-                  </label>
-                  <input
-                    id="admin-dish-code"
-                    className="ipc-input"
-                    value={dishForm.dishCode}
-                    disabled={!!editingDishId}
-                    onChange={(event) => setDishForm((prev) => ({ ...prev, dishCode: event.target.value }))}
-                    placeholder="Ví dụ: DISH-NEW"
-                  />
-
-                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-name">
-                    Tên món
-                  </label>
-                  <input
-                    id="admin-dish-name"
-                    className="ipc-input"
-                    value={dishForm.dishName}
-                    onChange={(event) => setDishForm((prev) => ({ ...prev, dishName: event.target.value }))}
-                    placeholder="Tên món ăn"
-                  />
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-type">
-                        Loại
-                      </label>
-                      <input
-                        id="admin-dish-type"
-                        className="ipc-input mt-1"
-                        value={dishForm.dishType}
-                        onChange={(event) => setDishForm((prev) => ({ ...prev, dishType: event.target.value }))}
-                        placeholder="Mặn / Chay / Canh"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-dish-group">
-                        Nhóm
-                      </label>
-                      <input
-                        id="admin-dish-group"
-                        className="ipc-input mt-1"
-                        value={dishForm.dishGroup}
-                        onChange={(event) => setDishForm((prev) => ({ ...prev, dishGroup: event.target.value }))}
-                        placeholder="Sáng / Trưa / Tối"
-                      />
-                    </div>
-                  </div>
-
-                  {editingDishId && (
-                    <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
-                      <input
-                        type="checkbox"
-                        checked={dishForm.isActive}
-                        onChange={(event) => setDishForm((prev) => ({ ...prev, isActive: event.target.checked }))}
-                      />
-                      Món đang được dùng trong catalog
-                    </label>
-                  )}
-
-                  <div className="flex flex-wrap gap-2">
-                    <button className="ipc-button ipc-button-primary" type="button" onClick={() => void handleSaveDish()} disabled={isSavingDish}>
-                      <Save size={15} />
-                      {editingDishId ? 'Lưu món' : 'Tạo món'}
-                    </button>
-                    <button className="ipc-button ipc-button-ghost" type="button" onClick={() => void handleToggleDishActive()} disabled={!selectedDish || isSavingDish}>
-                      <Power size={15} />
-                      {selectedDish?.isActive ? 'Khóa món' : 'Mở lại món'}
-                    </button>
-                  </div>
-                </div>
-
-                {bomFeedback && (
-                  <div
-                    className={`rounded-md border px-3 py-2 text-sm font-medium ${
-                      bomFeedback.type === 'success'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
-                        : 'border-rose-200 bg-rose-50 text-rose-800'
-                    }`}
-                  >
-                    {bomFeedback.message}
-                  </div>
-                )}
-
-                <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[13px] font-bold text-slate-800">
-                      {editingBomId ? 'Sửa dòng BOM' : 'Thêm nguyên liệu vào BOM'}
-                    </div>
-                    <button className="ipc-button ipc-button-ghost" type="button" onClick={resetBomForm}>
-                      <PlusCircle size={15} />
-                      Dòng mới
-                    </button>
-                  </div>
-
-                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-ingredient">
-                    Nguyên liệu
-                  </label>
+                <FieldRow label="Khách hàng">
                   <select
-                    id="admin-bom-ingredient"
                     className="ipc-select w-full"
-                    value={bomForm.ingredientId}
+                    value={bomImportCustomerId}
                     onChange={(event) => {
-                      const nextIngredient = ingredientLookup.find((ingredient) => ingredient.ingredientId === event.target.value);
-                      setBomForm((prev) => ({
-                        ...prev,
-                        ingredientId: event.target.value,
-                        unitId: nextIngredient?.unitId ?? prev.unitId,
-                      }));
+                      setBomImportCustomerId(event.target.value);
+                      setBomImportPreview(null);
                     }}
                   >
-                    <option value="">Chọn nguyên liệu</option>
-                    {ingredientLookup.map((ingredient) => (
-                      <option key={ingredient.ingredientId} value={ingredient.ingredientId}>
-                        {ingredient.ingredientName} ({ingredient.unitName ?? 'đơn vị'})
+                    <option value="">BOM global</option>
+                    {customerContracts.map((contract) => (
+                      <option key={contract.customerId} value={contract.customerId}>
+                        {contract.customerCode} - {contract.customerName}
                       </option>
                     ))}
                   </select>
+                </FieldRow>
 
-                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-unit">
-                    Đơn vị tính
-                  </label>
-                  <select
-                    id="admin-bom-unit"
-                    className="ipc-select w-full"
-                    value={bomForm.unitId}
-                    onChange={(event) => setBomForm((prev) => ({ ...prev, unitId: event.target.value }))}
-                  >
-                    <option value="">Chọn đơn vị</option>
-                    {unitOptions.map((unit) => (
-                      <option key={unit.unitId} value={unit.unitId}>
-                        {unit.unitName}
-                      </option>
-                    ))}
-                  </select>
+                <FieldRow label="Hiệu lực từ">
+                  <input
+                    className="ipc-input w-full"
+                    type="date"
+                    value={bomImportEffectiveFrom}
+                    onChange={(event) => setBomImportEffectiveFrom(event.target.value)}
+                  />
+                </FieldRow>
 
-                  <label className="text-[12px] font-bold text-slate-600" htmlFor="admin-bom-status">
-                    Trạng thái version
-                  </label>
-                  <select
-                    id="admin-bom-status"
-                    className="ipc-select w-full"
-                    value={bomForm.bomStatus}
-                    onChange={(event) => setBomForm((prev) => ({ ...prev, bomStatus: event.target.value }))}
-                  >
-                    {bomStatusOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                <FieldRow label="File import">
+                  <input
+                    className="ipc-input w-full"
+                    type="file"
+                    accept=".csv,text/csv"
+                    onChange={(event) => {
+                      setBomImportFile(event.target.files?.[0] ?? null);
+                      setBomImportPreview(null);
+                    }}
+                  />
+                </FieldRow>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Định lượng/suất
-                      <input
-                        className="ipc-input"
-                        inputMode="decimal"
-                        min="0"
-                        type="number"
-                        value={bomForm.grossQtyPerServing}
-                        onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Hao hụt (%)
-                      <input
-                        className="ipc-input"
-                        inputMode="decimal"
-                        max="100"
-                        min="0"
-                        type="number"
-                        value={bomForm.wasteRatePercent}
-                        onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Hiệu lực từ
-                      <input
-                        className="ipc-input"
-                        type="date"
-                        value={bomForm.effectiveFrom}
-                        onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Hiệu lực đến
-                      <input
-                        className="ipc-input"
-                        type="date"
-                        value={bomForm.effectiveTo}
-                        onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))}
-                      />
-                    </label>
-                  </div>
-
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                    Lý do điều chỉnh
-                    <input
-                      className="ipc-input"
-                      value={bomForm.reason}
-                      onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))}
-                      placeholder="Ví dụ: cập nhật định lượng theo test bếp"
-                    />
-                  </label>
-
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
                   <button
-                    className="ipc-button ipc-button-primary justify-center"
+                    className="ipc-button ipc-button-ghost"
                     type="button"
-                    disabled={isSavingBom || !selectedDish}
-                    onClick={() => void handleSaveBomLine()}
+                    disabled={downloadBomTemplateState.isLoading}
+                    onClick={() => void handleDownloadBomTemplate()}
+                  >
+                    <Download size={15} />
+                    Tải mẫu
+                  </button>
+                  <button
+                    className="ipc-button ipc-button-primary"
+                    type="button"
+                    disabled={previewBomImportState.isLoading || !bomImportFile}
+                    onClick={() => void handlePreviewBomImport()}
+                  >
+                    <Search size={15} />
+                    Preview
+                  </button>
+                  <button
+                    className="ipc-button ipc-button-primary"
+                    type="button"
+                    disabled={commitBomImportState.isLoading || !bomImportPreview?.canCommit}
+                    onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
-                    {editingBomId ? 'Lưu thay đổi BOM' : 'Thêm vào BOM'}
+                    Commit
                   </button>
                 </div>
+
+                {bomImportFeedback && (
+                  <InlineAlert title={bomImportFeedback.type === 'success' ? 'BOM import' : 'Cần kiểm tra'} variant={bomImportFeedback.type === 'success' ? 'info' : 'danger'}>
+                    {bomImportFeedback.message}
+                  </InlineAlert>
+                )}
               </div>
 
-              <DataTableShell ariaLabel="Bảng BOM món ăn">
-                <table className="ipc-data-table">
-                  <thead>
-                    <tr>
-                      <th>Nguyên liệu</th>
-                      <th>Định lượng/suất</th>
-                      <th>Hao hụt</th>
-                      <th>Trạng thái</th>
-                      <th>Hiệu lực</th>
-                      <th>Thao tác</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedDishBomLines.length === 0 ? <EmptyRow colSpan={6} /> : selectedDishBomLines.map((line) => (
-                      <tr key={line.bomId}>
-                        <td className="font-semibold text-slate-900">{line.name}</td>
-                        <td className="ipc-numeric-cell">
-                          {line.grossQtyPerServing.toLocaleString('vi-VN')} {line.unit}
-                        </td>
-                        <td className="ipc-numeric-cell">{line.wasteRatePercent.toLocaleString('vi-VN')}%</td>
-                        <td className="ipc-badge-cell">
-                          <StatusBadge variant={getBomStatusBadgeVariant(line.bomStatus)}>{line.bomStatusLabel}</StatusBadge>
-                        </td>
-                        <td>
-                          <div className="flex flex-col items-center gap-1 text-xs text-slate-600">
-                            <span>Từ {new Date(line.effectiveFrom).toLocaleDateString('vi-VN')}</span>
-                            {line.effectiveTo ? (
-                              <StatusBadge variant="neutral">Đến {new Date(line.effectiveTo).toLocaleDateString('vi-VN')}</StatusBadge>
-                            ) : (
-                              <StatusBadge variant="success">Đang áp dụng</StatusBadge>
-                            )}
-                          </div>
-                        </td>
-                        <td>
-                          <div className="flex flex-wrap justify-center gap-2">
-                            <button className="ipc-button ipc-button-ghost ipc-button-bounded" type="button" onClick={() => startEditBomLine(line)}>
-                              <Pencil size={14} />
-                              Sửa
-                            </button>
-                            {!line.effectiveTo && (
-                              <button
-                                className="ipc-button ipc-button-ghost ipc-button-bounded"
-                                type="button"
-                                disabled={isSavingBom}
-                                onClick={() => void handleCloseBomLine(line)}
-                              >
-                                <XCircle size={14} />
-                                Ngừng
-                              </button>
-                            )}
-                          </div>
-                        </td>
+              <div className="flex flex-col gap-3">
+                <ContextStrip
+                  items={[
+                    { label: 'Tier', value: `${(bomImportTier / 1000).toFixed(0)}k`, tone: 'info' },
+                    { label: 'Scope', value: bomImportCustomerId ? 'Customer override' : 'Global', tone: bomImportCustomerId ? 'warning' : 'neutral' },
+                    { label: 'Dòng hợp lệ', value: `${bomImportPreview?.validRows ?? 0}/${bomImportPreview?.totalRows ?? 0}`, tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
+                    { label: 'Lỗi', value: String(bomImportPreview?.errorRows ?? 0), tone: bomImportPreview?.errorRows ? 'danger' : 'success' },
+                  ]}
+                />
+
+                <DataTableShell className="max-h-[520px]" ariaLabel="Preview import BOM theo đơn giá">
+                  <table className="ipc-data-table">
+                    <thead>
+                      <tr>
+                        <th>Dòng</th>
+                        <th>Món</th>
+                        <th>Nguyên liệu</th>
+                        <th>ĐVT</th>
+                        <th>Qty/suất</th>
+                        <th>Hao hụt</th>
+                        <th>Action</th>
+                        <th>Trạng thái</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </DataTableShell>
+                    </thead>
+                    <tbody>
+                      {(bomImportPreview?.rows ?? []).slice(0, 100).map((row) => (
+                        <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
+                          <td>{row.rowNumber}</td>
+                          <td>
+                            <div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div>
+                            <div className="text-xs text-slate-500">{row.dishCode}</div>
+                          </td>
+                          <td>
+                            <div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div>
+                            <div className="text-xs text-slate-500">{row.ingredientCode}</div>
+                          </td>
+                          <td>{row.unitCode}</td>
+                          <td>{row.grossQtyPerServing}</td>
+                          <td>{row.wasteRatePercent}%</td>
+                          <td>{row.action}</td>
+                          <td>
+                            <StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>
+                              {row.errors[0] ?? row.warnings[0] ?? 'Hợp lệ'}
+                            </StatusBadge>
+                          </td>
+                        </tr>
+                      ))}
+                      {(!bomImportPreview || bomImportPreview.rows.length === 0) && <EmptyRow colSpan={8} />}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </div>
             </div>
           </SectionPanel>
-
-          <SplitWorkbench
-            detailLabel="Chứng từ"
-            detail={
-              <DocumentRail
-                documents={adjustmentDocuments}
-                title={null}
-                actionForDocument={(document) => (
-                  <Link className="ipc-button ipc-button-ghost" to={document.route}>
-                    Mở điều chỉnh
-                  </Link>
-                )}
-              />
-            }
-          >
-            <SectionPanel title="Hàng đợi điều chỉnh" icon={<Database size={18} />}>
-              <ApprovalQueue records={approvalRecords.filter((record) => record.type === 'adjustment')} title={null} />
-            </SectionPanel>
-          </SplitWorkbench>
         </div>
       )}
 
@@ -1737,13 +1271,10 @@ export default function AdminDataPage() {
                       <td>
                         <Link
                           className="ipc-button ipc-button-ghost ipc-button-bounded"
-                          to={issue.route || ROUTES.ADMIN_DATA}
+                          to={issue.category === 'missing_bom' ? `${ROUTES.ADMIN_DATA}?view=bom-import` : issue.route || ROUTES.ADMIN_DATA}
                           onClick={() => {
                             if (issue.category === 'missing_bom' && issue.entityId) {
-                              setActiveView('adjustments');
-                              setSelectedDishId(issue.entityId);
-                              setEditingBomId(null);
-                              setBomFeedback({ type: 'error', message: 'Đang mở form BOM cho món thiếu định lượng.' });
+                              setActiveView('bom-import');
                             }
                           }}
                         >
@@ -1848,7 +1379,7 @@ export default function AdminDataPage() {
                   <tr>
                     <td className="font-semibold">Mua hàng</td>
                     <td className="ipc-numeric-cell">{totalPurchaseQty.toLocaleString('vi-VN')} đơn vị</td>
-                    <td className="text-left">Nhu cầu mua theo nhà cung cấp, ngày và ca từ danh sách mua.</td>
+                    <td className="text-left">Kế hoạch thu mua dự kiến theo ngày từ demand, tồn kho và pending receipt.</td>
                     <td className="ipc-badge-cell"><StatusBadge variant={totalPurchaseQty > 0 ? 'warning' : 'success'}>{totalPurchaseQty > 0 ? 'Có phát sinh' : 'Không phát sinh'}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Theo dõi thu mua</Link></td>
                   </tr>

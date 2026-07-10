@@ -52,7 +52,6 @@ export interface RoleInboxItem {
 
 export type WorkflowDocumentType =
   | 'KHSX'
-  | 'Danh sách mua thêm'
   | 'Đơn mua'
   | 'Phiếu nhập'
   | 'Phiếu xuất'
@@ -110,6 +109,9 @@ export interface DemandLine {
   purchaseRequestLineId?: string;
   supplierId?: string;
   ingredientId?: string;
+  bomId?: string | null;
+  priceTierAmount?: number;
+  bomScope?: string;
   estimatedUnitPrice?: number;
   referenceUnitPrice?: number;
   priceVariancePercent?: number;

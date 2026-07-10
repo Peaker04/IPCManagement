@@ -19,6 +19,8 @@ public class WorkflowReportQueryDto
     public string? BusinessArea { get; set; }
     public string? EntityName { get; set; }
     public string? FieldName { get; set; }
+    public string? GroupBy { get; set; }
+    public decimal? PriceTier { get; set; }
 }
 
 public class CursorPageDto<T>
@@ -121,6 +123,9 @@ public class IngredientDemandReportDto
     public string? IngredientName { get; set; }
     public string UnitId { get; set; } = string.Empty;
     public string? UnitName { get; set; }
+    public string? BomId { get; set; }
+    public decimal PriceTierAmount { get; set; }
+    public string BomScope { get; set; } = "global";
     public int TotalServings { get; set; }
     public decimal BomRatePercent { get; set; }
     public string? AppliedPortionRuleId { get; set; }
@@ -318,6 +323,29 @@ public class DataQualityIssueRemediationRequestDto
     public string IssueId { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public string? Note { get; set; }
+}
+
+public class PurchasePlanReportDto
+{
+    public string PeriodKey { get; set; } = string.Empty;
+    public string GroupBy { get; set; } = "day";
+    public DateOnly PeriodStart { get; set; }
+    public DateOnly PeriodEnd { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal RequiredQty { get; set; }
+    public decimal CurrentStockQty { get; set; }
+    public decimal PendingReceiptQty { get; set; }
+    public decimal ShortageQty { get; set; }
+    public decimal SuggestedPurchaseQty { get; set; }
+    public decimal EstimatedUnitPrice { get; set; }
+    public decimal EstimatedAmount { get; set; }
+    public string? SupplierId { get; set; }
+    public string? SupplierName { get; set; }
+    public DateOnly? ExpectedDeliveryDate { get; set; }
+    public IReadOnlyList<string> Warnings { get; set; } = [];
 }
 
 public class DataQualityIssueRemediationDto

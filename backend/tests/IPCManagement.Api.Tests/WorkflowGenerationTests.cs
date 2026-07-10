@@ -6,6 +6,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Models.DTOs.ProductionPlan;
 using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
@@ -15,6 +16,9 @@ using IPCManagement.Api.Services.SampleData;
 using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using System.Data.Common;
+using System.Diagnostics;
 using System.Reflection;
 using System.Security.Claims;
 
@@ -355,6 +359,100 @@ public class WorkflowGenerationTests
                 issue.IngredientId == fixture.IngredientIdString &&
                 issue.SourceUnitName == "box" &&
                 issue.TargetUnitName == "kg");
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_PreferCustomerBomOverride_ForMatchingPriceTier()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            context.Dishboms.Add(new Dishbom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = fixture.DishWithBomId,
+                CustomerId = fixture.CustomerId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                PriceTierAmount = 25000,
+                GrossQtyPerServing = 3,
+                WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
+                EffectiveFrom = new DateOnly(2026, 1, 1)
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.MissingBomDishes.Should().BeEmpty();
+            var line = result.Lines.Should().ContainSingle().Subject;
+            line.PriceTierAmount.Should().Be(25000);
+            line.BomScope.Should().Be("customer");
+            line.GrossQtyPerServing.Should().Be(3);
+            line.TotalRequiredQty.Should().Be(300);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_FallbackToGlobalBom_ForMatchingPriceTier_WhenNoCustomerOverride()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var schedule = await context.Menuschedules.SingleAsync();
+            schedule.MenuPrice = 30000;
+            var bom = await context.Dishboms.SingleAsync();
+            bom.PriceTierAmount = 30000;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.MissingBomDishes.Should().BeEmpty();
+            var line = result.Lines.Should().ContainSingle().Subject;
+            line.PriceTierAmount.Should().Be(30000);
+            line.BomScope.Should().Be("global");
+            line.TotalRequiredQty.Should().Be(200);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_BlockNonStandardMenuPrice_InsteadOfChoosingNearestTier()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var schedule = await context.Menuschedules.SingleAsync();
+            schedule.MenuPrice = 26000;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var act = () => new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*25000/30000/34000*");
         }
     }
 
@@ -2180,6 +2278,176 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task PurchasePlan_Should_ReconcileDayAndWeekTotals_AndSubtractPendingReceipts()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var serviceDate = new DateOnly(2026, 6, 15);
+        var nextServiceDate = serviceDate.AddDays(1);
+        var firstRequestId = GuidHelper.NewId();
+        var secondRequestId = GuidHelper.NewId();
+        var firstLineId = GuidHelper.NewId();
+        var secondLineId = GuidHelper.NewId();
+        var purchaseRequestId = GuidHelper.NewId();
+        var purchaseLineId = GuidHelper.NewId();
+        var receiptId = GuidHelper.NewId();
+        var planLineId = GuidHelper.NewId();
+        var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
+
+        context.Productionplanlines.Add(new Productionplanline
+        {
+            PlanLineId = planLineId,
+            PlanId = fixture.ProductionPlanId,
+            QuantityPlanLineId = await context.Mealquantityplanlines.Select(line => line.QuantityPlanLineId).SingleAsync(),
+            CustomerId = fixture.CustomerId,
+            MenuId = menuId,
+            DishId = fixture.DishWithBomId,
+            ShiftName = "MORNING",
+            TotalServings = 200
+        });
+        context.Materialrequests.AddRange(
+            new Materialrequest
+            {
+                RequestId = firstRequestId,
+                RequestCode = "MR-PURCHASE-DAY-1",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = serviceDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = firstLineId,
+                        RequestId = firstRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 12,
+                        CurrentStockQty = 2,
+                        SuggestedPurchaseQty = 10
+                    }
+                ]
+            },
+            new Materialrequest
+            {
+                RequestId = secondRequestId,
+                RequestCode = "MR-PURCHASE-DAY-2",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = nextServiceDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = secondLineId,
+                        RequestId = secondRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 20,
+                        CurrentStockQty = 5,
+                        SuggestedPurchaseQty = 15
+                    }
+                ]
+            });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = purchaseRequestId,
+            PurchaseRequestCode = "PR-PENDING",
+            RequestDate = serviceDate,
+            PurchaseForDate = serviceDate,
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = purchaseLineId,
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = firstLineId,
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = fixture.SupplierId,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 10,
+                    CurrentStockQty = 2,
+                    PurchaseQty = 10,
+                    EstimatedUnitPrice = 1000,
+                    ExpectedDeliveryDate = serviceDate
+                }
+            ]
+        });
+        context.Inventoryreceipts.Add(new Inventoryreceipt
+        {
+            ReceiptId = receiptId,
+            ReceiptCode = "RC-PARTIAL",
+            ReceiptDate = serviceDate,
+            WarehouseId = fixture.WarehouseId,
+            SupplierId = fixture.SupplierId,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryreceiptlines =
+            [
+                new Inventoryreceiptline
+                {
+                    ReceiptLineId = GuidHelper.NewId(),
+                    ReceiptId = receiptId,
+                    PurchaseRequestLineId = purchaseLineId,
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    Quantity = 4,
+                    UnitPrice = 1000
+                }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            GroupBy = "day"
+        });
+        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            GroupBy = "week"
+        });
+
+        dayRows.Should().HaveCount(2);
+        dayRows.Sum(row => row.RequiredQty).Should().Be(32);
+        dayRows.Sum(row => row.SuggestedPurchaseQty).Should().Be(25);
+        dayRows.Sum(row => row.PendingReceiptQty).Should().Be(6);
+        dayRows.Sum(row => row.ShortageQty).Should().Be(19);
+
+        var weekRow = weekRows.Should().ContainSingle().Subject;
+        weekRow.GroupBy.Should().Be("week");
+        weekRow.PeriodStart.Should().Be(serviceDate);
+        weekRow.PeriodEnd.Should().Be(serviceDate.AddDays(6));
+        weekRow.RequiredQty.Should().Be(dayRows.Sum(row => row.RequiredQty));
+        weekRow.SuggestedPurchaseQty.Should().Be(dayRows.Sum(row => row.SuggestedPurchaseQty));
+        weekRow.PendingReceiptQty.Should().Be(dayRows.Sum(row => row.PendingReceiptQty));
+        weekRow.ShortageQty.Should().Be(dayRows.Sum(row => row.ShortageQty));
+        weekRows.Select(row => (row.PeriodKey, row.IngredientId, row.UnitId)).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public async Task DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3052,6 +3320,67 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task SendDailyToKitchen_Should_UpdatePlansAndReturnKitchenReadyDailyPlan()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var demandContext = fixture.CreateContext())
+        {
+            await new MaterialDemandService(demandContext).GenerateAsync(
+                new GenerateMaterialDemandRequestDto
+                {
+                    ServiceDate = "2026-06-15",
+                    CustomerId = fixture.CustomerIdString,
+                    Scope = "FULLDAY"
+                },
+                fixture.UserIdString);
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new ProductionPlanService(new ProductionPlanRepository(context), context);
+
+        var daily = await service.SendDailyToKitchenAsync(new SendDailyProductionPlanRequestDto
+        {
+            ServiceDate = "2026-06-15",
+            CustomerId = fixture.CustomerIdString,
+            ShiftName = "MORNING",
+            Reason = "UAT gửi bếp"
+        }, fixture.UserIdString);
+
+        daily.ServiceDate.Should().Be(new DateOnly(2026, 6, 15));
+        daily.CustomerId.Should().Be(fixture.CustomerIdString);
+        daily.CustomerCode.Should().Be("CUS");
+        daily.ShiftName.Should().Be("MORNING");
+        daily.TotalPlans.Should().Be(1);
+        daily.SentPlans.Should().Be(1);
+        daily.TotalDishes.Should().Be(1);
+        daily.TotalServings.Should().Be(100);
+        daily.Plans.Should().ContainSingle();
+        daily.Plans.Single().Status.Should().Be("SENTTOKITCHEN");
+        daily.Plans.Single().SentToKitchenBy.Should().Be(fixture.UserIdString);
+        daily.Plans.Single().SentToKitchenByName.Should().Be("Workflow Test");
+        daily.Plans.Single().SentToKitchenAt.Should().NotBeNull();
+        daily.Warnings.Should().NotContain("Có kế hoạch chưa gửi bếp.");
+
+        var savedPlan = await context.Productionplans
+            .AsNoTracking()
+            .SingleAsync(plan => plan.PlanCode == "KHSX-CUS-20260615-FULLDAY");
+        savedPlan.Status.Should().Be("SENTTOKITCHEN");
+        savedPlan.SentToKitchenBy.Should().NotBeNull();
+        savedPlan.SentToKitchenBy!.Should().Equal(fixture.UserId);
+        savedPlan.SentToKitchenAt.Should().NotBeNull();
+
+        var audit = await context.Auditlogs
+            .AsNoTracking()
+            .SingleAsync(log => log.BusinessArea == "Kitchen" && log.FieldName == "SendToKitchen");
+        audit.EntityId.Should().Equal(savedPlan.PlanId);
+        audit.ChangedBy.Should().Equal(fixture.UserId);
+        audit.NewValue.Should().Be("KHSX-CUS-20260615-FULLDAY");
+        audit.Reason.Should().Be("UAT gửi bếp");
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ApplyDifferentPortionRules_ByShift()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3161,14 +3490,14 @@ public class WorkflowGenerationTests
                 scheduleId,
                 new UpdateMenuScheduleRulesDto
                 {
-                    MenuPrice = 42000,
+                    MenuPrice = 25000,
                     BomRatePercent = 125,
                     Reason = "Customer premium portion"
                 },
                 fixture.UserIdString);
 
             updated.Should().NotBeNull();
-            updated!.MenuPrice.Should().Be(42000);
+            updated!.MenuPrice.Should().Be(25000);
             updated.BomRatePercent.Should().Be(125);
         }
 
@@ -4225,6 +4554,74 @@ public class WorkflowGenerationTests
         kpis.OverdueApprovalCount.Should().Be(1);
     }
 
+    [Fact]
+    [Trait("Category", "Performance")]
+    public async Task DemandAndPurchase_Should_StayBounded_ForMultiCustomerWeek()
+    {
+        const int customerCount = 12;
+        const int ingredientCount = 12;
+        var queryCounter = new SelectCommandCounter();
+        await using var fixture = await WorkflowFixture.CreateAsync(queryCounter);
+        await fixture.SeedPerformanceWeekAsync(customerCount, ingredientCount);
+
+        queryCounter.Reset();
+        var stopwatch = Stopwatch.StartNew();
+        var demandLineCount = 0;
+        var purchaseLineCount = 0;
+
+        await using var context = fixture.CreateContext();
+        var demandService = new MaterialDemandService(context);
+        var purchaseService = CreatePurchaseRequestWorkflowService(context);
+        var weekStart = new DateOnly(2026, 8, 3);
+        for (var dayOffset = 0; dayOffset < 7; dayOffset++)
+        {
+            var serviceDate = weekStart.AddDays(dayOffset).ToString("yyyy-MM-dd");
+            var demand = await demandService.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = serviceDate, Scope = "FULLDAY" },
+                fixture.UserIdString);
+            demand.Should().NotBeNull();
+            demandLineCount += demand!.Lines.Count;
+
+            var purchase = await purchaseService.GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
+                fixture.UserIdString);
+            purchase.Should().NotBeNull();
+            purchaseLineCount += purchase!.Lines.Count;
+        }
+
+        stopwatch.Stop();
+
+        demandLineCount.Should().Be(customerCount * ingredientCount * 7);
+        purchaseLineCount.Should().Be(demandLineCount);
+        queryCounter.SelectCount.Should().BeLessThan(
+            120,
+            "generation must batch lookups instead of issuing SELECT queries per shortage line");
+        stopwatch.Elapsed.Should().BeLessThan(
+            TimeSpan.FromSeconds(10),
+            "a representative multi-customer week should remain usable over a LAN deployment");
+    }
+
+    private sealed class SelectCommandCounter : DbCommandInterceptor
+    {
+        public int SelectCount { get; private set; }
+
+        public void Reset() => SelectCount = 0;
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+            {
+                SelectCount++;
+            }
+
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+    }
+
     private sealed class WorkflowFixture : IAsyncDisposable
     {
         private readonly SqliteConnection _connection;
@@ -4242,6 +4639,8 @@ public class WorkflowGenerationTests
         public byte[] WarehouseId { get; } = GuidHelper.NewId();
         public byte[] IngredientId { get; } = GuidHelper.NewId();
         public string IngredientIdString => GuidHelper.ToGuidString(IngredientId);
+        public byte[] CustomerId { get; } = GuidHelper.NewId();
+        public string CustomerIdString => GuidHelper.ToGuidString(CustomerId);
         public byte[] SupplierId { get; } = GuidHelper.NewId();
         public byte[] QuantityPlanId { get; } = GuidHelper.NewId();
         public byte[] ProductionPlanId { get; } = GuidHelper.NewId();
@@ -4249,17 +4648,20 @@ public class WorkflowGenerationTests
         public byte[] ReceiptId { get; } = GuidHelper.NewId();
         public byte[] IssueId { get; } = GuidHelper.NewId();
 
-        public static async Task<WorkflowFixture> CreateAsync()
+        public static async Task<WorkflowFixture> CreateAsync(DbCommandInterceptor? interceptor = null)
         {
             var connection = new SqliteConnection("Data Source=:memory:");
             await connection.OpenAsync();
-            var options = new DbContextOptionsBuilder<IpcManagementContext>()
-                .UseSqlite(connection)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<IpcManagementContext>()
+                .UseSqlite(connection);
+            if (interceptor is not null)
+            {
+                optionsBuilder.AddInterceptors(interceptor);
+            }
 
             await CreateMinimalWorkflowSchemaAsync(connection);
 
-            return new WorkflowFixture(connection, options);
+            return new WorkflowFixture(connection, optionsBuilder.Options);
         }
 
         public IpcManagementContext CreateContext() => new(_options);
@@ -4269,7 +4671,6 @@ public class WorkflowGenerationTests
             await using var context = CreateContext();
 
             var roleId = GuidHelper.NewId();
-            var customerId = GuidHelper.NewId();
             var menuId = GuidHelper.NewId();
             var scheduleId = GuidHelper.NewId();
             var quantityLineId = GuidHelper.NewId();
@@ -4320,7 +4721,7 @@ public class WorkflowGenerationTests
             };
             var customer = new Customer
             {
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 CustomerCode = "CUS",
                 CustomerName = "Customer",
                 IsActive = true
@@ -4388,12 +4789,12 @@ public class WorkflowGenerationTests
             context.Menuschedules.Add(new Menuschedule
             {
                 MenuScheduleId = scheduleId,
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 MenuId = menuId,
                 ServiceDate = new DateOnly(2026, 6, 15),
                 WeekStartDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
-                MenuPrice = 50000,
+                MenuPrice = 25000,
                 BomRatePercent = 100,
                 Status = "ACTIVE"
             });
@@ -4413,7 +4814,7 @@ public class WorkflowGenerationTests
                 QuantityPlanLineId = quantityLineId,
                 QuantityPlanId = QuantityPlanId,
                 MenuScheduleId = scheduleId,
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 MenuId = menuId,
                 ShiftName = "MORNING",
                 ForecastServings = 100,
@@ -4429,6 +4830,155 @@ public class WorkflowGenerationTests
                 CreatedBy = UserId,
                 CreatedAt = DateTime.UtcNow
             });
+
+            await context.SaveChangesAsync();
+        }
+
+        public async Task SeedPerformanceWeekAsync(int customerCount, int ingredientCount)
+        {
+            await using var context = CreateContext();
+            var roleId = GuidHelper.NewId();
+            var menuId = GuidHelper.NewId();
+            var dishId = GuidHelper.NewId();
+            var weekStart = new DateOnly(2026, 8, 3);
+
+            context.Roles.Add(new Role { RoleId = roleId, RoleCode = "ADMIN", RoleName = "Admin" });
+            context.Users.Add(new User
+            {
+                UserId = UserId,
+                Username = "performance-test",
+                FullName = "Performance Test",
+                PasswordHash = "hash",
+                RoleId = roleId,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            });
+            context.Units.Add(new Unit
+            {
+                UnitId = UnitId,
+                UnitCode = "KG",
+                UnitName = "kg",
+                ConvertRateToBase = 1
+            });
+            context.Warehouses.Add(new Warehouse
+            {
+                WarehouseId = WarehouseId,
+                WarehouseCode = "WH-PERF",
+                WarehouseName = "Performance Warehouse",
+                WarehouseType = "MAIN"
+            });
+            context.Suppliers.Add(new Supplier
+            {
+                SupplierId = SupplierId,
+                SupplierCode = "SUP-PERF",
+                SupplierName = "Performance Supplier",
+                IsActive = true
+            });
+            context.Menus.Add(new Menu
+            {
+                MenuId = menuId,
+                MenuCode = "MENU-PERF",
+                MenuName = "Performance Menu",
+                IsActive = true
+            });
+            context.Dishes.Add(new Dish
+            {
+                DishId = dishId,
+                DishCode = "DISH-PERF",
+                DishName = "Performance Dish",
+                IsActive = true
+            });
+            context.Menuitems.Add(new Menuitem
+            {
+                MenuItemId = GuidHelper.NewId(),
+                MenuId = menuId,
+                DishId = dishId,
+                DisplayOrder = 1
+            });
+
+            for (var ingredientIndex = 0; ingredientIndex < ingredientCount; ingredientIndex++)
+            {
+                var ingredientId = GuidHelper.NewId();
+                context.Ingredients.Add(new Ingredient
+                {
+                    IngredientId = ingredientId,
+                    IngredientCode = $"ING-PERF-{ingredientIndex:00}",
+                    IngredientName = $"Performance Ingredient {ingredientIndex:00}",
+                    UnitId = UnitId,
+                    WarehouseId = WarehouseId,
+                    ReferencePrice = 1000 + ingredientIndex,
+                    IsFreshDaily = true,
+                    IsActive = true
+                });
+                context.Dishboms.Add(new Dishbom
+                {
+                    BomId = GuidHelper.NewId(),
+                    DishId = dishId,
+                    IngredientId = ingredientId,
+                    UnitId = UnitId,
+                    GrossQtyPerServing = 0.01m + (ingredientIndex * 0.001m),
+                    WasteRatePercent = 0,
+                    BomStatus = "PUBLISHED",
+                    EffectiveFrom = weekStart
+                });
+            }
+
+            var customers = Enumerable.Range(0, customerCount)
+                .Select(customerIndex => new Customer
+                {
+                    CustomerId = GuidHelper.NewId(),
+                    CustomerCode = $"CUS-PERF-{customerIndex:00}",
+                    CustomerName = $"Performance Customer {customerIndex:00}",
+                    IsActive = true
+                })
+                .ToList();
+            context.Customers.AddRange(customers);
+
+            for (var dayOffset = 0; dayOffset < 7; dayOffset++)
+            {
+                var serviceDate = weekStart.AddDays(dayOffset);
+                var quantityPlanId = GuidHelper.NewId();
+                context.Mealquantityplans.Add(new Mealquantityplan
+                {
+                    QuantityPlanId = quantityPlanId,
+                    PlanCode = $"QTY-PERF-{serviceDate:yyyyMMdd}",
+                    ServiceDate = serviceDate,
+                    Status = OrderStatus.Completed,
+                    ForecastReceivedAt = DateTime.UtcNow.AddHours(-3),
+                    ConfirmedAt = DateTime.UtcNow.AddHours(-2),
+                    ConfirmationTime = new TimeOnly(9, 0),
+                    ConfirmedBy = UserId
+                });
+
+                foreach (var customer in customers)
+                {
+                    var scheduleId = GuidHelper.NewId();
+                    context.Menuschedules.Add(new Menuschedule
+                    {
+                        MenuScheduleId = scheduleId,
+                        CustomerId = customer.CustomerId,
+                        MenuId = menuId,
+                        ServiceDate = serviceDate,
+                        WeekStartDate = weekStart,
+                        ShiftName = "MORNING",
+                        MenuPrice = 25000,
+                        BomRatePercent = 100,
+                        Status = "ACTIVE"
+                    });
+                    context.Mealquantityplanlines.Add(new Mealquantityplanline
+                    {
+                        QuantityPlanLineId = GuidHelper.NewId(),
+                        QuantityPlanId = quantityPlanId,
+                        MenuScheduleId = scheduleId,
+                        CustomerId = customer.CustomerId,
+                        MenuId = menuId,
+                        ShiftName = "MORNING",
+                        ForecastServings = 120,
+                        ConfirmedServings = 120,
+                        FinalServings = 120
+                    });
+                }
+            }
 
             await context.SaveChangesAsync();
         }
@@ -4570,8 +5120,10 @@ public class WorkflowGenerationTests
                 CREATE TABLE dishbom (
                     bomId BLOB PRIMARY KEY,
                     dishId BLOB NOT NULL,
+                    customerId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    priceTierAmount TEXT NOT NULL DEFAULT '25000.00',
                     grossQtyPerServing TEXT NOT NULL,
                     wasteRatePercent TEXT NOT NULL,
                     bomStatus TEXT NOT NULL DEFAULT 'PUBLISHED',
@@ -4653,6 +5205,8 @@ public class WorkflowGenerationTests
                     menuVersionId BLOB NULL,
                     status TEXT NOT NULL,
                     createdBy BLOB NOT NULL,
+                    sentToKitchenAt TEXT NULL,
+                    sentToKitchenBy BLOB NULL,
                     createdAt TEXT NOT NULL,
                     updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'
                 );
@@ -4681,8 +5235,11 @@ public class WorkflowGenerationTests
                     requestLineId BLOB PRIMARY KEY,
                     requestId BLOB NOT NULL,
                     planLineId BLOB NOT NULL,
+                    bomId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    priceTierAmount TEXT NOT NULL DEFAULT '25000.00',
+                    bomScope TEXT NOT NULL DEFAULT 'global',
                     totalServings INTEGER NOT NULL,
                     grossQtyPerServing TEXT NOT NULL,
                     bomRatePercent TEXT NOT NULL,

@@ -11,6 +11,9 @@ public interface IDishService
     Task<BomValidationReportDto> GetBomValidationAsync();
     Task<MenuImportHistoryDto> GetMenuImportHistoryAsync();
     Task<SampleImportStatusDto> GetSampleImportStatusAsync();
+    Task<string> BuildBomTemplateCsvAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default);
+    Task<BomImportPreviewDto> PreviewBomImportAsync(Stream fileStream, BomImportPreviewRequestDto request, CancellationToken cancellationToken = default);
+    Task<BomImportCommitResultDto> CommitBomImportAsync(Stream fileStream, BomImportCommitRequestDto request, string? userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DishCatalogBomLineDto>?> GetBomLinesAsync(string dishId);
     Task<DishDto?>                  GetByIdAsync(string id);
     Task<DishDto>                   CreateAsync(CreateDishDto dto);

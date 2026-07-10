@@ -345,6 +345,7 @@ public class CoordinationController : ControllerBase
         IFormFile file,
         [FromForm] string customerId,
         [FromForm] string? weekStartDate,
+        [FromForm] decimal? priceTierAmount,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -361,6 +362,7 @@ public class CoordinationController : ControllerBase
                 file.FileName,
                 customerId,
                 parsedWeekStart,
+                priceTierAmount,
                 cancellationToken);
 
             return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã phân tích file thực đơn. Vui lòng kiểm tra trước khi lưu."));
@@ -383,6 +385,7 @@ public class CoordinationController : ControllerBase
         IFormFile file,
         [FromForm] string customerId,
         [FromForm] string? weekStartDate,
+        [FromForm] decimal? priceTierAmount,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -400,6 +403,7 @@ public class CoordinationController : ControllerBase
                 file.FileName,
                 customerId,
                 parsedWeekStart,
+                priceTierAmount,
                 userId,
                 cancellationToken);
 

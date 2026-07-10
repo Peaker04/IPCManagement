@@ -349,8 +349,11 @@ public class InventoryIssueServiceTests
             CREATE TABLE materialrequestlines (
                 requestLineId BLOB PRIMARY KEY,
                 requestId BLOB,
+                bomId BLOB,
                 ingredientId BLOB,
                 unitId BLOB,
+                priceTierAmount REAL DEFAULT 25000,
+                bomScope TEXT DEFAULT 'global',
                 totalRequiredQty REAL DEFAULT 0,
                 appliedPortionRatePercent REAL DEFAULT 100,
                 appliedPortionRuleId BLOB,
