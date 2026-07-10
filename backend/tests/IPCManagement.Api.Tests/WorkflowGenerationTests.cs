@@ -433,6 +433,63 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_UseEffectiveBomVersion_WhenDataSpansMultipleYears()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        var nextYearBomId = GuidHelper.NewId();
+        await using (var setupContext = fixture.CreateContext())
+        {
+            var schedule = await setupContext.Menuschedules.SingleAsync();
+            schedule.ServiceDate = new DateOnly(2027, 1, 2);
+            schedule.WeekStartDate = new DateOnly(2026, 12, 28);
+
+            var quantityPlan = await setupContext.Mealquantityplans.SingleAsync();
+            quantityPlan.ServiceDate = new DateOnly(2027, 1, 2);
+            quantityPlan.PlanCode = "QTY-20270102";
+
+            var existingBom = await setupContext.Dishboms.SingleAsync();
+            existingBom.EffectiveFrom = new DateOnly(2026, 1, 1);
+            existingBom.EffectiveTo = new DateOnly(2026, 12, 31);
+
+            setupContext.Dishboms.Add(new Dishbom
+            {
+                BomId = nextYearBomId,
+                DishId = fixture.DishWithBomId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                PriceTierAmount = 25000,
+                GrossQtyPerServing = 3,
+                WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
+                EffectiveFrom = new DateOnly(2027, 1, 1)
+            });
+
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var context = fixture.CreateContext();
+        var result = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto
+            {
+                ServiceDate = "2027-01-02",
+                Scope = "FULLDAY"
+            },
+            fixture.UserIdString);
+
+        var line = result!.Lines.Should().ContainSingle().Subject;
+        line.BomId.Should().Be(GuidHelper.ToGuidString(nextYearBomId));
+        line.GrossQtyPerServing.Should().Be(3m);
+        line.TotalRequiredQty.Should().Be(300m);
+        result.RequestCode.Should().Be("MR-CUS-20270102-FULLDAY");
+
+        var savedPlan = await context.Productionplans.AsNoTracking()
+            .SingleAsync(plan => plan.PlanCode == "KHSX-CUS-20270102-FULLDAY");
+        savedPlan.WeekStartDate.Should().Be(new DateOnly(2026, 12, 28));
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_BlockNonStandardMenuPrice_InsteadOfChoosingNearestTier()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -2445,6 +2502,118 @@ public class WorkflowGenerationTests
         weekRow.PendingReceiptQty.Should().Be(dayRows.Sum(row => row.PendingReceiptQty));
         weekRow.ShortageQty.Should().Be(dayRows.Sum(row => row.ShortageQty));
         weekRows.Select(row => (row.PeriodKey, row.IngredientId, row.UnitId)).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
+    public async Task PurchasePlan_Should_GroupWeekAcrossYearBoundary_WhenDataSpansMultipleYears()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var firstDate = new DateOnly(2027, 12, 31);
+        var secondDate = new DateOnly(2028, 1, 1);
+        var planLineId = GuidHelper.NewId();
+        var firstRequestId = GuidHelper.NewId();
+        var secondRequestId = GuidHelper.NewId();
+        var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
+
+        context.Productionplanlines.Add(new Productionplanline
+        {
+            PlanLineId = planLineId,
+            PlanId = fixture.ProductionPlanId,
+            QuantityPlanLineId = await context.Mealquantityplanlines.Select(line => line.QuantityPlanLineId).SingleAsync(),
+            CustomerId = fixture.CustomerId,
+            MenuId = menuId,
+            DishId = fixture.DishWithBomId,
+            ShiftName = "MORNING",
+            TotalServings = 200
+        });
+        context.Materialrequests.AddRange(
+            new Materialrequest
+            {
+                RequestId = firstRequestId,
+                RequestCode = "MR-YEAR-END",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = firstDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = firstRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 40,
+                        CurrentStockQty = 10,
+                        SuggestedPurchaseQty = 30
+                    }
+                ]
+            },
+            new Materialrequest
+            {
+                RequestId = secondRequestId,
+                RequestCode = "MR-NEW-YEAR",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = secondDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = secondRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 60,
+                        CurrentStockQty = 15,
+                        SuggestedPurchaseQty = 45
+                    }
+                ]
+            });
+        await context.SaveChangesAsync();
+
+        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2027-12-31",
+            DateTo = "2028-01-01",
+            GroupBy = "day"
+        });
+        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2027-12-31",
+            DateTo = "2028-01-01",
+            GroupBy = "week"
+        });
+
+        dayRows.Should().HaveCount(2);
+        dayRows.Sum(row => row.RequiredQty).Should().Be(100);
+        dayRows.Sum(row => row.SuggestedPurchaseQty).Should().Be(75);
+
+        var weekRow = weekRows.Should().ContainSingle().Subject;
+        weekRow.PeriodKey.Should().Be("2027-12-27/2028-01-02");
+        weekRow.PeriodStart.Should().Be(new DateOnly(2027, 12, 27));
+        weekRow.PeriodEnd.Should().Be(new DateOnly(2028, 1, 2));
+        weekRow.RequiredQty.Should().Be(dayRows.Sum(row => row.RequiredQty));
+        weekRow.SuggestedPurchaseQty.Should().Be(dayRows.Sum(row => row.SuggestedPurchaseQty));
+        weekRow.ShortageQty.Should().Be(dayRows.Sum(row => row.ShortageQty));
     }
 
     [Fact]
