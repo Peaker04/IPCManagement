@@ -521,7 +521,10 @@ public class WorkflowReportService : IWorkflowReportService
             .Include(line => line.PlanLine)
                 .ThenInclude(line => line.Customer)
             .Include(line => line.Purchaserequestlines)
+                .ThenInclude(line => line.PurchaseRequest)
+            .Include(line => line.Purchaserequestlines)
                 .ThenInclude(line => line.Inventoryreceiptlines)
+            .AsSplitQuery()
             .Where(line => line.Request.Status != "CANCELLED")
             .AsQueryable();
 
@@ -591,7 +594,7 @@ public class WorkflowReportService : IWorkflowReportService
                 var quotationByKey = quotationByIngredient.GetValueOrDefault(Convert.ToBase64String(first.IngredientId));
                 var pendingReceiptQty = group
                     .SelectMany(line => line.Purchaserequestlines)
-                    .Where(line => line.PurchaseRequest.Status != "CANCELLED")
+                    .Where(line => line.PurchaseRequest is not null && line.PurchaseRequest.Status != "CANCELLED")
                     .Sum(line => Math.Max(0m, line.PurchaseQty - line.Inventoryreceiptlines.Sum(receipt => receipt.Quantity)));
                 var requiredQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.TotalRequiredQty));
                 var currentStockQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.CurrentStockQty));

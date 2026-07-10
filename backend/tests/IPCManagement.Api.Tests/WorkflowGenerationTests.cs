@@ -2277,6 +2277,176 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task PurchasePlan_Should_ReconcileDayAndWeekTotals_AndSubtractPendingReceipts()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var serviceDate = new DateOnly(2026, 6, 15);
+        var nextServiceDate = serviceDate.AddDays(1);
+        var firstRequestId = GuidHelper.NewId();
+        var secondRequestId = GuidHelper.NewId();
+        var firstLineId = GuidHelper.NewId();
+        var secondLineId = GuidHelper.NewId();
+        var purchaseRequestId = GuidHelper.NewId();
+        var purchaseLineId = GuidHelper.NewId();
+        var receiptId = GuidHelper.NewId();
+        var planLineId = GuidHelper.NewId();
+        var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
+
+        context.Productionplanlines.Add(new Productionplanline
+        {
+            PlanLineId = planLineId,
+            PlanId = fixture.ProductionPlanId,
+            QuantityPlanLineId = await context.Mealquantityplanlines.Select(line => line.QuantityPlanLineId).SingleAsync(),
+            CustomerId = fixture.CustomerId,
+            MenuId = menuId,
+            DishId = fixture.DishWithBomId,
+            ShiftName = "MORNING",
+            TotalServings = 200
+        });
+        context.Materialrequests.AddRange(
+            new Materialrequest
+            {
+                RequestId = firstRequestId,
+                RequestCode = "MR-PURCHASE-DAY-1",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = serviceDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = firstLineId,
+                        RequestId = firstRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 12,
+                        CurrentStockQty = 2,
+                        SuggestedPurchaseQty = 10
+                    }
+                ]
+            },
+            new Materialrequest
+            {
+                RequestId = secondRequestId,
+                RequestCode = "MR-PURCHASE-DAY-2",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = nextServiceDate,
+                RequestScope = "FULLDAY",
+                Status = "CONFIRMED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = secondLineId,
+                        RequestId = secondRequestId,
+                        PlanLineId = planLineId,
+                        IngredientId = fixture.IngredientId,
+                        UnitId = fixture.UnitId,
+                        PriceTierAmount = 25000,
+                        BomScope = "global",
+                        TotalServings = 100,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 20,
+                        CurrentStockQty = 5,
+                        SuggestedPurchaseQty = 15
+                    }
+                ]
+            });
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = purchaseRequestId,
+            PurchaseRequestCode = "PR-PENDING",
+            RequestDate = serviceDate,
+            PurchaseForDate = serviceDate,
+            Status = "APPROVED",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = purchaseLineId,
+                    PurchaseRequestId = purchaseRequestId,
+                    MaterialRequestLineId = firstLineId,
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = fixture.SupplierId,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 10,
+                    CurrentStockQty = 2,
+                    PurchaseQty = 10,
+                    EstimatedUnitPrice = 1000,
+                    ExpectedDeliveryDate = serviceDate
+                }
+            ]
+        });
+        context.Inventoryreceipts.Add(new Inventoryreceipt
+        {
+            ReceiptId = receiptId,
+            ReceiptCode = "RC-PARTIAL",
+            ReceiptDate = serviceDate,
+            WarehouseId = fixture.WarehouseId,
+            SupplierId = fixture.SupplierId,
+            CreatedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryreceiptlines =
+            [
+                new Inventoryreceiptline
+                {
+                    ReceiptLineId = GuidHelper.NewId(),
+                    ReceiptId = receiptId,
+                    PurchaseRequestLineId = purchaseLineId,
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    Quantity = 4,
+                    UnitPrice = 1000
+                }
+            ]
+        });
+        await context.SaveChangesAsync();
+
+        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            GroupBy = "day"
+        });
+        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        {
+            DateFrom = "2026-06-15",
+            DateTo = "2026-06-16",
+            GroupBy = "week"
+        });
+
+        dayRows.Should().HaveCount(2);
+        dayRows.Sum(row => row.RequiredQty).Should().Be(32);
+        dayRows.Sum(row => row.SuggestedPurchaseQty).Should().Be(25);
+        dayRows.Sum(row => row.PendingReceiptQty).Should().Be(6);
+        dayRows.Sum(row => row.ShortageQty).Should().Be(19);
+
+        var weekRow = weekRows.Should().ContainSingle().Subject;
+        weekRow.GroupBy.Should().Be("week");
+        weekRow.PeriodStart.Should().Be(serviceDate);
+        weekRow.PeriodEnd.Should().Be(serviceDate.AddDays(6));
+        weekRow.RequiredQty.Should().Be(dayRows.Sum(row => row.RequiredQty));
+        weekRow.SuggestedPurchaseQty.Should().Be(dayRows.Sum(row => row.SuggestedPurchaseQty));
+        weekRow.PendingReceiptQty.Should().Be(dayRows.Sum(row => row.PendingReceiptQty));
+        weekRow.ShortageQty.Should().Be(dayRows.Sum(row => row.ShortageQty));
+        weekRows.Select(row => (row.PeriodKey, row.IngredientId, row.UnitId)).Should().OnlyHaveUniqueItems();
+    }
+
+    [Fact]
     public async Task DataQualityCleanup_Should_DryRunAndRemoveSafeOrphanStaleDocuments()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
