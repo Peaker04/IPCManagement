@@ -6,6 +6,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Models.DTOs.ProductionPlan;
 using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
@@ -3316,6 +3317,67 @@ public class WorkflowGenerationTests
             plan.MenuVersion!.VersionNo.Should().Be(2);
             plan.MenuVersion.Status.Should().Be("PUBLISHED");
         }
+    }
+
+    [Fact]
+    public async Task SendDailyToKitchen_Should_UpdatePlansAndReturnKitchenReadyDailyPlan()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var demandContext = fixture.CreateContext())
+        {
+            await new MaterialDemandService(demandContext).GenerateAsync(
+                new GenerateMaterialDemandRequestDto
+                {
+                    ServiceDate = "2026-06-15",
+                    CustomerId = fixture.CustomerIdString,
+                    Scope = "FULLDAY"
+                },
+                fixture.UserIdString);
+        }
+
+        await using var context = fixture.CreateContext();
+        var service = new ProductionPlanService(new ProductionPlanRepository(context), context);
+
+        var daily = await service.SendDailyToKitchenAsync(new SendDailyProductionPlanRequestDto
+        {
+            ServiceDate = "2026-06-15",
+            CustomerId = fixture.CustomerIdString,
+            ShiftName = "MORNING",
+            Reason = "UAT gửi bếp"
+        }, fixture.UserIdString);
+
+        daily.ServiceDate.Should().Be(new DateOnly(2026, 6, 15));
+        daily.CustomerId.Should().Be(fixture.CustomerIdString);
+        daily.CustomerCode.Should().Be("CUS");
+        daily.ShiftName.Should().Be("MORNING");
+        daily.TotalPlans.Should().Be(1);
+        daily.SentPlans.Should().Be(1);
+        daily.TotalDishes.Should().Be(1);
+        daily.TotalServings.Should().Be(100);
+        daily.Plans.Should().ContainSingle();
+        daily.Plans.Single().Status.Should().Be("SENTTOKITCHEN");
+        daily.Plans.Single().SentToKitchenBy.Should().Be(fixture.UserIdString);
+        daily.Plans.Single().SentToKitchenByName.Should().Be("Workflow Test");
+        daily.Plans.Single().SentToKitchenAt.Should().NotBeNull();
+        daily.Warnings.Should().NotContain("Có kế hoạch chưa gửi bếp.");
+
+        var savedPlan = await context.Productionplans
+            .AsNoTracking()
+            .SingleAsync(plan => plan.PlanCode == "KHSX-CUS-20260615-FULLDAY");
+        savedPlan.Status.Should().Be("SENTTOKITCHEN");
+        savedPlan.SentToKitchenBy.Should().NotBeNull();
+        savedPlan.SentToKitchenBy!.Should().Equal(fixture.UserId);
+        savedPlan.SentToKitchenAt.Should().NotBeNull();
+
+        var audit = await context.Auditlogs
+            .AsNoTracking()
+            .SingleAsync(log => log.BusinessArea == "Kitchen" && log.FieldName == "SendToKitchen");
+        audit.EntityId.Should().Equal(savedPlan.PlanId);
+        audit.ChangedBy.Should().Equal(fixture.UserId);
+        audit.NewValue.Should().Be("KHSX-CUS-20260615-FULLDAY");
+        audit.Reason.Should().Be("UAT gửi bếp");
     }
 
     [Fact]
