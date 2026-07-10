@@ -154,29 +154,28 @@ async function stubProductionReportStages(page: Page) {
       return;
     }
 
-    if (endpoint === 'purchase-demand') {
+    if (endpoint === 'purchase-plan') {
       await fulfillJson(route, [
         {
-          purchaseRequestId: 'pr-1',
-          purchaseRequestLineId: 'prl-1',
-          purchaseRequestCode: 'PR-20260615-M',
-          purchaseForDate: '2026-06-15',
-          shiftName: 'MORNING',
-          status: 'SENTTOSUPPLIER',
+          periodKey: '2026-06-15',
+          groupBy: 'day',
+          periodStart: '2026-06-15',
+          periodEnd: '2026-06-15',
           ingredientId: 'ing-pork-rib',
           ingredientName: 'Sườn heo',
-          supplierId: 'supplier-a',
-          supplierName: 'Nhà cung cấp A',
           unitId: 'unit-kg',
           unitName: 'kg',
           requiredQty: 18,
           currentStockQty: 3,
-          purchaseQty: 15,
+          pendingReceiptQty: 0,
+          shortageQty: 15,
+          suggestedPurchaseQty: 15,
           estimatedUnitPrice: 134000,
           estimatedAmount: 2010000,
-          referenceUnitPrice: 115000,
-          priceVariancePercent: 16.5,
-          isPriceWarning: true,
+          supplierId: 'supplier-a',
+          supplierName: 'Nhà cung cấp A',
+          expectedDeliveryDate: '2026-06-15',
+          warnings: ['price_variance'],
         },
       ]);
       return;
@@ -431,7 +430,7 @@ async function stubPurchasingSubmitFailure(page: Page) {
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const url = route.request().url();
-    if (url.includes('/purchase-demand')) {
+    if (url.includes('/purchase-plan')) {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -440,25 +439,25 @@ async function stubPurchasingSubmitFailure(page: Page) {
           message: 'OK',
           data: [
             {
-              purchaseRequestId: 'pr-1',
-              purchaseRequestLineId: 'prl-1',
-              purchaseRequestCode: 'PR-20260615-FULLDAY',
-              purchaseForDate: '2026-06-15',
-              status: 'DRAFT',
+              periodKey: '2026-06-15',
+              groupBy: 'day',
+              periodStart: '2026-06-15',
+              periodEnd: '2026-06-15',
               ingredientId: 'ing-1',
               ingredientName: 'Sườn heo',
-              supplierId: 'sup-1',
-              supplierName: 'Nhà cung cấp A',
               unitId: 'unit-1',
               unitName: 'kg',
               requiredQty: 10,
               currentStockQty: 0,
-              purchaseQty: 10,
+              pendingReceiptQty: 0,
+              shortageQty: 10,
+              suggestedPurchaseQty: 10,
               estimatedUnitPrice: 120000,
               estimatedAmount: 1200000,
-              referenceUnitPrice: 100000,
-              priceVariancePercent: 20,
-              isPriceWarning: true,
+              supplierId: 'sup-1',
+              supplierName: 'Nhà cung cấp A',
+              expectedDeliveryDate: '2026-06-15',
+              warnings: ['price_variance'],
             },
           ],
         }),
@@ -470,6 +469,44 @@ async function stubPurchasingSubmitFailure(page: Page) {
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
+  await page.route('**/api/purchase-requests**', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: [
+          {
+            purchaseRequestId: 'pr-1',
+            purchaseRequestCode: 'PR-20260615-FULLDAY',
+            materialRequestId: 'mr-1',
+            purchaseForDate: '2026-06-15',
+            status: 'DRAFT',
+            lines: [
+              {
+                purchaseRequestLineId: 'prl-1',
+                materialRequestLineId: 'mrl-1',
+                ingredientId: 'ing-1',
+                ingredientName: 'Sườn heo',
+                supplierId: 'sup-1',
+                supplierName: 'Nhà cung cấp A',
+                unitId: 'unit-1',
+                unitName: 'kg',
+                requiredQty: 10,
+                currentStockQty: 0,
+                purchaseQty: 10,
+                estimatedUnitPrice: 120000,
+                expectedDeliveryDate: '2026-06-15',
+                note: null,
+              },
+            ],
+          },
+        ],
+      }),
     });
   });
 
@@ -670,6 +707,51 @@ async function stubMobileOperationsSuccess(page: Page) {
     await fulfill(route, []);
   });
 
+  await page.route('**/api/production-plans/daily**', async (route) => {
+    await fulfill(route, {
+      serviceDate: '2026-07-09',
+      customerId: 'customer-mobile',
+      customerCode: 'IPC',
+      customerName: 'IPC Bắc Ninh',
+      shiftName: 'MORNING',
+      totalPlans: 1,
+      sentPlans: 1,
+      totalDishes: 1,
+      totalServings: 120,
+      totalRequiredQty: 18,
+      suggestedPurchaseQty: 0,
+      warnings: [],
+      plans: [
+        {
+          planId: 'plan-mobile',
+          planCode: 'KHSX-20260709-MOBILE',
+          planDate: '2026-07-09',
+          customerId: 'customer-mobile',
+          customerCode: 'IPC',
+          customerName: 'IPC Bắc Ninh',
+          status: 'SENT_TO_KITCHEN',
+          sentToKitchenAt: '2026-07-09T05:00:00Z',
+          sentToKitchenByName: 'Điều phối ca sáng',
+          lines: [
+            {
+              planLineId: 'plan-line-mobile',
+              dishId: 'dish-bun-bo',
+              dishName: 'Bún bò',
+              shiftName: 'MORNING',
+              totalServings: 120,
+              priceTierAmount: 30000,
+              bomScope: 'global',
+              totalRequiredQty: 18,
+              suggestedPurchaseQty: 0,
+              hasKitchenIssue: true,
+              isReceivedByKitchen: false,
+            },
+          ],
+        },
+      ],
+    });
+  });
+
   await page.route('**/api/purchase-requests**', async (route) => fulfill(route, []));
   await page.route('**/api/dishes/catalog**', async (route) => fulfill(route, []));
 
@@ -793,7 +875,7 @@ test.describe('route smoke', () => {
     await expect(page.getByText('Bún bò').first()).toBeVisible();
     await expect(page.getByLabel('Bảng nhu cầu nguyên liệu').getByText('Thiếu nguyên liệu')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Nhu cầu mua' }).click();
+    await page.getByRole('tab', { name: 'Kế hoạch thu mua' }).click();
     await expect(page.getByText('Nhà cung cấp A')).toBeVisible();
     await page.getByRole('tab', { name: 'Tồn kho' }).click();
     await expect(page.getByText('Kho chính').first()).toBeVisible();

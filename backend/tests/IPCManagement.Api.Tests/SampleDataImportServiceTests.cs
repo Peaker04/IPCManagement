@@ -285,7 +285,8 @@ public class SampleDataImportServiceTests
             stream,
             "menu.xlsx",
             Guid.NewGuid().ToString(),
-            new DateOnly(2026, 6, 15));
+            new DateOnly(2026, 6, 15),
+            null);
 
         result.Validation.HasCriticalErrors.Should().BeTrue();
         result.Validation.IsValid.Should().BeFalse();
@@ -309,7 +310,8 @@ public class SampleDataImportServiceTests
             stream,
             "broken.xlsx",
             setup.CustomerIdString,
-            new DateOnly(2026, 6, 15));
+            new DateOnly(2026, 6, 15),
+            null);
 
         result.Validation.HasCriticalErrors.Should().BeTrue();
         result.Validation.Issues.Should().ContainSingle(issue =>
@@ -332,6 +334,7 @@ public class SampleDataImportServiceTests
             "broken.xlsx",
             setup.CustomerIdString,
             new DateOnly(2026, 6, 15),
+            null,
             setup.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>()

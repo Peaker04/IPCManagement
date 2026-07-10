@@ -54,7 +54,7 @@ export default function ApprovalPage() {
     reason: '',
   });
 
-  const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Danh sách mua thêm');
+  const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const sourceDocument = workflowDocuments.find((document) => document.type === 'KHSX')
     ?? purchaseDocuments[0]
     ?? workflowDocuments[0];
@@ -147,7 +147,7 @@ export default function ApprovalPage() {
         <ContextStrip
           items={[
             { label: 'Trạng thái chính', value: 'Chờ duyệt', tone: 'warning' },
-            { label: 'Danh sách mua thêm', value: `${purchaseDocuments.length} chứng từ`, tone: purchaseDocuments.length ? 'danger' : 'neutral' },
+            { label: 'Đơn mua', value: `${purchaseDocuments.length} chứng từ`, tone: purchaseDocuments.length ? 'danger' : 'neutral' },
             { label: 'Nhu cầu xuất', value: `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu`, tone: 'warning' },
             { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
           ]}

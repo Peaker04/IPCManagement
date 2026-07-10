@@ -25,7 +25,13 @@ public partial class Productionplan
 
     public DateTime UpdatedAt { get; set; }
 
+    public DateTime? SentToKitchenAt { get; set; }
+
+    public byte[]? SentToKitchenBy { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual User? SentToKitchenByNavigation { get; set; }
 
     public virtual Customer? Customer { get; set; }
 

@@ -24,6 +24,7 @@ public class CoordinationControllerTests
                 Arg.Any<string>(),
                 Arg.Any<string>(),
                 Arg.Any<DateOnly?>(),
+                Arg.Any<decimal?>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.")));
 
@@ -34,7 +35,7 @@ public class CoordinationControllerTests
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "menu.xlsx");
 
-        var result = await controller.PreviewWeeklyMenuImport(file, "customer-id", null, CancellationToken.None);
+        var result = await controller.PreviewWeeklyMenuImport(file, "customer-id", null, null, CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
@@ -51,6 +52,7 @@ public class CoordinationControllerTests
                 Arg.Any<string>(),
                 Arg.Any<string>(),
                 Arg.Any<DateOnly?>(),
+                Arg.Any<decimal?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
@@ -64,7 +66,7 @@ public class CoordinationControllerTests
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
 
-        var result = await controller.CommitWeeklyMenuImport(file, "customer-id", null, CancellationToken.None);
+        var result = await controller.CommitWeeklyMenuImport(file, "customer-id", null, null, CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;

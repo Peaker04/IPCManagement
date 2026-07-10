@@ -69,6 +69,58 @@ public class DishesController : ControllerBase
         return Ok(ApiResponse<SampleImportStatusDto>.SuccessResult(result));
     }
 
+    /// <summary>Tải file mẫu BOM theo đơn giá/khách hàng, mở được bằng Excel.</summary>
+    [HttpGet("bom-template")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DownloadBomTemplate([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
+    {
+        var csv = await _service.BuildBomTemplateCsvAsync(query, cancellationToken);
+        var bytes = System.Text.Encoding.UTF8.GetPreamble()
+            .Concat(System.Text.Encoding.UTF8.GetBytes(csv))
+            .ToArray();
+        var scope = string.IsNullOrWhiteSpace(query.CustomerId) ? "global" : query.CustomerId;
+        return File(bytes, "text/csv", $"bom-template-{query.PriceTier:0}-{scope}.csv");
+    }
+
+    /// <summary>Preview import BOM nhiều món trước khi commit.</summary>
+    [HttpPost("bom-import/preview")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> PreviewBomImport(
+        [FromForm] BomImportPreviewRequestDto request,
+        [FromForm] IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (file.Length == 0)
+        {
+            return BadRequest(ApiResponse.FailResult("File import BOM trống."));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var result = await _service.PreviewBomImportAsync(stream, request, cancellationToken);
+        return Ok(ApiResponse<BomImportPreviewDto>.SuccessResult(result));
+    }
+
+    /// <summary>Commit import BOM sau khi preview không còn lỗi.</summary>
+    [HttpPost("bom-import/commit")]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> CommitBomImport(
+        [FromForm] BomImportCommitRequestDto request,
+        [FromForm] IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (file.Length == 0)
+        {
+            return BadRequest(ApiResponse.FailResult("File import BOM trống."));
+        }
+
+        await using var stream = file.OpenReadStream();
+        var userId = _currentUserService.GetUserId(User);
+        var result = await _service.CommitBomImportAsync(stream, request, userId, cancellationToken);
+        return Ok(ApiResponse<BomImportCommitResultDto>.SuccessResult(result, "Đã import BOM theo đơn giá."));
+    }
+
     /// <summary>Lấy danh sách món ăn có phân trang và tìm kiếm.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<DishDto>>), StatusCodes.Status200OK)]

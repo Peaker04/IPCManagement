@@ -70,6 +70,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(
             await _workflowReportService.GetPurchaseDemandAsync(query)));
 
+    [HttpGet("purchase-plan")]
+    public async Task<IActionResult> GetPurchasePlan([FromQuery] WorkflowReportQueryDto query)
+        => Ok(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>.SuccessResult(
+            await _workflowReportService.GetPurchasePlanAsync(query)));
+
     [HttpGet("receipt-price-variance")]
     public async Task<IActionResult> GetReceiptPriceVariance([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(

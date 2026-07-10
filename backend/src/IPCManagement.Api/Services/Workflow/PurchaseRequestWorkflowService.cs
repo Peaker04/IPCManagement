@@ -72,22 +72,71 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var ingredientIds = shortageLines
+            .GroupBy(line => BuildKey(line.IngredientId))
+            .Select(group => group.First().IngredientId)
+            .ToList();
+        var quotations = await _context.Supplierquotations
+            .Include(quotation => quotation.Supplier)
+            .Where(quotation =>
+                ingredientIds.Contains(quotation.IngredientId) &&
+                quotation.IsActive != false &&
+                quotation.Supplier.IsActive != false &&
+                quotation.EffectiveFrom <= today &&
+                (quotation.EffectiveTo == null || quotation.EffectiveTo >= today))
+            .ToListAsync(cancellationToken);
+        var bestQuotationByIngredient = quotations
+            .GroupBy(quotation => BuildKey(quotation.IngredientId))
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderBy(quotation => quotation.UnitPrice)
+                    .ThenByDescending(quotation => quotation.EffectiveFrom)
+                    .ThenBy(quotation => quotation.Supplier.SupplierName, StringComparer.OrdinalIgnoreCase)
+                    .First());
+        var activeSuppliers = await _context.Suppliers
+            .Where(supplier => supplier.IsActive != false)
+            .OrderBy(supplier => supplier.SupplierCode)
+            .ToListAsync(cancellationToken);
+        var supplierById = activeSuppliers.ToDictionary(supplier => BuildKey(supplier.SupplierId));
+        var fallbackSupplier = activeSuppliers.FirstOrDefault();
+        var receiptLines = await _context.Inventoryreceiptlines
+            .Include(line => line.Unit)
+            .Include(line => line.Receipt)
+                .ThenInclude(receipt => receipt.Supplier)
+            .Where(line => ingredientIds.Contains(line.IngredientId))
+            .OrderByDescending(line => line.Receipt.ReceiptDate)
+            .ThenByDescending(line => line.Receipt.CreatedAt)
+            .ToListAsync(cancellationToken);
+        var latestReceiptByIngredient = receiptLines
+            .GroupBy(line => BuildKey(line.IngredientId))
+            .ToDictionary(group => group.Key, group => group.First());
+        var latestActiveReceiptSupplierByIngredient = receiptLines
+            .Where(line => line.Receipt.Supplier.IsActive != false)
+            .GroupBy(line => BuildKey(line.IngredientId))
+            .ToDictionary(group => group.Key, group => group.First().Receipt.SupplierId);
+
         foreach (var line in shortageLines)
         {
-            var bestQuotation = await _supplierQuotationService.GetBestPriceEntityAsync(line.IngredientId, today, cancellationToken);
+            var ingredientKey = BuildKey(line.IngredientId);
+            bestQuotationByIngredient.TryGetValue(ingredientKey, out var bestQuotation);
             if (bestQuotation is not null)
             {
                 EnsurePurchaseRequestLine(purchaseRequest, line, bestQuotation.Supplier, bestQuotation.UnitPrice, existingLines);
                 continue;
             }
 
-            var supplier = await ResolveSupplierAsync(line.IngredientId, cancellationToken);
+            latestReceiptByIngredient.TryGetValue(ingredientKey, out var latestReceiptLine);
+            var supplier = latestActiveReceiptSupplierByIngredient.TryGetValue(ingredientKey, out var receiptSupplierId) &&
+                           supplierById.TryGetValue(BuildKey(receiptSupplierId), out var receiptSupplier)
+                ? receiptSupplier
+                : fallbackSupplier;
             if (supplier is null)
             {
                 throw new InvalidOperationException($"Chưa có nhà cung cấp để tạo đề xuất mua cho '{line.Ingredient.IngredientName}'.");
             }
 
-            var latestPrice = await ResolveLatestReceiptPriceAsync(line.IngredientId, line.Unit, cancellationToken);
+            var latestPrice = ResolveLatestReceiptPrice(latestReceiptLine, line.Unit);
             EnsurePurchaseRequestLine(
                 purchaseRequest,
                 line,
@@ -347,37 +396,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         return purchaseRequest;
     }
 
-    private async Task<Supplier?> ResolveSupplierAsync(byte[] ingredientId, CancellationToken cancellationToken)
+    private static decimal ResolveLatestReceiptPrice(Inventoryreceiptline? latestReceiptLine, Unit targetUnit)
     {
-        var latestReceiptSupplier = await _context.Inventoryreceiptlines
-            .Include(line => line.Receipt)
-                .ThenInclude(receipt => receipt.Supplier)
-            .Where(line =>
-                line.IngredientId == ingredientId &&
-                line.Receipt.Supplier.IsActive != false)
-            .OrderByDescending(line => line.Receipt.ReceiptDate)
-            .Select(line => line.Receipt.Supplier)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (latestReceiptSupplier is not null)
-        {
-            return latestReceiptSupplier;
-        }
-
-        return await _context.Suppliers
-            .Where(supplier => supplier.IsActive != false)
-            .OrderBy(supplier => supplier.SupplierCode)
-            .FirstOrDefaultAsync(cancellationToken);
-    }
-
-    private async Task<decimal> ResolveLatestReceiptPriceAsync(byte[] ingredientId, Unit targetUnit, CancellationToken cancellationToken)
-    {
-        var latestReceiptLine = await _context.Inventoryreceiptlines
-            .Include(line => line.Unit)
-            .Include(line => line.Receipt)
-            .Where(line => line.IngredientId == ingredientId)
-            .OrderByDescending(line => line.Receipt.ReceiptDate)
-            .FirstOrDefaultAsync(cancellationToken);
-
         if (latestReceiptLine is null || latestReceiptLine.UnitPrice <= 0)
         {
             return 0m;

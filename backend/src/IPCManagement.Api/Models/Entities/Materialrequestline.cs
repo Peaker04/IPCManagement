@@ -15,6 +15,12 @@ public partial class Materialrequestline
 
     public byte[] UnitId { get; set; } = null!;
 
+    public byte[]? BomId { get; set; }
+
+    public decimal PriceTierAmount { get; set; } = 25000m;
+
+    public string BomScope { get; set; } = "global";
+
     public int TotalServings { get; set; }
 
     public decimal GrossQtyPerServing { get; set; }
@@ -36,6 +42,8 @@ public partial class Materialrequestline
     public decimal SuggestedPurchaseQty { get; set; }
 
     public virtual Ingredient Ingredient { get; set; } = null!;
+
+    public virtual Dishbom? Bom { get; set; }
 
     public virtual Productionplanline PlanLine { get; set; } = null!;
 

@@ -77,6 +77,9 @@ public class MaterialDemandLineDto
     public string IngredientName { get; set; } = string.Empty;
     public string UnitId { get; set; } = string.Empty;
     public string UnitName { get; set; } = string.Empty;
+    public string? BomId { get; set; }
+    public decimal PriceTierAmount { get; set; }
+    public string BomScope { get; set; } = "global";
     public string DishId { get; set; } = string.Empty;
     public string DishName { get; set; } = string.Empty;
     public string ShiftName { get; set; } = string.Empty;

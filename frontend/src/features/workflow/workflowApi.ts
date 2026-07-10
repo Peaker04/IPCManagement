@@ -36,6 +36,8 @@ export interface WorkflowReportQuery {
   businessArea?: string;
   entityName?: string;
   fieldName?: string;
+  groupBy?: 'day' | 'week';
+  priceTier?: number;
 }
 
 export interface CursorPage<T> {
@@ -203,6 +205,9 @@ interface IngredientDemandReportDto {
   ingredientName?: string;
   unitId: string;
   unitName?: string;
+  bomId?: string | null;
+  priceTierAmount?: number;
+  bomScope?: string;
   totalServings: number;
   bomRatePercent?: number;
   appliedPortionRuleId?: string | null;
@@ -214,29 +219,76 @@ interface IngredientDemandReportDto {
   suggestedPurchaseQty: number;
 }
 
-interface PurchaseDemandReportDto {
-  purchaseRequestId: string;
-  purchaseRequestLineId: string;
-  purchaseRequestCode: string;
-  purchaseForDate: string;
-  shiftName?: string;
-  status: string;
+export interface PurchasePlanRow {
+  periodKey: string;
+  groupBy: 'day' | 'week';
+  periodStart: string;
+  periodEnd: string;
   ingredientId: string;
   ingredientName?: string;
-  supplierId: string;
-  supplierName?: string;
   unitId: string;
   unitName?: string;
   requiredQty: number;
   currentStockQty: number;
-  purchaseQty: number;
+  pendingReceiptQty: number;
+  shortageQty: number;
+  suggestedPurchaseQty: number;
   estimatedUnitPrice: number;
   estimatedAmount: number;
-  referenceUnitPrice?: number;
-  priceVariancePercent?: number;
-  isPriceWarning?: boolean;
+  supplierId?: string | null;
+  supplierName?: string | null;
   expectedDeliveryDate?: string | null;
-  note?: string | null;
+  warnings: string[];
+}
+
+export interface ProductionPlanLine {
+  planLineId: string;
+  dishId: string;
+  dishName?: string | null;
+  shiftName?: string | null;
+  totalServings: number;
+  priceTierAmount?: number | null;
+  bomScope?: string | null;
+  totalRequiredQty: number;
+  suggestedPurchaseQty: number;
+  hasKitchenIssue: boolean;
+  isReceivedByKitchen: boolean;
+}
+
+export interface ProductionPlan {
+  planId: string;
+  planCode: string;
+  planDate: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  status?: string | null;
+  sentToKitchenAt?: string | null;
+  sentToKitchenByName?: string | null;
+  lines: ProductionPlanLine[];
+}
+
+export interface DailyProductionPlan {
+  serviceDate: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  shiftName?: string | null;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
+  totalServings: number;
+  totalRequiredQty: number;
+  suggestedPurchaseQty: number;
+  warnings: string[];
+  plans: ProductionPlan[];
+}
+
+export interface SendDailyProductionPlanRequest {
+  serviceDate: string;
+  customerId?: string;
+  shiftName?: string;
+  reason?: string;
 }
 
 interface ApprovalInboxItemDto {
@@ -686,10 +738,6 @@ interface PurchaseRequestWorkflowResultDto {
   }>;
 }
 
-export interface GeneratePurchaseRequestFromDemandRequest {
-  materialRequestId: string;
-}
-
 export interface ApprovalDecisionRequest {
   targetType: string;
   targetId: string;
@@ -836,6 +884,36 @@ export interface DataQualityIssueRemediationResult {
 }
 
 const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
+const emptyDailyProductionPlan = (): DailyProductionPlan => ({
+  serviceDate: '',
+  totalPlans: 0,
+  sentPlans: 0,
+  totalDishes: 0,
+  totalServings: 0,
+  totalRequiredQty: 0,
+  suggestedPurchaseQty: 0,
+  warnings: [],
+  plans: [],
+});
+
+const normalizeDailyProductionPlan = (response: ApiResponse<DailyProductionPlan> | DailyProductionPlan | unknown): DailyProductionPlan => {
+  const maybeData =
+    response && typeof response === 'object' && 'data' in response
+      ? (response as ApiResponse<DailyProductionPlan>).data
+      : response;
+
+  if (!maybeData || typeof maybeData !== 'object' || Array.isArray(maybeData)) {
+    return emptyDailyProductionPlan();
+  }
+
+  const plan = maybeData as Partial<DailyProductionPlan>;
+  return {
+    ...emptyDailyProductionPlan(),
+    ...plan,
+    warnings: Array.isArray(plan.warnings) ? plan.warnings : [],
+    plans: Array.isArray(plan.plans) ? plan.plans : [],
+  };
+};
 
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
   limit: 100,
@@ -843,8 +921,8 @@ const queryWithLimit = (query?: WorkflowReportQuery) => ({
 });
 
 const normalizeDocumentType = (type: string): WorkflowDocumentType => {
-  if (type.includes('mua')) return 'Danh sách mua thêm';
   if (type.includes('Đề nghị')) return 'Đơn mua';
+  if (type.includes('mua')) return 'Đơn mua';
   if (type.includes('nhập')) return 'Phiếu nhập';
   if (type.includes('xuất')) return 'Phiếu xuất';
   if (type.includes('hoàn')) return 'Phiếu trả';
@@ -882,6 +960,10 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
+    ingredientId: item.ingredientId,
+    bomId: item.bomId,
+    priceTierAmount: item.priceTierAmount,
+    bomScope: item.bomScope,
     sourceDocumentCode: item.materialRequestCode,
     serviceDate: item.requestDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
@@ -898,36 +980,6 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
     status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
     nextAction: isCancelled ? 'Import menu đã thay đổi, tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
     tone,
-  };
-};
-
-const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
-  const isCancelled = item.status?.toUpperCase() === 'CANCELLED';
-  const tone = isCancelled ? 'warning' : item.purchaseQty > 0 ? toneFromStatus(item.status) : 'success';
-
-  return {
-    id: item.purchaseRequestLineId || `${item.purchaseRequestId}-${item.ingredientId}`,
-    purchaseRequestId: item.purchaseRequestId,
-    purchaseRequestLineId: item.purchaseRequestLineId,
-    supplierId: item.supplierId,
-    ingredientId: item.ingredientId,
-    estimatedUnitPrice: item.estimatedUnitPrice,
-    referenceUnitPrice: item.referenceUnitPrice,
-    priceVariancePercent: item.priceVariancePercent,
-    isPriceWarning: item.isPriceWarning,
-    expectedDeliveryDate: item.expectedDeliveryDate?.split('T')[0],
-    note: item.note ?? undefined,
-    sourceDocumentCode: item.purchaseRequestCode,
-    serviceDate: item.purchaseForDate?.split('T')[0],
-    material: item.ingredientName ?? item.ingredientId,
-    required: item.requiredQty,
-    available: item.currentStockQty,
-    reserved: Math.max(item.purchaseQty, 0),
-    unit: item.unitName ?? '',
-    source: item.supplierName || item.purchaseRequestCode,
-    status: isCancelled ? 'Cần tạo lại danh sách mua' : item.isPriceWarning ? 'Cần duyệt giá' : item.status,
-    nextAction: isCancelled ? 'Demand/menu đã thay đổi, sinh lại danh sách mua thêm' : item.isPriceWarning ? 'Kiểm tra giá vượt ngưỡng trước khi duyệt' : item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
-    tone: item.isPriceWarning ? 'danger' : tone,
   };
 };
 
@@ -1296,14 +1348,6 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['MaterialDemandStaleness'],
     }),
-    generatePurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, GeneratePurchaseRequestFromDemandRequest>({
-      query: (body) => ({
-        url: '/purchase-workflow/from-demand',
-        method: 'POST',
-        body,
-      }),
-      invalidatesTags: ['WorkflowReports'],
-    }),
     submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
       query: (purchaseRequestId) => ({
         url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
@@ -1346,13 +1390,30 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
-    getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
+    getPurchasePlan: builder.query<PurchasePlanRow[], WorkflowReportQuery | void>({
       query: (query) => ({
-        url: '/workflow-reports/purchase-demand',
+        url: '/workflow-reports/purchase-plan',
         params: queryWithLimit(query || undefined),
       }),
-      transformResponse: (response: ApiResponse<PurchaseDemandReportDto[]>) => getData(response).map(mapPurchaseDemandLine),
+      transformResponse: (response: ApiResponse<PurchasePlanRow[]>) => response.data ?? [],
       providesTags: ['WorkflowReports'],
+    }),
+    getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/production-plans/daily',
+        params: query || undefined,
+      }),
+      transformResponse: normalizeDailyProductionPlan,
+      providesTags: ['WorkflowReports'],
+    }),
+    sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
+      query: (body) => ({
+        url: '/production-plans/daily/send-to-kitchen',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: normalizeDailyProductionPlan,
+      invalidatesTags: ['WorkflowReports'],
     }),
     getApprovalRecords: builder.query<ApprovalRecord[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1551,13 +1612,14 @@ export const {
   useGetIngredientDemandQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
-  useGeneratePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
-  useGetPurchaseDemandQuery,
+  useGetPurchasePlanQuery,
+  useGetDailyProductionPlanQuery,
+  useSendDailyProductionPlanToKitchenMutation,
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
   useGetStockMovementsQuery,

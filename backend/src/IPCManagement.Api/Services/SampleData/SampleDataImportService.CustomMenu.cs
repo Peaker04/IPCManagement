@@ -13,6 +13,7 @@ namespace IPCManagement.Api.Services.SampleData;
 public partial class SampleDataImportService
 {
     private static readonly string[] MenuDayKeys = ["t2", "t3", "t4", "t5", "t6", "t7", "cn"];
+    private static readonly decimal[] WeeklyMenuPriceTiers = [25000m, 30000m, 34000m];
 
     private static readonly (string Slot, string[] Keywords)[] WeeklyMenuSlotRules =
     [
@@ -172,6 +173,7 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         CancellationToken cancellationToken = default)
     {
         var customer = await TryResolveImportCustomerAsync(customerId, cancellationToken);
@@ -185,6 +187,7 @@ public partial class SampleDataImportService
                 "customerId");
         }
 
+        _ = NormalizeWeeklyMenuPriceTier(priceTierAmount);
         var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
@@ -225,10 +228,12 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
         var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
@@ -248,7 +253,7 @@ public partial class SampleDataImportService
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, actorUserId, cancellationToken);
+            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, normalizedPriceTier, actorUserId, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
@@ -354,6 +359,7 @@ public partial class SampleDataImportService
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        decimal priceTierAmount,
         string? actorUserId,
         CancellationToken cancellationToken)
     {
@@ -472,11 +478,10 @@ public partial class SampleDataImportService
                     result.Counts);
             }
 
-            var contractPolicy = ResolveCustomerContractPolicy(customer, group.Key.ServiceDate, group.Key.DbShiftName);
-            if (contractPolicy.UsedFallback)
-            {
-                result.Warnings.Add(MissingCustomerContractWarning(customer, group.Key.ServiceDate, group.Key.DbShiftName));
-            }
+            var contractPolicy = new CustomerContractPolicy(
+                DecimalPolicy.RoundMoney(priceTierAmount),
+                DecimalPolicy.RoundPercent(100),
+                UsedFallback: false);
 
             EnsureMenuSchedule(
                 customer,
@@ -510,6 +515,17 @@ public partial class SampleDataImportService
 
         ApplyCommittedDishIds(result, plan.Items);
         return result;
+    }
+
+    private static decimal NormalizeWeeklyMenuPriceTier(decimal? priceTierAmount)
+    {
+        var normalized = DecimalPolicy.RoundMoney(priceTierAmount ?? WeeklyMenuPriceTiers[0]);
+        if (!Array.Exists(WeeklyMenuPriceTiers, tier => tier == normalized))
+        {
+            throw new InvalidOperationException("Định mức import menu chỉ được chọn 25.000, 30.000 hoặc 34.000.");
+        }
+
+        return normalized;
     }
 
     private async Task<int> InvalidateWorkflowDocumentsForMenuReimportAsync(

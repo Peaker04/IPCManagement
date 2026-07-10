@@ -16,10 +16,14 @@ namespace IPCManagement.Api.Controllers;
 public class ProductionPlansController : ControllerBase
 {
     private readonly IProductionPlanService _productionPlanService;
+    private readonly ICurrentUserService _currentUserService;
 
-    public ProductionPlansController(IProductionPlanService productionPlanService)
+    public ProductionPlansController(
+        IProductionPlanService productionPlanService,
+        ICurrentUserService currentUserService)
     {
         _productionPlanService = productionPlanService;
+        _currentUserService = currentUserService;
     }
 
     /// <summary>Lấy danh sách kế hoạch sản xuất.</summary>
@@ -39,6 +43,29 @@ public class ProductionPlansController : ControllerBase
     {
         var result = await _productionPlanService.GetFilteredAsync(serviceDate, customerId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<ProductionPlanDto>>.SuccessResult(result));
+    }
+
+    /// <summary>Kế hoạch sản xuất trong ngày để gửi/hiển thị cho bếp.</summary>
+    [HttpGet("daily")]
+    public async Task<IActionResult> GetDaily(
+        [FromQuery] string? serviceDate,
+        [FromQuery] string? customerId,
+        [FromQuery] string? shiftName,
+        CancellationToken cancellationToken)
+    {
+        var result = await _productionPlanService.GetDailyAsync(serviceDate, customerId, shiftName, cancellationToken);
+        return Ok(ApiResponse<DailyProductionPlanDto>.SuccessResult(result));
+    }
+
+    /// <summary>Đánh dấu KHSX trong ngày đã gửi bếp.</summary>
+    [HttpPost("daily/send-to-kitchen")]
+    public async Task<IActionResult> SendDailyToKitchen(
+        [FromBody] SendDailyProductionPlanRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var userId = _currentUserService.GetUserId(User);
+        var result = await _productionPlanService.SendDailyToKitchenAsync(request, userId, cancellationToken);
+        return Ok(ApiResponse<DailyProductionPlanDto>.SuccessResult(result, "Đã gửi kế hoạch sản xuất cho bếp."));
     }
 
     /// <summary>Lấy chi tiết kế hoạch sản xuất theo ID.</summary>

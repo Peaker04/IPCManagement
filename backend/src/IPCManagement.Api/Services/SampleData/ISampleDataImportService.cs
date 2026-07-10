@@ -22,6 +22,7 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         CancellationToken cancellationToken = default);
 
     Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportAsync(
@@ -29,6 +30,7 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         string? actorUserId = null,
         CancellationToken cancellationToken = default);
 
