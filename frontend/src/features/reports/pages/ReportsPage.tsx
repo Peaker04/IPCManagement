@@ -48,6 +48,7 @@ import {
   type WorkflowReportQuery,
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
+import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
 
@@ -222,6 +223,7 @@ const ReportsPage = () => {
   const priceVarianceRows = priceVarianceResult.data ?? [];
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
   const purchasePlanRows = purchasePlanResult.data ?? [];
+  const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
   const currentStockRows = currentStockResult.data ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
@@ -798,8 +800,8 @@ const ReportsPage = () => {
                   key={mode}
                   type="button"
                   className={`ipc-button ${purchasePlanGroupBy === mode ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
-                  onClick={() => setPurchasePlanGroupBy(mode)}
-                >
+                    onClick={() => setPurchasePlanGroupBy(normalizePurchasePlanGroupBy(mode))}
+                  >
                   {mode === 'day' ? 'Theo ngày' : 'Theo tuần'}
                 </button>
               ))}
@@ -808,9 +810,9 @@ const ReportsPage = () => {
         >
           <ContextStrip
             items={[
-              { label: 'Dòng kế hoạch', value: String(purchasePlanRows.length), tone: purchasePlanRows.length ? 'info' : 'neutral' },
-              { label: 'Thiếu sau pending', value: formatQuantityWithUnit(purchasePlanRows.reduce((sum, row) => sum + row.shortageQty, 0), ''), tone: purchasePlanRows.some((row) => row.shortageQty > 0) ? 'danger' : 'success' },
-              { label: 'Tổng dự kiến', value: formatCurrency(purchasePlanRows.reduce((sum, row) => sum + row.estimatedAmount, 0)), tone: 'neutral' },
+              { label: 'Dòng kế hoạch', value: String(purchasePlanSummary.rowCount), tone: purchasePlanSummary.rowCount ? 'info' : 'neutral' },
+              { label: 'Thiếu sau pending', value: formatQuantityWithUnit(purchasePlanSummary.totalShortageQty, ''), tone: purchasePlanSummary.shortageTone },
+              { label: 'Tổng dự kiến', value: formatCurrency(purchasePlanSummary.totalEstimatedAmount), tone: 'neutral' },
             ]}
           />
           <DataTableShell ariaLabel="Bảng kế hoạch thu mua dự kiến">
