@@ -362,6 +362,100 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_PreferCustomerBomOverride_ForMatchingPriceTier()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            context.Dishboms.Add(new Dishbom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = fixture.DishWithBomId,
+                CustomerId = fixture.CustomerId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                PriceTierAmount = 25000,
+                GrossQtyPerServing = 3,
+                WasteRatePercent = 0,
+                BomStatus = "PUBLISHED",
+                EffectiveFrom = new DateOnly(2026, 1, 1)
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.MissingBomDishes.Should().BeEmpty();
+            var line = result.Lines.Should().ContainSingle().Subject;
+            line.PriceTierAmount.Should().Be(25000);
+            line.BomScope.Should().Be("customer");
+            line.GrossQtyPerServing.Should().Be(3);
+            line.TotalRequiredQty.Should().Be(300);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_FallbackToGlobalBom_ForMatchingPriceTier_WhenNoCustomerOverride()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var schedule = await context.Menuschedules.SingleAsync();
+            schedule.MenuPrice = 30000;
+            var bom = await context.Dishboms.SingleAsync();
+            bom.PriceTierAmount = 30000;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var result = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            result.Should().NotBeNull();
+            result!.MissingBomDishes.Should().BeEmpty();
+            var line = result.Lines.Should().ContainSingle().Subject;
+            line.PriceTierAmount.Should().Be(30000);
+            line.BomScope.Should().Be("global");
+            line.TotalRequiredQty.Should().Be(200);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_BlockNonStandardMenuPrice_InsteadOfChoosingNearestTier()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var schedule = await context.Menuschedules.SingleAsync();
+            schedule.MenuPrice = 26000;
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var act = () => new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("*25000/30000/34000*");
+        }
+    }
+
+    [Fact]
     public async Task GeneratePurchaseRequest_Should_ConvertLatestReceiptPrice_ToDemandUnit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3164,14 +3258,14 @@ public class WorkflowGenerationTests
                 scheduleId,
                 new UpdateMenuScheduleRulesDto
                 {
-                    MenuPrice = 42000,
+                    MenuPrice = 25000,
                     BomRatePercent = 125,
                     Reason = "Customer premium portion"
                 },
                 fixture.UserIdString);
 
             updated.Should().NotBeNull();
-            updated!.MenuPrice.Should().Be(42000);
+            updated!.MenuPrice.Should().Be(25000);
             updated.BomRatePercent.Should().Be(125);
         }
 
@@ -4313,6 +4407,8 @@ public class WorkflowGenerationTests
         public byte[] WarehouseId { get; } = GuidHelper.NewId();
         public byte[] IngredientId { get; } = GuidHelper.NewId();
         public string IngredientIdString => GuidHelper.ToGuidString(IngredientId);
+        public byte[] CustomerId { get; } = GuidHelper.NewId();
+        public string CustomerIdString => GuidHelper.ToGuidString(CustomerId);
         public byte[] SupplierId { get; } = GuidHelper.NewId();
         public byte[] QuantityPlanId { get; } = GuidHelper.NewId();
         public byte[] ProductionPlanId { get; } = GuidHelper.NewId();
@@ -4343,7 +4439,6 @@ public class WorkflowGenerationTests
             await using var context = CreateContext();
 
             var roleId = GuidHelper.NewId();
-            var customerId = GuidHelper.NewId();
             var menuId = GuidHelper.NewId();
             var scheduleId = GuidHelper.NewId();
             var quantityLineId = GuidHelper.NewId();
@@ -4394,7 +4489,7 @@ public class WorkflowGenerationTests
             };
             var customer = new Customer
             {
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 CustomerCode = "CUS",
                 CustomerName = "Customer",
                 IsActive = true
@@ -4462,12 +4557,12 @@ public class WorkflowGenerationTests
             context.Menuschedules.Add(new Menuschedule
             {
                 MenuScheduleId = scheduleId,
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 MenuId = menuId,
                 ServiceDate = new DateOnly(2026, 6, 15),
                 WeekStartDate = new DateOnly(2026, 6, 15),
                 ShiftName = "MORNING",
-                MenuPrice = 50000,
+                MenuPrice = 25000,
                 BomRatePercent = 100,
                 Status = "ACTIVE"
             });
@@ -4487,7 +4582,7 @@ public class WorkflowGenerationTests
                 QuantityPlanLineId = quantityLineId,
                 QuantityPlanId = QuantityPlanId,
                 MenuScheduleId = scheduleId,
-                CustomerId = customerId,
+                CustomerId = CustomerId,
                 MenuId = menuId,
                 ShiftName = "MORNING",
                 ForecastServings = 100,
@@ -4634,7 +4729,7 @@ public class WorkflowGenerationTests
                         ServiceDate = serviceDate,
                         WeekStartDate = weekStart,
                         ShiftName = "MORNING",
-                        MenuPrice = 50000,
+                        MenuPrice = 25000,
                         BomRatePercent = 100,
                         Status = "ACTIVE"
                     });
@@ -4793,8 +4888,10 @@ public class WorkflowGenerationTests
                 CREATE TABLE dishbom (
                     bomId BLOB PRIMARY KEY,
                     dishId BLOB NOT NULL,
+                    customerId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    priceTierAmount TEXT NOT NULL DEFAULT '25000.00',
                     grossQtyPerServing TEXT NOT NULL,
                     wasteRatePercent TEXT NOT NULL,
                     bomStatus TEXT NOT NULL DEFAULT 'PUBLISHED',
@@ -4876,6 +4973,8 @@ public class WorkflowGenerationTests
                     menuVersionId BLOB NULL,
                     status TEXT NOT NULL,
                     createdBy BLOB NOT NULL,
+                    sentToKitchenAt TEXT NULL,
+                    sentToKitchenBy BLOB NULL,
                     createdAt TEXT NOT NULL,
                     updatedAt TEXT NOT NULL DEFAULT '2026-01-01 00:00:00'
                 );
@@ -4904,8 +5003,11 @@ public class WorkflowGenerationTests
                     requestLineId BLOB PRIMARY KEY,
                     requestId BLOB NOT NULL,
                     planLineId BLOB NOT NULL,
+                    bomId BLOB NULL,
                     ingredientId BLOB NOT NULL,
                     unitId BLOB NOT NULL,
+                    priceTierAmount TEXT NOT NULL DEFAULT '25000.00',
+                    bomScope TEXT NOT NULL DEFAULT 'global',
                     totalServings INTEGER NOT NULL,
                     grossQtyPerServing TEXT NOT NULL,
                     bomRatePercent TEXT NOT NULL,

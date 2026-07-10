@@ -21,6 +21,8 @@ public partial class Customer
 
     public virtual ICollection<Customercontract> Customercontracts { get; set; } = new List<Customercontract>();
 
+    public virtual ICollection<Dishbom> Dishboms { get; set; } = new List<Dishbom>();
+
     public virtual ICollection<Menuversion> Menuversions { get; set; } = new List<Menuversion>();
 
     public virtual ICollection<Menuschedule> Menuschedules { get; set; } = new List<Menuschedule>();

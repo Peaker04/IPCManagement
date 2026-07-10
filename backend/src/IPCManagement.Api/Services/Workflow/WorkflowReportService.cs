@@ -487,6 +487,9 @@ public class WorkflowReportService : IWorkflowReportService
                 IngredientName = item.Ingredient.IngredientName,
                 UnitId = GuidHelper.ToGuidString(item.UnitId),
                 UnitName = item.Unit.UnitName,
+                BomId = item.BomId == null ? null : GuidHelper.ToGuidString(item.BomId),
+                PriceTierAmount = item.PriceTierAmount,
+                BomScope = item.BomScope,
                 TotalServings = item.TotalServings,
                 BomRatePercent = item.BomRatePercent,
                 AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
@@ -498,6 +501,145 @@ public class WorkflowReportService : IWorkflowReportService
                 SuggestedPurchaseQty = item.SuggestedPurchaseQty
             })
             .ToListAsync();
+    }
+
+    public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
+    {
+        var groupBy = string.Equals(query.GroupBy, "week", StringComparison.OrdinalIgnoreCase) ? "week" : "day";
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom) ?? ParseDateOnly(query.ServiceDate);
+        var dateTo = ParseDateOnly(query.DateTo) ?? dateFrom;
+        decimal? priceTier = query.PriceTier is null ? null : NormalizePriceTier(query.PriceTier.Value);
+
+        var linesQuery = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(line => line.Request)
+            .Include(line => line.Ingredient)
+            .Include(line => line.Unit)
+            .Include(line => line.PlanLine)
+                .ThenInclude(line => line.Customer)
+            .Include(line => line.Purchaserequestlines)
+                .ThenInclude(line => line.Inventoryreceiptlines)
+            .Where(line => line.Request.Status != "CANCELLED")
+            .AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            linesQuery = linesQuery.Where(line => line.Request.RequestDate >= dateFrom);
+        }
+        if (dateTo is not null)
+        {
+            linesQuery = linesQuery.Where(line => line.Request.RequestDate <= dateTo);
+        }
+        if (ingredientId is not null)
+        {
+            linesQuery = linesQuery.Where(line => line.IngredientId == ingredientId);
+        }
+        if (customerId is not null)
+        {
+            linesQuery = linesQuery.Where(line => line.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            linesQuery = linesQuery.Where(line => line.PlanLine.ShiftName == shiftName);
+        }
+        if (priceTier is not null)
+        {
+            linesQuery = linesQuery.Where(line => line.PriceTierAmount == priceTier.Value);
+        }
+
+        var lines = await linesQuery
+            .OrderBy(line => line.Request.RequestDate)
+            .ThenBy(line => line.Ingredient.IngredientName)
+            .Take(NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit))
+            .ToListAsync();
+        if (lines.Count == 0)
+        {
+            return [];
+        }
+
+        var ingredientIds = lines.Select(line => line.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
+        var quotations = await _context.Supplierquotations
+            .AsNoTracking()
+            .Include(item => item.Supplier)
+            .Where(item => item.IsActive ?? true)
+            .Where(item => ingredientIds.Contains(item.IngredientId))
+            .Where(item => item.EffectiveFrom <= DateOnly.FromDateTime(DateTime.Today) && (item.EffectiveTo == null || item.EffectiveTo >= DateOnly.FromDateTime(DateTime.Today)))
+            .OrderByDescending(item => item.EffectiveFrom)
+            .ToListAsync();
+        var quotationByIngredient = quotations
+            .GroupBy(item => Convert.ToBase64String(item.IngredientId))
+            .ToDictionary(group => group.Key, group => group.First());
+
+        return lines
+            .GroupBy(line =>
+            {
+                var period = ResolvePurchasePlanPeriod(line.Request.RequestDate, groupBy);
+                return new
+                {
+                    PeriodStart = period.Start,
+                    PeriodEnd = period.End,
+                    IngredientKey = Convert.ToBase64String(line.IngredientId),
+                    UnitKey = Convert.ToBase64String(line.UnitId)
+                };
+            })
+            .Select(group =>
+            {
+                var first = group.First();
+                var quotationByKey = quotationByIngredient.GetValueOrDefault(Convert.ToBase64String(first.IngredientId));
+                var pendingReceiptQty = group
+                    .SelectMany(line => line.Purchaserequestlines)
+                    .Where(line => line.PurchaseRequest.Status != "CANCELLED")
+                    .Sum(line => Math.Max(0m, line.PurchaseQty - line.Inventoryreceiptlines.Sum(receipt => receipt.Quantity)));
+                var requiredQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.TotalRequiredQty));
+                var currentStockQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.CurrentStockQty));
+                var suggestedPurchaseQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.SuggestedPurchaseQty));
+                var shortageQty = DecimalPolicy.RoundQuantity(Math.Max(0m, suggestedPurchaseQty - pendingReceiptQty));
+                var unitPrice = quotationByKey?.UnitPrice ?? first.Ingredient.ReferencePrice;
+                var warnings = new List<string>();
+                if (suggestedPurchaseQty > 0 && quotationByKey is null)
+                {
+                    warnings.Add("Chưa có báo giá NCC đang hiệu lực.");
+                }
+                if (pendingReceiptQty > 0)
+                {
+                    warnings.Add("Có lượng đang chờ nhập kho, cần đối chiếu trước khi đặt mua thêm.");
+                }
+                if (shortageQty > 0)
+                {
+                    warnings.Add("Còn thiếu so với demand sau khi trừ pending receipt.");
+                }
+
+                return new PurchasePlanReportDto
+                {
+                    PeriodKey = groupBy == "week"
+                        ? $"{group.Key.PeriodStart:yyyy-MM-dd}/{group.Key.PeriodEnd:yyyy-MM-dd}"
+                        : $"{group.Key.PeriodStart:yyyy-MM-dd}",
+                    GroupBy = groupBy,
+                    PeriodStart = group.Key.PeriodStart,
+                    PeriodEnd = group.Key.PeriodEnd,
+                    IngredientId = GuidHelper.ToGuidString(first.IngredientId),
+                    IngredientName = first.Ingredient.IngredientName,
+                    UnitId = GuidHelper.ToGuidString(first.UnitId),
+                    UnitName = first.Unit.UnitName,
+                    RequiredQty = requiredQty,
+                    CurrentStockQty = currentStockQty,
+                    PendingReceiptQty = DecimalPolicy.RoundQuantity(pendingReceiptQty),
+                    ShortageQty = shortageQty,
+                    SuggestedPurchaseQty = suggestedPurchaseQty,
+                    EstimatedUnitPrice = DecimalPolicy.RoundMoney(unitPrice),
+                    EstimatedAmount = DecimalPolicy.CalculateLineAmount(shortageQty, unitPrice),
+                    SupplierId = quotationByKey is null ? null : GuidHelper.ToGuidString(quotationByKey.SupplierId),
+                    SupplierName = quotationByKey?.Supplier.SupplierName,
+                    ExpectedDeliveryDate = group.Key.PeriodStart,
+                    Warnings = warnings
+                };
+            })
+            .OrderBy(item => item.PeriodStart)
+            .ThenBy(item => item.IngredientName)
+            .ToList();
     }
 
     public async Task<IReadOnlyList<PurchaseDemandReportDto>> GetPurchaseDemandAsync(WorkflowReportQueryDto query)
@@ -2709,6 +2851,28 @@ public class WorkflowReportService : IWorkflowReportService
     private static DateOnly? ParseDateOnly(string? value)
         => DateOnly.TryParse(value, out var date) ? date : null;
 
+    private static decimal NormalizePriceTier(decimal tier)
+    {
+        var normalized = decimal.Round(tier, 0);
+        return normalized switch
+        {
+            25000m or 30000m or 34000m => normalized,
+            _ => throw new ArgumentException("Đơn giá BOM chỉ được là 25000, 30000 hoặc 34000.")
+        };
+    }
+
+    private static (DateOnly Start, DateOnly End) ResolvePurchasePlanPeriod(DateOnly date, string groupBy)
+    {
+        if (!string.Equals(groupBy, "week", StringComparison.OrdinalIgnoreCase))
+        {
+            return (date, date);
+        }
+
+        var offset = ((int)date.DayOfWeek + 6) % 7;
+        var start = date.AddDays(-offset);
+        return (start, start.AddDays(6));
+    }
+
     private static byte[]? ParseCustomerId(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : GuidHelper.ParseGuidString(value);
 
@@ -2765,7 +2929,9 @@ public class WorkflowReportService : IWorkflowReportService
             Actor = query.Actor,
             BusinessArea = query.BusinessArea,
             EntityName = query.EntityName,
-            FieldName = query.FieldName
+            FieldName = query.FieldName,
+            GroupBy = query.GroupBy,
+            PriceTier = query.PriceTier
         };
 
     private static CursorPageDto<T> BuildCursorPage<T>(

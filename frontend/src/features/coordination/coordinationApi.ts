@@ -107,6 +107,7 @@ export interface WeeklyMenuImportRequest {
   file: File
   customerId: string
   weekStartDate?: string
+  priceTierAmount?: number
 }
 
 export interface WeeklyMenuQuery {
@@ -236,12 +237,15 @@ export interface RollbackWeeklyMenuImportResult {
   menuSchedulesRemoved: number
 }
 
-const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate }: WeeklyMenuImportRequest) => {
+const buildWeeklyMenuImportFormData = ({ file, customerId, weekStartDate, priceTierAmount }: WeeklyMenuImportRequest) => {
   const formData = new FormData()
   formData.append('file', file)
   formData.append('customerId', customerId)
   if (weekStartDate) {
     formData.append('weekStartDate', weekStartDate)
+  }
+  if (priceTierAmount) {
+    formData.append('priceTierAmount', String(priceTierAmount))
   }
   return formData
 }

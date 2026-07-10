@@ -96,12 +96,14 @@ public class MaterialDemandService : IMaterialDemandService
                 var productionLine = EnsureProductionPlanLine(plan, quantityLine, menuItem);
                 generatedPlanLineIds.Add(BuildKey(productionLine.PlanLineId));
                 var portionRule = ResolvePortionRule(effectivePortionRules, quantityLine, menuItem, serviceDate);
-                var activeBomLines = menuItem.Dish.Dishboms
-                    .Where(bom => IsPublishedAndEffective(bom, serviceDate))
-                    .ToList();
+                var priceTier = NormalizePriceTier(quantityLine.MenuSchedule.MenuPrice);
+                var activeBomLines = ResolveBomLines(menuItem.Dish.Dishboms, quantityLine.CustomerId, priceTier, serviceDate);
                 if (activeBomLines.Count == 0)
                 {
-                    missingBomDishes.Add(MapMissingBomDish(quantityLine, menuItem));
+                    missingBomDishes.Add(MapMissingBomDish(
+                        quantityLine,
+                        menuItem,
+                        $"Món chưa có BOM đang hiệu lực cho đơn giá {priceTier:0} và khách hàng này."));
                     continue;
                 }
 
@@ -129,6 +131,8 @@ public class MaterialDemandService : IMaterialDemandService
                         materialRequest,
                         productionLine,
                         bom,
+                        priceTier,
+                        bom.CustomerId is null ? "global" : "customer",
                         quantityLine.FinalServings,
                         portionRule,
                         numbers);
@@ -371,6 +375,11 @@ public class MaterialDemandService : IMaterialDemandService
                 .ThenInclude(menu => menu.Menuitems)
                     .ThenInclude(item => item.Dish)
                         .ThenInclude(dish => dish.Dishboms)
+                            .ThenInclude(bom => bom.Customer)
+            .Include(line => line.Menu)
+                .ThenInclude(menu => menu.Menuitems)
+                    .ThenInclude(item => item.Dish)
+                        .ThenInclude(dish => dish.Dishboms)
                             .ThenInclude(bom => bom.Unit)
             .Include(line => line.QuantityPlan)
             .Where(line =>
@@ -430,6 +439,11 @@ public class MaterialDemandService : IMaterialDemandService
                     .ThenInclude(item => item.Dish)
                         .ThenInclude(dish => dish.Dishboms)
                             .ThenInclude(bom => bom.Ingredient)
+            .Include(schedule => schedule.Menu)
+                .ThenInclude(menu => menu.Menuitems)
+                    .ThenInclude(item => item.Dish)
+                        .ThenInclude(dish => dish.Dishboms)
+                            .ThenInclude(bom => bom.Customer)
             .Include(schedule => schedule.Menu)
                 .ThenInclude(menu => menu.Menuitems)
                     .ThenInclude(item => item.Dish)
@@ -741,6 +755,8 @@ public class MaterialDemandService : IMaterialDemandService
         Materialrequest request,
         Productionplanline productionLine,
         Dishbom bom,
+        decimal priceTier,
+        string bomScope,
         int servings,
         AppliedPortionRule portionRule,
         MaterialDemandNumbers numbers)
@@ -752,6 +768,9 @@ public class MaterialDemandService : IMaterialDemandService
         if (existing is not null)
         {
             existing.TotalServings = servings;
+            existing.BomId = bom.BomId;
+            existing.PriceTierAmount = priceTier;
+            existing.BomScope = bomScope;
             existing.GrossQtyPerServing = DecimalPolicy.RoundQuantity(bom.GrossQtyPerServing);
             existing.BomRatePercent = DecimalPolicy.RoundPercent(bomRatePercent);
             existing.AppliedPortionRuleId = portionRule.PortionRuleId;
@@ -771,6 +790,9 @@ public class MaterialDemandService : IMaterialDemandService
             PlanLineId = productionLine.PlanLineId,
             IngredientId = bom.IngredientId,
             UnitId = bom.UnitId,
+            BomId = bom.BomId,
+            PriceTierAmount = priceTier,
+            BomScope = bomScope,
             TotalServings = servings,
             GrossQtyPerServing = DecimalPolicy.RoundQuantity(bom.GrossQtyPerServing),
             BomRatePercent = DecimalPolicy.RoundPercent(bomRatePercent),
@@ -799,6 +821,9 @@ public class MaterialDemandService : IMaterialDemandService
             IngredientName = bom.Ingredient.IngredientName,
             UnitId = GuidHelper.ToGuidString(requestLine.UnitId),
             UnitName = bom.Unit.UnitName,
+            BomId = requestLine.BomId is null ? null : GuidHelper.ToGuidString(requestLine.BomId),
+            PriceTierAmount = requestLine.PriceTierAmount,
+            BomScope = requestLine.BomScope,
             DishId = GuidHelper.ToGuidString(productionLine.DishId),
             DishName = productionLine.Dish?.DishName ?? bom.Dish?.DishName ?? string.Empty,
             ShiftName = productionLine.ShiftName,
@@ -814,7 +839,7 @@ public class MaterialDemandService : IMaterialDemandService
             SuggestedPurchaseQty = requestLine.SuggestedPurchaseQty
         };
 
-    private static MissingBomDishDto MapMissingBomDish(Mealquantityplanline quantityLine, Menuitem menuItem)
+    private static MissingBomDishDto MapMissingBomDish(Mealquantityplanline quantityLine, Menuitem menuItem, string? message = null)
         => new()
         {
             DishId = GuidHelper.ToGuidString(menuItem.DishId),
@@ -827,7 +852,7 @@ public class MaterialDemandService : IMaterialDemandService
             MenuName = quantityLine.Menu.MenuName,
             ShiftName = quantityLine.ShiftName,
             TotalServings = quantityLine.FinalServings,
-            Message = "Món chưa có dòng BOM/định lượng đang hiệu lực nên chưa sinh nhu cầu nguyên liệu."
+            Message = message ?? "Món chưa có dòng BOM/định lượng đang hiệu lực nên chưa sinh nhu cầu nguyên liệu."
         };
 
     private async Task<IReadOnlyList<Portionrule>> LoadEffectivePortionRulesAsync(
@@ -973,6 +998,35 @@ public class MaterialDemandService : IMaterialDemandService
         => bom.BomStatus == PublishedBomStatus &&
            bom.EffectiveFrom <= serviceDate &&
            (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate);
+
+    private static List<Dishbom> ResolveBomLines(
+        IEnumerable<Dishbom> lines,
+        byte[] customerId,
+        decimal priceTier,
+        DateOnly serviceDate)
+    {
+        var effectiveLines = lines
+            .Where(bom => IsPublishedAndEffective(bom, serviceDate))
+            .Where(bom => bom.PriceTierAmount == priceTier)
+            .ToList();
+        var customerLines = effectiveLines
+            .Where(bom => bom.CustomerId is not null && bom.CustomerId.SequenceEqual(customerId))
+            .ToList();
+
+        return customerLines.Count > 0
+            ? customerLines
+            : effectiveLines.Where(bom => bom.CustomerId is null).ToList();
+    }
+
+    private static decimal NormalizePriceTier(decimal menuPrice)
+    {
+        var normalized = decimal.Round(menuPrice, 0);
+        return normalized switch
+        {
+            25000m or 30000m or 34000m => normalized,
+            _ => throw new InvalidOperationException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
+        };
+    }
 
     private static StockConversionResult CalculateStockInBomUnit(IReadOnlyList<Currentstock> stocks, Unit bomUnit)
     {

@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { HeadChefDashboard } from '../components/head-chef-dashboard'
 import { AlertCircle, Calendar, ClipboardList, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, DocumentRail, EmptyState, InlineAlert, OperationalFrame, SectionPanel, SideRail, SplitWorkbench, StockMovementTable, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, DataTableShell, DocumentRail, EmptyState, InlineAlert, OperationalFrame, SectionPanel, SideRail, SplitWorkbench, StatusBadge, StockMovementTable, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
@@ -14,9 +14,11 @@ import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/type
 import {
   useConfirmInventoryIssueReceiptMutation,
   useCreateInventoryReturnMutation,
+  useGetDailyProductionPlanQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
+  useSendDailyProductionPlanToKitchenMutation,
 } from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 
@@ -54,6 +56,7 @@ export default function ChefDashboardPage() {
   } = useGetKitchenIssuesQuery({ limit: 100 })
   const [confirmInventoryIssueReceipt, { isLoading: isConfirmingIssueReceipt }] = useConfirmInventoryIssueReceiptMutation()
   const [createInventoryReturn, { isLoading: isCreatingInventoryReturn }] = useCreateInventoryReturnMutation()
+  const [sendDailyProductionPlanToKitchen, { isLoading: isSendingDailyPlan }] = useSendDailyProductionPlanToKitchenMutation()
   const {
     data: catalogDishes = [],
     isLoading: isCatalogLoading,
@@ -63,6 +66,13 @@ export default function ChefDashboardPage() {
   const [activeDay, setActiveDay] = useState<string>(getTodayDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
+  const today = new Date().toISOString().slice(0, 10)
+  const apiShiftName = activeShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON'
+  const {
+    data: dailyProductionPlan,
+    isLoading: isDailyPlanLoading,
+    isError: isDailyPlanError,
+  } = useGetDailyProductionPlanQuery({ serviceDate: today, shiftName: apiShiftName })
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
   const [requests, setRequests] = useState<Array<SupplementalRequest & { day: string; shift: ShiftType }>>([])
   const [returns, setReturns] = useState<Array<ExcessMaterial & { day: string; shift: ShiftType }>>([])
@@ -75,8 +85,6 @@ export default function ChefDashboardPage() {
   const lockKey = `${activeDay}-${activeShift}`
   const isLocked = !!lockedShifts[lockKey]
   const isCatalogEmpty = !isCatalogLoading && !isCatalogError && catalogDishes.length === 0
-  const khsxDocuments = workflowDocuments.filter((document) => document.type === 'KHSX')
-  const activeKhsxDocument = khsxDocuments[0]
   const returnDocuments = workflowDocuments.filter((document) => document.type === 'Phiếu trả')
   const kitchenMovements = [
     ...stockMovements.filter((movement) => movement.type === 'issue'),
@@ -94,6 +102,17 @@ export default function ChefDashboardPage() {
     return matchingRows.length > 0 ? matchingRows : kitchenIssueRows
   }, [kitchenIssueRows, activeShift])
   const pendingKitchenReceiptCount = activeKitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length
+  const dailyPlans = Array.isArray(dailyProductionPlan?.plans) ? dailyProductionPlan.plans : []
+  const dailyPlanWarnings = Array.isArray(dailyProductionPlan?.warnings) ? dailyProductionPlan.warnings : []
+  const dailyPlanLines = dailyPlans.flatMap((plan) =>
+    (Array.isArray(plan.lines) ? plan.lines : []).map((line) => ({
+      ...line,
+      planCode: plan.planCode,
+      customerName: plan.customerName,
+      status: plan.status,
+      sentToKitchenAt: plan.sentToKitchenAt,
+    })),
+  ) ?? []
 
   // Filter orders for the selected day and shift
   const dayShiftOrders = useMemo(() => {
@@ -284,6 +303,27 @@ export default function ChefDashboardPage() {
     }
   }
 
+  const handleSendDailyPlanToKitchen = async () => {
+    try {
+      const result = await sendDailyProductionPlanToKitchen({
+        serviceDate: today,
+        shiftName: apiShiftName,
+        reason: `Bếp trưởng nhận kế hoạch sản xuất ${today} ${apiShiftName}.`,
+      }).unwrap()
+      setChefFeedback({
+        title: 'Đã nhận kế hoạch sản xuất',
+        message: `${result.sentPlans}/${result.totalPlans} KHSX đã được đánh dấu gửi bếp.`,
+        variant: 'info',
+      })
+    } catch (error) {
+      setChefFeedback({
+        title: 'Chưa nhận được KHSX',
+        message: getMutationErrorMessage(error, 'Không thể đánh dấu gửi bếp cho kế hoạch hôm nay.'),
+        variant: 'warning',
+      })
+    }
+  }
+
   const handleMaterialSignoff = async (materialId: string, signed: boolean) => {
     const material = productionPlan.receivedMaterials.find((m) => m.id === materialId)
     if (!material) {
@@ -435,8 +475,8 @@ export default function ChefDashboardPage() {
         <>
           <ContextStrip
             items={[
-              { label: 'KHSX', value: activeKhsxDocument?.title ?? 'Chưa có KHSX', tone: activeKhsxDocument ? 'success' : 'warning' },
-              { label: 'Chứng từ bếp', value: `${khsxDocuments.length + returnDocuments.length} chứng từ`, tone: 'neutral' },
+              { label: 'KHSX hôm nay', value: dailyProductionPlan ? `${dailyProductionPlan.sentPlans}/${dailyProductionPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: dailyProductionPlan?.sentPlans ? 'success' : 'warning' },
+              { label: 'Phiếu trả', value: `${returnDocuments.length} chứng từ`, tone: 'neutral' },
               { label: 'Trạng thái nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : activeKitchenIssueRows.length > 0 ? 'Đã ký nhận' : isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: pendingKitchenReceiptCount > 0 ? 'warning' : activeKitchenIssueRows.length > 0 ? 'success' : isLocked ? 'warning' : 'neutral' },
               { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },
             ]}
@@ -474,6 +514,21 @@ export default function ChefDashboardPage() {
                 : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'}
             </InlineAlert>
           )}
+          {isDailyPlanLoading && (
+            <InlineAlert title="Đang tải KHSX gửi bếp" variant="info">
+              Hệ thống đang lấy kế hoạch sản xuất trong ngày từ API.
+            </InlineAlert>
+          )}
+          {isDailyPlanError && (
+            <InlineAlert title="Chưa tải được KHSX gửi bếp" variant="warning">
+              Dashboard vẫn hiển thị checklist dự kiến, nhưng cần API KHSX để bếp nhận đúng kế hoạch.
+            </InlineAlert>
+          )}
+          {dailyPlanWarnings.map((warning) => (
+            <InlineAlert key={warning} title="Cảnh báo KHSX" variant="warning">
+              {warning}
+            </InlineAlert>
+          ))}
           {isConfirmingIssueReceipt && (
             <InlineAlert title="Đang ghi nhận ký nhận" variant="info">
               Hệ thống đang cập nhật trạng thái nhận nguyên liệu cho phiếu xuất kho.
@@ -514,6 +569,62 @@ export default function ChefDashboardPage() {
 
           {activeView === 'production' && (
             <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
+              <SectionPanel
+                title="KHSX trong ngày đã gửi bếp"
+                icon={<ClipboardList size={18} />}
+                badge={(
+                  <button
+                    className="ipc-button ipc-button-primary"
+                    type="button"
+                    disabled={isSendingDailyPlan}
+                    onClick={() => void handleSendDailyPlanToKitchen()}
+                  >
+                    <ShieldCheck size={15} />
+                    Nhận KHSX
+                  </button>
+                )}
+              >
+                <DataTableShell className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp">
+                  <table className="ipc-data-table ipc-status-action-table">
+                    <thead>
+                      <tr>
+                        <th>KHSX</th>
+                        <th>Khách hàng</th>
+                        <th>Món</th>
+                        <th>Ca</th>
+                        <th>Suất</th>
+                        <th>BOM</th>
+                        <th>Thiếu</th>
+                        <th>Trạng thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dailyPlanLines.length === 0 ? (
+                        <tr>
+                          <td colSpan={8} className="py-8 text-center text-slate-500">
+                            Chưa có KHSX API cho ngày/ca này.
+                          </td>
+                        </tr>
+                      ) : dailyPlanLines.map((line) => (
+                        <tr key={`${line.planCode}-${line.planLineId}`}>
+                          <td>{line.planCode}</td>
+                          <td>{line.customerName ?? '-'}</td>
+                          <td>{line.dishName ?? line.dishId}</td>
+                          <td>{line.shiftName ?? '-'}</td>
+                          <td className="ipc-numeric-cell">{line.totalServings}</td>
+                          <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${line.bomScope}` : 'Chưa resolve'}</td>
+                          <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
+                          <td className="ipc-badge-cell">
+                            <StatusBadge variant={line.sentToKitchenAt ? 'success' : line.hasKitchenIssue ? 'warning' : 'neutral'}>
+                              {line.sentToKitchenAt ? 'Đã gửi bếp' : line.hasKitchenIssue ? 'Cần kho/thu mua' : 'Chờ gửi'}
+                            </StatusBadge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </DataTableShell>
+              </SectionPanel>
               <SplitWorkbench detailLabel="Nhật ký ca" detail={shiftJournal} className="ipc-chef-split-workbench">
                 <HeadChefDashboard
                   productionPlan={productionPlan}
@@ -534,7 +645,7 @@ export default function ChefDashboardPage() {
               <div id="chef-documents-panel" role="tabpanel" aria-labelledby="chef-documents-tab">
               <div className="flex flex-col gap-3">
                 <StockMovementTable movements={kitchenMovements} />
-                <DocumentRail documents={[...khsxDocuments, ...returnDocuments]} title="KHSX và phiếu trả" />
+                <DocumentRail documents={returnDocuments} title="Phiếu trả kho" />
               </div>
               </div>
             </SectionPanel>

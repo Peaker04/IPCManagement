@@ -7,6 +7,8 @@ using IPCManagement.Api.Services;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
+using System.Text;
 
 namespace IPCManagement.Api.Services;
 
@@ -306,6 +308,209 @@ public class DishService : IDishService
         };
     }
 
+    public async Task<string> BuildBomTemplateCsvAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
+    {
+        var priceTier = NormalizePriceTier(query.PriceTier);
+        var customerId = ParseOptionalCustomerId(query.CustomerId);
+        var rows = new StringBuilder();
+        rows.AppendLine("DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note");
+
+        var dishes = await _context.Dishes
+            .AsNoTracking()
+            .Include(dish => dish.Dishboms)
+                .ThenInclude(bom => bom.Ingredient)
+            .Include(dish => dish.Dishboms)
+                .ThenInclude(bom => bom.Unit)
+            .Where(dish => dish.IsActive ?? true)
+            .OrderBy(dish => dish.DishCode)
+            .ToListAsync(cancellationToken);
+        var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
+
+        foreach (var dish in dishes)
+        {
+            var currentLines = query.IncludeCurrent
+                ? dish.Dishboms
+                    .Where(line => line.PriceTierAmount == priceTier)
+                    .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
+                    .OrderBy(line => line.Ingredient.IngredientName)
+                    .ToList()
+                : [];
+
+            if (currentLines.Count == 0)
+            {
+                rows.AppendLine(ToCsvLine([
+                    dish.DishCode,
+                    dish.DishName,
+                    priceTier.ToString("0.##", CultureInfo.InvariantCulture),
+                    customerCode ?? string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    string.Empty,
+                    "0",
+                    DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    string.Empty,
+                    BomStatusPublished,
+                    string.Empty
+                ]));
+                continue;
+            }
+
+            foreach (var line in currentLines)
+            {
+                rows.AppendLine(ToCsvLine([
+                    dish.DishCode,
+                    dish.DishName,
+                    priceTier.ToString("0.##", CultureInfo.InvariantCulture),
+                    customerCode ?? string.Empty,
+                    line.Ingredient.IngredientCode,
+                    line.Ingredient.IngredientName,
+                    line.Unit.UnitCode,
+                    line.GrossQtyPerServing.ToString("0.######", CultureInfo.InvariantCulture),
+                    line.WasteRatePercent.ToString("0.##", CultureInfo.InvariantCulture),
+                    line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    line.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                    line.BomStatus,
+                    string.Empty
+                ]));
+            }
+        }
+
+        return rows.ToString();
+    }
+
+    public async Task<BomImportPreviewDto> PreviewBomImportAsync(
+        Stream fileStream,
+        BomImportPreviewRequestDto request,
+        CancellationToken cancellationToken = default)
+        => await BuildBomImportPreviewAsync(fileStream, request, cancellationToken);
+
+    public async Task<BomImportCommitResultDto> CommitBomImportAsync(
+        Stream fileStream,
+        BomImportCommitRequestDto request,
+        string? userId,
+        CancellationToken cancellationToken = default)
+    {
+        var preview = await BuildBomImportPreviewAsync(fileStream, request, cancellationToken);
+        if (!preview.CanCommit)
+        {
+            throw new InvalidOperationException("File BOM còn lỗi, cần sửa preview trước khi commit.");
+        }
+
+        var priceTier = NormalizePriceTier(request.PriceTier);
+        var customerId = ParseOptionalCustomerId(request.CustomerId);
+        var actor = GuidHelper.ParseGuidString(userId);
+        var rows = await ParseBomImportRowsAsync(fileStream, request, cancellationToken);
+        var validRows = rows.Where(row => row.Errors.Count == 0).ToList();
+        var now = DateTime.UtcNow;
+        var created = 0;
+        var updated = 0;
+        var archived = 0;
+        var batchCode = $"BOM-{priceTier:0}-{now:yyyyMMddHHmmss}";
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        foreach (var row in validRows)
+        {
+            var effectiveFrom = row.EffectiveFrom;
+            var effectiveTo = row.EffectiveTo;
+            var status = NormalizeBomStatus(row.BomStatus);
+            var existing = await _context.Dishboms
+                .Include(line => line.Ingredient)
+                .Include(line => line.Unit)
+                .Where(line =>
+                    line.DishId == row.Dish!.DishId &&
+                    line.IngredientId == row.Ingredient!.IngredientId &&
+                    line.UnitId == row.Unit!.UnitId &&
+                    line.PriceTierAmount == priceTier &&
+                    line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
+                    (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom))
+                .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
+                .OrderByDescending(line => line.EffectiveFrom)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (existing is not null && IsPublishedBomLine(existing))
+            {
+                if (existing.EffectiveFrom < effectiveFrom && (existing.EffectiveTo is null || existing.EffectiveTo >= effectiveFrom))
+                {
+                    existing.EffectiveTo = effectiveFrom.AddDays(-1);
+                    archived++;
+                }
+
+                if (existing.EffectiveFrom == effectiveFrom)
+                {
+                    var oldGross = existing.GrossQtyPerServing;
+                    var oldWaste = existing.WasteRatePercent;
+                    existing.GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing);
+                    existing.WasteRatePercent = row.WasteRatePercent;
+                    existing.EffectiveTo = effectiveTo;
+                    existing.BomStatus = status;
+                    AddBomAdjustmentIfNeeded(existing.BomId, oldGross, existing.GrossQtyPerServing, oldWaste, existing.WasteRatePercent, row.Note, userId);
+                    updated++;
+                    continue;
+                }
+            }
+
+            var entity = new Dishbom
+            {
+                BomId = GuidHelper.NewId(),
+                DishId = row.Dish!.DishId,
+                IngredientId = row.Ingredient!.IngredientId,
+                UnitId = row.Unit!.UnitId,
+                CustomerId = customerId,
+                PriceTierAmount = priceTier,
+                GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing),
+                WasteRatePercent = row.WasteRatePercent,
+                BomStatus = status,
+                EffectiveFrom = effectiveFrom,
+                EffectiveTo = effectiveTo,
+                Ingredient = row.Ingredient,
+                Unit = row.Unit
+            };
+            _context.Dishboms.Add(entity);
+            created++;
+        }
+
+        if (actor is not null)
+        {
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = now,
+                ChangedBy = actor,
+                BusinessArea = "BOM",
+                EntityName = nameof(Dishbom),
+                EntityId = actor,
+                FieldName = "BulkImport",
+                OldValue = null,
+                NewValue = $"{batchCode}; created={created}; updated={updated}; archived={archived}; rows={validRows.Count}; tier={priceTier}; scope={preview.BomScope}",
+                Reason = "Import BOM theo đơn giá/khách hàng từ file Excel-compatible."
+            });
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+        ClearCatalogCache();
+
+        return new BomImportCommitResultDto
+        {
+            GeneratedAt = DateTime.UtcNow,
+            PriceTier = preview.PriceTier,
+            CustomerId = preview.CustomerId,
+            BomScope = preview.BomScope,
+            TotalRows = preview.TotalRows,
+            ValidRows = preview.ValidRows,
+            ErrorRows = preview.ErrorRows,
+            WarningRows = preview.WarningRows,
+            CanCommit = true,
+            Rows = preview.Rows,
+            Warnings = preview.Warnings,
+            CreatedRows = created,
+            UpdatedRows = updated,
+            ArchivedRows = archived,
+            AuditBatchCode = batchCode
+        };
+    }
+
     public async Task<IReadOnlyList<DishCatalogBomLineDto>?> GetBomLinesAsync(string dishId)
     {
         var dishBytes = GuidHelper.ParseGuidString(dishId);
@@ -431,15 +636,17 @@ public class DishService : IDishService
 
         var effectiveFrom = dto.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today);
         var bomStatus = NormalizeBomStatus(dto.BomStatus);
+        var priceTier = NormalizePriceTier(dto.PriceTierAmount ?? 25000m);
+        var customerId = ParseOptionalCustomerId(dto.CustomerId);
         if (dto.EffectiveTo is not null && dto.EffectiveTo < effectiveFrom)
         {
             throw new ArgumentException("Ngày hết hiệu lực phải sau ngày bắt đầu.");
         }
 
         if (bomStatus == BomStatusPublished &&
-            await HasOverlappingBomLineAsync(dishBytes, ingredientBytes, unitBytes, effectiveFrom, dto.EffectiveTo))
+            await HasOverlappingBomLineAsync(dishBytes, ingredientBytes, unitBytes, priceTier, customerId, effectiveFrom, dto.EffectiveTo))
         {
-            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
+            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực cho cùng đơn giá/khách hàng.");
         }
 
         var entity = new Dishbom
@@ -448,6 +655,8 @@ public class DishService : IDishService
             DishId = dishBytes,
             IngredientId = ingredientBytes,
             UnitId = unitBytes,
+            CustomerId = customerId,
+            PriceTierAmount = priceTier,
             GrossQtyPerServing = DecimalPolicy.RoundQuantity(dto.GrossQtyPerServing),
             WasteRatePercent = dto.WasteRatePercent,
             BomStatus = bomStatus,
@@ -490,6 +699,8 @@ public class DishService : IDishService
         var targetIngredient = entity.Ingredient;
         var targetUnitId = entity.UnitId;
         var targetUnit = entity.Unit;
+        var targetCustomerId = entity.CustomerId;
+        var targetPriceTier = entity.PriceTierAmount;
         var targetGrossQty = entity.GrossQtyPerServing;
         var targetWasteRate = entity.WasteRatePercent;
         var targetEffectiveFrom = dto.EffectiveFrom ?? entity.EffectiveFrom;
@@ -523,6 +734,15 @@ public class DishService : IDishService
             targetUnitId = unitBytes;
         }
 
+        if (dto.CustomerId is not null)
+        {
+            targetCustomerId = ParseOptionalCustomerId(dto.CustomerId);
+        }
+        if (dto.PriceTierAmount is not null)
+        {
+            targetPriceTier = NormalizePriceTier(dto.PriceTierAmount.Value);
+        }
+
         if (dto.GrossQtyPerServing is not null)
         {
             targetGrossQty = DecimalPolicy.RoundQuantity(dto.GrossQtyPerServing.Value);
@@ -539,6 +759,8 @@ public class DishService : IDishService
         var versionedFieldsChanged =
             !targetIngredientId.SequenceEqual(entity.IngredientId) ||
             !targetUnitId.SequenceEqual(entity.UnitId) ||
+            !MatchesBomCustomerScope(entity.CustomerId, targetCustomerId) ||
+            targetPriceTier != entity.PriceTierAmount ||
             targetGrossQty != entity.GrossQtyPerServing ||
             targetWasteRate != entity.WasteRatePercent ||
             targetEffectiveFrom != entity.EffectiveFrom;
@@ -557,6 +779,8 @@ public class DishService : IDishService
                     dishBytes,
                     targetIngredientId,
                     targetUnitId,
+                    targetPriceTier,
+                    targetCustomerId,
                     targetEffectiveFrom,
                     targetEffectiveTo,
                     entity.BomId))
@@ -576,6 +800,8 @@ public class DishService : IDishService
                 DishId = entity.DishId,
                 IngredientId = targetIngredientId,
                 UnitId = targetUnitId,
+                CustomerId = targetCustomerId,
+                PriceTierAmount = targetPriceTier,
                 GrossQtyPerServing = targetGrossQty,
                 WasteRatePercent = targetWasteRate,
                 BomStatus = targetStatus,
@@ -598,6 +824,8 @@ public class DishService : IDishService
             dishBytes,
             targetIngredientId,
             targetUnitId,
+            targetPriceTier,
+            targetCustomerId,
             targetEffectiveFrom,
             targetEffectiveTo,
             entity.BomId))
@@ -609,6 +837,8 @@ public class DishService : IDishService
         entity.Ingredient = targetIngredient;
         entity.UnitId = targetUnitId;
         entity.Unit = targetUnit;
+        entity.CustomerId = targetCustomerId;
+        entity.PriceTierAmount = targetPriceTier;
         entity.GrossQtyPerServing = targetGrossQty;
         entity.WasteRatePercent = targetWasteRate;
         entity.BomStatus = targetStatus;
@@ -650,6 +880,334 @@ public class DishService : IDishService
         ClearCatalogCache();
         return true;
     }
+
+    private async Task<BomImportPreviewDto> BuildBomImportPreviewAsync(
+        Stream fileStream,
+        BomImportPreviewRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        var priceTier = NormalizePriceTier(request.PriceTier);
+        var customerId = ParseOptionalCustomerId(request.CustomerId);
+        var rows = await ParseBomImportRowsAsync(fileStream, request, cancellationToken);
+        var duplicateKeys = rows
+            .GroupBy(row => $"{row.DishCode}|{row.IngredientCode}|{row.UnitCode}|{row.EffectiveFrom:yyyy-MM-dd}")
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        var previewRows = rows.Select(row =>
+        {
+            var errors = row.Errors.ToList();
+            var warnings = row.Warnings.ToList();
+            var key = $"{row.DishCode}|{row.IngredientCode}|{row.UnitCode}|{row.EffectiveFrom:yyyy-MM-dd}";
+            if (duplicateKeys.Contains(key))
+            {
+                errors.Add("Trùng dish/ingredient/unit/effective date trong file.");
+            }
+
+            return new BomImportPreviewRowDto
+            {
+                RowNumber = row.RowNumber,
+                DishCode = row.DishCode,
+                DishName = row.Dish?.DishName ?? row.DishName,
+                IngredientCode = row.IngredientCode,
+                IngredientName = row.Ingredient?.IngredientName ?? row.IngredientName,
+                UnitCode = row.Unit?.UnitCode ?? row.UnitCode,
+                GrossQtyPerServing = row.GrossQtyPerServing,
+                WasteRatePercent = row.WasteRatePercent,
+                EffectiveFrom = row.EffectiveFrom,
+                EffectiveTo = row.EffectiveTo,
+                Status = errors.Count > 0 ? "error" : warnings.Count > 0 ? "warning" : "valid",
+                Action = errors.Count > 0 ? "blocked" : row.Action,
+                Errors = errors,
+                Warnings = warnings
+            };
+        }).ToList();
+
+        return new BomImportPreviewDto
+        {
+            GeneratedAt = DateTime.UtcNow,
+            PriceTier = priceTier,
+            CustomerId = customerId is null ? null : GuidHelper.ToGuidString(customerId),
+            BomScope = customerId is null ? "global" : "customer",
+            TotalRows = previewRows.Count,
+            ValidRows = previewRows.Count(row => row.Errors.Count == 0),
+            ErrorRows = previewRows.Count(row => row.Errors.Count > 0),
+            WarningRows = previewRows.Count(row => row.Warnings.Count > 0),
+            CanCommit = previewRows.Count > 0 && previewRows.All(row => row.Errors.Count == 0),
+            Rows = previewRows,
+            Warnings = []
+        };
+    }
+
+    private async Task<List<BomImportRow>> ParseBomImportRowsAsync(
+        Stream fileStream,
+        BomImportPreviewRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (fileStream.CanSeek)
+        {
+            fileStream.Position = 0;
+        }
+
+        var priceTier = NormalizePriceTier(request.PriceTier);
+        var customerId = ParseOptionalCustomerId(request.CustomerId);
+        using var reader = new StreamReader(fileStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
+        var content = await reader.ReadToEndAsync(cancellationToken);
+        var lines = content.Split(["\r\n", "\n"], StringSplitOptions.None);
+        if (lines.Length <= 1)
+        {
+            return [];
+        }
+
+        var dishes = await _context.Dishes
+            .AsNoTracking()
+            .Where(dish => dish.IsActive ?? true)
+            .ToDictionaryAsync(dish => dish.DishCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+        var ingredients = await _context.Ingredients
+            .AsNoTracking()
+            .Include(item => item.Unit)
+            .Where(item => item.IsActive ?? true)
+            .ToDictionaryAsync(item => item.IngredientCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+        var units = await _context.Units
+            .AsNoTracking()
+            .ToDictionaryAsync(item => item.UnitCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+        var existingLines = await _context.Dishboms
+            .AsNoTracking()
+            .Where(line => line.PriceTierAmount == priceTier)
+            .Where(line => customerId == null ? line.CustomerId == null : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
+            .ToListAsync(cancellationToken);
+
+        var header = SplitCsvLine(lines[0]).Select(NormalizeHeader).ToList();
+        var result = new List<BomImportRow>();
+        for (var i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i]))
+            {
+                continue;
+            }
+
+            var cells = SplitCsvLine(lines[i]);
+            string Get(string name)
+            {
+                var index = header.IndexOf(NormalizeHeader(name));
+                return index >= 0 && index < cells.Count ? cells[index].Trim() : string.Empty;
+            }
+
+            var errors = new List<string>();
+            var warnings = new List<string>();
+            var dishCode = Get("DishCode");
+            var dishName = Get("DishName");
+            var ingredientCode = Get("IngredientCode");
+            var ingredientName = Get("IngredientName");
+            var unitCode = Get("UnitCode");
+            var tierText = Get("PriceTier");
+            var hasTierText = !string.IsNullOrWhiteSpace(tierText);
+            var normalizedRowTier = default(decimal);
+            if (hasTierText && !TryNormalizeImportPriceTier(tierText, out normalizedRowTier))
+            {
+                errors.Add("PriceTier chỉ được là 25000, 30000 hoặc 34000.");
+            }
+            else if (hasTierText && normalizedRowTier != priceTier)
+            {
+                errors.Add("PriceTier trong file không khớp với tier đang import.");
+            }
+
+            dishes.TryGetValue(dishCode, out var dish);
+            ingredients.TryGetValue(ingredientCode, out var ingredient);
+            if (ingredient is not null && string.IsNullOrWhiteSpace(unitCode))
+            {
+                unitCode = ingredient.Unit.UnitCode;
+            }
+
+            units.TryGetValue(unitCode, out var unit);
+            if (dish is null)
+            {
+                errors.Add("DishCode không tồn tại hoặc món đã ngừng sử dụng.");
+            }
+            if (ingredient is null)
+            {
+                errors.Add("IngredientCode không tồn tại hoặc nguyên liệu đã ngừng sử dụng.");
+            }
+            if (unit is null)
+            {
+                errors.Add("UnitCode không tồn tại.");
+            }
+            if (!decimal.TryParse(Get("GrossQtyPerServing"), NumberStyles.Number, CultureInfo.InvariantCulture, out var grossQty) || grossQty <= 0)
+            {
+                errors.Add("GrossQtyPerServing phải lớn hơn 0.");
+            }
+            if (!decimal.TryParse(Get("WasteRatePercent"), NumberStyles.Number, CultureInfo.InvariantCulture, out var wasteRate) || wasteRate < 0 || wasteRate > 100)
+            {
+                errors.Add("WasteRatePercent phải nằm trong 0-100.");
+            }
+            if (!DateOnly.TryParse(Get("EffectiveFrom"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var effectiveFrom))
+            {
+                effectiveFrom = request.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today);
+                warnings.Add("EffectiveFrom trống/không hợp lệ, dùng ngày mặc định.");
+            }
+            DateOnly? effectiveTo = null;
+            var effectiveToText = Get("EffectiveTo");
+            var parsedEffectiveTo = default(DateOnly);
+            if (!string.IsNullOrWhiteSpace(effectiveToText) &&
+                !DateOnly.TryParse(effectiveToText, CultureInfo.InvariantCulture, DateTimeStyles.None, out parsedEffectiveTo))
+            {
+                errors.Add("EffectiveTo không hợp lệ.");
+            }
+            else if (!string.IsNullOrWhiteSpace(effectiveToText))
+            {
+                effectiveTo = parsedEffectiveTo;
+            }
+            if (effectiveTo is not null && effectiveTo < effectiveFrom)
+            {
+                errors.Add("EffectiveTo phải sau EffectiveFrom.");
+            }
+
+            var status = Get("BomStatus");
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                status = BomStatusPublished;
+            }
+            else
+            {
+                try
+                {
+                    status = NormalizeBomStatus(status);
+                }
+                catch (ArgumentException ex)
+                {
+                    errors.Add(ex.Message);
+                }
+            }
+
+            var action = "create";
+            if (dish is not null && ingredient is not null && unit is not null)
+            {
+                var overlap = existingLines.FirstOrDefault(line =>
+                    line.DishId.SequenceEqual(dish.DishId) &&
+                    line.IngredientId.SequenceEqual(ingredient.IngredientId) &&
+                    line.UnitId.SequenceEqual(unit.UnitId) &&
+                    line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
+                    (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom));
+                action = overlap is null ? "create" : overlap.EffectiveFrom == effectiveFrom ? "update" : "version";
+            }
+
+            result.Add(new BomImportRow(
+                i + 1,
+                dishCode,
+                dishName,
+                ingredientCode,
+                ingredientName,
+                unitCode,
+                grossQty,
+                wasteRate,
+                effectiveFrom,
+                effectiveTo,
+                status,
+                Get("Note"),
+                action,
+                dish,
+                ingredient,
+                unit,
+                errors,
+                warnings));
+        }
+
+        return result;
+    }
+
+    private static List<string> SplitCsvLine(string line)
+    {
+        var result = new List<string>();
+        var cell = new StringBuilder();
+        var inQuotes = false;
+        for (var i = 0; i < line.Length; i++)
+        {
+            var ch = line[i];
+            if (ch == '"')
+            {
+                if (inQuotes && i + 1 < line.Length && line[i + 1] == '"')
+                {
+                    cell.Append('"');
+                    i++;
+                }
+                else
+                {
+                    inQuotes = !inQuotes;
+                }
+                continue;
+            }
+
+            if (ch == ',' && !inQuotes)
+            {
+                result.Add(cell.ToString());
+                cell.Clear();
+                continue;
+            }
+
+            cell.Append(ch);
+        }
+
+        result.Add(cell.ToString());
+        return result;
+    }
+
+    private static string NormalizeHeader(string value)
+        => value.Trim().Replace(" ", string.Empty, StringComparison.OrdinalIgnoreCase).ToUpperInvariant();
+
+    private static string ToCsvLine(IEnumerable<string> cells)
+        => string.Join(",", cells.Select(cell => $"\"{(cell ?? string.Empty).Replace("\"", "\"\"")}\""));
+
+    private async Task<string?> ResolveCustomerCodeAsync(byte[]? customerId, CancellationToken cancellationToken)
+    {
+        if (customerId is null)
+        {
+            return null;
+        }
+
+        var customer = await _context.Customers
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerId), cancellationToken);
+        return customer?.CustomerCode;
+    }
+
+    private static bool MatchesBomCustomerScope(byte[]? left, byte[]? right)
+        => left is null ? right is null : right is not null && left.SequenceEqual(right);
+
+    private static decimal NormalizePriceTier(decimal tier)
+    {
+        var normalized = decimal.Round(tier, 0);
+        return normalized switch
+        {
+            25000m or 30000m or 34000m => normalized,
+            _ => throw new ArgumentException("Đơn giá BOM chỉ được là 25000, 30000 hoặc 34000.")
+        };
+    }
+
+    private static byte[]? ParseOptionalCustomerId(string? customerId)
+        => string.IsNullOrWhiteSpace(customerId)
+            ? null
+            : GuidHelper.ParseGuidString(customerId) ?? throw new ArgumentException("Khách hàng không hợp lệ.");
+
+    private sealed record BomImportRow(
+        int RowNumber,
+        string DishCode,
+        string DishName,
+        string IngredientCode,
+        string IngredientName,
+        string UnitCode,
+        decimal GrossQtyPerServing,
+        decimal WasteRatePercent,
+        DateOnly EffectiveFrom,
+        DateOnly? EffectiveTo,
+        string BomStatus,
+        string? Note,
+        string Action,
+        Dish? Dish,
+        Ingredient? Ingredient,
+        Unit? Unit,
+        IReadOnlyList<string> Errors,
+        IReadOnlyList<string> Warnings);
 
     private void ClearCatalogCache()
     {
@@ -734,6 +1292,11 @@ public class DishService : IDishService
         UnitId = GuidHelper.ToGuidString(bom.UnitId),
         UnitCode = bom.Unit.UnitCode,
         UnitName = bom.Unit.UnitName,
+        CustomerId = bom.CustomerId is null ? null : GuidHelper.ToGuidString(bom.CustomerId),
+        CustomerCode = bom.Customer?.CustomerCode,
+        CustomerName = bom.Customer?.CustomerName,
+        PriceTierAmount = bom.PriceTierAmount,
+        BomScope = bom.CustomerId is null ? "global" : "customer",
         GrossQtyPerServing = bom.GrossQtyPerServing,
         WasteRatePercent = bom.WasteRatePercent,
         BomStatus = NormalizeBomStatus(bom.BomStatus),
@@ -747,12 +1310,15 @@ public class DishService : IDishService
         => _context.Dishboms
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
+            .Include(line => line.Customer)
             .Where(line => line.DishId == dishBytes);
 
     private Task<bool> HasOverlappingBomLineAsync(
         byte[] dishId,
         byte[] ingredientId,
         byte[] unitId,
+        decimal priceTier,
+        byte[]? customerId,
         DateOnly effectiveFrom,
         DateOnly? effectiveTo,
         byte[]? excludeBomId = null)
@@ -761,7 +1327,12 @@ public class DishService : IDishService
         var query = _context.Dishboms.Where(line =>
             line.DishId == dishId &&
             line.IngredientId == ingredientId &&
-            line.UnitId == unitId);
+            line.UnitId == unitId &&
+            line.PriceTierAmount == priceTier);
+
+        query = customerId is null
+            ? query.Where(line => line.CustomerId == null)
+            : query.Where(line => line.CustomerId != null && line.CustomerId.SequenceEqual(customerId));
 
         if (excludeBomId is not null)
         {
@@ -825,4 +1396,24 @@ public class DishService : IDishService
         BomStatusArchived => "Archived",
         _ => "Published"
     };
+
+    private static bool TryNormalizeImportPriceTier(string value, out decimal normalized)
+    {
+        normalized = default;
+        if (!decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsed))
+        {
+            return false;
+        }
+
+        try
+        {
+            normalized = NormalizePriceTier(parsed);
+        }
+        catch (ArgumentException)
+        {
+            return false;
+        }
+
+        return true;
+    }
 }

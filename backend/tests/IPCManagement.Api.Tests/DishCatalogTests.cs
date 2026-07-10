@@ -511,11 +511,21 @@ public class DishCatalogTests
                 isActive INTEGER NULL
             );
 
+            CREATE TABLE customers (
+                customerId BLOB PRIMARY KEY,
+                customerCode TEXT NOT NULL,
+                customerName TEXT NOT NULL,
+                note TEXT NULL,
+                isActive INTEGER NULL
+            );
+
             CREATE TABLE dishbom (
                 bomId BLOB PRIMARY KEY,
                 dishId BLOB NOT NULL,
+                customerId BLOB NULL,
                 ingredientId BLOB NOT NULL,
                 unitId BLOB NOT NULL,
+                priceTierAmount TEXT NOT NULL DEFAULT '25000.00',
                 grossQtyPerServing TEXT NOT NULL,
                 wasteRatePercent TEXT NOT NULL,
                 bomStatus TEXT NOT NULL DEFAULT 'PUBLISHED',

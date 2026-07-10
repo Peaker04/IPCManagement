@@ -69,6 +69,11 @@ public class DishCatalogBomLineDto
     public string UnitId { get; set; } = string.Empty;
     public string UnitCode { get; set; } = string.Empty;
     public string UnitName { get; set; } = string.Empty;
+    public string? CustomerId { get; set; }
+    public string? CustomerCode { get; set; }
+    public string? CustomerName { get; set; }
+    public decimal PriceTierAmount { get; set; }
+    public string BomScope { get; set; } = "global";
     public decimal GrossQtyPerServing { get; set; }
     public decimal WasteRatePercent { get; set; }
     public string BomStatus { get; set; } = string.Empty;
@@ -177,6 +182,11 @@ public class CreateDishBomLineDto
 
     public string? UnitId { get; set; }
 
+    public string? CustomerId { get; set; }
+
+    [Range(25000, 34000)]
+    public decimal? PriceTierAmount { get; set; }
+
     [Range(0.000001, double.MaxValue)]
     public decimal GrossQtyPerServing { get; set; }
 
@@ -201,6 +211,11 @@ public class UpdateDishBomLineDto
 
     public string? UnitId { get; set; }
 
+    public string? CustomerId { get; set; }
+
+    [Range(25000, 34000)]
+    public decimal? PriceTierAmount { get; set; }
+
     [Range(0.000001, double.MaxValue)]
     public decimal? GrossQtyPerServing { get; set; }
 
@@ -216,4 +231,71 @@ public class UpdateDishBomLineDto
 
     [MaxLength(500)]
     public string? Reason { get; set; }
+}
+
+public class BomTemplateQueryDto
+{
+    [Range(25000, 34000)]
+    public decimal PriceTier { get; set; } = 25000m;
+
+    public string? CustomerId { get; set; }
+
+    public bool IncludeCurrent { get; set; } = true;
+}
+
+public class BomImportPreviewRequestDto
+{
+    [Range(25000, 34000)]
+    public decimal PriceTier { get; set; } = 25000m;
+
+    public string? CustomerId { get; set; }
+
+    public DateOnly? EffectiveFrom { get; set; }
+
+    public string Mode { get; set; } = "upsert";
+}
+
+public class BomImportCommitRequestDto : BomImportPreviewRequestDto
+{
+}
+
+public class BomImportPreviewDto
+{
+    public DateTime GeneratedAt { get; set; }
+    public decimal PriceTier { get; set; }
+    public string? CustomerId { get; set; }
+    public string BomScope { get; set; } = "global";
+    public int TotalRows { get; set; }
+    public int ValidRows { get; set; }
+    public int ErrorRows { get; set; }
+    public int WarningRows { get; set; }
+    public bool CanCommit { get; set; }
+    public IReadOnlyList<BomImportPreviewRowDto> Rows { get; set; } = [];
+    public IReadOnlyList<string> Warnings { get; set; } = [];
+}
+
+public class BomImportPreviewRowDto
+{
+    public int RowNumber { get; set; }
+    public string DishCode { get; set; } = string.Empty;
+    public string DishName { get; set; } = string.Empty;
+    public string IngredientCode { get; set; } = string.Empty;
+    public string IngredientName { get; set; } = string.Empty;
+    public string UnitCode { get; set; } = string.Empty;
+    public decimal GrossQtyPerServing { get; set; }
+    public decimal WasteRatePercent { get; set; }
+    public DateOnly EffectiveFrom { get; set; }
+    public DateOnly? EffectiveTo { get; set; }
+    public string Status { get; set; } = "valid";
+    public string Action { get; set; } = "skip";
+    public IReadOnlyList<string> Errors { get; set; } = [];
+    public IReadOnlyList<string> Warnings { get; set; } = [];
+}
+
+public class BomImportCommitResultDto : BomImportPreviewDto
+{
+    public int CreatedRows { get; set; }
+    public int UpdatedRows { get; set; }
+    public int ArchivedRows { get; set; }
+    public string AuditBatchCode { get; set; } = string.Empty;
 }

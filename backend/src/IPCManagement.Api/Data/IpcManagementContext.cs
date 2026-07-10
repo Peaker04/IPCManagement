@@ -504,6 +504,10 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => new { e.DishId, e.EffectiveFrom, e.EffectiveTo }, "ixDishBomDishEffective");
 
+            entity.HasIndex(e => e.CustomerId, "customerId");
+
+            entity.HasIndex(e => new { e.DishId, e.CustomerId, e.PriceTierAmount, e.EffectiveFrom, e.EffectiveTo }, "ixDishBomTierEffective");
+
             entity.HasIndex(e => e.UnitId, "unitId")
                 .HasDatabaseName("unitId");
 
@@ -521,8 +525,16 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("dishId");
+            entity.Property(e => e.CustomerId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("customerId");
             entity.Property(e => e.EffectiveFrom).HasColumnName("effectiveFrom");
             entity.Property(e => e.EffectiveTo).HasColumnName("effectiveTo");
+            entity.Property(e => e.PriceTierAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValueSql("'25000.00'")
+                .HasColumnName("priceTierAmount");
             entity.Property(e => e.GrossQtyPerServing)
                 .HasPrecision(18, 6)
                 .HasColumnName("grossQtyPerServing");
@@ -537,6 +549,11 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.WasteRatePercent)
                 .HasPrecision(5, 2)
                 .HasColumnName("wasteRatePercent");
+
+            entity.HasOne(d => d.Customer).WithMany(p => p.Dishboms)
+                .HasForeignKey(d => d.CustomerId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("dishbom_ibfk_4");
 
             entity.HasOne(d => d.Dish).WithMany(p => p.Dishboms)
                 .HasForeignKey(d => d.DishId)
@@ -1070,6 +1087,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.AppliedPortionRuleId, "appliedPortionRuleId");
 
+            entity.HasIndex(e => e.BomId, "bomId");
+
             entity.Property(e => e.RequestLineId)
                 .HasMaxLength(16)
                 .IsFixedLength()
@@ -1090,6 +1109,14 @@ public partial class IpcManagementContext : DbContext
                 .HasPrecision(5, 2)
                 .HasDefaultValueSql("'100.00'")
                 .HasColumnName("bomRatePercent");
+            entity.Property(e => e.BomId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("bomId");
+            entity.Property(e => e.BomScope)
+                .HasMaxLength(20)
+                .HasDefaultValueSql("'global'")
+                .HasColumnName("bomScope");
             entity.Property(e => e.CurrentStockQty)
                 .HasPrecision(18, 6)
                 .HasColumnName("currentStockQty");
@@ -1104,6 +1131,10 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(16)
                 .IsFixedLength()
                 .HasColumnName("planLineId");
+            entity.Property(e => e.PriceTierAmount)
+                .HasPrecision(18, 2)
+                .HasDefaultValueSql("'25000.00'")
+                .HasColumnName("priceTierAmount");
             entity.Property(e => e.RequestId)
                 .HasMaxLength(16)
                 .IsFixedLength()
@@ -1127,6 +1158,11 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.IngredientId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("materialrequestlines_ibfk_3");
+
+            entity.HasOne(d => d.Bom).WithMany()
+                .HasForeignKey(d => d.BomId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("materialrequestlines_ibfk_5");
 
             entity.HasOne(d => d.PlanLine).WithMany(p => p.Materialrequestlines)
                 .HasForeignKey(d => d.PlanLineId)
@@ -1576,6 +1612,8 @@ public partial class IpcManagementContext : DbContext
 
             entity.HasIndex(e => e.PlanCode, "planCode").IsUnique();
 
+            entity.HasIndex(e => e.SentToKitchenBy, "sentToKitchenBy");
+
             entity.Property(e => e.PlanId)
                 .HasMaxLength(16)
                 .IsFixedLength()
@@ -1600,6 +1638,13 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("planCode");
             entity.Property(e => e.PlanDate).HasColumnName("planDate");
+            entity.Property(e => e.SentToKitchenAt)
+                .HasColumnType("datetime")
+                .HasColumnName("sentToKitchenAt");
+            entity.Property(e => e.SentToKitchenBy)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("sentToKitchenBy");
             entity.Property(e => e.Status)
                 .HasDefaultValueSql("'CREATED'")
                 .HasColumnType("enum('CREATED','SENTTOKITCHEN','COMPLETED','CANCELLED')")
@@ -1623,6 +1668,10 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.CreatedBy)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("productionplans_ibfk_1");
+
+            entity.HasOne(d => d.SentToKitchenByNavigation).WithMany()
+                .HasForeignKey(d => d.SentToKitchenBy)
+                .HasConstraintName("productionplans_ibfk_4");
         });
 
         modelBuilder.Entity<Productionplanline>(entity =>

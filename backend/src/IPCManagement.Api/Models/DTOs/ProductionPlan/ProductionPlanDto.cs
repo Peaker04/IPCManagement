@@ -16,5 +16,8 @@ public class ProductionPlanDto
     public string CreatedBy { get; set; } = string.Empty;
     public string? CreatedByName { get; set; }
     public DateTime CreatedAt { get; set; }
+    public DateTime? SentToKitchenAt { get; set; }
+    public string? SentToKitchenBy { get; set; }
+    public string? SentToKitchenByName { get; set; }
     public List<ProductionPlanLineDto> Lines { get; set; } = new();
 }

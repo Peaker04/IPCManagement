@@ -13,6 +13,10 @@ public partial class Dishbom
 
     public byte[] UnitId { get; set; } = null!;
 
+    public byte[]? CustomerId { get; set; }
+
+    public decimal PriceTierAmount { get; set; } = 25000m;
+
     public decimal GrossQtyPerServing { get; set; }
 
     public decimal WasteRatePercent { get; set; }
@@ -24,6 +28,8 @@ public partial class Dishbom
     public DateOnly? EffectiveTo { get; set; }
 
     public virtual ICollection<Bomadjustment> Bomadjustments { get; set; } = new List<Bomadjustment>();
+
+    public virtual Customer? Customer { get; set; }
 
     public virtual Dish Dish { get; set; } = null!;
 

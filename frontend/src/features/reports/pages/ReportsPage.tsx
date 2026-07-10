@@ -42,7 +42,7 @@ import {
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
-  useGetPurchaseDemandQuery,
+  useGetPurchasePlanQuery,
   useGetStockMovementPageQuery,
   type StockMovement,
   type WorkflowReportQuery,
@@ -54,7 +54,7 @@ type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitc
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
   { id: 'reports-demand', label: 'Nhu cầu NVL' },
-  { id: 'reports-purchase', label: 'Nhu cầu mua' },
+  { id: 'reports-purchase', label: 'Kế hoạch thu mua' },
   { id: 'reports-stock', label: 'Tồn kho' },
   { id: 'reports-movement', label: 'Nhập/xuất kho' },
   { id: 'reports-kitchen', label: 'Xuất bếp' },
@@ -162,6 +162,7 @@ const ReportsPage = () => {
     validReportViews.includes(initialView as ReportView) ? (initialView as ReportView) : 'price'
   );
   const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
+  const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
   const [pricePage, setPricePage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -192,7 +193,11 @@ const ReportsPage = () => {
   const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data ?? [];
   const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data ?? [];
   const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
-  const purchaseDemandResult = useGetPurchaseDemandQuery(reportQuery);
+  const purchasePlanResult = useGetPurchasePlanQuery({
+    ...reportQuery,
+    groupBy: purchasePlanGroupBy,
+    limit: 500,
+  }, { skip: activeView !== 'purchase' });
   const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
   const movementCursor = movementCursors.at(-1);
   const auditCursor = auditCursors.at(-1);
@@ -216,7 +221,7 @@ const ReportsPage = () => {
 
   const priceVarianceRows = priceVarianceResult.data ?? [];
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
-  const purchaseDemandRows = purchaseDemandResult.data ?? [];
+  const purchasePlanRows = purchasePlanResult.data ?? [];
   const currentStockRows = currentStockResult.data ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
@@ -234,7 +239,7 @@ const ReportsPage = () => {
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
-    purchase: purchaseDemandResult,
+    purchase: purchasePlanResult,
     stock: currentStockResult,
     movement: stockMovementResult,
     kitchen: kitchenIssueResult,
@@ -273,15 +278,18 @@ const ReportsPage = () => {
       ],
     },
     purchase: {
-      filename: 'nhu-cau-mua',
-      rows: purchaseDemandRows,
+      filename: 'ke-hoach-thu-mua',
+      rows: purchasePlanRows,
       columns: [
-        ['Nguyên liệu', (row) => row.material],
-        ['Nhà cung cấp', (row) => row.source],
-        ['Cần', (row) => row.required],
-        ['Mua', (row) => row.reserved],
-        ['Đơn vị', (row) => row.unit],
-        ['Trạng thái', (row) => row.status],
+        ['Kỳ', (row) => row.periodKey],
+        ['Nguyên liệu', (row) => row.ingredientName],
+        ['Cần', (row) => row.requiredQty],
+        ['Tồn', (row) => row.currentStockQty],
+        ['Pending receipt', (row) => row.pendingReceiptQty],
+        ['Đề xuất mua', (row) => row.shortageQty],
+        ['Đơn vị', (row) => row.unitName],
+        ['Nhà cung cấp', (row) => row.supplierName],
+        ['Cảnh báo', (row) => row.warnings.join('; ')],
       ],
     },
     stock: {
@@ -780,35 +788,66 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'purchase' && (
-        <SectionPanel title="Nhu cầu mua theo nhà cung cấp, ngày và ca" icon={<ShoppingCart size={18} />}>
-          <DataTableShell ariaLabel="Bảng nhu cầu mua">
+        <SectionPanel
+          title="Kế hoạch thu mua dự kiến"
+          icon={<ShoppingCart size={18} />}
+          badge={(
+            <div className="flex flex-wrap gap-2">
+              {(['day', 'week'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  className={`ipc-button ${purchasePlanGroupBy === mode ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
+                  onClick={() => setPurchasePlanGroupBy(mode)}
+                >
+                  {mode === 'day' ? 'Theo ngày' : 'Theo tuần'}
+                </button>
+              ))}
+            </div>
+          )}
+        >
+          <ContextStrip
+            items={[
+              { label: 'Dòng kế hoạch', value: String(purchasePlanRows.length), tone: purchasePlanRows.length ? 'info' : 'neutral' },
+              { label: 'Thiếu sau pending', value: formatQuantityWithUnit(purchasePlanRows.reduce((sum, row) => sum + row.shortageQty, 0), ''), tone: purchasePlanRows.some((row) => row.shortageQty > 0) ? 'danger' : 'success' },
+              { label: 'Tổng dự kiến', value: formatCurrency(purchasePlanRows.reduce((sum, row) => sum + row.estimatedAmount, 0)), tone: 'neutral' },
+            ]}
+          />
+          <DataTableShell ariaLabel="Bảng kế hoạch thu mua dự kiến">
             <table className="ipc-data-table ipc-status-action-table">
               <thead>
                 <tr>
+                  <th>Kỳ</th>
                   <th>Nguyên liệu</th>
-                  <th>Nhà cung cấp</th>
                   <th>Cần</th>
-                  <th>Mua</th>
-                  <th>Đơn giá dự kiến</th>
-                  <th>Trạng thái</th>
-                  <th>Handoff</th>
+                  <th>Tồn</th>
+                  <th>Pending</th>
+                  <th>Đề xuất mua</th>
+                  <th>NCC</th>
+                  <th>Cảnh báo</th>
                 </tr>
               </thead>
               <tbody>
-                {purchaseDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : purchaseDemandRows.map((row, index) => (
-                  <tr key={`${row.id}-${index}`}>
-                    <td>{row.material}</td>
-                    <td>{row.source}</td>
-                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
-                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.reserved, row.unit)}</td>
-                    <td className="ipc-numeric-cell">{row.reserved > 0 ? 'Theo phiếu mua' : 'Không phát sinh'}</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{row.status}</StatusBadge></td>
-                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>{row.nextAction}</Link></td>
+                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePlanRows.map((row) => (
+                  <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
+                    <td>{row.periodKey}</td>
+                    <td>{row.ingredientName ?? row.ingredientId}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.requiredQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.currentStockQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.pendingReceiptQty, row.unitName ?? '')}</td>
+                    <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.shortageQty, row.unitName ?? '')}</td>
+                    <td>{row.supplierName ?? 'Chưa có báo giá'}</td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={row.warnings.length ? 'warning' : 'success'}>
+                        {row.warnings[0] ?? 'Sẵn sàng'}
+                      </StatusBadge>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </DataTableShell>
+
         </SectionPanel>
       )}
 

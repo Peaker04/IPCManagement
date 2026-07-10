@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
 import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
-import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGeneratePurchaseRequestFromDemandMutation, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
+import { ROUTES } from '@/routes/routeConfig';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
@@ -30,6 +32,18 @@ import {
   useRollbackWeeklyMenuImportMutation,
 } from '../../coordination/coordinationApi';
 import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
+import {
+  BOM_PRICE_TIERS,
+  DEFAULT_BOM_PRICE_TIER,
+  buildProductionDisplayDayByDate,
+  buildProductionPlanPages,
+  filterProductionPlansForSelection,
+  formatBomTierLabel,
+  getSafeProductionPlanPageIndex,
+  isBomPriceTier,
+  normalizeBomPriceTier,
+} from '../weeklyMenuPlanning';
+import type { BomPriceTier } from '../weeklyMenuPlanning';
 
 interface MaterialSummaryEntry {
   theory: number;
@@ -42,18 +56,8 @@ interface MaterialSummaryEntry {
 type MaterialSummary = Record<string, MaterialSummaryEntry>;
 type MaterialSummaryAccumulator = Record<string, MaterialSummaryEntry & { dishNameSet: Set<string> }>;
 
-type GeneratedMaterialRequest = {
-  materialRequestId: string;
-  requestCode: string;
-  serviceDate: string;
-  customerId: string;
-  shortageLineCount: number;
-};
-
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
-const STANDARD_MENU_PRICE = 35000;
-const DEFAULT_LOSS_RATE = 5;
 const PURCHASE_SUMMARY_PAGE_SIZE = 10;
 
 type ServingsStatus = 'confirmed' | 'draft' | 'import-default' | 'missing';
@@ -100,6 +104,7 @@ type WeeklyMenuImportJob = {
   customerCode: string;
   customerName: string;
   weekStartDate: string;
+  priceTierAmount: BomPriceTier;
   file: File;
   fileName: string;
   fileSize: number;
@@ -123,11 +128,6 @@ type ImportDuplicateGroup = {
   label: string;
   rowCount: number;
   locations: string[];
-};
-
-type WeeklyMenuPricingOverride = {
-  menuPrice?: number;
-  lossRate?: number;
 };
 
 type PurchaseSummaryMaterialEntry = [string, MaterialSummaryEntry];
@@ -740,6 +740,13 @@ const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportValidatio
       blocking: !weekMatches,
     },
     {
+      key: 'price-tier',
+      label: 'Định mức BOM',
+      value: formatBomTierLabel(job.priceTierAmount),
+      detail: 'Áp dụng cho toàn bộ file khi lưu menu.',
+      tone: 'success',
+    },
+    {
       key: 'dish',
       label: 'Món ăn',
       value: result ? `${result.rows.length - newDishCount} đã có / ${newDishCount} món mới` : 'Chưa kiểm tra',
@@ -966,6 +973,7 @@ const WeeklyMenuPage = () => {
   const [quickCustomerCode, setQuickCustomerCode] = useState('');
   const [quickCustomerName, setQuickCustomerName] = useState('');
   const [importWeekStartDate, setImportWeekStartDate] = useState('');
+  const [importPriceTierAmount, setImportPriceTierAmount] = useState<BomPriceTier>(DEFAULT_BOM_PRICE_TIER);
   const [selectedImportFile, setSelectedImportFile] = useState<File | null>(null);
   const [importJobs, setImportJobs] = useState<WeeklyMenuImportJob[]>([]);
   const [selectedImportJobId, setSelectedImportJobId] = useState('');
@@ -974,7 +982,6 @@ const WeeklyMenuPage = () => {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const [pricingOverrides, setPricingOverrides] = useState<Record<string, WeeklyMenuPricingOverride>>({});
   const isImporting = isPreviewingImport || isCommittingImport || isCreatingImportCustomer || importJobs.some((job) => job.status === 'previewing' || job.status === 'committing');
   const {
     currentData: committedMenuResponse,
@@ -1027,26 +1034,20 @@ const WeeklyMenuPage = () => {
     : `Ngoài tuần menu (${formatImportDate(todayIso)})`;
   const selectedCustomer = customers.find((customer) => customer.customerId === effectiveMenuCustomerId);
   const selectedCustomerContract = customerContracts.find((contract) => contract.customerId === effectiveMenuCustomerId);
-  const pricingScopeKey = `${effectiveMenuCustomerId || 'none'}|${menuScheduleWeekStartDate || 'latest'}`;
-  const scopedPricingOverride = pricingOverrides[pricingScopeKey] ?? {};
   const scheduleMenuPrices = menuSchedules
     .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
     .map((schedule) => schedule.menuPrice)
     .filter((price) => Number.isFinite(price) && price > 0);
-  const scheduleBomRates = menuSchedules
-    .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
-    .map((schedule) => schedule.bomRatePercent)
-    .filter((rate) => Number.isFinite(rate) && rate > 0);
-  const baseMenuPrice = scheduleMenuPrices.length > 0
-    ? Math.round(scheduleMenuPrices.reduce((sum, price) => sum + price, 0) / scheduleMenuPrices.length)
-    : selectedCustomerContract?.defaultMenuPrice ?? STANDARD_MENU_PRICE;
-  const baseBomRatePercent = scheduleBomRates.length > 0
-    ? scheduleBomRates.reduce((sum, rate) => sum + rate, 0) / scheduleBomRates.length
-    : selectedCustomerContract?.defaultBomRatePercent ?? 100;
-  const menuPrice = scopedPricingOverride.menuPrice ?? baseMenuPrice;
-  const lossRate = scopedPricingOverride.lossRate ?? DEFAULT_LOSS_RATE;
-  const priceRatio = Math.max(0.1, Math.min(1.5, menuPrice / STANDARD_MENU_PRICE));
-  const effectiveQuantityFactor = priceRatio * (baseBomRatePercent / 100) * (1 + lossRate / 100);
+  const scheduleFixedTiers = scheduleMenuPrices.filter(isBomPriceTier).map(normalizeBomPriceTier);
+  const invalidScheduleMenuPrices = scheduleMenuPrices.filter((price) => !isBomPriceTier(price));
+  const contractFixedTier = normalizeBomPriceTier(selectedCustomerContract?.defaultMenuPrice);
+  const menuPrice = scheduleFixedTiers[0] ?? contractFixedTier;
+  const menuPriceSource = scheduleFixedTiers.length > 0
+    ? 'Lịch menu'
+    : selectedCustomerContract?.defaultMenuPrice
+      ? 'Hợp đồng'
+      : 'Mặc định';
+  const fixedBomRatePercent = 100;
   const draftImportCustomer = customers.find((customer) => customer.customerId === draftImportCustomerId);
   const selectedImportFileMeta = selectedImportFile
     ? `${selectedImportFile.name} • ${formatFileSize(selectedImportFile.size)}`
@@ -1133,6 +1134,7 @@ const WeeklyMenuPage = () => {
 
   const resetImportDialog = () => {
     setSelectedImportFile(null);
+    setImportPriceTierAmount(DEFAULT_BOM_PRICE_TIER);
     if (importFileInputRef.current) {
       importFileInputRef.current.value = '';
     }
@@ -1148,6 +1150,7 @@ const WeeklyMenuPage = () => {
     resetImportDialog();
     setDraftImportCustomerId(effectiveMenuCustomerId);
     setImportWeekStartDate(committedMenu?.weekStartDate?.split('T')[0] ?? committedMenuWeekStartDate);
+    setImportPriceTierAmount(menuPrice);
     setIsImportDialogOpen(true);
   };
 
@@ -1171,7 +1174,7 @@ const WeeklyMenuPage = () => {
       isActive: true,
       activeWeekDays: ['t2', 't3', 't4', 't5', 't6', 't7'],
       shiftNames: ['MORNING', 'AFTERNOON'],
-      defaultMenuPrice: 25000,
+      defaultMenuPrice: importPriceTierAmount,
       defaultBomRatePercent: 100,
     };
 
@@ -1235,6 +1238,7 @@ const WeeklyMenuPage = () => {
       customerCode: customer.customerCode,
       customerName: customer.customerName,
       weekStartDate: importWeekStartDate,
+      priceTierAmount: importPriceTierAmount,
       file: selectedImportFile,
       fileName: selectedImportFile.name,
       fileSize: selectedImportFile.size,
@@ -1297,6 +1301,7 @@ const WeeklyMenuPage = () => {
         file: job.file,
         customerId: job.customerId,
         weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
       }).unwrap();
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Không đọc được file thực đơn.');
@@ -1395,6 +1400,7 @@ const WeeklyMenuPage = () => {
         file: job.file,
         customerId: job.customerId,
         weekStartDate: job.weekStartDate || undefined,
+        priceTierAmount: job.priceTierAmount,
       }).unwrap();
       if (!response.success || !response.data) {
         throw new Error(response.message || 'Không lưu được thực đơn.');
@@ -1503,6 +1509,7 @@ const WeeklyMenuPage = () => {
   const [selectedCostDayKey, setSelectedCostDayKey] = useState<string | null>(null);
   const [selectedDemandDayKey, setSelectedDemandDayKey] = useState<string | null>(null);
   const [purchaseSummaryPageIndex, setPurchaseSummaryPageIndex] = useState(0);
+  const [productionPlanPageIndex, setProductionPlanPageIndex] = useState(0);
   const [warehouseExportFeedback, setWarehouseExportFeedback] = useState<{
     title: string;
     message: string;
@@ -1520,30 +1527,48 @@ const WeeklyMenuPage = () => {
     setSelectedCostDayKey(null);
     setSelectedDemandDayKey(null);
     setPurchaseSummaryPageIndex(0);
+    setProductionPlanPageIndex(0);
     setSelectedDishId('');
     setWarehouseExportFeedback(null);
     setDemandFeedback(null);
     setQuickServingInputs({});
   };
 
-  const [generatedMaterialRequests, setGeneratedMaterialRequests] = useState<GeneratedMaterialRequest[]>([]);
-  const currentGeneratedMaterialRequests = useMemo(
-    () => generatedMaterialRequests.filter((request) => request.customerId === effectiveMenuCustomerId),
-    [effectiveMenuCustomerId, generatedMaterialRequests],
-  );
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
-  const selectedProductionPlanServiceDate = selectedDemandDayKey
-    ? getServiceDateIso(selectedDemandDayKey) || parseDisplayDateToIso(displayDays.find((day) => day.key === selectedDemandDayKey)?.date)
-    : undefined;
+  const selectedProductionPlanServiceDate = useMemo(() => {
+    if (!selectedDemandDayKey) return undefined;
+    return parseDisplayDateToIso(displayDays.find((day) => day.key === selectedDemandDayKey)?.date);
+  }, [displayDays, selectedDemandDayKey]);
   const { currentData: productionPlansData } = useGetProductionPlansQuery(
     { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate || undefined },
     { skip: !effectiveMenuCustomerId }
   );
-  const productionPlans = productionPlansData?.data ?? [];
+  const productionPlanWeekDates = useMemo(
+    () => displayDays
+      .map((day) => parseDisplayDateToIso(day.date))
+      .filter((date): date is string => Boolean(date)),
+    [displayDays],
+  );
+  const productionPlans = useMemo(() => {
+    const plans = productionPlansData?.data ?? [];
+    return filterProductionPlansForSelection(plans, productionPlanWeekDates, selectedProductionPlanServiceDate);
+  }, [productionPlansData?.data, productionPlanWeekDates, selectedProductionPlanServiceDate]);
+  const productionDisplayDayByDate = useMemo(
+    () => buildProductionDisplayDayByDate(displayDays, parseDisplayDateToIso),
+    [displayDays],
+  );
+  const productionPlanPages = useMemo(
+    () => buildProductionPlanPages(productionPlans, productionDisplayDayByDate),
+    [productionDisplayDayByDate, productionPlans],
+  );
+  const safeProductionPlanPageIndex = getSafeProductionPlanPageIndex(
+    productionPlanPages.length,
+    productionPlanPageIndex,
+  );
+  const activeProductionPlanPage = productionPlanPages[safeProductionPlanPageIndex];
   const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines]);
   const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
   const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
-  const [generatePurchaseRequestFromDemand, { isLoading: isGeneratingPurchaseRequest }] = useGeneratePurchaseRequestFromDemandMutation();
   const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation();
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
@@ -1694,13 +1719,11 @@ const WeeklyMenuPage = () => {
 
   const getLinePricing = (serviceDate: string, shiftName: string) => {
     const schedule = scheduleByDateShift.get(`${serviceDate.split('T')[0]}|${shiftName}`);
-    const lineMenuPrice = schedule?.menuPrice ?? menuPrice;
-    const lineBomRatePercent = schedule?.bomRatePercent ?? baseBomRatePercent;
-    const linePriceRatio = Math.max(0.1, Math.min(1.5, lineMenuPrice / STANDARD_MENU_PRICE));
+    const lineMenuPrice = normalizeBomPriceTier(schedule?.menuPrice ?? menuPrice);
     return {
       menuPrice: lineMenuPrice,
-      bomRatePercent: lineBomRatePercent,
-      quantityFactor: linePriceRatio * (lineBomRatePercent / 100) * (1 + lossRate / 100),
+      bomRatePercent: fixedBomRatePercent,
+      quantityFactor: 1,
     };
   };
 
@@ -1723,6 +1746,15 @@ const WeeklyMenuPage = () => {
         title: 'Chưa có ngày để tạo demand',
         message: 'Vui lòng import hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.',
         variant: 'warning',
+      });
+      return;
+    }
+
+    if (invalidScheduleMenuPrices.length > 0) {
+      setDemandFeedback({
+        title: 'Định mức không hợp lệ',
+        message: 'Có lịch menu dùng giá ngoài 25k, 30k hoặc 34k. Vui lòng import lại menu với định mức cố định trước khi tạo demand.',
+        variant: 'danger',
       });
       return;
     }
@@ -1812,14 +1844,6 @@ const WeeklyMenuPage = () => {
     );
     const missingBomCount = succeeded.reduce((sum, result) => sum + result.response.data!.missingBomDishes.length, 0);
     const planLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.productionPlanLineCount, 0);
-    const generatedRequests = succeeded.map((result) => ({
-      materialRequestId: result.response.data!.materialRequestId,
-      requestCode: result.response.data!.requestCode,
-      serviceDate: result.response.data!.serviceDate,
-      customerId: effectiveMenuCustomerId,
-      shortageLineCount: result.response.data!.lines.filter((line) => line.suggestedPurchaseQty > 0).length,
-    }));
-
     if (succeeded.length === 0) {
       const firstError = results.find((result) => 'error' in result)?.error;
       setDemandFeedback({
@@ -1830,68 +1854,10 @@ const WeeklyMenuPage = () => {
       return;
     }
 
-    setGeneratedMaterialRequests(generatedRequests);
     setDemandFeedback({
       title: skipped > 0 ? 'Đã tạo demand cho ngày đã chốt' : 'Đã tạo demand cho tuần',
-      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Thu mua có thể sinh danh sách mua thêm bằng nút riêng.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có BOM cần bổ sung.` : 'BOM đã đủ cho các dòng sinh demand.'}`,
+      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Kế hoạch thu mua dự kiến sẽ lấy trực tiếp từ demand, tồn kho và pending receipt.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có BOM cần bổ sung.` : 'BOM đã đủ cho các dòng sinh demand.'}`,
       variant: missingBomCount > 0 || skipped > 0 ? 'warning' : 'info',
-    });
-  };
-
-  const handleGeneratePurchaseRequests = async () => {
-    const candidateMap = new Map<string, GeneratedMaterialRequest>();
-    currentGeneratedMaterialRequests
-      .filter((request) => request.shortageLineCount > 0)
-      .forEach((request) => candidateMap.set(request.materialRequestId, request));
-    demandLines
-      .filter((line) => line.tone === 'danger' && line.materialRequestId)
-      .forEach((line) => {
-        if (!line.materialRequestId) return;
-        candidateMap.set(line.materialRequestId, {
-          materialRequestId: line.materialRequestId,
-          requestCode: line.sourceDocumentCode ?? line.source,
-          serviceDate: '',
-          customerId: effectiveMenuCustomerId,
-          shortageLineCount: 1,
-        });
-      });
-
-    const candidates = Array.from(candidateMap.values());
-    if (candidates.length === 0) {
-      setDemandFeedback({
-        title: 'Chưa có demand thiếu hàng',
-        message: 'Hãy tạo demand trước hoặc kiểm tra báo cáo nhu cầu nguyên liệu để có dòng thiếu cần mua thêm.',
-        variant: 'warning',
-      });
-      return;
-    }
-
-    setDemandFeedback(null);
-    const purchaseResults = await Promise.all(candidates.map(async (request) => {
-        try {
-          const response = await generatePurchaseRequestFromDemand({
-            materialRequestId: request.materialRequestId,
-          }).unwrap();
-          if (!response.success || !response.data) {
-            throw new Error(response.message || 'Không tạo được danh sách mua thêm.');
-          }
-
-          return { request, response };
-        } catch (error) {
-          return { request, error };
-        }
-      }));
-    const purchaseSuccessCount = purchaseResults.filter((result) => 'response' in result).length;
-    const purchaseLineCount = purchaseResults.reduce(
-      (sum, result) => ('response' in result ? sum + (result.response?.data?.lines.length ?? 0) : sum),
-      0,
-    );
-    const failed = purchaseResults.length - purchaseSuccessCount;
-
-    setDemandFeedback({
-      title: failed > 0 ? 'Sinh danh sách mua thêm chưa đủ' : 'Đã sinh danh sách mua thêm',
-      message: `Xử lý ${purchaseSuccessCount}/${purchaseResults.length} demand thiếu hàng, tạo/cập nhật ${purchaseLineCount} dòng mua thêm.${failed > 0 ? ' Một số demand cần kiểm tra lại nhà cung cấp hoặc dữ liệu nguyên liệu.' : ''}`,
-      variant: failed > 0 ? 'warning' : 'info',
     });
   };
 
@@ -2187,6 +2153,14 @@ const WeeklyMenuPage = () => {
   const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
   const weeklyRowsUsingImportDefault = weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default');
   const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
+  const invalidBomTierCount = invalidScheduleMenuPrices.length;
+  const workflowStepItems: Array<{ label: string; value: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = [
+    { label: 'Menu', value: weeklyPlanRows.length.toString(), tone: weeklyPlanRows.length ? 'success' : 'neutral' },
+    { label: 'Số lượng khách', value: weeklyRowsMissingOperationalServings.length ? `${weeklyRowsMissingOperationalServings.length} thiếu` : 'Đủ', tone: weeklyRowsMissingOperationalServings.length ? 'warning' : 'success' },
+    { label: 'Định lượng', value: weeklyRowsMissingBom.length ? `${weeklyRowsMissingBom.length} thiếu BOM` : 'Đủ BOM', tone: weeklyRowsMissingBom.length ? 'danger' : 'success' },
+    { label: 'Đề xuất mua', value: demandLines.length ? `${aggregatedDemandLines.length} dòng` : 'Chờ demand', tone: demandLines.length ? 'info' : 'neutral' },
+    { label: 'Tồn kho/cảnh báo', value: invalidBomTierCount ? `${invalidBomTierCount} sai tier` : 'OK', tone: invalidBomTierCount ? 'danger' : 'success' },
+  ];
   const quickServingRows = displayDays
     .flatMap((day) => {
       const serviceDate = getServiceDateIso(day.key) || parseDisplayDateToIso(day.date);
@@ -2374,7 +2348,7 @@ const WeeklyMenuPage = () => {
     };
   })();
   const khsxBackendDocuments = workflowDocuments.filter((document) =>
-    ['KHSX', 'Danh sách mua thêm', 'Phiếu xuất'].includes(document.type),
+    ['KHSX', 'Đơn mua', 'Phiếu xuất'].includes(document.type),
   );
   const khsxWorkflowDocuments = khsxDraftDocument ? [khsxDraftDocument, ...khsxBackendDocuments] : khsxBackendDocuments;
   const costDayPages = displayDays
@@ -2455,7 +2429,7 @@ const WeeklyMenuPage = () => {
     });
   };
 
-  const getDishUnitCost = (dishId: string, quantityFactor = effectiveQuantityFactor) => {
+  const getDishUnitCost = (dishId: string, quantityFactor = 1) => {
     const dish = dishesById.get(dishId);
     if (!dish || !dish.ingredients.length) return 0;
     const cost = dish.ingredients.reduce((sum, ing) => {
@@ -2480,7 +2454,7 @@ const WeeklyMenuPage = () => {
   const analyzedIngredients = analyzedDish
     ? analyzedDish.ingredients.map((ing) => {
       const theoryQty = ing.grossQtyPerServing;
-      const actualQty = theoryQty * effectiveQuantityFactor;
+      const actualQty = theoryQty;
       const supplierPrice = ing.referencePrice;
       const cost = actualQty * supplierPrice;
       return {
@@ -2608,47 +2582,25 @@ const WeeklyMenuPage = () => {
         </CommandBar>
       }
       context={
-        <div className="mt-3 flex flex-wrap items-center gap-4 rounded-md border border-slate-200 bg-slate-50/50 p-3 shadow-sm">
-          <FieldRow label="Đơn giá suất ăn bình quân (đ)" hint="Định mức 35K = 100% định lượng">
-            <input
-              type="number"
-              value={menuPrice}
-              onChange={(e) => {
-                const nextPrice = Math.max(5000, Number(e.target.value));
-                setPricingOverrides((current) => ({
-                  ...current,
-                  [pricingScopeKey]: {
-                    ...current[pricingScopeKey],
-                    menuPrice: nextPrice,
-                  },
-                }));
-              }}
-              className="ipc-input bg-white w-[220px]"
-              step="1000"
-            />
+        <div className="mt-3 grid gap-3 rounded-md border border-slate-200 bg-slate-50/70 p-3 shadow-sm lg:grid-cols-3">
+          <FieldRow label="Định mức BOM cố định" className="[&_.ipc-field-label]:min-h-[18px]">
+            <div className="ipc-input flex h-10 items-center justify-between bg-white text-sm font-semibold text-blue-700">
+              <span>{formatBomTierLabel(menuPrice)}</span>
+              <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase text-blue-600">
+                Đang dùng
+              </span>
+            </div>
           </FieldRow>
-          <FieldRow label="Tỷ lệ hao hụt sơ chế (%)" hint="Bù lượng hao hụt khi làm sạch">
-            <input
-              type="number"
-              value={lossRate}
-              onChange={(e) => {
-                const nextLossRate = Math.max(0, Number(e.target.value));
-                setPricingOverrides((current) => ({
-                  ...current,
-                  [pricingScopeKey]: {
-                    ...current[pricingScopeKey],
-                    lossRate: nextLossRate,
-                  },
-                }));
-              }}
-              className="ipc-input"
-              min="0"
-              max="50"
-            />
+          <FieldRow label="Nguồn định mức" className="[&_.ipc-field-label]:min-h-[18px]">
+            <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-slate-800">
+              {menuPriceSource}
+            </div>
           </FieldRow>
-          <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-[13px] leading-5 text-slate-700 self-end h-[38px] flex items-center">
-            Hệ số thực tế: &nbsp;<b>{(effectiveQuantityFactor * 100).toFixed(1)}%</b>
-          </div>
+          <FieldRow label="BOM áp dụng" className="[&_.ipc-field-label]:min-h-[18px]">
+            <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-emerald-700">
+              Theo tier cố định, 100%
+            </div>
+          </FieldRow>
         </div>
       }
     >
@@ -2665,6 +2617,12 @@ const WeeklyMenuPage = () => {
         activeTab={activeView}
         onTabChange={(tabId) => setActiveView(tabId as WeeklyMenuView)}
       />
+      <ContextStrip items={workflowStepItems} />
+      {invalidBomTierCount > 0 && (
+        <InlineAlert title="Đơn giá chưa khớp tier BOM" variant="danger">
+          Có {invalidBomTierCount} lịch/ca không thuộc 25k, 30k hoặc 34k. Hệ thống sẽ chặn sinh demand để tránh dùng sai định lượng.
+        </InlineAlert>
+      )}
       {warehouseExportFeedback && (
         <InlineAlert title={warehouseExportFeedback.title} variant={warehouseExportFeedback.variant}>
           {warehouseExportFeedback.message}
@@ -2723,12 +2681,15 @@ const WeeklyMenuPage = () => {
       {activeView === 'production-plan' && (
         <SectionPanel title="Kế hoạch sản xuất chi tiết" icon={<Scale size={18} color="#475569" />}>
           <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-slate-700">Ngày phục vụ:</span>
+            <div className="grid grid-cols-[auto_minmax(220px,1fr)] items-center gap-3">
+              <span className="whitespace-nowrap text-sm font-semibold text-slate-700">Ngày phục vụ:</span>
               <select
-                className="ipc-input w-48 text-sm"
+                className="ipc-input min-h-9 w-full text-sm"
                 value={selectedDemandDayKey || ''}
-                onChange={(e) => setSelectedDemandDayKey(e.target.value || null)}
+                onChange={(e) => {
+                  setSelectedDemandDayKey(e.target.value || null);
+                  setProductionPlanPageIndex(0);
+                }}
               >
                 <option value="">Cả tuần</option>
                 {displayDays.map((d) => (
@@ -2738,47 +2699,86 @@ const WeeklyMenuPage = () => {
                 ))}
               </select>
             </div>
-            {productionPlans.length === 0 ? (
+
+            {productionPlanPages.length === 0 ? (
               <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
             ) : (
-              productionPlans.map((plan) => (
-                <div key={plan.planId} className="border border-slate-200 rounded-md p-4 mb-4">
-                  <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-100">
-                    <h3 className="font-semibold text-slate-800">Mã KHSX: {plan.planCode}</h3>
-                    <StatusBadge variant={plan.status === 'DRAFT' ? 'warning' : 'success'}>
-                      {plan.status}
-                    </StatusBadge>
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
+                  <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+                    <span className="font-semibold text-slate-900">
+                      {activeProductionPlanPage?.label} - {activeProductionPlanPage?.dateLabel}
+                    </span>
+                    <span className="text-slate-500">
+                      {activeProductionPlanPage?.plans.length ?? 0} KHSX / {activeProductionPlanPage?.totalLines ?? 0} dòng / {(activeProductionPlanPage?.totalServings ?? 0).toLocaleString('vi-VN')} suất
+                    </span>
                   </div>
-                  <div className="grid grid-cols-2 gap-4 mb-4 text-sm text-slate-600">
-                    <div>
-                      <span className="font-medium">Ngày phục vụ:</span> {new Date(plan.planDate).toLocaleDateString('vi-VN')}
-                    </div>
-                    <div>
-                      <span className="font-medium">Khách hàng:</span> {plan.customerName} ({plan.customerCode})
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
+                      disabled={safeProductionPlanPageIndex <= 0}
+                      onClick={() => setProductionPlanPageIndex((current) => Math.max(0, current - 1))}
+                    >
+                      Trước
+                    </button>
+                    <span className="min-w-[76px] text-center text-sm font-semibold text-slate-700">
+                      {safeProductionPlanPageIndex + 1}/{productionPlanPages.length}
+                    </span>
+                    <button
+                      type="button"
+                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
+                      disabled={safeProductionPlanPageIndex >= productionPlanPages.length - 1}
+                      onClick={() => setProductionPlanPageIndex((current) => Math.min(productionPlanPages.length - 1, current + 1))}
+                    >
+                      Sau
+                    </button>
                   </div>
-                  <DataTableShell ariaLabel="Bảng chi tiết kế hoạch sản xuất">
-                    <table className="ipc-data-table">
-                      <thead>
-                        <tr>
-                          <th className="w-[20%] text-left">Ca</th>
-                          <th className="w-[50%] text-left">Món ăn</th>
-                          <th className="w-[30%] text-right">Số lượng (suất)</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {plan.lines.map((line) => (
-                          <tr key={line.planLineId}>
-                            <td>{line.shiftName ?? 'Ca sáng'}</td>
-                            <td>{line.dishName ?? '-'}</td>
-                            <td className="text-right font-medium">{line.totalServings}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </DataTableShell>
                 </div>
-              ))
+
+                {activeProductionPlanPage?.plans.map((plan) => (
+                  <div key={plan.planId} className="rounded-md border border-slate-200 bg-white p-4">
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 pb-2">
+                      <h3 className="font-semibold text-slate-800">Mã KHSX: {plan.planCode}</h3>
+                      <StatusBadge variant={plan.status === 'DRAFT' ? 'warning' : 'success'}>
+                        {plan.status}
+                      </StatusBadge>
+                    </div>
+                    <div className="mb-4 grid gap-3 text-sm text-slate-600 md:grid-cols-2">
+                      <div className="flex min-w-0 items-center gap-1">
+                        <span className="whitespace-nowrap font-medium">Ngày phục vụ:</span>
+                        <span>{new Date(plan.planDate).toLocaleDateString('vi-VN')}</span>
+                      </div>
+                      <div className="flex min-w-0 items-center gap-1">
+                        <span className="whitespace-nowrap font-medium">Khách hàng:</span>
+                        <span className="truncate" title={`${plan.customerName} (${plan.customerCode})`}>
+                          {plan.customerName} ({plan.customerCode})
+                        </span>
+                      </div>
+                    </div>
+                    <DataTableShell className="max-h-[520px]" ariaLabel="Bảng chi tiết kế hoạch sản xuất">
+                      <table className="ipc-data-table">
+                        <thead>
+                          <tr>
+                            <th className="w-[20%] text-left">Ca</th>
+                            <th className="w-[50%] text-left">Món ăn</th>
+                            <th className="w-[30%] text-right">Số lượng (suất)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {plan.lines.map((line) => (
+                            <tr key={line.planLineId}>
+                              <td>{getShiftLabel(line.shiftName)}</td>
+                              <td>{line.dishName ?? '-'}</td>
+                              <td className="text-right font-medium">{line.totalServings}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </DataTableShell>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </SectionPanel>
@@ -2844,17 +2844,10 @@ const WeeklyMenuPage = () => {
                       : 'Tạo demand từ KHSX'}
                 </button>
               </ActionGuard>
-              <ActionGuard allowedRoles={['quanly', 'thumua']} requiredPermissions={['purchase.generate']}>
-                <button
-                  className="ipc-button ipc-button-warning"
-                  type="button"
-                  onClick={() => void handleGeneratePurchaseRequests()}
-                  disabled={isGeneratingPurchaseRequest || (currentGeneratedMaterialRequests.length === 0 && !demandLines.some((line) => line.tone === 'danger' && line.materialRequestId))}
-                >
-                  <ShoppingCart size={16} />
-                  {isGeneratingPurchaseRequest ? 'Đang sinh mua thêm...' : 'Sinh danh sách mua thêm'}
-                </button>
-              </ActionGuard>
+              <Link className="ipc-button ipc-button-warning" to={`${ROUTES.REPORTS}?view=purchase`}>
+                <ShoppingCart size={16} />
+                Xem kế hoạch thu mua
+              </Link>
             </Toolbar>
 
             <DataTableShell className="h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
@@ -3037,7 +3030,7 @@ const WeeklyMenuPage = () => {
             ) : (
               <InlineAlert title="Chưa sinh nhu cầu nguyên liệu backend" variant={weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
                 {weeklyPlanRows.length > 0
-                  ? 'Bảng KHSX phía trên đã có dữ liệu từ menu. Bấm Tạo demand từ KHSX để sinh dòng nguyên liệu, kiểm tồn kho và danh sách mua thêm.'
+                  ? 'Bảng KHSX phía trên đã có dữ liệu từ menu. Bấm Tạo demand từ KHSX để sinh dòng nguyên liệu; kế hoạch thu mua sẽ lấy trực tiếp từ demand, tồn kho và pending receipt.'
                   : 'Chưa có dòng KHSX từ menu đang chọn.'}
               </InlineAlert>
             )}
@@ -3380,7 +3373,7 @@ const WeeklyMenuPage = () => {
               variant="danger"
               className="mb-4"
             >
-              Tỉ lệ giá vốn hiện tại đạt <b>{foodCostPercent.toFixed(1)}%</b>, vượt ngưỡng an toàn tối đa (85%). Nhân viên điều phối hoặc Bếp trưởng cần điều chỉnh giảm hao hụt sơ chế hoặc xem xét tăng đơn giá bán suất ăn của ca này.
+              Tỉ lệ giá vốn hiện tại đạt <b>{foodCostPercent.toFixed(1)}%</b>, vượt ngưỡng an toàn tối đa (85%). Kiểm tra lại BOM theo tier, giá nguyên liệu hoặc đơn giá bán suất ăn của ca này.
             </InlineAlert>
           )}
           <SectionPanel
@@ -3498,7 +3491,7 @@ const WeeklyMenuPage = () => {
             }
           }}
         >
-          <DialogContent className="ipc-weekly-dialog max-w-6xl">
+          <DialogContent className="ipc-weekly-dialog max-w-6xl overflow-hidden">
             <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
               <DialogTitle className="text-lg font-bold text-slate-900">
                 Nhập thực đơn từ Excel
@@ -3534,7 +3527,7 @@ const WeeklyMenuPage = () => {
               </div>
 
               <div className="rounded-md border border-slate-200 bg-slate-50 p-4">
-                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(180px,220px)_minmax(260px,1.35fr)_140px]">
+                <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(165px,190px)_minmax(210px,240px)_minmax(250px,1.25fr)_130px]">
                   <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="[&_.ipc-field-label]:min-h-[34px]">
                     <select
                       value={draftImportCustomerId}
@@ -3564,6 +3557,28 @@ const WeeklyMenuPage = () => {
                       }}
                       className="ipc-input h-9 min-h-9"
                     />
+                  </FieldRow>
+                  <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="[&_.ipc-field-label]:min-h-[34px]">
+                    <select
+                      value={importPriceTierAmount}
+                      onChange={(event) => {
+                        setImportPriceTierAmount(normalizeBomPriceTier(Number(event.target.value)));
+                        setImportFeedback(null);
+                      }}
+                      className="ipc-select h-9 min-h-9"
+                      disabled={isImporting}
+                    >
+                      {BOM_PRICE_TIERS.map((tier) => {
+                        return (
+                          <option
+                            key={tier}
+                            value={tier}
+                          >
+                            {formatBomTierLabel(tier)}
+                          </option>
+                        );
+                      })}
+                    </select>
                   </FieldRow>
                   <FieldRow label="File Excel" hint="Chọn file thực đơn" className="[&_.ipc-field-label]:min-h-[34px]">
                     <input
@@ -3695,6 +3710,7 @@ const WeeklyMenuPage = () => {
                       <tr>
                         <th className="text-left whitespace-nowrap">Khách hàng</th>
                         <th className="text-left whitespace-nowrap">Tuần</th>
+                        <th className="text-center whitespace-nowrap">Định mức</th>
                         <th className="text-left whitespace-nowrap">File</th>
                         <th className="text-center whitespace-nowrap">File đọc</th>
                         <th className="text-center whitespace-nowrap">Dòng món</th>
@@ -3718,6 +3734,11 @@ const WeeklyMenuPage = () => {
                               </button>
                             </td>
                             <td className="text-left font-medium whitespace-nowrap">{job.weekStartDate ? formatImportDate(job.weekStartDate) : 'Tự nhận theo file'}</td>
+                            <td className="text-center whitespace-nowrap">
+                              <span className="rounded border border-blue-200 bg-blue-50 px-2 py-1 text-xs font-bold text-blue-700">
+                                {formatBomTierLabel(job.priceTierAmount)}
+                              </span>
+                            </td>
                             <td className="text-left min-w-[280px]">
                               <div className="flex flex-col">
                                 <span className="font-semibold text-slate-800 whitespace-nowrap">{job.fileName}</span>
@@ -3768,8 +3789,8 @@ const WeeklyMenuPage = () => {
                       })}
                       {importJobs.length === 0 && (
                         <tr>
-                          <td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">
-                            Chưa có file nào. Chọn khách hàng, tuần và file Excel rồi bấm Thêm file.
+                          <td colSpan={8} className="p-5 text-center text-sm font-medium text-slate-500">
+                            Chưa có file nào. Chọn khách hàng, tuần, định mức và file Excel rồi bấm Thêm file.
                           </td>
                         </tr>
                       )}
@@ -3961,14 +3982,24 @@ const WeeklyMenuPage = () => {
       {/* Dialog for global menu edit */}
       {isEditingMenu && (
         <Dialog open={isEditingMenu} onOpenChange={(open) => !open && setIsEditingMenu(false)}>
-          <DialogContent className="ipc-weekly-dialog max-w-5xl">
-            <DialogHeader className="border-b border-slate-100 pb-3">
+          <DialogContent className="ipc-weekly-dialog max-w-5xl overflow-hidden">
+            <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
               <DialogTitle className="text-slate-900 font-bold text-lg">
                 Chỉnh sửa Thực đơn tuần (T2 - T7)
               </DialogTitle>
+              <button
+                type="button"
+                onClick={() => setIsEditingMenu(false)}
+                className="ipc-button ipc-button-ghost ipc-button-bounded"
+                aria-label="Đóng modal chỉnh sửa thực đơn"
+                title="Đóng"
+              >
+                <X size={16} />
+                <span>Đóng</span>
+              </button>
             </DialogHeader>
 
-            <div className="mt-4 flex flex-col gap-6">
+            <div className="mt-4 flex max-h-[68vh] flex-col gap-6 overflow-y-auto pr-1">
               {SECTIONS.map((sec) => (
                 <div key={sec.label} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0">
                   <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-[13px] font-bold uppercase text-slate-800">
@@ -4049,14 +4080,14 @@ const WeeklyMenuPage = () => {
       )}
 
       <Dialog open={rollbackTarget !== null} onOpenChange={(open) => !open && setRollbackTarget(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="ipc-weekly-dialog max-w-md">
+          <DialogHeader className="border-b border-slate-100 pb-3">
             <DialogTitle className="text-lg font-bold text-slate-900">Xác nhận hủy phiên import</DialogTitle>
           </DialogHeader>
           <div className="py-2 text-sm font-medium text-slate-600">
             Hủy phiên import <span className="font-bold text-slate-900">"{rollbackTarget?.label}"</span>? Lịch thực đơn của tuần đó sẽ bị xóa và không thể khôi phục.
           </div>
-          <DialogFooter>
+          <DialogFooter className="border-t border-slate-100 pt-4">
             <button
               type="button"
               onClick={() => setRollbackTarget(null)}

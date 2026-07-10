@@ -15,7 +15,8 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVarianceQuery,
-  useGetPurchaseDemandQuery,
+  useGetPurchasePlanQuery,
+  useGetPurchaseRequestsQuery,
   useGetCurrentStockQuery,
   useGetStockMovementsQuery,
   useGetWorkflowDocumentsQuery,
@@ -44,7 +45,8 @@ export default function PurchasingPage() {
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
+  const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 100 });
+  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
@@ -52,13 +54,54 @@ export default function PurchasingPage() {
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
-  const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
+  const purchaseRequests = purchaseRequestsResponse?.data ?? [];
+  const purchasePlanLines = purchasePlanRows.map<DemandLine>((row) => ({
+    id: `${row.periodKey}-${row.ingredientId}`,
+    ingredientId: row.ingredientId,
+    sourceDocumentCode: row.periodKey,
+    serviceDate: row.periodStart,
+    material: row.ingredientName ?? row.ingredientId,
+    required: row.requiredQty,
+    available: row.currentStockQty + row.pendingReceiptQty,
+    reserved: 0,
+    unit: row.unitName ?? '',
+    source: row.supplierName ?? 'Chưa có NCC',
+    estimatedUnitPrice: row.estimatedUnitPrice,
+    status: row.warnings.length > 0 ? row.warnings.join(', ') : row.shortageQty > 0 ? 'Thiếu hàng' : 'Đủ hàng',
+    nextAction: row.shortageQty > 0 ? 'Đề xuất mua' : 'Không cần mua',
+    tone: row.warnings.length > 0 ? 'danger' : row.shortageQty > 0 ? 'warning' : 'success',
+  }));
+  const purchaseRequestLines = purchaseRequests.flatMap<DemandLine>((request) =>
+    request.lines.map((line) => ({
+      id: line.purchaseRequestLineId,
+      materialRequestId: request.materialRequestId,
+      purchaseRequestId: request.purchaseRequestId,
+      purchaseRequestLineId: line.purchaseRequestLineId,
+      supplierId: line.supplierId,
+      ingredientId: line.ingredientId,
+      estimatedUnitPrice: line.estimatedUnitPrice,
+      expectedDeliveryDate: line.expectedDeliveryDate,
+      note: line.note,
+      sourceDocumentCode: request.purchaseRequestCode,
+      serviceDate: request.purchaseForDate,
+      material: line.ingredientName,
+      required: line.requiredQty,
+      available: line.currentStockQty,
+      reserved: line.purchaseQty,
+      unit: line.unitName,
+      source: line.supplierName || 'Chưa chọn NCC',
+      status: request.status,
+      nextAction: request.status === 'APPROVED' ? 'Tạo đơn mua hàng' : request.status === 'DRAFT' ? 'Chọn nhà cung cấp' : 'Theo dõi đơn mua',
+      tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
+    })),
+  );
+  const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
-  const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
-  const submitTargetId = primaryPurchaseDemand?.purchaseRequestId;
-  const purchaseSummaryDocument = purchasingDocuments.find((document) => document.type === 'Danh sách mua thêm')
-    ?? purchasingDocuments[0];
+  const primaryPurchasePlan = purchasePlanLines.find((line) => line.tone === 'danger' || line.tone === 'warning') ?? purchasePlanLines[0];
+  const primaryPurchaseRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
+  const submitTargetId = primaryPurchaseRequestLine?.purchaseRequestId;
+  const purchaseSummaryDocument = purchasingDocuments[0];
 
   const handleSubmitPurchaseRequest = async () => {
     if (!submitTargetId) {
@@ -112,7 +155,7 @@ export default function PurchasingPage() {
         >
           <span className="ipc-command-meta">
             <ShoppingCart size={16} />
-            Danh sách mua thêm: {purchaseSummaryDocument?.title ?? primaryPurchaseDemand?.sourceDocumentCode ?? 'Chưa có chứng từ'}
+            Kế hoạch thu mua: {purchaseSummaryDocument?.title ?? primaryPurchasePlan?.sourceDocumentCode ?? 'Chưa có dữ liệu'}
           </span>
           <span className="ipc-command-meta">Ngưỡng cảnh báo: 15%</span>
         </CommandBar>
@@ -120,10 +163,10 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: primaryPurchaseDemand?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseDemand ? 'warning' : 'neutral' },
+            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
-            { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có', tone: 'neutral' },
+            { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
           ]}
         />
       }
@@ -133,7 +176,7 @@ export default function PurchasingPage() {
         compact
         ariaLabel="Chọn góc nhìn thu mua"
         tabs={[
-          { id: 'purchasing-demand', label: 'Nhu cầu mua' },
+          { id: 'purchasing-demand', label: 'Kế hoạch thu mua' },
           { id: 'purchasing-supplier', label: 'Giá và NCC' },
           { id: 'purchasing-quotation', label: 'Báo giá NCC' },
           { id: 'purchasing-orders', label: 'Đơn mua hàng' },
@@ -161,8 +204,8 @@ export default function PurchasingPage() {
               />
             }
           >
-            <SectionPanel title="Nhu cầu mua thêm" icon={<ShoppingCart size={18} />}>
-              <DemandSummary lines={purchaseDemandLines} />
+            <SectionPanel title="Kế hoạch thu mua dự kiến" icon={<ShoppingCart size={18} />}>
+              <DemandSummary lines={purchasePlanLines} />
             </SectionPanel>
           </SplitWorkbench>
         </div>
@@ -186,7 +229,7 @@ export default function PurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {purchaseDemandLines
+                  {purchaseRequestLines
                     .filter(line => line.purchaseRequestId)
                     .map((line) => (
                     <SupplierLineItem 
@@ -196,8 +239,8 @@ export default function PurchasingPage() {
                       onUpdate={updateSupplier} 
                     />
                   ))}
-                  {purchaseDemandLines.length === 0 && (
-                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Không có nhu cầu mua thêm nào</td></tr>
+                  {purchaseRequestLines.length === 0 && (
+                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Chưa có đơn mua nào để cập nhật NCC</td></tr>
                   )}
                 </tbody>
               </table>
@@ -217,7 +260,7 @@ export default function PurchasingPage() {
       {activeView === 'orders' && (
         <SectionPanel title="Đơn mua hàng (tách theo nhà cung cấp)">
           <div id="purchasing-orders-panel" role="tabpanel" aria-labelledby="purchasing-orders-tab">
-            <PurchaseOrderManager purchaseDemandLines={purchaseDemandLines} currentStockRows={currentStockRows} />
+            <PurchaseOrderManager purchaseRequestLines={purchaseRequestLines} currentStockRows={currentStockRows} />
           </div>
         </SectionPanel>
       )}
@@ -580,10 +623,10 @@ const purchaseOrderStatusLabel: Record<string, string> = {
 };
 
 function PurchaseOrderManager({
-  purchaseDemandLines,
+  purchaseRequestLines,
   currentStockRows,
 }: {
-  purchaseDemandLines: DemandLine[];
+  purchaseRequestLines: DemandLine[];
   currentStockRows: CurrentStockRow[];
 }) {
   const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
@@ -599,7 +642,7 @@ function PurchaseOrderManager({
   ).map(([warehouseId, warehouse]) => ({ warehouseId, warehouse }));
 
   const supplierCountByRequest = new Map<string, Set<string>>();
-  purchaseDemandLines.forEach((line) => {
+  purchaseRequestLines.forEach((line) => {
     if (!line.purchaseRequestId || !line.supplierId) {
       return;
     }
@@ -614,7 +657,7 @@ function PurchaseOrderManager({
 
   const approvedRequests = Array.from(
     new Map(
-      purchaseDemandLines
+      purchaseRequestLines
         .filter((line) => line.status === 'APPROVED' && line.purchaseRequestId)
         .filter((line) => (orderCountByRequest.get(line.purchaseRequestId!) ?? 0) < (supplierCountByRequest.get(line.purchaseRequestId!)?.size ?? 0))
         .map((line) => [line.purchaseRequestId!, line])

@@ -190,13 +190,17 @@ Thư mục `.docs/` là nguồn tham chiếu nghiệp vụ, không phải dữ l
 # Backend build + tests
 npm run build:be
 npm run test:be
+npm run coverage:be
 
-# Frontend lint + build
+# Frontend unit tests, coverage, lint + build
+npm run test:fe:unit
+npm run coverage:fe
 npm run lint:fe
 npm run build:fe
 
 # Full local verification
 npm run verify
+npm run verify:coverage
 
 # Release verification audit
 npm run verify:release:audit
@@ -210,6 +214,10 @@ npm run e2e:exceptions
 # Demand/purchase scale benchmark
 npm run benchmark:workflow
 ```
+
+Backend coverage runs through `backend/coverage.runsettings`, which excludes EF migration files from the report so the baseline focuses on application code. The generated backend report is written to `backend/TestResults/CoverageReport/index.html`.
+
+Frontend unit tests use Vitest + React Testing Library. The generated frontend report is written to `frontend/coverage/index.html`.
 
 > Nếu backend đang chạy bằng `dotnet run`, Windows có thể khóa file trong `bin/Debug`.
 > Hãy dừng instance backend trước khi chạy `npm run verify`, hoặc chạy test với output riêng nếu cần.
