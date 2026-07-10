@@ -16,6 +16,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
+using System.Text;
 using Xunit;
 
 namespace IPCManagement.Api.Tests;
@@ -393,6 +394,115 @@ public class DishCatalogTests
     }
 
     [Fact]
+    public async Task DishService_BomImport_Should_CreateCustomerTierBom_ForMultipleDishes()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        var customerId = GuidHelper.NewId();
+        var secondDishId = GuidHelper.NewId();
+        var secondIngredientId = GuidHelper.NewId();
+
+        fixture.Context.Customers.Add(new Customer
+        {
+            CustomerId = customerId,
+            CustomerCode = "CUS-BOM",
+            CustomerName = "Customer BOM",
+            IsActive = true
+        });
+        fixture.Context.Dishes.Add(new Dish
+        {
+            DishId = secondDishId,
+            DishCode = "DISH-BOM-2",
+            DishName = "Món BOM 2",
+            IsActive = true
+        });
+        fixture.Context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = secondIngredientId,
+            IngredientCode = "ING-BOM-2",
+            IngredientName = "Nguyên liệu BOM 2",
+            UnitId = fixture.UnitId,
+            WarehouseId = fixture.WarehouseId,
+            ReferencePrice = 70000,
+            IsFreshDaily = true,
+            IsActive = true
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var csv = BomImportCsv(
+            ["DISH-BOM", "Món BOM", "30000", "CUS-BOM", "ING-BOM", "Nguyên liệu BOM", "KG", "0.12", "5", "2026-07-01", "", "PUBLISHED", "Món 1"],
+            ["DISH-BOM-2", "Món BOM 2", "30000", "CUS-BOM", "ING-BOM-2", "Nguyên liệu BOM 2", "KG", "0.08", "3", "2026-07-01", "", "PUBLISHED", "Món 2"]);
+        var request = new BomImportCommitRequestDto
+        {
+            PriceTier = 30000,
+            CustomerId = GuidHelper.ToGuidString(customerId)
+        };
+
+        var preview = await service.PreviewBomImportAsync(ToStream(csv), request);
+        var committed = await service.CommitBomImportAsync(ToStream(csv), request, userId: null);
+
+        preview.CanCommit.Should().BeTrue();
+        preview.TotalRows.Should().Be(2);
+        preview.BomScope.Should().Be("customer");
+        committed.CreatedRows.Should().Be(2);
+        committed.UpdatedRows.Should().Be(0);
+        committed.ArchivedRows.Should().Be(0);
+
+        var rows = (await fixture.Context.Dishboms.AsNoTracking().ToListAsync())
+            .OrderBy(row => row.GrossQtyPerServing)
+            .ToList();
+        rows.Should().HaveCount(2);
+        rows.Should().OnlyContain(row => row.PriceTierAmount == 30000m);
+        rows.Should().OnlyContain(row => row.CustomerId != null && row.CustomerId.SequenceEqual(customerId));
+        rows.Select(row => row.GrossQtyPerServing).Should().Equal(0.08m, 0.12m);
+    }
+
+    [Fact]
+    public async Task DishService_BomImport_Should_BlockErrorsAndKeepCommitAllOrNothing()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        fixture.Context.Dishboms.Add(new Dishbom
+        {
+            BomId = GuidHelper.NewId(),
+            DishId = fixture.DishId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            PriceTierAmount = 25000,
+            GrossQtyPerServing = 0.10m,
+            WasteRatePercent = 2,
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = new DateOnly(2026, 6, 1)
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var csv = BomImportCsv(
+            ["DISH-BOM", "Món BOM", "25000", "", "ING-BOM", "Nguyên liệu BOM", "KG", "0.12", "5", "2026-07-01", "2026-07-31", "PUBLISHED", "Valid but duplicate"],
+            ["DISH-BOM", "Món BOM", "25000", "", "ING-BOM", "Nguyên liệu BOM", "KG", "0.13", "5", "2026-07-01", "", "PUBLISHED", "Duplicate effective date"],
+            ["DISH-BOM", "Món BOM", "25000", "", "ING-BOM", "Nguyên liệu BOM", "KG", "0.14", "5", "2026-07-15", "", "PUBLISHED", "Overlap range"],
+            ["DISH-UNKNOWN", "Món sai", "25000", "", "ING-UNKNOWN", "NL sai", "BOX", "0.10", "1", "2026-08-01", "", "PUBLISHED", "Unknown refs"]);
+        var request = new BomImportCommitRequestDto { PriceTier = 25000 };
+
+        var preview = await service.PreviewBomImportAsync(ToStream(csv), request);
+        var act = async () => await service.CommitBomImportAsync(ToStream(csv), request, userId: null);
+
+        preview.CanCommit.Should().BeFalse();
+        preview.TotalRows.Should().Be(4);
+        preview.ErrorRows.Should().Be(4);
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Trùng dish/ingredient/unit/effective date")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("Khoảng hiệu lực BOM bị overlap trong file")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("IngredientCode không tồn tại")));
+        preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("UnitCode không tồn tại")));
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*File BOM còn lỗi*");
+
+        var persistedRows = await fixture.Context.Dishboms.AsNoTracking().ToListAsync();
+        persistedRows.Should().ContainSingle();
+        persistedRows.Single().GrossQtyPerServing.Should().Be(0.10m);
+    }
+
+    [Fact]
     public async Task SampleDataProductionGuard_Should_Return404_Before_NextMiddleware_InProduction()
     {
         var environment = Substitute.For<IWebHostEnvironment>();
@@ -416,6 +526,21 @@ public class DishCatalogTests
 
     private static DishService CreateDishService(IpcManagementContext context)
         => new(Substitute.For<IDishRepository>(), context, new MemoryCache(new MemoryCacheOptions()));
+
+    private static MemoryStream ToStream(string content)
+        => new(Encoding.UTF8.GetBytes(content));
+
+    private static string BomImportCsv(params string[][] rows)
+    {
+        var builder = new StringBuilder();
+        builder.AppendLine("DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note");
+        foreach (var row in rows)
+        {
+            builder.AppendLine(string.Join(",", row.Select(cell => $"\"{cell.Replace("\"", "\"\"")}\"")));
+        }
+
+        return builder.ToString();
+    }
 
     private static async Task<CatalogFixture> CreateCatalogFixtureAsync()
     {
@@ -468,7 +593,7 @@ public class DishCatalogTests
         });
         await context.SaveChangesAsync();
 
-        return new CatalogFixture(connection, context, dishId, ingredientId, unitId);
+        return new CatalogFixture(connection, context, dishId, ingredientId, unitId, warehouseId);
     }
 
     private static async Task CreateMinimalCatalogSchemaAsync(SqliteConnection connection)
@@ -541,13 +666,15 @@ public class DishCatalogTests
         IpcManagementContext context,
         byte[] dishId,
         byte[] ingredientId,
-        byte[] unitId) : IAsyncDisposable
+        byte[] unitId,
+        byte[] warehouseId) : IAsyncDisposable
     {
         public SqliteConnection Connection { get; } = connection;
         public IpcManagementContext Context { get; } = context;
         public byte[] DishId { get; } = dishId;
         public byte[] IngredientId { get; } = ingredientId;
         public byte[] UnitId { get; } = unitId;
+        public byte[] WarehouseId { get; } = warehouseId;
 
         public async ValueTask DisposeAsync()
         {
