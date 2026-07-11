@@ -69,7 +69,7 @@ export function SupplementalRequestDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="ipc-chef-dialog max-w-md rounded-xl border-slate-200 bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+      <DialogContent aria-label="Gửi yêu cầu bổ sung" className="ipc-chef-dialog max-w-md rounded-xl border-slate-200 bg-white p-5 sm:p-6 shadow-2xl animate-in zoom-in-95 duration-200">
         <DialogHeader className="flex flex-col items-center text-center sm:text-left sm:items-start pb-2 border-b border-slate-100 mb-2">
           <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-600 mb-3 border border-amber-100/60 shadow-inner">
             <Plus className="w-5 h-5" />

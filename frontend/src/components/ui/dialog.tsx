@@ -1,4 +1,5 @@
 import * as React from "react"
+import { createPortal } from "react-dom"
 
 import { cn } from "@/lib/utils"
 
@@ -9,24 +10,25 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
-  return (
+  if (!open || typeof document === "undefined") {
+    return null
+  }
+
+  return createPortal(
     <>
-      {open && (
-        <div
-          aria-hidden="true"
-          className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[1px]"
-          onClick={() => onOpenChange(false)}
-        />
-      )}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
-          onClick={() => onOpenChange(false)}
-        >
-          {children}
-        </div>
-      )}
-    </>
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
+        onClick={() => onOpenChange(false)}
+      />
+      <div
+        className="fixed inset-0 z-[1001] flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+        onClick={() => onOpenChange(false)}
+      >
+        {children}
+      </div>
+    </>,
+    document.body,
   )
 }
 

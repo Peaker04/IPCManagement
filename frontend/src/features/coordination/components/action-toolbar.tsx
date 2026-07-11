@@ -14,6 +14,11 @@ import { ActionGuard } from '@/routes/ActionGuard'
 
 type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
 
+type ActionErrorFeedback = {
+  title: string
+  message: string
+}
+
 interface OrderExportReportRow {
   quantityPlanLineId: string
   serviceDate: string
@@ -78,6 +83,27 @@ const downloadCsv = (csv: string, filename: string) => {
   URL.revokeObjectURL(url)
 }
 
+const getActionErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object') {
+    const candidate = error as {
+      message?: unknown
+      error?: unknown
+      data?: {
+        message?: unknown
+        errors?: unknown
+      }
+    }
+
+    if (typeof candidate.data?.message === 'string') return candidate.data.message
+    if (typeof candidate.message === 'string') return candidate.message
+    if (typeof candidate.error === 'string') return candidate.error
+  }
+
+  return fallback
+}
+
 export function ActionToolbar({ status }: { status?: string }) {
   const dispatch = useAppDispatch()
   const isLocked = useIsLocked()
@@ -91,6 +117,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   const [signoffCoordinationOrder, { isLoading: isSigningOff }] = useSignoffCoordinationOrderMutation()
   const [isUnlocking, setIsUnlocking] = useState(false)
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
+  const [confirmationError, setConfirmationError] = useState<ActionErrorFeedback | null>(null)
   const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false)
   const [editReason, setEditReason] = useState('')
   const [feedback, setFeedback] = useState<{
@@ -113,7 +140,13 @@ export function ActionToolbar({ status }: { status?: string }) {
   const closeConfirmationDialog = () => {
     if (!isBusy) {
       setConfirmationAction(null)
+      setConfirmationError(null)
     }
+  }
+
+  const openConfirmationDialog = (action: Exclude<ConfirmationAction, null>) => {
+    setConfirmationError(null)
+    setConfirmationAction(action)
   }
 
   const handleLock = async () => {
@@ -148,10 +181,9 @@ export function ActionToolbar({ status }: { status?: string }) {
       })
       setConfirmationAction(null)
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa chốt được đơn ca',
-        message: error instanceof Error ? error.message : 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca.'),
       })
     }
   }
@@ -238,10 +270,9 @@ export function ActionToolbar({ status }: { status?: string }) {
         variant: 'info',
       })
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa xuất được báo cáo',
-        message: error instanceof Error ? error.message : 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca hiện tại.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca hiện tại.'),
       })
     }
   }
@@ -273,10 +304,9 @@ export function ActionToolbar({ status }: { status?: string }) {
         variant: 'info',
       })
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa hoàn tất được ca',
-        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra trạng thái ca trước khi hoàn tất.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng kiểm tra trạng thái ca trước khi hoàn tất.'),
       })
     }
   }
@@ -308,10 +338,9 @@ export function ActionToolbar({ status }: { status?: string }) {
       })
       setConfirmationAction(null)
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa mở khóa được ca',
-        message: error instanceof Error ? error.message : typeof error === 'string' ? error : 'Vui lòng thử lại sau.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau.'),
       })
     } finally {
       setIsUnlocking(false)
@@ -351,6 +380,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   })()
 
   const handleConfirmedAction = () => {
+    setConfirmationError(null)
     if (confirmationAction === 'lock') return handleLock()
     if (confirmationAction === 'signoff') return handleSignoff()
     if (confirmationAction === 'unlock') return handleUnlock()
@@ -370,7 +400,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         <div className="ipc-order-action-buttons flex flex-wrap items-center gap-2">
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('lock')}
+              onClick={() => openConfirmationDialog('lock')}
               disabled={isConfirmed || isTerminal || isLocking || orders.length === 0}
               variant="default"
               size="sm"
@@ -383,7 +413,7 @@ export function ActionToolbar({ status }: { status?: string }) {
 
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('signoff')}
+              onClick={() => openConfirmationDialog('signoff')}
               disabled={!isConfirmed || isTerminal || isSigningOff || !currentPlanId}
               variant="outline"
               size="sm"
@@ -396,7 +426,7 @@ export function ActionToolbar({ status }: { status?: string }) {
 
           <ActionGuard allowedRoles={['quanly']}>
             <Button
-              onClick={() => setConfirmationAction('unlock')}
+              onClick={() => openConfirmationDialog('unlock')}
               disabled={!isConfirmed || isTerminal || isUnlocking || !currentPlanId}
               variant="outline"
               size="sm"
@@ -409,7 +439,7 @@ export function ActionToolbar({ status }: { status?: string }) {
 
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('export')}
+              onClick={() => openConfirmationDialog('export')}
               disabled={!isConfirmed || isExporting}
               variant="outline"
               size="sm"
@@ -442,7 +472,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         </div>
       )}
       <Dialog open={isReasonDialogOpen} onOpenChange={setIsReasonDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent aria-label="Yêu cầu điều chỉnh sau chốt" className="max-w-md">
           <DialogHeader>
             <DialogTitle>Yêu cầu điều chỉnh sau chốt</DialogTitle>
             <DialogDescription>
@@ -470,7 +500,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         </DialogContent>
       </Dialog>
       <Dialog open={confirmationAction !== null} onOpenChange={closeConfirmationDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent aria-label={confirmDialogCopy.title} className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-600" />
@@ -482,6 +512,13 @@ export function ActionToolbar({ status }: { status?: string }) {
             <div className="font-semibold text-slate-800">Ca hiện tại: {currentShift}</div>
             <div>Số dòng đơn: {orders.length}</div>
           </div>
+          {confirmationError && (
+            <div role="alert">
+              <InlineAlert title={confirmationError.title} variant="danger">
+                {confirmationError.message}
+              </InlineAlert>
+            </div>
+          )}
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={closeConfirmationDialog} disabled={isBusy}>
               Hủy

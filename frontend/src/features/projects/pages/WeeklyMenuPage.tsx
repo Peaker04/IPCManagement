@@ -4083,7 +4083,7 @@ const WeeklyMenuPage = () => {
       )}
 
       <Dialog open={rollbackTarget !== null} onOpenChange={(open) => !open && setRollbackTarget(null)}>
-        <DialogContent className="ipc-weekly-dialog max-w-md">
+        <DialogContent aria-label="Xác nhận hủy phiên import" className="ipc-weekly-dialog max-w-md">
           <DialogHeader className="border-b border-slate-100 pb-3">
             <DialogTitle className="text-lg font-bold text-slate-900">Xác nhận hủy phiên import</DialogTitle>
           </DialogHeader>

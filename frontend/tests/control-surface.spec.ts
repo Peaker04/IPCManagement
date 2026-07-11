@@ -69,6 +69,114 @@ async function stubOperationalApis(page: Page) {
   });
 }
 
+async function stubMealOrderDraftShift(page: Page) {
+  const orders = [
+    {
+      id: 'order-dav-morning',
+      quantityPlanLineId: 'line-dav-morning',
+      quantityPlanId: 'plan-dav-morning',
+      customerId: 'customer-dav',
+      customerCode: 'DAV',
+      customerName: 'Draxlmaier',
+      mealType: 'Thực đơn DAV Ca sáng',
+      forecastQuantity: 270,
+      actualQuantity: 270,
+      unitPrice: 25000,
+      appliedRate: 100,
+      specialNotes: 'Imported from weekly menu',
+      serviceDate: '2026-07-11',
+      dayOfWeek: 't7',
+      shiftName: 'MORNING',
+      shift: 'Ca Sáng',
+      menuId: 'menu-dav-morning',
+      menuCode: 'MENU-DAV-20260711-MORNING',
+      menuName: 'Thực đơn DAV Ca sáng 11/07/2026',
+      dishId: 'dish-egg',
+      dishes: [
+        { dishId: 'dish-egg', dishCode: 'DISH-EGG', dishName: 'TRỨNG LUỘC 40g' },
+        { dishId: 'dish-rau', dishCode: 'DISH-RAU', dishName: 'RAU MUỐNG XÀO + MUỐI ĐẬU' },
+        { dishId: 'dish-fruit', dishCode: 'DISH-FRUIT', dishName: 'Trái cây' },
+      ],
+    },
+  ];
+
+  await page.route('**/api/coordination/orders**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/orders/lock')) {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: false,
+          message: 'Backend từ chối chốt ca do thiếu số suất thực tế.',
+          data: null,
+        }),
+      });
+      return;
+    }
+
+    await fulfillJson(route, orders);
+  });
+  await page.route('**/api/coordination/menu-schedules**', async (route) =>
+    fulfillJson(route, [
+      {
+        menuScheduleId: 'schedule-dav-morning',
+        menuId: 'menu-dav-morning',
+        menuCode: 'MENU-DAV-20260711-MORNING',
+        menuName: 'Thực đơn DAV Ca sáng 11/07/2026',
+        serviceDate: '2026-07-11',
+        weekStartDate: '2026-07-06',
+        shiftName: 'MORNING',
+        shift: 'Ca Sáng',
+        dayOfWeek: 't7',
+        menuPrice: 25000,
+        bomRatePercent: 100,
+        status: 'DRAFT',
+        dishes: [],
+      },
+    ]),
+  );
+  await page.route('**/api/coordination/meal-quantity-plans**', async (route) =>
+    fulfillJson(route, [
+      {
+        quantityPlanId: 'plan-dav-morning',
+        serviceDate: '2026-07-11',
+        dayOfWeek: 't7',
+        shiftName: 'MORNING',
+        status: 'DRAFT',
+      },
+    ]),
+  );
+}
+
+async function stubApprovalQueue(page: Page) {
+  await page.route('**/api/approvals/inbox**', async (route) =>
+    fulfillJson(route, [
+      {
+        inboxItemId: 'approval-pr-control',
+        targetType: 'purchase-request',
+        targetId: 'pr-control',
+        targetCode: 'PR-CONTROL-01',
+        itemType: 'purchase',
+        title: 'Duyệt đơn mua nguyên liệu',
+        source: 'PR-CONTROL-01',
+        ownerRole: 'Quản lý',
+        submittedBy: 'Điều phối ca sáng',
+        dueDate: '2026-07-11',
+        status: 'PENDING',
+        reason: 'Đơn mua cần phê duyệt trước khi gửi nhà cung cấp.',
+        nextAction: 'Duyệt',
+        tone: 'warning',
+        route: ROUTES.APPROVALS,
+        materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
+      },
+    ]),
+  );
+  await page.route('**/api/workflow-reports/workflow-documents**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/approval-history/**', async (route) => fulfillJson(route, []));
+}
+
 async function login(page: Page) {
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
@@ -148,5 +256,48 @@ test.describe('operational control surface', () => {
     await expect(editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' })).toBeVisible();
     await editDialog.getByRole('button', { name: 'Đóng modal chỉnh sửa thực đơn' }).click();
     await expect(editDialog).toBeHidden();
+  });
+
+  test('meal order confirmation dialog stays top-level and keeps API errors visible', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-07-11T07:15:00+07:00') });
+    await stubMealOrderDraftShift(page);
+    await page.goto(ROUTES.MEAL_ORDERS);
+
+    const lockButton = page.getByRole('button', { name: 'Chốt đơn ca này' });
+    await expect(lockButton).toBeEnabled();
+    await lockButton.click();
+
+    const confirmDialog = page.getByRole('dialog', { name: 'Chốt đơn ca này?' });
+    await expect(confirmDialog).toBeVisible();
+    await expect(confirmDialog.getByRole('button', { name: 'Hủy' })).toBeVisible();
+    await expect(confirmDialog.getByRole('button', { name: 'Chốt đơn ca' })).toBeVisible();
+
+    const isInsideToolbar = await confirmDialog.evaluate((element) =>
+      Boolean(element.closest('.ipc-order-action-toolbar')),
+    );
+    expect(isInsideToolbar).toBe(false);
+
+    const box = await confirmDialog.boundingBox();
+    const viewport = page.viewportSize();
+    expect(box).not.toBeNull();
+    expect(viewport).not.toBeNull();
+    expect(box!.y).toBeGreaterThanOrEqual(24);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height - 24);
+
+    await confirmDialog.getByRole('button', { name: 'Chốt đơn ca' }).click();
+    await expect(confirmDialog.getByRole('alert')).toContainText('Backend từ chối chốt ca do thiếu số suất thực tế.');
+    await expect(confirmDialog).toBeVisible();
+  });
+
+  test('approval decision modal is addressable by role and name', async ({ page }) => {
+    await stubApprovalQueue(page);
+    await page.goto(ROUTES.APPROVALS);
+
+    await page.getByRole('button', { name: 'Duyệt' }).first().click();
+    const approvalDialog = page.getByRole('dialog', { name: 'Xác nhận duyệt chứng từ' });
+    await expect(approvalDialog).toBeVisible();
+    await expect(approvalDialog.getByLabel('Ghi chú duyệt (tùy chọn)')).toBeVisible();
+    await approvalDialog.getByRole('button', { name: 'Hủy' }).click();
+    await expect(approvalDialog).toBeHidden();
   });
 });
