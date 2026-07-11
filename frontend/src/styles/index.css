@@ -831,6 +831,82 @@ code {
   white-space: normal;
 }
 
+.ipc-table-action-control {
+  min-width: 4.75rem;
+  justify-content: center;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.ipc-row-action-cell .ipc-table-action-control,
+.ipc-row-action-cell .ipc-table-action-control.ipc-button {
+  width: fit-content;
+  min-width: 4.75rem;
+  max-width: 7rem;
+  overflow-wrap: normal;
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.ipc-admin-quality-table {
+  min-width: 1320px;
+  table-layout: fixed;
+}
+
+.ipc-admin-quality-table th:nth-child(1) {
+  width: 15%;
+}
+
+.ipc-admin-quality-table th:nth-child(2) {
+  width: 7%;
+}
+
+.ipc-admin-quality-table th:nth-child(3) {
+  width: 8%;
+}
+
+.ipc-admin-quality-table th:nth-child(4) {
+  width: 9%;
+}
+
+.ipc-admin-quality-table th:nth-child(5) {
+  width: 9%;
+}
+
+.ipc-admin-quality-table th:nth-child(6) {
+  width: 13%;
+}
+
+.ipc-admin-quality-table th:nth-child(7),
+.ipc-admin-quality-table th:nth-child(8) {
+  width: 15%;
+}
+
+.ipc-admin-quality-table th:nth-child(9),
+.ipc-admin-quality-table th:nth-child(10) {
+  width: 8%;
+  min-width: 6rem;
+}
+
+.ipc-admin-quality-table .ipc-row-action-cell {
+  text-align: center;
+  white-space: nowrap;
+}
+
+.ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control,
+.ipc-admin-quality-table .ipc-row-action-cell .ipc-table-action-control.ipc-button {
+  width: 5.25rem;
+  min-width: 5.25rem;
+  max-width: 5.25rem;
+}
+
+.ipc-admin-quality-table .ipc-quality-description-cell,
+.ipc-admin-quality-table .ipc-quality-action-guidance-cell {
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
 .ipc-swimlane-table th:nth-child(1) {
   width: 11%;
 }

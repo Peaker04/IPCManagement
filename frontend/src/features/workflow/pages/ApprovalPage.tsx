@@ -341,7 +341,10 @@ export default function ApprovalPage() {
         open={decisionModal.isOpen}
         onOpenChange={(open) => setDecisionModal((prev) => ({ ...prev, isOpen: open }))}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent
+          aria-label={decisionModal.status === 'Approve' ? 'Xác nhận duyệt chứng từ' : 'Xác nhận từ chối chứng từ'}
+          className="max-w-md"
+        >
           <DialogHeader>
             <DialogTitle>
               {decisionModal.status === 'Approve' ? 'Xác nhận duyệt chứng từ' : 'Xác nhận từ chối chứng từ'}

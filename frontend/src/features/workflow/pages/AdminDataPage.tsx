@@ -1223,7 +1223,7 @@ export default function AdminDataPage() {
             )}
 
             <DataTableShell ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
-              <table className="ipc-data-table text-sm">
+              <table className="ipc-data-table ipc-admin-quality-table text-sm">
                 <thead>
                   <tr>
                     <th>Nhóm lỗi</th>
@@ -1266,11 +1266,11 @@ export default function AdminDataPage() {
                         <div className="font-semibold text-slate-900">{issue.entityCode}</div>
                         <div className="text-xs text-slate-500">{issue.entityName} / {issue.entityLabel}</div>
                       </td>
-                      <td className="text-left text-slate-700">{issue.message}</td>
-                      <td className="text-left text-slate-600">{issue.suggestedAction}</td>
-                      <td>
+                      <td className="ipc-quality-description-cell text-left text-slate-700">{issue.message}</td>
+                      <td className="ipc-quality-action-guidance-cell text-left text-slate-600">{issue.suggestedAction}</td>
+                      <td className="ipc-row-action-cell">
                         <Link
-                          className="ipc-button ipc-button-ghost ipc-button-bounded"
+                          className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"
                           to={issue.category === 'missing_bom' ? `${ROUTES.ADMIN_DATA}?view=bom-import` : issue.route || ROUTES.ADMIN_DATA}
                           onClick={() => {
                             if (issue.category === 'missing_bom' && issue.entityId) {
@@ -1281,9 +1281,9 @@ export default function AdminDataPage() {
                           Sửa
                         </Link>
                       </td>
-                      <td>
+                      <td className="ipc-row-action-cell">
                         <button
-                          className="ipc-button ipc-button-ghost ipc-button-bounded"
+                          className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"
                           type="button"
                           disabled={updateDataQualityIssueRemediationState.isLoading}
                           onClick={() => void handleDataQualityRemediation(issue, issue.remediationStatus === 'resolved' ? 'reopen' : 'resolve')}

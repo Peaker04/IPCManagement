@@ -260,7 +260,10 @@ export default function ApprovalRulesPage() {
 
       {/* Create / Edit Rule Dialog */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent className="max-w-2xl overflow-y-auto max-h-[85vh]">
+        <DialogContent
+          aria-label={editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}
+          className="max-w-2xl overflow-y-auto max-h-[85vh]"
+        >
           <DialogHeader>
             <DialogTitle>{editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}</DialogTitle>
             <DialogDescription>
