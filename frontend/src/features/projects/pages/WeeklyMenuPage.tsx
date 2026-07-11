@@ -3491,7 +3491,7 @@ const WeeklyMenuPage = () => {
             }
           }}
         >
-          <DialogContent className="ipc-weekly-dialog max-w-6xl overflow-hidden">
+          <DialogContent aria-label="Nhập thực đơn từ Excel" className="ipc-weekly-dialog max-w-6xl overflow-hidden">
             <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
               <DialogTitle className="text-lg font-bold text-slate-900">
                 Nhập thực đơn từ Excel
@@ -3530,6 +3530,7 @@ const WeeklyMenuPage = () => {
                 <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(220px,1fr)_minmax(165px,190px)_minmax(210px,240px)_minmax(250px,1.25fr)_130px]">
                   <FieldRow label="Khách hàng" hint="Chọn khách hàng trong file" className="[&_.ipc-field-label]:min-h-[34px]">
                     <select
+                      aria-label="Khách hàng"
                       value={draftImportCustomerId}
                       onChange={(event) => {
                         setDraftImportCustomerId(event.target.value);
@@ -3549,6 +3550,7 @@ const WeeklyMenuPage = () => {
                   </FieldRow>
                   <FieldRow label="Tuần bắt đầu" hint="Chọn thứ 2 của tuần" className="[&_.ipc-field-label]:min-h-[34px]">
                     <input
+                      aria-label="Tuần bắt đầu"
                       type="date"
                       value={importWeekStartDate}
                       onChange={(event) => {
@@ -3560,6 +3562,7 @@ const WeeklyMenuPage = () => {
                   </FieldRow>
                   <FieldRow label="Định mức BOM" hint="Chọn tier cho file" className="[&_.ipc-field-label]:min-h-[34px]">
                     <select
+                      aria-label="Định mức BOM"
                       value={importPriceTierAmount}
                       onChange={(event) => {
                         setImportPriceTierAmount(normalizeBomPriceTier(Number(event.target.value)));
@@ -3982,7 +3985,7 @@ const WeeklyMenuPage = () => {
       {/* Dialog for global menu edit */}
       {isEditingMenu && (
         <Dialog open={isEditingMenu} onOpenChange={(open) => !open && setIsEditingMenu(false)}>
-          <DialogContent className="ipc-weekly-dialog max-w-5xl overflow-hidden">
+          <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-5xl overflow-hidden">
             <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
               <DialogTitle className="text-slate-900 font-bold text-lg">
                 Chỉnh sửa Thực đơn tuần (T2 - T7)

@@ -12,10 +12,17 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   return (
     <>
       {open && (
-        <div className="fixed inset-0 z-50 bg-slate-600/30" onClick={() => onOpenChange(false)} />
+        <div
+          aria-hidden="true"
+          className="fixed inset-0 z-50 bg-slate-900/45 backdrop-blur-[1px]"
+          onClick={() => onOpenChange(false)}
+        />
       )}
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto p-4 sm:items-center"
+          onClick={() => onOpenChange(false)}
+        >
           {children}
         </div>
       )}
@@ -23,14 +30,32 @@ export function Dialog({ open, onOpenChange, children }: DialogProps) {
   )
 }
 
-export function DialogContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+export function DialogContent({
+  className,
+  children,
+  onClick,
+  role = "dialog",
+  ...props
+}: React.HTMLAttributes<HTMLDivElement>) {
+  const ariaModal = role === "dialog" && props["aria-modal"] === undefined
+    ? true
+    : props["aria-modal"]
+
+  const handleClick: React.MouseEventHandler<HTMLDivElement> = (event) => {
+    event.stopPropagation()
+    onClick?.(event)
+  }
+
   return (
     <div
+      {...props}
+      role={role}
+      aria-modal={ariaModal}
       className={cn(
-        "max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-lg sm:p-6",
+        "max-h-[calc(100dvh-2rem)] w-full max-w-lg overflow-y-auto gap-4 rounded-md border border-slate-200 bg-white p-4 shadow-xl outline-none sm:p-6",
         className
       )}
-      {...props}
+      onClick={handleClick}
     >
       {children}
     </div>

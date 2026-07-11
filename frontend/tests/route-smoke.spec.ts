@@ -61,6 +61,14 @@ async function stubWorkflowReports(page: Page) {
     });
   });
 
+  await page.route('**/api/coordination/customer-contracts', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+    });
+  });
+
   await page.route('**/api/workflow-reports/**', async (route) => {
     await route.fulfill({
       status: 200,
