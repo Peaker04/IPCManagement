@@ -42,7 +42,7 @@ export const SessionTimeoutModal = () => {
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => (open ? setIsOpen(true) : goToLogin())}>
-      <DialogContent className="max-w-md border-amber-200 bg-white p-6 shadow-2xl">
+      <DialogContent aria-label="Phiên đăng nhập đã hết hạn" className="max-w-md border-amber-200 bg-white p-6 shadow-2xl">
         <DialogHeader className="text-left">
           <div className="mb-3 inline-flex h-11 w-11 items-center justify-center rounded-full bg-amber-50 text-amber-700">
             <ShieldAlert size={22} />
