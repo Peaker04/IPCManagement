@@ -12,6 +12,7 @@
     "test:unit:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "test:controls": "playwright test tests/control-surface.spec.ts",
+    "test:ui-audit": "playwright test tests/ui-audit.spec.ts",
     "test:smoke": "playwright test tests/route-smoke.spec.ts",
     "test:visual": "playwright test tests/visual-routes.spec.ts",
     "test:visual:update": "playwright test tests/visual-routes.spec.ts --update-snapshots"
