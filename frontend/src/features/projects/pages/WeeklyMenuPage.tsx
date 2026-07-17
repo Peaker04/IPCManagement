@@ -3437,7 +3437,7 @@ const WeeklyMenuPage = () => {
               />
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
+            <TableViewport caption="Giá vốn nguyên liệu cho một khay" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
               <table className="ipc-data-table ipc-cost-table">
                 <thead>
                   <tr>
@@ -3477,7 +3477,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
           </SectionPanel>
         </>
       )}
