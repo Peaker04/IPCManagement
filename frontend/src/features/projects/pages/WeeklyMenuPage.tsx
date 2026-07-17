@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
@@ -2756,7 +2757,7 @@ const WeeklyMenuPage = () => {
                         </span>
                       </div>
                     </div>
-                    <DataTableShell className="max-h-[520px]" ariaLabel="Bảng chi tiết kế hoạch sản xuất">
+                    <TableViewport caption="Chi tiết kế hoạch sản xuất theo ca và món ăn" ariaLabel="Bảng chi tiết kế hoạch sản xuất">
                       <table className="ipc-data-table">
                         <thead>
                           <tr>
@@ -2775,7 +2776,7 @@ const WeeklyMenuPage = () => {
                           ))}
                         </tbody>
                       </table>
-                    </DataTableShell>
+                    </TableViewport>
                   </div>
                 ))}
               </>
