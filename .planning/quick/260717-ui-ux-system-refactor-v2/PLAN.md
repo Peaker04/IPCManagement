@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-pagination-convergence-api-gap-recorded-ownership-gate-open
+status: wave-3-server-pagination-current-stock-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -202,6 +202,14 @@ Pagination contract gap evidence:
 - Only `stock-movements/page` and `audit-changes/page` currently return cursor metadata. Their shared cursor control is therefore valid; converting the list endpoints to numeric UI pages without backend metadata would be a false lazy-pagination implementation.
 - The exact endpoint matrix, risk decision and required follow-up are recorded in `PAGINATION-CONTRACT-GAP.md`.
 - True server pagination is deferred to a separately owned backend/API phase because `WorkflowReportService` and `AdminDataPage` have user-owned dirty changes. Local pagination remains a DOM-containment measure and must not be described as server lazy loading.
+
+Current-stock server-pagination slice:
+
+- Added `GET /api/workflow-reports/current-stock/page` with `pageNumber`, `pageSize`, existing warehouse/ingredient filters and `PagedResponseDto` metadata (`totalCount`, `totalPages`, `hasPrev`, `hasNext`).
+- `ReportsPage` now requests only the active stock page and renders the server response directly; the previous `limit: 100` + local slice path is removed for this route.
+- Ownership was preserved with hunk-level staging: the pre-existing BOM/tier changes in `WorkflowReportService.cs` remain unstaged and were not included in commit `0139148`.
+- Evidence: relational SQLite contract test passed; backend `267/267` tests, frontend unit `72/72`, lint and build passed; staged GitNexus detection was 8 files, 2 symbols, 1 Reports flow, MEDIUM.
+- Runtime note: unauthenticated endpoint correctly returns `401`. Swagger generation remains unavailable because the pre-existing dirty `DishesController.PreviewBomImport` `[FromForm] IFormFile` contract crashes Swashbuckle; this is tracked as a separate backend/docs blocker and is not caused by the pagination slice.
 
 Critical shell gate result — `DataTableShell`:
 
