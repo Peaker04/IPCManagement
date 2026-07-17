@@ -176,6 +176,8 @@ Current Wave 3 evidence:
 - Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
 - Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
 - Dashboard slice: `SwimlaneProgress` now uses `TableViewport` and shared semantic workflow copy for lane/status/waiting/blocked/next-action columns (`80b52d8`).
+- Weekly-menu slice: the clean production-detail table inside `WeeklyMenuPage` now uses `TableViewport` with an accessible caption (`347253e`). The feature-owned import and production-plan hunks were not staged.
+- Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
 
 Critical shell gate result — `DataTableShell`:
 
