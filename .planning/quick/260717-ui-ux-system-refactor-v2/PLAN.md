@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-operational-complete-ownership-gate-open
+status: wave-3-server-pagination-report-families-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -240,6 +240,14 @@ Kitchen/usage server-pagination slice:
 - Usage semantics are preserved: return and waste quantities are aggregated for the issue IDs on the requested page, then mapped to the same issued/returned/wasted/variance/used row fields as before.
 - Ownership was preserved with hunk-level staging: the unrelated BOM/tier edits in `WorkflowReportService.cs` remain unstaged.
 - Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 symbols, 1 Reports flow, MEDIUM. Commit: `54d2e51`.
+
+Data-quality server-pagination slice:
+
+- Added `GET /api/workflow-reports/data-quality/page` with page-number metadata and the existing quality summary counters in a single response contract.
+- ReportsPage data-quality now requests the active issue page only and renders that page through the canonical `PaginationBar`; the previous full report plus local slice is removed from this route.
+- Preserved issue mapping, severity/status copy, summary counters and remediation routes. `AdminDataPage` continues using its existing endpoint and remains outside this ownership boundary.
+- Known boundary: the current data-quality generator still materializes and sorts up to the service safety cap (`1000`) before page slicing because its issue sources are heterogeneous. This commit bounds the UI payload and establishes the API contract; a future data-quality query decomposition is required before claiming fully database-lazy evaluation at very large issue volumes.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `95ac13c`.
 
 Critical shell gate result — `DataTableShell`:
 
