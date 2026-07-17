@@ -245,6 +245,7 @@ const ReportsPage = () => {
   const stockPagination = usePaginatedRows(currentStockRows, 8);
   const kitchenPagination = usePaginatedRows(kitchenIssueRows, 8);
   const usagePagination = usePaginatedRows(usageRows, 8);
+  const dataQualityPagination = usePaginatedRows(dataQualityRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -1005,6 +1006,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </DataTableShell>
+          <CursorPagination
+            page={auditCursors.length + 1}
+            hasNext={auditResult.data?.hasNext ?? false}
+            onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
+            onNext={openNextAuditPage}
+          />
         </SectionPanel>
       )}
 
@@ -1021,7 +1028,7 @@ const ReportsPage = () => {
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
           />
-          <DataTableShell ariaLabel="Bảng data quality trước production">
+          <PaginatedTableFrame ariaLabel="Bảng data quality trước production">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -1037,7 +1044,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {dataQualityRows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityRows.map((row) => (
+                {dataQualityPagination.rows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityPagination.rows.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
@@ -1074,13 +1081,8 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </DataTableShell>
-          <CursorPagination
-            page={auditCursors.length + 1}
-            hasNext={auditResult.data?.hasNext ?? false}
-            onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
-            onNext={openNextAuditPage}
-          />
+          </PaginatedTableFrame>
+          <PaginationBar page={dataQualityPagination.page} pageSize={dataQualityPagination.pageSize} totalItems={dataQualityPagination.totalItems} onPageChange={dataQualityPagination.setPage} />
         </SectionPanel>
       )}
     </OperationalFrame>
