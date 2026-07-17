@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-current-stock-price-demand-complete-ownership-gate-open
+status: wave-3-server-pagination-current-stock-price-demand-purchase-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -224,6 +224,14 @@ Ingredient-demand server-pagination slice:
 - ReportsPage demand view now requests the active page only; `PaginationBar` consumes server totals and the context strip consumes server-calculated shortage count. The previous `limit:100` local slice is removed for this table.
 - Preserved behavior: filters, row mapping, status/tone semantics, handoff links, export payload shape and the distinction between shortage (`suggestedPurchaseQty > 0`) and cancelled warning rows.
 - Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `532573f`.
+
+Purchase-plan server-pagination slice:
+
+- Added `GET /api/workflow-reports/purchase-plan/page` with grouped-row metadata and server-calculated `totalShortageQty`/`totalEstimatedAmount`.
+- ReportsPage purchase view now requests only the active grouped page; its context strip uses server totals instead of summing only the visible page.
+- The legacy endpoint retains its source limit behavior (`500`), while the page endpoint removes that source truncation before grouping so grouped totals are not mathematically incomplete.
+- Known boundary: grouping and pending-receipt aggregation currently materialize the filtered source lines in the service before slicing the grouped response. This solves bounded UI payloads and correct metadata, but a future DB-level grouped query is required for large-data performance; it is not silently claimed as full database lazy loading.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `78fdd34`.
 
 Critical shell gate result — `DataTableShell`:
 
