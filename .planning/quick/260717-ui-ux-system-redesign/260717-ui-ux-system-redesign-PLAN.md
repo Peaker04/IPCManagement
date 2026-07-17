@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-redesign
 date: 2026-07-17
-status: in-progress
+status: paused-before-wave-4
 type: execute
 stack: React 19 + Vite 8 + Tailwind v4 + shadcn-style local primitives
 ---
@@ -51,6 +51,8 @@ Status: Coordination `OrderTable`, Warehouse stock table, all three Purchasing t
 - Dùng labels dễ hiểu: ví dụ `BOM canonical` → `BOM chuẩn`, `Unchanged/Create/Version` → `Không đổi/Tạo mới/Tạo phiên bản`, `blocker` → `Vấn đề chặn xử lý`, `reason` → `Lý do`.
 
 ### Wave 4 — Visual, accessibility and regression gate
+
+Status: paused by user on 2026-07-17. The current adapter-based implementation must be re-planned before visual verification continues because existing and redesigned UI surfaces are not structurally synchronized.
 
 - Browser audit ở 1365x900, 1280x900, 768x1024 và 390x844.
 - Kiểm tra keyboard/focus, semantic headings, table captions/aria labels, contrast, reduced motion, icon/text spacing và no page overflow.
