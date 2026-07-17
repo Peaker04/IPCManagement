@@ -10,6 +10,7 @@ import {
   OperationalFrame,
   RoleInbox,
   PaginationBar,
+  PaginatedTableFrame,
   SectionPanel,
   StatusBadge,
   StockMovementTable,
@@ -18,6 +19,7 @@ import {
   type ViewTab,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangesQuery,
@@ -281,6 +283,8 @@ export default function AdminDataPage() {
   const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
   const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
   const priceWarnings = priceVarianceRows.filter((row) => row.warning);
+  const currentStockPagination = usePaginatedRows(currentStockRows, 8);
+  const priceWarningPagination = usePaginatedRows(priceWarnings, 8);
   const totalPurchaseQty = purchasePlanRows.reduce((total, row) => total + row.shortageQty, 0);
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
   const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
@@ -1410,7 +1414,7 @@ export default function AdminDataPage() {
           </SectionPanel>
 
           <SectionPanel title="Theo dõi tồn kho và xuất bếp" icon={<PackageCheck size={18} />}>
-            <DataTableShell ariaLabel="Bảng tồn kho ưu tiên">
+            <PaginatedTableFrame ariaLabel="Bảng tồn kho ưu tiên">
               <table className="ipc-data-table">
                 <thead>
                   <tr>
@@ -1421,7 +1425,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockRows.slice(0, 8).length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.slice(0, 8).map((row, index) => (
+                  {currentStockPagination.rows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockPagination.rows.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
@@ -1431,11 +1435,12 @@ export default function AdminDataPage() {
                   ))}
                 </tbody>
               </table>
-            </DataTableShell>
+            </PaginatedTableFrame>
+            <PaginationBar page={currentStockPagination.page} pageSize={currentStockPagination.pageSize} totalItems={currentStockPagination.totalItems} onPageChange={currentStockPagination.setPage} />
           </SectionPanel>
 
           <SectionPanel title="Cảnh báo cần admin theo dõi" icon={<TrendingUp size={18} />}>
-            <DataTableShell ariaLabel="Bảng cảnh báo biến động giá">
+            <PaginatedTableFrame ariaLabel="Bảng cảnh báo biến động giá">
               <table className="ipc-data-table">
                 <thead>
                   <tr>
@@ -1447,7 +1452,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {priceWarnings.slice(0, 8).length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.slice(0, 8).map((row, index) => (
+                  {priceWarningPagination.rows.length === 0 ? <EmptyRow colSpan={5} /> : priceWarningPagination.rows.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.name}</td>
                       <td>{row.supplier}</td>
@@ -1458,7 +1463,8 @@ export default function AdminDataPage() {
                   ))}
                 </tbody>
               </table>
-            </DataTableShell>
+            </PaginatedTableFrame>
+            <PaginationBar page={priceWarningPagination.page} pageSize={priceWarningPagination.pageSize} totalItems={priceWarningPagination.totalItems} onPageChange={priceWarningPagination.setPage} />
           </SectionPanel>
         </div>
       )}
