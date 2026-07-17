@@ -25,7 +25,7 @@ import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangePageQuery,
-  useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetDataQualityQuery,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
@@ -167,6 +167,7 @@ export default function AdminDataPage() {
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [currentStockPage, setCurrentStockPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -265,7 +266,7 @@ export default function AdminDataPage() {
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 500 });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
+  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
   const { data: priceVarianceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
   const { data: usageRows = [] } = useGetIssueVsReturnUsageQuery({ limit: 100 });
@@ -291,7 +292,7 @@ export default function AdminDataPage() {
   const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
   const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
   const priceWarnings = priceVarianceRows.filter((row) => row.warning);
-  const currentStockPagination = usePaginatedRows(currentStockRows, 8);
+  const currentStockRows = currentStockPageResponse?.items ?? [];
   const priceWarningPagination = usePaginatedRows(priceWarnings, 8);
   const totalPurchaseQty = purchasePlanRows.reduce((total, row) => total + row.shortageQty, 0);
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
@@ -317,10 +318,8 @@ export default function AdminDataPage() {
     ...(canManageEmployees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
 
-  const displayLogs = auditLogs;
-  const totalAuditPages = Math.max(1, Math.ceil(displayLogs.length / auditPageSize));
-  const safeAuditPage = Math.min(auditPage, totalAuditPages);
-  const pagedAuditLogs = displayLogs.slice((safeAuditPage - 1) * auditPageSize, safeAuditPage * auditPageSize);
+  const displayLogs = auditResult.data?.items ?? [];
+
 
   const handleDownloadBomTemplate = async () => {
     try {
@@ -720,7 +719,7 @@ export default function AdminDataPage() {
             { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
             { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
             { label: 'Cảnh báo giá', value: priceWarnings.length.toString(), tone: priceWarnings.length ? 'danger' : 'success' },
-            { label: 'Tồn kho', value: `${currentStockRows.length} dòng`, tone: 'neutral' },
+            { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
             ...(canManageEmployees ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
           ]}
@@ -1437,7 +1436,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockPagination.rows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockPagination.rows.map((row, index) => (
+                  {currentStockRows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
@@ -1448,7 +1447,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={currentStockPagination.page} pageSize={currentStockPagination.pageSize} totalItems={currentStockPagination.totalItems} onPageChange={currentStockPagination.setPage} />
+            <PaginationBar
+              page={currentStockPageResponse?.pageNumber ?? currentStockPage}
+              pageSize={currentStockPageResponse?.pageSize ?? 8}
+              totalItems={currentStockPageResponse?.totalCount ?? 0}
+              onPageChange={setCurrentStockPage}
+            />
           </SectionPanel>
 
           <SectionPanel title="Cảnh báo cần admin theo dõi" icon={<TrendingUp size={18} />}>
