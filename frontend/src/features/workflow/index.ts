@@ -16,6 +16,7 @@ export {
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetPriceVarianceQuery,

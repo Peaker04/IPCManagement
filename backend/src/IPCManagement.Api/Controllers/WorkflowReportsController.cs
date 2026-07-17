@@ -71,6 +71,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>.SuccessResult(
             await _workflowReportService.GetIngredientDemandAsync(query)));
 
+    [HttpGet("ingredient-demand/page")]
+    public async Task<IActionResult> GetIngredientDemandPage([FromQuery] IngredientDemandPageQueryDto query)
+        => Ok(ApiResponse<IngredientDemandPageDto>.SuccessResult(
+            await _workflowReportService.GetIngredientDemandPageAsync(query)));
+
     [HttpGet("purchase-demand")]
     public async Task<IActionResult> GetPurchaseDemand([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(

@@ -237,6 +237,17 @@ interface IngredientDemandReportDto {
   suggestedPurchaseQty: number;
 }
 
+interface IngredientDemandPageResponseDto {
+  items: IngredientDemandReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
 export interface PurchasePlanRow {
   periodKey: string;
   groupBy: 'day' | 'week';
@@ -1429,6 +1440,30 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PurchasePlanRow[]>) => response.data ?? [],
       providesTags: ['WorkflowReports'],
     }),
+    getIngredientDemandPage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/production-plans/daily',
@@ -1683,6 +1718,7 @@ export const workflowApi = apiSlice.injectEndpoints({
 export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
   useSubmitPurchaseRequestMutation,

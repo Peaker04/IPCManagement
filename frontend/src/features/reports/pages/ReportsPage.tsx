@@ -34,7 +34,7 @@ import {
   useGetAuditChangePageQuery,
   useGetCurrentStockPageQuery,
   useGetDataQualityQuery,
-  useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetPriceVariancePageQuery,
@@ -139,6 +139,8 @@ const ReportsPage = () => {
   const reportPageSize = 20;
   const stockPageSize = 8;
   const [stockPage, setStockPage] = useState(1);
+  const demandPageSize = 8;
+  const [demandPage, setDemandPage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -163,7 +165,11 @@ const ReportsPage = () => {
   const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data ?? [];
   const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data ?? [];
   const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data ?? [];
-  const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
+  const ingredientDemandResult = useGetIngredientDemandPageQuery({
+    ...reportQuery,
+    pageNumber: demandPage,
+    pageSize: demandPageSize,
+  }, { skip: activeView !== 'demand' });
   const purchasePlanResult = useGetPurchasePlanQuery({
     ...reportQuery,
     groupBy: purchasePlanGroupBy,
@@ -195,7 +201,7 @@ const ReportsPage = () => {
   const dataQualityResult = useGetDataQualityQuery(reportQuery);
 
   const priceVarianceRows = priceVarianceResult.data?.items ?? [];
-  const ingredientDemandRows = ingredientDemandResult.data ?? [];
+  const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
   const purchasePlanRows = purchasePlanResult.data ?? [];
   const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
   const currentStockRows = currentStockResult.data?.items ?? [];
@@ -208,11 +214,10 @@ const ReportsPage = () => {
 
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
-  const shortageItems = ingredientDemandRows.filter((item) => item.tone === 'danger');
+  const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
-  const demandPagination = useLocalPagination(ingredientDemandRows, 8);
   const purchasePagination = useLocalPagination(purchasePlanRows, 8);
   const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
   const usagePagination = useLocalPagination(usageRows, 8);
@@ -479,7 +484,7 @@ const ReportsPage = () => {
         <ContextStrip
           items={[
             { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
-            { label: 'Thiếu nguyên liệu', value: shortageItems.length.toString(), tone: shortageItems.length ? 'danger' : 'success' },
+            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: 'neutral' },
             { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
             { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
@@ -759,7 +764,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {demandPagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : demandPagination.rows.map((row, index) => (
+                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : ingredientDemandRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
@@ -773,7 +778,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={demandPagination.page} pageSize={demandPagination.pageSize} totalItems={demandPagination.totalItems} onPageChange={demandPagination.setPage} />
+          <PaginationBar
+            page={ingredientDemandResult.data?.pageNumber ?? demandPage}
+            pageSize={ingredientDemandResult.data?.pageSize ?? demandPageSize}
+            totalItems={ingredientDemandResult.data?.totalCount ?? 0}
+            onPageChange={setDemandPage}
+          />
         </SectionPanel>
       )}
 

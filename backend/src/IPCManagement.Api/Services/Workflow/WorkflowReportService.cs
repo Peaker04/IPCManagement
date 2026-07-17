@@ -564,6 +564,95 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
     }
 
+    public async Task<IngredientDemandPageDto> GetIngredientDemandPageAsync(IngredientDemandPageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(item => item.Request)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Customer)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Dish)
+            .AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var totalCount = await lines.CountAsync();
+        var shortageCount = await lines.CountAsync(item => item.SuggestedPurchaseQty > 0);
+        var items = await lines
+            .OrderByDescending(item => item.Request.RequestDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new IngredientDemandReportDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                MaterialRequestCode = item.Request.RequestCode,
+                RequestDate = item.Request.RequestDate,
+                Status = item.Request.Status,
+                ShiftName = item.PlanLine.ShiftName,
+                CustomerName = item.PlanLine.Customer.CustomerName,
+                DishName = item.PlanLine.Dish.DishName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                BomId = item.BomId == null ? null : GuidHelper.ToGuidString(item.BomId),
+                PriceTierAmount = item.PriceTierAmount,
+                BomScope = item.BomScope,
+                TotalServings = item.TotalServings,
+                BomRatePercent = item.BomRatePercent,
+                AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
+                AppliedPortionRuleSource = item.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = item.AppliedPortionRatePercent,
+                YieldLossPercent = item.YieldLossPercent,
+                TotalRequiredQty = item.TotalRequiredQty,
+                CurrentStockQty = item.CurrentStockQty,
+                SuggestedPurchaseQty = item.SuggestedPurchaseQty
+            })
+            .ToListAsync();
+
+        return new IngredientDemandPageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
     {
         var groupBy = string.Equals(query.GroupBy, "week", StringComparison.OrdinalIgnoreCase) ? "week" : "day";
