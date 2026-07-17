@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-2-pilot-complete
+status: wave-3-pilot-paused-at-critical-shell-gate
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -177,6 +177,13 @@ Current Wave 3 evidence:
 - Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
 - Dashboard slice: `SwimlaneProgress` now uses `TableViewport` and shared semantic workflow copy for lane/status/waiting/blocked/next-action columns (`80b52d8`).
 
+Critical shell gate result — `DataTableShell`:
+
+- GitNexus upstream impact: CRITICAL; 16 impacted symbols, 10 direct callers and 12 affected execution flows.
+- A compatibility bridge to `TableViewport` was prototyped with the public props and `ipc-table-shell` class preserved. Unit `62/62`, lint, build and UI audit `2/2` passed.
+- Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
+- Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
+
 ### Wave 4 — Accessibility and visual verification
 
 Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
@@ -185,6 +192,18 @@ Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
 - Keyboard tab order, focus visible, dialog naming, table region naming, aria-current/selected, reduced motion.
 - Body overflow, nested scroll, sticky header, action reachability, long-cell wrapping.
 - Playwright controls, route smoke, ui-audit, visual routes; nếu auth/backend fail thì phân loại và sửa root cause trước khi rerun.
+
+Wave 4 is intentionally paused. Its gates cannot be used to authorize more visual changes while the critical shell and dirty ownership boundaries remain unresolved.
+
+### Next execution slice — Refactor legacy shell safely
+
+1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype.
+2. Add a small contract test for `DataTableShell` public props, region semantics and legacy class preservation; do not change geometry in this step.
+3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally.
+4. Run the complete gate set for that consumer. A visual failure must produce an actual-vs-baseline diff and root-cause note; snapshot updates are forbidden until the diff is explained.
+5. Re-run GitNexus impact for every edited symbol. If the shared shell remains CRITICAL, keep it as a compatibility boundary and move the migration to callers.
+6. Reconcile ownership for `WeeklyMenuPage` and `AdminDataPage` before touching either file. Their existing user changes are not implementation debt that can be overwritten.
+7. Only after all consumers are migrated, remove `DataTableShell`/legacy CSS in a separate cleanup commit with a full visual and accessibility gate.
 
 ### Wave 5 — Cleanup and release gate
 
