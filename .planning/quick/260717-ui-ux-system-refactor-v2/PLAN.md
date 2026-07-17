@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-pilot-paused-at-ownership-gate
+status: wave-3-helper-delegate-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -172,6 +172,7 @@ Current Wave 3 evidence:
 - Semantic copy slice: `uiCopy.reports` now owns report tab, status and technical labels; `ReportsPage` consumes those labels for UI and CSV headers (`dc989ef`). Backend enums, query payloads and exported values remain unchanged.
 - Workflow copy slice: `uiCopy.workflow` now owns owner, deadline, action, SLA and document-code labels; `DocumentRail`, `RoleInbox` and `ApprovalQueue` consume the shared vocabulary (`00da341`).
 - Pagination contract slice: pure `paginationMeta.ts` now owns local page math; `usePaginatedRows` re-exports it for compatibility, `useLocalPagination` imports it directly, and `PaginationContract` is a discriminated union for local/page-number/cursor (`1200311`).
+- Legacy helper convergence: `usePaginatedRows` now delegates to `useLocalPagination` (`a82286f`), so legacy consumers share the canonical local controller without changing their public API or server-query behavior. The dirty `AdminDataPage` consumer remains protected for ownership reconciliation.
 - Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
 - Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
 - Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
@@ -196,6 +197,7 @@ Critical shell gate result — `DataTableShell`:
 - Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
 - Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
 - Contract test: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`). Full unit suite is now 64/64.
+- Direct inventory boundary: GitNexus does not index `usePaginatedRows`; its impact/detect scope is therefore recorded as `UNKNOWN`/`No changes detected`, with source diff, compatibility API review and full frontend gates used as the verification evidence.
 - Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
 ### Wave 4 — Accessibility and visual verification
