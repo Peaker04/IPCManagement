@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-pilot-paused-at-critical-shell-gate
+status: wave-3-pilot-paused-at-ownership-gate
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -183,6 +183,8 @@ Critical shell gate result — `DataTableShell`:
 - A compatibility bridge to `TableViewport` was prototyped with the public props and `ipc-table-shell` class preserved. Unit `62/62`, lint, build and UI audit `2/2` passed.
 - Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
 - Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
+- Contract test: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`). Full unit suite is now 64/64.
+- Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
 ### Wave 4 — Accessibility and visual verification
 
