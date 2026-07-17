@@ -1,0 +1,118 @@
+.ipc-redesign-shell {
+  --ipc-shell-width: 248px;
+  --ipc-redesign-surface: #ffffff;
+  --ipc-redesign-canvas: #f6f8fb;
+  --ipc-redesign-border: #d9e2ee;
+}
+
+.ipc-redesign-shell .ipc-sidebar {
+  background: var(--ipc-redesign-surface);
+  border-color: var(--ipc-redesign-border);
+  box-shadow: 1px 0 0 rgb(15 23 42 / 0.02);
+}
+
+.ipc-redesign-shell .ipc-brand {
+  min-height: 68px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--ipc-redesign-border);
+}
+
+.ipc-redesign-shell .ipc-brand-title {
+  letter-spacing: -0.01em;
+}
+
+.ipc-redesign-shell .ipc-brand-subtitle {
+  color: var(--ipc-slate-500);
+}
+
+.ipc-redesign-shell .ipc-nav {
+  gap: 4px;
+  padding: 14px 10px;
+}
+
+.ipc-redesign-shell .ipc-nav-link {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.ipc-redesign-shell .ipc-nav-link:hover {
+  background: #f5f8fc;
+  border-color: #e5ebf3;
+}
+
+.ipc-redesign-shell .ipc-nav-link.is-active {
+  background: var(--ipc-primary-soft);
+  border-color: #a9c8f6;
+  color: var(--ipc-primary);
+  font-weight: 600;
+}
+
+.ipc-redesign-shell .ipc-nav-link.is-active::before {
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+.ipc-redesign-shell .ipc-sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--ipc-redesign-border);
+  background: var(--ipc-redesign-surface);
+}
+
+.ipc-redesign-shell .ipc-user-card {
+  border-color: #b9cee9;
+  background: #fbfdff;
+}
+
+.ipc-redesign-shell .ipc-logout-button {
+  min-height: 38px;
+  border-color: #fecaca;
+  color: #c53030;
+  background: #fff;
+}
+
+.ipc-redesign-shell .ipc-logout-button:hover {
+  background: #fff7f7;
+}
+
+.ipc-redesign-shell .ipc-header {
+  background: var(--ipc-redesign-surface);
+  border-color: var(--ipc-redesign-border);
+}
+
+.ipc-redesign-shell .ipc-main {
+  background: var(--ipc-redesign-canvas);
+}
+
+.ipc-paginated-table-frame {
+  max-height: 520px;
+  min-height: 160px;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.ipc-paginated-table-frame:focus-visible {
+  outline: 2px solid var(--ipc-focus-ring);
+  outline-offset: 2px;
+}
+
+.ipc-paginated-table-frame > table {
+  min-width: 720px;
+}
+
+@media (max-width: 1023px) {
+  .ipc-redesign-shell .ipc-sidebar {
+    width: 100%;
+  }
+
+  .ipc-redesign-shell .ipc-nav {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ipc-paginated-table-frame {
+    max-height: 440px;
+  }
+}
