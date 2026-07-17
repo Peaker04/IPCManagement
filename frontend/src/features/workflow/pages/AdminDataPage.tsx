@@ -1075,7 +1075,7 @@ export default function AdminDataPage() {
               </div>
 
               <div className="grid gap-4">
-                <DataTableShell ariaLabel="Bảng contract khách hàng">
+                <TableViewport caption="Danh sách contract khách hàng" ariaLabel="Bảng contract khách hàng">
                   <table className="ipc-data-table text-sm">
                     <thead>
                       <tr>
@@ -1112,7 +1112,7 @@ export default function AdminDataPage() {
                       ))}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
 
                 <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
                   <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(110px,0.5fr))]">
