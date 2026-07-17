@@ -29,6 +29,14 @@ export const uiCopy = {
     reopened: 'Mở lại',
     preProductionQuality: 'Chất lượng dữ liệu trước khi vận hành',
   },
+  workflow: {
+    owner: 'Người phụ trách',
+    deadline: 'Hạn xử lý',
+    action: 'Thao tác',
+    sla: 'Chỉ tiêu SLA',
+    documentCode: 'Mã chứng từ',
+    copyDocumentCode: 'Sao chép mã chứng từ',
+  },
 } as const;
 
 export const formatPaginationRange = (start: number, end: number, total: number) =>
