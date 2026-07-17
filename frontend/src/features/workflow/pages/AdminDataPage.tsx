@@ -1566,7 +1566,7 @@ export default function AdminDataPage() {
                   </div>
                 </FieldRow>
 
-                <DataTableShell ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
+                <PaginatedTableFrame ariaLabel="Bảng nhân viên" className="ipc-admin-employee-shell">
                   <table className="ipc-data-table ipc-admin-employee-table text-sm">
                     <thead>
                       <tr>
@@ -1629,7 +1629,7 @@ export default function AdminDataPage() {
                       )}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </PaginatedTableFrame>
 
                 {employeeMeta && (
                   <PaginationBar
@@ -1725,7 +1725,7 @@ export default function AdminDataPage() {
               </div>
             </div>
 
-            <DataTableShell ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">
+            <PaginatedTableFrame ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">
               <table className="ipc-data-table ipc-admin-audit-table text-xs">
                 <thead>
                   <tr>
@@ -1756,7 +1756,7 @@ export default function AdminDataPage() {
                   ))}
                 </tbody>
               </table>
-            </DataTableShell>
+            </PaginatedTableFrame>
             <PaginationBar page={safeAuditPage} pageSize={auditPageSize} totalItems={displayLogs.length} onPageChange={setAuditPage} />
           </div>
         </SectionPanel>
