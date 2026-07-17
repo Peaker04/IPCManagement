@@ -42,6 +42,7 @@
 - Weekly-menu cost surfaces 2: `9a5c0af` and `85ba461` migrate purchase-summary and tray-cost tables with the same preserved class/height approach.
 - Weekly-menu layout matrix: `d420da6` removes the final `DataTableShell` consumer from `WeeklyMenuPage` and preserves `ipc-weekly-menu-shell` plus dynamic max-height.
 - Admin statistics table: `d105f55` migrates one clean `DataTableShell` consumer to `TableViewport`; the dirty BOM/contract hunks remain unstaged.
+- Admin contract table: `ae91b02` migrates the contract listing wrapper and leaves the surrounding contract-form changes untouched.
 - Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
 - Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
