@@ -7,6 +7,8 @@ import {
   DemandSummary,
   DocumentRail,
   OperationalFrame,
+  PaginatedTableFrame,
+  PaginationBar,
   SectionPanel,
   SplitWorkbench,
   StockMovementTable,
@@ -34,6 +36,7 @@ import {
 } from '@/features/workflow';
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
@@ -95,6 +98,8 @@ export default function PurchasingPage() {
       tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
     })),
   );
+  const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
+  const supplierPagination = usePaginatedRows(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
@@ -214,7 +219,7 @@ export default function PurchasingPage() {
       {activeView === 'supplier' && (
         <SectionPanel title="Nhà cung cấp, đơn mua và nhập giá">
           <div id="purchasing-supplier-panel" role="tabpanel" aria-labelledby="purchasing-supplier-tab">
-            <div className="ipc-table-container mt-4">
+            <PaginatedTableFrame className="ipc-table-container mt-4" ariaLabel="Bảng dòng mua hàng và nhà cung cấp">
               <table className="ipc-table">
                 <thead>
                   <tr>
@@ -229,9 +234,7 @@ export default function PurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {purchaseRequestLines
-                    .filter(line => line.purchaseRequestId)
-                    .map((line) => (
+                  {supplierPagination.rows.map((line) => (
                     <SupplierLineItem 
                       key={line.id} 
                       line={line} 
@@ -239,12 +242,18 @@ export default function PurchasingPage() {
                       onUpdate={updateSupplier} 
                     />
                   ))}
-                  {purchaseRequestLines.length === 0 && (
+                  {supplierLines.length === 0 && (
                     <tr><td colSpan={8} className="text-center text-slate-500 py-4">Chưa có đơn mua nào để cập nhật NCC</td></tr>
                   )}
                 </tbody>
               </table>
-            </div>
+            </PaginatedTableFrame>
+            <PaginationBar
+              page={supplierPagination.page}
+              pageSize={supplierPagination.pageSize}
+              totalItems={supplierPagination.totalItems}
+              onPageChange={supplierPagination.setPage}
+            />
           </div>
         </SectionPanel>
       )}
@@ -407,6 +416,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
   const [updateQuotation] = useUpdateSupplierQuotationMutation();
   const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();
+  const quotationPagination = usePaginatedRows(quotations, 8);
 
   const [form, setForm] = useState({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -515,7 +525,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
 
       {selectedIngredientId && (
         <>
-          <div className="ipc-table-container">
+          <PaginatedTableFrame className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu">
             <table className="ipc-table">
               <thead>
                 <tr>
@@ -529,7 +539,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                 </tr>
               </thead>
               <tbody>
-                {quotations.map((q) => (
+                {quotationPagination.rows.map((q) => (
                   <tr key={q.quotationId} className={q.isBestPrice ? 'bg-emerald-50' : ''}>
                     <td>
                       {q.supplierName}
@@ -557,7 +567,13 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                 )}
               </tbody>
             </table>
-          </div>
+          </PaginatedTableFrame>
+          <PaginationBar
+            page={quotationPagination.page}
+            pageSize={quotationPagination.pageSize}
+            totalItems={quotationPagination.totalItems}
+            onPageChange={quotationPagination.setPage}
+          />
 
           <form onSubmit={handleSubmit} className="border-t border-slate-200 pt-4">
             <div className="font-medium text-slate-700 mb-2">{editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
@@ -636,6 +652,7 @@ function PurchaseOrderManager({
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
+  const orderPagination = usePaginatedRows(purchaseOrders, 6);
 
   const warehouseOptions = Array.from(
     new Map(currentStockRows.map((row) => [row.warehouseId, row.warehouse])).entries()
@@ -718,7 +735,7 @@ function PurchaseOrderManager({
         {approvedRequests.length === 0 ? (
           <div className="text-sm text-slate-500">Không có đề xuất mua hàng nào đã duyệt.</div>
         ) : (
-          <div className="ipc-table-container">
+          <PaginatedTableFrame className="ipc-table-container" ariaLabel="Bảng đề xuất đã duyệt chờ tạo đơn mua">
             <table className="ipc-table">
               <thead>
                 <tr>
@@ -744,13 +761,13 @@ function PurchaseOrderManager({
                 ))}
               </tbody>
             </table>
-          </div>
+          </PaginatedTableFrame>
         )}
       </div>
 
       <div>
         <div className="font-medium text-slate-700 mb-2">Danh sách đơn mua hàng</div>
-        <div className="ipc-table-container">
+        <PaginatedTableFrame className="ipc-table-container" ariaLabel="Bảng đơn mua hàng">
           <table className="ipc-table">
             <thead>
               <tr>
@@ -766,7 +783,7 @@ function PurchaseOrderManager({
               {purchaseOrders.length === 0 && (
                 <tr><td colSpan={6} className="text-center text-slate-500 py-4">Chưa có đơn mua hàng nào</td></tr>
               )}
-              {purchaseOrders.map((order) => (
+              {orderPagination.rows.map((order) => (
                 <Fragment key={order.purchaseOrderId}>
                   <tr>
                     <td className="font-mono">{order.purchaseOrderCode}</td>
@@ -838,7 +855,13 @@ function PurchaseOrderManager({
               ))}
             </tbody>
           </table>
-        </div>
+        </PaginatedTableFrame>
+        <PaginationBar
+          page={orderPagination.page}
+          pageSize={orderPagination.pageSize}
+          totalItems={orderPagination.totalItems}
+          onPageChange={orderPagination.setPage}
+        />
       </div>
     </div>
   );

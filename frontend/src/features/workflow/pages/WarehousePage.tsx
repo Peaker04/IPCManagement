@@ -4,12 +4,13 @@ import { Link } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
-  DataTableShell,
   DemandSummary,
   DocumentRail,
   ExceptionLane,
   InlineAlert,
   OperationalFrame,
+  PaginatedTableFrame,
+  PaginationBar,
   RoleInbox,
   SectionPanel,
   SplitWorkbench,
@@ -27,6 +28,7 @@ import {
   useWorkflowOverview,
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -65,6 +67,7 @@ export default function WarehousePage() {
   const issueCandidate = demandLines.find((line) => line.materialRequestId);
   const selectedWarehouse = currentStockRows.find((row) => row.warehouseId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
+  const stockPagination = usePaginatedRows(currentStockRows, 8);
 
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
@@ -198,7 +201,7 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-                <DataTableShell ariaLabel="Bảng tồn kho hiện tại trong kho">
+                <PaginatedTableFrame ariaLabel="Bảng tồn kho hiện tại trong kho">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
@@ -213,7 +216,7 @@ export default function WarehousePage() {
                         <tr>
                           <td colSpan={4} className="text-center text-slate-500">Chưa có dữ liệu tồn kho</td>
                         </tr>
-                      ) : currentStockRows.map((row) => (
+                      ) : stockPagination.rows.map((row) => (
                         <tr key={row.id}>
                           <td>{row.warehouse}</td>
                           <td>{row.ingredient}</td>
@@ -223,7 +226,13 @@ export default function WarehousePage() {
                       ))}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </PaginatedTableFrame>
+                <PaginationBar
+                  page={stockPagination.page}
+                  pageSize={stockPagination.pageSize}
+                  totalItems={stockPagination.totalItems}
+                  onPageChange={stockPagination.setPage}
+                />
               </SectionPanel>
 
               <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
