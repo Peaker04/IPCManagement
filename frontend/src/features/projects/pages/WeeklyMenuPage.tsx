@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PageStepper, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
@@ -2705,27 +2705,13 @@ const WeeklyMenuPage = () => {
                       {activeProductionPlanPage?.plans.length ?? 0} KHSX / {activeProductionPlanPage?.totalLines ?? 0} dòng / {(activeProductionPlanPage?.totalServings ?? 0).toLocaleString('vi-VN')} suất
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
-                      disabled={safeProductionPlanPageIndex <= 0}
-                      onClick={() => setProductionPlanPageIndex((current) => Math.max(0, current - 1))}
-                    >
-                      Trước
-                    </button>
-                    <span className="min-w-[76px] text-center text-sm font-semibold text-slate-700">
-                      {safeProductionPlanPageIndex + 1}/{productionPlanPages.length}
-                    </span>
-                    <button
-                      type="button"
-                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
-                      disabled={safeProductionPlanPageIndex >= productionPlanPages.length - 1}
-                      onClick={() => setProductionPlanPageIndex((current) => Math.min(productionPlanPages.length - 1, current + 1))}
-                    >
-                      Sau
-                    </button>
-                  </div>
+                  <PageStepper
+                    page={safeProductionPlanPageIndex + 1}
+                    totalPages={productionPlanPages.length}
+                    label="Kế hoạch sản xuất"
+                    ariaLabel="Điều hướng kế hoạch sản xuất"
+                    onPageChange={(nextPage) => setProductionPlanPageIndex(nextPage - 1)}
+                  />
                 </div>
 
                 {activeProductionPlanPage?.plans.map((plan) => (
