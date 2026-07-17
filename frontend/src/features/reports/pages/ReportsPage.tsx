@@ -19,7 +19,6 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
-  DataTableShell,
   ExceptionLane,
   FieldRow,
   InlineAlert,
@@ -978,7 +977,7 @@ const ReportsPage = () => {
 
       {activeView === 'audit' && (
         <SectionPanel title="Audit thay đổi BOM, tồn kho, số suất và chứng từ" icon={<Database size={18} />}>
-          <DataTableShell ariaLabel="Bảng audit thay đổi hệ thống">
+          <PaginatedTableFrame ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -1005,7 +1004,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </DataTableShell>
+          </PaginatedTableFrame>
           <CursorPagination
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
