@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: pilot contract implemented. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue` and the Coordination `OrderTable` use the canonical local controller. Broader migration remains gated on pilot evidence.
+Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `AdminDataPage` remains explicitly gated by dirty ownership; `PaginatedTableFrame` compatibility remains only for that page.
 
 Deliverables:
 
@@ -107,6 +107,33 @@ Pilot migration note — Coordination `OrderTable`:
 - Preserved behavior: page size 12, local slicing, page navigation, optimistic quantity/forecast mutations and rollback handling.
 - Verification: unit 62/62, lint pass, build pass, `git diff --check` pass; staged GitNexus detect scope was one file, three symbols, two expected Coordination flows, MEDIUM aggregate risk.
 - Rollback: revert commit `0a64f5b` without touching the dirty user-owned worktree.
+
+Pilot migration note — Reports:
+
+- Current pattern: ten local report tables used `PaginatedTableFrame` plus `usePaginatedRows`; cursor movement and audit pagination were separate contracts.
+- Target contract: local tables use `TableViewport` plus `useLocalPagination`; cursor movement keeps its existing cursor boundary and `StockMovementTable` remains protected.
+- Impact: GitNexus returned two parser candidates for `ReportsPage`, both LOW with no upstream callers; staged detection covered one Reports execution flow at MEDIUM aggregate scope.
+- Preserved behavior: all page sizes, local row slicing, pagination callbacks, report query payloads, cursor navigation and export/mutation behavior.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `c4aaf92` if visual or route-level regression appears.
+
+Pilot migration note — Warehouse inventory:
+
+- Current pattern: `WarehousePage` used `PaginatedTableFrame` and `usePaginatedRows` for the local current-stock collection.
+- Target contract: `TableViewport` + `useLocalPagination`, with an accessible table caption and the existing `PaginationBar` compatibility boundary.
+- Impact: GitNexus upstream impact LOW before edit; staged detection covered one Warehouse flow at MEDIUM aggregate scope.
+- Preserved behavior: query limit 12, local page size 8, empty-state row, pagination callbacks, inventory issue mutation, document rail and cursor stock movement table.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `7f988a1` if route-level regression appears.
+
+Pilot migration note — Purchasing:
+
+- Current pattern: supplier lines, quotations and purchase orders used `PaginatedTableFrame` plus `usePaginatedRows` in three local component sections.
+- Target contract: all four local table surfaces use `TableViewport` plus `useLocalPagination`; cursor-based movement and shared rails stay outside the slice.
+- Impact: GitNexus page-level impact was LOW before edit; nested component symbols were not indexed separately; staged detection covered one Purchasing flow at MEDIUM aggregate scope.
+- Preserved behavior: supplier/quotation/order page sizes, local row slicing, pagination callbacks, purchase mutations, approval actions and stock-movement cursor behavior.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `7a8e963` if route-level regression appears.
 
 Exit criteria:
 
@@ -133,6 +160,14 @@ Exit criteria mỗi family:
 - Loading/error/empty/no-result có cùng geometry.
 - Technical copy có label giải thích.
 - Visual snapshot chỉ cập nhật sau khi controls và overflow pass.
+
+Current Wave 3 evidence:
+
+- Coordination, Reports, Warehouse and Purchasing safe local table consumers now use the canonical local controller and viewport.
+- `npm run test:ui-audit --workspace frontend`: 2/2 passed after the migrations.
+- Remaining route-family work is not silently skipped: shared `RoleInbox`, `DocumentRail`, `StockMovementTable` are HIGH-impact; `AdminDataPage` is dirty user-owned work. They require a separate impact/ownership gate before editing.
+- Shared HIGH migrations completed with compatibility-preserving changes: `DocumentRail` (`2ecb972`), `StockMovementTable` (`a198124`) and `RoleInbox` (`32688c3`). Each changed only local pagination/viewport implementation and retained public props, row actions and mutation boundaries.
+- Remaining legacy consumer is `AdminDataPage.tsx`, which has an existing 613-line user-owned dirty diff and must be reconciled separately before its six table instances can migrate.
 
 ### Wave 4 — Accessibility and visual verification
 

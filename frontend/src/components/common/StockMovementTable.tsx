@@ -3,10 +3,10 @@ import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { PaginatedTableFrame } from './PaginatedTableFrame';
+import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/features/workflow';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -68,7 +68,7 @@ function shortenDocumentNo(docNo: string): string {
 
 export function StockMovementTable({ movements, pageSize = 8, className }: StockMovementTableProps) {
   const [copiedDocumentNo, setCopiedDocumentNo] = useState<string | null>(null);
-  const pagination = usePaginatedRows(movements, pageSize);
+  const pagination = useLocalPagination(movements, pageSize);
 
   const handleCopyDocumentNo = async (docNo: string) => {
     try {
@@ -88,7 +88,7 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
 
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
-      <PaginatedTableFrame ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell">
+      <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
         <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
           <thead>
             <tr>
@@ -151,7 +151,7 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
             ))}
           </tbody>
         </table>
-      </PaginatedTableFrame>
+      </TableViewport>
       <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
     </div>
   );

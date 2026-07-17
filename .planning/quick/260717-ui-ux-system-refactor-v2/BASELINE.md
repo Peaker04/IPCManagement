@@ -27,4 +27,11 @@
 
 - Commits `f1393df`, `0d3a7ff` and `33efacf` add `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), `useLocalPagination`, and migrate `DemandSummary` plus `ApprovalQueue`.
 - Commit `0a64f5b` migrates Coordination `OrderTable` to the same viewport/controller contract while preserving mutation and rollback behavior.
-- Verification after the Coordination slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW direct impact before editing and MEDIUM aggregate staged scope because the changed table participates in two expected Coordination flows.
+- Commit `c4aaf92` migrates the local paginated tables in `ReportsPage`; cursor-based stock movement remains on its existing boundary by design.
+- Commit `7f988a1` migrates the Warehouse current-stock table to the same canonical contract; document and cursor shared components remain unchanged.
+- Commit `7a8e963` migrates Purchasing supplier, quotation and purchase-order local tables; cursor-based movement remains on its existing boundary by design.
+- Verification after the Purchasing slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW page-level impact before editing and MEDIUM aggregate staged scope for the single Purchasing flow; nested helper symbols were not separately indexed.
+- Post-migration inventory: only shared `RoleInbox`, `DocumentRail`, `StockMovementTable`, compatibility helpers and dirty `AdminDataPage` still reference the legacy local table patterns.
+- Post-migration UI audit: `npm run test:ui-audit --workspace frontend` passed 2/2; no global overflow or broken action-control regression was detected in the audited protected-route fixtures.
+- Shared migrations: `2ecb972` (`DocumentRail`), `a198124` (`StockMovementTable`) and `32688c3` (`RoleInbox`) now use `useLocalPagination` and/or `TableViewport`; each passed unit 62/62, lint, build and UI audit 2/2 before commit.
+- Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.

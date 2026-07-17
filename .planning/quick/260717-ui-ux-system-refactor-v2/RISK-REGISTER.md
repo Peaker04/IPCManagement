@@ -12,3 +12,5 @@
 | R8 | Duplicate compatibility layers survive indefinitely | Medium | New consumer uses old adapter after migration | Deprecation comments, consumer inventory and cleanup deadline | Wave 5 |
 | R9 | Snapshot updates hide regressions | Medium | Snapshot changed without issue record | Require before/after reason, viewport list and UI audit evidence | Wave 4 |
 | R10 | Copy refactor removes traceability | Medium | Code identifiers disappear from operational UI | Keep code + semantic label pair where audit/support needs it | Wave 1/3 |
+| R11 | Shared HIGH component migration breaks multiple role workflows | High | GitNexus reports 4–6 direct callers | Change only controller/viewport implementation; preserve props/DOM actions; run unit/lint/build/UI audit; commit per component | Wave 3 |
+| R12 | Dirty AdminDataPage blocks compatibility cleanup | High | Existing 613-line user-owned diff overlaps six legacy tables | Freeze file; reconcile ownership and diff before migration; do not remove compatibility export while it remains a consumer | Wave 3/5 |
