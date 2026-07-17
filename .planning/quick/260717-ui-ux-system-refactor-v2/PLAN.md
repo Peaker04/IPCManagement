@@ -257,6 +257,14 @@ Admin audit cursor-pagination slice:
 - Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commits: `ea4938b` (Audit cursor wiring) and `8f39660` (Audit display cleanup plus current-stock page migration).
 - Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
 
+Admin price-warning page slice:
+
+- Added the explicit `warningOnly` report contract and migrated the Admin price-warning table to `receipt-price-variance/page` with server page metadata and page size 8.
+- Warning counts and summary status now use API `totalCount`; the table renders only warning rows, so page navigation no longer filters a full client list after download.
+- Risk note: warning eligibility is expressed in the query as `UnitPrice >= ReferencePrice * 1.15` for positive reference prices, matching the existing 15% calculator threshold. A future central threshold setting should replace this literal when the domain policy becomes configurable.
+- Ownership was preserved despite the pre-existing dirty `WorkflowReportService.cs`; only the DTO/query-builder hunk and owned Admin/frontend contract hunks were staged. GitNexus staged detection: 4 files, 1 indexed symbol, 0 processes, LOW. Commit: `e152b06`.
+- Evidence: frontend lint/unit/build pass (`72/72`); backend tests pass `267/267` with `--no-build` because the running API process locked apphost during the build-enabled test command.
+
 Admin data-quality page slice:
 
 - `AdminDataPage` cleanup now consumes `data-quality/page` with page size 8, renders only the server page and keeps the shared `PaginationBar` bound to API metadata.
