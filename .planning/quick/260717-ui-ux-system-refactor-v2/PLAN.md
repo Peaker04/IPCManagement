@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: pilot contract implemented. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary` and `ApprovalQueue` use the canonical local controller. Broader migration remains gated on pilot evidence.
+Status: pilot contract implemented. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue` and the Coordination `OrderTable` use the canonical local controller. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 
@@ -98,6 +98,15 @@ Deliverables:
 - `TableState` slots: loading/error/empty/no-result giữ cùng geometry với bảng thật.
 - `TableActionCell`/cell wrapping rule để tránh action wrap và page overflow.
 - Deprecation map cho `DataTableShell`, `PaginationBar`, `PaginatedTableFrame`; không xóa ngay, nhưng không cho thêm consumer mới.
+
+Pilot migration note — Coordination `OrderTable`:
+
+- Current pattern: `PaginatedTableFrame` + `usePaginatedRows` + `PaginationBar`.
+- Target contract: `TableViewport` + `useLocalPagination` + existing `PaginationBar` compatibility boundary.
+- Impact: GitNexus upstream impact LOW before edit; one direct caller (`CoordinationPage`), one affected execution flow.
+- Preserved behavior: page size 12, local slicing, page navigation, optimistic quantity/forecast mutations and rollback handling.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass; staged GitNexus detect scope was one file, three symbols, two expected Coordination flows, MEDIUM aggregate risk.
+- Rollback: revert commit `0a64f5b` without touching the dirty user-owned worktree.
 
 Exit criteria:
 

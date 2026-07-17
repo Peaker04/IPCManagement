@@ -26,4 +26,5 @@
 ## First v2 implementation slice
 
 - Commits `f1393df`, `0d3a7ff` and `33efacf` add `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), `useLocalPagination`, and migrate `DemandSummary` plus `ApprovalQueue`.
-- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass, GitNexus staged risk MEDIUM for each low-risk consumer flow.
+- Commit `0a64f5b` migrates Coordination `OrderTable` to the same viewport/controller contract while preserving mutation and rollback behavior.
+- Verification after the Coordination slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW direct impact before editing and MEDIUM aggregate staged scope because the changed table participates in two expected Coordination flows.
