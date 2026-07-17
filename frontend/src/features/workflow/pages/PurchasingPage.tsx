@@ -7,6 +7,8 @@ import {
   DemandSummary,
   DocumentRail,
   OperationalFrame,
+  PaginatedTableFrame,
+  PaginationBar,
   SectionPanel,
   SplitWorkbench,
   StockMovementTable,
@@ -34,6 +36,7 @@ import {
 } from '@/features/workflow';
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
@@ -95,6 +98,8 @@ export default function PurchasingPage() {
       tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
     })),
   );
+  const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
+  const supplierPagination = usePaginatedRows(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
   const warningPrice = priceRows.find((row) => row.warning);
@@ -214,7 +219,7 @@ export default function PurchasingPage() {
       {activeView === 'supplier' && (
         <SectionPanel title="Nhà cung cấp, đơn mua và nhập giá">
           <div id="purchasing-supplier-panel" role="tabpanel" aria-labelledby="purchasing-supplier-tab">
-            <div className="ipc-table-container mt-4">
+            <PaginatedTableFrame className="ipc-table-container mt-4" ariaLabel="Bảng dòng mua hàng và nhà cung cấp">
               <table className="ipc-table">
                 <thead>
                   <tr>
@@ -229,9 +234,7 @@ export default function PurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {purchaseRequestLines
-                    .filter(line => line.purchaseRequestId)
-                    .map((line) => (
+                  {supplierPagination.rows.map((line) => (
                     <SupplierLineItem 
                       key={line.id} 
                       line={line} 
@@ -239,12 +242,18 @@ export default function PurchasingPage() {
                       onUpdate={updateSupplier} 
                     />
                   ))}
-                  {purchaseRequestLines.length === 0 && (
+                  {supplierLines.length === 0 && (
                     <tr><td colSpan={8} className="text-center text-slate-500 py-4">Chưa có đơn mua nào để cập nhật NCC</td></tr>
                   )}
                 </tbody>
               </table>
-            </div>
+            </PaginatedTableFrame>
+            <PaginationBar
+              page={supplierPagination.page}
+              pageSize={supplierPagination.pageSize}
+              totalItems={supplierPagination.totalItems}
+              onPageChange={supplierPagination.setPage}
+            />
           </div>
         </SectionPanel>
       )}
