@@ -9,12 +9,12 @@ import {
   ExceptionLane,
   InlineAlert,
   OperationalFrame,
-  PaginatedTableFrame,
   PaginationBar,
   RoleInbox,
   SectionPanel,
   SplitWorkbench,
   StockMovementTable,
+  TableViewport,
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
@@ -28,7 +28,7 @@ import {
   useWorkflowOverview,
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -67,7 +67,7 @@ export default function WarehousePage() {
   const issueCandidate = demandLines.find((line) => line.materialRequestId);
   const selectedWarehouse = currentStockRows.find((row) => row.warehouseId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
-  const stockPagination = usePaginatedRows(currentStockRows, 8);
+  const stockPagination = useLocalPagination(currentStockRows, 8);
 
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
@@ -201,7 +201,7 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-                <PaginatedTableFrame ariaLabel="Bảng tồn kho hiện tại trong kho">
+                <TableViewport ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
@@ -226,7 +226,7 @@ export default function WarehousePage() {
                       ))}
                     </tbody>
                   </table>
-                </PaginatedTableFrame>
+                </TableViewport>
                 <PaginationBar
                   page={stockPagination.page}
                   pageSize={stockPagination.pageSize}
