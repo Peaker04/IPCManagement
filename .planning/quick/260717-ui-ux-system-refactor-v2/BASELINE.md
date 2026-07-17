@@ -25,5 +25,5 @@
 
 ## First v2 implementation slice
 
-- Commits `f1393df` and `0d3a7ff` add `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), `useLocalPagination`, and migrate `DemandSummary` as the low-risk pilot.
-- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass, GitNexus staged risk MEDIUM for the single `DemandSummary` flow.
+- Commits `f1393df`, `0d3a7ff` and `33efacf` add `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), `useLocalPagination`, and migrate `DemandSummary` plus `ApprovalQueue`.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass, GitNexus staged risk MEDIUM for each low-risk consumer flow.
