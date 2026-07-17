@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-current-stock-price-complete-ownership-gate-open
+status: wave-3-server-pagination-current-stock-price-demand-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -217,6 +217,13 @@ Price-variance server-pagination slice:
 - `ReportsPage` price-line view now requests only its active server page and renders `totalCount` metadata through the canonical `PaginationBar`; the old `limit: 100` local slice is removed for this view.
 - The shared page query contract is now reused by current stock and price variance, while endpoint-specific DTO names keep controller contracts explicit.
 - Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 9 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `327761d`.
+
+Ingredient-demand server-pagination slice:
+
+- Added `GET /api/workflow-reports/ingredient-demand/page` with page metadata plus `shortageCount`, so the table can be lazy-loaded without corrupting the dashboard context metric.
+- ReportsPage demand view now requests the active page only; `PaginationBar` consumes server totals and the context strip consumes server-calculated shortage count. The previous `limit:100` local slice is removed for this table.
+- Preserved behavior: filters, row mapping, status/tone semantics, handoff links, export payload shape and the distinction between shortage (`suggestedPurchaseQty > 0`) and cancelled warning rows.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `532573f`.
 
 Critical shell gate result — `DataTableShell`:
 
