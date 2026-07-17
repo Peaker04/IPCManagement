@@ -29,4 +29,5 @@
 - Commit `0a64f5b` migrates Coordination `OrderTable` to the same viewport/controller contract while preserving mutation and rollback behavior.
 - Commit `c4aaf92` migrates the local paginated tables in `ReportsPage`; cursor-based stock movement remains on its existing boundary by design.
 - Commit `7f988a1` migrates the Warehouse current-stock table to the same canonical contract; document and cursor shared components remain unchanged.
-- Verification after the Warehouse slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW direct impact before editing and MEDIUM aggregate staged scope for the single Warehouse flow.
+- Commit `7a8e963` migrates Purchasing supplier, quotation and purchase-order local tables; cursor-based movement remains on its existing boundary by design.
+- Verification after the Purchasing slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW page-level impact before editing and MEDIUM aggregate staged scope for the single Purchasing flow; nested helper symbols were not separately indexed.

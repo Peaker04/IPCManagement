@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
+Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory, Purchasing local tables and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 
@@ -125,6 +125,15 @@ Pilot migration note — Warehouse inventory:
 - Preserved behavior: query limit 12, local page size 8, empty-state row, pagination callbacks, inventory issue mutation, document rail and cursor stock movement table.
 - Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
 - Rollback: revert commit `7f988a1` if route-level regression appears.
+
+Pilot migration note — Purchasing:
+
+- Current pattern: supplier lines, quotations and purchase orders used `PaginatedTableFrame` plus `usePaginatedRows` in three local component sections.
+- Target contract: all four local table surfaces use `TableViewport` plus `useLocalPagination`; cursor-based movement and shared rails stay outside the slice.
+- Impact: GitNexus page-level impact was LOW before edit; nested component symbols were not indexed separately; staged detection covered one Purchasing flow at MEDIUM aggregate scope.
+- Preserved behavior: supplier/quotation/order page sizes, local row slicing, pagination callbacks, purchase mutations, approval actions and stock-movement cursor behavior.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `7a8e963` if route-level regression appears.
 
 Exit criteria:
 
