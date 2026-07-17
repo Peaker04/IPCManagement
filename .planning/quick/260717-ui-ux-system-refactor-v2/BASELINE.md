@@ -41,6 +41,7 @@
 - Weekly-menu cost surfaces: `e755b56` and `0034875` migrate linked-cost and daily-ingredient tables, retaining `ipc-cost-table-shell` and explicit viewport heights while adding captions.
 - Weekly-menu cost surfaces 2: `9a5c0af` and `85ba461` migrate purchase-summary and tray-cost tables with the same preserved class/height approach.
 - Weekly-menu layout matrix: `d420da6` removes the final `DataTableShell` consumer from `WeeklyMenuPage` and preserves `ipc-weekly-menu-shell` plus dynamic max-height.
+- Admin statistics table: `d105f55` migrates one clean `DataTableShell` consumer to `TableViewport`; the dirty BOM/contract hunks remain unstaged.
 - Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
 - Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
@@ -52,6 +53,7 @@
 
 - Visual isolation for `347253e`: weekly-menu desktop failed with `33280` differing pixels in both legacy and canonical wrapper runs; mobile remained `390×1997` with `64371` differing pixels in both runs. This proves the current mismatch is not introduced by the isolated wrapper change.
 - Visual isolation for `d420da6`: the layout-matrix wrapper is the first WeeklyMenu consumer with a measured canonical geometry delta: `+36` desktop pixels and `+369` mobile pixels relative to the legacy A/B run. This is retained as intentional canonical-boundary evidence, not hidden by snapshot regeneration.
+- Visual isolation for `d105f55`: canonical and legacy wrappers matched exactly for the admin route (`40384` desktop diff pixels; `109378` mobile diff pixels), confirming the route-level mismatch predates this migration.
 
 ## Critical shell visual gate evidence
 
