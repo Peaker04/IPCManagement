@@ -1,5 +1,7 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { uiCopy } from '@/lib/uiCopy';
+import { getPaginationMeta } from '@/lib/paginationMeta';
 
 interface PaginationBarProps {
   page: number;
@@ -10,39 +12,36 @@ interface PaginationBarProps {
 }
 
 export function PaginationBar({ page, pageSize, totalItems, onPageChange, className }: PaginationBarProps) {
-  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const meta = getPaginationMeta(page, pageSize, totalItems);
 
-  if (totalItems <= pageSize) {
+  if (meta.totalItems <= meta.pageSize) {
     return null;
   }
-
-  const start = (page - 1) * pageSize + 1;
-  const end = Math.min(page * pageSize, totalItems);
 
   return (
     <nav className={cn('ipc-pagination-bar', className)} aria-label="Phân trang danh sách">
       <div className="ipc-pagination-range">
-        Hiển thị {start}-{end} / {totalItems}
+        {meta.rangeLabel}
       </div>
       <div className="ipc-pagination-actions">
         <button
           type="button"
           className="ipc-pagination-button"
-          disabled={page <= 1}
-          onClick={() => onPageChange(Math.max(1, page - 1))}
-          aria-label={`Trang trước, trang ${Math.max(1, page - 1)} trong ${totalPages}`}
+          disabled={!meta.hasPrevious}
+          onClick={() => onPageChange(Math.max(1, meta.page - 1))}
+          aria-label={`${uiCopy.actions.previousPage}, trang ${Math.max(1, meta.page - 1)} trong ${meta.totalPages}`}
         >
           <ChevronLeft size={16} />
         </button>
         <span className="ipc-pagination-page" aria-live="polite">
-          Trang {page}/{totalPages}
+          Trang {meta.page}/{meta.totalPages}
         </span>
         <button
           type="button"
           className="ipc-pagination-button"
-          disabled={page >= totalPages}
-          onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-          aria-label={`Trang sau, trang ${Math.min(totalPages, page + 1)} trong ${totalPages}`}
+          disabled={!meta.hasNext}
+          onClick={() => onPageChange(Math.min(meta.totalPages, meta.page + 1))}
+          aria-label={`${uiCopy.actions.nextPage}, trang ${Math.min(meta.totalPages, meta.page + 1)} trong ${meta.totalPages}`}
         >
           <ChevronRight size={16} />
         </button>

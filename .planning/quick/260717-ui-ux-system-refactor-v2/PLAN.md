@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-pilot-paused-at-ownership-gate
+status: wave-3-helper-delegate-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -172,12 +172,24 @@ Current Wave 3 evidence:
 - Semantic copy slice: `uiCopy.reports` now owns report tab, status and technical labels; `ReportsPage` consumes those labels for UI and CSV headers (`dc989ef`). Backend enums, query payloads and exported values remain unchanged.
 - Workflow copy slice: `uiCopy.workflow` now owns owner, deadline, action, SLA and document-code labels; `DocumentRail`, `RoleInbox` and `ApprovalQueue` consume the shared vocabulary (`00da341`).
 - Pagination contract slice: pure `paginationMeta.ts` now owns local page math; `usePaginatedRows` re-exports it for compatibility, `useLocalPagination` imports it directly, and `PaginationContract` is a discriminated union for local/page-number/cursor (`1200311`).
+- Legacy helper convergence: `usePaginatedRows` now delegates to `useLocalPagination` (`a82286f`), so legacy consumers share the canonical local controller without changing their public API or server-query behavior. The dirty `AdminDataPage` consumer remains protected for ownership reconciliation.
+- Table semantics slice: `TableViewport` now associates its optional caption with the scroll region via `aria-describedby` (`4d02c59`); `TableViewport.test.tsx` covers both captioned and uncaptioned regions without changing layout classes or table content.
+- Pagination bar convergence: `PaginationBar` now consumes canonical pagination metadata and Vietnamese range/action copy (`6f47c33`), preserving the public callback/class contract while clamping invalid page input. Upstream impact was recorded as CRITICAL; staged detection covered exactly 2 symbols with LOW aggregate scope.
 - Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
 - Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
 - Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
 - Dashboard slice: `SwimlaneProgress` now uses `TableViewport` and shared semantic workflow copy for lane/status/waiting/blocked/next-action columns (`80b52d8`).
 - Weekly-menu slice: the clean production-detail table inside `WeeklyMenuPage` now uses `TableViewport` with an accessible caption (`347253e`). The feature-owned import and production-plan hunks were not staged.
 - Weekly-menu slice 2: the weekly production-plan table now uses `TableViewport`, preserving its `560px` geometry through an explicit max-height and adding an accessible caption (`10d1916`).
+- Weekly-menu slice 3: pending import jobs and import history now use canonical viewports with explicit captions and preserved `260px` max-height (`6dd531d`, `6787897`).
+- Weekly-menu slice 4: the linked cost table and daily ingredient cost table now use canonical viewports while preserving their legacy cost-table class and explicit `560px`/`360px` heights (`e755b56`, `0034875`).
+- Weekly-menu slice 5: purchase-summary and tray-cost tables now use the same canonical viewport contract, preserving `560px` geometry and cost-table styling (`9a5c0af`, `85ba461`).
+- Weekly-menu slice 6: `ImportedLayoutMatrix` now uses `TableViewport`; `DataTableShell` has no remaining consumer in `WeeklyMenuPage` (`d420da6`). The legacy class and dynamic max-height remain intact.
+- Imported-layout A/B evidence: canonical vs legacy changed the weekly-menu visual diff from `33280` to `33316` desktop pixels and `64371` to `64740` mobile pixels. This is an explained canonical viewport geometry change; snapshots remain frozen until the dirty route feature work is reconciled.
+- Admin slice: the clean statistics table between dirty BOM/contract hunks now uses `TableViewport` with an accessible caption (`d105f55`). BOM tables and legacy pagination consumers remain untouched.
+- Admin statistics A/B evidence: canonical and legacy wrappers produced identical visual results (`40384` desktop pixels; `390×2080`, `109378` mobile pixels). The current admin visual failure is therefore attributable to the pre-existing dirty route feature diff, not this isolated migration.
+- Admin contracts slice: the contract listing table now uses `TableViewport` with a semantic caption (`ae91b02`); adjacent dirty contract-form hunks were not staged.
+- Current legacy inventory: `WeeklyMenuPage` has zero legacy shell references. `AdminDataPage` retains `DataTableShell` only for the user-owned BOM-current table; all remaining `PaginatedTableFrame` surfaces are already canonical-backed adapters and remain until pagination ownership is reconciled.
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
 
 Critical shell gate result — `DataTableShell`:
@@ -186,7 +198,8 @@ Critical shell gate result — `DataTableShell`:
 - A compatibility bridge to `TableViewport` was prototyped with the public props and `ipc-table-shell` class preserved. Unit `62/62`, lint, build and UI audit `2/2` passed.
 - Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
 - Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
-- Contract test: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`). Full unit suite is now 64/64.
+- Contract tests: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`); `usePaginatedRows.test.ts` locks the legacy API plus canonical local contract (`421c904`). Full unit suite is now 65/65.
+- Direct inventory boundary: GitNexus does not index `usePaginatedRows`; its impact/detect scope is therefore recorded as `UNKNOWN`/`No changes detected`, with source diff, compatibility API review and full frontend gates used as the verification evidence.
 - Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
 ### Wave 4 — Accessibility and visual verification

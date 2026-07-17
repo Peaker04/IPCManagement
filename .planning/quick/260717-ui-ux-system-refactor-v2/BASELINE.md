@@ -37,16 +37,29 @@
 - Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.
 - Weekly-menu production-detail table: `347253e` migrates one isolated `DataTableShell` consumer to `TableViewport` with a caption. The existing weekly-menu feature diff remains unstaged.
 - Weekly-menu production-plan table: `10d1916` migrates one isolated `560px` table to `TableViewport` while preserving the explicit viewport height and adding a caption.
+- Weekly-menu import surfaces: `6dd531d` and `6787897` migrate pending-job and history tables to `TableViewport`, preserving `260px` max-height and adding captions; feature-owned import logic remains unstaged.
+- Weekly-menu cost surfaces: `e755b56` and `0034875` migrate linked-cost and daily-ingredient tables, retaining `ipc-cost-table-shell` and explicit viewport heights while adding captions.
+- Weekly-menu cost surfaces 2: `9a5c0af` and `85ba461` migrate purchase-summary and tray-cost tables with the same preserved class/height approach.
+- Weekly-menu layout matrix: `d420da6` removes the final `DataTableShell` consumer from `WeeklyMenuPage` and preserves `ipc-weekly-menu-shell` plus dynamic max-height.
+- Admin statistics table: `d105f55` migrates one clean `DataTableShell` consumer to `TableViewport`; the dirty BOM/contract hunks remain unstaged.
+- Admin contract table: `ae91b02` migrates the contract listing wrapper and leaves the surrounding contract-form changes untouched.
+- Post-migration inventory: WeeklyMenu has no `DataTableShell`/`PaginatedTableFrame`/`usePaginatedRows` references. Admin retains one user-owned BOM `DataTableShell`; legacy pagination hooks remain compatibility-only pending route ownership reconciliation.
 - Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
 - Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
 - Pagination architecture: `1200311` extracts pure metadata and formalizes mode-specific contract fields; legacy `usePaginatedRows` API remains available for dirty `AdminDataPage` compatibility.
+- Legacy pagination delegate: `a82286f` makes `usePaginatedRows` delegate to `useLocalPagination`, preserving its public return shape while removing duplicate page-state/slicing logic. AdminDataPage callsites and query payloads were not changed.
+- Delegate verification: unit `65/65`, lint pass, build pass, UI audit `2/2`, staged diff check pass. Contract test `421c904` covers the legacy return API and canonical local contract. GitNexus `detect_changes --scope staged` returned `No changes detected` because `usePaginatedRows` is outside the current symbol index; direct file inventory is the evidence boundary for this helper.
+- Table viewport semantics: `4d02c59` links every provided caption to its scroll region with `aria-describedby` using a stable per-instance React id; no props, CSS class, table content or scroll geometry changed. Unit is now `67/67`, lint/build/UI audit remain green.
+- Pagination bar semantics: `6f47c33` makes `PaginationBar` consume canonical `getPaginationMeta`/`uiCopy`, clamps invalid pages, and preserves its public props, classes and callbacks. Unit `68/68`, lint, build and UI audit `2/2` pass. GitNexus upstream impact was CRITICAL (8 direct callers/13 flows), while staged `detect_changes` was LOW for the isolated 2-file scope; both signals are retained as the risk record.
 - Chef viewport: `f8aaae4` migrates `MaterialChecklist` to `TableViewport` with caption while preserving checkbox signoff callbacks and empty-row behavior.
 - Chef BOM viewport: `c1d62b4` migrates `ActiveDishesGrid` expanded ingredient tables to `TableViewport` with captions; expand/collapse behavior is unchanged.
 - Chef production viewport: `288ac13` migrates the daily production-plan table to `TableViewport`; send-to-kitchen action and readiness rendering remain unchanged.
 - Dashboard swimlane: `80b52d8` migrates the workflow lane table to `TableViewport` and shared labels; active lane and action renderers remain unchanged.
 
 - Visual isolation for `347253e`: weekly-menu desktop failed with `33280` differing pixels in both legacy and canonical wrapper runs; mobile remained `390×1997` with `64371` differing pixels in both runs. This proves the current mismatch is not introduced by the isolated wrapper change.
+- Visual isolation for `d420da6`: the layout-matrix wrapper is the first WeeklyMenu consumer with a measured canonical geometry delta: `+36` desktop pixels and `+369` mobile pixels relative to the legacy A/B run. This is retained as intentional canonical-boundary evidence, not hidden by snapshot regeneration.
+- Visual isolation for `d105f55`: canonical and legacy wrappers matched exactly for the admin route (`40384` desktop diff pixels; `109378` mobile diff pixels), confirming the route-level mismatch predates this migration.
 
 ## Critical shell visual gate evidence
 

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
 import { formatPaginationRange } from './uiCopy';
-import { getPaginationMeta } from './usePaginatedRows';
+import { getPaginationMeta, usePaginatedRows } from './usePaginatedRows';
 import { createCursorPaginationContract, createLocalPaginationContract, createPageNumberPaginationContract } from './paginationContract';
 import { useLocalPagination } from './useLocalPagination';
 
@@ -40,5 +41,22 @@ describe('pagination helpers', () => {
 
   it('exports the local controller for route consumers', () => {
     expect(useLocalPagination).toBeTypeOf('function');
+  });
+
+  it('keeps the legacy hook API while using the canonical local contract', () => {
+    const { result } = renderHook(() => usePaginatedRows(['A', 'B', 'C'], 2));
+
+    expect(result.current).toMatchObject({
+      page: 1,
+      rows: ['A', 'B'],
+      totalItems: 3,
+      totalPages: 2,
+      contract: { mode: 'local', pageSize: 2, totalItems: 3 },
+    });
+
+    act(() => result.current.nextPage());
+
+    expect(result.current.rows).toEqual(['C']);
+    expect(result.current.rangeLabel).toBe('Đang xem 3–3 trên tổng 3');
   });
 });
