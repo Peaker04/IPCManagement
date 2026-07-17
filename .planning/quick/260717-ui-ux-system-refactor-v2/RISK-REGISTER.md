@@ -16,3 +16,4 @@
 | R12 | Dirty AdminDataPage blocks compatibility cleanup | High | Existing 613-line user-owned diff overlaps six legacy tables | Freeze file; reconcile ownership and diff before migration; do not remove compatibility export while it remains a consumer | Wave 3/5 |
 | R13 | Legacy adapter diverges from canonical viewport | Medium | Compatibility wrapper owns separate DOM/CSS behavior | Delegate adapter to `TableViewport`; retain only public prop/class compatibility until final consumer migration | Wave 3/5 |
 | R14 | Semantic copy changes confuse exports or operational traceability | Medium | UI label is reused as backend enum/value | Change labels only; retain enum/value fields and technical codes in exported data | Wave 1/3 |
+| R15 | Shared copy change affects multiple role workflows | Medium | Shared component has HIGH upstream callers | Keep vocabulary-only change, preserve DOM/action contracts, run shared UI audit and route regression gates | Wave 1/3 |
