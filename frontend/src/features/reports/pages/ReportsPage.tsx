@@ -1,8 +1,6 @@
 import {
   AlertTriangle,
   ArrowLeftRight,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Database,
   Download,
@@ -19,6 +17,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
+  CursorPaginationBar,
   ExceptionLane,
   FieldRow,
   InlineAlert,
@@ -109,43 +108,6 @@ interface ReportCursor {
   cursorDate: string;
   cursorId?: string;
 }
-
-const CursorPagination = ({
-  page,
-  hasNext,
-  onPrevious,
-  onNext,
-}: {
-  page: number;
-  hasNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-}) => (
-  <nav className="ipc-pagination-bar" aria-label="Phân trang báo cáo">
-    <div className="ipc-pagination-range">Trang {page}, tải theo cursor</div>
-    <div className="ipc-pagination-actions">
-      <button
-        type="button"
-        className="ipc-pagination-button"
-        disabled={page <= 1}
-        onClick={onPrevious}
-        aria-label="Trang trước"
-      >
-        <ChevronLeft size={16} />
-      </button>
-      <span className="ipc-pagination-page" aria-live="polite">Trang {page}</span>
-      <button
-        type="button"
-        className="ipc-pagination-button"
-        disabled={!hasNext}
-        onClick={onNext}
-        aria-label="Trang sau"
-      >
-        <ChevronRight size={16} />
-      </button>
-    </div>
-  </nav>
-);
 
 type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
@@ -899,7 +861,7 @@ const ReportsPage = () => {
       {activeView === 'movement' && (
         <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
           <StockMovementTable movements={stockMovementRows} pageSize={reportPageSize} />
-          <CursorPagination
+          <CursorPaginationBar
             page={movementCursors.length + 1}
             hasNext={stockMovementResult.data?.hasNext ?? false}
             onPrevious={() => setMovementCursors((current) => current.slice(0, -1))}
@@ -1006,7 +968,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <CursorPagination
+          <CursorPaginationBar
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
             onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
