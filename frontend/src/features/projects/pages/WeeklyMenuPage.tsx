@@ -3257,7 +3257,7 @@ const WeeklyMenuPage = () => {
             </InlineAlert>
           )}
 
-          <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
+          <TableViewport caption="Định lượng tổng hợp và đề xuất mua hàng" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
             <table className={cn('ipc-data-table ipc-cost-table table-fixed w-full', purchaseSummaryUsesDemand && 'ipc-status-action-table')}>
               <thead>
                 {purchaseSummaryUsesDemand ? (
@@ -3334,7 +3334,7 @@ const WeeklyMenuPage = () => {
                 )}
               </tbody>
             </table>
-          </DataTableShell>
+          </TableViewport>
           <div className="mt-3 flex min-h-[38px] items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
             <span className="text-sm font-medium text-slate-600">
               Hiển thị {purchaseSummaryStart}-{purchaseSummaryEnd} / {purchaseSummaryTotalItems}
