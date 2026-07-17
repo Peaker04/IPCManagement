@@ -39,6 +39,7 @@
 - Weekly-menu production-plan table: `10d1916` migrates one isolated `560px` table to `TableViewport` while preserving the explicit viewport height and adding a caption.
 - Weekly-menu import surfaces: `6dd531d` and `6787897` migrate pending-job and history tables to `TableViewport`, preserving `260px` max-height and adding captions; feature-owned import logic remains unstaged.
 - Weekly-menu cost surfaces: `e755b56` and `0034875` migrate linked-cost and daily-ingredient tables, retaining `ipc-cost-table-shell` and explicit viewport heights while adding captions.
+- Weekly-menu cost surfaces 2: `9a5c0af` and `85ba461` migrate purchase-summary and tray-cost tables with the same preserved class/height approach.
 - Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
 - Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
