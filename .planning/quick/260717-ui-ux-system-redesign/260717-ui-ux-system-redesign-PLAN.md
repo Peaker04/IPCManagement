@@ -43,7 +43,7 @@ Status: helper implemented and common list consumers migrated (`RoleInbox`, `App
 
 ### Wave 3 — Route migration
 
-Status: Coordination `OrderTable`, Warehouse stock table, all three Purchasing tables and all four Reports price-variance tables completed; Admin remains. Warehouse stock and Reports price variance still use bounded API limits plus local display pagination until server cursor contracts are added.
+Status: Coordination `OrderTable`, Warehouse stock table, all three Purchasing tables and the non-cursor Reports operational tables completed; Reports audit/data-quality and Admin remain. Collection-backed Reports tables use bounded API limits plus local display pagination until server cursor contracts are added.
 
 - Migrate theo nhóm: dashboard/work queues; weekly menu/coordination; approvals/purchasing/warehouse; chef; reports/admin.
 - Mỗi route giữ presentation component và API contract; loại bỏ pagination copy-paste, repeated headings, duplicated status explanations và code-like labels.
