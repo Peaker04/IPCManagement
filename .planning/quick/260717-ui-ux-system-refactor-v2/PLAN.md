@@ -178,6 +178,7 @@ Current Wave 3 evidence:
 - Dashboard slice: `SwimlaneProgress` now uses `TableViewport` and shared semantic workflow copy for lane/status/waiting/blocked/next-action columns (`80b52d8`).
 - Weekly-menu slice: the clean production-detail table inside `WeeklyMenuPage` now uses `TableViewport` with an accessible caption (`347253e`). The feature-owned import and production-plan hunks were not staged.
 - Weekly-menu slice 2: the weekly production-plan table now uses `TableViewport`, preserving its `560px` geometry through an explicit max-height and adding an accessible caption (`10d1916`).
+- Weekly-menu slice 3: pending import jobs and import history now use canonical viewports with explicit captions and preserved `260px` max-height (`6dd531d`, `6787897`).
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
 
 Critical shell gate result — `DataTableShell`:
