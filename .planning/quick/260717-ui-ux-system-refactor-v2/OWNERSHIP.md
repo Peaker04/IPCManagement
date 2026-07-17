@@ -15,6 +15,7 @@ The following files were already dirty before the current refactor slice and mus
 Only these files may be changed without an ownership handoff:
 
 - `frontend/src/components/common/DataTableShell.test.tsx`
+- `frontend/src/components/common/PaginationBar.tsx`, `PaginationBar.test.tsx`, `CursorPaginationBar.tsx`, `CursorPaginationBar.test.tsx` — shared pagination primitives migrated with explicit impact gates.
 - `frontend/src/components/common/TableViewport.tsx`
 - `frontend/src/lib/paginationMeta.ts`
 - `frontend/src/lib/paginationContract.ts`
@@ -22,7 +23,7 @@ Only these files may be changed without an ownership handoff:
 - `frontend/src/lib/usePaginatedRows.ts` and `frontend/src/lib/usePaginatedRows.test.ts` — compatibility delegate and contract coverage completed in `a82286f`/`421c904`.
 - `.planning/quick/260717-ui-ux-system-refactor-v2/*`
 
-Any route consumer migration requires an explicit ownership decision if the route file is already dirty. The decision must identify which hunks belong to the existing feature work and which hunk is the UI refactor, then verify both before staging.
+Any route consumer migration requires an explicit ownership decision if the route file is already dirty. The decision must identify which hunks belong to the existing feature work and which hunk is the UI refactor, then verify both before staging. The WeeklyMenu purchase-summary footer has passed this gate in `2854243`; `AdminDataPage` has not.
 
 ## Reconciliation gate before route migration
 
