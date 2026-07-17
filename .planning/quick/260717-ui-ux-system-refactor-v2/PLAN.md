@@ -172,6 +172,7 @@ Current Wave 3 evidence:
 - Semantic copy slice: `uiCopy.reports` now owns report tab, status and technical labels; `ReportsPage` consumes those labels for UI and CSV headers (`dc989ef`). Backend enums, query payloads and exported values remain unchanged.
 - Workflow copy slice: `uiCopy.workflow` now owns owner, deadline, action, SLA and document-code labels; `DocumentRail`, `RoleInbox` and `ApprovalQueue` consume the shared vocabulary (`00da341`).
 - Pagination contract slice: pure `paginationMeta.ts` now owns local page math; `usePaginatedRows` re-exports it for compatibility, `useLocalPagination` imports it directly, and `PaginationContract` is a discriminated union for local/page-number/cursor (`1200311`).
+- Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
 
 ### Wave 4 — Accessibility and visual verification
 

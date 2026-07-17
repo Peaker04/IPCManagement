@@ -39,3 +39,4 @@
 - Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
 - Pagination architecture: `1200311` extracts pure metadata and formalizes mode-specific contract fields; legacy `usePaginatedRows` API remains available for dirty `AdminDataPage` compatibility.
+- Chef viewport: `f8aaae4` migrates `MaterialChecklist` to `TableViewport` with caption while preserving checkbox signoff callbacks and empty-row behavior.
