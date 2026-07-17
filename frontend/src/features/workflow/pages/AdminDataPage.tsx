@@ -2,6 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { BarChart3, Bell, CalendarCheck, Database, Download, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, Upload, UserPlus, Users, XCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
+import { TableViewport } from '@/components/common/TableViewport';
 import {
   CommandBar,
   ContextStrip,
@@ -1330,7 +1331,7 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'statistics' && (
         <div id="admin-statistics-panel" role="tabpanel" aria-labelledby="admin-statistics-tab" className="flex flex-col gap-4">
           <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
-            <DataTableShell ariaLabel="Bảng chỉ số thống kê vận hành">
+            <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
               <table className="ipc-data-table ipc-status-action-table">
                 <thead>
                   <tr>
@@ -1414,7 +1415,7 @@ export default function AdminDataPage() {
                   </tr>
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
           </SectionPanel>
 
           <SectionPanel title="Theo dõi tồn kho và xuất bếp" icon={<PackageCheck size={18} />}>
