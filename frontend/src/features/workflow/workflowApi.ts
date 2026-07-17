@@ -40,10 +40,13 @@ export interface WorkflowReportQuery {
   priceTier?: number;
 }
 
-export interface CurrentStockPageQuery extends WorkflowReportQuery {
+export interface WorkflowReportPageQuery extends WorkflowReportQuery {
   pageNumber?: number;
   pageSize?: number;
 }
+
+export type CurrentStockPageQuery = WorkflowReportPageQuery;
+export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
 
 export interface PageNumberPage<T> {
   items: T[];
@@ -1553,6 +1556,27 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVariancePage: builder.query<PageNumberPage<PriceVarianceRow>, ReceiptPriceVariancePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/receipt-price-variance/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 6,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<ReceiptPriceVarianceReportDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 6,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapPriceVariance),
+      providesTags: ['WorkflowReports'],
+    }),
     getCurrentStockPage: builder.query<PageNumberPage<CurrentStockRow>, CurrentStockPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/current-stock/page',
@@ -1674,6 +1698,7 @@ export const {
   useGetStockMovementsQuery,
   useGetStockMovementPageQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,

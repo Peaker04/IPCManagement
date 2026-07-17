@@ -37,7 +37,7 @@ import {
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
-  useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
@@ -135,6 +135,7 @@ const ReportsPage = () => {
   const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const pricePageSize = 6;
+  const [pricePage, setPricePage] = useState(1);
   const reportPageSize = 20;
   const stockPageSize = 8;
   const [stockPage, setStockPage] = useState(1);
@@ -151,7 +152,11 @@ const ReportsPage = () => {
     limit: 100,
   };
 
-  const priceVarianceResult = useGetPriceVarianceQuery(reportQuery);
+  const priceVarianceResult = useGetPriceVariancePageQuery({
+    ...reportQuery,
+    pageNumber: pricePage,
+    pageSize: pricePageSize,
+  }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
   const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
   const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'period' });
   const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
@@ -189,7 +194,7 @@ const ReportsPage = () => {
   }, { skip: activeView !== 'audit' });
   const dataQualityResult = useGetDataQualityQuery(reportQuery);
 
-  const priceVarianceRows = priceVarianceResult.data ?? [];
+  const priceVarianceRows = priceVarianceResult.data?.items ?? [];
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
   const purchasePlanRows = purchasePlanResult.data ?? [];
   const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
@@ -204,7 +209,6 @@ const ReportsPage = () => {
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
   const shortageItems = ingredientDemandRows.filter((item) => item.tone === 'danger');
-  const pricePagination = useLocalPagination(priceVarianceRows, pricePageSize);
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
@@ -663,11 +667,11 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {pricePagination.rows.length === 0 ? (
+                  {priceVarianceRows.length === 0 ? (
                     <EmptyRow colSpan={7} />
                   ) : (
-                    pricePagination.rows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePagination.page}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    priceVarianceRows.map((item, index) => (
+                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="#475569" />}
@@ -704,7 +708,12 @@ const ReportsPage = () => {
                 </tbody>
               </table>
             </TableViewport>
-            <PaginationBar page={pricePagination.page} pageSize={pricePagination.pageSize} totalItems={pricePagination.totalItems} onPageChange={pricePagination.setPage} />
+            <PaginationBar
+              page={priceVarianceResult.data?.pageNumber ?? pricePage}
+              pageSize={priceVarianceResult.data?.pageSize ?? pricePageSize}
+              totalItems={priceVarianceResult.data?.totalCount ?? 0}
+              onPageChange={setPricePage}
+            />
           </SectionPanel>
           )}
 

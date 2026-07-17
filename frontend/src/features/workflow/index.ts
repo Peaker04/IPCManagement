@@ -19,6 +19,7 @@ export {
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
@@ -95,7 +96,9 @@ export type {
   RecordPurchaseOrderReceiptLineDto,
   UsageReportRow,
   WorkflowReportQuery,
+  WorkflowReportPageQuery,
   CurrentStockPageQuery,
+  ReceiptPriceVariancePageQuery,
   PageNumberPage,
 } from './workflowApi';
 export type {

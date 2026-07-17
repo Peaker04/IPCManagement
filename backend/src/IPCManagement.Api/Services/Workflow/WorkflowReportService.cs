@@ -873,6 +873,51 @@ public class WorkflowReportService : IWorkflowReportService
             .ToList();
     }
 
+    public async Task<PagedResponseDto<ReceiptPriceVarianceReportDto>> GetReceiptPriceVariancePageAsync(ReceiptPriceVariancePageQueryDto query)
+    {
+        var filteredLines = BuildFilteredReceiptLinesQuery(query);
+        var totalCount = await filteredLines.CountAsync();
+        var receiptLines = await filteredLines
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        var items = receiptLines
+            .Select(item =>
+            {
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(
+                    item.Ingredient.ReferencePrice,
+                    item.UnitPrice);
+
+                return new ReceiptPriceVarianceReportDto
+                {
+                    ReceiptId = GuidHelper.ToGuidString(item.ReceiptId),
+                    ReceiptCode = item.Receipt.ReceiptCode,
+                    ReceiptDate = item.Receipt.ReceiptDate,
+                    SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
+                    SupplierName = item.Receipt.Supplier.SupplierName,
+                    IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                    IngredientName = item.Ingredient.IngredientName,
+                    UnitId = GuidHelper.ToGuidString(item.UnitId),
+                    UnitName = item.Unit.UnitName,
+                    Quantity = DecimalPolicy.RoundQuantity(item.Quantity),
+                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
+                    ReferencePrice = DecimalPolicy.RoundMoney(item.Ingredient.ReferencePrice),
+                    VariancePercent = variance,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
+                };
+            })
+            .ToList();
+
+        return PagedResponseDto<ReceiptPriceVarianceReportDto>.Create(
+            items,
+            totalCount,
+            query.PageNumber,
+            query.PageSize);
+    }
+
     public async Task<IReadOnlyList<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierAsync(WorkflowReportQueryDto query)
     {
         var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
