@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-current-stock-complete-ownership-gate-open
+status: wave-3-server-pagination-current-stock-price-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -210,6 +210,13 @@ Current-stock server-pagination slice:
 - Ownership was preserved with hunk-level staging: the pre-existing BOM/tier changes in `WorkflowReportService.cs` remain unstaged and were not included in commit `0139148`.
 - Evidence: relational SQLite contract test passed; backend `267/267` tests, frontend unit `72/72`, lint and build passed; staged GitNexus detection was 8 files, 2 symbols, 1 Reports flow, MEDIUM.
 - Runtime note: unauthenticated endpoint correctly returns `401`. Swagger generation remains unavailable because the pre-existing dirty `DishesController.PreviewBomImport` `[FromForm] IFormFile` contract crashes Swashbuckle; this is tracked as a separate backend/docs blocker and is not caused by the pagination slice.
+
+Price-variance server-pagination slice:
+
+- Added `GET /api/workflow-reports/receipt-price-variance/page` using the shared `WorkflowReportPageQueryDto` contract and the same filters/stable ordering as the legacy list endpoint.
+- `ReportsPage` price-line view now requests only its active server page and renders `totalCount` metadata through the canonical `PaginationBar`; the old `limit: 100` local slice is removed for this view.
+- The shared page query contract is now reused by current stock and price variance, while endpoint-specific DTO names keep controller contracts explicit.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 9 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `327761d`.
 
 Critical shell gate result — `DataTableShell`:
 
