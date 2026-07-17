@@ -181,6 +181,8 @@ Current Wave 3 evidence:
 - Weekly-menu slice 3: pending import jobs and import history now use canonical viewports with explicit captions and preserved `260px` max-height (`6dd531d`, `6787897`).
 - Weekly-menu slice 4: the linked cost table and daily ingredient cost table now use canonical viewports while preserving their legacy cost-table class and explicit `560px`/`360px` heights (`e755b56`, `0034875`).
 - Weekly-menu slice 5: purchase-summary and tray-cost tables now use the same canonical viewport contract, preserving `560px` geometry and cost-table styling (`9a5c0af`, `85ba461`).
+- Weekly-menu slice 6: `ImportedLayoutMatrix` now uses `TableViewport`; `DataTableShell` has no remaining consumer in `WeeklyMenuPage` (`d420da6`). The legacy class and dynamic max-height remain intact.
+- Imported-layout A/B evidence: canonical vs legacy changed the weekly-menu visual diff from `33280` to `33316` desktop pixels and `64371` to `64740` mobile pixels. This is an explained canonical viewport geometry change; snapshots remain frozen until the dirty route feature work is reconciled.
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
 
 Critical shell gate result — `DataTableShell`:
