@@ -1257,6 +1257,11 @@ public class WorkflowReportService : IWorkflowReportService
             lines = lines.Where(item => item.Receipt.ReceiptDate <= dateTo);
         }
 
+        if (query.WarningOnly)
+        {
+            lines = lines.Where(item => item.Ingredient.ReferencePrice > 0 && item.UnitPrice >= item.Ingredient.ReferencePrice * 1.15m);
+        }
+
         return lines;
     }
 

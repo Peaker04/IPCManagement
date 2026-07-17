@@ -21,6 +21,7 @@ public class WorkflowReportQueryDto
     public string? FieldName { get; set; }
     public string? GroupBy { get; set; }
     public decimal? PriceTier { get; set; }
+    public bool WarningOnly { get; set; }
 }
 
 public class CursorPageDto<T>

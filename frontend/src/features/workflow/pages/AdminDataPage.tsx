@@ -31,7 +31,7 @@ import {
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetOperationalKpisQuery,
-  useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPurchasePlanQuery,
   useGetStockMovementsQuery,
   useUpdateDataQualityIssueRemediationMutation,
@@ -214,6 +214,7 @@ export default function AdminDataPage() {
   const [auditEntity, setAuditEntity] = useState('');
   const [auditField, setAuditField] = useState('');
   const authToken = useAppSelector((state) => state.auth.token);
+  const [priceWarningPage, setPriceWarningPage] = useState(1);
 
   const auditQuery = useMemo(
     () => ({
@@ -268,7 +269,7 @@ export default function AdminDataPage() {
   const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 500 });
   const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
-  const { data: priceVarianceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
+  const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: priceWarningPage, pageSize: 8, warningOnly: true });
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
   const { data: usageRows = [] } = useGetIssueVsReturnUsageQuery({ limit: 100 });
   const { roleInboxItems } = useWorkflowOverview();
@@ -292,9 +293,9 @@ export default function AdminDataPage() {
   const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
   const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
   const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
-  const priceWarnings = priceVarianceRows.filter((row) => row.warning);
+  const priceWarnings = priceVariancePage?.items ?? [];
+  const priceWarningCount = priceVariancePage?.totalCount ?? 0;
   const currentStockRows = currentStockPageResponse?.items ?? [];
-  const priceWarningPagination = usePaginatedRows(priceWarnings, 8);
   const totalPurchaseQty = purchasePlanRows.reduce((total, row) => total + row.shortageQty, 0);
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
   const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
@@ -718,7 +719,7 @@ export default function AdminDataPage() {
           items={[
             { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
             { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
-            { label: 'Cảnh báo giá', value: priceWarnings.length.toString(), tone: priceWarnings.length ? 'danger' : 'success' },
+            { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'danger' : 'success' },
             { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
             ...(canManageEmployees ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
@@ -1419,9 +1420,9 @@ export default function AdminDataPage() {
                   </tr>
                   <tr>
                     <td className="font-semibold">Biến động giá</td>
-                    <td className="ipc-numeric-cell">{priceWarnings.length} cảnh báo</td>
+                    <td className="ipc-numeric-cell">{priceWarningCount} cảnh báo</td>
                     <td className="text-left">So giá nhập từ phiếu nhập với giá tham chiếu để admin theo dõi rủi ro.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={priceWarnings.length ? 'danger' : 'success'}>{priceWarnings.length ? 'Vượt ngưỡng' : 'Ổn định'}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={priceWarningCount ? 'danger' : 'success'}>{priceWarningCount ? 'Vượt ngưỡng' : 'Ổn định'}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                   </tr>
                 </tbody>
@@ -1473,7 +1474,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {priceWarningPagination.rows.length === 0 ? <EmptyRow colSpan={5} /> : priceWarningPagination.rows.map((row, index) => (
+                  {priceWarnings.length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.name}</td>
                       <td>{row.supplier}</td>
@@ -1485,7 +1486,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={priceWarningPagination.page} pageSize={priceWarningPagination.pageSize} totalItems={priceWarningPagination.totalItems} onPageChange={priceWarningPagination.setPage} />
+            <PaginationBar
+              page={priceVariancePage?.pageNumber ?? priceWarningPage}
+              pageSize={priceVariancePage?.pageSize ?? 8}
+              totalItems={priceVariancePage?.totalCount ?? 0}
+              onPageChange={setPriceWarningPage}
+            />
           </SectionPanel>
         </div>
       )}

@@ -38,6 +38,7 @@ export interface WorkflowReportQuery {
   fieldName?: string;
   groupBy?: 'day' | 'week';
   priceTier?: number;
+  warningOnly?: boolean;
 }
 
 export interface WorkflowReportPageQuery extends WorkflowReportQuery {
