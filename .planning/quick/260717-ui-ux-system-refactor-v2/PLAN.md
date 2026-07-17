@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot slice complete for safe local consumers. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory, Purchasing local tables and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable`, shared inbox/rail primitives and dirty `AdminDataPage` remain explicitly gated by risk and ownership.
+Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `AdminDataPage` remains explicitly gated by dirty ownership; `PaginatedTableFrame` compatibility remains only for that page.
 
 Deliverables:
 
@@ -166,6 +166,8 @@ Current Wave 3 evidence:
 - Coordination, Reports, Warehouse and Purchasing safe local table consumers now use the canonical local controller and viewport.
 - `npm run test:ui-audit --workspace frontend`: 2/2 passed after the migrations.
 - Remaining route-family work is not silently skipped: shared `RoleInbox`, `DocumentRail`, `StockMovementTable` are HIGH-impact; `AdminDataPage` is dirty user-owned work. They require a separate impact/ownership gate before editing.
+- Shared HIGH migrations completed with compatibility-preserving changes: `DocumentRail` (`2ecb972`), `StockMovementTable` (`a198124`) and `RoleInbox` (`32688c3`). Each changed only local pagination/viewport implementation and retained public props, row actions and mutation boundaries.
+- Remaining legacy consumer is `AdminDataPage.tsx`, which has an existing 613-line user-owned dirty diff and must be reconciled separately before its six table instances can migrate.
 
 ### Wave 4 — Accessibility and visual verification
 

@@ -33,3 +33,5 @@
 - Verification after the Purchasing slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW page-level impact before editing and MEDIUM aggregate staged scope for the single Purchasing flow; nested helper symbols were not separately indexed.
 - Post-migration inventory: only shared `RoleInbox`, `DocumentRail`, `StockMovementTable`, compatibility helpers and dirty `AdminDataPage` still reference the legacy local table patterns.
 - Post-migration UI audit: `npm run test:ui-audit --workspace frontend` passed 2/2; no global overflow or broken action-control regression was detected in the audited protected-route fixtures.
+- Shared migrations: `2ecb972` (`DocumentRail`), `a198124` (`StockMovementTable`) and `32688c3` (`RoleInbox`) now use `useLocalPagination` and/or `TableViewport`; each passed unit 62/62, lint, build and UI audit 2/2 before commit.
+- Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.
