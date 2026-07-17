@@ -3804,7 +3804,7 @@ const WeeklyMenuPage = () => {
               </div>
 
               <SectionPanel title="Lịch sử import thực đơn tuần">
-                <DataTableShell className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
+                <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
@@ -3861,7 +3861,7 @@ const WeeklyMenuPage = () => {
                       )}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
               </SectionPanel>
 
               {selectedImportJob && (
