@@ -1,7 +1,7 @@
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { PaginatedTableFrame } from './PaginatedTableFrame';
+import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
 import { usePaginatedRows } from '@/lib/usePaginatedRows';
@@ -65,7 +65,7 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
 
   return (
     <div className={cn('ipc-demand-summary', className)}>
-      <PaginatedTableFrame className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu">
+      <TableViewport className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu" caption="Tổng hợp nhu cầu nguyên liệu theo ngày và ca">
         <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
           <thead>
             <tr>
@@ -117,7 +117,7 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
             })}
           </tbody>
         </table>
-      </PaginatedTableFrame>
+      </TableViewport>
       <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );

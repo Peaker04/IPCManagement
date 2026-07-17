@@ -116,3 +116,28 @@
     max-height: 440px;
   }
 }
+.ipc-table-viewport {
+  scrollbar-gutter: stable;
+  min-height: 96px;
+  max-height: 520px;
+  border: 1px solid var(--ipc-border, #e2e8f0);
+  border-radius: 0.375rem;
+  background: #fff;
+}
+
+.ipc-table-viewport > table {
+  min-width: 100%;
+}
+
+.ipc-table-viewport thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f8fafc;
+}
+
+@media (max-width: 767px) {
+  .ipc-table-viewport {
+    max-height: 440px;
+  }
+}
