@@ -36,6 +36,12 @@ export const uiCopy = {
     sla: 'Chỉ tiêu SLA',
     documentCode: 'Mã chứng từ',
     copyDocumentCode: 'Sao chép mã chứng từ',
+    lane: 'Luồng vận hành',
+    status: 'Trạng thái',
+    waiting: 'Đang chờ',
+    blocked: 'Đang tắc',
+    nextAction: 'Bước tiếp theo',
+    navigation: 'Mở chi tiết',
   },
 } as const;
 
