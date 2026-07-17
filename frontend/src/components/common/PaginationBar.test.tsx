@@ -16,8 +16,16 @@ describe('PaginationBar', () => {
   it('renders the item range and page count for long lists', () => {
     render(<PaginationBar page={2} pageSize={20} totalItems={45} onPageChange={vi.fn()} />);
 
-    expect(screen.getByText('Hiển thị 21-40 / 45')).toBeInTheDocument();
+    expect(screen.getByText('Đang xem 21–40 trên tổng 45')).toBeInTheDocument();
     expect(screen.getByText('Trang 2/3')).toBeInTheDocument();
+  });
+
+  it('clamps an out-of-range page without exposing an invalid page number', () => {
+    render(<PaginationBar page={99} pageSize={20} totalItems={45} onPageChange={vi.fn()} />);
+
+    expect(screen.getByText('Đang xem 41–45 trên tổng 45')).toBeInTheDocument();
+    expect(screen.getByText('Trang 3/3')).toBeInTheDocument();
+    expect(screen.getByLabelText('Trang sau, trang 3 trong 3')).toBeDisabled();
   });
 
   it('moves to previous and next pages within bounds', async () => {

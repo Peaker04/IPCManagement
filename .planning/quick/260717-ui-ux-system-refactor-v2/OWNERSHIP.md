@@ -19,6 +19,7 @@ Only these files may be changed without an ownership handoff:
 - `frontend/src/lib/paginationMeta.ts`
 - `frontend/src/lib/paginationContract.ts`
 - `frontend/src/lib/useLocalPagination.ts`
+- `frontend/src/lib/usePaginatedRows.ts` and `frontend/src/lib/usePaginatedRows.test.ts` — compatibility delegate and contract coverage completed in `a82286f`/`421c904`.
 - `.planning/quick/260717-ui-ux-system-refactor-v2/*`
 
 Any route consumer migration requires an explicit ownership decision if the route file is already dirty. The decision must identify which hunks belong to the existing feature work and which hunk is the UI refactor, then verify both before staging.

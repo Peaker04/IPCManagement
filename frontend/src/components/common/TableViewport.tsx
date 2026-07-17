@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 
 interface TableViewportProps {
@@ -14,14 +14,17 @@ interface TableViewportProps {
  * contracts while route families are being migrated.
  */
 export function TableViewport({ children, ariaLabel, caption, className }: TableViewportProps) {
+  const captionId = useId();
+
   return (
     <div
       className={cn('ipc-table-viewport w-full overflow-auto', className)}
       role="region"
       aria-label={ariaLabel}
+      aria-describedby={caption ? captionId : undefined}
       tabIndex={0}
     >
-      {caption ? <div className="sr-only">{caption}</div> : null}
+      {caption ? <div id={captionId} className="sr-only">{caption}</div> : null}
       {children}
     </div>
   );

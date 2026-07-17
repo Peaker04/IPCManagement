@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
@@ -809,7 +809,7 @@ const ImportedLayoutMatrix = ({
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)));
 
   return (
-    <DataTableShell className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
+    <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
       <table className="ipc-data-table ipc-schedule-table">
         <thead>
           <tr>
@@ -899,7 +899,7 @@ const ImportedLayoutMatrix = ({
           )}
         </tbody>
       </table>
-    </DataTableShell>
+    </TableViewport>
   );
 };
 
@@ -3076,7 +3076,7 @@ const WeeklyMenuPage = () => {
               />
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
+            <TableViewport caption="Món trong kế hoạch tuần và giá vốn liên kết" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
               <table className="ipc-data-table ipc-cost-table table-fixed w-full">
                 <thead>
                   <tr>
@@ -3125,7 +3125,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="mb-5 mt-3 flex min-h-[38px] items-center justify-end gap-2">
               <span className="mr-2 text-sm font-medium text-slate-600">
                 {activeCostDay
@@ -3150,7 +3150,7 @@ const WeeklyMenuPage = () => {
               </button>
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[360px]" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
+            <TableViewport caption="Nguyên liệu theo món đang hiển thị trong ngày" className="ipc-cost-table-shell h-[360px] max-h-[360px]" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
               <table className="ipc-data-table ipc-cost-table">
                 <thead>
                   <tr>
@@ -3195,7 +3195,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="mt-3 flex min-h-[32px] items-center justify-end text-sm font-medium text-slate-600">
               Tổng nguyên liệu ngày: <span className="ml-2 text-lg font-bold text-green-800">{formatCurrency(activeDayMaterialCost)}</span>
             </div>
@@ -3257,7 +3257,7 @@ const WeeklyMenuPage = () => {
             </InlineAlert>
           )}
 
-          <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
+          <TableViewport caption="Định lượng tổng hợp và đề xuất mua hàng" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng định lượng tổng hợp và đề xuất mua hàng">
             <table className={cn('ipc-data-table ipc-cost-table table-fixed w-full', purchaseSummaryUsesDemand && 'ipc-status-action-table')}>
               <thead>
                 {purchaseSummaryUsesDemand ? (
@@ -3334,7 +3334,7 @@ const WeeklyMenuPage = () => {
                 )}
               </tbody>
             </table>
-          </DataTableShell>
+          </TableViewport>
           <div className="mt-3 flex min-h-[38px] items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
             <span className="text-sm font-medium text-slate-600">
               Hiển thị {purchaseSummaryStart}-{purchaseSummaryEnd} / {purchaseSummaryTotalItems}
@@ -3437,7 +3437,7 @@ const WeeklyMenuPage = () => {
               />
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
+            <TableViewport caption="Giá vốn nguyên liệu cho một khay" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
               <table className="ipc-data-table ipc-cost-table">
                 <thead>
                   <tr>
@@ -3477,7 +3477,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
           </SectionPanel>
         </>
       )}
@@ -3804,7 +3804,7 @@ const WeeklyMenuPage = () => {
               </div>
 
               <SectionPanel title="Lịch sử import thực đơn tuần">
-                <DataTableShell className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
+                <TableViewport caption="Lịch sử import thực đơn tuần" className="max-h-[260px]" ariaLabel="Lịch sử import thực đơn tuần">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
@@ -3861,7 +3861,7 @@ const WeeklyMenuPage = () => {
                       )}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
               </SectionPanel>
 
               {selectedImportJob && (
