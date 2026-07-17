@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: ready-for-baseline-audit
+status: wave-2-pilot-complete
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -55,6 +55,8 @@ Dials cố định cho v2:
 
 ### Wave 0 — Baseline, ownership and failure reproduction
 
+Status: completed for the current execution slice. GitNexus was refreshed; `RoleInbox` was classified HIGH and excluded from the pilot; `DemandSummary` was classified LOW and selected as the pilot.
+
 Deliverables:
 
 - `BASELINE.md`: inventory route → shell → table → data contract → pagination contract → test coverage.
@@ -70,6 +72,8 @@ Exit criteria:
 
 ### Wave 1 — Canonical design tokens and semantic language
 
+Status: initial contract established; full token/copy audit remains.
+
 Deliverables:
 
 - Three-layer tokens: primitive → semantic → component; không hardcode color/spacing mới trong route.
@@ -84,6 +88,8 @@ Exit criteria:
 - Một route pilot và một dialog pilot render đúng anatomy.
 
 ### Wave 2 — Canonical table and pagination architecture
+
+Status: pilot contract implemented. `TableViewport` and typed `PaginationContract` now exist; `DemandSummary` is the first migrated consumer. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 

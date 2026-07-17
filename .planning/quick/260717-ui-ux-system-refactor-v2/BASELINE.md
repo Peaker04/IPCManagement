@@ -22,3 +22,8 @@
 - Shared UI foundation: `frontend/src/lib/uiCopy.ts`, `frontend/src/lib/usePaginatedRows.ts`, `frontend/src/components/common/PaginatedTableFrame.tsx`, `frontend/src/styles/ui-redesign.css`.
 - Migrated route families: Coordination, Warehouse, Purchasing, Reports and selected Admin long tables.
 - Remaining architectural issue: existing and new table patterns coexist; v2 must converge them through a typed canonical contract before further route changes.
+
+## First v2 implementation slice
+
+- Commit `f1393df` adds `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), and migrates `DemandSummary` as the low-risk pilot.
+- Verification: unit 61/61, lint pass, build pass, `git diff --check` pass, GitNexus staged risk MEDIUM for the single `DemandSummary` flow.
