@@ -680,6 +680,20 @@ interface DataQualityReportDto {
   issues: DataQualityIssueDto[];
 }
 
+interface PageNumberPageDto<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+interface DataQualityPageDto extends DataQualityReportDto {
+  page: PageNumberPageDto<DataQualityIssueDto>;
+}
+
 interface MissingBomDishDto {
   dishId: string;
   dishCode: string;
@@ -901,6 +915,10 @@ export interface DataQualityReport {
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
+}
+
+export interface DataQualityPageReport extends DataQualityReport {
+  page: PageNumberPage<DataQualityIssueRow>;
 }
 
 export interface DataQualityIssueRemediationRequest {
@@ -1175,6 +1193,28 @@ const mapPageNumberPage = <TDto, TRow>(
   hasNext: page.hasNext,
 });
 
+const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssueRow => ({
+  id: issue.issueId,
+  category: issue.category,
+  severity: issue.severity === 'error' ? 'error' : 'warning',
+  owner: issue.owner || 'Quản lý vận hành',
+  priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
+  slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
+  slaDueAt: issue.slaDueAt,
+  slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
+  entityName: issue.entityName,
+  entityId: issue.entityId,
+  entityCode: issue.entityCode,
+  entityLabel: issue.entityLabel,
+  message: issue.message,
+  suggestedAction: issue.suggestedAction,
+  route: issue.route,
+  remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
+  remediationAt: issue.remediationAt,
+  remediationByName: issue.remediationByName,
+  remediationNote: issue.remediationNote,
+});
+
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
   generatedAt: item.generatedAt,
   totalIssues: item.totalIssues,
@@ -1188,27 +1228,7 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   missingConversionCount: item.missingConversionCount,
   negativeStockCount: item.negativeStockCount,
   orphanDocumentCount: item.orphanDocumentCount,
-  issues: (item.issues ?? []).map((issue) => ({
-    id: issue.issueId,
-    category: issue.category,
-    severity: issue.severity === 'error' ? 'error' : 'warning',
-    owner: issue.owner || 'Quản lý vận hành',
-    priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
-    slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
-    slaDueAt: issue.slaDueAt,
-    slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
-    entityName: issue.entityName,
-    entityId: issue.entityId,
-    entityCode: issue.entityCode,
-    entityLabel: issue.entityLabel,
-    message: issue.message,
-    suggestedAction: issue.suggestedAction,
-    route: issue.route,
-    remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
-    remediationAt: issue.remediationAt,
-    remediationByName: issue.remediationByName,
-    remediationNote: issue.remediationNote,
-  })),
+  issues: (item.issues ?? []).map(mapDataQualityIssue),
 });
 
 const buildRoleInbox = (
@@ -1720,6 +1740,26 @@ export const workflowApi = apiSlice.injectEndpoints({
         },
       providesTags: ['WorkflowReports'],
     }),
+    getDataQualityPage: builder.query<DataQualityPageReport, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/data-quality/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<DataQualityPageDto>) => {
+        const report = response.data;
+        const emptyPage: PageNumberPage<DataQualityIssueRow> = {
+          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+        };
+        if (!report) {
+          return { ...mapDataQualityReport({ generatedAt: '', totalIssues: 0, errorCount: 0, warningCount: 0, missingBomCount: 0, invalidUnitCount: 0, missingConversionCount: 0, negativeStockCount: 0, orphanDocumentCount: 0, issues: [] }), page: emptyPage };
+        }
+        return {
+          ...mapDataQualityReport(report),
+          page: mapPageNumberPage(report.page ?? emptyPage, mapDataQualityIssue),
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
       query: (body) => ({
         url: '/workflow-reports/data-quality/issues/remediation',
@@ -1807,6 +1847,7 @@ export const {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useGetDataQualityPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useGetSupplierQuotationsByIngredientQuery,
   useCreateSupplierQuotationMutation,

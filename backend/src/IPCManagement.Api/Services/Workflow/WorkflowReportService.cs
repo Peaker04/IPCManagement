@@ -1271,6 +1271,24 @@ public class WorkflowReportService : IWorkflowReportService
         return lines.Select(MapKitchenIssue).ToList();
     }
 
+    public async Task<PagedResponseDto<KitchenIssueReportDto>> GetKitchenIssuesPageAsync(KitchenIssuePageQueryDto query)
+    {
+        var filteredLines = QueryIssueLines(query);
+        var totalCount = await filteredLines.CountAsync();
+        var lines = await filteredLines
+            .OrderByDescending(item => item.Issue.IssueDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        return PagedResponseDto<KitchenIssueReportDto>.Create(
+            lines.Select(MapKitchenIssue).ToList(),
+            totalCount,
+            query.PageNumber,
+            query.PageSize);
+    }
+
     public async Task<IReadOnlyList<IssueVsReturnUsageReportDto>> GetIssueVsReturnAsync(WorkflowReportQueryDto query)
     {
         var lines = await QueryIssueLines(query)
@@ -2207,6 +2225,38 @@ public class WorkflowReportService : IWorkflowReportService
             NegativeStockCount = sortedIssues.Count(issue => issue.Category == "negative_stock"),
             OrphanDocumentCount = sortedIssues.Count(issue => issue.Category == "orphan_document"),
             Issues = sortedIssues
+        };
+    }
+
+    public async Task<DataQualityPageDto> GetDataQualityPageAsync(DataQualityPageQueryDto query)
+    {
+        var sourceQuery = CloneQuery(query, 1000);
+        var report = await GetDataQualityAsync(sourceQuery);
+        var pageItems = report.Issues
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return new DataQualityPageDto
+        {
+            GeneratedAt = report.GeneratedAt,
+            TotalIssues = report.TotalIssues,
+            ErrorCount = report.ErrorCount,
+            WarningCount = report.WarningCount,
+            ResolvedIssueCount = report.ResolvedIssueCount,
+            ReopenedIssueCount = report.ReopenedIssueCount,
+            UrgentIssueCount = report.UrgentIssueCount,
+            MissingBomCount = report.MissingBomCount,
+            InvalidUnitCount = report.InvalidUnitCount,
+            MissingConversionCount = report.MissingConversionCount,
+            NegativeStockCount = report.NegativeStockCount,
+            OrphanDocumentCount = report.OrphanDocumentCount,
+            Issues = pageItems,
+            Page = PagedResponseDto<DataQualityIssueDto>.Create(
+                pageItems,
+                report.TotalIssues,
+                query.PageNumber,
+                query.PageSize)
         };
     }
 

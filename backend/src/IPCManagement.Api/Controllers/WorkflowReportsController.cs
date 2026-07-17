@@ -174,6 +174,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
             await _workflowReportService.GetDataQualityAsync(query)));
 
+    [HttpGet("data-quality/page")]
+    public async Task<IActionResult> GetDataQualityPage([FromQuery] DataQualityPageQueryDto query)
+        => Ok(ApiResponse<DataQualityPageDto>.SuccessResult(
+            await _workflowReportService.GetDataQualityPageAsync(query)));
+
     [HttpPost("data-quality/issues/remediation")]
     public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)
     {

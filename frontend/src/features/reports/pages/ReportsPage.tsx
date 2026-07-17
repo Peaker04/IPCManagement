@@ -33,7 +33,7 @@ import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetAuditChangePageQuery,
   useGetCurrentStockPageQuery,
-  useGetDataQualityQuery,
+  useGetDataQualityPageQuery,
   useGetIngredientDemandPageQuery,
   useGetIssueVsReturnUsagePageQuery,
   useGetKitchenIssuesPageQuery,
@@ -146,6 +146,7 @@ const ReportsPage = () => {
   const operationalPageSize = 8;
   const [kitchenPage, setKitchenPage] = useState(1);
   const [usagePage, setUsagePage] = useState(1);
+  const [dataQualityPage, setDataQualityPage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -204,7 +205,7 @@ const ReportsPage = () => {
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'audit' });
-  const dataQualityResult = useGetDataQualityQuery(reportQuery);
+  const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
 
   const priceVarianceRows = priceVarianceResult.data?.items ?? [];
   const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
@@ -221,7 +222,7 @@ const ReportsPage = () => {
   const usageRows = usageResult.data?.items ?? [];
   const auditRows = auditResult.data?.items ?? [];
   const dataQualityReport = dataQualityResult.data;
-  const dataQualityRows = dataQualityReport?.issues ?? [];
+  const dataQualityRows = dataQualityReport?.page.items ?? [];
 
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
@@ -229,7 +230,6 @@ const ReportsPage = () => {
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
-  const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -1048,7 +1048,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {dataQualityPagination.rows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityPagination.rows.map((row) => (
+                {dataQualityRows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityRows.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
@@ -1086,7 +1086,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={dataQualityPagination.page} pageSize={dataQualityPagination.pageSize} totalItems={dataQualityPagination.totalItems} onPageChange={dataQualityPagination.setPage} />
+          <PaginationBar page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage} pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize} totalItems={dataQualityResult.data?.page.totalCount ?? 0} onPageChange={setDataQualityPage} />
         </SectionPanel>
       )}
     </OperationalFrame>
