@@ -1,4 +1,5 @@
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Workflow;
@@ -29,6 +30,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetCurrentStock([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
             await _workflowReportService.GetCurrentStockAsync(query)));
+
+    [HttpGet("current-stock/page")]
+    public async Task<IActionResult> GetCurrentStockPage([FromQuery] CurrentStockPageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>.SuccessResult(
+            await _workflowReportService.GetCurrentStockPageAsync(query)));
 
     [HttpGet("stock-movements")]
     public async Task<IActionResult> GetStockMovements([FromQuery] WorkflowReportQueryDto query)
@@ -65,6 +71,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>.SuccessResult(
             await _workflowReportService.GetIngredientDemandAsync(query)));
 
+    [HttpGet("ingredient-demand/page")]
+    public async Task<IActionResult> GetIngredientDemandPage([FromQuery] IngredientDemandPageQueryDto query)
+        => Ok(ApiResponse<IngredientDemandPageDto>.SuccessResult(
+            await _workflowReportService.GetIngredientDemandPageAsync(query)));
+
     [HttpGet("purchase-demand")]
     public async Task<IActionResult> GetPurchaseDemand([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(
@@ -75,10 +86,20 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>.SuccessResult(
             await _workflowReportService.GetPurchasePlanAsync(query)));
 
+    [HttpGet("purchase-plan/page")]
+    public async Task<IActionResult> GetPurchasePlanPage([FromQuery] PurchasePlanPageQueryDto query)
+        => Ok(ApiResponse<PurchasePlanPageDto>.SuccessResult(
+            await _workflowReportService.GetPurchasePlanPageAsync(query)));
+
     [HttpGet("receipt-price-variance")]
     public async Task<IActionResult> GetReceiptPriceVariance([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVarianceAsync(query)));
+
+    [HttpGet("receipt-price-variance/page")]
+    public async Task<IActionResult> GetReceiptPriceVariancePage([FromQuery] ReceiptPriceVariancePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>.SuccessResult(
+            await _workflowReportService.GetReceiptPriceVariancePageAsync(query)));
 
     [HttpGet("price-variance/by-supplier")]
     public async Task<IActionResult> GetPriceVarianceBySupplier([FromQuery] WorkflowReportQueryDto query)
@@ -100,6 +121,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesAsync(query)));
 
+    [HttpGet("kitchen-issues/page")]
+    public async Task<IActionResult> GetKitchenIssuesPage([FromQuery] KitchenIssuePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>.SuccessResult(
+            await _workflowReportService.GetKitchenIssuesPageAsync(query)));
+
     [HttpGet("operational-kpis")]
     public async Task<IActionResult> GetOperationalKpis()
         => Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(
@@ -109,6 +135,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetIssueVsReturn([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>.SuccessResult(
             await _workflowReportService.GetIssueVsReturnAsync(query)));
+
+    [HttpGet("issue-vs-return/page")]
+    public async Task<IActionResult> GetIssueVsReturnPage([FromQuery] IssueVsReturnPageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>.SuccessResult(
+            await _workflowReportService.GetIssueVsReturnPageAsync(query)));
 
     [HttpGet("audit-changes")]
     public async Task<IActionResult> GetAuditChanges([FromQuery] WorkflowReportQueryDto query)
@@ -142,6 +173,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetDataQuality([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
             await _workflowReportService.GetDataQualityAsync(query)));
+
+    [HttpGet("data-quality/page")]
+    public async Task<IActionResult> GetDataQualityPage([FromQuery] DataQualityPageQueryDto query)
+        => Ok(ApiResponse<DataQualityPageDto>.SuccessResult(
+            await _workflowReportService.GetDataQualityPageAsync(query)));
 
     [HttpPost("data-quality/issues/remediation")]
     public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)

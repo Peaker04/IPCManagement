@@ -11,6 +11,8 @@ export { OperationalFrame } from './OperationalFrame';
 export { PageHeader } from './PageHeader';
 export { PageSection } from './PageSection';
 export { PaginationBar } from './PaginationBar';
+export { CursorPaginationBar } from './CursorPaginationBar';
+export { PageStepper } from './PageStepper';
 export { SectionPanel } from './SectionPanel';
 export { SideRail } from './SideRail';
 export { SplitWorkbench } from './SplitWorkbench';

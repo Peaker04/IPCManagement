@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PageStepper, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
@@ -2493,15 +2493,6 @@ const WeeklyMenuPage = () => {
     const availableAfterReserve = line.available - line.reserved;
     return Math.max(line.required - availableAfterReserve, 0) > 0;
   }).length;
-  const purchaseSummaryStart = purchaseSummaryTotalItems === 0
-    ? 0
-    : safePurchaseSummaryPageIndex * PURCHASE_SUMMARY_PAGE_SIZE + 1;
-  const purchaseSummaryEnd = Math.min(
-    purchaseSummaryTotalItems,
-    (safePurchaseSummaryPageIndex + 1) * PURCHASE_SUMMARY_PAGE_SIZE,
-  );
-
-
   return (
     <OperationalFrame
       command={
@@ -2714,27 +2705,13 @@ const WeeklyMenuPage = () => {
                       {activeProductionPlanPage?.plans.length ?? 0} KHSX / {activeProductionPlanPage?.totalLines ?? 0} dòng / {(activeProductionPlanPage?.totalServings ?? 0).toLocaleString('vi-VN')} suất
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
-                      disabled={safeProductionPlanPageIndex <= 0}
-                      onClick={() => setProductionPlanPageIndex((current) => Math.max(0, current - 1))}
-                    >
-                      Trước
-                    </button>
-                    <span className="min-w-[76px] text-center text-sm font-semibold text-slate-700">
-                      {safeProductionPlanPageIndex + 1}/{productionPlanPages.length}
-                    </span>
-                    <button
-                      type="button"
-                      className="ipc-button ipc-button-ghost h-8 min-h-8 px-3 py-0"
-                      disabled={safeProductionPlanPageIndex >= productionPlanPages.length - 1}
-                      onClick={() => setProductionPlanPageIndex((current) => Math.min(productionPlanPages.length - 1, current + 1))}
-                    >
-                      Sau
-                    </button>
-                  </div>
+                  <PageStepper
+                    page={safeProductionPlanPageIndex + 1}
+                    totalPages={productionPlanPages.length}
+                    label="Kế hoạch sản xuất"
+                    ariaLabel="Điều hướng kế hoạch sản xuất"
+                    onPageChange={(nextPage) => setProductionPlanPageIndex(nextPage - 1)}
+                  />
                 </div>
 
                 {activeProductionPlanPage?.plans.map((plan) => (
@@ -3335,34 +3312,13 @@ const WeeklyMenuPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <div className="mt-3 flex min-h-[38px] items-center justify-between gap-3 rounded-md border border-slate-200 bg-white px-3 py-2">
-            <span className="text-sm font-medium text-slate-600">
-              Hiển thị {purchaseSummaryStart}-{purchaseSummaryEnd} / {purchaseSummaryTotalItems}
-            </span>
-            <div className="flex items-center gap-2">
-              <span className="mr-2 text-sm font-bold text-slate-800">
-                {purchaseSummaryTotalItems > 0
-                  ? `Trang ${safePurchaseSummaryPageIndex + 1}/${purchaseSummaryTotalPages}`
-                  : 'Trang 0/0'}
-              </span>
-              <button
-                type="button"
-                className="ipc-button ipc-button-ghost"
-                disabled={purchaseSummaryTotalItems === 0 || safePurchaseSummaryPageIndex <= 0}
-                onClick={() => setPurchaseSummaryPageIndex(Math.max(0, safePurchaseSummaryPageIndex - 1))}
-              >
-                Trang trước
-              </button>
-              <button
-                type="button"
-                className="ipc-button ipc-button-primary"
-                disabled={purchaseSummaryTotalItems === 0 || safePurchaseSummaryPageIndex >= purchaseSummaryTotalPages - 1}
-                onClick={() => setPurchaseSummaryPageIndex(Math.min(purchaseSummaryTotalPages - 1, safePurchaseSummaryPageIndex + 1))}
-              >
-                Trang sau
-              </button>
-            </div>
-          </div>
+          <PaginationBar
+            className="mt-3"
+            page={safePurchaseSummaryPageIndex + 1}
+            pageSize={PURCHASE_SUMMARY_PAGE_SIZE}
+            totalItems={purchaseSummaryTotalItems}
+            onPageChange={(nextPage) => setPurchaseSummaryPageIndex(nextPage - 1)}
+          />
         </SectionPanel>
       )}
 

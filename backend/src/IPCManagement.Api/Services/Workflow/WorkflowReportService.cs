@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,66 @@ public class WorkflowReportService : IWorkflowReportService
                 LastUpdated = item.LastUpdated
             })
             .ToListAsync();
+    }
+
+    public async Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query)
+    {
+        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+
+        var stocks = _context.Currentstocks
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .AsQueryable();
+
+        if (warehouseId is not null)
+        {
+            stocks = stocks.Where(item => item.WarehouseId == warehouseId);
+        }
+
+        if (ingredientId is not null)
+        {
+            stocks = stocks.Where(item => item.IngredientId == ingredientId);
+        }
+
+        var projectedStocks = stocks.Select(item => new CurrentStockSummaryDto
+        {
+            WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
+            WarehouseName = item.Warehouse.WarehouseName,
+            IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+            IngredientName = item.Ingredient.IngredientName,
+            UnitId = GuidHelper.ToGuidString(item.UnitId),
+            UnitName = item.Unit.UnitName,
+            CurrentQty = item.CurrentQty,
+            LastUpdated = item.LastUpdated
+        });
+
+        var totalCount = await projectedStocks.CountAsync();
+        var pageNumber = query.PageNumber;
+        var pageSize = query.PageSize;
+        var orderedStocks = stocks
+            .OrderBy(item => item.Warehouse.WarehouseName)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .ThenBy(item => item.Unit.UnitName);
+        var items = await orderedStocks
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(item => new CurrentStockSummaryDto
+            {
+                WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
+                WarehouseName = item.Warehouse.WarehouseName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                CurrentQty = item.CurrentQty,
+                LastUpdated = item.LastUpdated
+            })
+            .ToListAsync();
+
+        return PagedResponseDto<CurrentStockSummaryDto>.Create(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)
@@ -503,7 +564,104 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
     }
 
+    public async Task<IngredientDemandPageDto> GetIngredientDemandPageAsync(IngredientDemandPageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(item => item.Request)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Customer)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Dish)
+            .AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var totalCount = await lines.CountAsync();
+        var shortageCount = await lines.CountAsync(item => item.SuggestedPurchaseQty > 0);
+        var items = await lines
+            .OrderByDescending(item => item.Request.RequestDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new IngredientDemandReportDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                MaterialRequestCode = item.Request.RequestCode,
+                RequestDate = item.Request.RequestDate,
+                Status = item.Request.Status,
+                ShiftName = item.PlanLine.ShiftName,
+                CustomerName = item.PlanLine.Customer.CustomerName,
+                DishName = item.PlanLine.Dish.DishName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                BomId = item.BomId == null ? null : GuidHelper.ToGuidString(item.BomId),
+                PriceTierAmount = item.PriceTierAmount,
+                BomScope = item.BomScope,
+                TotalServings = item.TotalServings,
+                BomRatePercent = item.BomRatePercent,
+                AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
+                AppliedPortionRuleSource = item.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = item.AppliedPortionRatePercent,
+                YieldLossPercent = item.YieldLossPercent,
+                TotalRequiredQty = item.TotalRequiredQty,
+                CurrentStockQty = item.CurrentStockQty,
+                SuggestedPurchaseQty = item.SuggestedPurchaseQty
+            })
+            .ToListAsync();
+
+        return new IngredientDemandPageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
+    {
+        var rows = await BuildPurchasePlanRowsAsync(query, NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit));
+        return rows
+            .Take(NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<PurchasePlanReportDto>> BuildPurchasePlanRowsAsync(WorkflowReportQueryDto query, int? sourceLimit)
     {
         var groupBy = string.Equals(query.GroupBy, "week", StringComparison.OrdinalIgnoreCase) ? "week" : "day";
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
@@ -553,11 +711,14 @@ public class WorkflowReportService : IWorkflowReportService
             linesQuery = linesQuery.Where(line => line.PriceTierAmount == priceTier.Value);
         }
 
-        var lines = await linesQuery
+        IQueryable<Materialrequestline> orderedLines = linesQuery
             .OrderBy(line => line.Request.RequestDate)
-            .ThenBy(line => line.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit))
-            .ToListAsync();
+            .ThenBy(line => line.Ingredient.IngredientName);
+        if (sourceLimit is not null)
+        {
+            orderedLines = orderedLines.Take(sourceLimit.Value);
+        }
+        var lines = await orderedLines.ToListAsync();
         if (lines.Count == 0)
         {
             return [];
@@ -643,6 +804,26 @@ public class WorkflowReportService : IWorkflowReportService
             .OrderBy(item => item.PeriodStart)
             .ThenBy(item => item.IngredientName)
             .ToList();
+    }
+
+    public async Task<PurchasePlanPageDto> GetPurchasePlanPageAsync(PurchasePlanPageQueryDto query)
+    {
+        var rows = await BuildPurchasePlanRowsAsync(query, null);
+        var totalCount = rows.Count;
+        var items = rows
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return new PurchasePlanPageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalShortageQty = rows.Sum(row => row.ShortageQty),
+            TotalEstimatedAmount = rows.Sum(row => row.EstimatedAmount),
+        };
     }
 
     public async Task<IReadOnlyList<PurchaseDemandReportDto>> GetPurchaseDemandAsync(WorkflowReportQueryDto query)
@@ -810,6 +991,51 @@ public class WorkflowReportService : IWorkflowReportService
                 };
             })
             .ToList();
+    }
+
+    public async Task<PagedResponseDto<ReceiptPriceVarianceReportDto>> GetReceiptPriceVariancePageAsync(ReceiptPriceVariancePageQueryDto query)
+    {
+        var filteredLines = BuildFilteredReceiptLinesQuery(query);
+        var totalCount = await filteredLines.CountAsync();
+        var receiptLines = await filteredLines
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        var items = receiptLines
+            .Select(item =>
+            {
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(
+                    item.Ingredient.ReferencePrice,
+                    item.UnitPrice);
+
+                return new ReceiptPriceVarianceReportDto
+                {
+                    ReceiptId = GuidHelper.ToGuidString(item.ReceiptId),
+                    ReceiptCode = item.Receipt.ReceiptCode,
+                    ReceiptDate = item.Receipt.ReceiptDate,
+                    SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
+                    SupplierName = item.Receipt.Supplier.SupplierName,
+                    IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                    IngredientName = item.Ingredient.IngredientName,
+                    UnitId = GuidHelper.ToGuidString(item.UnitId),
+                    UnitName = item.Unit.UnitName,
+                    Quantity = DecimalPolicy.RoundQuantity(item.Quantity),
+                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
+                    ReferencePrice = DecimalPolicy.RoundMoney(item.Ingredient.ReferencePrice),
+                    VariancePercent = variance,
+                    IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
+                };
+            })
+            .ToList();
+
+        return PagedResponseDto<ReceiptPriceVarianceReportDto>.Create(
+            items,
+            totalCount,
+            query.PageNumber,
+            query.PageSize);
     }
 
     public async Task<IReadOnlyList<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierAsync(WorkflowReportQueryDto query)
@@ -1045,6 +1271,24 @@ public class WorkflowReportService : IWorkflowReportService
         return lines.Select(MapKitchenIssue).ToList();
     }
 
+    public async Task<PagedResponseDto<KitchenIssueReportDto>> GetKitchenIssuesPageAsync(KitchenIssuePageQueryDto query)
+    {
+        var filteredLines = QueryIssueLines(query);
+        var totalCount = await filteredLines.CountAsync();
+        var lines = await filteredLines
+            .OrderByDescending(item => item.Issue.IssueDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        return PagedResponseDto<KitchenIssueReportDto>.Create(
+            lines.Select(MapKitchenIssue).ToList(),
+            totalCount,
+            query.PageNumber,
+            query.PageSize);
+    }
+
     public async Task<IReadOnlyList<IssueVsReturnUsageReportDto>> GetIssueVsReturnAsync(WorkflowReportQueryDto query)
     {
         var lines = await QueryIssueLines(query)
@@ -1102,6 +1346,61 @@ public class WorkflowReportService : IWorkflowReportService
                 };
             })
             .ToList();
+    }
+
+    public async Task<PagedResponseDto<IssueVsReturnUsageReportDto>> GetIssueVsReturnPageAsync(IssueVsReturnPageQueryDto query)
+    {
+        var filteredLines = QueryIssueLines(query);
+        var totalCount = await filteredLines.CountAsync();
+        var lines = await filteredLines
+            .OrderByDescending(item => item.Issue.IssueDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        var issueIds = lines
+            .Select(item => item.IssueId)
+            .Distinct(ByteArrayComparer.Instance)
+            .ToList();
+        var returnLines = await _context.Inventoryreturnlines
+            .AsNoTracking()
+            .Include(item => item.Return)
+            .Where(item => issueIds.Contains(item.Return.IssueId))
+            .ToListAsync();
+        var returnTotals = returnLines
+            .Where(item => item.Return.ReturnType == "RETURN")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var wasteTotals = returnLines
+            .Where(item => item.Return.ReturnType == "WASTE")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+
+        var items = lines.Select(item =>
+        {
+            var returnedQty = returnTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
+            var wastedQty = wasteTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
+            var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
+            return new IssueVsReturnUsageReportDto
+            {
+                IssueId = GuidHelper.ToGuidString(item.IssueId),
+                IssueCode = item.Issue.IssueCode,
+                IssueDate = item.Issue.IssueDate,
+                ShiftName = item.Issue.ShiftName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
+                ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
+                WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
+                VarianceQty = varianceQty,
+                UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
+            };
+        }).ToList();
+
+        return PagedResponseDto<IssueVsReturnUsageReportDto>.Create(items, totalCount, query.PageNumber, query.PageSize);
     }
 
     public async Task<IReadOnlyList<AuditChangeReportDto>> GetAuditChangesAsync(WorkflowReportQueryDto query)
@@ -1926,6 +2225,38 @@ public class WorkflowReportService : IWorkflowReportService
             NegativeStockCount = sortedIssues.Count(issue => issue.Category == "negative_stock"),
             OrphanDocumentCount = sortedIssues.Count(issue => issue.Category == "orphan_document"),
             Issues = sortedIssues
+        };
+    }
+
+    public async Task<DataQualityPageDto> GetDataQualityPageAsync(DataQualityPageQueryDto query)
+    {
+        var sourceQuery = CloneQuery(query, 1000);
+        var report = await GetDataQualityAsync(sourceQuery);
+        var pageItems = report.Issues
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return new DataQualityPageDto
+        {
+            GeneratedAt = report.GeneratedAt,
+            TotalIssues = report.TotalIssues,
+            ErrorCount = report.ErrorCount,
+            WarningCount = report.WarningCount,
+            ResolvedIssueCount = report.ResolvedIssueCount,
+            ReopenedIssueCount = report.ReopenedIssueCount,
+            UrgentIssueCount = report.UrgentIssueCount,
+            MissingBomCount = report.MissingBomCount,
+            InvalidUnitCount = report.InvalidUnitCount,
+            MissingConversionCount = report.MissingConversionCount,
+            NegativeStockCount = report.NegativeStockCount,
+            OrphanDocumentCount = report.OrphanDocumentCount,
+            Issues = pageItems,
+            Page = PagedResponseDto<DataQualityIssueDto>.Create(
+                pageItems,
+                report.TotalIssues,
+                query.PageNumber,
+                query.PageSize)
         };
     }
 
