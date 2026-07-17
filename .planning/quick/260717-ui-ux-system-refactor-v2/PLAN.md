@@ -174,6 +174,7 @@ Current Wave 3 evidence:
 - Pagination contract slice: pure `paginationMeta.ts` now owns local page math; `usePaginatedRows` re-exports it for compatibility, `useLocalPagination` imports it directly, and `PaginationContract` is a discriminated union for local/page-number/cursor (`1200311`).
 - Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
 - Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
+- Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
 
 ### Wave 4 — Accessibility and visual verification
 
