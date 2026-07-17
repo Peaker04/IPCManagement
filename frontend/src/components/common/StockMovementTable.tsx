@@ -3,9 +3,10 @@ import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { DataTableShell } from './DataTableShell';
+import { PaginatedTableFrame } from './PaginatedTableFrame';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/features/workflow';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -66,8 +67,8 @@ function shortenDocumentNo(docNo: string): string {
 }
 
 export function StockMovementTable({ movements, pageSize = 8, className }: StockMovementTableProps) {
-  const [page, setPage] = useState(1);
   const [copiedDocumentNo, setCopiedDocumentNo] = useState<string | null>(null);
+  const pagination = usePaginatedRows(movements, pageSize);
 
   const handleCopyDocumentNo = async (docNo: string) => {
     try {
@@ -85,13 +86,9 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
     return <div className={cn('ipc-stock-movement-table is-empty text-slate-500 text-center py-8 border border-dashed border-slate-200 bg-slate-50 rounded-sm', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(movements.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageMovements = movements.slice((safePage - 1) * pageSize, safePage * pageSize);
-
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
-      <DataTableShell ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell">
+      <PaginatedTableFrame ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell">
         <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
           <thead>
             <tr>
@@ -105,7 +102,7 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
             </tr>
           </thead>
           <tbody>
-            {pageMovements.map((movement) => (
+            {pagination.rows.map((movement) => (
               <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
                 <td className="font-mono text-[13px] font-semibold text-slate-700 text-left">
                   <div className="flex items-center gap-1.5 justify-start">
@@ -154,8 +151,8 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
             ))}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={movements.length} onPageChange={setPage} />
+      </PaginatedTableFrame>
+      <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
     </div>
   );
 }
