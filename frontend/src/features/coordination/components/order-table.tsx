@@ -5,9 +5,9 @@ import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '../coordinationApi'
-import { EmptyState, InlineAlert, PaginatedTableFrame, PaginationBar } from '@/components/common'
+import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
-import { usePaginatedRows } from '@/lib/usePaginatedRows'
+import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList } from 'lucide-react'
 
 interface OrderTableProps {
@@ -24,7 +24,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const pageSize = 12
-  const { page, rows: pageOrders, totalItems, setPage } = usePaginatedRows(orders, pageSize)
+  const { page, rows: pageOrders, totalItems, setPage } = useLocalPagination(orders, pageSize)
 
   const handleOrderChange = (payload: OrderUpdatePayload) => {
     dispatch(updateOrder(payload))
@@ -132,7 +132,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
           </InlineAlert>
         </div>
       )}
-      <PaginatedTableFrame className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng">
+      <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
@@ -317,7 +317,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
             })}
           </tbody>
         </table>
-      </PaginatedTableFrame>
+      </TableViewport>
       <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   )

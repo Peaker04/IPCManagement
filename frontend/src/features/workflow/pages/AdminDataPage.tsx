@@ -291,6 +291,8 @@ export default function AdminDataPage() {
   const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
   const dataQualityIssues = dataQualityReport?.issues ?? [];
   const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
+  const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
+  const qualityPagination = usePaginatedRows(dataQualityIssues, 8);
   const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
@@ -834,7 +836,7 @@ export default function AdminDataPage() {
                   ]}
                 />
 
-                <DataTableShell className="max-h-[520px]" ariaLabel="Preview import BOM theo đơn giá">
+                <PaginatedTableFrame ariaLabel="Preview import BOM theo đơn giá">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>
@@ -849,7 +851,7 @@ export default function AdminDataPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {(bomImportPreview?.rows ?? []).slice(0, 100).map((row) => (
+                      {bomPreviewPagination.rows.map((row) => (
                         <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
                           <td>{row.rowNumber}</td>
                           <td>
@@ -874,7 +876,8 @@ export default function AdminDataPage() {
                       {(!bomImportPreview || bomImportPreview.rows.length === 0) && <EmptyRow colSpan={8} />}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </PaginatedTableFrame>
+                <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
               </div>
             </div>
           </SectionPanel>
@@ -1226,7 +1229,7 @@ export default function AdminDataPage() {
               </InlineAlert>
             )}
 
-            <DataTableShell ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
+            <PaginatedTableFrame ariaLabel="Bảng vấn đề dữ liệu cần xử lý" className="mt-4">
               <table className="ipc-data-table ipc-admin-quality-table text-sm">
                 <thead>
                   <tr>
@@ -1243,7 +1246,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={10} /> : dataQualityIssues.map((issue, index) => (
+                  {qualityPagination.rows.length === 0 ? <EmptyRow colSpan={10} /> : qualityPagination.rows.map((issue, index) => (
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
@@ -1299,7 +1302,8 @@ export default function AdminDataPage() {
                   ))}
                 </tbody>
               </table>
-            </DataTableShell>
+            </PaginatedTableFrame>
+            <PaginationBar page={qualityPagination.page} pageSize={qualityPagination.pageSize} totalItems={qualityPagination.totalItems} onPageChange={qualityPagination.setPage} />
           </SectionPanel>
         </div>
       )}
