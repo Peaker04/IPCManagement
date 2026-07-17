@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
@@ -809,7 +809,7 @@ const ImportedLayoutMatrix = ({
   const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)));
 
   return (
-    <DataTableShell className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
+    <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
       <table className="ipc-data-table ipc-schedule-table">
         <thead>
           <tr>
@@ -899,7 +899,7 @@ const ImportedLayoutMatrix = ({
           )}
         </tbody>
       </table>
-    </DataTableShell>
+    </TableViewport>
   );
 };
 
