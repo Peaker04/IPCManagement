@@ -26,7 +26,7 @@ import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangePageQuery,
   useGetCurrentStockPageQuery,
-  useGetDataQualityQuery,
+  useGetDataQualityPageQuery,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
@@ -168,6 +168,7 @@ export default function AdminDataPage() {
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [qualityPage, setQualityPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -260,7 +261,7 @@ export default function AdminDataPage() {
       alert('Lỗi khi tải file CSV: ' + err);
     }
   };
-  const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
+  const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8 });
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
@@ -298,10 +299,9 @@ export default function AdminDataPage() {
   const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
   const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
   const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
-  const dataQualityIssues = dataQualityReport?.issues ?? [];
-  const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
+  const dataQualityIssues = dataQualityReport?.page.items ?? [];
+  const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
   const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
-  const qualityPagination = usePaginatedRows(dataQualityIssues, 8);
   const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
@@ -717,7 +717,7 @@ export default function AdminDataPage() {
         <ContextStrip
           items={[
             { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
-            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
+            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
             { label: 'Cảnh báo giá', value: priceWarnings.length.toString(), tone: priceWarnings.length ? 'danger' : 'success' },
             { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
@@ -1220,7 +1220,7 @@ export default function AdminDataPage() {
           <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
             <ContextStrip
               items={[
-                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
+                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
                 { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
@@ -1253,7 +1253,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {qualityPagination.rows.length === 0 ? <EmptyRow colSpan={10} /> : qualityPagination.rows.map((issue, index) => (
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={10} /> : dataQualityIssues.map((issue, index) => (
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
@@ -1310,7 +1310,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={qualityPagination.page} pageSize={qualityPagination.pageSize} totalItems={qualityPagination.totalItems} onPageChange={qualityPagination.setPage} />
+            <PaginationBar
+              page={dataQualityReport?.page.pageNumber ?? qualityPage}
+              pageSize={dataQualityReport?.page.pageSize ?? 8}
+              totalItems={dataQualityReport?.page.totalCount ?? 0}
+              onPageChange={setQualityPage}
+            />
           </SectionPanel>
         </div>
       )}
