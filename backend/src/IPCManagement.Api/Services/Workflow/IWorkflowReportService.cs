@@ -1,3 +1,4 @@
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
 
 namespace IPCManagement.Api.Services.Workflow;
@@ -5,6 +6,7 @@ namespace IPCManagement.Api.Services.Workflow;
 public interface IWorkflowReportService
 {
     Task<IReadOnlyList<CurrentStockSummaryDto>> GetCurrentStockAsync(WorkflowReportQueryDto query);
+    Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query);
     Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query);
     Task<CursorPageDto<StockMovementViewDto>> GetStockMovementPageAsync(WorkflowReportQueryDto query);
     Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query);

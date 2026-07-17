@@ -5,6 +5,7 @@ export {
   useGetAuditChangesQuery,
   useGetAuditChangePageQuery,
   useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetDataQualityQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useGenerateMaterialDemandMutation,
@@ -94,6 +95,8 @@ export type {
   RecordPurchaseOrderReceiptLineDto,
   UsageReportRow,
   WorkflowReportQuery,
+  CurrentStockPageQuery,
+  PageNumberPage,
 } from './workflowApi';
 export type {
   ApprovalRecord,

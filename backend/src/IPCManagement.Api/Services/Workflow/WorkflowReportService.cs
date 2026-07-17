@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +62,66 @@ public class WorkflowReportService : IWorkflowReportService
                 LastUpdated = item.LastUpdated
             })
             .ToListAsync();
+    }
+
+    public async Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query)
+    {
+        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+
+        var stocks = _context.Currentstocks
+            .AsNoTracking()
+            .Include(item => item.Warehouse)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .AsQueryable();
+
+        if (warehouseId is not null)
+        {
+            stocks = stocks.Where(item => item.WarehouseId == warehouseId);
+        }
+
+        if (ingredientId is not null)
+        {
+            stocks = stocks.Where(item => item.IngredientId == ingredientId);
+        }
+
+        var projectedStocks = stocks.Select(item => new CurrentStockSummaryDto
+        {
+            WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
+            WarehouseName = item.Warehouse.WarehouseName,
+            IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+            IngredientName = item.Ingredient.IngredientName,
+            UnitId = GuidHelper.ToGuidString(item.UnitId),
+            UnitName = item.Unit.UnitName,
+            CurrentQty = item.CurrentQty,
+            LastUpdated = item.LastUpdated
+        });
+
+        var totalCount = await projectedStocks.CountAsync();
+        var pageNumber = query.PageNumber;
+        var pageSize = query.PageSize;
+        var orderedStocks = stocks
+            .OrderBy(item => item.Warehouse.WarehouseName)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .ThenBy(item => item.Unit.UnitName);
+        var items = await orderedStocks
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .Select(item => new CurrentStockSummaryDto
+            {
+                WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
+                WarehouseName = item.Warehouse.WarehouseName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                CurrentQty = item.CurrentQty,
+                LastUpdated = item.LastUpdated
+            })
+            .ToListAsync();
+
+        return PagedResponseDto<CurrentStockSummaryDto>.Create(items, totalCount, pageNumber, pageSize);
     }
 
     public async Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)

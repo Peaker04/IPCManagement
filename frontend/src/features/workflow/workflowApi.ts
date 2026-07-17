@@ -40,6 +40,21 @@ export interface WorkflowReportQuery {
   priceTier?: number;
 }
 
+export interface CurrentStockPageQuery extends WorkflowReportQuery {
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PageNumberPage<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
 export interface CursorPage<T> {
   items: T[];
   limit: number;
@@ -1121,6 +1136,19 @@ const mapCursorPage = <TDto, TRow>(
   nextCursorId: page.nextCursorId,
 });
 
+const mapPageNumberPage = <TDto, TRow>(
+  page: PageNumberPage<TDto>,
+  mapRow: (item: TDto) => TRow,
+): PageNumberPage<TRow> => ({
+  items: (page.items ?? []).map(mapRow),
+  totalCount: page.totalCount,
+  pageNumber: page.pageNumber,
+  pageSize: page.pageSize,
+  totalPages: page.totalPages,
+  hasPrev: page.hasPrev,
+  hasNext: page.hasNext,
+});
+
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
   generatedAt: item.generatedAt,
   totalIssues: item.totalIssues,
@@ -1525,6 +1553,27 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
       providesTags: ['WorkflowReports'],
     }),
+    getCurrentStockPage: builder.query<PageNumberPage<CurrentStockRow>, CurrentStockPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/current-stock/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<CurrentStockSummaryDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 8,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapCurrentStock),
+      providesTags: ['WorkflowReports'],
+    }),
     getAuditChangePage: builder.query<CursorPage<AuditLogRow>, WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/audit-changes/page',
@@ -1630,6 +1679,7 @@ export const {
   useGetPriceVarianceByDishGroupQuery,
   useGetOperationalKpisQuery,
   useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
   useGetIssueVsReturnUsageQuery,

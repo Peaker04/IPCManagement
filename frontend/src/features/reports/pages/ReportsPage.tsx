@@ -32,7 +32,7 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetAuditChangePageQuery,
-  useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetDataQualityQuery,
   useGetIngredientDemandQuery,
   useGetIssueVsReturnUsageQuery,
@@ -136,6 +136,8 @@ const ReportsPage = () => {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const pricePageSize = 6;
   const reportPageSize = 20;
+  const stockPageSize = 8;
+  const [stockPage, setStockPage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -162,7 +164,11 @@ const ReportsPage = () => {
     groupBy: purchasePlanGroupBy,
     limit: 500,
   }, { skip: activeView !== 'purchase' });
-  const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
+  const currentStockResult = useGetCurrentStockPageQuery({
+    ...reportQuery,
+    pageNumber: stockPage,
+    pageSize: stockPageSize,
+  }, { skip: activeView !== 'stock' });
   const movementCursor = movementCursors.at(-1);
   const auditCursor = auditCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
@@ -187,7 +193,7 @@ const ReportsPage = () => {
   const ingredientDemandRows = ingredientDemandResult.data ?? [];
   const purchasePlanRows = purchasePlanResult.data ?? [];
   const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
-  const currentStockRows = currentStockResult.data ?? [];
+  const currentStockRows = currentStockResult.data?.items ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
   const usageRows = usageResult.data ?? [];
@@ -204,7 +210,6 @@ const ReportsPage = () => {
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
   const demandPagination = useLocalPagination(ingredientDemandRows, 8);
   const purchasePagination = useLocalPagination(purchasePlanRows, 8);
-  const stockPagination = useLocalPagination(currentStockRows, 8);
   const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
   const usagePagination = useLocalPagination(usageRows, 8);
   const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
@@ -842,7 +847,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {stockPagination.rows.length === 0 ? <EmptyRow colSpan={5} /> : stockPagination.rows.map((row, index) => (
+                {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
@@ -854,7 +859,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={stockPagination.page} pageSize={stockPagination.pageSize} totalItems={stockPagination.totalItems} onPageChange={stockPagination.setPage} />
+          <PaginationBar
+            page={currentStockResult.data?.pageNumber ?? stockPage}
+            pageSize={currentStockResult.data?.pageSize ?? stockPageSize}
+            totalItems={currentStockResult.data?.totalCount ?? 0}
+            onPageChange={setStockPage}
+          />
         </SectionPanel>
       )}
 

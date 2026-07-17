@@ -1,4 +1,5 @@
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Workflow;
@@ -29,6 +30,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetCurrentStock([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
             await _workflowReportService.GetCurrentStockAsync(query)));
+
+    [HttpGet("current-stock/page")]
+    public async Task<IActionResult> GetCurrentStockPage([FromQuery] CurrentStockPageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>.SuccessResult(
+            await _workflowReportService.GetCurrentStockPageAsync(query)));
 
     [HttpGet("stock-movements")]
     public async Task<IActionResult> GetStockMovements([FromQuery] WorkflowReportQueryDto query)
