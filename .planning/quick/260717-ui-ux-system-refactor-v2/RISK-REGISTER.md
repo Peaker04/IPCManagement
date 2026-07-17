@@ -14,3 +14,4 @@
 | R10 | Copy refactor removes traceability | Medium | Code identifiers disappear from operational UI | Keep code + semantic label pair where audit/support needs it | Wave 1/3 |
 | R11 | Shared HIGH component migration breaks multiple role workflows | High | GitNexus reports 4–6 direct callers | Change only controller/viewport implementation; preserve props/DOM actions; run unit/lint/build/UI audit; commit per component | Wave 3 |
 | R12 | Dirty AdminDataPage blocks compatibility cleanup | High | Existing 613-line user-owned diff overlaps six legacy tables | Freeze file; reconcile ownership and diff before migration; do not remove compatibility export while it remains a consumer | Wave 3/5 |
+| R13 | Legacy adapter diverges from canonical viewport | Medium | Compatibility wrapper owns separate DOM/CSS behavior | Delegate adapter to `TableViewport`; retain only public prop/class compatibility until final consumer migration | Wave 3/5 |

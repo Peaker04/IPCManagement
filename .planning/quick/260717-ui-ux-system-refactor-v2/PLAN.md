@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `AdminDataPage` remains explicitly gated by dirty ownership; `PaginatedTableFrame` compatibility remains only for that page.
+Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `PaginatedTableFrame` is now a thin adapter over `TableViewport`; `AdminDataPage` remains explicitly gated by dirty ownership before its consumer code is migrated/removed.
 
 Deliverables:
 
@@ -168,6 +168,7 @@ Current Wave 3 evidence:
 - Remaining route-family work is not silently skipped: shared `RoleInbox`, `DocumentRail`, `StockMovementTable` are HIGH-impact; `AdminDataPage` is dirty user-owned work. They require a separate impact/ownership gate before editing.
 - Shared HIGH migrations completed with compatibility-preserving changes: `DocumentRail` (`2ecb972`), `StockMovementTable` (`a198124`) and `RoleInbox` (`32688c3`). Each changed only local pagination/viewport implementation and retained public props, row actions and mutation boundaries.
 - Remaining legacy consumer is `AdminDataPage.tsx`, which has an existing 613-line user-owned dirty diff and must be reconciled separately before its six table instances can migrate.
+- Compatibility cleanup: `PaginatedTableFrame` now delegates to `TableViewport` (`fd1af9e`), preserving its public props and legacy class while removing duplicate viewport DOM behavior. GitNexus does not index this symbol, so direct repository inventory plus regression gates are the evidence boundary.
 
 ### Wave 4 — Accessibility and visual verification
 

@@ -35,3 +35,4 @@
 - Post-migration UI audit: `npm run test:ui-audit --workspace frontend` passed 2/2; no global overflow or broken action-control regression was detected in the audited protected-route fixtures.
 - Shared migrations: `2ecb972` (`DocumentRail`), `a198124` (`StockMovementTable`) and `32688c3` (`RoleInbox`) now use `useLocalPagination` and/or `TableViewport`; each passed unit 62/62, lint, build and UI audit 2/2 before commit.
 - Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.
+- Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
