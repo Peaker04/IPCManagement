@@ -2851,7 +2851,7 @@ const WeeklyMenuPage = () => {
               </Link>
             </Toolbar>
 
-            <DataTableShell className="h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+            <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" className="h-[560px] max-h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
               <table className="ipc-data-table table-fixed w-full">
                 <thead>
                   <tr>
@@ -2958,7 +2958,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="flex min-h-[38px] flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 {activeDemandQuickServingRows.map((row) => {
