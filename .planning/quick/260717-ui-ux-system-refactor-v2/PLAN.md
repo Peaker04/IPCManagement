@@ -249,6 +249,14 @@ Data-quality server-pagination slice:
 - Known boundary: the current data-quality generator still materializes and sorts up to the service safety cap (`1000`) before page slicing because its issue sources are heterogeneous. This commit bounds the UI payload and establishes the API contract; a future data-quality query decomposition is required before claiming fully database-lazy evaluation at very large issue volumes.
 - Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `95ac13c`.
 
+Admin audit cursor-pagination slice:
+
+- `AdminDataPage` Audit now uses the existing `audit-changes/page` cursor contract with a page size of 8 and only requests audit data while the Audit tab is active.
+- Filter changes and reset clear cursor history; next/previous navigation uses the canonical `CursorPaginationBar`. The table no longer downloads the full audit list before slicing locally.
+- Ownership was enforced hunk-by-hunk. GitNexus classified `AdminDataPage` as LOW impact; the staged scope contained only that file and no BOM/import/contract changes.
+- Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commit: `ea4938b`.
+- Known boundary: Admin cleanup, data-quality, current stock, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+
 Critical shell gate result — `DataTableShell`:
 
 - GitNexus upstream impact: CRITICAL; 16 impacted symbols, 10 direct callers and 12 affected execution flows.
