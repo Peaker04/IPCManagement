@@ -257,6 +257,14 @@ Admin audit cursor-pagination slice:
 - Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commits: `ea4938b` (Audit cursor wiring) and `8f39660` (Audit display cleanup plus current-stock page migration).
 - Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
 
+Admin data-quality page slice:
+
+- `AdminDataPage` cleanup now consumes `data-quality/page` with page size 8, renders only the server page and keeps the shared `PaginationBar` bound to API metadata.
+- Summary semantics remain report-wide: total issues, error tone, missing BOM, unit/conversion, negative stock, orphan, SLA and resolved counters still come from the report summary rather than the visible page.
+- Ownership was enforced hunk-by-hunk; BOM and contract feature changes remained unstaged. GitNexus classified `AdminDataPage` as LOW, with 1 staged file, 1 symbol and 0 affected processes.
+- Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
+- Known boundary: Admin price variance and statistics views remain next; price variance needs a warning-aware server contract before paging only warning rows without changing semantics.
+
 Admin current-stock page slice:
 
 - `AdminDataPage` inventory now consumes `current-stock/page` with an API page size of 8, binds the table rows directly to the server page and preserves the context-strip total through `totalCount`.
