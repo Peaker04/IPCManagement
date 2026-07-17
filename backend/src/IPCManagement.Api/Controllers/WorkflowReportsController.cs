@@ -121,6 +121,11 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesAsync(query)));
 
+    [HttpGet("kitchen-issues/page")]
+    public async Task<IActionResult> GetKitchenIssuesPage([FromQuery] KitchenIssuePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>.SuccessResult(
+            await _workflowReportService.GetKitchenIssuesPageAsync(query)));
+
     [HttpGet("operational-kpis")]
     public async Task<IActionResult> GetOperationalKpis()
         => Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(
@@ -130,6 +135,11 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetIssueVsReturn([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>.SuccessResult(
             await _workflowReportService.GetIssueVsReturnAsync(query)));
+
+    [HttpGet("issue-vs-return/page")]
+    public async Task<IActionResult> GetIssueVsReturnPage([FromQuery] IssueVsReturnPageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>.SuccessResult(
+            await _workflowReportService.GetIssueVsReturnPageAsync(query)));
 
     [HttpGet("audit-changes")]
     public async Task<IActionResult> GetAuditChanges([FromQuery] WorkflowReportQueryDto query)

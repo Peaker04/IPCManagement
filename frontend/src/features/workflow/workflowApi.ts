@@ -1612,12 +1612,30 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<KitchenIssueReportDto[]>) => getData(response).map(mapKitchenIssue),
       providesTags: ['WorkflowReports'],
     }),
+    getKitchenIssuesPage: builder.query<PageNumberPage<KitchenIssueRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/kitchen-issues/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<KitchenIssueReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapKitchenIssue),
+      providesTags: ['WorkflowReports'],
+    }),
     getIssueVsReturnUsage: builder.query<UsageReportRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/issue-vs-return',
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<IssueVsReturnUsageReportDto[]>) => getData(response).map(mapUsageReport),
+      providesTags: ['WorkflowReports'],
+    }),
+    getIssueVsReturnUsagePage: builder.query<PageNumberPage<UsageReportRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/issue-vs-return/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<IssueVsReturnUsageReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapUsageReport),
       providesTags: ['WorkflowReports'],
     }),
     getAuditChanges: builder.query<AuditLogRow[], WorkflowReportQuery | void>({
@@ -1781,7 +1799,9 @@ export const {
   useGetCurrentStockPageQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
+  useGetKitchenIssuesPageQuery,
   useGetIssueVsReturnUsageQuery,
+  useGetIssueVsReturnUsagePageQuery,
   useGetAuditChangesQuery,
   useGetAuditChangePageQuery,
   useGetSuppliersQuery,

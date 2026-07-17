@@ -35,8 +35,8 @@ import {
   useGetCurrentStockPageQuery,
   useGetDataQualityQuery,
   useGetIngredientDemandPageQuery,
-  useGetIssueVsReturnUsageQuery,
-  useGetKitchenIssuesQuery,
+  useGetIssueVsReturnUsagePageQuery,
+  useGetKitchenIssuesPageQuery,
   useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
@@ -143,6 +143,9 @@ const ReportsPage = () => {
   const [demandPage, setDemandPage] = useState(1);
   const purchasePageSize = 8;
   const [purchasePage, setPurchasePage] = useState(1);
+  const operationalPageSize = 8;
+  const [kitchenPage, setKitchenPage] = useState(1);
+  const [usagePage, setUsagePage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -192,8 +195,8 @@ const ReportsPage = () => {
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'movement' });
-  const kitchenIssueResult = useGetKitchenIssuesQuery(reportQuery);
-  const usageResult = useGetIssueVsReturnUsageQuery(reportQuery);
+  const kitchenIssueResult = useGetKitchenIssuesPageQuery({ ...reportQuery, pageNumber: kitchenPage, pageSize: operationalPageSize }, { skip: activeView !== 'kitchen' });
+  const usageResult = useGetIssueVsReturnUsagePageQuery({ ...reportQuery, pageNumber: usagePage, pageSize: operationalPageSize }, { skip: activeView !== 'usage' });
   const auditResult = useGetAuditChangePageQuery({
     ...reportQuery,
     cursorDate: auditCursor?.cursorDate,
@@ -214,8 +217,8 @@ const ReportsPage = () => {
   };
   const currentStockRows = currentStockResult.data?.items ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
-  const kitchenIssueRows = kitchenIssueResult.data ?? [];
-  const usageRows = usageResult.data ?? [];
+  const kitchenIssueRows = kitchenIssueResult.data?.items ?? [];
+  const usageRows = usageResult.data?.items ?? [];
   const auditRows = auditResult.data?.items ?? [];
   const dataQualityReport = dataQualityResult.data;
   const dataQualityRows = dataQualityReport?.issues ?? [];
@@ -226,8 +229,6 @@ const ReportsPage = () => {
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
-  const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
-  const usagePagination = useLocalPagination(usageRows, 8);
   const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
@@ -927,7 +928,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {kitchenPagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenPagination.rows.map((row, index) => (
+                {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
@@ -941,7 +942,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={kitchenPagination.page} pageSize={kitchenPagination.pageSize} totalItems={kitchenPagination.totalItems} onPageChange={kitchenPagination.setPage} />
+          <PaginationBar page={kitchenIssueResult.data?.pageNumber ?? kitchenPage} pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize} totalItems={kitchenIssueResult.data?.totalCount ?? 0} onPageChange={setKitchenPage} />
         </SectionPanel>
       )}
 
@@ -961,7 +962,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {usagePagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : usagePagination.rows.map((row, index) => (
+                {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
@@ -975,7 +976,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={usagePagination.page} pageSize={usagePagination.pageSize} totalItems={usagePagination.totalItems} onPageChange={usagePagination.setPage} />
+          <PaginationBar page={usageResult.data?.pageNumber ?? usagePage} pageSize={usageResult.data?.pageSize ?? operationalPageSize} totalItems={usageResult.data?.totalCount ?? 0} onPageChange={setUsagePage} />
         </SectionPanel>
       )}
 

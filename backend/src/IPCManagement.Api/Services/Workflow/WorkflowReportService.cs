@@ -1330,6 +1330,61 @@ public class WorkflowReportService : IWorkflowReportService
             .ToList();
     }
 
+    public async Task<PagedResponseDto<IssueVsReturnUsageReportDto>> GetIssueVsReturnPageAsync(IssueVsReturnPageQueryDto query)
+    {
+        var filteredLines = QueryIssueLines(query);
+        var totalCount = await filteredLines.CountAsync();
+        var lines = await filteredLines
+            .OrderByDescending(item => item.Issue.IssueDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToListAsync();
+
+        var issueIds = lines
+            .Select(item => item.IssueId)
+            .Distinct(ByteArrayComparer.Instance)
+            .ToList();
+        var returnLines = await _context.Inventoryreturnlines
+            .AsNoTracking()
+            .Include(item => item.Return)
+            .Where(item => issueIds.Contains(item.Return.IssueId))
+            .ToListAsync();
+        var returnTotals = returnLines
+            .Where(item => item.Return.ReturnType == "RETURN")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+        var wasteTotals = returnLines
+            .Where(item => item.Return.ReturnType == "WASTE")
+            .GroupBy(item => BuildUsageKey(item.Return.IssueId, item.IngredientId, item.UnitId))
+            .ToDictionary(group => group.Key, group => group.Sum(item => item.Quantity));
+
+        var items = lines.Select(item =>
+        {
+            var returnedQty = returnTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
+            var wastedQty = wasteTotals.GetValueOrDefault(BuildUsageKey(item.IssueId, item.IngredientId, item.UnitId), 0);
+            var varianceQty = DecimalPolicy.RoundQuantity(returnedQty + wastedQty);
+            return new IssueVsReturnUsageReportDto
+            {
+                IssueId = GuidHelper.ToGuidString(item.IssueId),
+                IssueCode = item.Issue.IssueCode,
+                IssueDate = item.Issue.IssueDate,
+                ShiftName = item.Issue.ShiftName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                IssuedQty = DecimalPolicy.RoundQuantity(item.IssuedQty),
+                ReturnedQty = DecimalPolicy.RoundQuantity(returnedQty),
+                WastedQty = DecimalPolicy.RoundQuantity(wastedQty),
+                VarianceQty = varianceQty,
+                UsedQty = WorkflowReportCalculator.CalculateUsedQuantity(item.IssuedQty, varianceQty)
+            };
+        }).ToList();
+
+        return PagedResponseDto<IssueVsReturnUsageReportDto>.Create(items, totalCount, query.PageNumber, query.PageSize);
+    }
+
     public async Task<IReadOnlyList<AuditChangeReportDto>> GetAuditChangesAsync(WorkflowReportQueryDto query)
     {
         var dateFrom = ParseDateTimeStart(query.DateFrom);
