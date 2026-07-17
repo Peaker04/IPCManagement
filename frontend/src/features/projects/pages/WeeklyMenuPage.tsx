@@ -3076,7 +3076,7 @@ const WeeklyMenuPage = () => {
               />
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
+            <TableViewport caption="Món trong kế hoạch tuần và giá vốn liên kết" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
               <table className="ipc-data-table ipc-cost-table table-fixed w-full">
                 <thead>
                   <tr>
@@ -3125,7 +3125,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="mb-5 mt-3 flex min-h-[38px] items-center justify-end gap-2">
               <span className="mr-2 text-sm font-medium text-slate-600">
                 {activeCostDay
