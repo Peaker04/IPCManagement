@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory, Purchasing local tables and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
+Status: route-family pilot slice complete for safe local consumers. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory, Purchasing local tables and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable`, shared inbox/rail primitives and dirty `AdminDataPage` remain explicitly gated by risk and ownership.
 
 Deliverables:
 
@@ -160,6 +160,12 @@ Exit criteria mỗi family:
 - Loading/error/empty/no-result có cùng geometry.
 - Technical copy có label giải thích.
 - Visual snapshot chỉ cập nhật sau khi controls và overflow pass.
+
+Current Wave 3 evidence:
+
+- Coordination, Reports, Warehouse and Purchasing safe local table consumers now use the canonical local controller and viewport.
+- `npm run test:ui-audit --workspace frontend`: 2/2 passed after the migrations.
+- Remaining route-family work is not silently skipped: shared `RoleInbox`, `DocumentRail`, `StockMovementTable` are HIGH-impact; `AdminDataPage` is dirty user-owned work. They require a separate impact/ownership gate before editing.
 
 ### Wave 4 — Accessibility and visual verification
 
