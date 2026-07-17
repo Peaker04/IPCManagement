@@ -28,4 +28,5 @@
 - Commits `f1393df`, `0d3a7ff` and `33efacf` add `TableViewport`, the `PaginationContract` mode distinction (`local`, `page-number`, `cursor`), `useLocalPagination`, and migrate `DemandSummary` plus `ApprovalQueue`.
 - Commit `0a64f5b` migrates Coordination `OrderTable` to the same viewport/controller contract while preserving mutation and rollback behavior.
 - Commit `c4aaf92` migrates the local paginated tables in `ReportsPage`; cursor-based stock movement remains on its existing boundary by design.
-- Verification after the Reports slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW direct impact before editing and MEDIUM aggregate staged scope for the single Reports flow.
+- Commit `7f988a1` migrates the Warehouse current-stock table to the same canonical contract; document and cursor shared components remain unchanged.
+- Verification after the Warehouse slice: unit 62/62, lint pass, build pass, `git diff --check` pass. GitNexus reported LOW direct impact before editing and MEDIUM aggregate staged scope for the single Warehouse flow.

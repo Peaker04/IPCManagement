@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable` and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
+Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable`, Warehouse inventory and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 
@@ -116,6 +116,15 @@ Pilot migration note — Reports:
 - Preserved behavior: all page sizes, local row slicing, pagination callbacks, report query payloads, cursor navigation and export/mutation behavior.
 - Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
 - Rollback: revert commit `c4aaf92` if visual or route-level regression appears.
+
+Pilot migration note — Warehouse inventory:
+
+- Current pattern: `WarehousePage` used `PaginatedTableFrame` and `usePaginatedRows` for the local current-stock collection.
+- Target contract: `TableViewport` + `useLocalPagination`, with an accessible table caption and the existing `PaginationBar` compatibility boundary.
+- Impact: GitNexus upstream impact LOW before edit; staged detection covered one Warehouse flow at MEDIUM aggregate scope.
+- Preserved behavior: query limit 12, local page size 8, empty-state row, pagination callbacks, inventory issue mutation, document rail and cursor stock movement table.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `7f988a1` if route-level regression appears.
 
 Exit criteria:
 
