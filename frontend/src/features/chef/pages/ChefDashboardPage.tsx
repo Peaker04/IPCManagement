@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { HeadChefDashboard } from '../components/head-chef-dashboard'
 import { AlertCircle, Calendar, ClipboardList, ShieldCheck, ShieldAlert } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, DataTableShell, DocumentRail, EmptyState, InlineAlert, OperationalFrame, SectionPanel, SideRail, SplitWorkbench, StatusBadge, StockMovementTable, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, DocumentRail, EmptyState, InlineAlert, OperationalFrame, SectionPanel, SideRail, SplitWorkbench, StatusBadge, StockMovementTable, TableViewport, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
@@ -585,7 +585,7 @@ export default function ChefDashboardPage() {
                   </button>
                 )}
               >
-                <DataTableShell className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp">
+                <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp" caption="Kế hoạch sản xuất trong ngày đã gửi bếp">
                   <table className="ipc-data-table ipc-status-action-table">
                     <thead>
                       <tr>
@@ -627,7 +627,7 @@ export default function ChefDashboardPage() {
                       })}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
               </SectionPanel>
               <SplitWorkbench detailLabel="Nhật ký ca" detail={shiftJournal} className="ipc-chef-split-workbench">
                 <HeadChefDashboard

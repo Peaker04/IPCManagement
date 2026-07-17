@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
 import { StatusBadge } from './StatusBadge';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/features/workflow';
@@ -81,7 +82,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
               </dd>
             </div>
             <div>
-              <dt>Phụ trách:</dt>
+              <dt>{uiCopy.workflow.owner}:</dt>
               <dd>{record.owner}</dd>
             </div>
           </dl>

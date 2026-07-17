@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DataTableShell, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
+import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
@@ -2756,7 +2757,7 @@ const WeeklyMenuPage = () => {
                         </span>
                       </div>
                     </div>
-                    <DataTableShell className="max-h-[520px]" ariaLabel="Bảng chi tiết kế hoạch sản xuất">
+                    <TableViewport caption="Chi tiết kế hoạch sản xuất theo ca và món ăn" ariaLabel="Bảng chi tiết kế hoạch sản xuất">
                       <table className="ipc-data-table">
                         <thead>
                           <tr>
@@ -2775,7 +2776,7 @@ const WeeklyMenuPage = () => {
                           ))}
                         </tbody>
                       </table>
-                    </DataTableShell>
+                    </TableViewport>
                   </div>
                 ))}
               </>
@@ -2850,7 +2851,7 @@ const WeeklyMenuPage = () => {
               </Link>
             </Toolbar>
 
-            <DataTableShell className="h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+            <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" className="h-[560px] max-h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
               <table className="ipc-data-table table-fixed w-full">
                 <thead>
                   <tr>
@@ -2957,7 +2958,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="flex min-h-[38px] flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 {activeDemandQuickServingRows.map((row) => {
@@ -3707,7 +3708,7 @@ const WeeklyMenuPage = () => {
                   </div>
                 </div>
 
-                <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
+                <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
                   <table className="ipc-data-table min-w-[980px]">
                     <thead>
                       <tr>
@@ -3799,7 +3800,7 @@ const WeeklyMenuPage = () => {
                       )}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
               </div>
 
               <SectionPanel title="Lịch sử import thực đơn tuần">

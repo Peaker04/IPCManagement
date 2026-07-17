@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { StatusBadge } from './StatusBadge';
-import { DataTableShell } from './DataTableShell';
+import { TableViewport } from './TableViewport';
+import { uiCopy } from '@/lib/uiCopy';
 import type { WorkflowLane } from '@/features/workflow';
 
 interface SwimlaneProgressProps {
@@ -20,17 +21,17 @@ const toneClasses = {
 
 export function SwimlaneProgress({ lanes, activeLaneId, actionForLane, className }: SwimlaneProgressProps) {
   return (
-    <DataTableShell className={cn('ipc-logistics-table-shell', className)} ariaLabel="Bảng trạng thái các lane vận hành">
+    <TableViewport className={cn('ipc-logistics-table-shell', className)} ariaLabel="Bảng trạng thái các lane vận hành" caption="Tiến độ các luồng vận hành">
       <table className="ipc-data-table ipc-logistics-table ipc-swimlane-table">
         <thead>
           <tr>
-            <th className="!text-left">Lane</th>
-            <th className="!text-center">Trạng thái</th>
-            <th className="!text-left">Phụ trách</th>
-            <th className="!text-center">Chờ</th>
-            <th className="!text-center">Tắc</th>
-            <th className="!text-left">Hành động kế tiếp</th>
-            {actionForLane ? <th className="!text-right">Điều Hướng</th> : null}
+            <th className="!text-left">{uiCopy.workflow.lane}</th>
+            <th className="!text-center">{uiCopy.workflow.status}</th>
+            <th className="!text-left">{uiCopy.workflow.owner}</th>
+            <th className="!text-center">{uiCopy.workflow.waiting}</th>
+            <th className="!text-center">{uiCopy.workflow.blocked}</th>
+            <th className="!text-left">{uiCopy.workflow.nextAction}</th>
+            {actionForLane ? <th className="!text-right">{uiCopy.workflow.navigation}</th> : null}
           </tr>
         </thead>
         <tbody>
@@ -67,6 +68,6 @@ export function SwimlaneProgress({ lanes, activeLaneId, actionForLane, className
           ))}
         </tbody>
       </table>
-    </DataTableShell>
+    </TableViewport>
   );
 }

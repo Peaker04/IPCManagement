@@ -1,12 +1,26 @@
 export type PaginationMode = 'local' | 'page-number' | 'cursor';
 
-export interface PaginationContract {
-  mode: PaginationMode;
+interface BasePaginationContract {
   pageSize: number;
-  totalItems?: number;
-  hasNext?: boolean;
-  hasPrevious?: boolean;
 }
+
+export interface LocalPaginationContract extends BasePaginationContract {
+  mode: 'local';
+  totalItems: number;
+}
+
+export interface PageNumberPaginationContract extends BasePaginationContract {
+  mode: 'page-number';
+  totalItems: number;
+}
+
+export interface CursorPaginationContract extends BasePaginationContract {
+  mode: 'cursor';
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
+export type PaginationContract = LocalPaginationContract | PageNumberPaginationContract | CursorPaginationContract;
 
 export const createLocalPaginationContract = (pageSize: number, totalItems: number): PaginationContract => ({
   mode: 'local',
