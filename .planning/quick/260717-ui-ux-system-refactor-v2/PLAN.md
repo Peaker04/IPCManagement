@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-helper-delegate-complete-ownership-gate-open
+status: wave-3-server-pagination-report-families-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -175,6 +175,9 @@ Current Wave 3 evidence:
 - Legacy helper convergence: `usePaginatedRows` now delegates to `useLocalPagination` (`a82286f`), so legacy consumers share the canonical local controller without changing their public API or server-query behavior. The dirty `AdminDataPage` consumer remains protected for ownership reconciliation.
 - Table semantics slice: `TableViewport` now associates its optional caption with the scroll region via `aria-describedby` (`4d02c59`); `TableViewport.test.tsx` covers both captioned and uncaptioned regions without changing layout classes or table content.
 - Pagination bar convergence: `PaginationBar` now consumes canonical pagination metadata and Vietnamese range/action copy (`6f47c33`), preserving the public callback/class contract while clamping invalid page input. Upstream impact was recorded as CRITICAL; staged detection covered exactly 2 symbols with LOW aggregate scope.
+- Cursor contract convergence: Reports now consumes shared `CursorPaginationBar` (`fd6def4`), while cursor endpoints retain `hasNext`/cursor-token semantics and never receive local numeric pagination fields. The three pagination modes remain explicit: local, page-number and cursor.
+- Weekly-menu local pagination convergence: the purchase-summary footer now consumes shared `PaginationBar` (`2854243`); data aggregation and page-index state remain unchanged, while the route-local range/button markup is removed. Ownership was enforced hunk-by-hunk because the route remains dirty.
+- Grouped-page convergence: production-plan navigation now consumes `PageStepper` (`d844ed9`), a distinct helper for domain page groups. It deliberately avoids item-range copy and preserves the service-day summary and page-index contract.
 - Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
 - Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
 - Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
@@ -190,7 +193,69 @@ Current Wave 3 evidence:
 - Admin statistics A/B evidence: canonical and legacy wrappers produced identical visual results (`40384` desktop pixels; `390×2080`, `109378` mobile pixels). The current admin visual failure is therefore attributable to the pre-existing dirty route feature diff, not this isolated migration.
 - Admin contracts slice: the contract listing table now uses `TableViewport` with a semantic caption (`ae91b02`); adjacent dirty contract-form hunks were not staged.
 - Current legacy inventory: `WeeklyMenuPage` has zero legacy shell references. `AdminDataPage` retains `DataTableShell` only for the user-owned BOM-current table; all remaining `PaginatedTableFrame` surfaces are already canonical-backed adapters and remain until pagination ownership is reconciled.
+- Ownership correction: clean-baseline comparison confirms the Admin BOM-current `DataTableShell` was added by the dirty BOM feature itself. The attempted wrapper migration was reverted and no Admin feature hunk was committed; explicit feature handoff remains required.
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
+
+Pagination contract gap evidence:
+
+- The workflow-report list endpoints for current stock, ingredient demand, purchase plan, price variance, kitchen issues, issue-vs-return and data quality accept only `limit` and return bounded lists/aggregates.
+- Only `stock-movements/page` and `audit-changes/page` currently return cursor metadata. Their shared cursor control is therefore valid; converting the list endpoints to numeric UI pages without backend metadata would be a false lazy-pagination implementation.
+- The exact endpoint matrix, risk decision and required follow-up are recorded in `PAGINATION-CONTRACT-GAP.md`.
+- True server pagination is deferred to a separately owned backend/API phase because `WorkflowReportService` and `AdminDataPage` have user-owned dirty changes. Local pagination remains a DOM-containment measure and must not be described as server lazy loading.
+
+Current-stock server-pagination slice:
+
+- Added `GET /api/workflow-reports/current-stock/page` with `pageNumber`, `pageSize`, existing warehouse/ingredient filters and `PagedResponseDto` metadata (`totalCount`, `totalPages`, `hasPrev`, `hasNext`).
+- `ReportsPage` now requests only the active stock page and renders the server response directly; the previous `limit: 100` + local slice path is removed for this route.
+- Ownership was preserved with hunk-level staging: the pre-existing BOM/tier changes in `WorkflowReportService.cs` remain unstaged and were not included in commit `0139148`.
+- Evidence: relational SQLite contract test passed; backend `267/267` tests, frontend unit `72/72`, lint and build passed; staged GitNexus detection was 8 files, 2 symbols, 1 Reports flow, MEDIUM.
+- Runtime note: unauthenticated endpoint correctly returns `401`. Swagger generation remains unavailable because the pre-existing dirty `DishesController.PreviewBomImport` `[FromForm] IFormFile` contract crashes Swashbuckle; this is tracked as a separate backend/docs blocker and is not caused by the pagination slice.
+
+Price-variance server-pagination slice:
+
+- Added `GET /api/workflow-reports/receipt-price-variance/page` using the shared `WorkflowReportPageQueryDto` contract and the same filters/stable ordering as the legacy list endpoint.
+- `ReportsPage` price-line view now requests only its active server page and renders `totalCount` metadata through the canonical `PaginationBar`; the old `limit: 100` local slice is removed for this view.
+- The shared page query contract is now reused by current stock and price variance, while endpoint-specific DTO names keep controller contracts explicit.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 9 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `327761d`.
+
+Ingredient-demand server-pagination slice:
+
+- Added `GET /api/workflow-reports/ingredient-demand/page` with page metadata plus `shortageCount`, so the table can be lazy-loaded without corrupting the dashboard context metric.
+- ReportsPage demand view now requests the active page only; `PaginationBar` consumes server totals and the context strip consumes server-calculated shortage count. The previous `limit:100` local slice is removed for this table.
+- Preserved behavior: filters, row mapping, status/tone semantics, handoff links, export payload shape and the distinction between shortage (`suggestedPurchaseQty > 0`) and cancelled warning rows.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `532573f`.
+
+Purchase-plan server-pagination slice:
+
+- Added `GET /api/workflow-reports/purchase-plan/page` with grouped-row metadata and server-calculated `totalShortageQty`/`totalEstimatedAmount`.
+- ReportsPage purchase view now requests only the active grouped page; its context strip uses server totals instead of summing only the visible page.
+- The legacy endpoint retains its source limit behavior (`500`), while the page endpoint removes that source truncation before grouping so grouped totals are not mathematically incomplete.
+- Known boundary: grouping and pending-receipt aggregation currently materialize the filtered source lines in the service before slicing the grouped response. This solves bounded UI payloads and correct metadata, but a future DB-level grouped query is required for large-data performance; it is not silently claimed as full database lazy loading.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `78fdd34`.
+
+Kitchen/usage server-pagination slice:
+
+- Added `GET /api/workflow-reports/kitchen-issues/page` and `GET /api/workflow-reports/issue-vs-return/page` using the shared page-number contract, stable ordering and `PagedResponseDto` metadata.
+- ReportsPage kitchen-issue and issue-vs-return views now request only the active server page and render server totals through the canonical `PaginationBar`; the previous full-list fetch plus local slicing is removed for these views.
+- Usage semantics are preserved: return and waste quantities are aggregated for the issue IDs on the requested page, then mapped to the same issued/returned/wasted/variance/used row fields as before.
+- Ownership was preserved with hunk-level staging: the unrelated BOM/tier edits in `WorkflowReportService.cs` remain unstaged.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 symbols, 1 Reports flow, MEDIUM. Commit: `54d2e51`.
+
+Data-quality server-pagination slice:
+
+- Added `GET /api/workflow-reports/data-quality/page` with page-number metadata and the existing quality summary counters in a single response contract.
+- ReportsPage data-quality now requests the active issue page only and renders that page through the canonical `PaginationBar`; the previous full report plus local slice is removed from this route.
+- Preserved issue mapping, severity/status copy, summary counters and remediation routes. `AdminDataPage` continues using its existing endpoint and remains outside this ownership boundary.
+- Known boundary: the current data-quality generator still materializes and sorts up to the service safety cap (`1000`) before page slicing because its issue sources are heterogeneous. This commit bounds the UI payload and establishes the API contract; a future data-quality query decomposition is required before claiming fully database-lazy evaluation at very large issue volumes.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `95ac13c`.
+
+Admin audit cursor-pagination slice:
+
+- `AdminDataPage` Audit now uses the existing `audit-changes/page` cursor contract with a page size of 8 and only requests audit data while the Audit tab is active.
+- Filter changes and reset clear cursor history; next/previous navigation uses the canonical `CursorPaginationBar`. The table no longer downloads the full audit list before slicing locally.
+- Ownership was enforced hunk-by-hunk. GitNexus classified `AdminDataPage` as LOW impact; the staged scope contained only that file and no BOM/import/contract changes.
+- Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commit: `ea4938b`.
+- Known boundary: Admin cleanup, data-quality, current stock, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
 
 Critical shell gate result — `DataTableShell`:
 
@@ -198,7 +263,7 @@ Critical shell gate result — `DataTableShell`:
 - A compatibility bridge to `TableViewport` was prototyped with the public props and `ipc-table-shell` class preserved. Unit `62/62`, lint, build and UI audit `2/2` passed.
 - Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
 - Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
-- Contract tests: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`); `usePaginatedRows.test.ts` locks the legacy API plus canonical local contract (`421c904`). Full unit suite is now 65/65.
+- Contract tests: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`); `usePaginatedRows.test.ts` locks the legacy API plus canonical local contract (`421c904`). Full unit suite is now 70/70.
 - Direct inventory boundary: GitNexus does not index `usePaginatedRows`; its impact/detect scope is therefore recorded as `UNKNOWN`/`No changes detected`, with source diff, compatibility API review and full frontend gates used as the verification evidence.
 - Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 

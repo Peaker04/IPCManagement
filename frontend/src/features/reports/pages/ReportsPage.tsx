@@ -1,8 +1,6 @@
 import {
   AlertTriangle,
   ArrowLeftRight,
-  ChevronLeft,
-  ChevronRight,
   ClipboardList,
   Database,
   Download,
@@ -19,6 +17,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
   ContextStrip,
+  CursorPaginationBar,
   ExceptionLane,
   FieldRow,
   InlineAlert,
@@ -33,16 +32,16 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetAuditChangePageQuery,
-  useGetCurrentStockQuery,
-  useGetDataQualityQuery,
-  useGetIngredientDemandQuery,
-  useGetIssueVsReturnUsageQuery,
-  useGetKitchenIssuesQuery,
-  useGetPriceVarianceQuery,
+  useGetCurrentStockPageQuery,
+  useGetDataQualityPageQuery,
+  useGetIngredientDemandPageQuery,
+  useGetIssueVsReturnUsagePageQuery,
+  useGetKitchenIssuesPageQuery,
+  useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
-  useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetStockMovementPageQuery,
   type StockMovement,
   type WorkflowReportQuery,
@@ -50,7 +49,7 @@ import {
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
-import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
+import { normalizePurchasePlanGroupBy } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
 
@@ -110,43 +109,6 @@ interface ReportCursor {
   cursorId?: string;
 }
 
-const CursorPagination = ({
-  page,
-  hasNext,
-  onPrevious,
-  onNext,
-}: {
-  page: number;
-  hasNext: boolean;
-  onPrevious: () => void;
-  onNext: () => void;
-}) => (
-  <nav className="ipc-pagination-bar" aria-label="Phân trang báo cáo">
-    <div className="ipc-pagination-range">Trang {page}, tải theo cursor</div>
-    <div className="ipc-pagination-actions">
-      <button
-        type="button"
-        className="ipc-pagination-button"
-        disabled={page <= 1}
-        onClick={onPrevious}
-        aria-label="Trang trước"
-      >
-        <ChevronLeft size={16} />
-      </button>
-      <span className="ipc-pagination-page" aria-live="polite">Trang {page}</span>
-      <button
-        type="button"
-        className="ipc-pagination-button"
-        disabled={!hasNext}
-        onClick={onNext}
-        aria-label="Trang sau"
-      >
-        <ChevronRight size={16} />
-      </button>
-    </div>
-  </nav>
-);
-
 type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
 const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
@@ -173,7 +135,18 @@ const ReportsPage = () => {
   const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const pricePageSize = 6;
+  const [pricePage, setPricePage] = useState(1);
   const reportPageSize = 20;
+  const stockPageSize = 8;
+  const [stockPage, setStockPage] = useState(1);
+  const demandPageSize = 8;
+  const [demandPage, setDemandPage] = useState(1);
+  const purchasePageSize = 8;
+  const [purchasePage, setPurchasePage] = useState(1);
+  const operationalPageSize = 8;
+  const [kitchenPage, setKitchenPage] = useState(1);
+  const [usagePage, setUsagePage] = useState(1);
+  const [dataQualityPage, setDataQualityPage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -187,20 +160,33 @@ const ReportsPage = () => {
     limit: 100,
   };
 
-  const priceVarianceResult = useGetPriceVarianceQuery(reportQuery);
+  const priceVarianceResult = useGetPriceVariancePageQuery({
+    ...reportQuery,
+    pageNumber: pricePage,
+    pageSize: pricePageSize,
+  }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
   const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
   const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'period' });
   const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
   const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data ?? [];
   const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data ?? [];
   const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data ?? [];
-  const ingredientDemandResult = useGetIngredientDemandQuery(reportQuery);
-  const purchasePlanResult = useGetPurchasePlanQuery({
+  const ingredientDemandResult = useGetIngredientDemandPageQuery({
+    ...reportQuery,
+    pageNumber: demandPage,
+    pageSize: demandPageSize,
+  }, { skip: activeView !== 'demand' });
+  const purchasePlanResult = useGetPurchasePlanPageQuery({
     ...reportQuery,
     groupBy: purchasePlanGroupBy,
-    limit: 500,
+    pageNumber: purchasePage,
+    pageSize: purchasePageSize,
   }, { skip: activeView !== 'purchase' });
-  const currentStockResult = useGetCurrentStockQuery({ limit: 100 });
+  const currentStockResult = useGetCurrentStockPageQuery({
+    ...reportQuery,
+    pageNumber: stockPage,
+    pageSize: stockPageSize,
+  }, { skip: activeView !== 'stock' });
   const movementCursor = movementCursors.at(-1);
   const auditCursor = auditCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
@@ -210,8 +196,8 @@ const ReportsPage = () => {
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'movement' });
-  const kitchenIssueResult = useGetKitchenIssuesQuery(reportQuery);
-  const usageResult = useGetIssueVsReturnUsageQuery(reportQuery);
+  const kitchenIssueResult = useGetKitchenIssuesPageQuery({ ...reportQuery, pageNumber: kitchenPage, pageSize: operationalPageSize }, { skip: activeView !== 'kitchen' });
+  const usageResult = useGetIssueVsReturnUsagePageQuery({ ...reportQuery, pageNumber: usagePage, pageSize: operationalPageSize }, { skip: activeView !== 'usage' });
   const auditResult = useGetAuditChangePageQuery({
     ...reportQuery,
     cursorDate: auditCursor?.cursorDate,
@@ -219,33 +205,31 @@ const ReportsPage = () => {
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'audit' });
-  const dataQualityResult = useGetDataQualityQuery(reportQuery);
+  const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
 
-  const priceVarianceRows = priceVarianceResult.data ?? [];
-  const ingredientDemandRows = ingredientDemandResult.data ?? [];
-  const purchasePlanRows = purchasePlanResult.data ?? [];
-  const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
-  const currentStockRows = currentStockResult.data ?? [];
+  const priceVarianceRows = priceVarianceResult.data?.items ?? [];
+  const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
+  const purchasePlanRows = purchasePlanResult.data?.items ?? [];
+  const purchasePlanSummary = {
+    rowCount: purchasePlanResult.data?.totalCount ?? 0,
+    totalShortageQty: purchasePlanResult.data?.totalShortageQty ?? 0,
+    totalEstimatedAmount: purchasePlanResult.data?.totalEstimatedAmount ?? 0,
+    shortageTone: (purchasePlanResult.data?.totalShortageQty ?? 0) > 0 ? 'danger' as const : 'success' as const,
+  };
+  const currentStockRows = currentStockResult.data?.items ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
-  const kitchenIssueRows = kitchenIssueResult.data ?? [];
-  const usageRows = usageResult.data ?? [];
+  const kitchenIssueRows = kitchenIssueResult.data?.items ?? [];
+  const usageRows = usageResult.data?.items ?? [];
   const auditRows = auditResult.data?.items ?? [];
   const dataQualityReport = dataQualityResult.data;
-  const dataQualityRows = dataQualityReport?.issues ?? [];
+  const dataQualityRows = dataQualityReport?.page.items ?? [];
 
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
-  const shortageItems = ingredientDemandRows.filter((item) => item.tone === 'danger');
-  const pricePagination = useLocalPagination(priceVarianceRows, pricePageSize);
+  const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
-  const demandPagination = useLocalPagination(ingredientDemandRows, 8);
-  const purchasePagination = useLocalPagination(purchasePlanRows, 8);
-  const stockPagination = useLocalPagination(currentStockRows, 8);
-  const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
-  const usagePagination = useLocalPagination(usageRows, 8);
-  const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -508,7 +492,7 @@ const ReportsPage = () => {
         <ContextStrip
           items={[
             { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
-            { label: 'Thiếu nguyên liệu', value: shortageItems.length.toString(), tone: shortageItems.length ? 'danger' : 'success' },
+            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: 'neutral' },
             { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
             { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
@@ -696,11 +680,11 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {pricePagination.rows.length === 0 ? (
+                  {priceVarianceRows.length === 0 ? (
                     <EmptyRow colSpan={7} />
                   ) : (
-                    pricePagination.rows.map((item, index) => (
-                      <tr key={`${item.id}-${pricePagination.page}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    priceVarianceRows.map((item, index) => (
+                      <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="#475569" />}
@@ -737,7 +721,12 @@ const ReportsPage = () => {
                 </tbody>
               </table>
             </TableViewport>
-            <PaginationBar page={pricePagination.page} pageSize={pricePagination.pageSize} totalItems={pricePagination.totalItems} onPageChange={pricePagination.setPage} />
+            <PaginationBar
+              page={priceVarianceResult.data?.pageNumber ?? pricePage}
+              pageSize={priceVarianceResult.data?.pageSize ?? pricePageSize}
+              totalItems={priceVarianceResult.data?.totalCount ?? 0}
+              onPageChange={setPricePage}
+            />
           </SectionPanel>
           )}
 
@@ -783,7 +772,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {demandPagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : demandPagination.rows.map((row, index) => (
+                {ingredientDemandRows.length === 0 ? <EmptyRow colSpan={7} /> : ingredientDemandRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{row.material}</td>
                     <td>{row.source}</td>
@@ -797,7 +786,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={demandPagination.page} pageSize={demandPagination.pageSize} totalItems={demandPagination.totalItems} onPageChange={demandPagination.setPage} />
+          <PaginationBar
+            page={ingredientDemandResult.data?.pageNumber ?? demandPage}
+            pageSize={ingredientDemandResult.data?.pageSize ?? demandPageSize}
+            totalItems={ingredientDemandResult.data?.totalCount ?? 0}
+            onPageChange={setDemandPage}
+          />
         </SectionPanel>
       )}
 
@@ -842,7 +836,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchasePagination.rows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePagination.rows.map((row) => (
+                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePlanRows.map((row) => (
                   <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
                     <td>{row.periodKey}</td>
                     <td>{row.ingredientName ?? row.ingredientId}</td>
@@ -861,7 +855,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={purchasePagination.page} pageSize={purchasePagination.pageSize} totalItems={purchasePagination.totalItems} onPageChange={purchasePagination.setPage} />
+          <PaginationBar
+            page={purchasePlanResult.data?.pageNumber ?? purchasePage}
+            pageSize={purchasePlanResult.data?.pageSize ?? purchasePageSize}
+            totalItems={purchasePlanResult.data?.totalCount ?? 0}
+            onPageChange={setPurchasePage}
+          />
 
         </SectionPanel>
       )}
@@ -880,7 +879,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {stockPagination.rows.length === 0 ? <EmptyRow colSpan={5} /> : stockPagination.rows.map((row, index) => (
+                {currentStockRows.length === 0 ? <EmptyRow colSpan={5} /> : currentStockRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{row.warehouse}</td>
                     <td>{row.ingredient}</td>
@@ -892,14 +891,19 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={stockPagination.page} pageSize={stockPagination.pageSize} totalItems={stockPagination.totalItems} onPageChange={stockPagination.setPage} />
+          <PaginationBar
+            page={currentStockResult.data?.pageNumber ?? stockPage}
+            pageSize={currentStockResult.data?.pageSize ?? stockPageSize}
+            totalItems={currentStockResult.data?.totalCount ?? 0}
+            onPageChange={setStockPage}
+          />
         </SectionPanel>
       )}
 
       {activeView === 'movement' && (
         <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
           <StockMovementTable movements={stockMovementRows} pageSize={reportPageSize} />
-          <CursorPagination
+          <CursorPaginationBar
             page={movementCursors.length + 1}
             hasNext={stockMovementResult.data?.hasNext ?? false}
             onPrevious={() => setMovementCursors((current) => current.slice(0, -1))}
@@ -924,7 +928,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {kitchenPagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenPagination.rows.map((row, index) => (
+                {kitchenIssueRows.length === 0 ? <EmptyRow colSpan={7} /> : kitchenIssueRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
@@ -938,7 +942,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={kitchenPagination.page} pageSize={kitchenPagination.pageSize} totalItems={kitchenPagination.totalItems} onPageChange={kitchenPagination.setPage} />
+          <PaginationBar page={kitchenIssueResult.data?.pageNumber ?? kitchenPage} pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize} totalItems={kitchenIssueResult.data?.totalCount ?? 0} onPageChange={setKitchenPage} />
         </SectionPanel>
       )}
 
@@ -958,7 +962,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {usagePagination.rows.length === 0 ? <EmptyRow colSpan={7} /> : usagePagination.rows.map((row, index) => (
+                {usageRows.length === 0 ? <EmptyRow colSpan={7} /> : usageRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td className="font-mono">{row.issueCode}</td>
                     <td>{new Date(row.issueDate).toLocaleDateString('vi-VN')}</td>
@@ -972,7 +976,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={usagePagination.page} pageSize={usagePagination.pageSize} totalItems={usagePagination.totalItems} onPageChange={usagePagination.setPage} />
+          <PaginationBar page={usageResult.data?.pageNumber ?? usagePage} pageSize={usageResult.data?.pageSize ?? operationalPageSize} totalItems={usageResult.data?.totalCount ?? 0} onPageChange={setUsagePage} />
         </SectionPanel>
       )}
 
@@ -1006,7 +1010,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <CursorPagination
+          <CursorPaginationBar
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
             onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
@@ -1044,7 +1048,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {dataQualityPagination.rows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityPagination.rows.map((row) => (
+                {dataQualityRows.length === 0 ? <EmptyRow colSpan={9} /> : dataQualityRows.map((row) => (
                   <tr key={row.id}>
                     <td>
                       <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
@@ -1082,7 +1086,7 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={dataQualityPagination.page} pageSize={dataQualityPagination.pageSize} totalItems={dataQualityPagination.totalItems} onPageChange={dataQualityPagination.setPage} />
+          <PaginationBar page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage} pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize} totalItems={dataQualityResult.data?.page.totalCount ?? 0} onPageChange={setDataQualityPage} />
         </SectionPanel>
       )}
     </OperationalFrame>

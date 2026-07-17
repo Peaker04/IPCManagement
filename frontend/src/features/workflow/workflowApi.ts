@@ -40,6 +40,24 @@ export interface WorkflowReportQuery {
   priceTier?: number;
 }
 
+export interface WorkflowReportPageQuery extends WorkflowReportQuery {
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export type CurrentStockPageQuery = WorkflowReportPageQuery;
+export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
+
+export interface PageNumberPage<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
 export interface CursorPage<T> {
   items: T[];
   limit: number;
@@ -219,6 +237,17 @@ interface IngredientDemandReportDto {
   suggestedPurchaseQty: number;
 }
 
+interface IngredientDemandPageResponseDto {
+  items: IngredientDemandReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
 export interface PurchasePlanRow {
   periodKey: string;
   groupBy: 'day' | 'week';
@@ -239,6 +268,18 @@ export interface PurchasePlanRow {
   supplierName?: string | null;
   expectedDeliveryDate?: string | null;
   warnings: string[];
+}
+
+interface PurchasePlanPageResponseDto {
+  items: PurchasePlanRow[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  totalShortageQty: number;
+  totalEstimatedAmount: number;
 }
 
 export interface ProductionPlanLine {
@@ -639,6 +680,20 @@ interface DataQualityReportDto {
   issues: DataQualityIssueDto[];
 }
 
+interface PageNumberPageDto<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+interface DataQualityPageDto extends DataQualityReportDto {
+  page: PageNumberPageDto<DataQualityIssueDto>;
+}
+
 interface MissingBomDishDto {
   dishId: string;
   dishCode: string;
@@ -860,6 +915,10 @@ export interface DataQualityReport {
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
+}
+
+export interface DataQualityPageReport extends DataQualityReport {
+  page: PageNumberPage<DataQualityIssueRow>;
 }
 
 export interface DataQualityIssueRemediationRequest {
@@ -1121,6 +1180,41 @@ const mapCursorPage = <TDto, TRow>(
   nextCursorId: page.nextCursorId,
 });
 
+const mapPageNumberPage = <TDto, TRow>(
+  page: PageNumberPage<TDto>,
+  mapRow: (item: TDto) => TRow,
+): PageNumberPage<TRow> => ({
+  items: (page.items ?? []).map(mapRow),
+  totalCount: page.totalCount,
+  pageNumber: page.pageNumber,
+  pageSize: page.pageSize,
+  totalPages: page.totalPages,
+  hasPrev: page.hasPrev,
+  hasNext: page.hasNext,
+});
+
+const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssueRow => ({
+  id: issue.issueId,
+  category: issue.category,
+  severity: issue.severity === 'error' ? 'error' : 'warning',
+  owner: issue.owner || 'Quản lý vận hành',
+  priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
+  slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
+  slaDueAt: issue.slaDueAt,
+  slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
+  entityName: issue.entityName,
+  entityId: issue.entityId,
+  entityCode: issue.entityCode,
+  entityLabel: issue.entityLabel,
+  message: issue.message,
+  suggestedAction: issue.suggestedAction,
+  route: issue.route,
+  remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
+  remediationAt: issue.remediationAt,
+  remediationByName: issue.remediationByName,
+  remediationNote: issue.remediationNote,
+});
+
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
   generatedAt: item.generatedAt,
   totalIssues: item.totalIssues,
@@ -1134,27 +1228,7 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   missingConversionCount: item.missingConversionCount,
   negativeStockCount: item.negativeStockCount,
   orphanDocumentCount: item.orphanDocumentCount,
-  issues: (item.issues ?? []).map((issue) => ({
-    id: issue.issueId,
-    category: issue.category,
-    severity: issue.severity === 'error' ? 'error' : 'warning',
-    owner: issue.owner || 'Quản lý vận hành',
-    priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
-    slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
-    slaDueAt: issue.slaDueAt,
-    slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
-    entityName: issue.entityName,
-    entityId: issue.entityId,
-    entityCode: issue.entityCode,
-    entityLabel: issue.entityLabel,
-    message: issue.message,
-    suggestedAction: issue.suggestedAction,
-    route: issue.route,
-    remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
-    remediationAt: issue.remediationAt,
-    remediationByName: issue.remediationByName,
-    remediationNote: issue.remediationNote,
-  })),
+  issues: (item.issues ?? []).map(mapDataQualityIssue),
 });
 
 const buildRoleInbox = (
@@ -1398,6 +1472,55 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PurchasePlanRow[]>) => response.data ?? [],
       providesTags: ['WorkflowReports'],
     }),
+    getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/purchase-plan/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PurchasePlanPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          totalShortageQty: page?.totalShortageQty ?? 0,
+          totalEstimatedAmount: page?.totalEstimatedAmount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getIngredientDemandPage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/production-plans/daily',
@@ -1509,6 +1632,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<KitchenIssueReportDto[]>) => getData(response).map(mapKitchenIssue),
       providesTags: ['WorkflowReports'],
     }),
+    getKitchenIssuesPage: builder.query<PageNumberPage<KitchenIssueRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/kitchen-issues/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<KitchenIssueReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapKitchenIssue),
+      providesTags: ['WorkflowReports'],
+    }),
     getIssueVsReturnUsage: builder.query<UsageReportRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/issue-vs-return',
@@ -1517,12 +1649,63 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<IssueVsReturnUsageReportDto[]>) => getData(response).map(mapUsageReport),
       providesTags: ['WorkflowReports'],
     }),
+    getIssueVsReturnUsagePage: builder.query<PageNumberPage<UsageReportRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/issue-vs-return/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<IssueVsReturnUsageReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapUsageReport),
+      providesTags: ['WorkflowReports'],
+    }),
     getAuditChanges: builder.query<AuditLogRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/audit-changes',
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVariancePage: builder.query<PageNumberPage<PriceVarianceRow>, ReceiptPriceVariancePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/receipt-price-variance/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 6,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<ReceiptPriceVarianceReportDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 6,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapPriceVariance),
+      providesTags: ['WorkflowReports'],
+    }),
+    getCurrentStockPage: builder.query<PageNumberPage<CurrentStockRow>, CurrentStockPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/current-stock/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<CurrentStockSummaryDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 8,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapCurrentStock),
       providesTags: ['WorkflowReports'],
     }),
     getAuditChangePage: builder.query<CursorPage<AuditLogRow>, WorkflowReportQuery | void>({
@@ -1555,6 +1738,26 @@ export const workflowApi = apiSlice.injectEndpoints({
           orphanDocumentCount: 0,
           issues: [],
         },
+      providesTags: ['WorkflowReports'],
+    }),
+    getDataQualityPage: builder.query<DataQualityPageReport, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/data-quality/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<DataQualityPageDto>) => {
+        const report = response.data;
+        const emptyPage: PageNumberPage<DataQualityIssueRow> = {
+          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+        };
+        if (!report) {
+          return { ...mapDataQualityReport({ generatedAt: '', totalIssues: 0, errorCount: 0, warningCount: 0, missingBomCount: 0, invalidUnitCount: 0, missingConversionCount: 0, negativeStockCount: 0, orphanDocumentCount: 0, issues: [] }), page: emptyPage };
+        }
+        return {
+          ...mapDataQualityReport(report),
+          page: mapPageNumberPage(report.page ?? emptyPage, mapDataQualityIssue),
+        };
+      },
       providesTags: ['WorkflowReports'],
     }),
     updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
@@ -1610,6 +1813,7 @@ export const workflowApi = apiSlice.injectEndpoints({
 export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
   useSubmitPurchaseRequestMutation,
@@ -1618,6 +1822,7 @@ export const {
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetDailyProductionPlanQuery,
   useSendDailyProductionPlanToKitchenMutation,
   useGetApprovalRecordsQuery,
@@ -1625,19 +1830,24 @@ export const {
   useGetStockMovementsQuery,
   useGetStockMovementPageQuery,
   useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
   useGetOperationalKpisQuery,
   useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetStockLedgerReconciliationQuery,
   useGetKitchenIssuesQuery,
+  useGetKitchenIssuesPageQuery,
   useGetIssueVsReturnUsageQuery,
+  useGetIssueVsReturnUsagePageQuery,
   useGetAuditChangesQuery,
   useGetAuditChangePageQuery,
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
+  useGetDataQualityPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useGetSupplierQuotationsByIngredientQuery,
   useCreateSupplierQuotationMutation,

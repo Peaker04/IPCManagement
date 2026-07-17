@@ -6,6 +6,7 @@ import { TableViewport } from '@/components/common/TableViewport';
 import {
   CommandBar,
   ContextStrip,
+  CursorPaginationBar,
   FieldRow,
   InlineAlert,
   OperationalFrame,
@@ -23,7 +24,7 @@ import { ROUTES } from '@/routes/routeConfig';
 import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { selectCurrentUser } from '@/features/auth';
 import {
-  useGetAuditChangesQuery,
+  useGetAuditChangePageQuery,
   useGetCurrentStockQuery,
   useGetDataQualityQuery,
   useGetIngredientDemandQuery,
@@ -165,7 +166,7 @@ export default function AdminDataPage() {
     ? searchParams.get('view') as AdminView
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
-  const [auditPage, setAuditPage] = useState(1);
+  const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -184,7 +185,6 @@ export default function AdminDataPage() {
   const [bomImportFile, setBomImportFile] = useState<File | null>(null);
   const [bomImportPreview, setBomImportPreview] = useState<BomImportPreview | null>(null);
   const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-  const auditPageSize = 8;
   const [downloadBomTemplate, downloadBomTemplateState] = useDownloadBomTemplateMutation();
   const [previewBomImport, previewBomImportState] = usePreviewBomImportMutation();
   const [commitBomImport, commitBomImportState] = useCommitBomImportMutation();
@@ -224,7 +224,14 @@ export default function AdminDataPage() {
     [auditActor, auditArea, auditEntity, auditField]
   );
 
-  const { data: auditLogs = [] } = useGetAuditChangesQuery(auditQuery);
+  const auditCursor = auditCursors.at(-1);
+  const auditResult = useGetAuditChangePageQuery({
+    ...auditQuery,
+    cursorDate: auditCursor?.cursorDate,
+    cursorId: auditCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  }, { skip: activeView !== 'audit' });
 
   const handleExportAuditCsv = async () => {
     const params = new URLSearchParams();
@@ -1661,7 +1668,7 @@ export default function AdminDataPage() {
                 <input
                   type="text"
                   value={auditActor}
-                  onChange={(e) => { setAuditActor(e.target.value); setAuditPage(1); }}
+                  onChange={(e) => { setAuditActor(e.target.value); setAuditCursors([]); }}
                   placeholder="Họ tên / tài khoản..."
                   className="h-8 px-2 border border-slate-200 rounded text-xs w-48 focus:outline-none"
                 />
@@ -1671,7 +1678,7 @@ export default function AdminDataPage() {
                 <label className="text-[10px] font-bold text-slate-500 uppercase">Mảng nghiệp vụ</label>
                 <select
                   value={auditArea}
-                  onChange={(e) => { setAuditArea(e.target.value); setAuditPage(1); }}
+                  onChange={(e) => { setAuditArea(e.target.value); setAuditCursors([]); }}
                   className="h-8 px-2 border border-slate-200 rounded text-xs w-40 bg-white focus:outline-none"
                 >
                   <option value="">Tất cả</option>
@@ -1689,7 +1696,7 @@ export default function AdminDataPage() {
                 <input
                   type="text"
                   value={auditEntity}
-                  onChange={(e) => { setAuditEntity(e.target.value); setAuditPage(1); }}
+                  onChange={(e) => { setAuditEntity(e.target.value); setAuditCursors([]); }}
                   placeholder="Ví dụ: Mealquantityplan..."
                   className="h-8 px-2 border border-slate-200 rounded text-xs w-44 focus:outline-none"
                 />
@@ -1700,7 +1707,7 @@ export default function AdminDataPage() {
                 <input
                   type="text"
                   value={auditField}
-                  onChange={(e) => { setAuditField(e.target.value); setAuditPage(1); }}
+                  onChange={(e) => { setAuditField(e.target.value); setAuditCursors([]); }}
                   placeholder="Ví dụ: Status..."
                   className="h-8 px-2 border border-slate-200 rounded text-xs w-40 focus:outline-none"
                 />
@@ -1714,7 +1721,7 @@ export default function AdminDataPage() {
                     setAuditArea('');
                     setAuditEntity('');
                     setAuditField('');
-                    setAuditPage(1);
+                    setAuditCursors([]);
                   }}
                   className="ipc-button ipc-button-ghost py-1 px-3 text-xs"
                 >
@@ -1744,7 +1751,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedAuditLogs.map((log) => (
+                  {displayLogs.map((log) => (
                     <tr key={log.id} className="hover:bg-slate-50 transition-colors">
                       <td className="font-mono text-slate-500 text-left">
                         {new Date(log.timestamp).toLocaleTimeString('vi-VN')} {new Date(log.timestamp).toLocaleDateString('vi-VN')}
@@ -1762,7 +1769,18 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={safeAuditPage} pageSize={auditPageSize} totalItems={displayLogs.length} onPageChange={setAuditPage} />
+            <CursorPaginationBar
+              page={auditCursors.length + 1}
+              hasNext={auditResult.data?.hasNext ?? false}
+              onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
+              onNext={() => {
+                const nextCursorDate = auditResult.data?.nextCursorDate;
+                if (nextCursorDate) {
+                  setAuditCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: auditResult.data?.nextCursorId }]);
+                }
+              }}
+              ariaLabel="Phân trang nhật ký thay đổi"
+            />
           </div>
         </SectionPanel>
       )}
