@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { createLocalPaginationContract } from './paginationContract';
-import { getPaginationMeta } from './usePaginatedRows';
+import { getPaginationMeta } from './paginationMeta';
 
 /**
  * Local collection controller. It owns visible-row state and exposes the
