@@ -3,6 +3,7 @@ import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import type { WorkflowDocument } from '@/features/workflow';
 
 interface DocumentRailProps {
@@ -21,16 +22,13 @@ const toneClasses = {
 };
 
 export function DocumentRail({ documents, title = 'Chứng từ workflow', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
-  const [page, setPage] = useState(1);
   const [copiedDocumentId, setCopiedDocumentId] = useState<string | null>(null);
+  const pagination = usePaginatedRows(documents, pageSize);
 
   if (!documents.length) {
     return <div className={cn('ipc-document-rail is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(documents.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageDocuments = documents.slice((safePage - 1) * pageSize, safePage * pageSize);
   const handleCopyDocumentId = async (documentId: string) => {
     try {
       await navigator.clipboard.writeText(documentId);
@@ -46,7 +44,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
   return (
     <aside className={cn('ipc-document-rail', className)} aria-label="Danh sách chứng từ workflow">
       {title && <h4>{title}</h4>}
-      {pageDocuments.map((document) => (
+      {pagination.rows.map((document) => (
         <article key={document.id} className={cn('ipc-document-card', toneClasses[document.tone])}>
           {/* Zone 1: Type + Title */}
           <div className="ipc-document-zone-identity">
@@ -102,7 +100,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
           {actionForDocument?.(document)}
         </article>
       ))}
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={documents.length} onPageChange={setPage} />
+      <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
     </aside>
   );
 }

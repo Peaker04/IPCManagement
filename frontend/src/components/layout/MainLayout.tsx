@@ -6,6 +6,7 @@ import { store } from '../../app/store';
 import { logoutSession } from '../../features/auth/logoutSession';
 import { ROUTES } from '../../routes/routeConfig';
 import { getWorkflowContextForPath } from '../../features/workflow';
+import { uiCopy } from '../../lib/uiCopy';
 import {
   ChefHat,
   LayoutDashboard,
@@ -112,9 +113,9 @@ export const MainLayout = () => {
   const statusTone = getStatusTone(pageContext.state);
 
   return (
-    <div className="ipc-app-shell">
+    <div className="ipc-app-shell ipc-redesign-shell">
       <a href="#ipc-main-content" className="ipc-skip-link">
-        Bỏ qua điều hướng
+        {uiCopy.navigation.skipToContent}
       </a>
       {/* Sidebar */}
       <aside className="ipc-sidebar">
@@ -124,12 +125,12 @@ export const MainLayout = () => {
           </span>
           <div>
             <h2 className="ipc-brand-title">IPC System</h2>
-            <div className="ipc-brand-subtitle">Industrial Kitchen</div>
+            <div className="ipc-brand-subtitle">Điều hành bếp ăn</div>
           </div>
         </div>
 
         <nav
-          aria-label="Điều hướng chính"
+          aria-label={uiCopy.navigation.primary}
           className="ipc-nav"
         >
           {visibleMenuItems.map((item) => {
@@ -153,7 +154,7 @@ export const MainLayout = () => {
 
         <div className="ipc-sidebar-footer">
           {currentUser && (
-            <div className="ipc-user-card">
+            <div className="ipc-user-card" aria-label={uiCopy.navigation.account}>
               <div className="ipc-avatar">
                 {currentUser.fullName ? currentUser.fullName.charAt(0).toUpperCase() : 'U'}
               </div>
@@ -170,7 +171,7 @@ export const MainLayout = () => {
             className="ipc-logout-button"
           >
             <LogOut size={16} className="shrink-0" />
-            <span>Đăng xuất</span>
+            <span>{uiCopy.actions.logout}</span>
           </button>
         </div>
       </aside>

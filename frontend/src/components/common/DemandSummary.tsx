@@ -1,10 +1,10 @@
-import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { DataTableShell } from './DataTableShell';
+import { PaginatedTableFrame } from './PaginatedTableFrame';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 
 interface DemandSummaryProps {
   lines: DemandLine[];
@@ -57,19 +57,15 @@ const shortenNextAction = (action: string) => {
 };
 
 export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryProps) {
-  const [page, setPage] = useState(1);
+  const { page, rows: pageLines, totalItems, setPage } = usePaginatedRows(lines, pageSize);
 
   if (!lines.length) {
     return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(lines.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageLines = lines.slice((safePage - 1) * pageSize, safePage * pageSize);
-
   return (
     <div className={cn('ipc-demand-summary', className)}>
-      <DataTableShell className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu">
+      <PaginatedTableFrame className="ipc-demand-summary-shell" ariaLabel="Bảng tổng hợp nhu cầu nguyên liệu">
         <table className="ipc-data-table ipc-demand-table ipc-status-action-table table-fixed w-full">
           <thead>
             <tr>
@@ -88,7 +84,7 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
               const variance = availableAfterReserve - line.required;
 
               return (
-                <tr key={`${line.id}-${safePage}-${index}`}>
+                <tr key={`${line.id}-${page}-${index}`}>
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
                   <td className="ipc-numeric-cell text-right whitespace-nowrap">
@@ -121,8 +117,8 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
             })}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={lines.length} onPageChange={setPage} />
+      </PaginatedTableFrame>
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );
 }

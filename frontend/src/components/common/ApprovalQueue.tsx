@@ -1,6 +1,7 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { StatusBadge } from './StatusBadge';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/features/workflow';
@@ -21,21 +22,17 @@ const toneClasses = {
 };
 
 export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hành', actionForRecord, pageSize = 4, className }: ApprovalQueueProps) {
-  const [page, setPage] = useState(1);
+  const { page, rows: pageRecords, totalItems, setPage } = usePaginatedRows(records, pageSize);
 
   if (!records.length) {
     return <div className={cn('ipc-approval-queue is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(records.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageRecords = records.slice((safePage - 1) * pageSize, safePage * pageSize);
-
   return (
     <div className={cn('ipc-approval-queue', className)} role="region" aria-label="Hàng đợi duyệt vận hành">
       {title && <h4>{title}</h4>}
       {pageRecords.map((record, index) => (
-        <article key={`${record.id}-${safePage}-${index}`} className={cn('ipc-approval-record', toneClasses[record.tone])}>
+        <article key={`${record.id}-${page}-${index}`} className={cn('ipc-approval-record', toneClasses[record.tone])}>
           {/* Zone 1: Title + Source + Action */}
           <div className="ipc-approval-zone-identity">
             <strong>{record.title}</strong>
@@ -100,7 +97,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
           </ul>
         </article>
       ))}
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={records.length} onPageChange={setPage} />
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );
 }

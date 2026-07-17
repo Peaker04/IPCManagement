@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '../coordinationApi'
-import { DataTableShell, EmptyState, InlineAlert, PaginationBar } from '@/components/common'
+import { EmptyState, InlineAlert, PaginatedTableFrame, PaginationBar } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
+import { usePaginatedRows } from '@/lib/usePaginatedRows'
 import { ClipboardList } from 'lucide-react'
 
 interface OrderTableProps {
@@ -18,18 +19,12 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const dispatch = useAppDispatch()
   const [adjustCoordinationOrder] = useAdjustCoordinationOrderMutation()
   const [updateForecastServings] = useUpdateForecastServingsMutation()
-  const [page, setPage] = useState(1)
   const [pendingOrderIds, setPendingOrderIds] = useState<Record<string, boolean>>({})
   const [pendingForecastOrderIds, setPendingForecastOrderIds] = useState<Record<string, boolean>>({})
   const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const pageSize = 12
-  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const pageOrders = useMemo(
-    () => orders.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [orders, safePage],
-  )
+  const { page, rows: pageOrders, totalItems, setPage } = usePaginatedRows(orders, pageSize)
 
   const handleOrderChange = (payload: OrderUpdatePayload) => {
     dispatch(updateOrder(payload))
@@ -137,7 +132,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
           </InlineAlert>
         </div>
       )}
-      <DataTableShell className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng">
+      <PaginatedTableFrame className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
@@ -322,8 +317,8 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
             })}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={orders.length} onPageChange={setPage} />
+      </PaginatedTableFrame>
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   )
 }
