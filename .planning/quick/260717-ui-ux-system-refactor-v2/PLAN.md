@@ -186,6 +186,7 @@ Current Wave 3 evidence:
 - Admin slice: the clean statistics table between dirty BOM/contract hunks now uses `TableViewport` with an accessible caption (`d105f55`). BOM tables and legacy pagination consumers remain untouched.
 - Admin statistics A/B evidence: canonical and legacy wrappers produced identical visual results (`40384` desktop pixels; `390×2080`, `109378` mobile pixels). The current admin visual failure is therefore attributable to the pre-existing dirty route feature diff, not this isolated migration.
 - Admin contracts slice: the contract listing table now uses `TableViewport` with a semantic caption (`ae91b02`); adjacent dirty contract-form hunks were not staged.
+- Current legacy inventory: `WeeklyMenuPage` has zero legacy shell references. `AdminDataPage` retains `DataTableShell` only for the user-owned BOM-current table; all remaining `PaginatedTableFrame` surfaces are already canonical-backed adapters and remain until pagination ownership is reconciled.
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
 
 Critical shell gate result — `DataTableShell`:
