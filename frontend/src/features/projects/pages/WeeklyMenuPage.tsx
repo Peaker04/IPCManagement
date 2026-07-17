@@ -3708,7 +3708,7 @@ const WeeklyMenuPage = () => {
                   </div>
                 </div>
 
-                <DataTableShell className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
+                <TableViewport caption="Danh sách file thực đơn chờ kiểm tra" className="max-h-[260px]" ariaLabel="Danh sách file thực đơn chờ kiểm tra">
                   <table className="ipc-data-table min-w-[980px]">
                     <thead>
                       <tr>
@@ -3800,7 +3800,7 @@ const WeeklyMenuPage = () => {
                       )}
                     </tbody>
                   </table>
-                </DataTableShell>
+                </TableViewport>
               </div>
 
               <SectionPanel title="Lịch sử import thực đơn tuần">
