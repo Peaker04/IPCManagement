@@ -42,3 +42,4 @@
 - Chef viewport: `f8aaae4` migrates `MaterialChecklist` to `TableViewport` with caption while preserving checkbox signoff callbacks and empty-row behavior.
 - Chef BOM viewport: `c1d62b4` migrates `ActiveDishesGrid` expanded ingredient tables to `TableViewport` with captions; expand/collapse behavior is unchanged.
 - Chef production viewport: `288ac13` migrates the daily production-plan table to `TableViewport`; send-to-kitchen action and readiness rendering remain unchanged.
+- Dashboard swimlane: `80b52d8` migrates the workflow lane table to `TableViewport` and shared labels; active lane and action renderers remain unchanged.
