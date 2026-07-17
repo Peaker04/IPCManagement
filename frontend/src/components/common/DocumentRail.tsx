@@ -3,7 +3,7 @@ import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 import type { WorkflowDocument } from '@/features/workflow';
 
 interface DocumentRailProps {
@@ -23,7 +23,7 @@ const toneClasses = {
 
 export function DocumentRail({ documents, title = 'Chứng từ workflow', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
   const [copiedDocumentId, setCopiedDocumentId] = useState<string | null>(null);
-  const pagination = usePaginatedRows(documents, pageSize);
+  const pagination = useLocalPagination(documents, pageSize);
 
   if (!documents.length) {
     return <div className={cn('ipc-document-rail is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;

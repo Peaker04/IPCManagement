@@ -24,7 +24,7 @@ import {
   InlineAlert,
   OperationalFrame,
   PaginationBar,
-  PaginatedTableFrame,
+  TableViewport,
   SectionPanel,
   StatusBadge,
   StockMovementTable,
@@ -48,7 +48,7 @@ import {
   type WorkflowReportQuery,
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
@@ -235,16 +235,16 @@ const ReportsPage = () => {
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
   const shortageItems = ingredientDemandRows.filter((item) => item.tone === 'danger');
-  const pricePagination = usePaginatedRows(priceVarianceRows, pricePageSize);
-  const supplierPagination = usePaginatedRows(priceVarianceBySupplierRows, 8);
-  const periodPagination = usePaginatedRows(priceVarianceByPeriodRows, 8);
-  const dishGroupPagination = usePaginatedRows(priceVarianceByDishGroupRows, 8);
-  const demandPagination = usePaginatedRows(ingredientDemandRows, 8);
-  const purchasePagination = usePaginatedRows(purchasePlanRows, 8);
-  const stockPagination = usePaginatedRows(currentStockRows, 8);
-  const kitchenPagination = usePaginatedRows(kitchenIssueRows, 8);
-  const usagePagination = usePaginatedRows(usageRows, 8);
-  const dataQualityPagination = usePaginatedRows(dataQualityRows, 8);
+  const pricePagination = useLocalPagination(priceVarianceRows, pricePageSize);
+  const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
+  const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
+  const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
+  const demandPagination = useLocalPagination(ingredientDemandRows, 8);
+  const purchasePagination = useLocalPagination(purchasePlanRows, 8);
+  const stockPagination = useLocalPagination(currentStockRows, 8);
+  const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
+  const usagePagination = useLocalPagination(usageRows, 8);
+  const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -553,7 +553,7 @@ const ReportsPage = () => {
 
           {priceSubView === 'supplier' && (
             <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="#475569" />}>
-              <PaginatedTableFrame ariaLabel="Bảng biến động giá theo nhà cung cấp">
+              <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
                 <table className="ipc-data-table">
                   <thead>
                     <tr>
@@ -594,14 +594,14 @@ const ReportsPage = () => {
                     )}
                   </tbody>
                 </table>
-              </PaginatedTableFrame>
+              </TableViewport>
               <PaginationBar page={supplierPagination.page} pageSize={supplierPagination.pageSize} totalItems={supplierPagination.totalItems} onPageChange={supplierPagination.setPage} />
             </SectionPanel>
           )}
 
           {priceSubView === 'period' && (
             <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="#475569" />}>
-              <PaginatedTableFrame ariaLabel="Bảng biến động giá theo thời gian">
+              <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
                 <table className="ipc-data-table">
                   <thead>
                     <tr>
@@ -638,14 +638,14 @@ const ReportsPage = () => {
                     )}
                   </tbody>
                 </table>
-              </PaginatedTableFrame>
+              </TableViewport>
               <PaginationBar page={periodPagination.page} pageSize={periodPagination.pageSize} totalItems={periodPagination.totalItems} onPageChange={periodPagination.setPage} />
             </SectionPanel>
           )}
 
           {priceSubView === 'dishGroup' && (
             <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng BOM)" icon={<ClipboardList size={18} color="#475569" />}>
-              <PaginatedTableFrame ariaLabel="Bảng biến động giá theo nhóm món">
+              <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
                 <table className="ipc-data-table">
                   <thead>
                     <tr>
@@ -674,14 +674,14 @@ const ReportsPage = () => {
                     )}
                   </tbody>
                 </table>
-              </PaginatedTableFrame>
+              </TableViewport>
               <PaginationBar page={dishGroupPagination.page} pageSize={dishGroupPagination.pageSize} totalItems={dishGroupPagination.totalItems} onPageChange={dishGroupPagination.setPage} />
             </SectionPanel>
           )}
 
           {priceSubView === 'lines' && (
           <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="#475569" />}>
-            <PaginatedTableFrame ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
+            <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
               <table className="ipc-data-table ipc-report-table">
                 <thead>
                   <tr>
@@ -735,7 +735,7 @@ const ReportsPage = () => {
                   )}
                 </tbody>
               </table>
-            </PaginatedTableFrame>
+            </TableViewport>
             <PaginationBar page={pricePagination.page} pageSize={pricePagination.pageSize} totalItems={pricePagination.totalItems} onPageChange={pricePagination.setPage} />
           </SectionPanel>
           )}
@@ -768,7 +768,7 @@ const ReportsPage = () => {
 
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng nhu cầu nguyên liệu">
+          <TableViewport ariaLabel="Bảng nhu cầu nguyên liệu">
             <table className="ipc-data-table ipc-status-action-table">
               <thead>
                 <tr>
@@ -795,7 +795,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={demandPagination.page} pageSize={demandPagination.pageSize} totalItems={demandPagination.totalItems} onPageChange={demandPagination.setPage} />
         </SectionPanel>
       )}
@@ -826,7 +826,7 @@ const ReportsPage = () => {
               { label: 'Tổng dự kiến', value: formatCurrency(purchasePlanSummary.totalEstimatedAmount), tone: 'neutral' },
             ]}
           />
-          <PaginatedTableFrame ariaLabel="Bảng kế hoạch thu mua dự kiến">
+          <TableViewport ariaLabel="Bảng kế hoạch thu mua dự kiến">
             <table className="ipc-data-table ipc-status-action-table">
               <thead>
                 <tr>
@@ -859,7 +859,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={purchasePagination.page} pageSize={purchasePagination.pageSize} totalItems={purchasePagination.totalItems} onPageChange={purchasePagination.setPage} />
 
         </SectionPanel>
@@ -867,7 +867,7 @@ const ReportsPage = () => {
 
       {activeView === 'stock' && (
         <SectionPanel title="Tồn kho hiện tại và xu hướng luân chuyển" icon={<Warehouse size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng tồn kho hiện tại">
+          <TableViewport ariaLabel="Bảng tồn kho hiện tại">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -890,7 +890,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={stockPagination.page} pageSize={stockPagination.pageSize} totalItems={stockPagination.totalItems} onPageChange={stockPagination.setPage} />
         </SectionPanel>
       )}
@@ -909,7 +909,7 @@ const ReportsPage = () => {
 
       {activeView === 'kitchen' && (
         <SectionPanel title="Xuất kho cho bếp theo ca" icon={<PackageCheck size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng xuất kho cho bếp">
+          <TableViewport ariaLabel="Bảng xuất kho cho bếp">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -936,14 +936,14 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={kitchenPagination.page} pageSize={kitchenPagination.pageSize} totalItems={kitchenPagination.totalItems} onPageChange={kitchenPagination.setPage} />
         </SectionPanel>
       )}
 
       {activeView === 'usage' && (
         <SectionPanel title="Sử dụng thực tế của bếp: đã xuất - hoàn kho" icon={<RotateCcw size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng sử dụng thực tế sau hoàn kho">
+          <TableViewport ariaLabel="Bảng sử dụng thực tế sau hoàn kho">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -970,14 +970,14 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={usagePagination.page} pageSize={usagePagination.pageSize} totalItems={usagePagination.totalItems} onPageChange={usagePagination.setPage} />
         </SectionPanel>
       )}
 
       {activeView === 'audit' && (
         <SectionPanel title="Audit thay đổi BOM, tồn kho, số suất và chứng từ" icon={<Database size={18} />}>
-          <PaginatedTableFrame ariaLabel="Bảng audit thay đổi hệ thống">
+          <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -1004,7 +1004,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <CursorPagination
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
@@ -1027,7 +1027,7 @@ const ReportsPage = () => {
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
           />
-          <PaginatedTableFrame ariaLabel="Bảng data quality trước production">
+          <TableViewport ariaLabel="Bảng data quality trước production">
             <table className="ipc-data-table">
               <thead>
                 <tr>
@@ -1080,7 +1080,7 @@ const ReportsPage = () => {
                 ))}
               </tbody>
             </table>
-          </PaginatedTableFrame>
+          </TableViewport>
           <PaginationBar page={dataQualityPagination.page} pageSize={dataQualityPagination.pageSize} totalItems={dataQualityPagination.totalItems} onPageChange={dataQualityPagination.setPage} />
         </SectionPanel>
       )}

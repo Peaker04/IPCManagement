@@ -1,10 +1,10 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
-import { PaginatedTableFrame } from './PaginatedTableFrame';
+import { TableViewport } from './TableViewport';
 import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/features/workflow';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 
 interface RoleInboxProps {
   items: RoleInboxItem[];
@@ -30,7 +30,7 @@ export function RoleInbox({
   pageSize = 4,
   className,
 }: RoleInboxProps) {
-  const { page, rows: pageItems, totalItems, setPage } = usePaginatedRows(items, pageSize);
+  const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, pageSize);
 
   if (!items.length) {
     return <div className={cn('ipc-role-inbox is-empty', className)}>{emptyText}</div>;
@@ -41,7 +41,7 @@ export function RoleInbox({
   return (
     <div className={cn('ipc-role-inbox', className)}>
       {title && <h4>{title}</h4>}
-      <PaginatedTableFrame className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò">
+      <TableViewport className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò" caption="Danh sách việc đang chờ theo vai trò">
         <table className="ipc-data-table ipc-logistics-table ipc-role-inbox-table">
           <thead>
             <tr>
@@ -73,7 +73,7 @@ export function RoleInbox({
             ))}
           </tbody>
         </table>
-      </PaginatedTableFrame>
+      </TableViewport>
       <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );
