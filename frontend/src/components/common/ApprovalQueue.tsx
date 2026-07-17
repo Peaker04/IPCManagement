@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 import { StatusBadge } from './StatusBadge';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/features/workflow';
@@ -22,7 +22,7 @@ const toneClasses = {
 };
 
 export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hành', actionForRecord, pageSize = 4, className }: ApprovalQueueProps) {
-  const { page, rows: pageRecords, totalItems, setPage } = usePaginatedRows(records, pageSize);
+  const { page, rows: pageRecords, totalItems, setPage } = useLocalPagination(records, pageSize);
 
   if (!records.length) {
     return <div className={cn('ipc-approval-queue is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
