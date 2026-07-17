@@ -34,7 +34,7 @@ Status: foundation implemented; route-by-route copy cleanup remains.
 
 ### Wave 2 — Shared table/pagination helpers
 
-Status: helper implemented and common list consumers migrated (`RoleInbox`, `ApprovalQueue`, `DocumentRail`, `DemandSummary`, `StockMovementTable`); route-owned tables remain for Wave 3.
+Status: helper implemented and common list consumers migrated (`RoleInbox`, `ApprovalQueue`, `DocumentRail`, `DemandSummary`, `StockMovementTable`); Coordination `OrderTable` is the first Wave 3 route migration.
 
 - Tạo `usePaginatedRows`/`useCursorPagination` helper thuần UI, có clamping khi data/filter đổi, giữ page size ổn định và reset page có chủ đích.
 - Tạo `PaginatedTableFrame` hoặc `TableViewport` Shadcn-style dùng native table semantics, sticky header, local scroll, loading/error/empty/no-result slots và aria label.
@@ -42,6 +42,8 @@ Status: helper implemented and common list consumers migrated (`RoleInbox`, `App
 - Test page range, next/previous disabled state, filtering không thay đổi totals/payload, long cell wrapping và no page-level horizontal overflow.
 
 ### Wave 3 — Route migration
+
+Status: Coordination `OrderTable` completed; Warehouse/Purchasing/Reports/Admin remain.
 
 - Migrate theo nhóm: dashboard/work queues; weekly menu/coordination; approvals/purchasing/warehouse; chef; reports/admin.
 - Mỗi route giữ presentation component và API contract; loại bỏ pagination copy-paste, repeated headings, duplicated status explanations và code-like labels.
