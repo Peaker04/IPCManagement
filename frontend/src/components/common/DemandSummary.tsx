@@ -4,7 +4,7 @@ import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
-import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { useLocalPagination } from '@/lib/useLocalPagination';
 
 interface DemandSummaryProps {
   lines: DemandLine[];
@@ -57,7 +57,7 @@ const shortenNextAction = (action: string) => {
 };
 
 export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryProps) {
-  const { page, rows: pageLines, totalItems, setPage } = usePaginatedRows(lines, pageSize);
+  const { page, rows: pageLines, totalItems, setPage } = useLocalPagination(lines, pageSize);
 
   if (!lines.length) {
     return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;

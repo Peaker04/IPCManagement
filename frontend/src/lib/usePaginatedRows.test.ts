@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatPaginationRange } from './uiCopy';
 import { getPaginationMeta } from './usePaginatedRows';
 import { createCursorPaginationContract, createLocalPaginationContract, createPageNumberPaginationContract } from './paginationContract';
+import { useLocalPagination } from './useLocalPagination';
 
 describe('pagination helpers', () => {
   it('clamps an invalid page and exposes a Vietnamese range', () => {
@@ -35,5 +36,9 @@ describe('pagination helpers', () => {
     expect(createLocalPaginationContract(0, -1)).toEqual({ mode: 'local', pageSize: 1, totalItems: 0 });
     expect(createPageNumberPaginationContract(20, 42)).toEqual({ mode: 'page-number', pageSize: 20, totalItems: 42 });
     expect(createCursorPaginationContract(20, true, false)).toEqual({ mode: 'cursor', pageSize: 20, hasNext: true, hasPrevious: false });
+  });
+
+  it('exports the local controller for route consumers', () => {
+    expect(useLocalPagination).toBeTypeOf('function');
   });
 });
