@@ -3150,7 +3150,7 @@ const WeeklyMenuPage = () => {
               </button>
             </div>
 
-            <DataTableShell className="ipc-cost-table-shell h-[360px]" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
+            <TableViewport caption="Nguyên liệu theo món đang hiển thị trong ngày" className="ipc-cost-table-shell h-[360px] max-h-[360px]" ariaLabel="Bảng nguyên liệu ngày theo món đang hiển thị">
               <table className="ipc-data-table ipc-cost-table">
                 <thead>
                   <tr>
@@ -3195,7 +3195,7 @@ const WeeklyMenuPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
+            </TableViewport>
             <div className="mt-3 flex min-h-[32px] items-center justify-end text-sm font-medium text-slate-600">
               Tổng nguyên liệu ngày: <span className="ml-2 text-lg font-bold text-green-800">{formatCurrency(activeDayMaterialCost)}</span>
             </div>
