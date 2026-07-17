@@ -255,7 +255,7 @@ Admin audit cursor-pagination slice:
 - Filter changes and reset clear cursor history; next/previous navigation uses the canonical `CursorPaginationBar`. The table no longer downloads the full audit list before slicing locally.
 - Ownership was enforced hunk-by-hunk. GitNexus classified `AdminDataPage` as LOW impact; the staged scope contained only that file and no BOM/import/contract changes.
 - Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commits: `ea4938b` (Audit cursor wiring) and `8f39660` (Audit display cleanup plus current-stock page migration).
-- Known boundary: Admin cleanup, data-quality, current stock, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+- Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
 
 Admin current-stock page slice:
 
