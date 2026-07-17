@@ -41,7 +41,7 @@ import {
   useGetPriceVarianceBySupplierQuery,
   useGetPriceVarianceByPeriodQuery,
   useGetPriceVarianceByDishGroupQuery,
-  useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetStockMovementPageQuery,
   type StockMovement,
   type WorkflowReportQuery,
@@ -49,7 +49,7 @@ import {
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
-import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
+import { normalizePurchasePlanGroupBy } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
 
@@ -141,6 +141,8 @@ const ReportsPage = () => {
   const [stockPage, setStockPage] = useState(1);
   const demandPageSize = 8;
   const [demandPage, setDemandPage] = useState(1);
+  const purchasePageSize = 8;
+  const [purchasePage, setPurchasePage] = useState(1);
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -170,10 +172,11 @@ const ReportsPage = () => {
     pageNumber: demandPage,
     pageSize: demandPageSize,
   }, { skip: activeView !== 'demand' });
-  const purchasePlanResult = useGetPurchasePlanQuery({
+  const purchasePlanResult = useGetPurchasePlanPageQuery({
     ...reportQuery,
     groupBy: purchasePlanGroupBy,
-    limit: 500,
+    pageNumber: purchasePage,
+    pageSize: purchasePageSize,
   }, { skip: activeView !== 'purchase' });
   const currentStockResult = useGetCurrentStockPageQuery({
     ...reportQuery,
@@ -202,8 +205,13 @@ const ReportsPage = () => {
 
   const priceVarianceRows = priceVarianceResult.data?.items ?? [];
   const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
-  const purchasePlanRows = purchasePlanResult.data ?? [];
-  const purchasePlanSummary = summarizePurchasePlan(purchasePlanRows);
+  const purchasePlanRows = purchasePlanResult.data?.items ?? [];
+  const purchasePlanSummary = {
+    rowCount: purchasePlanResult.data?.totalCount ?? 0,
+    totalShortageQty: purchasePlanResult.data?.totalShortageQty ?? 0,
+    totalEstimatedAmount: purchasePlanResult.data?.totalEstimatedAmount ?? 0,
+    shortageTone: (purchasePlanResult.data?.totalShortageQty ?? 0) > 0 ? 'danger' as const : 'success' as const,
+  };
   const currentStockRows = currentStockResult.data?.items ?? [];
   const stockMovementRows = stockMovementResult.data?.items ?? [];
   const kitchenIssueRows = kitchenIssueResult.data ?? [];
@@ -218,7 +226,6 @@ const ReportsPage = () => {
   const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
   const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
   const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
-  const purchasePagination = useLocalPagination(purchasePlanRows, 8);
   const kitchenPagination = useLocalPagination(kitchenIssueRows, 8);
   const usagePagination = useLocalPagination(usageRows, 8);
   const dataQualityPagination = useLocalPagination(dataQualityRows, 8);
@@ -828,7 +835,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchasePagination.rows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePagination.rows.map((row) => (
+                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePlanRows.map((row) => (
                   <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
                     <td>{row.periodKey}</td>
                     <td>{row.ingredientName ?? row.ingredientId}</td>
@@ -847,7 +854,12 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={purchasePagination.page} pageSize={purchasePagination.pageSize} totalItems={purchasePagination.totalItems} onPageChange={purchasePagination.setPage} />
+          <PaginationBar
+            page={purchasePlanResult.data?.pageNumber ?? purchasePage}
+            pageSize={purchasePlanResult.data?.pageSize ?? purchasePageSize}
+            totalItems={purchasePlanResult.data?.totalCount ?? 0}
+            onPageChange={setPurchasePage}
+          />
 
         </SectionPanel>
       )}

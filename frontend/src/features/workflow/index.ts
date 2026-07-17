@@ -26,6 +26,7 @@ export {
   useGetPriceVarianceByDishGroupQuery,
   useGetOperationalKpisQuery,
   useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetDailyProductionPlanQuery,
   useSendDailyProductionPlanToKitchenMutation,
   useGetStockLedgerReconciliationQuery,

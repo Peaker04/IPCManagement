@@ -270,6 +270,18 @@ export interface PurchasePlanRow {
   warnings: string[];
 }
 
+interface PurchasePlanPageResponseDto {
+  items: PurchasePlanRow[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  totalShortageQty: number;
+  totalEstimatedAmount: number;
+}
+
 export interface ProductionPlanLine {
   planLineId: string;
   dishId: string;
@@ -1440,6 +1452,31 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PurchasePlanRow[]>) => response.data ?? [],
       providesTags: ['WorkflowReports'],
     }),
+    getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/purchase-plan/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PurchasePlanPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          totalShortageQty: page?.totalShortageQty ?? 0,
+          totalEstimatedAmount: page?.totalEstimatedAmount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getIngredientDemandPage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand/page',
@@ -1727,6 +1764,7 @@ export const {
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetDailyProductionPlanQuery,
   useSendDailyProductionPlanToKitchenMutation,
   useGetApprovalRecordsQuery,

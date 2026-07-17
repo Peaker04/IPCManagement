@@ -655,6 +655,14 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
     {
+        var rows = await BuildPurchasePlanRowsAsync(query, NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit));
+        return rows
+            .Take(NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit))
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<PurchasePlanReportDto>> BuildPurchasePlanRowsAsync(WorkflowReportQueryDto query, int? sourceLimit)
+    {
         var groupBy = string.Equals(query.GroupBy, "week", StringComparison.OrdinalIgnoreCase) ? "week" : "day";
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
         var customerId = ParseCustomerId(query.CustomerId);
@@ -703,11 +711,14 @@ public class WorkflowReportService : IWorkflowReportService
             linesQuery = linesQuery.Where(line => line.PriceTierAmount == priceTier.Value);
         }
 
-        var lines = await linesQuery
+        IQueryable<Materialrequestline> orderedLines = linesQuery
             .OrderBy(line => line.Request.RequestDate)
-            .ThenBy(line => line.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit))
-            .ToListAsync();
+            .ThenBy(line => line.Ingredient.IngredientName);
+        if (sourceLimit is not null)
+        {
+            orderedLines = orderedLines.Take(sourceLimit.Value);
+        }
+        var lines = await orderedLines.ToListAsync();
         if (lines.Count == 0)
         {
             return [];
@@ -793,6 +804,26 @@ public class WorkflowReportService : IWorkflowReportService
             .OrderBy(item => item.PeriodStart)
             .ThenBy(item => item.IngredientName)
             .ToList();
+    }
+
+    public async Task<PurchasePlanPageDto> GetPurchasePlanPageAsync(PurchasePlanPageQueryDto query)
+    {
+        var rows = await BuildPurchasePlanRowsAsync(query, null);
+        var totalCount = rows.Count;
+        var items = rows
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return new PurchasePlanPageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            TotalShortageQty = rows.Sum(row => row.ShortageQty),
+            TotalEstimatedAmount = rows.Sum(row => row.EstimatedAmount),
+        };
     }
 
     public async Task<IReadOnlyList<PurchaseDemandReportDto>> GetPurchaseDemandAsync(WorkflowReportQueryDto query)
