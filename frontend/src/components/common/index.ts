@@ -1,5 +1,6 @@
 export { DataTableShell } from './DataTableShell';
 export { PaginatedTableFrame } from './PaginatedTableFrame';
+export { TableViewport } from './TableViewport';
 export { CommandBar } from './CommandBar';
 export { EmptyState } from './EmptyState';
 export { ExceptionLane } from './ExceptionLane';
