@@ -25,6 +25,7 @@ import {
   InlineAlert,
   OperationalFrame,
   PaginationBar,
+  PaginatedTableFrame,
   SectionPanel,
   StatusBadge,
   StockMovementTable,
@@ -48,6 +49,7 @@ import {
   type WorkflowReportQuery,
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
+import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
@@ -164,7 +166,6 @@ const ReportsPage = () => {
   );
   const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
   const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
-  const [pricePage, setPricePage] = useState(1);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [shiftName, setShiftName] = useState('');
@@ -235,9 +236,7 @@ const ReportsPage = () => {
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
   const shortageItems = ingredientDemandRows.filter((item) => item.tone === 'danger');
-  const totalPricePages = Math.max(1, Math.ceil(priceVarianceRows.length / pricePageSize));
-  const safePricePage = Math.min(pricePage, totalPricePages);
-  const pagedPriceVarianceRows = priceVarianceRows.slice((safePricePage - 1) * pricePageSize, safePricePage * pricePageSize);
+  const pricePagination = usePaginatedRows(priceVarianceRows, pricePageSize);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -671,7 +670,7 @@ const ReportsPage = () => {
 
           {priceSubView === 'lines' && (
           <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="#475569" />}>
-            <DataTableShell ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
+            <PaginatedTableFrame ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
               <table className="ipc-data-table ipc-report-table">
                 <thead>
                   <tr>
@@ -685,11 +684,11 @@ const ReportsPage = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {pagedPriceVarianceRows.length === 0 ? (
+                  {pricePagination.rows.length === 0 ? (
                     <EmptyRow colSpan={7} />
                   ) : (
-                    pagedPriceVarianceRows.map((item, index) => (
-                      <tr key={`${item.id}-${safePricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
+                    pricePagination.rows.map((item, index) => (
+                      <tr key={`${item.id}-${pricePagination.page}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
                             {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="#475569" />}
@@ -725,8 +724,8 @@ const ReportsPage = () => {
                   )}
                 </tbody>
               </table>
-            </DataTableShell>
-            <PaginationBar page={safePricePage} pageSize={pricePageSize} totalItems={priceVarianceRows.length} onPageChange={setPricePage} />
+            </PaginatedTableFrame>
+            <PaginationBar page={pricePagination.page} pageSize={pricePagination.pageSize} totalItems={pricePagination.totalItems} onPageChange={pricePagination.setPage} />
           </SectionPanel>
           )}
 
