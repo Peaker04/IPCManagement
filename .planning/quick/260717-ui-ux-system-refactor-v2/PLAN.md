@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-current-stock-price-demand-purchase-complete-ownership-gate-open
+status: wave-3-server-pagination-operational-complete-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -232,6 +232,14 @@ Purchase-plan server-pagination slice:
 - The legacy endpoint retains its source limit behavior (`500`), while the page endpoint removes that source truncation before grouping so grouped totals are not mathematically incomplete.
 - Known boundary: grouping and pending-receipt aggregation currently materialize the filtered source lines in the service before slicing the grouped response. This solves bounded UI payloads and correct metadata, but a future DB-level grouped query is required for large-data performance; it is not silently claimed as full database lazy loading.
 - Evidence: backend `267/267` tests, frontend unit `72/72`, build and lint pass; staged GitNexus detection was 7 files, 2 ReportsPage symbols, 1 flow, MEDIUM. Commit: `78fdd34`.
+
+Kitchen/usage server-pagination slice:
+
+- Added `GET /api/workflow-reports/kitchen-issues/page` and `GET /api/workflow-reports/issue-vs-return/page` using the shared page-number contract, stable ordering and `PagedResponseDto` metadata.
+- ReportsPage kitchen-issue and issue-vs-return views now request only the active server page and render server totals through the canonical `PaginationBar`; the previous full-list fetch plus local slicing is removed for these views.
+- Usage semantics are preserved: return and waste quantities are aggregated for the issue IDs on the requested page, then mapped to the same issued/returned/wasted/variance/used row fields as before.
+- Ownership was preserved with hunk-level staging: the unrelated BOM/tier edits in `WorkflowReportService.cs` remain unstaged.
+- Evidence: backend `267/267` tests, frontend unit `72/72`, lint and build pass; staged GitNexus detection was 7 files, 2 symbols, 1 Reports flow, MEDIUM. Commit: `54d2e51`.
 
 Critical shell gate result — `DataTableShell`:
 
