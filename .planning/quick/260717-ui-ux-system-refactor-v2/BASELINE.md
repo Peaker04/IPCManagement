@@ -49,7 +49,7 @@
 - Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
 - Pagination architecture: `1200311` extracts pure metadata and formalizes mode-specific contract fields; legacy `usePaginatedRows` API remains available for dirty `AdminDataPage` compatibility.
 - Legacy pagination delegate: `a82286f` makes `usePaginatedRows` delegate to `useLocalPagination`, preserving its public return shape while removing duplicate page-state/slicing logic. AdminDataPage callsites and query payloads were not changed.
-- Delegate verification: unit `64/64`, lint pass, build pass, UI audit `2/2`, staged diff check pass. GitNexus `detect_changes --scope staged` returned `No changes detected` because `usePaginatedRows` is outside the current symbol index; direct file inventory is the evidence boundary for this helper.
+- Delegate verification: unit `65/65`, lint pass, build pass, UI audit `2/2`, staged diff check pass. Contract test `421c904` covers the legacy return API and canonical local contract. GitNexus `detect_changes --scope staged` returned `No changes detected` because `usePaginatedRows` is outside the current symbol index; direct file inventory is the evidence boundary for this helper.
 - Chef viewport: `f8aaae4` migrates `MaterialChecklist` to `TableViewport` with caption while preserving checkbox signoff callbacks and empty-row behavior.
 - Chef BOM viewport: `c1d62b4` migrates `ActiveDishesGrid` expanded ingredient tables to `TableViewport` with captions; expand/collapse behavior is unchanged.
 - Chef production viewport: `288ac13` migrates the daily production-plan table to `TableViewport`; send-to-kitchen action and readiness rendering remain unchanged.
