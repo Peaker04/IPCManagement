@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import { TableViewport } from './TableViewport';
 
 interface PaginatedTableFrameProps {
   children: ReactNode;
@@ -13,13 +14,11 @@ interface PaginatedTableFrameProps {
  */
 export function PaginatedTableFrame({ children, ariaLabel, className }: PaginatedTableFrameProps) {
   return (
-    <div
-      className={cn('ipc-paginated-table-frame w-full overflow-auto', className)}
-      role="region"
-      aria-label={ariaLabel}
-      tabIndex={0}
+    <TableViewport
+      ariaLabel={ariaLabel}
+      className={cn('ipc-paginated-table-frame', className)}
     >
       {children}
-    </div>
+    </TableViewport>
   );
 }
