@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-pagination-convergence-ownership-gate-open
+status: wave-3-pagination-convergence-api-gap-recorded-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -195,6 +195,13 @@ Current Wave 3 evidence:
 - Current legacy inventory: `WeeklyMenuPage` has zero legacy shell references. `AdminDataPage` retains `DataTableShell` only for the user-owned BOM-current table; all remaining `PaginatedTableFrame` surfaces are already canonical-backed adapters and remain until pagination ownership is reconciled.
 - Ownership correction: clean-baseline comparison confirms the Admin BOM-current `DataTableShell` was added by the dirty BOM feature itself. The attempted wrapper migration was reverted and no Admin feature hunk was committed; explicit feature handoff remains required.
 - Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
+
+Pagination contract gap evidence:
+
+- The workflow-report list endpoints for current stock, ingredient demand, purchase plan, price variance, kitchen issues, issue-vs-return and data quality accept only `limit` and return bounded lists/aggregates.
+- Only `stock-movements/page` and `audit-changes/page` currently return cursor metadata. Their shared cursor control is therefore valid; converting the list endpoints to numeric UI pages without backend metadata would be a false lazy-pagination implementation.
+- The exact endpoint matrix, risk decision and required follow-up are recorded in `PAGINATION-CONTRACT-GAP.md`.
+- True server pagination is deferred to a separately owned backend/API phase because `WorkflowReportService` and `AdminDataPage` have user-owned dirty changes. Local pagination remains a DOM-containment measure and must not be described as server lazy loading.
 
 Critical shell gate result — `DataTableShell`:
 
