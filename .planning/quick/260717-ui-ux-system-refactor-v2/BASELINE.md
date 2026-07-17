@@ -35,6 +35,7 @@
 - Post-migration UI audit: `npm run test:ui-audit --workspace frontend` passed 2/2; no global overflow or broken action-control regression was detected in the audited protected-route fixtures.
 - Shared migrations: `2ecb972` (`DocumentRail`), `a198124` (`StockMovementTable`) and `32688c3` (`RoleInbox`) now use `useLocalPagination` and/or `TableViewport`; each passed unit 62/62, lint, build and UI audit 2/2 before commit.
 - Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.
+- Admin ownership audit: the BOM-current `DataTableShell` is introduced inside the existing dirty BOM feature diff, not inherited from the clean baseline. No wrapper migration was committed; this consumer remains protected until the feature owner hands off the route.
 - Weekly-menu production-detail table: `347253e` migrates one isolated `DataTableShell` consumer to `TableViewport` with a caption. The existing weekly-menu feature diff remains unstaged.
 - Weekly-menu production-plan table: `10d1916` migrates one isolated `560px` table to `TableViewport` while preserving the explicit viewport height and adding a caption.
 - Weekly-menu import surfaces: `6dd531d` and `6787897` migrate pending-job and history tables to `TableViewport`, preserving `260px` max-height and adding captions; feature-owned import logic remains unstaged.
