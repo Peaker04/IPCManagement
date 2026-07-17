@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: pilot contract implemented. `TableViewport` and typed `PaginationContract` now exist; `DemandSummary` is the first migrated consumer. Broader migration remains gated on pilot evidence.
+Status: pilot contract implemented. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary` is the first migrated consumer. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 
