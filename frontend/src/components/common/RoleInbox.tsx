@@ -5,6 +5,7 @@ import { TableViewport } from './TableViewport';
 import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/features/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
 
 interface RoleInboxProps {
   items: RoleInboxItem[];
@@ -46,9 +47,9 @@ export function RoleInbox({
           <thead>
             <tr>
               <th className="!text-left">Việc / chứng từ</th>
-              <th className="!text-left">Hạn xử lý</th>
-              <th className="!text-left">Phụ trách</th>
-              {hasActions ? <th className="!text-right">Thao tác</th> : null}
+              <th className="!text-left">{uiCopy.workflow.deadline}</th>
+              <th className="!text-left">{uiCopy.workflow.owner}</th>
+              {hasActions ? <th className="!text-right">{uiCopy.workflow.action}</th> : null}
             </tr>
           </thead>
           <tbody>

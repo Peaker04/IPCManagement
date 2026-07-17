@@ -49,6 +49,7 @@ import {
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
 import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
@@ -61,8 +62,8 @@ const reportTabs = [
   { id: 'reports-movement', label: 'Nhập/xuất kho' },
   { id: 'reports-kitchen', label: 'Xuất bếp' },
   { id: 'reports-usage', label: 'Sử dụng thực tế' },
-  { id: 'reports-audit', label: 'Audit' },
-  { id: 'reports-data-quality', label: 'Data quality' },
+  { id: 'reports-audit', label: uiCopy.reports.audit },
+  { id: 'reports-data-quality', label: uiCopy.reports.dataQuality },
 ];
 
 const movementTypeLabel: Record<StockMovement['type'], string> = {
@@ -294,7 +295,7 @@ const ReportsPage = () => {
         ['Nguyên liệu', (row) => row.ingredientName],
         ['Cần', (row) => row.requiredQty],
         ['Tồn', (row) => row.currentStockQty],
-        ['Pending receipt', (row) => row.pendingReceiptQty],
+        [uiCopy.reports.pending, (row) => row.pendingReceiptQty],
         ['Đề xuất mua', (row) => row.shortageQty],
         ['Đơn vị', (row) => row.unitName],
         ['Nhà cung cấp', (row) => row.supplierName],
@@ -374,7 +375,7 @@ const ReportsPage = () => {
         ['SLA', (row) => row.slaLabel],
         ['Priority', (row) => row.priorityRank],
         ['Trạng thái xử lý', (row) => row.remediationStatus],
-        ['Owner', (row) => row.owner],
+        [uiCopy.reports.owner, (row) => row.owner],
         ['Nhóm lỗi', (row) => row.category],
         ['Bảng/entity', (row) => row.entityName],
         ['Mã', (row) => row.entityCode],
@@ -509,8 +510,8 @@ const ReportsPage = () => {
             { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
             { label: 'Thiếu nguyên liệu', value: shortageItems.length.toString(), tone: shortageItems.length ? 'danger' : 'success' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: 'neutral' },
-            { label: 'Audit', value: auditRows.length.toString(), tone: 'neutral' },
-            { label: 'Data quality', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+            { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
+            { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
           ]}
         />
       }
@@ -834,7 +835,7 @@ const ReportsPage = () => {
                   <th>Nguyên liệu</th>
                   <th>Cần</th>
                   <th>Tồn</th>
-                  <th>Pending</th>
+                  <th>{uiCopy.reports.pending}</th>
                   <th>Đề xuất mua</th>
                   <th>NCC</th>
                   <th>Cảnh báo</th>
@@ -976,7 +977,7 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'audit' && (
-        <SectionPanel title="Audit thay đổi BOM, tồn kho, số suất và chứng từ" icon={<Database size={18} />}>
+          <SectionPanel title={`${uiCopy.reports.audit} BOM, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
           <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
@@ -1015,14 +1016,14 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'data-quality' && (
-        <SectionPanel title="Data quality trước production" icon={<AlertTriangle size={18} />}>
+        <SectionPanel title={uiCopy.reports.preProductionQuality} icon={<AlertTriangle size={18} />}>
           <ContextStrip
             items={[
               { label: 'Tổng issue', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
-              { label: 'Error', value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
-              { label: 'Warning', value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
+              { label: uiCopy.reports.error, value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
+              { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
               { label: 'SLA gấp', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
-              { label: 'Resolved còn lỗi', value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
+              { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
               { label: 'Thiếu BOM', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
@@ -1034,7 +1035,7 @@ const ReportsPage = () => {
                   <th>Mức độ</th>
                   <th>SLA</th>
                   <th>Trạng thái xử lý</th>
-                  <th>Owner</th>
+                  <th>{uiCopy.reports.owner}</th>
                   <th>Nhóm lỗi</th>
                   <th>Đối tượng</th>
                   <th>Vấn đề</th>
@@ -1047,7 +1048,7 @@ const ReportsPage = () => {
                   <tr key={row.id}>
                     <td>
                       <StatusBadge variant={row.severity === 'error' ? 'danger' : 'warning'} className="ipc-table-badge ipc-table-badge--status">
-                        {row.severity === 'error' ? 'Error' : 'Warning'}
+                        {row.severity === 'error' ? uiCopy.reports.error : uiCopy.reports.warning}
                       </StatusBadge>
                     </td>
                     <td>
@@ -1056,7 +1057,7 @@ const ReportsPage = () => {
                     </td>
                     <td>
                       <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                        {row.remediationStatus === 'resolved' ? 'Resolved còn lỗi' : row.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
+                        {row.remediationStatus === 'resolved' ? uiCopy.reports.resolvedWithIssues : row.remediationStatus === 'reopened' ? uiCopy.reports.reopened : uiCopy.reports.open}
                       </StatusBadge>
                     </td>
                     <td>{row.owner}</td>

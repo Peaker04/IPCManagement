@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
 import type { WorkflowDocument } from '@/features/workflow';
 
 interface DocumentRailProps {
@@ -91,9 +92,9 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
             })}
           </dl>
 
-          {/* Zone 4: Owner */}
+          {/* Zone 4: Người phụ trách */}
           <div className="ipc-document-zone-owner">
-            <dt>Phụ trách</dt>
+            <dt>{uiCopy.workflow.owner}</dt>
             <dd>{document.owner}</dd>
           </div>
 

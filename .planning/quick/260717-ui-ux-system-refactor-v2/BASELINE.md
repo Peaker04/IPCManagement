@@ -35,3 +35,21 @@
 - Post-migration UI audit: `npm run test:ui-audit --workspace frontend` passed 2/2; no global overflow or broken action-control regression was detected in the audited protected-route fixtures.
 - Shared migrations: `2ecb972` (`DocumentRail`), `a198124` (`StockMovementTable`) and `32688c3` (`RoleInbox`) now use `useLocalPagination` and/or `TableViewport`; each passed unit 62/62, lint, build and UI audit 2/2 before commit.
 - Current legacy inventory: `PaginatedTableFrame` and `usePaginatedRows` remain in `AdminDataPage.tsx` only for product code; the helper source/test and compatibility export remain until that dirty page is reconciled.
+- Weekly-menu production-detail table: `347253e` migrates one isolated `DataTableShell` consumer to `TableViewport` with a caption. The existing weekly-menu feature diff remains unstaged.
+- Weekly-menu production-plan table: `10d1916` migrates one isolated `560px` table to `TableViewport` while preserving the explicit viewport height and adding a caption.
+- Compatibility adapter: `fd1af9e` makes `PaginatedTableFrame` render the canonical `TableViewport`, retaining the legacy class/props for `AdminDataPage` while preventing a second viewport implementation.
+- Semantic copy: `dc989ef` centralizes Reports labels such as “Nhật ký thay đổi”, “Chất lượng dữ liệu”, “Người phụ trách”, “Lỗi” and “Cảnh báo” in `uiCopy`; no API or report value contract changed.
+- Workflow copy: `00da341` centralizes owner/deadline/action labels for shared operational surfaces; callback and row data contracts are unchanged.
+- Pagination architecture: `1200311` extracts pure metadata and formalizes mode-specific contract fields; legacy `usePaginatedRows` API remains available for dirty `AdminDataPage` compatibility.
+- Chef viewport: `f8aaae4` migrates `MaterialChecklist` to `TableViewport` with caption while preserving checkbox signoff callbacks and empty-row behavior.
+- Chef BOM viewport: `c1d62b4` migrates `ActiveDishesGrid` expanded ingredient tables to `TableViewport` with captions; expand/collapse behavior is unchanged.
+- Chef production viewport: `288ac13` migrates the daily production-plan table to `TableViewport`; send-to-kitchen action and readiness rendering remain unchanged.
+- Dashboard swimlane: `80b52d8` migrates the workflow lane table to `TableViewport` and shared labels; active lane and action renderers remain unchanged.
+
+- Visual isolation for `347253e`: weekly-menu desktop failed with `33280` differing pixels in both legacy and canonical wrapper runs; mobile remained `390×1997` with `64371` differing pixels in both runs. This proves the current mismatch is not introduced by the isolated wrapper change.
+
+## Critical shell visual gate evidence
+
+- A `DataTableShell` → `TableViewport` compatibility prototype preserved the public props and legacy class, and passed unit `62/62`, lint, build and UI audit `2/2`.
+- Playwright visual result: `8/20` passed, `12/20` failed. Failures included weekly menu, reports, admin data and multiple mobile routes with page-height/geometry drift; this is not an acceptable snapshot update condition.
+- The prototype and its compatibility CSS were reverted. Current baseline therefore keeps `DataTableShell` unchanged and treats the visual mismatch as an explicit blocker for global shell replacement.

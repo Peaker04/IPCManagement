@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-2-pilot-complete
+status: wave-3-pilot-paused-at-ownership-gate
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `AdminDataPage` remains explicitly gated by dirty ownership; `PaginatedTableFrame` compatibility remains only for that page.
+Status: route-family pilot slice complete for local/shared consumers that passed risk gates. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; all migrated route tables plus `DocumentRail`, `StockMovementTable` and `RoleInbox` use the canonical controller/viewport. `PaginatedTableFrame` is now a thin adapter over `TableViewport`; `AdminDataPage` remains explicitly gated by dirty ownership before its consumer code is migrated/removed.
 
 Deliverables:
 
@@ -168,6 +168,26 @@ Current Wave 3 evidence:
 - Remaining route-family work is not silently skipped: shared `RoleInbox`, `DocumentRail`, `StockMovementTable` are HIGH-impact; `AdminDataPage` is dirty user-owned work. They require a separate impact/ownership gate before editing.
 - Shared HIGH migrations completed with compatibility-preserving changes: `DocumentRail` (`2ecb972`), `StockMovementTable` (`a198124`) and `RoleInbox` (`32688c3`). Each changed only local pagination/viewport implementation and retained public props, row actions and mutation boundaries.
 - Remaining legacy consumer is `AdminDataPage.tsx`, which has an existing 613-line user-owned dirty diff and must be reconciled separately before its six table instances can migrate.
+- Compatibility cleanup: `PaginatedTableFrame` now delegates to `TableViewport` (`fd1af9e`), preserving its public props and legacy class while removing duplicate viewport DOM behavior. GitNexus does not index this symbol, so direct repository inventory plus regression gates are the evidence boundary.
+- Semantic copy slice: `uiCopy.reports` now owns report tab, status and technical labels; `ReportsPage` consumes those labels for UI and CSV headers (`dc989ef`). Backend enums, query payloads and exported values remain unchanged.
+- Workflow copy slice: `uiCopy.workflow` now owns owner, deadline, action, SLA and document-code labels; `DocumentRail`, `RoleInbox` and `ApprovalQueue` consume the shared vocabulary (`00da341`).
+- Pagination contract slice: pure `paginationMeta.ts` now owns local page math; `usePaginatedRows` re-exports it for compatibility, `useLocalPagination` imports it directly, and `PaginationContract` is a discriminated union for local/page-number/cursor (`1200311`).
+- Chef slice: `MaterialChecklist` now uses `TableViewport` with an accessible caption instead of the critical `DataTableShell`; checkbox/signoff behavior remains unchanged (`f8aaae4`).
+- Chef BOM slice: `ActiveDishesGrid` now uses `TableViewport` for expanded dish ingredient tables, retaining expand/collapse, row keys and existing data (`c1d62b4`).
+- Chef production slice: `ChefDashboardPage` daily production-plan table now uses `TableViewport` with a caption; send-to-kitchen action and row readiness rendering are unchanged (`288ac13`).
+- Dashboard slice: `SwimlaneProgress` now uses `TableViewport` and shared semantic workflow copy for lane/status/waiting/blocked/next-action columns (`80b52d8`).
+- Weekly-menu slice: the clean production-detail table inside `WeeklyMenuPage` now uses `TableViewport` with an accessible caption (`347253e`). The feature-owned import and production-plan hunks were not staged.
+- Weekly-menu slice 2: the weekly production-plan table now uses `TableViewport`, preserving its `560px` geometry through an explicit max-height and adding an accessible caption (`10d1916`).
+- Weekly-menu visual evidence: legacy wrapper and canonical wrapper produced the same baseline mismatch (`33280` desktop pixels; mobile `390×1997` vs baseline `390×1958`). The mismatch is therefore pre-existing to this isolated wrapper migration and remains tracked as an ownership/baseline blocker; no snapshot was changed.
+
+Critical shell gate result — `DataTableShell`:
+
+- GitNexus upstream impact: CRITICAL; 16 impacted symbols, 10 direct callers and 12 affected execution flows.
+- A compatibility bridge to `TableViewport` was prototyped with the public props and `ipc-table-shell` class preserved. Unit `62/62`, lint, build and UI audit `2/2` passed.
+- Visual verification remained `8/20` passed and `12/20` failed, including route-height and mobile geometry drift. The bridge was reverted and no snapshots were updated.
+- Decision: keep `DataTableShell` protected. The next plan slice must first create a route-scoped visual fixture/geometry contract, then migrate one legacy consumer at a time; deletion or direct global replacement is prohibited.
+- Contract test: `DataTableShell.test.tsx` locks the public accessible-name, region, tabindex and legacy-class contract without changing runtime geometry (`a3a2c2c`). Full unit suite is now 64/64.
+- Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
 ### Wave 4 — Accessibility and visual verification
 
@@ -177,6 +197,18 @@ Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
 - Keyboard tab order, focus visible, dialog naming, table region naming, aria-current/selected, reduced motion.
 - Body overflow, nested scroll, sticky header, action reachability, long-cell wrapping.
 - Playwright controls, route smoke, ui-audit, visual routes; nếu auth/backend fail thì phân loại và sửa root cause trước khi rerun.
+
+Wave 4 is intentionally paused. Its gates cannot be used to authorize more visual changes while the critical shell and dirty ownership boundaries remain unresolved.
+
+### Next execution slice — Refactor legacy shell safely
+
+1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype.
+2. Add a small contract test for `DataTableShell` public props, region semantics and legacy class preservation; do not change geometry in this step.
+3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally.
+4. Run the complete gate set for that consumer. A visual failure must produce an actual-vs-baseline diff and root-cause note; snapshot updates are forbidden until the diff is explained.
+5. Re-run GitNexus impact for every edited symbol. If the shared shell remains CRITICAL, keep it as a compatibility boundary and move the migration to callers.
+6. Reconcile ownership for `WeeklyMenuPage` and `AdminDataPage` before touching either file. Their existing user changes are not implementation debt that can be overwritten.
+7. Only after all consumers are migrated, remove `DataTableShell`/legacy CSS in a separate cleanup commit with a full visual and accessibility gate.
 
 ### Wave 5 — Cleanup and release gate
 

@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { DataTableShell, SectionPanel } from '@/components/common'
+import { SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Ingredient } from '@/lib/types'
 
@@ -39,7 +39,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
       }
       className="ipc-chef-checklist-panel"
     >
-        <DataTableShell ariaLabel="Checklist ký nhận nguyên liệu bếp" className="ipc-chef-checklist-shell">
+        <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
           <Table className="ipc-chef-checklist-table text-xs">
             <TableHeader>
               <TableRow className="border-slate-200 hover:bg-transparent">
@@ -106,7 +106,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
               )}
             </TableBody>
           </Table>
-        </DataTableShell>
+        </TableViewport>
     </SectionPanel>
   )
 }
