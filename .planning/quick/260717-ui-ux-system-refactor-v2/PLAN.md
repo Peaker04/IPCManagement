@@ -89,7 +89,7 @@ Exit criteria:
 
 ### Wave 2 — Canonical table and pagination architecture
 
-Status: pilot contract implemented. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue` and the Coordination `OrderTable` use the canonical local controller. Broader migration remains gated on pilot evidence.
+Status: route-family pilot expanded. `TableViewport`, typed `PaginationContract` and `useLocalPagination` now exist; `DemandSummary`, `ApprovalQueue`, Coordination `OrderTable` and all local paginated tables in `ReportsPage` use the canonical contract. Cursor-based `StockMovementTable` remains explicitly outside this slice. Broader migration remains gated on pilot evidence.
 
 Deliverables:
 
@@ -107,6 +107,15 @@ Pilot migration note — Coordination `OrderTable`:
 - Preserved behavior: page size 12, local slicing, page navigation, optimistic quantity/forecast mutations and rollback handling.
 - Verification: unit 62/62, lint pass, build pass, `git diff --check` pass; staged GitNexus detect scope was one file, three symbols, two expected Coordination flows, MEDIUM aggregate risk.
 - Rollback: revert commit `0a64f5b` without touching the dirty user-owned worktree.
+
+Pilot migration note — Reports:
+
+- Current pattern: ten local report tables used `PaginatedTableFrame` plus `usePaginatedRows`; cursor movement and audit pagination were separate contracts.
+- Target contract: local tables use `TableViewport` plus `useLocalPagination`; cursor movement keeps its existing cursor boundary and `StockMovementTable` remains protected.
+- Impact: GitNexus returned two parser candidates for `ReportsPage`, both LOW with no upstream callers; staged detection covered one Reports execution flow at MEDIUM aggregate scope.
+- Preserved behavior: all page sizes, local row slicing, pagination callbacks, report query payloads, cursor navigation and export/mutation behavior.
+- Verification: unit 62/62, lint pass, build pass, `git diff --check` pass.
+- Rollback: revert commit `c4aaf92` if visual or route-level regression appears.
 
 Exit criteria:
 
