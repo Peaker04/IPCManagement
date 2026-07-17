@@ -34,7 +34,7 @@ Status: foundation implemented; route-by-route copy cleanup remains.
 
 ### Wave 2 — Shared table/pagination helpers
 
-Status: helper implemented and first consumer migrated; remaining consumers are intentionally serialized by impact.
+Status: helper implemented and common list consumers migrated (`RoleInbox`, `ApprovalQueue`, `DocumentRail`, `DemandSummary`, `StockMovementTable`); route-owned tables remain for Wave 3.
 
 - Tạo `usePaginatedRows`/`useCursorPagination` helper thuần UI, có clamping khi data/filter đổi, giữ page size ổn định và reset page có chủ đích.
 - Tạo `PaginatedTableFrame` hoặc `TableViewport` Shadcn-style dùng native table semantics, sticky header, local scroll, loading/error/empty/no-result slots và aria label.
