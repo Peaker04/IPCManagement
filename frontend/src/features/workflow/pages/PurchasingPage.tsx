@@ -248,7 +248,7 @@ export default function PurchasingPage() {
                   <tr>
                     <th>Chứng từ</th>
                     <th>Nguyên liệu</th>
-                    <th className="text-right">SL Cần mua</th>
+                    <th className="text-right">Số lượng cần mua</th>
                     <th>Nhà cung cấp</th>
                     <th>Giá dự kiến (đ)</th>
                     <th>Ngày giao</th>
@@ -829,7 +829,7 @@ function PurchaseOrderManager({
           <table className="ipc-table">
             <thead>
               <tr>
-                <th>Mã PO</th>
+                <th>Mã đơn mua hàng</th>
                 <th>Nhà cung cấp</th>
                 <th>Đề xuất gốc</th>
                 <th>Ngày đặt</th>
