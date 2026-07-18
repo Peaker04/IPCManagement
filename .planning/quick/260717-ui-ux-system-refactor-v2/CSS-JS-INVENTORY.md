@@ -68,3 +68,4 @@ Ngày kiểm tra: 2026-07-18
 - Dashboard still contains visible technical vocabulary inside a mixed 479-line user-owned rewrite. No copy or layout cleanup is staged until that file can be split into an ownership-safe baseline; this prevents CSS/UX work from overwriting feature behavior.
 - The clean sticky table-header rule now consumes `--ipc-slate-50` rather than repeating `#f8fafc`; no selector, height, overflow or interaction rule changed. Evidence: `b2d0ac7`, lint/build, UI audit `4/4`.
 - Static copy inventory removed three unreferenced `uiCopy` keys (`bomCanonical`, `sourceHash`, `sla`). No visible label, toast, dialog or route behavior changed. Evidence: `db58c11`, zero-reference scan, lint/build, unit `88/88`.
+- Shared demand table copy now explains `Tạo lại demand` as `Tạo lại nhu cầu` at render time; no raw API/action contract changed. Evidence: `63050c7`, unit `88/88`, controls `19/19`, lint/build.
