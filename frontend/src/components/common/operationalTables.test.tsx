@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ApprovalQueue } from './ApprovalQueue';
 import { RoleInbox } from './RoleInbox';
 import { StockMovementTable } from './StockMovementTable';
+import { ToastProvider } from './ToastProvider';
 import type { ApprovalRecord, RoleInboxItem, StockMovement } from '@/features/workflow';
 
 const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => ({
@@ -132,7 +133,11 @@ describe('StockMovementTable', () => {
   });
 
   it('renders empty state without rows', () => {
-    render(<StockMovementTable movements={[]} />);
+    render(
+      <ToastProvider>
+        <StockMovementTable movements={[]} />
+      </ToastProvider>,
+    );
 
     expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
   });
@@ -144,7 +149,11 @@ describe('StockMovementTable', () => {
       value: { writeText },
     });
 
-    render(<StockMovementTable movements={movements} pageSize={1} />);
+    render(
+      <ToastProvider>
+        <StockMovementTable movements={movements} pageSize={1} />
+      </ToastProvider>,
+    );
 
     expect(screen.getByText('IR-20260710-001')).toBeInTheDocument();
     expect(screen.getByText('Gạo tẻ')).toBeInTheDocument();
@@ -154,6 +163,7 @@ describe('StockMovementTable', () => {
 
     await userEvent.click(screen.getByRole('button', { name: /Sao chép mã chứng từ inventoryreceipt-20260710-001/i }));
     expect(writeText).toHaveBeenCalledWith('inventoryreceipt-20260710-001');
+    expect(screen.getByText('Đã sao chép mã chứng từ')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /Sao chép mã chứng từ inventoryreceipt-20260710-001/i })).toBeInTheDocument();
@@ -165,15 +175,35 @@ describe('StockMovementTable', () => {
     expect(screen.getByText('Thịt gà')).toBeInTheDocument();
   });
 
+  it('shows contextual feedback when clipboard access fails', async () => {
+    const writeText = vi.fn().mockRejectedValue(new Error('clipboard denied'));
+    Object.defineProperty(navigator, 'clipboard', {
+      configurable: true,
+      value: { writeText },
+    });
+
+    render(
+      <ToastProvider>
+        <StockMovementTable movements={movements.slice(0, 1)} />
+      </ToastProvider>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Sao chép mã chứng từ inventoryreceipt-20260710-001/i }));
+
+    expect(screen.getByText('Không thể sao chép mã chứng từ')).toBeInTheDocument();
+  });
+
   it('supports a server cursor controller without adding local pagination', async () => {
     const onNext = vi.fn();
     const onPrevious = vi.fn();
 
     render(
-      <StockMovementTable
-        movements={movements.slice(0, 1)}
-        cursorPagination={{ page: 2, hasNext: true, onNext, onPrevious }}
-      />,
+      <ToastProvider>
+        <StockMovementTable
+          movements={movements.slice(0, 1)}
+          cursorPagination={{ page: 2, hasNext: true, onNext, onPrevious }}
+        />
+      </ToastProvider>,
     );
 
     expect(screen.getByText('Trang 2, tải theo cursor')).toBeInTheDocument();
