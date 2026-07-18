@@ -85,22 +85,6 @@
   background: var(--ipc-redesign-canvas);
 }
 
-.ipc-paginated-table-frame {
-  max-height: 520px;
-  min-height: 160px;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
-}
-
-.ipc-paginated-table-frame:focus-visible {
-  outline: 2px solid var(--ipc-focus-ring);
-  outline-offset: 2px;
-}
-
-.ipc-paginated-table-frame > table {
-  min-width: 720px;
-}
-
 @media (max-width: 1023px) {
   .ipc-redesign-shell .ipc-sidebar {
     width: 100%;
@@ -111,11 +95,6 @@
   }
 }
 
-@media (max-width: 640px) {
-  .ipc-paginated-table-frame {
-    max-height: 440px;
-  }
-}
 .ipc-table-viewport {
   scrollbar-gutter: stable;
   min-height: 96px;
