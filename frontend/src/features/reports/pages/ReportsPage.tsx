@@ -553,7 +553,7 @@ const ReportsPage = () => {
           />
 
           {priceSubView === 'supplier' && (
-            <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
                 <table className="ipc-data-table min-w-[720px]">
                   <thead>
@@ -601,7 +601,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'period' && (
-            <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
                 <table className="ipc-data-table min-w-[720px]">
                   <thead>
@@ -645,7 +645,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'dishGroup' && (
-            <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
                 <table className="ipc-data-table min-w-[720px]">
                   <thead>
@@ -681,7 +681,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'lines' && (
-          <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="#475569" />}>
+          <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="var(--ipc-slate-600)" />}>
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
               <table className="ipc-data-table ipc-report-table min-w-[720px]">
                 <thead>
@@ -703,7 +703,7 @@ const ReportsPage = () => {
                       <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                         <td className={item.warning ? 'ipc-report-material-cell is-warning' : 'ipc-report-material-cell'}>
                           <span className="ipc-report-material">
-                            {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="#475569" />}
+                            {item.warning ? <AlertTriangle size={14} className="text-[var(--ipc-danger)]" /> : <TrendingUp size={14} color="var(--ipc-slate-600)" />}
                             <span className="ipc-report-material-copy">
                               <span>{item.name}</span>
                               <span className="text-xs font-normal text-slate-400">{item.supplier}</span>
