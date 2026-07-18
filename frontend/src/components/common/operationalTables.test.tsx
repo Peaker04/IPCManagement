@@ -46,8 +46,8 @@ const movements: StockMovement[] = [
     afterQty: 60,
     unit: 'kilogram',
     owner: 'Thủ kho',
-    status: 'Đã nhập',
-    nextAction: 'Đối chiếu',
+    status: 'RECEIVED',
+    nextAction: 'PENDING',
     tone: 'success',
   },
   {
@@ -147,6 +147,8 @@ describe('StockMovementTable', () => {
 
     expect(screen.getByText('IR-20260710-001')).toBeInTheDocument();
     expect(screen.getByText('Gạo tẻ')).toBeInTheDocument();
+    expect(screen.getByText('Đã nhận đủ')).toBeInTheDocument();
+    expect(screen.getByText('Đang chờ xử lý')).toBeInTheDocument();
     expect(screen.queryByText('Thịt gà')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /Sao chép mã chứng từ inventoryreceipt-20260710-001/i }));
