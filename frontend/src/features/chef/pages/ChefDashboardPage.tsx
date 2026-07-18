@@ -291,7 +291,7 @@ export default function ChefDashboardPage() {
       setChefFeedback({
         title: returnType === 'WASTE' ? 'Đã ghi nhận hao hụt thực tế' : 'Đã tạo phiếu trả kho',
         message: response.data
-          ? `${response.data.returnCode}: ${data.ingredientName} ${formatQuantityWithUnit(data.returnedQty, data.unit)} đã được lưu bằng API.`
+          ? `${response.data.returnCode}: ${data.ingredientName} ${formatQuantityWithUnit(data.returnedQty, data.unit)} đã được lưu trên hệ thống.`
           : response.message || 'Phiếu trả nguyên liệu đã được ghi nhận.',
         variant: 'info',
       })
@@ -313,12 +313,12 @@ export default function ChefDashboardPage() {
       }).unwrap()
       setChefFeedback({
         title: 'Đã nhận kế hoạch sản xuất',
-        message: `${result.sentPlans}/${result.totalPlans} KHSX đã được đánh dấu gửi bếp.`,
+          message: `${result.sentPlans}/${result.totalPlans} kế hoạch sản xuất đã được đánh dấu gửi bếp.`,
         variant: 'info',
       })
     } catch (error) {
       setChefFeedback({
-        title: 'Chưa nhận được KHSX',
+        title: 'Chưa nhận được kế hoạch sản xuất',
         message: getMutationErrorMessage(error, 'Không thể đánh dấu gửi bếp cho kế hoạch hôm nay.'),
         variant: 'warning',
       })
@@ -389,18 +389,18 @@ export default function ChefDashboardPage() {
   const activeReturns = returns.filter((ret) => ret.day === activeDay && ret.shift === activeShift)
 
   const chefDataStatusMessages = [
-    isCatalogLoading ? 'Đang tải catalog món ăn và BOM để lập checklist nguyên liệu.' : null,
-    isCatalogError ? 'Chưa tải được catalog món ăn; checklist sẽ thiếu định lượng chính xác từ API.' : null,
-    isCatalogEmpty ? 'Catalog món ăn đang trống nên checklist chưa thể sinh đầy đủ từ BOM.' : null,
+    isCatalogLoading ? 'Đang tải danh mục món ăn và định lượng để lập danh sách nguyên liệu.' : null,
+    isCatalogError ? 'Chưa tải được danh mục món ăn; danh sách sẽ thiếu định lượng chính xác từ hệ thống.' : null,
+    isCatalogEmpty ? 'Danh mục món ăn đang trống nên danh sách nguyên liệu chưa thể sinh đầy đủ từ định lượng.' : null,
     isKitchenIssuesLoading ? 'Đang tải phiếu xuất kho để bếp trưởng ký nhận nguyên liệu.' : null,
-    isKitchenIssuesError ? 'Chưa tải được phiếu xuất kho; checklist tạm dùng dữ liệu dự kiến từ BOM.' : null,
+    isKitchenIssuesError ? 'Chưa tải được phiếu xuất kho; danh sách tạm dùng dữ liệu dự kiến từ định lượng.' : null,
     activeKitchenIssueRows.length > 0
       ? pendingKitchenReceiptCount > 0
-        ? `${pendingKitchenReceiptCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên API.`
+        ? `${pendingKitchenReceiptCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên hệ thống.`
         : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ API.' : null,
-    isDailyPlanError ? 'Chưa tải được KHSX gửi bếp; checklist dự kiến vẫn được giữ để tham chiếu.' : null,
+    isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
+    isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
     ...dailyPlanWarnings,
     isConfirmingIssueReceipt ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     isCreatingInventoryReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
@@ -446,11 +446,11 @@ export default function ChefDashboardPage() {
 
   const shiftAlert = isLocked ? (
     <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">
-      Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo KHSX.
+      Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.
     </InlineAlert>
   ) : (
     <InlineAlert title="Bản dự thảo từ điều phối" icon={<ShieldAlert className="size-4" />} variant="warning">
-      Chưa chốt ca. Bếp chỉ xem trước KHSX, chưa xác nhận nhận nguyên liệu.
+      Chưa chốt ca. Bếp chỉ xem trước kế hoạch sản xuất, chưa xác nhận nhận nguyên liệu.
     </InlineAlert>
   )
 
@@ -497,7 +497,7 @@ export default function ChefDashboardPage() {
         <>
           <ContextStrip
             items={[
-              { label: 'KHSX hôm nay', value: dailyProductionPlan ? `${dailyProductionPlan.sentPlans}/${dailyProductionPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: dailyProductionPlan?.sentPlans ? 'success' : 'warning' },
+              { label: 'Kế hoạch hôm nay', value: dailyProductionPlan ? `${dailyProductionPlan.sentPlans}/${dailyProductionPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: dailyProductionPlan?.sentPlans ? 'success' : 'warning' },
               { label: 'Phiếu trả', value: `${returnDocuments.length} chứng từ`, tone: 'neutral' },
               { label: 'Trạng thái nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : activeKitchenIssueRows.length > 0 ? 'Đã ký nhận' : isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: pendingKitchenReceiptCount > 0 ? 'warning' : activeKitchenIssueRows.length > 0 ? 'success' : isLocked ? 'warning' : 'neutral' },
               { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },
@@ -534,7 +534,7 @@ export default function ChefDashboardPage() {
           {activeView === 'production' && (
             <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
               <SectionPanel
-                title="KHSX trong ngày đã gửi bếp"
+                title="Kế hoạch trong ngày đã gửi bếp"
                 icon={<ClipboardList size={18} />}
                 badge={(
                   <button
@@ -544,7 +544,7 @@ export default function ChefDashboardPage() {
                     onClick={() => void handleSendDailyPlanToKitchen()}
                   >
                     <ShieldCheck size={15} />
-                    Nhận KHSX
+                    Nhận kế hoạch
                   </button>
                 )}
               >
@@ -552,12 +552,12 @@ export default function ChefDashboardPage() {
                   <table className="ipc-data-table ipc-status-action-table">
                     <thead>
                       <tr>
-                        <th>KHSX</th>
+                        <th>Kế hoạch</th>
                         <th>Khách hàng</th>
                         <th>Món</th>
                         <th>Ca</th>
                         <th>Suất</th>
-                        <th>BOM</th>
+                        <th>Định lượng</th>
                         <th>Thiếu</th>
                         <th>Trạng thái</th>
                       </tr>
@@ -566,7 +566,7 @@ export default function ChefDashboardPage() {
                       {dailyPlanLines.length === 0 ? (
                         <tr>
                           <td colSpan={8} className="py-8 text-center text-slate-500">
-                            Chưa có KHSX API cho ngày/ca này.
+                            Chưa có kế hoạch cho ngày/ca này.
                           </td>
                         </tr>
                       ) : dailyPlanLines.map((line) => {
@@ -614,7 +614,7 @@ export default function ChefDashboardPage() {
 
           {activeView === 'documents' && (
             <SectionPanel
-              title="KHSX, bàn giao và phiếu trả"
+              title="Kế hoạch, bàn giao và phiếu trả"
               icon={<ClipboardList size={18} />}
               className="ipc-chef-documents-panel"
             >
