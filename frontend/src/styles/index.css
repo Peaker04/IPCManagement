@@ -518,27 +518,10 @@ code {
   padding-bottom: 7px;
 }
 
-.ipc-compact-select {
-  min-height: 32px;
-  border-color: #b9c8db;
-  background: linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-  font-weight: 600;
-  font-size: 12.5px;
-  padding: 4px 6px;
-  border-radius: var(--ipc-radius-md);
-  text-align-last: center;
-}
-
 .ipc-input:focus,
 .ipc-select:focus {
   border-color: var(--ipc-focus-ring);
   box-shadow: 0 0 0 3px rgb(47 111 237 / 0.18);
-}
-
-.ipc-select.ipc-compact-select:focus {
-  outline: none !important;
-  border-color: #b9c8db !important;
-  box-shadow: none !important;
 }
 
 .ipc-input:disabled,
@@ -3415,15 +3398,6 @@ code {
   min-width: 680px;
 }
 
-.ipc-chef-action-button {
-  width: fit-content !important;
-  max-width: 100%;
-  min-height: 44px;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  text-align: left;
-}
-
 .ipc-chef-action-note,
 .ipc-chef-action-note li {
   overflow-wrap: anywhere;
@@ -3434,12 +3408,6 @@ code {
   max-height: min(86vh, 720px);
   overflow-y: auto;
   scrollbar-gutter: stable;
-}
-
-.ipc-dialog-action {
-  min-height: 40px;
-  white-space: normal;
-  overflow-wrap: anywhere;
 }
 
 .ipc-report-table-shell,
