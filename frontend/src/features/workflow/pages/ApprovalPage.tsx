@@ -26,6 +26,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatWorkflowStatus } from '../workflowConfig';
+import { formatApprovalDecision } from './approvalCopy';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -284,10 +285,10 @@ export default function ApprovalPage() {
                               <span className="font-semibold text-slate-700">{item.actionByName}</span>
                             </div>
                             <div className="text-sm">
-                              <span className="font-semibold text-blue-700 uppercase">{item.decision}</span>
+                              <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
                               {item.oldStatus && item.newStatus && (
                                 <span className="ml-2 text-xs text-slate-400">
-                                  ({item.oldStatus} <ArrowRight className="inline size-3 mx-0.5" /> {item.newStatus})
+                                  ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
                                 </span>
                               )}
                             </div>
