@@ -1363,7 +1363,7 @@ export default function AdminDataPage() {
                     <th>Chỉ số</th>
                     <th>Ý nghĩa vận hành</th>
                     <th>Trạng thái</th>
-                    <th>Handoff</th>
+                    <th>Chuyển xử lý</th>
                   </tr>
                 </thead>
                 <tbody>
