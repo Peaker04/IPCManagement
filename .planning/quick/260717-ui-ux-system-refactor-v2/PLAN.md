@@ -328,6 +328,7 @@ Wave 4 gate execution:
 - UI audit: `2/2` passed, including the Admin data-quality stress table and action readability check.
 - Visual regression: `8/20` passed and `12/20` failed, matching the previously recorded baseline failure shape. Failures remain concentrated in WeeklyMenu, Reports, AdminData and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
 - The visual gate was run sequentially to avoid Vite cache races (`EPERM` rename) observed when Playwright projects were launched in parallel. Commit `859c97d` records only fixture contract corrections; no product snapshot or protected global-style change was staged.
+- Release verification initially caught two stale Admin badge references after removing the legacy kitchen/usage hooks; they were changed to use the new KPI aggregates and reverified by a successful frontend production build. Fix commit: `874de3b`.
 
 ### Wave 4 — Accessibility and visual verification
 
