@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { ActiveDishesGrid } from './active-dishes-grid';
 import { ChefHeader } from './chef-header';
 import { MaterialChecklist } from './material-checklist';
+import { OperationalActions } from './operational-actions';
 
 describe('Chef operational copy', () => {
   it('uses sentence-case labels in the summary cards', () => {
@@ -60,5 +61,11 @@ describe('Chef operational copy', () => {
     for (const label of ['Nguyên Liệu', 'Đơn Vị', 'Số Lượng', 'Trạng Thái']) {
       expect(screen.queryByText(label, { exact: true })).not.toBeInTheDocument();
     }
+  });
+
+  it('does not force the quick-guide heading into uppercase styling', () => {
+    render(<OperationalActions materials={[]} />);
+
+    expect(screen.getByText('Hướng dẫn nhanh')).not.toHaveClass('uppercase');
   });
 });
