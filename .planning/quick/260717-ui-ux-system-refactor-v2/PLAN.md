@@ -547,6 +547,7 @@ Current blockers and next route order:
 - CSS token audit removed the duplicate `--ipc-shell-width` declaration from the clean `ui-redesign.css`; the canonical token remains in imported-first `index.css`, and no shell geometry rule changed. Evidence: token scan, build/lint, UI audit `4/4`; commit `deaa5cf`.
 - Approval queue action text now passes through `formatWorkflowStatus`, so technical values such as `PENDING` are translated while raw records and callbacks remain unchanged. `ApprovalQueue` impact was exact LOW; staged detection classified one shared flow as MEDIUM. Evidence: unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build; commit `638b3a5`.
 - Warehouse demand handoff links and Reports demand handoff links now translate raw next-action values through `formatWorkflowStatus` at render time. Route/API contracts, link destinations and raw row data are unchanged. Source impact for both route symbols was exact LOW with no indexed upstream callers; evidence: lint/build, controls `19/19`, smoke `15/15`, UI audit `4/4`; commit `fe0b57a`.
+- Clean workflow/report copy now expands `Nhu cầu NVL` to `Nhu cầu nguyên liệu` and replaces visible English `Handoff` labels with `Chuyển xử lý`/`Bàn giao kho`. Tab ids, route links, API values and pagination contracts are unchanged. Source impact was LOW, while staged detection conservatively reported MEDIUM for the Reports flow. Evidence: lint/build, controls `19/19`, smoke `15/15`, UI audit `4/4`; commit `da73ff5`.
 
 Allowed files for the first clean slice:
 
