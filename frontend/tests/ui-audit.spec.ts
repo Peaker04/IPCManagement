@@ -108,6 +108,15 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
           missingConversionCount: 0,
           negativeStockCount: 0,
           orphanDocumentCount: 0,
+          page: {
+            items: dataQualityIssues,
+            totalCount: dataQualityIssues.length,
+            pageNumber: 1,
+            pageSize: 8,
+            totalPages: dataQualityIssues.length ? 1 : 0,
+            hasPrev: false,
+            hasNext: false,
+          },
           issues: dataQualityIssues,
         });
         return;

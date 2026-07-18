@@ -3024,6 +3024,15 @@ public class WorkflowGenerationTests
         defaultRows.Should().ContainSingle(row => row.Note == "recent");
         defaultRows.Should().NotContain(row => row.Note == "old");
 
+        var filteredRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
+        {
+            MovementType = "issue",
+            Limit = 10
+        });
+
+        filteredRows.Should().ContainSingle(row => row.Note == "recent");
+        filteredRows.Should().OnlyContain(row => row.MovementType == "ISSUE");
+
         var explicitRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
         {
             DateFrom = DateOnly.FromDateTime(oldMovementDate).ToString("yyyy-MM-dd"),

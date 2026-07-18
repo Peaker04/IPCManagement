@@ -25,15 +25,13 @@ import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangePageQuery,
-  useGetCurrentStockQuery,
-  useGetDataQualityQuery,
-  useGetIngredientDemandQuery,
-  useGetIssueVsReturnUsageQuery,
-  useGetKitchenIssuesQuery,
+  useGetCurrentStockPageQuery,
+  useGetDataQualityPageQuery,
+  useGetIngredientDemandPageQuery,
   useGetOperationalKpisQuery,
-  useGetPriceVarianceQuery,
-  useGetPurchasePlanQuery,
-  useGetStockMovementsQuery,
+  useGetPriceVariancePageQuery,
+  useGetPurchasePlanPageQuery,
+  useGetStockMovementPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useWorkflowOverview,
   type DataQualityIssueRow,
@@ -167,6 +165,8 @@ export default function AdminDataPage() {
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [qualityPage, setQualityPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -210,8 +210,10 @@ export default function AdminDataPage() {
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
   const [auditEntity, setAuditEntity] = useState('');
+  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [auditField, setAuditField] = useState('');
   const authToken = useAppSelector((state) => state.auth.token);
+  const [priceWarningPage, setPriceWarningPage] = useState(1);
 
   const auditQuery = useMemo(
     () => ({
@@ -259,16 +261,21 @@ export default function AdminDataPage() {
       alert('Lỗi khi tải file CSV: ' + err);
     }
   };
-  const { data: dataQualityReport } = useGetDataQualityQuery({ limit: 100 });
+  const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8 });
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
-  const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
-  const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 500 });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
-  const { data: priceVarianceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
-  const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
-  const { data: usageRows = [] } = useGetIssueVsReturnUsageQuery({ limit: 100 });
+  const stockMovementCursor = stockMovementCursors.at(-1);
+  const stockMovementResult = useGetStockMovementPageQuery({
+    movementType: 'adjustment',
+    cursorDate: stockMovementCursor?.cursorDate,
+    cursorId: stockMovementCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  }, { skip: activeView !== 'inventory' });
+  const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 8 });
+  const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
+  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
+  const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: priceWarningPage, pageSize: 8, warningOnly: true });
   const { roleInboxItems } = useWorkflowOverview();
   const employeeQuery = useMemo(
     () => ({
@@ -288,19 +295,18 @@ export default function AdminDataPage() {
   const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
   const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
-  const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
-  const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
-  const priceWarnings = priceVarianceRows.filter((row) => row.warning);
-  const currentStockPagination = usePaginatedRows(currentStockRows, 8);
-  const priceWarningPagination = usePaginatedRows(priceWarnings, 8);
-  const totalPurchaseQty = purchasePlanRows.reduce((total, row) => total + row.shortageQty, 0);
-  const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
-  const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
-  const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
-  const dataQualityIssues = dataQualityReport?.issues ?? [];
-  const dataQualityErrors = dataQualityIssues.filter((issue) => issue.severity === 'error');
+  const adjustmentMovements = stockMovementResult.data?.items ?? [];
+  const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
+  const priceWarnings = priceVariancePage?.items ?? [];
+  const priceWarningCount = priceVariancePage?.totalCount ?? 0;
+  const currentStockRows = currentStockPageResponse?.items ?? [];
+  const totalPurchaseQty = purchasePlanPage?.totalShortageQty ?? 0;
+  const totalIssuedQty = operationalKpis?.totalKitchenIssuedQty ?? 0;
+  const totalUsedQty = operationalKpis?.totalKitchenUsedQty ?? 0;
+  const totalReturnedQty = operationalKpis?.totalKitchenReturnedQty ?? 0;
+  const dataQualityIssues = dataQualityReport?.page.items ?? [];
+  const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
   const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
-  const qualityPagination = usePaginatedRows(dataQualityIssues, 8);
   const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
   const employeeRows = employeeResponse?.data?.items ?? [];
@@ -317,10 +323,8 @@ export default function AdminDataPage() {
     ...(canManageEmployees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
 
-  const displayLogs = auditLogs;
-  const totalAuditPages = Math.max(1, Math.ceil(displayLogs.length / auditPageSize));
-  const safeAuditPage = Math.min(auditPage, totalAuditPages);
-  const pagedAuditLogs = displayLogs.slice((safeAuditPage - 1) * auditPageSize, safeAuditPage * auditPageSize);
+  const displayLogs = auditResult.data?.items ?? [];
+
 
   const handleDownloadBomTemplate = async () => {
     try {
@@ -717,10 +721,10 @@ export default function AdminDataPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
-            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
-            { label: 'Cảnh báo giá', value: priceWarnings.length.toString(), tone: priceWarnings.length ? 'danger' : 'success' },
-            { label: 'Tồn kho', value: `${currentStockRows.length} dòng`, tone: 'neutral' },
+            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
+            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
+            { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'danger' : 'success' },
+            { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
             ...(canManageEmployees ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
           ]}
@@ -1221,7 +1225,7 @@ export default function AdminDataPage() {
           <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
             <ContextStrip
               items={[
-                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrors.length ? 'danger' : dataQualityIssues.length ? 'warning' : 'success' },
+                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
                 { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
@@ -1254,7 +1258,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {qualityPagination.rows.length === 0 ? <EmptyRow colSpan={10} /> : qualityPagination.rows.map((issue, index) => (
+                  {dataQualityIssues.length === 0 ? <EmptyRow colSpan={10} /> : dataQualityIssues.map((issue, index) => (
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
@@ -1311,7 +1315,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={qualityPagination.page} pageSize={qualityPagination.pageSize} totalItems={qualityPagination.totalItems} onPageChange={qualityPagination.setPage} />
+            <PaginationBar
+              page={dataQualityReport?.page.pageNumber ?? qualityPage}
+              pageSize={dataQualityReport?.page.pageSize ?? 8}
+              totalItems={dataQualityReport?.page.totalCount ?? 0}
+              onPageChange={setQualityPage}
+            />
           </SectionPanel>
         </div>
       )}
@@ -1319,7 +1328,19 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'inventory' && (
         <SectionPanel title="Điều chỉnh tồn và thông báo">
           <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
-          <StockMovementTable movements={adjustmentMovements} />
+          <StockMovementTable movements={adjustmentMovements} pageSize={8} />
+          <CursorPaginationBar
+            page={stockMovementCursors.length + 1}
+            hasNext={stockMovementResult.data?.hasNext ?? false}
+            onPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
+            onNext={() => {
+              const nextCursorDate = stockMovementResult.data?.nextCursorDate;
+              if (nextCursorDate) {
+                setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementResult.data?.nextCursorId }]);
+              }
+            }}
+            ariaLabel="Phân trang lịch sử điều chỉnh tồn"
+          />
           <div className="mt-4">
             <RoleInbox
               items={adminInbox}
@@ -1385,10 +1406,10 @@ export default function AdminDataPage() {
                   </tr>
                   <tr>
                     <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                    <td className="ipc-numeric-cell">{shortageRows.length} dòng thiếu</td>
+                    <td className="ipc-numeric-cell">{shortageCount} dòng thiếu</td>
                     <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={shortageRows.length ? 'danger' : 'success'}>{shortageRows.length ? 'Cần xử lý' : 'Đủ tồn'}</StatusBadge>
+                      <StatusBadge variant={shortageCount ? 'danger' : 'success'}>{shortageCount ? 'Cần xử lý' : 'Đủ tồn'}</StatusBadge>
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở mua thêm</Link></td>
                   </tr>
@@ -1403,21 +1424,21 @@ export default function AdminDataPage() {
                     <td className="font-semibold">Xuất bếp</td>
                     <td className="ipc-numeric-cell">{totalIssuedQty.toLocaleString('vi-VN')} đơn vị</td>
                     <td className="text-left">Theo phiếu xuất kho cho bếp, phục vụ kiểm tra luồng thủ kho.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={kitchenIssueRows.length ? 'neutral' : 'warning'}>{kitchenIssueRows.length ? 'Đã ghi nhận' : 'Chưa có phiếu'}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={totalIssuedQty > 0 ? 'neutral' : 'warning'}>{totalIssuedQty > 0 ? 'Đã ghi nhận' : 'Chưa có phiếu'}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Sử dụng thực tế</td>
                     <td className="ipc-numeric-cell">{totalUsedQty.toLocaleString('vi-VN')} dùng / {totalReturnedQty.toLocaleString('vi-VN')} hoàn</td>
                     <td className="text-left">Ghép xuất kho và hoàn kho để tránh tách trùng bước kiểm nguyên liệu dư.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={usageRows.length ? 'success' : 'neutral'}>{usageRows.length ? 'Có đối chiếu' : 'Chưa có dữ liệu'}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>{totalUsedQty > 0 || totalReturnedQty > 0 ? 'Có đối chiếu' : 'Chưa có dữ liệu'}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.CHEF_DASHBOARD}>Mở bếp trưởng</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Biến động giá</td>
-                    <td className="ipc-numeric-cell">{priceWarnings.length} cảnh báo</td>
+                    <td className="ipc-numeric-cell">{priceWarningCount} cảnh báo</td>
                     <td className="text-left">So giá nhập từ phiếu nhập với giá tham chiếu để admin theo dõi rủi ro.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={priceWarnings.length ? 'danger' : 'success'}>{priceWarnings.length ? 'Vượt ngưỡng' : 'Ổn định'}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={priceWarningCount ? 'danger' : 'success'}>{priceWarningCount ? 'Vượt ngưỡng' : 'Ổn định'}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                   </tr>
                 </tbody>
@@ -1437,7 +1458,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {currentStockPagination.rows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockPagination.rows.map((row, index) => (
+                  {currentStockRows.length === 0 ? <EmptyRow colSpan={4} /> : currentStockRows.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.warehouse}</td>
                       <td>{row.ingredient}</td>
@@ -1448,7 +1469,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={currentStockPagination.page} pageSize={currentStockPagination.pageSize} totalItems={currentStockPagination.totalItems} onPageChange={currentStockPagination.setPage} />
+            <PaginationBar
+              page={currentStockPageResponse?.pageNumber ?? currentStockPage}
+              pageSize={currentStockPageResponse?.pageSize ?? 8}
+              totalItems={currentStockPageResponse?.totalCount ?? 0}
+              onPageChange={setCurrentStockPage}
+            />
           </SectionPanel>
 
           <SectionPanel title="Cảnh báo cần admin theo dõi" icon={<TrendingUp size={18} />}>
@@ -1464,7 +1490,7 @@ export default function AdminDataPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {priceWarningPagination.rows.length === 0 ? <EmptyRow colSpan={5} /> : priceWarningPagination.rows.map((row, index) => (
+                  {priceWarnings.length === 0 ? <EmptyRow colSpan={5} /> : priceWarnings.map((row, index) => (
                     <tr key={`${row.id}-${index}`}>
                       <td>{row.name}</td>
                       <td>{row.supplier}</td>
@@ -1476,7 +1502,12 @@ export default function AdminDataPage() {
                 </tbody>
               </table>
             </PaginatedTableFrame>
-            <PaginationBar page={priceWarningPagination.page} pageSize={priceWarningPagination.pageSize} totalItems={priceWarningPagination.totalItems} onPageChange={priceWarningPagination.setPage} />
+            <PaginationBar
+              page={priceVariancePage?.pageNumber ?? priceWarningPage}
+              pageSize={priceVariancePage?.pageSize ?? 8}
+              totalItems={priceVariancePage?.totalCount ?? 0}
+              onPageChange={setPriceWarningPage}
+            />
           </SectionPanel>
         </div>
       )}

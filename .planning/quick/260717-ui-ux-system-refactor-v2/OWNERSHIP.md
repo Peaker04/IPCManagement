@@ -34,3 +34,11 @@ Any route consumer migration requires an explicit ownership decision if the rout
 5. Stage only the isolated refactor hunk and run `git diff --cached --check` plus `detect_changes`.
 
 Until this gate is complete, `WeeklyMenuPage` and `AdminDataPage` remain compatibility consumers and are not candidates for global shell replacement.
+
+## Visual reconciliation evidence — 2026-07-18
+
+- The current working-tree diff is not a single UI-refactor change: `WeeklyMenuPage.tsx` contains 120 added and 15 removed lines, `AdminDataPage.tsx` contains 499 added and 118 removed lines, and `styles/index.css` contains 641 added lines.
+- The Admin visual diff shows simultaneous sidebar duplication, BOM import/current-BOM geometry changes, and mobile content-height drift. The Reports mobile diff shows the same class of overlay across shell, filters, KPI cards, tabs and table content. These are route/feature baseline changes, not an isolated `DataTableShell` geometry regression.
+- `DataTableShell` has one remaining product consumer: the dirty BOM-current table in `AdminDataPage`. No clean, low-impact consumer is currently available for a safe caller migration in this slice.
+- Decision: do not edit `WeeklyMenuPage.tsx`, `AdminDataPage.tsx`, `styles/index.css`, or visual snapshots in the next compatibility slice. An explicit feature handoff or a clean baseline commit is required before route-level UI reconciliation.
+- GitNexus was force-refreshed on 2026-07-18. Its exact graph still reports `DataTableShell` as CRITICAL with 16 impacted symbols and 12 flows, while source inventory reports one remaining production consumer. Until this graph/source discrepancy is explained, the higher-risk graph result is authoritative for cleanup decisions; shell deletion and global delegation remain prohibited.
