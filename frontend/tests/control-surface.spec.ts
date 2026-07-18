@@ -192,6 +192,27 @@ async function stubApprovalQueue(page: Page) {
   await page.route('**/api/approval-history/**', async (route) => fulfillJson(route, []));
 }
 
+async function stubApprovalRules(page: Page) {
+  await page.route('**/api/approval-rules**', async (route) =>
+    fulfillJson(route, [{
+      ruleId: 'rule-copy-control',
+      ruleName: 'Duyệt đơn mua thêm',
+      documentType: 'purchase-request',
+      minAmount: null,
+      maxAmount: null,
+      slaHours: 24,
+      isActive: true,
+      approvalassignments: [{
+        assignmentId: 'assignment-copy-control',
+        sequence: 1,
+        approverRole: 'quanly',
+        approverUserId: null,
+        isRequired: true,
+      }],
+    }]),
+  );
+}
+
 async function login(page: Page) {
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
@@ -263,6 +284,16 @@ test.describe('operational control surface', () => {
 
     await page.getByRole('button', { name: 'Thêm quy tắc' }).click();
     await expect(page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' })).toBeVisible();
+  });
+
+  test('approval rules translates technical keys into user-facing labels', async ({ page }) => {
+    await stubApprovalRules(page);
+    await page.goto(ROUTES.APPROVAL_RULES);
+
+    await expect(page.getByText('Loại chứng từ:').locator('..')).toContainText('Đơn mua thêm');
+    await expect(page.getByText('Quản lý', { exact: true })).toBeVisible();
+    await expect(page.getByText('purchase-request', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('quanly', { exact: true })).toHaveCount(0);
   });
 
   test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
