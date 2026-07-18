@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -27,6 +28,20 @@ public class SupplierQuotationService : ISupplierQuotationService
             .ToListAsync(cancellationToken);
 
         return MapWithBestPrice(quotations);
+    }
+
+    public async Task<PagedResponseDto<SupplierQuotationDto>> GetByIngredientPageAsync(
+        string ingredientId,
+        SupplierQuotationPageQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        var rows = await GetByIngredientAsync(ingredientId, cancellationToken);
+        var items = rows
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+
+        return PagedResponseDto<SupplierQuotationDto>.Create(items, rows.Count, query.PageNumber, query.PageSize);
     }
 
     public async Task<List<SupplierQuotationDto>> GetBySupplierAsync(string supplierId, CancellationToken cancellationToken = default)

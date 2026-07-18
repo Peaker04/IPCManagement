@@ -6,6 +6,7 @@ import { StatusBadge } from './StatusBadge';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
 import type { WorkflowDocument } from '@/features/workflow';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface DocumentRailProps {
   documents: WorkflowDocument[];
@@ -55,7 +56,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
 
           {/* Zone 2: Status + Summary */}
           <div className="ipc-document-zone-status">
-            <StatusBadge variant={document.tone}>{document.status}</StatusBadge>
+            <StatusBadge variant={document.tone}>{formatWorkflowStatus(document.status)}</StatusBadge>
             <p>{document.summary}</p>
           </div>
 

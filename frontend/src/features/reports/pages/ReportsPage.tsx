@@ -38,17 +38,17 @@ import {
   useGetIssueVsReturnUsagePageQuery,
   useGetKitchenIssuesPageQuery,
   useGetPriceVariancePageQuery,
-  useGetPriceVarianceBySupplierQuery,
-  useGetPriceVarianceByPeriodQuery,
-  useGetPriceVarianceByDishGroupQuery,
+  useGetPriceVarianceBySupplierPageQuery,
+  useGetPriceVarianceByPeriodPageQuery,
+  useGetPriceVarianceByDishGroupPageQuery,
   useGetPurchasePlanPageQuery,
   useGetStockMovementPageQuery,
   type StockMovement,
   type WorkflowReportQuery,
 } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
-import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
@@ -136,6 +136,10 @@ const ReportsPage = () => {
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
   const pricePageSize = 6;
   const [pricePage, setPricePage] = useState(1);
+  const priceAggregatePageSize = 8;
+  const [supplierPage, setSupplierPage] = useState(1);
+  const [periodPage, setPeriodPage] = useState(1);
+  const [dishGroupPage, setDishGroupPage] = useState(1);
   const reportPageSize = 20;
   const stockPageSize = 8;
   const [stockPage, setStockPage] = useState(1);
@@ -153,6 +157,20 @@ const ReportsPage = () => {
     setAuditCursors([]);
   };
 
+  const resetReportPages = () => {
+    setPricePage(1);
+    setSupplierPage(1);
+    setPeriodPage(1);
+    setDishGroupPage(1);
+    setStockPage(1);
+    setDemandPage(1);
+    setPurchasePage(1);
+    setKitchenPage(1);
+    setUsagePage(1);
+    setDataQualityPage(1);
+    resetCursorPages();
+  };
+
   const reportQuery: WorkflowReportQuery = {
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
@@ -165,12 +183,12 @@ const ReportsPage = () => {
     pageNumber: pricePage,
     pageSize: pricePageSize,
   }, { skip: activeView !== 'price' || priceSubView !== 'lines' });
-  const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
-  const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'period' });
-  const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupQuery(reportQuery, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
-  const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data ?? [];
-  const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data ?? [];
-  const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data ?? [];
+  const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierPageQuery({ ...reportQuery, pageNumber: supplierPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
+  const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodPageQuery({ ...reportQuery, pageNumber: periodPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'period' });
+  const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupPageQuery({ ...reportQuery, pageNumber: dishGroupPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
+  const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data?.items ?? [];
+  const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data?.items ?? [];
+  const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data?.items ?? [];
   const ingredientDemandResult = useGetIngredientDemandPageQuery({
     ...reportQuery,
     pageNumber: demandPage,
@@ -227,9 +245,6 @@ const ReportsPage = () => {
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
   const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
-  const supplierPagination = useLocalPagination(priceVarianceBySupplierRows, 8);
-  const periodPagination = useLocalPagination(priceVarianceByPeriodRows, 8);
-  const dishGroupPagination = useLocalPagination(priceVarianceByDishGroupRows, 8);
   const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
     price: priceVarianceResult,
     demand: ingredientDemandResult,
@@ -268,7 +283,7 @@ const ReportsPage = () => {
         ['Tồn hiện có', (row) => row.available],
         ['Thiếu/mua', (row) => Math.max(row.required - row.available, 0)],
         ['Đơn vị', (row) => row.unit],
-        ['Trạng thái', (row) => row.status],
+        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
       ],
     },
     purchase: {
@@ -307,7 +322,7 @@ const ReportsPage = () => {
         ['Số lượng', (row) => row.quantity],
         ['Đơn vị', (row) => row.unit],
         ['Phụ trách', (row) => row.owner],
-        ['Trạng thái', (row) => row.status],
+        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
       ],
     },
     kitchen: {
@@ -358,7 +373,7 @@ const ReportsPage = () => {
         ['Mức độ', (row) => row.severity],
         ['SLA', (row) => row.slaLabel],
         ['Priority', (row) => row.priorityRank],
-        ['Trạng thái xử lý', (row) => row.remediationStatus],
+        ['Trạng thái xử lý', (row) => formatWorkflowStatus(row.remediationStatus)],
         [uiCopy.reports.owner, (row) => row.owner],
         ['Nhóm lỗi', (row) => row.category],
         ['Bảng/entity', (row) => row.entityName],
@@ -447,7 +462,7 @@ const ReportsPage = () => {
               value={dateFrom}
               onChange={(event) => {
                 setDateFrom(event.target.value);
-                resetCursorPages();
+                resetReportPages();
               }}
             />
           </FieldRow>
@@ -459,12 +474,12 @@ const ReportsPage = () => {
               value={dateTo}
               onChange={(event) => {
                 setDateTo(event.target.value);
-                resetCursorPages();
+                resetReportPages();
               }}
             />
           </FieldRow>
           <FieldRow label="Ca" htmlFor="report-shift">
-            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => setShiftName(event.target.value)}>
+            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPages(); }}>
               <option value="">Tất cả</option>
               <option value="MORNING">Ca sáng</option>
               <option value="AFTERNOON">Ca chiều</option>
@@ -557,7 +572,7 @@ const ReportsPage = () => {
                     {priceVarianceBySupplierRows.length === 0 ? (
                       <EmptyRow colSpan={9} />
                     ) : (
-                      supplierPagination.rows.map((row) => (
+                      priceVarianceBySupplierRows.map((row) => (
                         <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                           <td>{row.ingredientName}</td>
                           <td>{row.supplierName}</td>
@@ -580,7 +595,7 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={supplierPagination.page} pageSize={supplierPagination.pageSize} totalItems={supplierPagination.totalItems} onPageChange={supplierPagination.setPage} />
+              <PaginationBar page={priceVarianceBySupplierResult.data?.pageNumber ?? supplierPage} pageSize={priceVarianceBySupplierResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceBySupplierResult.data?.totalCount ?? 0} onPageChange={setSupplierPage} />
             </SectionPanel>
           )}
 
@@ -602,7 +617,7 @@ const ReportsPage = () => {
                     {priceVarianceByPeriodRows.length === 0 ? (
                       <EmptyRow colSpan={6} />
                     ) : (
-                      periodPagination.rows.map((row) => (
+                      priceVarianceByPeriodRows.map((row) => (
                         <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                           <td>{row.ingredientName}</td>
                           <td>{row.periodLabel}</td>
@@ -624,7 +639,7 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={periodPagination.page} pageSize={periodPagination.pageSize} totalItems={periodPagination.totalItems} onPageChange={periodPagination.setPage} />
+              <PaginationBar page={priceVarianceByPeriodResult.data?.pageNumber ?? periodPage} pageSize={priceVarianceByPeriodResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByPeriodResult.data?.totalCount ?? 0} onPageChange={setPeriodPage} />
             </SectionPanel>
           )}
 
@@ -645,7 +660,7 @@ const ReportsPage = () => {
                     {priceVarianceByDishGroupRows.length === 0 ? (
                       <EmptyRow colSpan={5} />
                     ) : (
-                      dishGroupPagination.rows.map((row) => (
+                      priceVarianceByDishGroupRows.map((row) => (
                         <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
                           <td>{row.dishGroup}</td>
                           <td className="ipc-numeric-cell">{row.ingredientCount}</td>
@@ -660,7 +675,7 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={dishGroupPagination.page} pageSize={dishGroupPagination.pageSize} totalItems={dishGroupPagination.totalItems} onPageChange={dishGroupPagination.setPage} />
+              <PaginationBar page={priceVarianceByDishGroupResult.data?.pageNumber ?? dishGroupPage} pageSize={priceVarianceByDishGroupResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByDishGroupResult.data?.totalCount ?? 0} onPageChange={setDishGroupPage} />
             </SectionPanel>
           )}
 
@@ -779,7 +794,7 @@ const ReportsPage = () => {
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.available, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(Math.max(row.required - row.available, 0), row.unit)}</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{row.status}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.tone === 'danger' ? ROUTES.PURCHASING : ROUTES.WAREHOUSE}>{row.nextAction}</Link></td>
                   </tr>
                 ))}
@@ -1061,7 +1076,7 @@ const ReportsPage = () => {
                     </td>
                     <td>
                       <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                        {row.remediationStatus === 'resolved' ? uiCopy.reports.resolvedWithIssues : row.remediationStatus === 'reopened' ? uiCopy.reports.reopened : uiCopy.reports.open}
+                        {formatWorkflowStatus(row.remediationStatus)}
                       </StatusBadge>
                     </td>
                     <td>{row.owner}</td>

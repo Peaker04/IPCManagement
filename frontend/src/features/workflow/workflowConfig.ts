@@ -112,6 +112,39 @@ export const toneFromStatus = (status?: string): WorkflowTone => {
   return 'neutral';
 };
 
+const workflowStatusLabels: Record<string, string> = {
+  APPROVED: 'Đã phê duyệt',
+  CANCELLED: 'Đã hủy',
+  COMPLETED: 'Hoàn tất',
+  CONFIRMED: 'Đã xác nhận',
+  CREATED: 'Mới tạo',
+  DRAFT: 'Bản nháp',
+  EXPORTED: 'Đã xuất kho',
+  ERROR: 'Có lỗi',
+  MANAGERAPPROVED: 'Quản lí đã duyệt',
+  ORDERED: 'Đã đặt hàng',
+  PARTIALRECEIVED: 'Đã nhận một phần',
+  PENDING: 'Đang chờ xử lý',
+  OPEN: 'Đang mở',
+  RECEIVED: 'Đã nhận đủ',
+  REJECTED: 'Bị từ chối',
+  REOPENED: 'Đã mở lại',
+  RESOLVED: 'Đã xử lý',
+  SENTTOKITCHEN: 'Đã gửi bếp',
+  SENTTOSUPPLIER: 'Đã gửi nhà cung cấp',
+  SENTTOWAREHOUSE: 'Đã gửi kho',
+  PARTIALLY_RECEIVED: 'Đã nhận một phần',
+  SUBMITTED: 'Chờ phê duyệt',
+  WARNING: 'Có cảnh báo',
+};
+
+export const formatWorkflowStatus = (status?: string) => {
+  const value = status?.trim();
+  if (!value) return 'Chưa cập nhật';
+
+  return workflowStatusLabels[value.toUpperCase()] ?? value;
+};
+
 export const ownerToLaneId = (owner?: string): WorkflowLaneId => {
   if (!owner) return 'admin';
   return laneIdByOwner[owner] ?? 'admin';

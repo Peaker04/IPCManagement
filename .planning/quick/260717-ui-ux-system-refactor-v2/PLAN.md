@@ -273,6 +273,33 @@ Admin data-quality page slice:
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
 - Known boundary: Admin statistics remains the next contract-design slice; it needs explicit report-wide quantity aggregates before its bounded table endpoints can be reused without changing semantics.
 
+Reports semantic-status slice:
+
+- Reports UI and CSV output now pass operational status values through the shared `formatWorkflowStatus` helper. `open`, `resolved`, `reopened`, `warning` and `error` are presented as Vietnamese user-facing labels while raw values remain unchanged in API/query logic.
+- Evidence: frontend lint pass, unit `76/76`, and production build pass. No API payload, mutation handler or route contract changed.
+- The three aggregate views now use dedicated page-number endpoints with `totalCount` metadata; Reports no longer fetches `limit: 100` and slices those rows locally. Legacy list endpoints remain for compatibility.
+- Known boundary: aggregate calculation still materializes filtered receipt lines before grouping, so response paging is bounded but database-level lazy aggregation is not yet complete. A future query decomposition should push grouping/count/order into SQL before very large-history release.
+- Evidence: backend compile-only pass, backend tests `267/267` pass with `--no-build`, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Reports flow, MEDIUM. Commit: `2946327`.
+
+Purchasing semantic-status slice:
+
+- Purchasing request and purchase-order status badges now use the shared `formatWorkflowStatus` helper; duplicate route-local maps were removed while raw enum values remain unchanged for action branching.
+- Evidence: frontend lint/unit `76/76`/build pass; staged GitNexus detection reported 3 files, 1 Purchasing flow, MEDIUM. Commit: `8bb3f2b`.
+- Remaining contract gap: purchase requests, supplier quotations and purchase orders are still list endpoints with route-local pagination or a `100`-row request. They require separate page-number contracts and ownership checks before claiming full lazy loading for Purchasing.
+
+Purchasing supplier-quotation page slice:
+
+- Added `GET /api/supplier-quotations/ingredient/{ingredientId}/page` with bounded `items` and `totalCount` metadata. The quotation manager now requests the active page and binds `PaginationBar` to server metadata; the legacy list endpoint remains for inline supplier-line lookup compatibility.
+- Evidence: backend compile-only pass, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Purchasing flow, MEDIUM. Commit: `30b87d6`.
+- Remaining boundary: purchase requests and purchase orders still need page contracts; inline supplier-line lookup still uses the legacy quotation list for best-price suggestions and is tracked separately.
+
+Purchasing request/order page slices:
+
+- Purchase Requests now expose `/api/purchase-requests/page`; the Supplier workbench uses server page metadata, while the Orders tab keeps its legacy full request list only for cross-request action analysis.
+- Purchase Orders now expose `/api/purchase-orders/page`; the response includes bounded order rows plus `OrderCountByRequest`, preserving the “create order” eligibility calculation across pages. The Orders table no longer uses `useLocalPagination`.
+- Evidence: backend compile-only pass, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 8 files, 1 Purchasing flow, MEDIUM. Commit: `3e5365d`.
+- Remaining boundary: inline supplier-line best-price lookup still uses the legacy quotation list endpoint per row; it is not used for the paged quotation manager and requires a later batched/lookup contract to avoid repeated fetches.
+
 Admin purchase-summary query slice:
 
 - Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
@@ -390,12 +417,17 @@ Completed clean slices:
 - The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
 - Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
 - Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
+- Workflow document statuses now use a shared `formatWorkflowStatus` label map for the shared `DocumentRail`; the Warehouse exception copy uses the same helper while raw values remain available for logic (`08e7b3f`). Unit `76/76`, lint, build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. GitNexus classified `DocumentRail` as HIGH because it has four direct page callers; mitigation is display-only mapping plus serial route gates.
+- Approval queue status badges now consume the same semantic status formatter; raw enum values remain unchanged in the record model (`6e9126d`). CSS inventory also removed the isolated, unreferenced `.ipc-chef-action-note` block after confirming it was outside the dirty stylesheet diff (`430f5ed`); UI audit `2/2` and lint/build pass.
+- Stock movement status and next-action cells now consume the shared formatter without changing movement types, cursor/local pagination or copy behavior (`4a987ab`). The demand summary no longer maintains a duplicate status map and now shares the same vocabulary (`43d2a7e`). A further CSS inventory pass removed the unreferenced `.ipc-approval-record-meta` block with selective staging; the 641-line dirty stylesheet addition remains preserved (`8de0110`).
+- Role inbox action renderers now receive a display-safe copy of `nextAction`, translating technical workflow enums without mutating the source item or route logic (`7729347`). The purchase-request list in ApprovalPage also uses the shared status formatter (`7dc6453`). Unit `76/76`, build, controls `4/4`, smoke `14/14` and UI audit `2/2` remain green.
+- Chef dashboard now consolidates stacked catalog/issue/KHSX loading, error and warning alerts into one bounded “Trạng thái dữ liệu bếp” region while keeping the shift lock alert and mutation feedback separate (`f5f1507`). The clean route gates remain green; visual baseline remains intentionally unupdated because the source already retains KHSX/table/journal content absent from the old Chef snapshot.
 
 Current blockers and next route order:
 
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
-- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit.
+- Next clean route group is purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Reports is now covered by page-number contracts for all primary and grouped price views. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
 
 Allowed files for the first clean slice:
 
