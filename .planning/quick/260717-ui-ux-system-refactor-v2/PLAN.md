@@ -293,6 +293,13 @@ Purchasing supplier-quotation page slice:
 - Evidence: backend compile-only pass, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Purchasing flow, MEDIUM. Commit: `30b87d6`.
 - Remaining boundary: purchase requests and purchase orders still need page contracts; inline supplier-line lookup still uses the legacy quotation list for best-price suggestions and is tracked separately.
 
+Purchasing request/order page slices:
+
+- Purchase Requests now expose `/api/purchase-requests/page`; the Supplier workbench uses server page metadata, while the Orders tab keeps its legacy full request list only for cross-request action analysis.
+- Purchase Orders now expose `/api/purchase-orders/page`; the response includes bounded order rows plus `OrderCountByRequest`, preserving the “create order” eligibility calculation across pages. The Orders table no longer uses `useLocalPagination`.
+- Evidence: backend compile-only pass, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 8 files, 1 Purchasing flow, MEDIUM. Commit: `3e5365d`.
+- Remaining boundary: inline supplier-line best-price lookup still uses the legacy quotation list endpoint per row; it is not used for the paged quotation manager and requires a later batched/lookup contract to avoid repeated fetches.
+
 Admin purchase-summary query slice:
 
 - Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
