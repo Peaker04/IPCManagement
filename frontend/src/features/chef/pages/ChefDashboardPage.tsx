@@ -388,6 +388,27 @@ export default function ChefDashboardPage() {
   const activeRequests = requests.filter((req) => req.day === activeDay && req.shift === activeShift)
   const activeReturns = returns.filter((ret) => ret.day === activeDay && ret.shift === activeShift)
 
+  const chefDataStatusMessages = [
+    isCatalogLoading ? 'Đang tải catalog món ăn và BOM để lập checklist nguyên liệu.' : null,
+    isCatalogError ? 'Chưa tải được catalog món ăn; checklist sẽ thiếu định lượng chính xác từ API.' : null,
+    isCatalogEmpty ? 'Catalog món ăn đang trống nên checklist chưa thể sinh đầy đủ từ BOM.' : null,
+    isKitchenIssuesLoading ? 'Đang tải phiếu xuất kho để bếp trưởng ký nhận nguyên liệu.' : null,
+    isKitchenIssuesError ? 'Chưa tải được phiếu xuất kho; checklist tạm dùng dữ liệu dự kiến từ BOM.' : null,
+    activeKitchenIssueRows.length > 0
+      ? pendingKitchenReceiptCount > 0
+        ? `${pendingKitchenReceiptCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên API.`
+        : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
+      : null,
+    isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ API.' : null,
+    isDailyPlanError ? 'Chưa tải được KHSX gửi bếp; checklist dự kiến vẫn được giữ để tham chiếu.' : null,
+    ...dailyPlanWarnings,
+    isConfirmingIssueReceipt ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
+    isCreatingInventoryReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
+  ].filter((message): message is string => Boolean(message))
+
+  const chefDataStatusVariant: 'info' | 'warning' =
+    isCatalogError || isCatalogEmpty || isKitchenIssuesError || isDailyPlanError || dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+
   const shiftControls = (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex items-center gap-2 text-sm text-slate-600">
@@ -483,61 +504,11 @@ export default function ChefDashboardPage() {
             ]}
           />
           {shiftAlert}
-          {isCatalogLoading && (
-            <InlineAlert title="Đang tải catalog món ăn" variant="info">
-              Hệ thống đang lấy BOM và đơn vị tính từ API để lập checklist nguyên liệu cho bếp.
-            </InlineAlert>
-          )}
-          {isCatalogError && (
-            <InlineAlert title="Chưa tải được catalog món ăn" variant="warning">
-              Bếp trưởng cần catalog BOM từ API để xem định lượng nguyên liệu chính xác cho ca.
-            </InlineAlert>
-          )}
-          {isCatalogEmpty && (
-            <InlineAlert title="Catalog món ăn đang trống" variant="warning">
-              Chưa có món ăn hoạt động nào từ API, nên checklist nguyên liệu của ca chưa thể sinh từ BOM.
-            </InlineAlert>
-          )}
-          {isKitchenIssuesLoading && (
-            <InlineAlert title="Đang tải phiếu xuất kho" variant="info">
-              Hệ thống đang lấy danh sách nguyên liệu đã bàn giao từ kho để bếp trưởng ký nhận.
-            </InlineAlert>
-          )}
-          {isKitchenIssuesError && (
-            <InlineAlert title="Chưa tải được phiếu xuất kho" variant="warning">
-              Checklist bếp sẽ dùng BOM dự kiến cho tới khi API phiếu xuất kho phản hồi.
-            </InlineAlert>
-          )}
-          {activeKitchenIssueRows.length > 0 && (
-            <InlineAlert title="Checklist lấy từ phiếu xuất kho live" variant={pendingKitchenReceiptCount > 0 ? 'warning' : 'info'}>
-              {pendingKitchenReceiptCount > 0
-                ? `${pendingKitchenReceiptCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên API.`
-                : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'}
-            </InlineAlert>
-          )}
-          {isDailyPlanLoading && (
-            <InlineAlert title="Đang tải KHSX gửi bếp" variant="info">
-              Hệ thống đang lấy kế hoạch sản xuất trong ngày từ API.
-            </InlineAlert>
-          )}
-          {isDailyPlanError && (
-            <InlineAlert title="Chưa tải được KHSX gửi bếp" variant="warning">
-              Dashboard vẫn hiển thị checklist dự kiến, nhưng cần API KHSX để bếp nhận đúng kế hoạch.
-            </InlineAlert>
-          )}
-          {dailyPlanWarnings.map((warning) => (
-            <InlineAlert key={warning} title="Cảnh báo KHSX" variant="warning">
-              {warning}
-            </InlineAlert>
-          ))}
-          {isConfirmingIssueReceipt && (
-            <InlineAlert title="Đang ghi nhận ký nhận" variant="info">
-              Hệ thống đang cập nhật trạng thái nhận nguyên liệu cho phiếu xuất kho.
-            </InlineAlert>
-          )}
-          {isCreatingInventoryReturn && (
-            <InlineAlert title="Đang tạo phiếu trả kho" variant="info">
-              Hệ thống đang lưu nguyên liệu thừa/hao hụt và cập nhật sổ kho.
+          {chefDataStatusMessages.length > 0 && (
+            <InlineAlert title="Trạng thái dữ liệu bếp" variant={chefDataStatusVariant}>
+              <ul className="m-0 list-disc space-y-1 pl-5">
+                {chefDataStatusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}
+              </ul>
             </InlineAlert>
           )}
         </>
