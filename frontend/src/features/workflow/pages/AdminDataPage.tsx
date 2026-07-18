@@ -27,7 +27,7 @@ import {
   useGetAuditChangePageQuery,
   useGetCurrentStockPageQuery,
   useGetDataQualityPageQuery,
-  useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGetIssueVsReturnUsageQuery,
   useGetKitchenIssuesQuery,
   useGetOperationalKpisQuery,
@@ -266,7 +266,7 @@ export default function AdminDataPage() {
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
-  const { data: ingredientDemandRows = [] } = useGetIngredientDemandQuery({ limit: 100 });
+  const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 8 });
   const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
   const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: priceWarningPage, pageSize: 8, warningOnly: true });
@@ -292,7 +292,7 @@ export default function AdminDataPage() {
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
   const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
   const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
-  const shortageRows = ingredientDemandRows.filter((row) => row.tone === 'danger');
+  const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
   const priceWarnings = priceVariancePage?.items ?? [];
   const priceWarningCount = priceVariancePage?.totalCount ?? 0;
   const currentStockRows = currentStockPageResponse?.items ?? [];
@@ -717,7 +717,7 @@ export default function AdminDataPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Thiếu nguyên liệu', value: shortageRows.length.toString(), tone: shortageRows.length ? 'danger' : 'success' },
+            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
             { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
             { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'danger' : 'success' },
             { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
@@ -1390,10 +1390,10 @@ export default function AdminDataPage() {
                   </tr>
                   <tr>
                     <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                    <td className="ipc-numeric-cell">{shortageRows.length} dòng thiếu</td>
+                    <td className="ipc-numeric-cell">{shortageCount} dòng thiếu</td>
                     <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={shortageRows.length ? 'danger' : 'success'}>{shortageRows.length ? 'Cần xử lý' : 'Đủ tồn'}</StatusBadge>
+                      <StatusBadge variant={shortageCount ? 'danger' : 'success'}>{shortageCount ? 'Cần xử lý' : 'Đủ tồn'}</StatusBadge>
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở mua thêm</Link></td>
                   </tr>
