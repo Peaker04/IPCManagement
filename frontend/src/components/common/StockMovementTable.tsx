@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Check, Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { CursorPaginationBar } from './CursorPaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
@@ -12,6 +13,12 @@ interface StockMovementTableProps {
   movements: StockMovement[];
   pageSize?: number;
   className?: string;
+  cursorPagination?: {
+    page: number;
+    hasNext: boolean;
+    onPrevious: () => void;
+    onNext: () => void;
+  };
 }
 
 const movementLabel = {
@@ -66,7 +73,7 @@ function shortenDocumentNo(docNo: string): string {
   return docNo;
 }
 
-export function StockMovementTable({ movements, pageSize = 8, className }: StockMovementTableProps) {
+export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
   const [copiedDocumentNo, setCopiedDocumentNo] = useState<string | null>(null);
   const pagination = useLocalPagination(movements, pageSize);
 
@@ -152,7 +159,17 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+      {cursorPagination ? (
+        <CursorPaginationBar
+          page={cursorPagination.page}
+          hasNext={cursorPagination.hasNext}
+          onPrevious={cursorPagination.onPrevious}
+          onNext={cursorPagination.onNext}
+          ariaLabel="Phân trang biến động kho"
+        />
+      ) : (
+        <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+      )}
     </div>
   );
 }

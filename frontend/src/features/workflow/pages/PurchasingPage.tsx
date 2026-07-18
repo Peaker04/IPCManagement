@@ -18,11 +18,11 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  useGetPriceVarianceQuery,
-  useGetPurchasePlanQuery,
+  useGetPriceVariancePageQuery,
+  useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsQuery,
   useGetCurrentStockQuery,
-  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
   useSubmitPurchaseRequestMutation,
@@ -43,25 +43,42 @@ import { useLocalPagination } from '@/lib/useLocalPagination';
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
 
+const purchaseRequestStatusLabel: Record<string, string> = {
+  DRAFT: 'Bản nháp',
+  SUBMITTED: 'Chờ phê duyệt',
+  APPROVED: 'Đã phê duyệt',
+  REJECTED: 'Bị từ chối',
+  CANCELLED: 'Đã hủy',
+};
+
 export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [purchasePlanPage, setPurchasePlanPage] = useState(1);
+  const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 100 });
+  const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const receiptMovementCursor = receiptMovementCursors.at(-1);
+  const { data: receiptMovementPage } = useGetStockMovementPageQuery({
+    movementType: 'receipt',
+    cursorDate: receiptMovementCursor?.cursorDate,
+    cursorId: receiptMovementCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
-  const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
+  const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchaseRequests = purchaseRequestsResponse?.data ?? [];
-  const purchasePlanLines = purchasePlanRows.map<DemandLine>((row) => ({
+  const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
     id: `${row.periodKey}-${row.ingredientId}`,
     ingredientId: row.ingredientId,
     sourceDocumentCode: row.periodKey,
@@ -104,8 +121,8 @@ export default function PurchasingPage() {
   const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
   const supplierPagination = useLocalPagination(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
-  const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
-  const warningPrice = priceRows.find((row) => row.warning);
+  const receiptMovements = receiptMovementPage?.items ?? [];
+  const warningPrice = priceVariancePage?.items.find((row) => row.warning);
   const primaryPurchasePlan = purchasePlanLines.find((line) => line.tone === 'danger' || line.tone === 'warning') ?? purchasePlanLines[0];
   const primaryPurchaseRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
   const submitTargetId = primaryPurchaseRequestLine?.purchaseRequestId;
@@ -150,7 +167,6 @@ export default function PurchasingPage() {
               >
                 {isSubmittingPurchaseRequest ? 'Đang gửi...' : 'Gửi đơn mua'}
               </button>
-              <button className="ipc-button ipc-button-warning" type="button">Gửi cảnh báo biến động giá</button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
                 <PackageCheck size={16} />
                 Chuyển sang nhập kho
@@ -171,7 +187,7 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
+            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? (purchaseRequestStatusLabel[primaryPurchaseRequestLine.status] ?? primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
@@ -214,6 +230,12 @@ export default function PurchasingPage() {
           >
             <SectionPanel title="Kế hoạch thu mua dự kiến" icon={<ShoppingCart size={18} />}>
               <DemandSummary lines={purchasePlanLines} />
+              <PaginationBar
+                page={purchasePlanResponse?.pageNumber ?? purchasePlanPage}
+                pageSize={purchasePlanResponse?.pageSize ?? 8}
+                totalItems={purchasePlanResponse?.totalCount ?? 0}
+                onPageChange={setPurchasePlanPage}
+              />
             </SectionPanel>
           </SplitWorkbench>
         </div>
@@ -280,7 +302,20 @@ export default function PurchasingPage() {
       {activeView === 'handoff' && (
         <SectionPanel title="Handoff sang kho" icon={<PackageCheck size={18} />}>
           <div id="purchasing-handoff-panel" role="tabpanel" aria-labelledby="purchasing-handoff-tab">
-          <StockMovementTable movements={receiptMovements} />
+          <StockMovementTable
+            movements={receiptMovements}
+            cursorPagination={{
+              page: receiptMovementCursors.length + 1,
+              hasNext: receiptMovementPage?.hasNext ?? false,
+              onPrevious: () => setReceiptMovementCursors((current) => current.slice(0, -1)),
+              onNext: () => {
+                const nextCursorDate = receiptMovementPage?.nextCursorDate;
+                if (nextCursorDate) {
+                  setReceiptMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: receiptMovementPage?.nextCursorId }]);
+                }
+              },
+            }}
+          />
           </div>
         </SectionPanel>
       )}
