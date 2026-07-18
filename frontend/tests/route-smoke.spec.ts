@@ -1200,11 +1200,8 @@ test.describe('route smoke', () => {
     await page.goto(ROUTES.PURCHASING);
 
     await expect(page.getByRole('button', { name: 'Gửi đơn mua' })).toBeEnabled();
-    const dialogPromise = page.waitForEvent('dialog');
     await page.getByRole('button', { name: 'Gửi đơn mua' }).click();
-    const dialog = await dialogPromise;
-    expect(dialog.message()).toContain('Có dòng mua vượt ngưỡng giá');
-    await dialog.accept();
+    await expect(page.getByRole('alert')).toContainText('Có dòng mua vượt ngưỡng giá');
   });
 
   test('approval inbox executes approve decision with reason', async ({ page }) => {
@@ -1214,16 +1211,11 @@ test.describe('route smoke', () => {
     await page.goto(ROUTES.APPROVALS);
 
     await expect(page.getByText('PR-20260615-FULLDAY').first()).toBeVisible();
-    const dialogMessages: string[] = [];
-    page.on('dialog', async (dialog) => {
-      dialogMessages.push(dialog.message());
-      await dialog.accept();
-    });
     await page.getByRole('button', { name: 'Duyệt' }).first().click();
     await expect(page.getByRole('heading', { name: 'Xác nhận duyệt chứng từ' })).toBeVisible();
     await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý mua');
     await page.getByRole('button', { name: 'Duyệt' }).last().click();
-    await expect.poll(() => dialogMessages).toContain('Đã duyệt thành công.');
+    await expect(page.getByRole('status')).toContainText('Đã duyệt chứng từ');
   });
 
   for (const viewport of [
@@ -1236,15 +1228,10 @@ test.describe('route smoke', () => {
       await login(page);
 
       await page.goto(ROUTES.APPROVALS);
-      const dialogMessages: string[] = [];
-      page.on('dialog', async (dialog) => {
-        dialogMessages.push(dialog.message());
-        await dialog.accept();
-      });
       await page.getByRole('button', { name: 'Duyệt' }).first().click();
       await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý trên thiết bị');
       await page.getByRole('button', { name: 'Duyệt' }).last().click();
-      await expect.poll(() => dialogMessages).toContain('Đã duyệt thành công.');
+      await expect(page.getByRole('status')).toContainText('Đã duyệt chứng từ');
       await expectNoPageOverflow(page);
 
       await page.goto(ROUTES.WAREHOUSE);
