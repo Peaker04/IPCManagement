@@ -296,6 +296,22 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('warehouse actions use equal-width mobile controls without overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WAREHOUSE);
+
+    const actionGroup = page.locator('.ipc-warehouse-actions');
+    await expect(actionGroup).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tạo phiếu xuất kho' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bàn giao cho bếp' })).toBeVisible();
+    const widths = await actionGroup.locator(':scope > div:last-child > *').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().width)),
+    );
+    expect(widths.length).toBe(3);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 
