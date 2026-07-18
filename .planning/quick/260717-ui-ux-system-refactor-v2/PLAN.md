@@ -390,12 +390,13 @@ Completed clean slices:
 - The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
 - Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
 - Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
+- Workflow document statuses now use a shared `formatWorkflowStatus` label map for the shared `DocumentRail`; the Warehouse exception copy uses the same helper while raw values remain available for logic (`pending commit`). Unit `76/76`, lint and production build pass. GitNexus classified `DocumentRail` as HIGH because it has four direct page callers; mitigation is display-only mapping plus serial route gates.
 
 Current blockers and next route order:
 
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
-- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit.
+- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared `RoleInbox` action text and remaining raw status surfaces still require their own impact gate.
 
 Allowed files for the first clean slice:
 
