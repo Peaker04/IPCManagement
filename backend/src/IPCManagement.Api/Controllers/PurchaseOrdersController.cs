@@ -32,6 +32,14 @@ public class PurchaseOrdersController : ControllerBase
         return Ok(ApiResponse<IReadOnlyList<PurchaseOrderDto>>.SuccessResult(orders));
     }
 
+    [HttpGet("page")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseOrderPageDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPage([FromQuery] PurchaseOrderPageQueryDto query, CancellationToken cancellationToken)
+    {
+        var page = await _purchaseOrderService.GetPageAsync(query, cancellationToken);
+        return Ok(ApiResponse<PurchaseOrderPageDto>.SuccessResult(page));
+    }
+
     /// <summary>Lấy chi tiết một đơn mua hàng kèm các dòng.</summary>
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]

@@ -14,7 +14,7 @@ const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => 
   title: `Việc ${index + 1}`,
   description: `Mô tả ${index + 1}`,
   due: `Hôm nay ${index + 1}`,
-  nextAction: 'Xử lý',
+  nextAction: 'PENDING',
   tone: index === 1 ? 'warning' : 'neutral',
   route: '/warehouse',
 }));
@@ -27,7 +27,7 @@ const buildApproval = (id: string, title: string, slaDeadline?: string): Approva
   owner: 'Quản lý',
   submittedBy: 'Thu mua',
   deadline: 'Hôm nay',
-  status: 'Chờ duyệt',
+  status: 'PENDING',
   reason: 'Vượt ngưỡng',
   nextAction: 'Duyệt',
   tone: 'warning',
@@ -46,8 +46,8 @@ const movements: StockMovement[] = [
     afterQty: 60,
     unit: 'kilogram',
     owner: 'Thủ kho',
-    status: 'Đã nhập',
-    nextAction: 'Đối chiếu',
+    status: 'RECEIVED',
+    nextAction: 'PENDING',
     tone: 'success',
   },
   {
@@ -76,13 +76,14 @@ describe('RoleInbox', () => {
       <RoleInbox
         items={roleInboxItems}
         pageSize={4}
-        actionForItem={(item) => <button type="button">Mở {item.title}</button>}
+        actionForItem={(item) => <button type="button">{item.nextAction}</button>}
       />,
     );
 
     expect(screen.getByText('Việc 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(4);
     expect(screen.queryByText('Việc 5')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mở Việc 1' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Đang chờ xử lý' })).toHaveLength(4);
 
     await userEvent.click(screen.getByRole('button', { name: /Trang sau/i }));
 
@@ -120,6 +121,7 @@ describe('ApprovalQueue', () => {
     expect(screen.getByText('Đơn mua quá hạn')).toBeInTheDocument();
     expect(screen.getByText('SLA: Quá hạn')).toBeInTheDocument();
     expect(screen.getByText('SLA: 2g 30p')).toBeInTheDocument();
+    expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
   });
 });
@@ -146,6 +148,8 @@ describe('StockMovementTable', () => {
 
     expect(screen.getByText('IR-20260710-001')).toBeInTheDocument();
     expect(screen.getByText('Gạo tẻ')).toBeInTheDocument();
+    expect(screen.getByText('Đã nhận đủ')).toBeInTheDocument();
+    expect(screen.getByText('Đang chờ xử lý')).toBeInTheDocument();
     expect(screen.queryByText('Thịt gà')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /Sao chép mã chứng từ inventoryreceipt-20260710-001/i }));

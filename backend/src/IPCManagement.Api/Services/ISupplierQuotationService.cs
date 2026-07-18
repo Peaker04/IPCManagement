@@ -1,4 +1,5 @@
 using IPCManagement.Api.Models.DTOs.Supplier;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.Entities;
 
 namespace IPCManagement.Api.Services;
@@ -6,6 +7,7 @@ namespace IPCManagement.Api.Services;
 public interface ISupplierQuotationService
 {
     Task<List<SupplierQuotationDto>> GetByIngredientAsync(string ingredientId, CancellationToken cancellationToken = default);
+    Task<PagedResponseDto<SupplierQuotationDto>> GetByIngredientPageAsync(string ingredientId, SupplierQuotationPageQueryDto query, CancellationToken cancellationToken = default);
 
     Task<List<SupplierQuotationDto>> GetBySupplierAsync(string supplierId, CancellationToken cancellationToken = default);
 

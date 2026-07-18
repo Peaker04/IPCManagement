@@ -25,6 +25,7 @@ import type { ApprovalRecord } from '@/features/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { formatWorkflowStatus } from '../workflowConfig';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -326,7 +327,7 @@ export default function ApprovalPage() {
                       <div className="flex items-center justify-between">
                         <span className="font-semibold text-slate-800 text-sm">{pr.purchaseRequestCode}</span>
                         <StatusBadge variant={pr.status === 'APPROVED' ? 'success' : pr.status === 'REJECTED' ? 'danger' : 'warning'}>
-                          {pr.status}
+                          {formatWorkflowStatus(pr.status)}
                         </StatusBadge>
                       </div>
                       <div className="flex items-center justify-between text-xs text-slate-500">

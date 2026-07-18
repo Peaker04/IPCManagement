@@ -21,6 +21,7 @@ import {
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
   useGetCurrentStockQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
@@ -28,33 +29,27 @@ import {
   useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetSupplierQuotationsByIngredientQuery,
+  useGetSupplierQuotationsByIngredientPageQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
-  useGetPurchaseOrdersQuery,
+  useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
 } from '@/features/workflow';
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
-import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '../workflowConfig';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
-
-const purchaseRequestStatusLabel: Record<string, string> = {
-  DRAFT: 'Bản nháp',
-  SUBMITTED: 'Chờ phê duyệt',
-  APPROVED: 'Đã phê duyệt',
-  REJECTED: 'Bị từ chối',
-  CANCELLED: 'Đã hủy',
-};
 
 export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [purchasePlanPage, setPurchasePlanPage] = useState(1);
+  const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
   const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
@@ -62,7 +57,8 @@ export default function PurchasingPage() {
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
-  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
+  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 }, { skip: activeView === 'orders' });
+  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 }, { skip: activeView !== 'orders' });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
   const { data: receiptMovementPage } = useGetStockMovementPageQuery({
     movementType: 'receipt',
@@ -77,7 +73,9 @@ export default function PurchasingPage() {
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
-  const purchaseRequests = purchaseRequestsResponse?.data ?? [];
+  const purchaseRequests = activeView === 'orders'
+    ? purchaseRequestsResponse?.data ?? []
+    : purchaseRequestsPageResponse?.items ?? [];
   const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
     id: `${row.periodKey}-${row.ingredientId}`,
     ingredientId: row.ingredientId,
@@ -119,7 +117,6 @@ export default function PurchasingPage() {
     })),
   );
   const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
-  const supplierPagination = useLocalPagination(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const receiptMovements = receiptMovementPage?.items ?? [];
   const warningPrice = priceVariancePage?.items.find((row) => row.warning);
@@ -187,7 +184,7 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? (purchaseRequestStatusLabel[primaryPurchaseRequestLine.status] ?? primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
+            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? formatWorkflowStatus(primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
@@ -259,7 +256,7 @@ export default function PurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {supplierPagination.rows.map((line) => (
+                  {supplierLines.map((line) => (
                     <SupplierLineItem 
                       key={line.id} 
                       line={line} 
@@ -274,10 +271,10 @@ export default function PurchasingPage() {
               </table>
             </TableViewport>
             <PaginationBar
-              page={supplierPagination.page}
-              pageSize={supplierPagination.pageSize}
-              totalItems={supplierPagination.totalItems}
-              onPageChange={supplierPagination.setPage}
+              page={purchaseRequestsPageResponse?.pageNumber ?? purchaseRequestPage}
+              pageSize={purchaseRequestsPageResponse?.pageSize ?? 8}
+              totalItems={purchaseRequestsPageResponse?.totalCount ?? 0}
+              onPageChange={setPurchaseRequestPage}
             />
           </div>
         </SectionPanel>
@@ -450,13 +447,18 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   const { toast } = useToast();
   const { data: ingredients = [] } = useGetIngredientsQuery();
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
-  const { data: quotations = [], isFetching } = useGetSupplierQuotationsByIngredientQuery(selectedIngredientId, {
+  const [quotationPage, setQuotationPage] = useState(1);
+  const { data: quotationPageResponse, isFetching } = useGetSupplierQuotationsByIngredientPageQuery({
+    ingredientId: selectedIngredientId,
+    pageNumber: quotationPage,
+    pageSize: 8,
+  }, {
     skip: !selectedIngredientId,
   });
   const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
   const [updateQuotation] = useUpdateSupplierQuotationMutation();
   const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();
-  const quotationPagination = useLocalPagination(quotations, 8);
+  const quotationRows = quotationPageResponse?.items ?? [];
 
   const [form, setForm] = useState({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -556,6 +558,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
           value={selectedIngredientId}
           onChange={(e) => {
             setSelectedIngredientId(e.target.value);
+            setQuotationPage(1);
             resetForm();
           }}
         >
@@ -582,7 +585,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                 </tr>
               </thead>
               <tbody>
-                {quotationPagination.rows.map((q) => (
+                {quotationRows.map((q) => (
                   <tr key={q.quotationId} className={q.isBestPrice ? 'bg-emerald-50' : ''}>
                     <td>
                       {q.supplierName}
@@ -605,17 +608,17 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                     </td>
                   </tr>
                 ))}
-                {quotations.length === 0 && !isFetching && (
+                {quotationRows.length === 0 && !isFetching && (
                   <tr><td colSpan={7} className="text-center text-slate-500 py-4">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                 )}
               </tbody>
             </table>
           </TableViewport>
           <PaginationBar
-            page={quotationPagination.page}
-            pageSize={quotationPagination.pageSize}
-            totalItems={quotationPagination.totalItems}
-            onPageChange={quotationPagination.setPage}
+            page={quotationPageResponse?.pageNumber ?? quotationPage}
+            pageSize={quotationPageResponse?.pageSize ?? 8}
+            totalItems={quotationPageResponse?.totalCount ?? 0}
+            onPageChange={setQuotationPage}
           />
 
           <form onSubmit={handleSubmit} className="border-t border-slate-200 pt-4">
@@ -682,13 +685,6 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   );
 }
 
-const purchaseOrderStatusLabel: Record<string, string> = {
-  ORDERED: 'Đã đặt hàng',
-  PARTIALLY_RECEIVED: 'Nhận một phần',
-  RECEIVED: 'Đã nhận đủ',
-  CANCELLED: 'Đã hủy',
-};
-
 function PurchaseOrderManager({
   purchaseRequestLines,
   currentStockRows,
@@ -697,7 +693,9 @@ function PurchaseOrderManager({
   currentStockRows: CurrentStockRow[];
 }) {
   const { toast } = useToast();
-  const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
+  const [orderPage, setOrderPage] = useState(1);
+  const { data: purchaseOrdersResponse } = useGetPurchaseOrdersPageQuery({ pageNumber: orderPage, pageSize: 6 });
+  const purchaseOrders = purchaseOrdersResponse?.page.items ?? [];
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
   const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
   const [cancelOrder] = useCancelPurchaseOrderMutation();
@@ -705,7 +703,6 @@ function PurchaseOrderManager({
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
-  const orderPagination = useLocalPagination(purchaseOrders, 6);
 
   const warehouseOptions = Array.from(
     new Map(currentStockRows.map((row) => [row.warehouseId, row.warehouse])).entries()
@@ -720,10 +717,7 @@ function PurchaseOrderManager({
     suppliers.add(line.supplierId);
     supplierCountByRequest.set(line.purchaseRequestId, suppliers);
   });
-  const orderCountByRequest = new Map<string, number>();
-  purchaseOrders.forEach((order) => {
-    orderCountByRequest.set(order.purchaseRequestId, (orderCountByRequest.get(order.purchaseRequestId) ?? 0) + 1);
-  });
+  const orderCountByRequest = new Map(Object.entries(purchaseOrdersResponse?.orderCountByRequest ?? {}));
 
   const approvedRequests = Array.from(
     new Map(
@@ -838,14 +832,14 @@ function PurchaseOrderManager({
               {purchaseOrders.length === 0 && (
                 <tr><td colSpan={6} className="text-center text-slate-500 py-4">Chưa có đơn mua hàng nào</td></tr>
               )}
-              {orderPagination.rows.map((order) => (
+              {purchaseOrders.map((order) => (
                 <Fragment key={order.purchaseOrderId}>
                   <tr>
                     <td className="font-mono">{order.purchaseOrderCode}</td>
                     <td>{order.supplierName}</td>
                     <td className="font-mono">{order.purchaseRequestCode}</td>
                     <td>{order.orderDate}</td>
-                    <td>{purchaseOrderStatusLabel[order.status] ?? order.status}</td>
+                    <td>{formatWorkflowStatus(order.status)}</td>
                     <td className="space-x-2">
                       {order.status !== 'CANCELLED' && order.status !== 'RECEIVED' && (
                         <button
@@ -912,10 +906,10 @@ function PurchaseOrderManager({
           </table>
         </TableViewport>
         <PaginationBar
-          page={orderPagination.page}
-          pageSize={orderPagination.pageSize}
-          totalItems={orderPagination.totalItems}
-          onPageChange={orderPagination.setPage}
+          page={purchaseOrdersResponse?.page.pageNumber ?? orderPage}
+          pageSize={purchaseOrdersResponse?.page.pageSize ?? 6}
+          totalItems={purchaseOrdersResponse?.page.totalCount ?? 0}
+          onPageChange={setOrderPage}
         />
       </div>
       <ConfirmDialog

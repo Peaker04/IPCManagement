@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { ROUTES } from '@/routes/routeConfig';
-import { getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from './workflowConfig';
+import { formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from './workflowConfig';
 
 describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {
@@ -10,6 +10,18 @@ describe('workflowConfig', () => {
     expect(toneFromStatus('Chờ dữ liệu backend')).toBe('warning');
     expect(toneFromStatus('Đã gửi bếp')).toBe('success');
     expect(toneFromStatus('')).toBe('neutral');
+  });
+
+  it('uses readable labels for technical workflow statuses', () => {
+    expect(formatWorkflowStatus('PENDING')).toBe('Đang chờ xử lý');
+    expect(formatWorkflowStatus('SENTTOWAREHOUSE')).toBe('Đã gửi kho');
+    expect(formatWorkflowStatus('ordered')).toBe('Đã đặt hàng');
+    expect(formatWorkflowStatus('resolved')).toBe('Đã xử lý');
+    expect(formatWorkflowStatus('reopened')).toBe('Đã mở lại');
+    expect(formatWorkflowStatus('PARTIALLY_RECEIVED')).toBe('Đã nhận một phần');
+    expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ phê duyệt');
+    expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
+    expect(formatWorkflowStatus('Trạng thái riêng')).toBe('Trạng thái riêng');
   });
 
   it('routes known owners to workflow lanes and unknown owners to admin', () => {

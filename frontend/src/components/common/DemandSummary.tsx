@@ -5,6 +5,7 @@ import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface DemandSummaryProps {
   lines: DemandLine[];
@@ -27,17 +28,7 @@ const shortenStatus = (status: string) => {
   if (normalized.includes('thiếu')) return 'Thiếu hàng';
   if (normalized.includes('tồn kho đủ')) return 'Đủ hàng';
 
-  const statusMap: Record<string, string> = {
-    draft: 'Nháp',
-    pending: 'Chờ duyệt',
-    submitted: 'Chờ duyệt',
-    approved: 'Đã duyệt',
-    ordered: 'Đã đặt',
-    completed: 'Hoàn tất',
-    cancelled: 'Đã hủy',
-  };
-
-  return statusMap[normalized] ?? status;
+  return formatWorkflowStatus(status);
 };
 
 const shortenNextAction = (action: string) => {

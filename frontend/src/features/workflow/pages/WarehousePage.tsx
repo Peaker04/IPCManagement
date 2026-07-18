@@ -29,6 +29,7 @@ import {
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '../workflowConfig';
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -299,7 +300,7 @@ export default function WarehousePage() {
               {
                 title: issueDocument ? `Bếp chưa ký nhận ${issueDocument.title}` : 'Chưa có phiếu xuất chờ ký nhận',
                 description: issueDocument
-                  ? `Phiếu ${issueDocument.status.toLowerCase()} cần bàn giao để bếp xác nhận nhận nguyên liệu.`
+                  ? `Phiếu ${formatWorkflowStatus(issueDocument.status).toLowerCase()} cần bàn giao để bếp xác nhận nhận nguyên liệu.`
                   : 'Khi có phiếu xuất từ workflow report, thủ kho bàn giao để bếp xác nhận nhận nguyên liệu.',
                 action: 'Thủ kho: Xuất kho cho bếp',
                 tone: issueDocument ? 'warning' : 'info',

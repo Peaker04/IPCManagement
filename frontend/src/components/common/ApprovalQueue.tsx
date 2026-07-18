@@ -6,6 +6,7 @@ import { uiCopy } from '@/lib/uiCopy';
 import { StatusBadge } from './StatusBadge';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { ApprovalRecord } from '@/features/workflow';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface ApprovalQueueProps {
   records: ApprovalRecord[];
@@ -46,7 +47,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
 
           {/* Zone 2: Status + Reason */}
           <div className="ipc-approval-zone-status">
-            <StatusBadge variant={record.tone}>{record.status}</StatusBadge>
+            <StatusBadge variant={record.tone}>{formatWorkflowStatus(record.status)}</StatusBadge>
             <p>{record.reason}</p>
           </div>
 

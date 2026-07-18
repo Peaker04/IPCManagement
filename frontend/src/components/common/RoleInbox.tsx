@@ -6,6 +6,7 @@ import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/features/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface RoleInboxProps {
   items: RoleInboxItem[];
@@ -69,7 +70,11 @@ export function RoleInbox({
                 <td className="!text-left">
                   <span className="ipc-muted-cell">{item.owner}</span>
                 </td>
-                {hasActions ? <td className="ipc-row-action-cell !text-right">{actionForItem?.(item)}</td> : null}
+                {hasActions ? (
+                  <td className="ipc-row-action-cell !text-right">
+                    {actionForItem?.({ ...item, nextAction: formatWorkflowStatus(item.nextAction) })}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>

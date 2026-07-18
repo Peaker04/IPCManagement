@@ -8,6 +8,7 @@ import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/features/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -150,10 +151,10 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                 <td>{movement.owner}</td>
                 <td className="ipc-badge-cell">
                   <StatusBadge variant={movement.tone} className="ipc-table-badge ipc-table-badge--status">
-                    {movement.status}
+                    {formatWorkflowStatus(movement.status)}
                   </StatusBadge>
                 </td>
-                <td className="text-slate-600 text-[13px]">{movement.nextAction}</td>
+                <td className="text-slate-600 text-[13px]">{formatWorkflowStatus(movement.nextAction)}</td>
               </tr>
             ))}
           </tbody>

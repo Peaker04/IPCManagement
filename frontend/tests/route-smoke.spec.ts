@@ -753,39 +753,41 @@ async function stubPurchasingSubmitFailure(page: Page) {
   });
 
   await page.route('**/api/purchase-requests**', async (route) => {
+    const request = {
+      purchaseRequestId: 'pr-1',
+      purchaseRequestCode: 'PR-20260615-FULLDAY',
+      materialRequestId: 'mr-1',
+      purchaseForDate: '2026-06-15',
+      status: 'DRAFT',
+      lines: [
+        {
+          purchaseRequestLineId: 'prl-1',
+          materialRequestLineId: 'mrl-1',
+          ingredientId: 'ing-1',
+          ingredientName: 'Sườn heo',
+          supplierId: 'sup-1',
+          supplierName: 'Nhà cung cấp A',
+          unitId: 'unit-1',
+          unitName: 'kg',
+          requiredQty: 10,
+          currentStockQty: 0,
+          purchaseQty: 10,
+          estimatedUnitPrice: 120000,
+          expectedDeliveryDate: '2026-06-15',
+          note: null,
+        },
+      ],
+    };
+    const isPage = new URL(route.request().url()).pathname.endsWith('/page');
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
         success: true,
         message: 'OK',
-        data: [
-          {
-            purchaseRequestId: 'pr-1',
-            purchaseRequestCode: 'PR-20260615-FULLDAY',
-            materialRequestId: 'mr-1',
-            purchaseForDate: '2026-06-15',
-            status: 'DRAFT',
-            lines: [
-              {
-                purchaseRequestLineId: 'prl-1',
-                materialRequestLineId: 'mrl-1',
-                ingredientId: 'ing-1',
-                ingredientName: 'Sườn heo',
-                supplierId: 'sup-1',
-                supplierName: 'Nhà cung cấp A',
-                unitId: 'unit-1',
-                unitName: 'kg',
-                requiredQty: 10,
-                currentStockQty: 0,
-                purchaseQty: 10,
-                estimatedUnitPrice: 120000,
-                expectedDeliveryDate: '2026-06-15',
-                note: null,
-              },
-            ],
-          },
-          ],
+        data: isPage
+          ? { items: [request], totalCount: 1, pageNumber: 1, pageSize: 8, totalPages: 1, hasPrev: false, hasNext: false }
+          : [request],
       }),
     });
   });
