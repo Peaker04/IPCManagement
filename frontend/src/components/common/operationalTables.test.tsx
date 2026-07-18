@@ -27,7 +27,7 @@ const buildApproval = (id: string, title: string, slaDeadline?: string): Approva
   owner: 'Quản lý',
   submittedBy: 'Thu mua',
   deadline: 'Hôm nay',
-  status: 'Chờ duyệt',
+  status: 'PENDING',
   reason: 'Vượt ngưỡng',
   nextAction: 'Duyệt',
   tone: 'warning',
@@ -120,6 +120,7 @@ describe('ApprovalQueue', () => {
     expect(screen.getByText('Đơn mua quá hạn')).toBeInTheDocument();
     expect(screen.getByText('SLA: Quá hạn')).toBeInTheDocument();
     expect(screen.getByText('SLA: 2g 30p')).toBeInTheDocument();
+    expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
   });
 });
