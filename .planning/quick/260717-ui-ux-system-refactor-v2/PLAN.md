@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-admin-pagination-slices-in-progress-ownership-gate-open
+status: wave-4-gates-executed-visual-ownership-blocked
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -292,7 +292,7 @@ Admin current-stock page slice:
 - `AdminDataPage` inventory now consumes `current-stock/page` with an API page size of 8, binds the table rows directly to the server page and preserves the context-strip total through `totalCount`.
 - The existing `PaginationBar` remains the shared control; local `usePaginatedRows` slicing is removed for this table. Audit's missing display binding was corrected in the same ownership-safe pass after verification caught it.
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); staged GitNexus detection reported 1 file, 1 symbol, 0 processes, LOW. Commit: `8f39660`.
-- Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+- Known boundary: Admin statistics, cleanup and price-warning transport slices are now migrated; remaining Admin work is visual reconciliation and compatibility cleanup, not another unbounded list fetch.
 
 Admin stock-adjustment cursor slice:
 
@@ -321,6 +321,14 @@ Critical shell gate result — `DataTableShell`:
 - Direct inventory boundary: GitNexus does not index `usePaginatedRows`; its impact/detect scope is therefore recorded as `UNKNOWN`/`No changes detected`, with source diff, compatibility API review and full frontend gates used as the verification evidence.
 - Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
+Wave 4 gate execution:
+
+- Controls gate: `4/4` passed. Dialog naming, action reachability and protected-route controls remain addressable.
+- Route smoke: `13/13` passed after updating fixtures to the current page-number/cursor contracts. The test now waits for lazy tab activation before asserting the relevant request, instead of assuming every report tab loads eagerly.
+- UI audit: `2/2` passed, including the Admin data-quality stress table and action readability check.
+- Visual regression: `8/20` passed and `12/20` failed, matching the previously recorded baseline failure shape. Failures remain concentrated in WeeklyMenu, Reports, AdminData and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
+- The visual gate was run sequentially to avoid Vite cache races (`EPERM` rename) observed when Playwright projects were launched in parallel. Commit `859c97d` records only fixture contract corrections; no product snapshot or protected global-style change was staged.
+
 ### Wave 4 — Accessibility and visual verification
 
 Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
@@ -330,7 +338,7 @@ Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
 - Body overflow, nested scroll, sticky header, action reachability, long-cell wrapping.
 - Playwright controls, route smoke, ui-audit, visual routes; nếu auth/backend fail thì phân loại và sửa root cause trước khi rerun.
 
-Wave 4 is intentionally paused. Its gates cannot be used to authorize more visual changes while the critical shell and dirty ownership boundaries remain unresolved.
+Wave 4 remains blocked for visual completion. Functional/accessibility gates pass, but the critical shell and dirty route/global-style ownership boundaries still prevent trustworthy snapshot updates or global shell migration.
 
 ### Next execution slice — Refactor legacy shell safely
 
