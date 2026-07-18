@@ -300,7 +300,7 @@ export default function ApprovalRulesPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="ipc-approval-rule-form-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Tên quy tắc</label>
                 <Input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ví dụ: Duyệt PR vượt ngưỡng 10M..." />
@@ -341,7 +341,7 @@ export default function ApprovalRulesPage() {
 
             {/* Assignments list */}
             <div className="border-t border-slate-200 pt-4">
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1">
                   <Shield size={16} />
                   Các bước phê duyệt tuần tự
@@ -369,10 +369,10 @@ export default function ApprovalRulesPage() {
                           onChange={e => handleAssignmentChange(idx, 'approverRole', e.target.value)}
                           className="w-full h-8 px-2 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
                         >
-                          <option value="quanly">Quản lý (quanly)</option>
-                          <option value="beptruong">Bếp trưởng (beptruong)</option>
-                          <option value="thumua">Thu mua (thumua)</option>
-                          <option value="thukho">Thủ kho (thukho)</option>
+                          <option value="quanly">Quản lý</option>
+                          <option value="beptruong">Bếp trưởng</option>
+                          <option value="thumua">Thu mua</option>
+                          <option value="thukho">Thủ kho</option>
                         </select>
                       </div>
                       

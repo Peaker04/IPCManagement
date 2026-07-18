@@ -296,6 +296,25 @@ test.describe('operational control surface', () => {
     await expect(page.getByText('quanly', { exact: true })).toHaveCount(0);
   });
 
+  test('approval rule form stacks primary fields on narrow mobile screens', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(ROUTES.APPROVAL_RULES);
+    await page.getByRole('button', { name: 'Thêm quy tắc' }).click();
+
+    const dialog = page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    const formGrid = dialog.locator('.ipc-approval-rule-form-grid');
+    const positions = await formGrid.locator(':scope > div').evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: Math.round(rect.left), width: Math.round(rect.width) };
+      }),
+    );
+    expect(positions).toHaveLength(2);
+    expect(Math.abs(positions[0].left - positions[1].left)).toBeLessThanOrEqual(1);
+    expect(positions.every((position) => position.width > 240)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ROUTES.REPORTS);
