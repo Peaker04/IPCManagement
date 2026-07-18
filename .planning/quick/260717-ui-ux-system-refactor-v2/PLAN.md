@@ -280,6 +280,13 @@ Admin purchase-summary query slice:
 - GitNexus impact/detect for the owned `AdminDataPage` change was LOW: 1 file, 1 symbol, 0 processes. Commit: `c1379ac`.
 - Evidence: frontend lint/unit/build pass (`72/72`).
 
+Admin ingredient-demand summary slice:
+
+- Statistics now uses `ingredient-demand/page` with page size 8 and reads the report-wide `shortageCount` aggregate instead of downloading 100 demand rows to count shortage lines.
+- The visible statistic and status copy remain unchanged; only the transport payload and source of the aggregate were corrected.
+- GitNexus impact/detect: LOW, 1 file, 1 symbol, 0 processes. Commit: `eb084b7`.
+- Evidence: frontend lint/build pass and unit suite `72/72`.
+
 Admin current-stock page slice:
 
 - `AdminDataPage` inventory now consumes `current-stock/page` with an API page size of 8, binds the table rows directly to the server page and preserves the context-strip total through `totalCount`.
