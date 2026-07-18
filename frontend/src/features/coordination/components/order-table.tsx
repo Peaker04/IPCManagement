@@ -118,7 +118,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
         icon={<ClipboardList className="size-10" />}
         title="Chưa có dữ liệu để hiển thị"
         description="Điều chỉnh ngày, ca hoặc điều phối đơn để xem dữ liệu phù hợp."
-        className="min-h-[360px] border-b border-slate-200"
+        className="min-h-0 border-b border-slate-200 py-10"
       />
     )
   }

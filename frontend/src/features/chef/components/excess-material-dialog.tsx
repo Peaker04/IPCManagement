@@ -172,7 +172,7 @@ export function ExcessMaterialDialog({
                   }
                 }
               }}
-              className="grid grid-cols-3 gap-2 w-full"
+              className="ipc-excess-condition-group grid grid-cols-1 gap-2 w-full sm:grid-cols-3"
             >
               <ToggleGroupItem
                 value="intact"

@@ -29,16 +29,35 @@ interface RuleAssignmentForm {
 }
 
 const formatMutationError = (error: unknown) => {
-  if (error instanceof Error) {
-    return error.message;
-  }
+  const candidate = error as {
+    data?: { message?: string; errors?: Record<string, string[]> } | string;
+    message?: string;
+  } | null;
+  const dataMessage = typeof candidate?.data === 'string'
+    ? candidate.data
+    : candidate?.data?.message;
+  const validationMessage = candidate?.data && typeof candidate.data !== 'string'
+    ? Object.values(candidate.data.errors ?? {}).flat()[0]
+    : undefined;
 
-  try {
-    return JSON.stringify(error);
-  } catch {
-    return 'Lỗi không xác định';
-  }
+  return dataMessage ?? validationMessage ?? candidate?.message ?? 'Hệ thống chưa trả về chi tiết lỗi. Vui lòng thử lại.';
 };
+
+const approvalDocumentLabels: Record<string, string> = {
+  'purchase-request': 'Đơn mua thêm',
+  'inventory-issue': 'Phiếu xuất kho',
+  'order-adjustment': 'Điều chỉnh suất ăn',
+};
+
+const approverRoleLabels: Record<string, string> = {
+  quanly: 'Quản lý',
+  beptruong: 'Bếp trưởng',
+  thumua: 'Thu mua',
+  thukho: 'Thủ kho',
+};
+
+const formatApprovalDocumentType = (value: string) => approvalDocumentLabels[value] ?? value;
+const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value;
 
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
@@ -221,7 +240,7 @@ export default function ApprovalRulesPage() {
                       </StatusBadge>
                     </div>
                     <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-2">
-                      <div>Loại chứng từ: <span className="font-semibold text-slate-700">{rule.documentType}</span></div>
+                      <div>Loại chứng từ: <span className="font-semibold text-slate-700">{formatApprovalDocumentType(rule.documentType)}</span></div>
                       <div>SLA xử lý: <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
                       {rule.minAmount !== null && (
                         <div className="col-span-2">Ngưỡng tiền: <span className="font-semibold text-slate-700">{rule.minAmount?.toLocaleString('vi-VN')} đ {rule.maxAmount ? ` - ${rule.maxAmount?.toLocaleString('vi-VN')} đ` : ' trở lên'}</span></div>
@@ -233,7 +252,7 @@ export default function ApprovalRulesPage() {
                         {(rule.approvalassignments ?? []).map((a: ApprovalAssignmentDto) => (
                           <div key={a.assignmentId ?? `${rule.ruleId}-${a.sequence}-${a.approverRole}`} className="flex items-center gap-2 text-xs">
                             <span className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-[10px]">{a.sequence}</span>
-                            <span className="capitalize font-semibold text-slate-700">{a.approverRole}</span>
+                            <span className="font-semibold text-slate-700">{formatApproverRole(a.approverRole)}</span>
                             {a.approverUser && <span className="text-slate-400">({a.approverUser.fullName})</span>}
                             {a.isRequired && <span className="text-[10px] text-red-500 font-semibold bg-red-50 px-1 rounded">Bắt buộc</span>}
                           </div>
@@ -281,7 +300,7 @@ export default function ApprovalRulesPage() {
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="ipc-approval-rule-form-grid grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Tên quy tắc</label>
                 <Input value={ruleName} onChange={e => setRuleName(e.target.value)} placeholder="Ví dụ: Duyệt PR vượt ngưỡng 10M..." />
@@ -322,7 +341,7 @@ export default function ApprovalRulesPage() {
 
             {/* Assignments list */}
             <div className="border-t border-slate-200 pt-4">
-              <div className="flex justify-between items-center mb-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                 <h4 className="text-sm font-semibold text-slate-800 flex items-center gap-1">
                   <Shield size={16} />
                   Các bước phê duyệt tuần tự
@@ -350,10 +369,10 @@ export default function ApprovalRulesPage() {
                           onChange={e => handleAssignmentChange(idx, 'approverRole', e.target.value)}
                           className="w-full h-8 px-2 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
                         >
-                          <option value="quanly">Quản lý (quanly)</option>
-                          <option value="beptruong">Bếp trưởng (beptruong)</option>
-                          <option value="thumua">Thu mua (thumua)</option>
-                          <option value="thukho">Thủ kho (thukho)</option>
+                          <option value="quanly">Quản lý</option>
+                          <option value="beptruong">Bếp trưởng</option>
+                          <option value="thumua">Thu mua</option>
+                          <option value="thukho">Thủ kho</option>
                         </select>
                       </div>
                       

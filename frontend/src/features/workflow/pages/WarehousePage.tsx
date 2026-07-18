@@ -133,6 +133,7 @@ export default function WarehousePage() {
     <OperationalFrame
       command={
         <CommandBar
+          actionsClassName="ipc-warehouse-actions"
           actions={
             <>
               <button
