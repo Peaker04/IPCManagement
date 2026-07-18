@@ -591,6 +591,17 @@ Exit criteria:
 - Existing mutation/API and accessibility gates remain green; visual failures are either fixed or documented with exact root cause.
 - CSS cleanup has a before/after inventory and does not remove tokens, focus styles, responsive rules or styles still referenced by dirty user-owned work.
 
+#### Task 4.5.3 — Aggregate pagination contracts for long operational surfaces
+
+Status: planned follow-up. Required before changing the remaining Weekly Menu `limit: 500` demand surface or Chef/Warehouse kitchen-issue collections.
+
+- **Objective:** expose bounded server pages that already contain the aggregates required by the UI, so lazy pagination reduces transfer/render cost without changing shortage, ready-state or pending-receipt meaning.
+- **Scope:** add or extend typed backend page DTOs for (1) demand grouped by material/date and (2) kitchen issues grouped by shift with pending/received totals; update RTK Query mappers and route consumers only after the backend contract is verified.
+- **Preserve:** raw line identifiers for mutation actions, date/customer/shift filters, aggregate totals, sorting, status semantics, export behavior and existing route/page anatomy.
+- **Impact gate:** run GitNexus impact for every backend controller/service/DTO symbol; if C# symbols remain UNKNOWN, use source call graph plus focused backend tests and warn before editing. Dirty `WorkflowReportService`, `WeeklyMenuPage`, `AdminDataPage` and shared `workflowApi` require ownership/hunk approval.
+- **Verification:** backend contract tests for page boundaries and aggregate equality against the unpaged reference; frontend unit tests for mapper/empty/loading/page transitions; serial controls, smoke, UI audit, lint/build and staged `detect_changes`.
+- **Done when:** no raw `limit: 500` demand fetch remains for the active daily summary, kitchen issue pages retain exact pending totals by shift, and no client-side slice is used as a substitute for server pagination.
+
 ### Wave 5 — Cleanup and release gate
 
 - Migrate/remove deprecated consumers.
