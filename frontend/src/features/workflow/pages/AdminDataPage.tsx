@@ -1,5 +1,5 @@
 import { useMemo, useState, type FormEvent } from 'react';
-import { BarChart3, Bell, CalendarCheck, Database, Download, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, Upload, UserPlus, Users, XCircle } from 'lucide-react';
+import { BarChart3, CalendarCheck, Database, Download, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, Upload, UserPlus, Users, XCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
 import { TableViewport } from '@/components/common/TableViewport';
@@ -691,10 +691,6 @@ export default function AdminDataPage() {
                 <PackageCheck size={16} />
                 BOM theo đơn giá
               </button>
-              <button className="ipc-button ipc-button-ghost" type="button">
-                <Bell size={16} />
-                Gửi thông báo vận hành
-              </button>
               {canManageEmployees && (
                 <button className="ipc-button ipc-button-ghost" type="button" onClick={() => setActiveView('employees')}>
                   <Users size={16} />
@@ -818,7 +814,7 @@ export default function AdminDataPage() {
                     onClick={() => void handlePreviewBomImport()}
                   >
                     <Search size={15} />
-                    Preview
+                    Kiểm tra file
                   </button>
                   <button
                     className="ipc-button ipc-button-primary"
@@ -827,7 +823,7 @@ export default function AdminDataPage() {
                     onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
-                    Commit
+                    Nhập dữ liệu
                   </button>
                 </div>
 

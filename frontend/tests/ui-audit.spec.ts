@@ -27,6 +27,7 @@ const protectedRoutes = [
 
 const viewports = [
   { name: 'desktop', width: 1365, height: 900 },
+  { name: 'mobile-390', width: 390, height: 844 },
 ] as const;
 
 function writeAuditReport(name: string, issues: AuditIssue[]) {
