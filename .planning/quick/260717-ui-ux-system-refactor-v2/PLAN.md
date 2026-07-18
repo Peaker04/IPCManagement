@@ -388,6 +388,7 @@ Completed clean slices:
 - CSS inventory found 251 `.ipc-*` selectors in the clean stylesheet; four isolated selectors had zero non-CSS source references and were removed without staging the dirty dashboard CSS addition (`36bd716`). UI audit `2/2` and lint/build pass.
 - A second CSS inventory batch removed three more unreferenced component selectors (`ipc-compact-select`, `ipc-chef-action-button`, `ipc-dialog-action`) and their associated state rules (`2c7d055`). UI audit `2/2` and lint/build pass again.
 - The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
+- Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
 
 Current blockers and next route order:
 
