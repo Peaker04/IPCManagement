@@ -138,6 +138,20 @@ describe('ApprovalQueue', () => {
     expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
   });
+
+  it('translates technical next-action values before rendering them', () => {
+    render(
+      <ApprovalQueue
+        records={[{ ...buildApproval('a3', 'Đơn mua cần xử lý'), nextAction: 'PENDING' }]}
+        pageSize={1}
+      />,
+    );
+
+    const nextAction = document.querySelector('.ipc-approval-record-action');
+    expect(nextAction).toHaveTextContent('Đang chờ xử lý');
+    expect(nextAction).not.toHaveTextContent('PENDING');
+    expect(screen.queryByText('PENDING')).not.toBeInTheDocument();
+  });
 });
 
 describe('DocumentRail', () => {
