@@ -394,12 +394,13 @@ Completed clean slices:
 - Approval queue status badges now consume the same semantic status formatter; raw enum values remain unchanged in the record model (`6e9126d`). CSS inventory also removed the isolated, unreferenced `.ipc-chef-action-note` block after confirming it was outside the dirty stylesheet diff (`430f5ed`); UI audit `2/2` and lint/build pass.
 - Stock movement status and next-action cells now consume the shared formatter without changing movement types, cursor/local pagination or copy behavior (`4a987ab`). The demand summary no longer maintains a duplicate status map and now shares the same vocabulary (`43d2a7e`). A further CSS inventory pass removed the unreferenced `.ipc-approval-record-meta` block with selective staging; the 641-line dirty stylesheet addition remains preserved (`8de0110`).
 - Role inbox action renderers now receive a display-safe copy of `nextAction`, translating technical workflow enums without mutating the source item or route logic (`7729347`). The purchase-request list in ApprovalPage also uses the shared status formatter (`7dc6453`). Unit `76/76`, build, controls `4/4`, smoke `14/14` and UI audit `2/2` remain green.
+- Chef dashboard now consolidates stacked catalog/issue/KHSX loading, error and warning alerts into one bounded “Trạng thái dữ liệu bếp” region while keeping the shift lock alert and mutation feedback separate (`f5f1507`). The clean route gates remain green; visual baseline remains intentionally unupdated because the source already retains KHSX/table/journal content absent from the old Chef snapshot.
 
 Current blockers and next route order:
 
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
-- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
+- Next clean route group is reports/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
 
 Allowed files for the first clean slice:
 
