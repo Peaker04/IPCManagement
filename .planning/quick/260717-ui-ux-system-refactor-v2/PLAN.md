@@ -541,6 +541,7 @@ Current blockers and next route order:
 - Coordination order-table zebra rows now use `--ipc-slate-50` instead of an inline `#f8fafc` literal. The row parity, hover state, order data and mutation handlers are unchanged. `OrderTable` upstream impact was LOW; staged detection reported MEDIUM across two display/action flows. Evidence: targeted coordination control `1/1`, lint, UI audit `4/4`; commit `0bf1bda`.
 - CSS selector reference audit found all 25 `ipc-*` selectors in `ui-redesign.css` still referenced by source (minimum two references each), so no CSS was deleted without zero-reference evidence. The dirty `index.css` remains protected; the audit itself is recorded in `CSS-JS-INVENTORY.md`.
 - Weekly Menu’s six neutral section/icon colors now consume `--ipc-slate-600` instead of repeated `#475569` literals. Only presentation hunks were staged; the dirty import, BOM and production-plan feature hunks remained unstaged. `WeeklyMenuPage` upstream impact was exact LOW. Evidence: targeted controls `2/2`, lint/build, cached diff review; commit `e998feb`.
+- Workflow semantic copy now explains the SLA abbreviation as `Thời hạn xử lý (SLA)`/`Hạn xử lý (SLA)` in Approval Rules and Reports, including the approval form label. Technical API values, raw status keys and CSV values remain unchanged. `ReportsPage` impact was exact LOW; `ApprovalRulesPage` is not indexed, so source diff plus focused control evidence is the boundary. Evidence: controls `3/3`, lint/build; commit `ea71fb6`.
 
 Allowed files for the first clean slice:
 
