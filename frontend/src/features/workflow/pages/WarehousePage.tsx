@@ -50,7 +50,7 @@ export default function WarehousePage() {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const { data: stockMovementPage } = useGetStockMovementPageQuery({
