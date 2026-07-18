@@ -640,3 +640,4 @@ Plan v2 chỉ hoàn tất khi:
 - Visual/accessibility/regression evidence pass ở đủ viewport hoặc blocker được ghi rõ và được chấp thuận.
 - Dirty worktree của user không bị commit hoặc mất dữ liệu.
 - Approval document preview and Chef document/stock preview requests are now bounded to 20 records. Their rail/table consumers expose only a small local window, while Chef issue rows remain unchanged because they feed shift filtering and counts. Evidence: `eda4f22`, unit `88/88`, controls `19/19`, smoke `15/15`, lint/build; the first parallel browser run produced environment-only connection refusal, and serial reruns passed.
+- Warehouse document preview is now bounded to 20 records; demand, issue and cursor movement queries remain unchanged because they support operational actions, counts or navigation. Evidence: `f4b3db8`, unit `88/88`, controls `19/19`, smoke `15/15`, lint/build.
