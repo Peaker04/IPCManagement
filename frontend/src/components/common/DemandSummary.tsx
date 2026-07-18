@@ -36,7 +36,7 @@ const shortenNextAction = (action: string) => {
 
   if (!normalized) return 'Chưa rõ';
   if (normalized.includes('sinh lại')) return 'Sinh lại';
-  if (normalized.includes('tạo lại demand')) return 'Tạo lại demand';
+  if (normalized.includes('tạo lại demand')) return 'Tạo lại nhu cầu';
   if (normalized.includes('kiểm tra giá')) return 'Kiểm tra giá';
   if (normalized.includes('chọn nhà cung cấp')) return 'Chọn nhà cung cấp';
   if (normalized.includes('đặt mua')) return 'Đặt mua';

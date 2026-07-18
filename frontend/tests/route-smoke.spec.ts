@@ -931,6 +931,36 @@ async function stubMobileOperationsSuccess(page: Page) {
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
+    if (endpoint === 'ingredient-demand/page') {
+      await fulfill(route, {
+        items: [{
+          materialRequestId: 'mr-mobile',
+          materialRequestCode: 'MR-20260709-MOBILE',
+          requestDate: '2026-07-09',
+          status: 'CONFIRMED',
+          shiftName: 'MORNING',
+          customerName: 'IPC Bắc Ninh',
+          dishName: 'Bún bò',
+          ingredientId: 'ing-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          totalServings: 120,
+          totalRequiredQty: 18,
+          currentStockQty: 3,
+          suggestedPurchaseQty: 15,
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+        shortageCount: 1,
+      });
+      return;
+    }
+
     if (endpoint === 'ingredient-demand') {
       await fulfill(route, [
         {
