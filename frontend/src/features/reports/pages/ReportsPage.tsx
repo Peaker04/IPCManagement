@@ -525,13 +525,13 @@ const ReportsPage = () => {
 
       {activeReportState.isFetching && (
         <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">
-          Hệ thống đang lấy dữ liệu từ API workflow report cho tab đang mở.
+          Hệ thống đang lấy dữ liệu báo cáo quy trình cho tab đang mở.
         </InlineAlert>
       )}
 
       {activeReportState.isError && (
         <InlineAlert title="Không tải được dữ liệu báo cáo" variant="danger">
-          Vui lòng kiểm tra API backend, quyền truy cập hoặc dữ liệu import mẫu trước khi đối chiếu.
+          Vui lòng kiểm tra quyền truy cập hoặc dữ liệu mẫu trước khi đối chiếu.
         </InlineAlert>
       )}
 
