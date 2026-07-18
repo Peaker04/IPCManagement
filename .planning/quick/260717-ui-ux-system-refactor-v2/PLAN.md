@@ -353,7 +353,7 @@ Wave 4 gate execution:
 - Controls gate: `4/4` passed. Dialog naming, action reachability and protected-route controls remain addressable.
 - Route smoke: `13/13` passed after updating fixtures to the current page-number/cursor contracts. The test now waits for lazy tab activation before asserting the relevant request, instead of assuming every report tab loads eagerly.
 - UI audit: `2/2` passed, including the Admin data-quality stress table and action readability check.
-- Visual regression: `8/20` passed and `12/20` failed, matching the previously recorded baseline failure shape. Failures remain concentrated in WeeklyMenu, Reports, AdminData and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
+- Visual regression: the latest sequential run is `6/20` passed and `14/20` failed. Failures remain concentrated in WeeklyMenu, Reports, AdminData, stale Chef/Purchasing/Warehouse baselines and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
 - The visual gate was run sequentially to avoid Vite cache races (`EPERM` rename) observed when Playwright projects were launched in parallel. Commit `859c97d` records only fixture contract corrections; no product snapshot or protected global-style change was staged.
 - Release verification initially caught two stale Admin badge references after removing the legacy kitchen/usage hooks; they were changed to use the new KPI aggregates and reverified by a successful frontend production build. Fix commit: `874de3b`.
 
