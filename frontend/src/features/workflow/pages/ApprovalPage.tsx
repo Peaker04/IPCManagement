@@ -8,6 +8,7 @@ import {
   CursorPaginationBar,
   DocumentRail,
   OperationalFrame,
+  PaginationBar,
   SectionPanel,
   SplitWorkbench,
   StatusBadge,
@@ -19,7 +20,7 @@ import {
   useExecuteApprovalDecisionMutation,
   useGetApprovalRecordsQuery,
   useGetWorkflowDocumentsQuery,
-  useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
   useGetApprovalHistoryQuery,
 } from '@/features/workflow';
 import type { ApprovalRecord } from '@/features/workflow';
@@ -34,6 +35,7 @@ export default function ApprovalPage() {
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalCursors, setApprovalCursors] = useState<string[]>([]);
+  const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
   
   const approvalCursor = approvalCursors.at(-1);
   const { data: approvalPage = { items: [], limit: 20, hasNext: false, nextCursor: null } } = useGetApprovalRecordsQuery({
@@ -42,8 +44,11 @@ export default function ApprovalPage() {
   });
   const approvalRecords = approvalPage.items;
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
-  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery();
-  const purchaseRequests = purchaseRequestsResponse?.data ?? [];
+  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({
+    pageNumber: purchaseRequestPage,
+    pageSize: 8,
+  });
+  const purchaseRequests = purchaseRequestsPageResponse?.items ?? [];
 
   const approvalPageNumber = approvalCursors.length + 1;
   const goToPreviousApprovalPage = () => {
@@ -373,6 +378,12 @@ export default function ApprovalPage() {
                   ))}
                 </div>
               )}
+              <PaginationBar
+                page={purchaseRequestsPageResponse?.pageNumber ?? purchaseRequestPage}
+                pageSize={purchaseRequestsPageResponse?.pageSize ?? 8}
+                totalItems={purchaseRequestsPageResponse?.totalCount ?? 0}
+                onPageChange={setPurchaseRequestPage}
+              />
             </SectionPanel>
           </SplitWorkbench>
         </div>
