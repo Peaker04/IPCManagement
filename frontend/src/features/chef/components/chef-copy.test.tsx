@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ActiveDishesGrid } from './active-dishes-grid';
 import { ChefHeader } from './chef-header';
+import { MaterialChecklist } from './material-checklist';
 
 describe('Chef operational copy', () => {
   it('uses sentence-case labels in the summary cards', () => {
@@ -47,5 +48,17 @@ describe('Chef operational copy', () => {
     expect(screen.getByText('Đơn vị')).toBeInTheDocument();
     expect(screen.getByText('Số lượng cần')).toBeInTheDocument();
     expect(screen.queryByText('Nguyên Liệu')).not.toBeInTheDocument();
+  });
+
+  it('uses sentence-case headers in the material checklist', () => {
+    render(<MaterialChecklist materials={[]} />);
+
+    for (const label of ['Nguyên liệu', 'Đơn vị', 'Số lượng', 'Trạng thái']) {
+      expect(screen.getByText(label, { exact: true })).toBeInTheDocument();
+    }
+
+    for (const label of ['Nguyên Liệu', 'Đơn Vị', 'Số Lượng', 'Trạng Thái']) {
+      expect(screen.queryByText(label, { exact: true })).not.toBeInTheDocument();
+    }
   });
 });

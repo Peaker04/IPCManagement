@@ -46,10 +46,10 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
                 <TableHead className="w-10 text-slate-600 font-semibold">
                   <span className="sr-only">Ký nhận</span>
                 </TableHead>
-                <TableHead className="text-slate-600 font-semibold">Nguyên Liệu</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Đơn Vị</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Số Lượng</TableHead>
-                <TableHead className="text-slate-600 font-semibold">Trạng Thái</TableHead>
+                <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                <TableHead className="text-slate-600 font-semibold text-right">Số lượng</TableHead>
+                <TableHead className="text-slate-600 font-semibold">Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
