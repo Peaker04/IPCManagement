@@ -345,6 +345,8 @@ Evidence added on 2026-07-18 confirms the blocker is composite rather than a sin
 
 GitNexus was force-refreshed after a stale-index discrepancy was detected. The graph still reports `DataTableShell` as CRITICAL (16 symbols, 12 flows), despite the current source inventory showing one production consumer. This unresolved discrepancy is itself a risk gate: cleanup must wait until graph edges are reconciled with source, and the higher-risk result must not be dismissed.
 
+Wave 4.5 visual evidence is recorded in `UI-REVIEW.md`: desktop dashboard/chef routes pass; mobile failures are bounded height/copy/date drift rather than duplicate shell rendering. Snapshot updates and broad CSS deletion remain prohibited until fixture and ownership reconciliation.
+
 ### Next execution slice — Refactor legacy shell safely
 
 1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype. This evidence is now recorded in `OWNERSHIP.md`.
@@ -357,7 +359,7 @@ GitNexus was force-refreshed after a stale-index discrepancy was detected. The g
 
 ### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
 
-Status: added 2026-07-18; pending ownership and visual-baseline reconciliation.
+Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
 
 Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
 
@@ -371,6 +373,29 @@ Scope:
 - Xây shared `ToastProvider`/`useToast` typed cho feedback tạm thời; dùng `InlineAlert` cho lỗi/loading/empty theo vùng; dùng shadcn/Radix `Dialog` cho confirm hoặc nội dung cần người dùng quyết định. Mỗi surface phải có title, variant, close/focus behavior và reduced-motion-safe styling.
 - Chuẩn hóa page anatomy: một `OperationalFrame`, một page header, một command area, một status/feedback region và một table viewport; không lặp sidebar, user panel, breadcrumb, title hoặc cùng một action ở nhiều tầng.
 - Migrate route theo nhóm: shell/dashboard, workflow/coordination, weekly-menu/admin (chỉ sau ownership handoff), reports, chef/purchasing/warehouse.
+
+Completed clean slices:
+
+- `ToastProvider`/`useToast` and `ConfirmDialog` are mounted through the app root; approval and purchasing flows no longer use browser-native alert/confirm feedback (`0121d88`, `0757cb2`).
+- Static scan reports no remaining unapproved browser-native feedback calls in `frontend/src`.
+- Removed only the unreferenced `.ipc-textarea` selector branches from the protected global stylesheet; the dirty 641-line CSS addition remains unstaged (`49c7b3f`).
+- Lint, 74 frontend unit tests, and production build pass after the clean slices.
+- Chef dashboard no longer short-circuits the whole route when the selected shift has no meals; the production empty state stays inside its tab while documents and shift journal remain reachable (`f16b250`). UI audit `2/2` and route smoke `13/13` pass.
+- Purchasing no longer renders the inactive “Gửi cảnh báo biến động giá” button, which had no handler and created a misleading action surface (`7ed0db3`). Controls `4/4` pass.
+- Warehouse stock movements now use the existing server cursor endpoint with a backward-compatible `StockMovementTable` controller; the route no longer requests 100 movement rows and then slices locally (`fd85c9a`). Route smoke `14/14`, controls `4/4`, and UI audit `2/2` pass.
+- Purchasing’s “Kế hoạch thu mua” now uses the existing page-number endpoint with an 8-row page and canonical `PaginationBar` instead of the unbounded `limit: 100` collection (`225780b`). The purchase-request and current-stock collections remain unchanged until their route-specific data contract is reconciled.
+- Purchasing handoff history now uses the receipt-filtered cursor endpoint and price warning context uses the page-number endpoint; both remove the previous unbounded report collections without changing order/receipt mutations (`ba71e7e`).
+- CSS inventory found 251 `.ipc-*` selectors in the clean stylesheet; four isolated selectors had zero non-CSS source references and were removed without staging the dirty dashboard CSS addition (`36bd716`). UI audit `2/2` and lint/build pass.
+- A second CSS inventory batch removed three more unreferenced component selectors (`ipc-compact-select`, `ipc-chef-action-button`, `ipc-dialog-action`) and their associated state rules (`2c7d055`). UI audit `2/2` and lint/build pass again.
+- The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
+- Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
+- Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
+
+Current blockers and next route order:
+
+- `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
+- `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
+- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit.
 
 Allowed files for the first clean slice:
 

@@ -160,4 +160,23 @@ describe('StockMovementTable', () => {
     expect(screen.getByText('II-20260710-001')).toBeInTheDocument();
     expect(screen.getByText('Thịt gà')).toBeInTheDocument();
   });
+
+  it('supports a server cursor controller without adding local pagination', async () => {
+    const onNext = vi.fn();
+    const onPrevious = vi.fn();
+
+    render(
+      <StockMovementTable
+        movements={movements.slice(0, 1)}
+        cursorPagination={{ page: 2, hasNext: true, onNext, onPrevious }}
+      />,
+    );
+
+    expect(screen.getByText('Trang 2, tải theo cursor')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Trang sau/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Trang sau/i }));
+    await userEvent.click(screen.getByRole('button', { name: /Trang trước/i }));
+    expect(onNext).toHaveBeenCalledOnce();
+    expect(onPrevious).toHaveBeenCalledOnce();
+  });
 });

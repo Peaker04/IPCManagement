@@ -23,7 +23,7 @@ import {
   useGetCurrentStockQuery,
   useGetIngredientDemandQuery,
   useGetKitchenIssuesQuery,
-  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
 } from '@/features/workflow';
@@ -43,6 +43,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
     message: string;
@@ -50,7 +51,13 @@ export default function WarehousePage() {
   } | null>(null);
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const stockMovementCursor = stockMovementCursors.at(-1);
+  const { data: stockMovementPage } = useGetStockMovementPageQuery({
+    cursorDate: stockMovementCursor?.cursorDate,
+    cursorId: stockMovementCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  }, { skip: activeView !== 'movement' });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 12 });
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
@@ -236,7 +243,20 @@ export default function WarehousePage() {
               </SectionPanel>
 
               <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-                <StockMovementTable movements={stockMovements} />
+                <StockMovementTable
+                  movements={stockMovementPage?.items ?? []}
+                  cursorPagination={{
+                    page: stockMovementCursors.length + 1,
+                    hasNext: stockMovementPage?.hasNext ?? false,
+                    onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
+                    onNext: () => {
+                      const nextCursorDate = stockMovementPage?.nextCursorDate;
+                      if (nextCursorDate) {
+                        setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementPage?.nextCursorId }]);
+                      }
+                    },
+                  }}
+                />
               </SectionPanel>
             </div>
           </SplitWorkbench>
