@@ -3,10 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApprovalQueue } from './ApprovalQueue';
+import { DocumentRail } from './DocumentRail';
 import { RoleInbox } from './RoleInbox';
 import { StockMovementTable } from './StockMovementTable';
 import { ToastProvider } from './ToastProvider';
-import type { ApprovalRecord, RoleInboxItem, StockMovement } from '@/features/workflow';
+import type { ApprovalRecord, RoleInboxItem, StockMovement, WorkflowDocument } from '@/features/workflow';
 
 const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => ({
   id: `task-${index + 1}`,
@@ -64,6 +65,18 @@ const movements: StockMovement[] = [
     tone: 'neutral',
   },
 ];
+
+const documents: WorkflowDocument[] = [{
+  id: 'KHSX-20260710-001',
+  type: 'KHSX',
+  title: 'Kế hoạch sản xuất',
+  status: 'PENDING',
+  owner: 'Bếp trưởng',
+  summary: 'Đang chờ xác nhận',
+  route: '/chef-dashboard',
+  lines: [{ label: 'Số suất', value: '100' }],
+  tone: 'warning',
+}];
 
 describe('RoleInbox', () => {
   it('renders configured empty state', () => {
@@ -124,6 +137,23 @@ describe('ApprovalQueue', () => {
     expect(screen.getByText('Thời hạn xử lý: 2g 30p')).toBeInTheDocument();
     expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
+  });
+});
+
+describe('DocumentRail', () => {
+  it('renders owner metadata with valid description-list semantics', () => {
+    render(
+      <ToastProvider>
+        <DocumentRail documents={documents} />
+      </ToastProvider>,
+    );
+
+    const ownerTerm = screen.getByText('Người phụ trách');
+    expect(ownerTerm.closest('dl')).toHaveClass('ipc-document-zone-owner');
+    expect(ownerTerm.tagName).toBe('DT');
+    const ownerDefinition = screen.getByText('Bếp trưởng');
+    expect(ownerDefinition.tagName).toBe('DD');
+    expect(ownerDefinition.closest('dl')).toHaveClass('ipc-document-zone-owner');
   });
 });
 

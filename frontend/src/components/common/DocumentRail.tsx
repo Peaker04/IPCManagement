@@ -92,10 +92,10 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
           </dl>
 
           {/* Zone 4: Người phụ trách */}
-          <div className="ipc-document-zone-owner">
+          <dl className="ipc-document-zone-owner" aria-label="Người phụ trách">
             <dt>{uiCopy.workflow.owner}</dt>
             <dd>{document.owner}</dd>
-          </div>
+          </dl>
 
           {actionForDocument?.(document)}
         </article>
