@@ -21,7 +21,7 @@ import { ROUTES } from '@/routes/routeConfig';
 import {
   useCreateInventoryIssueMutation,
   useGetCurrentStockPageQuery,
-  useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
@@ -44,6 +44,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
   const [currentStockPage, setCurrentStockPage] = useState(1);
+  const [demandPage, setDemandPage] = useState(1);
   const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
@@ -51,7 +52,11 @@ export default function WarehousePage() {
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
-  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 });
+  const { data: demandPageResponse } = useGetIngredientDemandPageQuery({
+    pageNumber: demandPage,
+    pageSize: 8,
+  });
+  const demandLines = demandPageResponse?.items ?? [];
   const stockMovementCursor = stockMovementCursors.at(-1);
   const { data: stockMovementPage } = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
@@ -73,6 +78,7 @@ export default function WarehousePage() {
   ];
   const warehouseInbox = roleInboxItems.filter((item) => item.laneId === 'warehouse');
   const shortageLine = demandLines.find((line) => line.tone === 'danger');
+  const shortageCount = demandPageResponse?.shortageCount ?? 0;
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
@@ -170,7 +176,7 @@ export default function WarehousePage() {
             { label: 'Phiếu nhập', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: 'warning' },
             { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
             { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: currentStockRows.length > 0 ? 'success' : 'warning' },
-            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : 'Không có', tone: shortageLine ? 'danger' : 'success' },
+            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : shortageCount > 0 ? `${shortageCount} dòng thiếu` : 'Không có', tone: shortageCount > 0 ? 'danger' : 'success' },
             { label: 'Bếp nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký', tone: pendingKitchenReceiptCount > 0 ? 'warning' : 'success' },
           ]}
         />
@@ -272,6 +278,12 @@ export default function WarehousePage() {
         <SectionPanel title="Nhu cầu xuất và thiếu hàng">
           <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab">
           <DemandSummary lines={demandLines} />
+          <PaginationBar
+            page={demandPageResponse?.pageNumber ?? demandPage}
+            pageSize={demandPageResponse?.pageSize ?? 8}
+            totalItems={demandPageResponse?.totalCount ?? 0}
+            onPageChange={setDemandPage}
+          />
           <div className="mt-4">
             <RoleInbox
               items={warehouseInbox}
@@ -294,12 +306,14 @@ export default function WarehousePage() {
             title="Thiếu hàng cần xử lí"
             items={[
               {
-                title: shortageLine ? `${shortageLine.material} còn thiếu` : 'Không có thiếu hàng',
+                title: shortageLine ? `${shortageLine.material} còn thiếu` : shortageCount > 0 ? `${shortageCount} dòng đang thiếu` : 'Không có thiếu hàng',
                 description: shortageLine
                   ? 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.'
+                  : shortageCount > 0
+                    ? 'Có dòng nhu cầu thiếu hàng trong các trang dữ liệu. Mở tab nhu cầu xuất để xem từng nguyên liệu.'
                   : 'Các dòng nhu cầu hiện có đủ tồn kho để xử lí.',
-                action: 'Thủ kho: Tạo phiếu xuất kho bổ sung',
-                tone: shortageLine ? 'danger' : 'info',
+                action: shortageCount > 0 ? 'Thủ kho: Tạo phiếu xuất kho bổ sung' : 'Thủ kho: Theo dõi nhu cầu',
+                tone: shortageCount > 0 ? 'danger' : 'info',
               },
               {
                 title: issueDocument ? `Bếp chưa ký nhận ${issueDocument.title}` : 'Chưa có phiếu xuất chờ ký nhận',
