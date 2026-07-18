@@ -341,11 +341,13 @@ Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
 
 Wave 4 remains blocked for visual completion. Functional/accessibility gates pass, but the critical shell and dirty route/global-style ownership boundaries still prevent trustworthy snapshot updates or global shell migration.
 
+Evidence added on 2026-07-18 confirms the blocker is composite rather than a single shell defect: the dirty `WeeklyMenuPage` and `AdminDataPage` feature diffs change route structure and content geometry, while `index.css` carries a large global-style diff. The remaining `DataTableShell` consumer is the user-owned BOM-current table in `AdminDataPage`; there is no clean caller available for the planned low-risk migration. The next step is ownership handoff or baseline reconciliation, not more route code or snapshot changes.
+
 ### Next execution slice — Refactor legacy shell safely
 
-1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype.
+1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype. This evidence is now recorded in `OWNERSHIP.md`.
 2. Add a small contract test for `DataTableShell` public props, region semantics and legacy class preservation; do not change geometry in this step.
-3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally.
+3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally. This step is pending because the current inventory has no clean `DataTableShell` consumer.
 4. Run the complete gate set for that consumer. A visual failure must produce an actual-vs-baseline diff and root-cause note; snapshot updates are forbidden until the diff is explained.
 5. Re-run GitNexus impact for every edited symbol. If the shared shell remains CRITICAL, keep it as a compatibility boundary and move the migration to callers.
 6. Reconcile ownership for `WeeklyMenuPage` and `AdminDataPage` before touching either file. Their existing user changes are not implementation debt that can be overwritten.
