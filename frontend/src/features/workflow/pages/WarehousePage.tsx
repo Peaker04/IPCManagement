@@ -20,7 +20,7 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useCreateInventoryIssueMutation,
-  useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
   useGetIngredientDemandQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
@@ -28,7 +28,6 @@ import {
   useWorkflowOverview,
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '../workflowConfig';
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
@@ -44,6 +43,7 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 
 export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const [currentStockPage, setCurrentStockPage] = useState(1);
   const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
@@ -59,7 +59,11 @@ export default function WarehousePage() {
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'movement' });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 12 });
+  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({
+    pageNumber: currentStockPage,
+    pageSize: 8,
+  }, { skip: activeView !== 'movement' });
+  const currentStockRows = currentStockPageResponse?.items ?? [];
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview();
@@ -75,7 +79,6 @@ export default function WarehousePage() {
   const issueCandidate = demandLines.find((line) => line.materialRequestId);
   const selectedWarehouse = currentStockRows.find((row) => row.warehouseId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
-  const stockPagination = useLocalPagination(currentStockRows, 8);
 
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
@@ -224,7 +227,7 @@ export default function WarehousePage() {
                         <tr>
                           <td colSpan={4} className="text-center text-slate-500">Chưa có dữ liệu tồn kho</td>
                         </tr>
-                      ) : stockPagination.rows.map((row) => (
+                      ) : currentStockRows.map((row) => (
                         <tr key={row.id}>
                           <td>{row.warehouse}</td>
                           <td>{row.ingredient}</td>
@@ -236,10 +239,10 @@ export default function WarehousePage() {
                   </table>
                 </TableViewport>
                 <PaginationBar
-                  page={stockPagination.page}
-                  pageSize={stockPagination.pageSize}
-                  totalItems={stockPagination.totalItems}
-                  onPageChange={stockPagination.setPage}
+                  page={currentStockPageResponse?.pageNumber ?? currentStockPage}
+                  pageSize={currentStockPageResponse?.pageSize ?? 8}
+                  totalItems={currentStockPageResponse?.totalCount ?? 0}
+                  onPageChange={setCurrentStockPage}
                 />
               </SectionPanel>
 
