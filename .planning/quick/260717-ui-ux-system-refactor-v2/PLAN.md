@@ -401,7 +401,7 @@ Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu t
 
 2. **Files allowed to change**
    - `frontend/src/components/common/*`, `frontend/src/components/ui/*` và tests liên quan.
-   - `frontend/src/styles/ui-redesign.css`, `frontend/src/styles/components.css` và stylesheet sạch khác sau selector/reference inventory.
+   - `frontend/src/styles/ui-redesign.css` và stylesheet sạch khác sau selector/reference inventory. `frontend/src/styles/index.css` là stylesheet global đang dirty, chỉ được sửa sau ownership handoff hoặc hunk-level approval; `styles/components.css` không tồn tại trong repo hiện tại và đã bị loại khỏi allowlist.
    - Mỗi route sạch chỉ theo một commit; `WeeklyMenuPage`, `AdminDataPage`, `DashboardPage` và `styles/index.css` chỉ sửa sau ownership handoff hoặc hunk-level approval.
    - `frontend/tests/*` và planning artifacts cho inventory, risk, visual evidence.
 
@@ -427,6 +427,8 @@ Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu t
    - 4.5.1d: thay feedback theo taxonomy, thêm component/route tests cho title, variant, focus, dismiss, keyboard và reduced motion.
    - 4.5.1e: chạy static scan, unit, lint, build, controls, smoke, UI-audit và visual evidence; ghi blocker nếu baseline không đáng tin cậy.
    - 4.5.1f: chạy `detect_changes` trên staged scope, commit một route-family slice và cập nhật plan/risk evidence.
+
+   **Bàn giao bắt buộc của task:** `CSS-JS-INVENTORY.md` phải ghi rõ CSS được giữ/xóa theo source reference; static scan phải phân loại toàn bộ native feedback, timer và logging; mỗi route slice phải có responsive/overflow evidence và dùng đúng Toast, InlineAlert hoặc Dialog theo taxonomy. Không được coi việc không tìm thấy `alert` là bằng chứng đã sửa xong bố cục toàn bộ route.
 
 7. **Tests and commands**
    - `rg -n "window\\.(alert|confirm|prompt)|console\\.(log|warn|error)|setTimeout" frontend/src` và phân loại từng kết quả.
