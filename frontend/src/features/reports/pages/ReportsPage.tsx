@@ -644,7 +644,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'dishGroup' && (
-            <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng nguyên liệu)" icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
                 <table className="ipc-data-table">
                   <thead>
@@ -996,7 +996,7 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'audit' && (
-        <SectionPanel title={`${uiCopy.reports.audit} định lượng, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
+        <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
           <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
