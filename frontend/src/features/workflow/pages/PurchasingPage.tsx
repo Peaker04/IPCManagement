@@ -187,7 +187,7 @@ export default function PurchasingPage() {
           items={[
             { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? formatWorkflowStatus(primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
-            { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
+            { label: 'Bàn giao kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
           ]}
         />
@@ -202,7 +202,7 @@ export default function PurchasingPage() {
           { id: 'purchasing-supplier', label: 'Giá và nhà cung cấp' },
           { id: 'purchasing-quotation', label: 'Báo giá nhà cung cấp' },
           { id: 'purchasing-orders', label: 'Đơn mua hàng' },
-          { id: 'purchasing-handoff', label: 'Handoff kho' },
+          { id: 'purchasing-handoff', label: 'Bàn giao kho' },
         ]}
         activeTab={`purchasing-${activeView}`}
         onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as PurchasingView)}
@@ -298,7 +298,7 @@ export default function PurchasingPage() {
       )}
 
       {activeView === 'handoff' && (
-        <SectionPanel title="Handoff sang kho" icon={<PackageCheck size={18} />}>
+        <SectionPanel title="Bàn giao sang kho" icon={<PackageCheck size={18} />}>
           <div id="purchasing-handoff-panel" role="tabpanel" aria-labelledby="purchasing-handoff-tab">
           <StockMovementTable
             movements={receiptMovements}

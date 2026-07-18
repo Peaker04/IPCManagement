@@ -217,7 +217,7 @@ export default function ApprovalRulesPage() {
         >
           <span className="ipc-command-meta">
             <Settings size={16} />
-            Quản trị thiết lập quy trình phê duyệt & SLA
+            Quản trị thiết lập quy trình phê duyệt và thời hạn xử lý
           </span>
         </CommandBar>
       }
@@ -241,7 +241,7 @@ export default function ApprovalRulesPage() {
                     </div>
                     <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <div>Loại chứng từ: <span className="font-semibold text-slate-700">{formatApprovalDocumentType(rule.documentType)}</span></div>
-                      <div>SLA xử lý: <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
+                      <div>Thời hạn xử lý (SLA): <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
                       {rule.minAmount !== null && (
                         <div className="col-span-2">Ngưỡng tiền: <span className="font-semibold text-slate-700">{rule.minAmount?.toLocaleString('vi-VN')} đ {rule.maxAmount ? ` - ${rule.maxAmount?.toLocaleString('vi-VN')} đ` : ' trở lên'}</span></div>
                       )}
@@ -295,7 +295,7 @@ export default function ApprovalRulesPage() {
           <DialogHeader>
             <DialogTitle>{editingRuleId ? 'Cập nhật quy tắc duyệt' : 'Tạo quy tắc duyệt mới'}</DialogTitle>
             <DialogDescription>
-              Cấu hình điều kiện lọc chứng từ, thời gian SLA tối đa và phân rã các bước phê duyệt tuần tự.
+              Cấu hình điều kiện lọc chứng từ, thời hạn xử lý tối đa (SLA) và phân rã các bước phê duyệt tuần tự.
             </DialogDescription>
           </DialogHeader>
 
@@ -329,7 +329,7 @@ export default function ApprovalRulesPage() {
                 <Input type="number" value={maxAmount} onChange={e => setMaxAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Bỏ trống nếu không xét" />
               </div>
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-slate-600">SLA phê duyệt (Số giờ)</label>
+                <label className="text-xs font-semibold text-slate-600">Thời hạn phê duyệt (giờ)</label>
                 <Input type="number" value={slaHours} onChange={e => setSlaHours(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Ví dụ: 24" />
               </div>
             </div>
