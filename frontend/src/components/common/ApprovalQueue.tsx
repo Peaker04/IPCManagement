@@ -71,7 +71,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
                       return "bg-green-50 text-green-700 border-green-200";
                     })()
                   )}>
-                    SLA: {(() => {
+                    Thời hạn xử lý: {(() => {
                       const diffMs = new Date(record.slaDeadline).getTime() - new Date().getTime();
                       if (diffMs <= 0) return "Quá hạn";
                       const hours = Math.floor(diffMs / (1000 * 60 * 60));

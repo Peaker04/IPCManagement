@@ -120,8 +120,8 @@ describe('ApprovalQueue', () => {
     );
 
     expect(screen.getByText('Đơn mua quá hạn')).toBeInTheDocument();
-    expect(screen.getByText('SLA: Quá hạn')).toBeInTheDocument();
-    expect(screen.getByText('SLA: 2g 30p')).toBeInTheDocument();
+    expect(screen.getByText('Thời hạn xử lý: Quá hạn')).toBeInTheDocument();
+    expect(screen.getByText('Thời hạn xử lý: 2g 30p')).toBeInTheDocument();
     expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
   });
