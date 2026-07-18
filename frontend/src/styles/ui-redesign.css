@@ -30,6 +30,12 @@
   min-width: 720px;
 }
 
+/* Operational tables keep their own horizontal scroll boundary on mobile. */
+.ipc-redesign-shell .ipc-table-container > .ipc-table,
+.ipc-redesign-shell .ipc-warehouse-table-shell > .ipc-data-table {
+  min-width: 720px;
+}
+
 .ipc-redesign-shell .ipc-nav {
   gap: 4px;
   padding: 14px 10px;

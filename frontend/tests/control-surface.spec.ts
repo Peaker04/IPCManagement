@@ -430,6 +430,39 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('purchasing wide tables scroll inside their viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.PURCHASING);
+    await page.getByRole('tab', { name: 'Giá và nhà cung cấp' }).click();
+
+    const tableViewport = page.locator('.ipc-table-container').first();
+    const table = tableViewport.locator('table').first();
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('warehouse stock table scrolls inside its viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WAREHOUSE);
+
+    const tableViewport = page.locator('.ipc-warehouse-table-shell');
+    const table = tableViewport.locator('table');
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('approval actions keep two compact rows on mobile without overflow', async ({ page }) => {
     await stubApprovalQueue(page);
     await page.setViewportSize({ width: 390, height: 844 });
