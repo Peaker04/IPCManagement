@@ -175,7 +175,7 @@ const ReportsPage = () => {
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     shiftName: shiftName || undefined,
-    limit: 100,
+    limit: reportPageSize,
   };
 
   const priceVarianceResult = useGetPriceVariancePageQuery({
@@ -509,7 +509,7 @@ const ReportsPage = () => {
           items={[
             { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
             { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-            { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: 'neutral' },
+            { label: 'Dòng tồn kho', value: (currentStockResult.data?.totalCount ?? currentStockRows.length).toString(), tone: 'neutral' },
             { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
             { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
           ]}
@@ -1039,10 +1039,10 @@ const ReportsPage = () => {
         <SectionPanel title={uiCopy.reports.preProductionQuality} icon={<AlertTriangle size={18} />}>
           <ContextStrip
             items={[
-              { label: 'Tổng issue', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+              { label: 'Tổng vấn đề', value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
               { label: uiCopy.reports.error, value: (dataQualityReport?.errorCount ?? 0).toString(), tone: dataQualityReport?.errorCount ? 'danger' : 'success' },
               { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
-              { label: 'SLA gấp', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
+              { label: 'Vấn đề ưu tiên SLA', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
               { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
               { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },

@@ -340,6 +340,11 @@ test.describe('operational control surface', () => {
     await expect(page.getByLabel('Ca')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+
+    await page.getByRole('tab', { name: 'Chất lượng dữ liệu', exact: true }).click();
+    await expect(page.getByText('Tổng vấn đề', { exact: true })).toBeVisible();
+    await expect(page.getByText('Vấn đề ưu tiên SLA', { exact: true })).toBeVisible();
+    await expect(page.getByText('Tổng issue', { exact: true })).toHaveCount(0);
   });
 
   test('reports wide tables scroll inside their viewport on mobile', async ({ page }) => {
