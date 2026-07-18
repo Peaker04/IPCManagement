@@ -10,11 +10,9 @@ export const uiCopy = {
     nextPage: 'Trang sau',
   },
   technical: {
-    bomCanonical: 'BOM chuẩn',
     bom: 'Định mức nguyên liệu (BOM)',
     blocker: 'Vấn đề chặn xử lý',
     reason: 'Lý do',
-    sourceHash: 'Mã kiểm tra nguồn',
   },
   reports: {
     audit: 'Nhật ký thay đổi',
@@ -33,7 +31,6 @@ export const uiCopy = {
     owner: 'Người phụ trách',
     deadline: 'Hạn xử lý',
     action: 'Thao tác',
-    sla: 'Chỉ tiêu SLA',
     documentCode: 'Mã chứng từ',
     copyDocumentCode: 'Sao chép mã chứng từ',
     lane: 'Luồng vận hành',

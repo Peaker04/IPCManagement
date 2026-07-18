@@ -48,8 +48,8 @@ export default function ChefDashboardPage() {
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
   const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 })
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 })
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 })
+  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 20 })
   const {
     data: kitchenIssueRows = [],
     isLoading: isKitchenIssuesLoading,

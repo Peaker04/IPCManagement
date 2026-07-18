@@ -20,7 +20,6 @@ import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
-  useGetPurchaseRequestsQuery,
   useGetPurchaseRequestsPageQuery,
   useGetCurrentStockQuery,
   useGetStockMovementPageQuery,
@@ -55,10 +54,9 @@ export default function PurchasingPage() {
   const [activeView, setActiveView] = useState<PurchasingView>(
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
   );
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
-  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 }, { skip: activeView === 'orders' });
-  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 }, { skip: activeView !== 'orders' });
+  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
   const { data: receiptMovementPage } = useGetStockMovementPageQuery({
     movementType: 'receipt',
@@ -67,15 +65,13 @@ export default function PurchasingPage() {
     limit: 8,
     sortDirection: 'desc',
   });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
+  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 20 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
-  const purchaseRequests = activeView === 'orders'
-    ? purchaseRequestsResponse?.data ?? []
-    : purchaseRequestsPageResponse?.items ?? [];
+  const purchaseRequests = purchaseRequestsPageResponse?.items ?? [];
   const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
     id: `${row.periodKey}-${row.ingredientId}`,
     ingredientId: row.ingredientId,

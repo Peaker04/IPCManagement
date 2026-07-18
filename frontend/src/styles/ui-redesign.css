@@ -192,7 +192,7 @@
   position: sticky;
   top: 0;
   z-index: 1;
-  background: #f8fafc;
+  background: var(--ipc-slate-50);
 }
 
 @media (max-width: 767px) {
