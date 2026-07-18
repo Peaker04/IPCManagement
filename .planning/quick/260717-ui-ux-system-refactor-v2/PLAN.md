@@ -389,6 +389,7 @@ Completed clean slices:
 - A second CSS inventory batch removed three more unreferenced component selectors (`ipc-compact-select`, `ipc-chef-action-button`, `ipc-dialog-action`) and their associated state rules (`2c7d055`). UI audit `2/2` and lint/build pass again.
 - The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
 - Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
+- Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
 
 Current blockers and next route order:
 
