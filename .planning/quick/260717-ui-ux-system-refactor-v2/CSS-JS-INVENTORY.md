@@ -44,3 +44,6 @@ Ngày kiểm tra: 2026-07-18
 
 - Approvals mobile tái hiện ở `390px`: không có horizontal overflow, action Duyệt/Từ chối/Kiểm tra kho/Sang thu mua vẫn nhìn thấy và modal contract không bị ảnh hưởng.
 - Snapshot cũ ngắn hơn 39px (`1401px` expected, `1440px` actual) trong khi nội dung fixture hiện tại có thêm vùng chứng từ; đây là baseline/data drift, chưa phải bằng chứng để sửa CSS hoặc update snapshot.
+
+- Coordination mobile re-audit found a real layout defect separate from snapshot drift: the generic `.ipc-empty-state` reserved 220px inside the locked-shift panel, leaving a visible gap before the action toolbar. A route-scoped `.ipc-coordination-empty-state` override reduced the actual page height from 1652px to 1596px at 390px while preserving the lock banner and actions. Control, smoke and UI-audit gates remain green; the 1613px snapshot was intentionally not updated.
+- Approval mobile re-audit found no actionable geometry defect: the action grid, queue card, cursor controls and document region are reachable without horizontal overflow. The 1518px actual versus 1401px snapshot is content/fixture drift from the additional approval/document surface, not evidence for CSS deletion or compensating fixed heights.
