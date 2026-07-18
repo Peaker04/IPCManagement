@@ -75,6 +75,9 @@ async function stubOperationalApis(page: Page) {
       },
     ]),
   );
+  await page.route('**/api/coordination/orders**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/coordination/menu-schedules**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/coordination/meal-quantity-plans**', async (route) => fulfillJson(route, []));
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
@@ -189,6 +192,27 @@ async function stubApprovalQueue(page: Page) {
   await page.route('**/api/approval-history/**', async (route) => fulfillJson(route, []));
 }
 
+async function stubApprovalRules(page: Page) {
+  await page.route('**/api/approval-rules**', async (route) =>
+    fulfillJson(route, [{
+      ruleId: 'rule-copy-control',
+      ruleName: 'Duyệt đơn mua thêm',
+      documentType: 'purchase-request',
+      minAmount: null,
+      maxAmount: null,
+      slaHours: 24,
+      isActive: true,
+      approvalassignments: [{
+        assignmentId: 'assignment-copy-control',
+        sequence: 1,
+        approverRole: 'quanly',
+        approverUserId: null,
+        isRequired: true,
+      }],
+    }]),
+  );
+}
+
 async function login(page: Page) {
   await page.goto(ROUTES.LOGIN);
   await page.getByLabel('Tài khoản').fill('admin');
@@ -260,6 +284,146 @@ test.describe('operational control surface', () => {
 
     await page.getByRole('button', { name: 'Thêm quy tắc' }).click();
     await expect(page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' })).toBeVisible();
+  });
+
+  test('approval rules translates technical keys into user-facing labels', async ({ page }) => {
+    await stubApprovalRules(page);
+    await page.goto(ROUTES.APPROVAL_RULES);
+
+    await expect(page.getByText('Loại chứng từ:').locator('..')).toContainText('Đơn mua thêm');
+    await expect(page.getByText('Quản lý', { exact: true })).toBeVisible();
+    await expect(page.getByText('purchase-request', { exact: true })).toHaveCount(0);
+    await expect(page.getByText('quanly', { exact: true })).toHaveCount(0);
+  });
+
+  test('approval rule form stacks primary fields on narrow mobile screens', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(ROUTES.APPROVAL_RULES);
+    await page.getByRole('button', { name: 'Thêm quy tắc' }).click();
+
+    const dialog = page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' });
+    const formGrid = dialog.locator('.ipc-approval-rule-form-grid');
+    const positions = await formGrid.locator(':scope > div').evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: Math.round(rect.left), width: Math.round(rect.width) };
+      }),
+    );
+    expect(positions).toHaveLength(2);
+    expect(Math.abs(positions[0].left - positions[1].left)).toBeLessThanOrEqual(1);
+    expect(positions.every((position) => position.width > 240)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.REPORTS);
+
+    await expect(page.getByRole('heading', { name: 'Phân tích biến động giá', exact: true })).toBeVisible();
+    await expect(page.getByLabel('Từ ngày')).toBeVisible();
+    await expect(page.getByLabel('Đến ngày')).toBeVisible();
+    await expect(page.getByLabel('Ca')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await page.goto(ROUTES.CHEF_DASHBOARD);
+
+    const emptyState = page.locator('.ipc-chef-empty-state');
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState).toHaveCSS('min-height', '0px');
+    await expect(page.getByText('Nhật ký ca', { exact: true })).toBeVisible();
+  });
+
+  test('meal coordination empty state does not reserve desktop height on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.MEAL_ORDERS);
+
+    await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
+    await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('warehouse actions use equal-width mobile controls without overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WAREHOUSE);
+
+    const actionGroup = page.locator('.ipc-warehouse-actions');
+    await expect(actionGroup).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tạo phiếu xuất kho' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Bàn giao cho bếp' })).toBeVisible();
+    const widths = await actionGroup.locator(':scope > div:last-child > *').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().width)),
+    );
+    expect(widths.length).toBe(3);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('purchasing actions use equal-width mobile controls without overflow', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.PURCHASING);
+
+    const actionGroup = page.locator('.ipc-purchasing-actions');
+    await expect(actionGroup).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chọn nhà cung cấp' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Chuyển sang nhập kho' })).toBeVisible();
+    const widths = await actionGroup.locator(':scope > div:last-child > *').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().width)),
+    );
+    expect(widths.length).toBe(3);
+    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('purchasing quotation form stacks fields on mobile without overflow', async ({ page }) => {
+    await page.route('**/api/ingredients**', async (route) =>
+      fulfillJson(route, {
+        items: [{ ingredientId: 'ingredient-mobile', ingredientName: 'Sườn heo', isActive: true }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 500,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      }),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.PURCHASING);
+    await page.getByRole('tab', { name: 'Báo giá nhà cung cấp' }).click();
+    await page.locator('.ipc-quotation-ingredient').selectOption('ingredient-mobile');
+
+    const formGrid = page.locator('.ipc-quotation-form-grid');
+    await expect(formGrid).toBeVisible();
+    const positions = await formGrid.locator(':scope > *').evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: Math.round(rect.left), width: Math.round(rect.width) };
+      }),
+    );
+    expect(positions).toHaveLength(5);
+    expect(new Set(positions.map((position) => position.left)).size).toBe(1);
+    expect(positions.every((position) => position.width > 280)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('approval actions keep two compact rows on mobile without overflow', async ({ page }) => {
+    await stubApprovalQueue(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.APPROVALS);
+
+    const actionGroup = page.locator('.ipc-approval-actions');
+    await expect(actionGroup).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Duyệt' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sang thu mua' })).toBeVisible();
+    await expect(actionGroup.locator(':scope > div')).toHaveCount(2);
+    const rowHeights = await actionGroup.locator(':scope > div').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().height)),
+    );
+    expect(rowHeights.every((height) => height > 0)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
