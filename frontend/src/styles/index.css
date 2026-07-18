@@ -1038,11 +1038,6 @@ code {
   overflow-wrap: anywhere;
 }
 
-.ipc-weekly-command-actions {
-  min-width: 0;
-  justify-content: flex-end;
-}
-
 .ipc-weekly-dialog {
   max-height: min(86dvh, 760px);
   overflow: auto;
@@ -3703,13 +3698,11 @@ code {
     flex: 1 1 auto;
   }
 
-  .ipc-weekly-command-actions,
   .ipc-order-action-buttons {
     width: 100%;
     justify-content: stretch;
   }
 
-  .ipc-weekly-command-actions .ipc-button,
   .ipc-order-action-buttons button {
     width: 100%;
     max-width: 100%;
