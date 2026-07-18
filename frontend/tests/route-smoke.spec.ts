@@ -1137,6 +1137,20 @@ test.describe('route smoke', () => {
     await expect(page.getByText('Trang 2, tải theo cursor')).toBeVisible();
   });
 
+  test('warehouse movement uses bounded server cursor pages', async ({ page }) => {
+    await stubProductionReportStages(page);
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Kho nguyên liệu' }).click();
+    await expect(page).toHaveURL(ROUTES.WAREHOUSE);
+
+    const movementTable = page.getByLabel('Bảng biến động kho');
+    await expect(movementTable.getByText('Gạo tẻ trang 1')).toBeVisible();
+    await page.getByRole('button', { name: 'Trang sau' }).click();
+    await expect(movementTable.getByText('Sườn heo trang 2')).toBeVisible();
+    await expect(page.getByText('Trang 2, tải theo cursor')).toBeVisible();
+  });
+
   test('reports cover filters, export, and audit grouping with seeded workflow stages', async ({ page }) => {
     const reportRequests = await stubProductionReportStages(page);
     await page.setViewportSize({ width: 1365, height: 900 });
