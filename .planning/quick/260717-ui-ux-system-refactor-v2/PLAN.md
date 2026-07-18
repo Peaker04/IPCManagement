@@ -392,12 +392,14 @@ Completed clean slices:
 - Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
 - Workflow document statuses now use a shared `formatWorkflowStatus` label map for the shared `DocumentRail`; the Warehouse exception copy uses the same helper while raw values remain available for logic (`08e7b3f`). Unit `76/76`, lint, build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. GitNexus classified `DocumentRail` as HIGH because it has four direct page callers; mitigation is display-only mapping plus serial route gates.
 - Approval queue status badges now consume the same semantic status formatter; raw enum values remain unchanged in the record model (`6e9126d`). CSS inventory also removed the isolated, unreferenced `.ipc-chef-action-note` block after confirming it was outside the dirty stylesheet diff (`430f5ed`); UI audit `2/2` and lint/build pass.
+- Stock movement status and next-action cells now consume the shared formatter without changing movement types, cursor/local pagination or copy behavior (`4a987ab`). The demand summary no longer maintains a duplicate status map and now shares the same vocabulary (`43d2a7e`). A further CSS inventory pass removed the unreferenced `.ipc-approval-record-meta` block with selective staging; the 641-line dirty stylesheet addition remains preserved (`8de0110`).
+- Role inbox action renderers now receive a display-safe copy of `nextAction`, translating technical workflow enums without mutating the source item or route logic (`7729347`). The purchase-request list in ApprovalPage also uses the shared status formatter (`7dc6453`). Unit `76/76`, build, controls `4/4`, smoke `14/14` and UI audit `2/2` remain green.
 
 Current blockers and next route order:
 
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
-- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared `RoleInbox` action text and `StockMovementTable` status/action copy still require their own impact gate; `RoleInbox` also depends on dirty `workflowApi`/Dashboard caller ownership.
+- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
 
 Allowed files for the first clean slice:
 
