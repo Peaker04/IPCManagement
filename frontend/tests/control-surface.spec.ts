@@ -464,6 +464,22 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('weekly menu matrix keeps day columns readable inside its viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WEEKLY_MENU);
+
+    const tableViewport = page.locator('.ipc-weekly-menu-shell');
+    const table = tableViewport.locator('.ipc-schedule-table');
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '980px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('approval actions keep two compact rows on mobile without overflow', async ({ page }) => {
     await stubApprovalQueue(page);
     await page.setViewportSize({ width: 390, height: 844 });

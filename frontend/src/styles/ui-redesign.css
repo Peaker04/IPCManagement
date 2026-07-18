@@ -35,6 +35,11 @@
   min-height: 0;
 }
 
+/* Weekly menu matrices need a readable column width; the viewport owns mobile scrolling. */
+.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table {
+  min-width: 980px;
+}
+
 /* Operational tables keep their own horizontal scroll boundary on mobile. */
 .ipc-redesign-shell .ipc-table-container > .ipc-table,
 .ipc-redesign-shell .ipc-warehouse-table-shell > .ipc-data-table {
