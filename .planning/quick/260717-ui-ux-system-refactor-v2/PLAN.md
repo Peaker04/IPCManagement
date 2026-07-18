@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-report-families-complete-ownership-gate-open
+status: wave-4-gates-executed-visual-ownership-blocked
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -254,8 +254,62 @@ Admin audit cursor-pagination slice:
 - `AdminDataPage` Audit now uses the existing `audit-changes/page` cursor contract with a page size of 8 and only requests audit data while the Audit tab is active.
 - Filter changes and reset clear cursor history; next/previous navigation uses the canonical `CursorPaginationBar`. The table no longer downloads the full audit list before slicing locally.
 - Ownership was enforced hunk-by-hunk. GitNexus classified `AdminDataPage` as LOW impact; the staged scope contained only that file and no BOM/import/contract changes.
-- Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commit: `ea4938b`.
-- Known boundary: Admin cleanup, data-quality, current stock, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+- Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commits: `ea4938b` (Audit cursor wiring) and `8f39660` (Audit display cleanup plus current-stock page migration).
+- Known boundary: Admin statistics still uses bounded legacy kitchen/usage list endpoints because the current page contracts do not expose report-wide quantity aggregates; replacing them with an 8-row page would silently change totals.
+
+Admin price-warning page slice:
+
+- Added the explicit `warningOnly` report contract and migrated the Admin price-warning table to `receipt-price-variance/page` with server page metadata and page size 8.
+- Warning counts and summary status now use API `totalCount`; the table renders only warning rows, so page navigation no longer filters a full client list after download.
+- Risk note: warning eligibility is expressed in the query as `UnitPrice >= ReferencePrice * 1.15` for positive reference prices, matching the existing 15% calculator threshold. A future central threshold setting should replace this literal when the domain policy becomes configurable.
+- Ownership was preserved despite the pre-existing dirty `WorkflowReportService.cs`; only the DTO/query-builder hunk and owned Admin/frontend contract hunks were staged. GitNexus staged detection: 4 files, 1 indexed symbol, 0 processes, LOW. Commit: `e152b06`.
+- Evidence: frontend lint/unit/build pass (`72/72`); backend tests pass `267/267` with `--no-build` because the running API process locked apphost during the build-enabled test command.
+
+Admin data-quality page slice:
+
+- `AdminDataPage` cleanup now consumes `data-quality/page` with page size 8, renders only the server page and keeps the shared `PaginationBar` bound to API metadata.
+- Summary semantics remain report-wide: total issues, error tone, missing BOM, unit/conversion, negative stock, orphan, SLA and resolved counters still come from the report summary rather than the visible page.
+- Ownership was enforced hunk-by-hunk; BOM and contract feature changes remained unstaged. GitNexus classified `AdminDataPage` as LOW, with 1 staged file, 1 symbol and 0 affected processes.
+- Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
+- Known boundary: Admin statistics remains the next contract-design slice; it needs explicit report-wide quantity aggregates before its bounded table endpoints can be reused without changing semantics.
+
+Admin purchase-summary query slice:
+
+- Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
+- The user-facing statistic remains the same while the payload is bounded; no purchase table or backend behavior was changed.
+- GitNexus impact/detect for the owned `AdminDataPage` change was LOW: 1 file, 1 symbol, 0 processes. Commit: `c1379ac`.
+- Evidence: frontend lint/unit/build pass (`72/72`).
+
+Admin ingredient-demand summary slice:
+
+- Statistics now uses `ingredient-demand/page` with page size 8 and reads the report-wide `shortageCount` aggregate instead of downloading 100 demand rows to count shortage lines.
+- The visible statistic and status copy remain unchanged; only the transport payload and source of the aggregate were corrected.
+- GitNexus impact/detect: LOW, 1 file, 1 symbol, 0 processes. Commit: `eb084b7`.
+- Evidence: frontend lint/build pass and unit suite `72/72`.
+
+Admin current-stock page slice:
+
+- `AdminDataPage` inventory now consumes `current-stock/page` with an API page size of 8, binds the table rows directly to the server page and preserves the context-strip total through `totalCount`.
+- The existing `PaginationBar` remains the shared control; local `usePaginatedRows` slicing is removed for this table. Audit's missing display binding was corrected in the same ownership-safe pass after verification caught it.
+- Evidence: frontend lint/unit/build pass (`72/72` unit tests); staged GitNexus detection reported 1 file, 1 symbol, 0 processes, LOW. Commit: `8f39660`.
+- Known boundary: Admin statistics, cleanup and price-warning transport slices are now migrated; remaining Admin work is visual reconciliation and compatibility cleanup, not another unbounded list fetch.
+
+Admin stock-adjustment cursor slice:
+
+- `AdminDataPage` Inventory now requests `stock-movements/page` only while the Inventory tab is active, with `movementType=adjustment` and a cursor page size of 8; the previous `limit:100` fetch plus client-side filtering is removed.
+- `WorkflowReportQueryDto`/`WorkflowReportService` now support an optional case-insensitive `MovementType` filter. Existing callers remain unchanged when the filter is absent, while the Admin page can page only adjustment rows without losing rows because other movement types occupied the source page.
+- The table keeps `StockMovementTable` as a presentation component and uses the canonical `CursorPaginationBar` for server navigation. Its internal local pager is inert for an 8-row server page, so no duplicate controls are rendered.
+- Ownership was enforced with a five-file narrow stage; the pre-existing BOM/contract changes in `AdminDataPage`, `WorkflowReportService` and `WorkflowGenerationTests` remained outside the commit. GitNexus staged detection reported 5 files, 1 indexed symbol, 0 processes, LOW.
+- Evidence: backend build and `267/267` tests pass; frontend lint, unit `72/72` and production build pass. Commit: `342a681`.
+- Risk boundary: GitNexus could not index the backend service/DTO symbols (`UNKNOWN` impact), so the filter was verified through direct compile and focused regression assertion rather than treated as zero-risk. The endpoint still materializes up to `limit + 1` rows before cursor metadata; this is bounded UI pagination, not a claim of fully database-lazy history scanning.
+
+Admin kitchen-statistics aggregate slice:
+
+- `OperationalKpiSummaryDto` now exposes report-wide issued, used and returned kitchen quantities. The service calculates them from issue lines and matching return/waste records, preserving the existing used-quantity rule (`max(0, issued - returned - waste)`).
+- `AdminDataPage` statistics no longer requests kitchen-issue and usage lists with `limit:100` merely to sum visible rows; it reads the bounded KPI response instead. Existing KPI count fields and all other consumers remain unchanged.
+- Ownership was preserved with a four-file narrow stage; the dirty BOM/contract changes in `AdminDataPage` and `WorkflowReportService` remained outside the commit. Commit: `71f69ff`.
+- Evidence: backend build, `267/267` tests, frontend lint, unit `72/72` and production build pass. GitNexus returned UNKNOWN for backend KPI symbols and LOW for the Admin page; this remains an explicit contract risk, not an ignored warning.
+- Known boundary: the aggregate currently loads distinct issue IDs before summing matching return records. This is correct and bounded at the UI boundary, but a future DB-side grouped aggregate should replace the ID materialization for very large histories.
 
 Critical shell gate result — `DataTableShell`:
 
@@ -267,6 +321,15 @@ Critical shell gate result — `DataTableShell`:
 - Direct inventory boundary: GitNexus does not index `usePaginatedRows`; its impact/detect scope is therefore recorded as `UNKNOWN`/`No changes detected`, with source diff, compatibility API review and full frontend gates used as the verification evidence.
 - Ownership manifest: `OWNERSHIP.md` defines the dirty route boundaries and the exact reconciliation gate required before touching `WeeklyMenuPage` or `AdminDataPage`.
 
+Wave 4 gate execution:
+
+- Controls gate: `4/4` passed. Dialog naming, action reachability and protected-route controls remain addressable.
+- Route smoke: `13/13` passed after updating fixtures to the current page-number/cursor contracts. The test now waits for lazy tab activation before asserting the relevant request, instead of assuming every report tab loads eagerly.
+- UI audit: `2/2` passed, including the Admin data-quality stress table and action readability check.
+- Visual regression: `8/20` passed and `12/20` failed, matching the previously recorded baseline failure shape. Failures remain concentrated in WeeklyMenu, Reports, AdminData and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
+- The visual gate was run sequentially to avoid Vite cache races (`EPERM` rename) observed when Playwright projects were launched in parallel. Commit `859c97d` records only fixture contract corrections; no product snapshot or protected global-style change was staged.
+- Release verification initially caught two stale Admin badge references after removing the legacy kitchen/usage hooks; they were changed to use the new KPI aggregates and reverified by a successful frontend production build. Fix commit: `874de3b`.
+
 ### Wave 4 — Accessibility and visual verification
 
 Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
@@ -276,17 +339,61 @@ Chỉ bắt đầu lại sau khi Wave 0–3 đạt exit criteria.
 - Body overflow, nested scroll, sticky header, action reachability, long-cell wrapping.
 - Playwright controls, route smoke, ui-audit, visual routes; nếu auth/backend fail thì phân loại và sửa root cause trước khi rerun.
 
-Wave 4 is intentionally paused. Its gates cannot be used to authorize more visual changes while the critical shell and dirty ownership boundaries remain unresolved.
+Wave 4 remains blocked for visual completion. Functional/accessibility gates pass, but the critical shell and dirty route/global-style ownership boundaries still prevent trustworthy snapshot updates or global shell migration.
+
+Evidence added on 2026-07-18 confirms the blocker is composite rather than a single shell defect: the dirty `WeeklyMenuPage` and `AdminDataPage` feature diffs change route structure and content geometry, while `index.css` carries a large global-style diff. The remaining `DataTableShell` consumer is the user-owned BOM-current table in `AdminDataPage`; there is no clean caller available for the planned low-risk migration. The next step is ownership handoff or baseline reconciliation, not more route code or snapshot changes.
+
+GitNexus was force-refreshed after a stale-index discrepancy was detected. The graph still reports `DataTableShell` as CRITICAL (16 symbols, 12 flows), despite the current source inventory showing one production consumer. This unresolved discrepancy is itself a risk gate: cleanup must wait until graph edges are reconciled with source, and the higher-risk result must not be dismissed.
 
 ### Next execution slice — Refactor legacy shell safely
 
-1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype.
+1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype. This evidence is now recorded in `OWNERSHIP.md`.
 2. Add a small contract test for `DataTableShell` public props, region semantics and legacy class preservation; do not change geometry in this step.
-3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally.
+3. Select one clean, low-impact legacy consumer and migrate its caller to `TableViewport`; do not make `DataTableShell` delegate globally. This step is pending because the current inventory has no clean `DataTableShell` consumer.
 4. Run the complete gate set for that consumer. A visual failure must produce an actual-vs-baseline diff and root-cause note; snapshot updates are forbidden until the diff is explained.
 5. Re-run GitNexus impact for every edited symbol. If the shared shell remains CRITICAL, keep it as a compatibility boundary and move the migration to callers.
 6. Reconcile ownership for `WeeklyMenuPage` and `AdminDataPage` before touching either file. Their existing user changes are not implementation debt that can be overwritten.
 7. Only after all consumers are migrated, remove `DataTableShell`/legacy CSS in a separate cleanup commit with a full visual and accessibility gate.
+
+### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
+
+Status: added 2026-07-18; pending ownership and visual-baseline reconciliation.
+
+Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
+
+Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu tiên clarity, trust và density trung bình. Dials: `DESIGN_VARIANCE=3`, `MOTION_INTENSITY=2`, `VISUAL_DENSITY=5`. Một accent IPC blue, một hệ radius, không thêm UI kit thứ hai. `lucide-react` được giữ vì project đã dùng sẵn; không đưa thêm icon library.
+
+Scope:
+
+- Audit toàn bộ `frontend/src` và route snapshots cho duplicate CSS, fixed widths gây overflow, nested scroll, mobile stacking, sidebar/content duplication, heading/button wrapping và feedback đặt sai vùng.
+- Giữ CSS có trách nhiệm rõ: design tokens, layout primitives, responsive rules, focus/contrast và state styles. Xóa hoặc gom CSS chỉ khi có evidence từ source inventory, computed layout hoặc visual test.
+- Tìm và loại bỏ `window.alert`, `window.confirm`, `window.prompt`, console-driven user feedback và các `setTimeout`/effect chỉ dùng để giả lập thông báo. Không xóa logging phục vụ chẩn đoán backend nếu không có replacement phù hợp.
+- Xây shared `ToastProvider`/`useToast` typed cho feedback tạm thời; dùng `InlineAlert` cho lỗi/loading/empty theo vùng; dùng shadcn/Radix `Dialog` cho confirm hoặc nội dung cần người dùng quyết định. Mỗi surface phải có title, variant, close/focus behavior và reduced-motion-safe styling.
+- Chuẩn hóa page anatomy: một `OperationalFrame`, một page header, một command area, một status/feedback region và một table viewport; không lặp sidebar, user panel, breadcrumb, title hoặc cùng một action ở nhiều tầng.
+- Migrate route theo nhóm: shell/dashboard, workflow/coordination, weekly-menu/admin (chỉ sau ownership handoff), reports, chef/purchasing/warehouse.
+
+Allowed files for the first clean slice:
+
+- `frontend/src/components/common/*` feedback/layout primitives and tests.
+- `frontend/src/components/ui/dialog.tsx` and new typed toast primitive if required by the existing stack.
+- `frontend/src/styles/*` only after token/static audit identifies an isolated safe rule; global `index.css` remains protected for route-owned changes.
+- planning artifacts and test fixtures. Dirty route files remain protected until handoff.
+
+Implementation contract:
+
+1. Build an inventory of every feedback mechanism and CSS class before editing.
+2. Run GitNexus upstream impact for each shared symbol before modification; HIGH/CRITICAL results require a warning and caller-by-caller migration.
+3. Preserve mutation handlers, API payloads, route labels, technical identifiers and existing focus/keyboard behavior.
+4. Use typed semantic copy such as `Đã lưu`, `Không thể tải dữ liệu`, `Cần xác nhận`, `Đang xử lý`; do not expose raw enum names such as `Error`, `Pending`, `Action` or `Contract` without a user-facing label.
+5. Test desktop and mobile geometry after each route group. No snapshot update is allowed until actual-vs-baseline diff has a root-cause note.
+
+Exit criteria:
+
+- Static scan reports no unapproved browser alert/confirm/prompt or user-facing console feedback.
+- Shared feedback primitive tests cover success, warning, danger, dismiss, focus and reduced-motion behavior.
+- Each route has one shell/header/feedback region and no known horizontal overflow or duplicated navigation surface at 390px and desktop viewports.
+- Existing mutation/API and accessibility gates remain green; visual failures are either fixed or documented with exact root cause.
+- CSS cleanup has a before/after inventory and does not remove tokens, focus styles, responsive rules or styles still referenced by dirty user-owned work.
 
 ### Wave 5 — Cleanup and release gate
 

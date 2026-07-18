@@ -34,10 +34,12 @@ export interface WorkflowReportQuery {
   sortDirection?: 'asc' | 'desc';
   actor?: string;
   businessArea?: string;
+  movementType?: string;
   entityName?: string;
   fieldName?: string;
   groupBy?: 'day' | 'week';
   priceTier?: number;
+  warningOnly?: boolean;
 }
 
 export interface WorkflowReportPageQuery extends WorkflowReportQuery {
@@ -578,6 +580,9 @@ export interface OperationalKpiSummaryDto {
   failedWorkflowCount: number;
   criticalDataQualityCount: number;
   overdueApprovalCount: number;
+  totalKitchenIssuedQty: number;
+  totalKitchenUsedQty: number;
+  totalKitchenReturnedQty: number;
   generatedAt: string;
 }
 

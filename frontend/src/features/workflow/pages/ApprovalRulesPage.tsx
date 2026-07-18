@@ -5,6 +5,7 @@ import {
   SectionPanel,
   CommandBar,
   StatusBadge,
+  useToast,
 } from '@/components/common';
 import {
   useGetApprovalRulesQuery,
@@ -40,6 +41,7 @@ const formatMutationError = (error: unknown) => {
 };
 
 export default function ApprovalRulesPage() {
+  const { toast } = useToast();
   const { data: rulesResponse, isLoading: isLoadingRules } = useGetApprovalRulesQuery();
   const rules = rulesResponse?.data ?? [];
 
@@ -51,6 +53,7 @@ export default function ApprovalRulesPage() {
   const [deleteRule, { isLoading: isDeleting }] = useDeleteApprovalRuleMutation();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   
   const [ruleName, setRuleName] = useState('');
@@ -129,7 +132,7 @@ export default function ApprovalRulesPage() {
 
   const handleSubmit = async () => {
     if (!ruleName.trim()) {
-      alert('Vui lòng nhập tên quy tắc.');
+      toast({ title: 'Thiếu tên quy tắc', description: 'Vui lòng nhập tên để dễ nhận biết luồng phê duyệt.', variant: 'warning' });
       return;
     }
 
@@ -151,24 +154,27 @@ export default function ApprovalRulesPage() {
     try {
       if (editingRuleId) {
         await updateRule({ id: editingRuleId, body: payload }).unwrap();
-        alert('Cập nhật quy tắc duyệt thành công.');
+        toast({ title: 'Đã cập nhật quy tắc duyệt', variant: 'success' });
       } else {
         await createRule(payload).unwrap();
-        alert('Tạo quy tắc duyệt thành công.');
+        toast({ title: 'Đã tạo quy tắc duyệt', variant: 'success' });
       }
       setIsModalOpen(false);
     } catch (err) {
-      alert('Lỗi khi lưu quy tắc: ' + formatMutationError(err));
+      toast({ title: 'Chưa thể lưu quy tắc', description: formatMutationError(err), variant: 'danger', durationMs: 0 });
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Bạn có chắc chắn muốn xóa quy tắc duyệt này?')) return;
+  const handleDelete = (id: string) => setDeleteTargetId(id);
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTargetId) return;
     try {
-      await deleteRule(id).unwrap();
-      alert('Đã xóa quy tắc duyệt.');
+      await deleteRule(deleteTargetId).unwrap();
+      setDeleteTargetId(null);
+      toast({ title: 'Đã xóa quy tắc duyệt', variant: 'success' });
     } catch (err) {
-      alert('Lỗi khi xóa quy tắc: ' + formatMutationError(err));
+      toast({ title: 'Chưa thể xóa quy tắc', description: formatMutationError(err), variant: 'danger', durationMs: 0 });
     }
   };
 
@@ -392,6 +398,23 @@ export default function ApprovalRulesPage() {
           <DialogFooter className="gap-2 border-t border-slate-100 pt-3">
             <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Hủy</Button>
             <Button type="button" onClick={handleSubmit} disabled={isCreating || isUpdating}>Lưu cấu hình</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={deleteTargetId !== null} onOpenChange={(open) => !open && setDeleteTargetId(null)}>
+        <DialogContent aria-label="Xác nhận xóa quy tắc duyệt" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Xóa quy tắc duyệt?</DialogTitle>
+            <DialogDescription>
+              Quy tắc sẽ không còn được áp dụng cho các chứng từ mới. Hãy xác nhận nếu bạn muốn tiếp tục.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={() => setDeleteTargetId(null)} disabled={isDeleting}>Hủy</Button>
+            <Button type="button" variant="destructive" onClick={handleConfirmDelete} disabled={isDeleting}>
+              {isDeleting ? 'Đang xóa...' : 'Xóa quy tắc'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
