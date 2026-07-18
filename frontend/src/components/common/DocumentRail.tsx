@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
@@ -7,6 +7,7 @@ import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
 import type { WorkflowDocument } from '@/features/workflow';
 import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { useToast } from './useToast';
 
 interface DocumentRailProps {
   documents: WorkflowDocument[];
@@ -24,7 +25,7 @@ const toneClasses = {
 };
 
 export function DocumentRail({ documents, title = 'Chứng từ workflow', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
-  const [copiedDocumentId, setCopiedDocumentId] = useState<string | null>(null);
+  const { toast } = useToast();
   const pagination = useLocalPagination(documents, pageSize);
 
   if (!documents.length) {
@@ -34,12 +35,9 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
   const handleCopyDocumentId = async (documentId: string) => {
     try {
       await navigator.clipboard.writeText(documentId);
-      setCopiedDocumentId(documentId);
-      window.setTimeout(() => {
-        setCopiedDocumentId((current) => (current === documentId ? null : current));
-      }, 1400);
+      toast({ title: 'Đã sao chép mã chứng từ', description: documentId, variant: 'success' });
     } catch {
-      setCopiedDocumentId(null);
+      toast({ title: 'Không thể sao chép mã chứng từ', description: 'Trình duyệt không cho phép truy cập clipboard.', variant: 'warning' });
     }
   };
 
@@ -75,7 +73,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
                   title="Sao chép mã chứng từ"
                   onClick={() => void handleCopyDocumentId(document.id)}
                 >
-                  {copiedDocumentId === document.id ? <Check size={14} /> : <Copy size={14} />}
+                  <Copy size={14} />
                 </button>
               </dd>
             </div>

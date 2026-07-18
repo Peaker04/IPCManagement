@@ -12,7 +12,7 @@ const laneBase: Array<Pick<WorkflowLane, 'id' | 'label' | 'owner' | 'stage' | 'r
   },
   {
     id: 'planning',
-    label: 'KHSX',
+    label: 'Kế hoạch sản xuất',
     owner: 'Kế hoạch định lượng',
     stage: 'Kiểm tồn kho',
     route: ROUTES.WEEKLY_MENU,
@@ -56,7 +56,7 @@ const laneBase: Array<Pick<WorkflowLane, 'id' | 'label' | 'owner' | 'stage' | 'r
     owner: 'Quản trị dữ liệu',
     stage: 'Điều chỉnh / thông báo',
     route: ROUTES.ADMIN_DATA,
-    nextAction: 'Kiểm tra audit và BOM',
+    nextAction: 'Kiểm tra nhật ký và định lượng',
   },
 ];
 

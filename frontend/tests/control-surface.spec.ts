@@ -35,9 +35,21 @@ async function stubOperationalApis(page: Page) {
       username: 'admin',
       fullName: 'Admin User',
       roleName: 'Admin',
+      isAdminFullAccess: true,
+      permissions: ['*'],
     });
   });
   await page.route('**/api/approvals/inbox**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/approval-rules**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/admin/employees**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 200,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
   await page.route('**/api/dishes/catalog**', async (route) => fulfillJson(route, []));
@@ -236,6 +248,18 @@ test.describe('operational control surface', () => {
       await expect(page.locator('.ipc-page-title')).toHaveText(route.heading);
       await expectVisibleControlsAreNamed(page);
     }
+  });
+
+  test('approval rules keeps its page anatomy and controls reachable on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(ROUTES.APPROVAL_RULES);
+
+    await expect(page.getByRole('heading', { name: 'Quy tắc phê duyệt', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Thêm quy tắc' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+
+    await page.getByRole('button', { name: 'Thêm quy tắc' }).click();
+    await expect(page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' })).toBeVisible();
   });
 
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {

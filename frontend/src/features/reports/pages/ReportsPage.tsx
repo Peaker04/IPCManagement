@@ -113,7 +113,7 @@ type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
 const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
   { id: 'lines', label: 'Theo dòng nhập' },
-  { id: 'supplier', label: 'Theo NCC' },
+  { id: 'supplier', label: 'Theo nhà cung cấp' },
   { id: 'period', label: 'Theo thời gian' },
   { id: 'dishGroup', label: 'Theo nhóm món' },
 ];
@@ -525,13 +525,13 @@ const ReportsPage = () => {
 
       {activeReportState.isFetching && (
         <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">
-          Hệ thống đang lấy dữ liệu từ API workflow report cho tab đang mở.
+          Hệ thống đang lấy dữ liệu báo cáo quy trình cho tab đang mở.
         </InlineAlert>
       )}
 
       {activeReportState.isError && (
         <InlineAlert title="Không tải được dữ liệu báo cáo" variant="danger">
-          Vui lòng kiểm tra API backend, quyền truy cập hoặc dữ liệu import mẫu trước khi đối chiếu.
+          Vui lòng kiểm tra quyền truy cập hoặc dữ liệu mẫu trước khi đối chiếu.
         </InlineAlert>
       )}
 
@@ -644,7 +644,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'dishGroup' && (
-            <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng BOM)" icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
                 <table className="ipc-data-table">
                   <thead>
@@ -846,7 +846,7 @@ const ReportsPage = () => {
                   <th>Tồn</th>
                   <th>{uiCopy.reports.pending}</th>
                   <th>Đề xuất mua</th>
-                  <th>NCC</th>
+                    <th>Nhà cung cấp</th>
                   <th>Cảnh báo</th>
                 </tr>
               </thead>
@@ -996,7 +996,7 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'audit' && (
-          <SectionPanel title={`${uiCopy.reports.audit} BOM, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
+        <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
           <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
@@ -1043,7 +1043,7 @@ const ReportsPage = () => {
               { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
               { label: 'SLA gấp', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
               { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
-              { label: 'Thiếu BOM', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
+              { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
           />

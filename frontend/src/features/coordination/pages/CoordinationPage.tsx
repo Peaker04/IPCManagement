@@ -62,7 +62,7 @@ export default function CoordinationPage() {
   const plannedDishLabel = backendMenuName || plannedMenuName || (plannedDishId ? 'Theo thực đơn đã nhập' : 'Chưa có dữ liệu')
   const loading = ordersQuery.isLoading || ordersQuery.isFetching || menusQuery.isLoading || plansQuery.isLoading
   const error = ordersQuery.isError
-    ? 'Không tải được danh sách suất ăn từ API điều phối.'
+    ? 'Không tải được danh sách suất ăn từ hệ thống điều phối.'
     : localError
   const orderStatus = loading ? 'syncing' : backendStatus || (effectiveIsLocked ? 'locked' : 'draft')
 
@@ -92,7 +92,7 @@ export default function CoordinationPage() {
         )}
         {loading && (
           <InlineAlert title="Đang tải dữ liệu điều phối" variant="info">
-            Hệ thống đang lấy danh sách suất ăn từ backend.
+            Hệ thống đang lấy danh sách suất ăn mới nhất.
           </InlineAlert>
         )}
         <OrderStatusBanner status={orderStatus} />
