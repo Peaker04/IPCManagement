@@ -387,6 +387,7 @@ Completed clean slices:
 - Purchasing handoff history now uses the receipt-filtered cursor endpoint and price warning context uses the page-number endpoint; both remove the previous unbounded report collections without changing order/receipt mutations (`ba71e7e`).
 - CSS inventory found 251 `.ipc-*` selectors in the clean stylesheet; four isolated selectors had zero non-CSS source references and were removed without staging the dirty dashboard CSS addition (`36bd716`). UI audit `2/2` and lint/build pass.
 - A second CSS inventory batch removed three more unreferenced component selectors (`ipc-compact-select`, `ipc-chef-action-button`, `ipc-dialog-action`) and their associated state rules (`2c7d055`). UI audit `2/2` and lint/build pass again.
+- The next inventory batch removed the obsolete audit-log list block (`ipc-audit-log-*`), which had no non-CSS references (`42692d9`). UI audit `2/2` and lint/build pass.
 
 Current blockers and next route order:
 
