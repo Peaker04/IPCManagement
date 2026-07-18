@@ -538,6 +538,7 @@ Current blockers and next route order:
 - GitNexus re-index completed successfully on 2026-07-18, but `DataTableShell` still reports CRITICAL impact (`16` symbols, `12` flows) while direct source inventory finds one runtime consumer in dirty `AdminDataPage`. The discrepancy is reproducible after re-index, so the graph result remains the conservative gate; no shell deletion, global delegation or snapshot update is authorized from this evidence alone.
 - UI audit coverage now includes the full protected-route matrix at `390×844` in addition to desktop. Both desktop suites and both mobile suites pass (`4/4` tests): no document overflow, vertical action-label fragments, narrow table actions or unnamed visible dialogs were detected. Commit: `6ff9b11`.
 - Reports icon colors now consume the existing `--ipc-slate-600` semantic token instead of five repeated `#475569` literals. The route markup, icon meaning, API behavior and warning color remain unchanged. Evidence: exact LOW impact, lint/build, Reports controls `2/2`, UI audit `4/4`, staged diff check; commit `73ea59b`.
+- Coordination order-table zebra rows now use `--ipc-slate-50` instead of an inline `#f8fafc` literal. The row parity, hover state, order data and mutation handlers are unchanged. `OrderTable` upstream impact was LOW; staged detection reported MEDIUM across two display/action flows. Evidence: targeted coordination control `1/1`, lint, UI audit `4/4`; commit `0bf1bda`.
 
 Allowed files for the first clean slice:
 
