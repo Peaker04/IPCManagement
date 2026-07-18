@@ -382,6 +382,7 @@ Completed clean slices:
 - Lint, 74 frontend unit tests, and production build pass after the clean slices.
 - Chef dashboard no longer short-circuits the whole route when the selected shift has no meals; the production empty state stays inside its tab while documents and shift journal remain reachable (`f16b250`). UI audit `2/2` and route smoke `13/13` pass.
 - Purchasing no longer renders the inactive “Gửi cảnh báo biến động giá” button, which had no handler and created a misleading action surface (`7ed0db3`). Controls `4/4` pass.
+- Warehouse stock movements now use the existing server cursor endpoint with a backward-compatible `StockMovementTable` controller; the route no longer requests 100 movement rows and then slices locally (`fd85c9a`). Route smoke `14/14`, controls `4/4`, and UI audit `2/2` pass.
 
 Current blockers and next route order:
 
