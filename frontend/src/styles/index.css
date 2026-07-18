@@ -3084,52 +3084,6 @@ code {
   line-height: 1.35;
 }
 
-/* ─── Audit Log ─── */
-
-.ipc-audit-log-list {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  gap: 0;
-}
-
-.ipc-audit-log-row {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--ipc-space-2) var(--ipc-space-4);
-  border-bottom: 1px solid #e4ecf5;
-  padding: 10px 0;
-}
-
-.ipc-audit-log-row:last-child {
-  border-bottom: none;
-}
-
-.ipc-audit-log-main {
-  display: flex;
-  min-width: 0;
-  flex: 1 1 0%;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.ipc-audit-log-id {
-  color: var(--ipc-slate-900);
-  font-size: 0.875rem;
-  font-weight: 700;
-  line-height: 1.35;
-}
-
-.ipc-audit-log-desc {
-  margin: 0;
-  color: var(--ipc-slate-500);
-  font-size: 0.8125rem;
-  line-height: 1.5;
-}
-
 /* ─── Stat Card with Left Accent ─── */
 
 .ipc-stat-row-list {
