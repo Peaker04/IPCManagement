@@ -345,6 +345,8 @@ Evidence added on 2026-07-18 confirms the blocker is composite rather than a sin
 
 GitNexus was force-refreshed after a stale-index discrepancy was detected. The graph still reports `DataTableShell` as CRITICAL (16 symbols, 12 flows), despite the current source inventory showing one production consumer. This unresolved discrepancy is itself a risk gate: cleanup must wait until graph edges are reconciled with source, and the higher-risk result must not be dismissed.
 
+Wave 4.5 visual evidence is recorded in `UI-REVIEW.md`: desktop dashboard/chef routes pass; mobile failures are bounded height/copy/date drift rather than duplicate shell rendering. Snapshot updates and broad CSS deletion remain prohibited until fixture and ownership reconciliation.
+
 ### Next execution slice — Refactor legacy shell safely
 
 1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype. This evidence is now recorded in `OWNERSHIP.md`.
