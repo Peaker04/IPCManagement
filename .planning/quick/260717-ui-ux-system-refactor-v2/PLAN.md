@@ -392,6 +392,17 @@ Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn b�
 
 Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu tiên clarity, trust và density trung bình. Dials: `DESIGN_VARIANCE=3`, `MOTION_INTENSITY=2`, `VISUAL_DENSITY=5`. Một accent IPC blue, một hệ radius, không thêm UI kit thứ hai. `lucide-react` được giữ vì project đã dùng sẵn; không đưa thêm icon library.
 
+#### Task 4.5.2 — Approval inbox server cursor contract
+
+Status: implementation committed, backend transition-proof follow-up still required. Commit `e0e7ba1` replaces the HTTP list-only contract with a bounded cursor page and migrates the route, but the heterogeneous-source transition fixture is not yet complete.
+
+- **Outcome:** `/api/approvals/inbox` returns a bounded page envelope with stable continuation metadata; `ApprovalPage` requests one server page at a time and uses `CursorPaginationBar`. Approval actions, decision modal semantics and raw workflow values remain unchanged.
+- **Contract:** define typed query/page DTOs with bounded `limit`, opaque cursor, `items`, `hasNext` and `nextCursor`; sort by the same due-date/code/item-id tuple for every source type and encode the complete tuple in the cursor. Do not expose a cosmetic total when the backend cannot calculate one safely.
+- **Implementation boundary:** update approval DTO/controller/service, the `getApprovalRecords` RTK Query mapper, `ApprovalPage` cursor state and the shared queue pagination boundary. Preserve a compatibility service method only where existing backend tests require the list shape; the HTTP endpoint must use the page envelope.
+- **Evidence:** frontend route smoke proves the next request carries the continuation cursor; controls `14/14`, smoke `15/15`, UI audit `2/2`, unit `86/86`, lint and production build pass. Backend alternate-output compile and filtered ApprovalInbox tests pass `2/2` for the existing list behavior; the new cross-source replay fixture passes `1/1` with `Limit = 1`, all four item types, unique IDs and exact full-order equality (`2ab826b`).
+- **Follow-up evidence still required:** the representative fixture proves the contract transition but not arbitrarily large price-alert candidate gaps, because price warnings are evaluated after a bounded source candidate query. Keep R61 Critical until that source query is made provably resumable or a bounded query strategy is proven against the production data shape.
+- **Risk gate:** GitNexus currently does not resolve several backend/API symbols, so source call graph plus backend tests are authoritative until reindex. Any cursor implementation that materializes an unbounded heterogeneous source, changes approval payloads, or returns a page that cannot be resumed must stop and be redesigned before commit.
+
 #### Task 4.5.1 — CSS giữ có chủ đích, JavaScript feedback chuẩn hóa và sửa layout toàn route
 
 1. **Objective and user-visible outcome**
@@ -401,7 +412,7 @@ Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu t
 
 2. **Files allowed to change**
    - `frontend/src/components/common/*`, `frontend/src/components/ui/*` và tests liên quan.
-   - `frontend/src/styles/ui-redesign.css`, `frontend/src/styles/components.css` và stylesheet sạch khác sau selector/reference inventory.
+   - `frontend/src/styles/ui-redesign.css` và stylesheet sạch khác sau selector/reference inventory. `frontend/src/styles/index.css` là stylesheet global đang dirty, chỉ được sửa sau ownership handoff hoặc hunk-level approval; `styles/components.css` không tồn tại trong repo hiện tại và đã bị loại khỏi allowlist.
    - Mỗi route sạch chỉ theo một commit; `WeeklyMenuPage`, `AdminDataPage`, `DashboardPage` và `styles/index.css` chỉ sửa sau ownership handoff hoặc hunk-level approval.
    - `frontend/tests/*` và planning artifacts cho inventory, risk, visual evidence.
 
@@ -427,6 +438,8 @@ Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu t
    - 4.5.1d: thay feedback theo taxonomy, thêm component/route tests cho title, variant, focus, dismiss, keyboard và reduced motion.
    - 4.5.1e: chạy static scan, unit, lint, build, controls, smoke, UI-audit và visual evidence; ghi blocker nếu baseline không đáng tin cậy.
    - 4.5.1f: chạy `detect_changes` trên staged scope, commit một route-family slice và cập nhật plan/risk evidence.
+
+   **Bàn giao bắt buộc của task:** `CSS-JS-INVENTORY.md` phải ghi rõ CSS được giữ/xóa theo source reference; static scan phải phân loại toàn bộ native feedback, timer và logging; mỗi route slice phải có responsive/overflow evidence và dùng đúng Toast, InlineAlert hoặc Dialog theo taxonomy. Không được coi việc không tìm thấy `alert` là bằng chứng đã sửa xong bố cục toàn bộ route.
 
 7. **Tests and commands**
    - `rg -n "window\\.(alert|confirm|prompt)|console\\.(log|warn|error)|setTimeout" frontend/src` và phân loại từng kết quả.
@@ -498,6 +511,15 @@ Completed clean slices:
 - Approval Rules form now collapses its primary fields to one column at 320px, wraps the assignment header, and keeps technical role keys out of visible option labels. The mobile control test measures stacked, wide fields and document-level overflow; evidence: unit `79/79`, lint/build, controls `13/13`, smoke `14/14`, UI audit `2/2` (`22733b9`).
 - Purchasing quotation entry now stacks its five fields on mobile instead of forcing a two-column form; desktop retains the five-column layout. The control fixture seeds one ingredient, measures all five fields on the same mobile column, and asserts no document overflow. Evidence: `PurchasingPage` upstream impact LOW before edit, unit `79/79`, lint/build, controls `14/14`, smoke `14/14`, UI audit `2/2` (`b5719e7`).
 - Chef excess-material dialog now presents its three condition choices in one mobile column and three columns from the small breakpoint upward. The initial upstream impact was HIGH because the shared dialog has three Chef callers; mitigation was CSS-only plus a focused unit contract, with no state, handler or payload change. Evidence: unit `80/80`, lint/build, controls `14/14`, smoke `14/14`, UI audit `2/2` (`55dfd63`).
+- Chef supplemental-request dialog now uses sentence-case Vietnamese labels and a clearer reason placeholder; internal validation and request payloads are unchanged. The initial upstream impact was HIGH because the dialog has three Chef callers; mitigation was presentation-only copy changes plus a focused unit contract. Evidence: unit `81/81`, lint/build, controls `14/14`, smoke `14/14`, UI audit `2/2` (`986d4dd`).
+- Chef summary cards and the expanded BOM table now use sentence-case Vietnamese labels; the summary's uppercase utility class was removed while data/state and table behavior remain unchanged. The component impacts were exact LOW, limited to the Chef dashboard flows. Evidence: focused unit `2/2`, full unit `83/83`, lint/build, controls `14/14`, smoke `14/14`, UI audit `2/2`.
+- Chef material checklist headers now use sentence-case Vietnamese labels (`Nguyên liệu`, `Đơn vị`, `Số lượng`, `Trạng thái`); signoff availability, checkbox callbacks and material status values are unchanged. `MaterialChecklist` impact was exact LOW across the two Chef flows. Evidence: focused unit `3/3`, full unit `84/84`, lint/build, controls `14/14`, smoke `14/14`, UI audit `2/2` (`e8ddfbd`).
+- Chef excess-material dialog now uses sentence-case field labels and condition choices, and removes redundant uppercase utility classes. Dialog state, validation, focus/close behavior, callback and submitted payload remain unchanged. Upstream impact was conservatively HIGH across three flows; staged detection saw only the shared dialog symbol with no process mutation. Evidence: focused unit `1/1`, full unit `84/84`, lint/build, controls `14/14`, serial smoke `14/14`, UI audit `2/2` (`2da39fe`).
+- Chef quick-guide heading no longer forces uppercase rendering; the operational action buttons, dialog ownership and callbacks are unchanged. `OperationalActions` impact was exact LOW upstream, while staged detection classified the shared flow as MEDIUM. Evidence: focused unit `4/4`, full unit `85/85`, lint/build, controls `14/14`, serial smoke `14/14`, UI audit `2/2` (`334b520`).
+- Supplemental-request dialog field labels no longer force uppercase rendering; the existing sentence-case copy, required markers, validation and submitted request payload are unchanged. Upstream impact was HIGH across three Chef flows; staged detection classified the direct flow as MEDIUM. Evidence: focused unit `1/1`, full unit `85/85`, lint/build, controls `14/14`, serial smoke `14/14`, UI audit `2/2` (`9c4532a`).
+- Approval history now translates decision and old/new status enums into Vietnamese user-facing labels without changing the raw values used by the workflow API. The formatter lives outside the page component to preserve Fast Refresh lint rules. `ApprovalPage` impact was exact LOW; staged detection classified one route flow as MEDIUM. Evidence: focused unit `1/1`, full unit `86/86`, lint/build, controls `14/14`, serial smoke `14/14`, UI audit `2/2` (`746de4b`).
+- Purchasing table headers now explain `Số lượng cần mua` and `Mã đơn mua hàng` instead of code-like abbreviations; field names, request payloads and table behavior are unchanged. `PurchasingPage` impact was exact LOW, while staged detection did not map the clean route hunk. Evidence: full unit `86/86`, lint/build, controls `14/14`, serial smoke `14/14`, UI audit `2/2`, source diff review (`524276a`).
+- Approval inbox ownership re-audit: `ApprovalsController`, `ApprovalInboxService` and approval DTOs are clean; the only current `workflowApi.ts` working-tree hunk reorders `movementType` and is unrelated to approvals. The list-only inbox contract remains the actual gap, so the next implementation may proceed as a dedicated backend/frontend contract slice after impact/source review rather than waiting for a broad ownership handoff.
 
 Current blockers and next route order:
 

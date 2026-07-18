@@ -57,7 +57,7 @@ async function stubWorkflowReports(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+      body: JSON.stringify({ success: true, message: 'OK', data: { items: [], limit: 20, hasNext: false, nextCursor: null } }),
     });
   });
 
@@ -152,7 +152,7 @@ async function stubProductionReportStages(page: Page) {
     });
 
   await page.route('**/api/approvals/inbox**', async (route) => {
-    await fulfillJson(route, []);
+    await fulfillJson(route, { items: [], limit: 20, hasNext: false, nextCursor: null });
   });
 
   await page.route('**/api/workflow-reports/**', async (route) => {
@@ -707,7 +707,7 @@ async function stubPurchasingSubmitFailure(page: Page) {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+      body: JSON.stringify({ success: true, message: 'OK', data: { items: [], limit: 20, hasNext: false, nextCursor: null } }),
     });
   });
 
@@ -827,8 +827,8 @@ async function stubApprovalDecisionSuccess(page: Page) {
       body: JSON.stringify({
         success: true,
         message: 'OK',
-        data: [
-          {
+        data: {
+          items: [{
             inboxItemId: 'purchase-pr-1',
             targetType: 'purchase-request',
             targetId: 'pr-1',
@@ -845,8 +845,11 @@ async function stubApprovalDecisionSuccess(page: Page) {
             tone: 'warning',
             route: '/approvals',
             materials: [{ name: 'Sườn heo', quantity: 10, unit: 'kg' }],
-          },
-        ],
+          }],
+          limit: 20,
+          hasNext: true,
+          nextCursor: 'cursor-2',
+        },
       }),
     });
   });
@@ -905,8 +908,8 @@ async function stubMobileOperationsSuccess(page: Page) {
       body: JSON.stringify({ success: true, message, data }),
     });
 
-  await page.route('**/api/approvals/inbox**', async (route) => fulfill(route, [
-    {
+  await page.route('**/api/approvals/inbox**', async (route) => fulfill(route, {
+    items: [{
       inboxItemId: 'purchase-pr-mobile',
       targetType: 'purchase-request',
       targetId: 'pr-mobile',
@@ -923,8 +926,8 @@ async function stubMobileOperationsSuccess(page: Page) {
       tone: 'warning',
       route: ROUTES.APPROVALS,
       materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
-    },
-  ]));
+    }], limit: 20, hasNext: false, nextCursor: null,
+  }));
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
@@ -1259,6 +1262,20 @@ test.describe('route smoke', () => {
     await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý mua');
     await page.getByRole('button', { name: 'Duyệt' }).last().click();
     await expect(page.getByRole('status')).toContainText('Đã duyệt chứng từ');
+  });
+
+  test('approval inbox loads the next server cursor page', async ({ page }) => {
+    await stubApprovalDecisionSuccess(page);
+    const approvalRequests: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/api/approvals/inbox')) approvalRequests.push(request.url());
+    });
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await login(page);
+    await page.goto(ROUTES.APPROVALS);
+
+    await page.getByRole('button', { name: 'Trang sau' }).click();
+    await expect.poll(() => approvalRequests.some((url) => url.includes('cursor=cursor-2'))).toBe(true);
   });
 
   for (const viewport of [

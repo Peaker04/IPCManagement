@@ -1837,6 +1837,114 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task ApprovalInboxCursor_Should_ReplayStableOrdering_WithoutDuplicatesAcrossSources()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        var materialRequest = await context.Materialrequests.SingleAsync();
+        materialRequest.Status = "MANAGERAPPROVED";
+        await context.SaveChangesAsync();
+
+        var purchaseService = CreatePurchaseRequestWorkflowService(context);
+        var purchase = await purchaseService.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+        await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
+        var alertPurchaseId = GuidHelper.NewId();
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = alertPurchaseId,
+            PurchaseRequestCode = "PR-CURSOR-ALERT",
+            RequestDate = new DateOnly(2026, 6, 15),
+            PurchaseForDate = new DateOnly(2026, 6, 15),
+            Status = "DRAFT",
+            CreatedBy = fixture.UserId,
+            Purchaserequestlines =
+            [
+                new Purchaserequestline
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = alertPurchaseId,
+                    MaterialRequestLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    SupplierId = fixture.SupplierId,
+                    UnitId = fixture.UnitId,
+                    RequiredQty = 10,
+                    CurrentStockQty = 0,
+                    PurchaseQty = 10,
+                    EstimatedUnitPrice = 1200m
+                }
+            ]
+        });
+
+        materialRequest.Status = "SENTTOWAREHOUSE";
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = GuidHelper.NewId(),
+            IssueCode = "ISS-CURSOR",
+            IssueDate = new DateOnly(2026, 6, 15),
+            WarehouseId = fixture.WarehouseId,
+            MaterialRequestId = materialRequest.RequestId,
+            IssuedBy = fixture.UserId,
+            CreatedAt = DateTime.UtcNow,
+            Inventoryissuelines =
+            [
+                new Inventoryissueline
+                {
+                    IssueLineId = GuidHelper.NewId(),
+                    IngredientId = fixture.IngredientId,
+                    UnitId = fixture.UnitId,
+                    RequestedQty = 4,
+                    IssuedQty = 4
+                }
+            ]
+        });
+        var quantityLineId = await context.Mealquantityplanlines
+            .Select(item => item.QuantityPlanLineId)
+            .SingleAsync();
+        context.Quantityadjustments.Add(new Quantityadjustment
+        {
+            AdjustmentId = GuidHelper.NewId(),
+            QuantityPlanLineId = quantityLineId,
+            OldServings = 100,
+            NewServings = 120,
+            Reason = "Khách tăng suất",
+            AdjustedBy = fixture.UserId,
+            AdjustedAt = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+        var expected = await service.GetPendingAsync(BuildPrincipal("Admin"), new ApprovalInboxQueryDto { Limit = 200 });
+        expected.Select(item => item.ItemType).Should().Contain(["purchase", "price-alert", "issue", "adjustment"]);
+        var actualIds = new List<string>();
+        string? cursor = null;
+
+        for (var pageNumber = 0; pageNumber < expected.Count + 1; pageNumber++)
+        {
+            var page = await service.GetPendingPageAsync(
+                BuildPrincipal("Admin"),
+                new ApprovalInboxQueryDto { Limit = 1, Cursor = cursor });
+            actualIds.AddRange(page.Items.Select(item => item.InboxItemId));
+            if (!page.HasNext)
+            {
+                break;
+            }
+
+            page.NextCursor.Should().NotBeNullOrWhiteSpace();
+            cursor = page.NextCursor;
+        }
+
+        actualIds.Should().OnlyHaveUniqueItems();
+        actualIds.Should().Equal(expected.Select(item => item.InboxItemId));
+    }
+
+    [Fact]
     public async Task ApprovalInbox_Should_SurfacePriceAlerts_AsPendingPurchaseApprovalItems()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

@@ -27,10 +27,10 @@ public class ApprovalsController : ControllerBase
     }
 
     [HttpGet("inbox")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalInboxItemDto>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalInboxPageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetInbox([FromQuery] ApprovalInboxQueryDto query, CancellationToken cancellationToken)
-        => Ok(ApiResponse<IReadOnlyList<ApprovalInboxItemDto>>.SuccessResult(
-            await _approvalInboxService.GetPendingAsync(User, query, cancellationToken)));
+        => Ok(ApiResponse<ApprovalInboxPageDto>.SuccessResult(
+            await _approvalInboxService.GetPendingPageAsync(User, query, cancellationToken)));
 
     [HttpPost("{targetType}/{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
