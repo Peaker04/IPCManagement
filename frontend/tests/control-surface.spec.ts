@@ -364,6 +364,7 @@ test.describe('operational control surface', () => {
 
     await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
     await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
+    await expect(page.locator('.ipc-coordination-empty-state')).toHaveCSS('min-height', '0px');
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 

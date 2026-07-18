@@ -30,6 +30,11 @@
   min-width: 720px;
 }
 
+/* Empty coordination panels should size to their message, not reserve the legacy table height. */
+.ipc-redesign-shell .ipc-coordination-empty-state {
+  min-height: 0;
+}
+
 /* Operational tables keep their own horizontal scroll boundary on mobile. */
 .ipc-redesign-shell .ipc-table-container > .ipc-table,
 .ipc-redesign-shell .ipc-warehouse-table-shell > .ipc-data-table {
