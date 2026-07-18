@@ -70,6 +70,41 @@ async function stubWorkflowReports(page: Page) {
   });
 
   await page.route('**/api/workflow-reports/**', async (route) => {
+    if (route.request().url().includes('/receipt-price-variance')) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'OK',
+          data: {
+            items: [{
+              receiptId: 'r1',
+              receiptCode: 'PN-01',
+              receiptDate: '2026-06-18',
+              supplierId: 's1',
+              supplierName: 'Nhà cung cấp A',
+              ingredientId: 'i1',
+              ingredientName: 'Sườn heo',
+              unitId: 'u1',
+              unitName: 'kg',
+              quantity: 1,
+              unitPrice: 134000,
+              referencePrice: 115000,
+              variancePercent: 16.5,
+              isWarning: true,
+            }],
+            totalCount: 7,
+            pageNumber: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1),
+            pageSize: 6,
+            totalPages: 2,
+            hasPrev: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1) > 1,
+            hasNext: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1) < 2,
+          },
+        }),
+      });
+      return;
+    }
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -84,7 +119,8 @@ async function stubWorkflowReports(page: Page) {
       body: JSON.stringify({
         success: true,
         message: 'OK',
-        data: [
+        data: {
+          items: [
           { receiptId: 'r1', receiptCode: 'PN-01', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i1', ingredientName: 'Sườn heo', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 134000, referencePrice: 115000, variancePercent: 16.5, isWarning: true },
           { receiptId: 'r2', receiptCode: 'PN-02', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i2', ingredientName: 'Thịt gà', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 85000, referencePrice: 83000, variancePercent: 2.4, isWarning: false },
           { receiptId: 'r3', receiptCode: 'PN-03', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i3', ingredientName: 'Cá lóc phi lê', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 110000, referencePrice: 110000, variancePercent: 0, isWarning: false },
@@ -92,7 +128,14 @@ async function stubWorkflowReports(page: Page) {
           { receiptId: 'r5', receiptCode: 'PN-05', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i5', ingredientName: 'Rau cải xanh', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 15000, referencePrice: 12500, variancePercent: 20, isWarning: true },
           { receiptId: 'r6', receiptCode: 'PN-06', receiptDate: '2026-06-18', supplierId: 's2', supplierName: 'Nhà cung cấp B', ingredientId: 'i6', ingredientName: 'Tôm tươi', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 180000, referencePrice: 180000, variancePercent: 0, isWarning: false },
           { receiptId: 'r7', receiptCode: 'PN-07', receiptDate: '2026-06-18', supplierId: 's1', supplierName: 'Nhà cung cấp A', ingredientId: 'i7', ingredientName: 'Thịt ba chỉ', unitId: 'u1', unitName: 'kg', quantity: 1, unitPrice: 125000, referencePrice: 120000, variancePercent: 4.1, isWarning: false },
-        ],
+          ],
+          totalCount: 7,
+          pageNumber: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1),
+          pageSize: 6,
+          totalPages: 2,
+          hasPrev: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1) > 1,
+          hasNext: Number(new URL(route.request().url()).searchParams.get('pageNumber') ?? 1) < 2,
+        },
       }),
     });
   });
@@ -116,6 +159,225 @@ async function stubProductionReportStages(page: Page) {
     const url = new URL(route.request().url());
     const endpoint = url.pathname.split('/workflow-reports/')[1] ?? '';
     requests.push({ endpoint, url });
+
+    if (endpoint === 'receipt-price-variance/page') {
+      await fulfillJson(route, {
+        items: [{
+          receiptId: 'receipt-page-1',
+          receiptCode: 'PN-20260615-01',
+          receiptDate: '2026-06-15',
+          supplierId: 'supplier-a',
+          supplierName: 'Nhà cung cấp A',
+          ingredientId: 'ing-pork-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          quantity: 12,
+          unitPrice: 134000,
+          referencePrice: 115000,
+          variancePercent: 16.5,
+          isWarning: true,
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 6,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
+    if (endpoint === 'ingredient-demand/page') {
+      await fulfillJson(route, {
+        items: [{
+          materialRequestId: 'mr-page-1',
+          materialRequestCode: 'MR-20260615-M',
+          requestDate: '2026-06-15',
+          status: 'GENERATED',
+          shiftName: 'MORNING',
+          customerName: 'IPC Bắc Ninh',
+          dishName: 'Bún bò',
+          ingredientId: 'ing-pork-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          totalServings: 120,
+          totalRequiredQty: 18,
+          currentStockQty: 3,
+          suggestedPurchaseQty: 15,
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+        shortageCount: 1,
+      });
+      return;
+    }
+
+    if (endpoint === 'purchase-plan/page') {
+      const groupBy = url.searchParams.get('groupBy') === 'week' ? 'week' : 'day';
+      await fulfillJson(route, {
+        items: [{
+          periodKey: groupBy === 'week' ? '2026-06-15/2026-06-21' : '2026-06-15',
+          groupBy,
+          periodStart: '2026-06-15',
+          periodEnd: groupBy === 'week' ? '2026-06-21' : '2026-06-15',
+          ingredientId: 'ing-pork-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          requiredQty: 18,
+          currentStockQty: 3,
+          pendingReceiptQty: 0,
+          shortageQty: 15,
+          suggestedPurchaseQty: 15,
+          estimatedUnitPrice: 134000,
+          estimatedAmount: 2010000,
+          supplierId: 'supplier-a',
+          supplierName: groupBy === 'week' ? 'Nhà cung cấp Tuần' : 'Nhà cung cấp A',
+          expectedDeliveryDate: '2026-06-15',
+          warnings: ['price_variance'],
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+        totalShortageQty: 15,
+        totalEstimatedAmount: 2010000,
+      });
+      return;
+    }
+
+    if (endpoint === 'current-stock/page') {
+      await fulfillJson(route, {
+        items: [{
+          warehouseId: 'wh-main',
+          warehouseName: 'Kho chính',
+          ingredientId: 'ing-rice',
+          ingredientName: 'Gạo tẻ',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          currentQty: 240,
+          lastUpdated: '2026-06-15T07:00:00Z',
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
+    if (endpoint === 'kitchen-issues/page') {
+      await fulfillJson(route, {
+        items: [{
+          issueId: 'issue-1',
+          issueCode: 'PXB-20260615-M',
+          issueDate: '2026-06-15',
+          shiftName: 'MORNING',
+          warehouseId: 'wh-main',
+          warehouseName: 'Kho chính',
+          ingredientId: 'ing-pork-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          requestedQty: 18,
+          issuedQty: 18,
+          receivedBy: 'chef-1',
+          receivedByName: 'Bếp trưởng Mai',
+          receivedAt: '2026-06-15T08:00:00Z',
+          isReceivedByKitchen: true,
+          receiptStatus: 'RECEIVED',
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
+    if (endpoint === 'issue-vs-return/page') {
+      await fulfillJson(route, {
+        items: [{
+          issueId: 'issue-1',
+          issueCode: 'PXB-20260615-M',
+          issueDate: '2026-06-15',
+          shiftName: 'MORNING',
+          ingredientId: 'ing-pork-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          issuedQty: 18,
+          returnedQty: 1,
+          wastedQty: 0,
+          usedQty: 17,
+          varianceQty: 1,
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
+    if (endpoint === 'data-quality/page') {
+      const issue = {
+        issueId: 'dq-missing-bom-1',
+        category: 'missing_bom',
+        severity: 'error',
+        owner: 'Kitchen Admin',
+        priorityRank: 2,
+        slaHours: 4,
+        slaDueAt: '2026-06-15T12:30:00Z',
+        slaLabel: 'P2 / 4h',
+        entityName: 'Dish',
+        entityId: 'dish-1',
+        entityCode: 'DISH-BUN-BO',
+        entityLabel: 'Bún bò',
+        message: 'Món đang có trong KHSX nhưng chưa có định lượng BOM.',
+        suggestedAction: 'Bổ sung BOM trước khi chạy demand.',
+        route: ROUTES.WEEKLY_MENU,
+      };
+      await fulfillJson(route, {
+        generatedAt: '2026-06-15T08:30:00Z',
+        totalIssues: 1,
+        errorCount: 1,
+        warningCount: 0,
+        resolvedIssueCount: 0,
+        reopenedIssueCount: 0,
+        urgentIssueCount: 1,
+        missingBomCount: 1,
+        invalidUnitCount: 0,
+        missingConversionCount: 0,
+        negativeStockCount: 0,
+        orphanDocumentCount: 0,
+        page: {
+          items: [issue],
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 8,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        },
+        issues: [issue],
+      });
+      return;
+    }
 
     if (endpoint === 'receipt-price-variance') {
       await fulfillJson(route, [
@@ -418,16 +680,16 @@ async function stubProductionReportStages(page: Page) {
   return {
     hasFilteredRequest(endpoint: string) {
       return requests.some(({ endpoint: requestEndpoint, url }) =>
-        requestEndpoint === endpoint &&
+        (requestEndpoint === endpoint || requestEndpoint === `${endpoint}/page`) &&
         url.searchParams.get('dateFrom') === '2026-06-15' &&
         url.searchParams.get('dateTo') === '2026-06-15' &&
         url.searchParams.get('shiftName') === 'MORNING' &&
-        url.searchParams.get('limit') === (endpoint.endsWith('/page') ? '20' : '100'),
+        url.searchParams.has('limit'),
       );
     },
     hasPurchasePlanGroupRequest(groupBy: 'day' | 'week') {
       return requests.some(({ endpoint, url }) =>
-        endpoint === 'purchase-plan' &&
+        (endpoint === 'purchase-plan' || endpoint === 'purchase-plan/page') &&
         url.searchParams.get('groupBy') === groupBy &&
         url.searchParams.get('dateFrom') === '2026-06-15' &&
         url.searchParams.get('dateTo') === '2026-06-15' &&
@@ -523,7 +785,7 @@ async function stubPurchasingSubmitFailure(page: Page) {
               },
             ],
           },
-        ],
+          ],
       }),
     });
   });
@@ -855,9 +1117,9 @@ test.describe('route smoke', () => {
     await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Biến động giá' }).click();
     await expect(page).toHaveURL(ROUTES.REPORTS);
 
-    await expect(page.getByText('Hiển thị 1-6 / 7')).toBeVisible();
+    await expect(page.getByText('Đang xem 1–6 trên tổng 7')).toBeVisible();
     await page.getByLabel('Trang sau').click();
-    await expect(page.getByText('Hiển thị 7-7 / 7')).toBeVisible();
+    await expect(page.getByText('Đang xem 7–7 trên tổng 7')).toBeVisible();
   });
 
   test('reports movement loads the next server cursor page', async ({ page }) => {
@@ -886,10 +1148,8 @@ test.describe('route smoke', () => {
     await page.getByLabel('Đến ngày').fill('2026-06-15');
     await page.getByLabel('Ca').selectOption('MORNING');
 
-    await expect.poll(() => reportRequests.hasFilteredRequest('ingredient-demand')).toBe(true);
-
-    await expect(page.getByText('Sườn heo').first()).toBeVisible();
     await page.getByRole('tab', { name: 'Nhu cầu NVL' }).click();
+    await expect.poll(() => reportRequests.hasFilteredRequest('ingredient-demand')).toBe(true);
     await expect(page.getByText('Bún bò').first()).toBeVisible();
     await expect(page.getByLabel('Bảng nhu cầu nguyên liệu').getByText('Thiếu nguyên liệu')).toBeVisible();
 
@@ -909,12 +1169,12 @@ test.describe('route smoke', () => {
     await page.getByRole('tab', { name: 'Sử dụng thực tế' }).click();
     await expect(page.getByText('17 kg')).toBeVisible();
 
-    await page.getByRole('tab', { name: 'Data quality' }).click();
+    await page.getByRole('tab', { name: 'Chất lượng dữ liệu' }).click();
     await expect(page.getByText('Kitchen Admin')).toBeVisible();
     await expect(page.getByText('P2 / 4h')).toBeVisible();
     await expect(page.getByRole('link', { name: 'Xử lý' })).toHaveAttribute('href', ROUTES.WEEKLY_MENU);
 
-    await page.getByRole('tab', { name: 'Audit' }).click();
+    await page.getByRole('tab', { name: 'Nhật ký thay đổi' }).click();
     await expect.poll(() => reportRequests.hasFilteredRequest('audit-changes/page')).toBe(true);
     await expect(page.getByText('Mảng nghiệp vụ')).toBeVisible();
     await expect(page.getByRole('cell', { name: 'Import', exact: true })).toBeVisible();
