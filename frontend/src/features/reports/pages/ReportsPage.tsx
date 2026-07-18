@@ -644,7 +644,7 @@ const ReportsPage = () => {
           )}
 
           {priceSubView === 'dishGroup' && (
-            <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng BOM)" icon={<ClipboardList size={18} color="#475569" />}>
+            <SectionPanel title="Biến động giá theo nhóm món (có trọng số theo định lượng nguyên liệu)" icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
                 <table className="ipc-data-table">
                   <thead>
@@ -996,7 +996,7 @@ const ReportsPage = () => {
       )}
 
       {activeView === 'audit' && (
-          <SectionPanel title={`${uiCopy.reports.audit} BOM, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
+        <SectionPanel title={`${uiCopy.reports.audit} định lượng, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
           <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
             <table className="ipc-data-table">
               <thead>
@@ -1043,7 +1043,7 @@ const ReportsPage = () => {
               { label: uiCopy.reports.warning, value: (dataQualityReport?.warningCount ?? 0).toString(), tone: dataQualityReport?.warningCount ? 'warning' : 'success' },
               { label: 'SLA gấp', value: (dataQualityReport?.urgentIssueCount ?? 0).toString(), tone: dataQualityReport?.urgentIssueCount ? 'danger' : 'success' },
               { label: uiCopy.reports.resolvedWithIssues, value: (dataQualityReport?.resolvedIssueCount ?? 0).toString(), tone: dataQualityReport?.resolvedIssueCount ? 'warning' : 'success' },
-              { label: 'Thiếu BOM', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
+              { label: 'Thiếu định lượng', value: (dataQualityReport?.missingBomCount ?? 0).toString(), tone: dataQualityReport?.missingBomCount ? 'warning' : 'success' },
               { label: 'Thiếu quy đổi', value: (dataQualityReport?.missingConversionCount ?? 0).toString(), tone: dataQualityReport?.missingConversionCount ? 'warning' : 'success' },
             ]}
           />
