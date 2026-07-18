@@ -180,6 +180,9 @@ export default function ApprovalRulesPage() {
 
   return (
     <OperationalFrame
+      eyebrow="Thiết lập vận hành"
+      title="Quy tắc phê duyệt"
+      description="Quản lý điều kiện, thời hạn và người phụ trách cho từng luồng duyệt."
       command={
         <CommandBar
           actions={
