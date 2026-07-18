@@ -359,7 +359,7 @@ Wave 4.5 visual evidence is recorded in `UI-REVIEW.md`: desktop dashboard/chef r
 
 ### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
 
-Status: added 2026-07-18; pending ownership and visual-baseline reconciliation.
+Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
 
 Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
 
@@ -373,6 +373,19 @@ Scope:
 - Xây shared `ToastProvider`/`useToast` typed cho feedback tạm thời; dùng `InlineAlert` cho lỗi/loading/empty theo vùng; dùng shadcn/Radix `Dialog` cho confirm hoặc nội dung cần người dùng quyết định. Mỗi surface phải có title, variant, close/focus behavior và reduced-motion-safe styling.
 - Chuẩn hóa page anatomy: một `OperationalFrame`, một page header, một command area, một status/feedback region và một table viewport; không lặp sidebar, user panel, breadcrumb, title hoặc cùng một action ở nhiều tầng.
 - Migrate route theo nhóm: shell/dashboard, workflow/coordination, weekly-menu/admin (chỉ sau ownership handoff), reports, chef/purchasing/warehouse.
+
+Completed clean slices:
+
+- `ToastProvider`/`useToast` and `ConfirmDialog` are mounted through the app root; approval and purchasing flows no longer use browser-native alert/confirm feedback (`0121d88`, `0757cb2`).
+- Static scan reports no remaining unapproved browser-native feedback calls in `frontend/src`.
+- Removed only the unreferenced `.ipc-textarea` selector branches from the protected global stylesheet; the dirty 641-line CSS addition remains unstaged (`49c7b3f`).
+- Lint, 74 frontend unit tests, and production build pass after the clean slices.
+
+Current blockers and next route order:
+
+- `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
+- `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
+- Next clean route group is reports/chef/purchasing/warehouse, using existing canonical viewport and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit.
 
 Allowed files for the first clean slice:
 
