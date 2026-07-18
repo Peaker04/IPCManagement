@@ -21,6 +21,7 @@ import {
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
   useGetCurrentStockQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
@@ -49,6 +50,7 @@ export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [purchasePlanPage, setPurchasePlanPage] = useState(1);
+  const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
   const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
@@ -56,7 +58,8 @@ export default function PurchasingPage() {
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
-  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
+  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 }, { skip: activeView === 'orders' });
+  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 }, { skip: activeView !== 'orders' });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
   const { data: receiptMovementPage } = useGetStockMovementPageQuery({
     movementType: 'receipt',
@@ -71,7 +74,9 @@ export default function PurchasingPage() {
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
-  const purchaseRequests = purchaseRequestsResponse?.data ?? [];
+  const purchaseRequests = activeView === 'orders'
+    ? purchaseRequestsResponse?.data ?? []
+    : purchaseRequestsPageResponse?.items ?? [];
   const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
     id: `${row.periodKey}-${row.ingredientId}`,
     ingredientId: row.ingredientId,
@@ -113,7 +118,6 @@ export default function PurchasingPage() {
     })),
   );
   const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
-  const supplierPagination = useLocalPagination(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
   const receiptMovements = receiptMovementPage?.items ?? [];
   const warningPrice = priceVariancePage?.items.find((row) => row.warning);
@@ -253,7 +257,7 @@ export default function PurchasingPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {supplierPagination.rows.map((line) => (
+                  {supplierLines.map((line) => (
                     <SupplierLineItem 
                       key={line.id} 
                       line={line} 
@@ -268,10 +272,10 @@ export default function PurchasingPage() {
               </table>
             </TableViewport>
             <PaginationBar
-              page={supplierPagination.page}
-              pageSize={supplierPagination.pageSize}
-              totalItems={supplierPagination.totalItems}
-              onPageChange={supplierPagination.setPage}
+              page={purchaseRequestsPageResponse?.pageNumber ?? purchaseRequestPage}
+              pageSize={purchaseRequestsPageResponse?.pageSize ?? 8}
+              totalItems={purchaseRequestsPageResponse?.totalCount ?? 0}
+              onPageChange={setPurchaseRequestPage}
             />
           </div>
         </SectionPanel>

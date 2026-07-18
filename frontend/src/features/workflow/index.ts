@@ -52,6 +52,7 @@ export {
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
   useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
   useGetApprovalHistoryQuery,
   useGetApprovalRulesQuery,
   useCreateApprovalRuleMutation,

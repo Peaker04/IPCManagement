@@ -1821,6 +1821,16 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['WorkflowReports'],
     }),
+    getPurchaseRequestsPage: builder.query<PageNumberPage<PurchaseRequestResult>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PurchaseRequestResult>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
       query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
       providesTags: ['WorkflowReports'],
@@ -1908,6 +1918,7 @@ export const {
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
   useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
   useGetApprovalHistoryQuery,
   useGetApprovalRulesQuery,
   useCreateApprovalRuleMutation,
