@@ -380,6 +380,7 @@ Completed clean slices:
 - Static scan reports no remaining unapproved browser-native feedback calls in `frontend/src`.
 - Removed only the unreferenced `.ipc-textarea` selector branches from the protected global stylesheet; the dirty 641-line CSS addition remains unstaged (`49c7b3f`).
 - Lint, 74 frontend unit tests, and production build pass after the clean slices.
+- Chef dashboard no longer short-circuits the whole route when the selected shift has no meals; the production empty state stays inside its tab while documents and shift journal remain reachable (`f16b250`). UI audit `2/2` and route smoke `13/13` pass.
 
 Current blockers and next route order:
 
