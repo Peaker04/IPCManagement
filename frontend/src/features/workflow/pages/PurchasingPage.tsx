@@ -54,7 +54,7 @@ export default function PurchasingPage() {
   const [activeView, setActiveView] = useState<PurchasingView>(
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
   );
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
   const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
