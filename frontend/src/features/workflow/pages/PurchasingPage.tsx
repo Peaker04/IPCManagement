@@ -18,11 +18,11 @@ import {
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
-  useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsQuery,
   useGetCurrentStockQuery,
-  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
   useSubmitPurchaseRequestMutation,
@@ -47,6 +47,7 @@ export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const [purchasePlanPage, setPurchasePlanPage] = useState(1);
+  const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
@@ -54,9 +55,16 @@ export default function PurchasingPage() {
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const receiptMovementCursor = receiptMovementCursors.at(-1);
+  const { data: receiptMovementPage } = useGetStockMovementPageQuery({
+    movementType: 'receipt',
+    cursorDate: receiptMovementCursor?.cursorDate,
+    cursorId: receiptMovementCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
-  const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
+  const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
@@ -105,8 +113,8 @@ export default function PurchasingPage() {
   const supplierLines = purchaseRequestLines.filter((line) => Boolean(line.purchaseRequestId));
   const supplierPagination = useLocalPagination(supplierLines, 8);
   const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
-  const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
-  const warningPrice = priceRows.find((row) => row.warning);
+  const receiptMovements = receiptMovementPage?.items ?? [];
+  const warningPrice = priceVariancePage?.items.find((row) => row.warning);
   const primaryPurchasePlan = purchasePlanLines.find((line) => line.tone === 'danger' || line.tone === 'warning') ?? purchasePlanLines[0];
   const primaryPurchaseRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
   const submitTargetId = primaryPurchaseRequestLine?.purchaseRequestId;
@@ -286,7 +294,20 @@ export default function PurchasingPage() {
       {activeView === 'handoff' && (
         <SectionPanel title="Handoff sang kho" icon={<PackageCheck size={18} />}>
           <div id="purchasing-handoff-panel" role="tabpanel" aria-labelledby="purchasing-handoff-tab">
-          <StockMovementTable movements={receiptMovements} />
+          <StockMovementTable
+            movements={receiptMovements}
+            cursorPagination={{
+              page: receiptMovementCursors.length + 1,
+              hasNext: receiptMovementPage?.hasNext ?? false,
+              onPrevious: () => setReceiptMovementCursors((current) => current.slice(0, -1)),
+              onNext: () => {
+                const nextCursorDate = receiptMovementPage?.nextCursorDate;
+                if (nextCursorDate) {
+                  setReceiptMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: receiptMovementPage?.nextCursorId }]);
+                }
+              },
+            }}
+          />
           </div>
         </SectionPanel>
       )}
