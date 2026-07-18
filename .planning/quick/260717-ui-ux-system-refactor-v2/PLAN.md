@@ -255,7 +255,7 @@ Admin audit cursor-pagination slice:
 - Filter changes and reset clear cursor history; next/previous navigation uses the canonical `CursorPaginationBar`. The table no longer downloads the full audit list before slicing locally.
 - Ownership was enforced hunk-by-hunk. GitNexus classified `AdminDataPage` as LOW impact; the staged scope contained only that file and no BOM/import/contract changes.
 - Evidence: frontend lint/unit/build pass, backend `267/267` tests pass, staged `detect_changes` reported 1 file, 1 symbol, 0 processes, LOW. Commits: `ea4938b` (Audit cursor wiring) and `8f39660` (Audit display cleanup plus current-stock page migration).
-- Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+- Known boundary: Admin statistics still uses bounded legacy kitchen/usage list endpoints because the current page contracts do not expose report-wide quantity aggregates; replacing them with an 8-row page would silently change totals.
 
 Admin price-warning page slice:
 
@@ -271,7 +271,7 @@ Admin data-quality page slice:
 - Summary semantics remain report-wide: total issues, error tone, missing BOM, unit/conversion, negative stock, orphan, SLA and resolved counters still come from the report summary rather than the visible page.
 - Ownership was enforced hunk-by-hunk; BOM and contract feature changes remained unstaged. GitNexus classified `AdminDataPage` as LOW, with 1 staged file, 1 symbol and 0 affected processes.
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
-- Known boundary: Admin price variance and statistics views remain next; price variance needs a warning-aware server contract before paging only warning rows without changing semantics.
+- Known boundary: Admin statistics remains the next contract-design slice; it needs explicit report-wide quantity aggregates before its bounded table endpoints can be reused without changing semantics.
 
 Admin purchase-summary query slice:
 
