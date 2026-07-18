@@ -287,6 +287,12 @@ Purchasing semantic-status slice:
 - Evidence: frontend lint/unit `76/76`/build pass; staged GitNexus detection reported 3 files, 1 Purchasing flow, MEDIUM. Commit: `8bb3f2b`.
 - Remaining contract gap: purchase requests, supplier quotations and purchase orders are still list endpoints with route-local pagination or a `100`-row request. They require separate page-number contracts and ownership checks before claiming full lazy loading for Purchasing.
 
+Purchasing supplier-quotation page slice:
+
+- Added `GET /api/supplier-quotations/ingredient/{ingredientId}/page` with bounded `items` and `totalCount` metadata. The quotation manager now requests the active page and binds `PaginationBar` to server metadata; the legacy list endpoint remains for inline supplier-line lookup compatibility.
+- Evidence: backend compile-only pass, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Purchasing flow, MEDIUM. Commit: `30b87d6`.
+- Remaining boundary: purchase requests and purchase orders still need page contracts; inline supplier-line lookup still uses the legacy quotation list for best-price suggestions and is tracked separately.
+
 Admin purchase-summary query slice:
 
 - Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
