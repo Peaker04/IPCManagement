@@ -43,6 +43,14 @@ import { useLocalPagination } from '@/lib/useLocalPagination';
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
 
+const purchaseRequestStatusLabel: Record<string, string> = {
+  DRAFT: 'Bản nháp',
+  SUBMITTED: 'Chờ phê duyệt',
+  APPROVED: 'Đã phê duyệt',
+  REJECTED: 'Bị từ chối',
+  CANCELLED: 'Đã hủy',
+};
+
 export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
@@ -179,7 +187,7 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine?.status ?? 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
+            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? (purchaseRequestStatusLabel[primaryPurchaseRequestLine.status] ?? primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
