@@ -555,7 +555,7 @@ const ReportsPage = () => {
           {priceSubView === 'supplier' && (
             <SectionPanel title="Biến động giá theo nhà cung cấp" icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhà cung cấp">
-                <table className="ipc-data-table">
+                <table className="ipc-data-table min-w-[720px]">
                   <thead>
                     <tr>
                       <th>Nguyên liệu</th>
@@ -603,7 +603,7 @@ const ReportsPage = () => {
           {priceSubView === 'period' && (
             <SectionPanel title="Biến động giá theo thời gian (theo tháng)" icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo thời gian">
-                <table className="ipc-data-table">
+                <table className="ipc-data-table min-w-[720px]">
                   <thead>
                     <tr>
                       <th>Nguyên liệu</th>
@@ -647,7 +647,7 @@ const ReportsPage = () => {
           {priceSubView === 'dishGroup' && (
             <SectionPanel title={`Biến động giá theo nhóm món (có trọng số theo ${uiCopy.technical.bom.replace(/^Đ/, 'đ')})`} icon={<ClipboardList size={18} color="#475569" />}>
               <TableViewport ariaLabel="Bảng biến động giá theo nhóm món">
-                <table className="ipc-data-table">
+                <table className="ipc-data-table min-w-[720px]">
                   <thead>
                     <tr>
                       <th>Nhóm món</th>
@@ -683,7 +683,7 @@ const ReportsPage = () => {
           {priceSubView === 'lines' && (
           <SectionPanel title="Bảng biến động giá nguyên liệu" icon={<ClipboardList size={18} color="#475569" />}>
             <TableViewport ariaLabel="Bảng biến động giá nguyên liệu" className="ipc-report-table-shell">
-              <table className="ipc-data-table ipc-report-table">
+              <table className="ipc-data-table ipc-report-table min-w-[720px]">
                 <thead>
                   <tr>
                     <th>Tên nguyên liệu</th>
@@ -775,7 +775,7 @@ const ReportsPage = () => {
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu nguyên liệu theo ngày, ca, khách hàng và món" icon={<Utensils size={18} />}>
           <TableViewport ariaLabel="Bảng nhu cầu nguyên liệu">
-            <table className="ipc-data-table ipc-status-action-table">
+            <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Nguyên liệu</th>
@@ -838,7 +838,7 @@ const ReportsPage = () => {
             ]}
           />
           <TableViewport ariaLabel="Bảng kế hoạch thu mua dự kiến">
-            <table className="ipc-data-table ipc-status-action-table">
+            <table className="ipc-data-table ipc-status-action-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Kỳ</th>
@@ -884,7 +884,7 @@ const ReportsPage = () => {
       {activeView === 'stock' && (
         <SectionPanel title="Tồn kho hiện tại và xu hướng luân chuyển" icon={<Warehouse size={18} />}>
           <TableViewport ariaLabel="Bảng tồn kho hiện tại">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Kho</th>
@@ -931,7 +931,7 @@ const ReportsPage = () => {
       {activeView === 'kitchen' && (
         <SectionPanel title="Xuất kho cho bếp theo ca" icon={<PackageCheck size={18} />}>
           <TableViewport ariaLabel="Bảng xuất kho cho bếp">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Phiếu xuất</th>
@@ -965,7 +965,7 @@ const ReportsPage = () => {
       {activeView === 'usage' && (
         <SectionPanel title="Sử dụng thực tế của bếp: đã xuất - hoàn kho" icon={<RotateCcw size={18} />}>
           <TableViewport ariaLabel="Bảng sử dụng thực tế sau hoàn kho">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Phiếu xuất</th>
@@ -999,7 +999,7 @@ const ReportsPage = () => {
       {activeView === 'audit' && (
         <SectionPanel title={`${uiCopy.reports.audit} ${uiCopy.technical.bom.replace(/^Đ/, 'đ')}, tồn kho, số suất và chứng từ`} icon={<Database size={18} />}>
           <TableViewport ariaLabel="Bảng audit thay đổi hệ thống">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Thời gian</th>
@@ -1049,7 +1049,7 @@ const ReportsPage = () => {
             ]}
           />
           <TableViewport ariaLabel="Bảng data quality trước production">
-            <table className="ipc-data-table">
+            <table className="ipc-data-table min-w-[720px]">
               <thead>
                 <tr>
                   <th>Mức độ</th>

@@ -332,6 +332,22 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('reports wide tables scroll inside their viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.REPORTS);
+
+    const tableViewport = page.locator('.ipc-report-table-shell');
+    const table = tableViewport.locator('table').first();
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
     await page.setViewportSize({ width: 1365, height: 900 });
     await page.goto(ROUTES.CHEF_DASHBOARD);

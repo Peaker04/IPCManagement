@@ -25,6 +25,11 @@
   color: var(--ipc-slate-500);
 }
 
+/* Keep wide report tables readable on narrow screens; the viewport owns the scroll. */
+.ipc-redesign-shell .ipc-report-table-shell .ipc-data-table {
+  min-width: 720px;
+}
+
 .ipc-redesign-shell .ipc-nav {
   gap: 4px;
   padding: 14px 10px;
