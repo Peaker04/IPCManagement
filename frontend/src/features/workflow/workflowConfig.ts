@@ -121,6 +121,7 @@ const workflowStatusLabels: Record<string, string> = {
   DRAFT: 'Bản nháp',
   EXPORTED: 'Đã xuất kho',
   MANAGERAPPROVED: 'Quản lí đã duyệt',
+  ORDERED: 'Đã đặt hàng',
   PARTIALRECEIVED: 'Đã nhận một phần',
   PENDING: 'Đang chờ xử lý',
   RECEIVED: 'Đã nhận đủ',
