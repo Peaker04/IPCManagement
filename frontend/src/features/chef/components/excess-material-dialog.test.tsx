@@ -13,11 +13,14 @@ describe('ExcessMaterialDialog responsive contract', () => {
       />,
     );
 
-    const conditionGroup = screen.getByText('Tình Trạng Nguyên Liệu').parentElement?.querySelector('.ipc-excess-condition-group');
+    const conditionLabel = screen.getByText('Tình trạng nguyên liệu', { exact: true });
+    const conditionGroup = conditionLabel.parentElement?.querySelector('.ipc-excess-condition-group');
     expect(conditionGroup).not.toBeNull();
     expect(conditionGroup).toHaveClass('grid-cols-1', 'sm:grid-cols-3');
-    expect(screen.getByText('Nguyên Vẹn')).toBeInTheDocument();
-    expect(screen.getByText('Đã Sử Dụng')).toBeInTheDocument();
-    expect(screen.getByText('Hư Hỏng')).toBeInTheDocument();
+    expect(screen.getByText('Nguyên vẹn')).toBeInTheDocument();
+    expect(screen.getByText('Đã sử dụng')).toBeInTheDocument();
+    expect(screen.getByText('Hư hỏng')).toBeInTheDocument();
+    expect(conditionLabel).not.toHaveClass('uppercase');
+    expect(screen.queryByText('Tình Trạng Nguyên Liệu')).not.toBeInTheDocument();
   });
 });
