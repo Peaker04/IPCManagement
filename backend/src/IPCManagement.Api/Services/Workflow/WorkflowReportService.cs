@@ -1077,8 +1077,18 @@ public class WorkflowReportService : IWorkflowReportService
             })
             .OrderByDescending(dto => dto.VariancePercent)
             .ThenBy(dto => dto.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(NormalizeAggregateLimit(query.Limit))
             .ToList();
+    }
+
+    public async Task<PagedResponseDto<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierPageAsync(PriceVarianceAggregatePageQueryDto query)
+    {
+        var rows = await GetPriceVarianceBySupplierAsync(CloneQuery(query, -1));
+        return PagedResponseDto<PriceVarianceBySupplierDto>.Create(
+            rows.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize),
+            rows.Count,
+            query.PageNumber,
+            query.PageSize);
     }
 
     public async Task<IReadOnlyList<PriceVarianceByPeriodDto>> GetPriceVarianceByPeriodAsync(WorkflowReportQueryDto query)
@@ -1134,7 +1144,17 @@ public class WorkflowReportService : IWorkflowReportService
             }
         }
 
-        return result.Take(NormalizeLimit(query.Limit)).ToList();
+        return result.Take(NormalizeAggregateLimit(query.Limit)).ToList();
+    }
+
+    public async Task<PagedResponseDto<PriceVarianceByPeriodDto>> GetPriceVarianceByPeriodPageAsync(PriceVarianceAggregatePageQueryDto query)
+    {
+        var rows = await GetPriceVarianceByPeriodAsync(CloneQuery(query, -1));
+        return PagedResponseDto<PriceVarianceByPeriodDto>.Create(
+            rows.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize),
+            rows.Count,
+            query.PageNumber,
+            query.PageSize);
     }
 
     public async Task<IReadOnlyList<PriceVarianceByDishGroupDto>> GetPriceVarianceByDishGroupAsync(WorkflowReportQueryDto query)
@@ -1224,8 +1244,18 @@ public class WorkflowReportService : IWorkflowReportService
                 };
             })
             .OrderByDescending(dto => dto.WeightedAvgVariancePercent)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(NormalizeAggregateLimit(query.Limit))
             .ToList();
+    }
+
+    public async Task<PagedResponseDto<PriceVarianceByDishGroupDto>> GetPriceVarianceByDishGroupPageAsync(PriceVarianceAggregatePageQueryDto query)
+    {
+        var rows = await GetPriceVarianceByDishGroupAsync(CloneQuery(query, -1));
+        return PagedResponseDto<PriceVarianceByDishGroupDto>.Create(
+            rows.Skip((query.PageNumber - 1) * query.PageSize).Take(query.PageSize),
+            rows.Count,
+            query.PageNumber,
+            query.PageSize);
     }
 
     private IQueryable<Inventoryreceiptline> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
@@ -3275,6 +3305,9 @@ public class WorkflowReportService : IWorkflowReportService
 
     private static int NormalizeLimit(int limit)
         => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+
+    private static int NormalizeAggregateLimit(int limit)
+        => limit < 0 ? int.MaxValue : NormalizeLimit(limit);
 
     private static int NormalizePageLimit(int limit)
         => Math.Clamp(limit <= 0 ? 20 : limit, 1, 100);

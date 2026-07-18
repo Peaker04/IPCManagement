@@ -106,15 +106,30 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceBySupplierAsync(query)));
 
+    [HttpGet("price-variance/by-supplier/page")]
+    public async Task<IActionResult> GetPriceVarianceBySupplierPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceBySupplierPageAsync(query)));
+
     [HttpGet("price-variance/by-period")]
     public async Task<IActionResult> GetPriceVarianceByPeriod([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByPeriodAsync(query)));
 
+    [HttpGet("price-variance/by-period/page")]
+    public async Task<IActionResult> GetPriceVarianceByPeriodPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceByPeriodPageAsync(query)));
+
     [HttpGet("price-variance/by-dish-group")]
     public async Task<IActionResult> GetPriceVarianceByDishGroup([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByDishGroupAsync(query)));
+
+    [HttpGet("price-variance/by-dish-group/page")]
+    public async Task<IActionResult> GetPriceVarianceByDishGroupPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
+        => Ok(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>.SuccessResult(
+            await _workflowReportService.GetPriceVarianceByDishGroupPageAsync(query)));
 
     [HttpGet("kitchen-issues")]
     public async Task<IActionResult> GetKitchenIssues([FromQuery] WorkflowReportQueryDto query)

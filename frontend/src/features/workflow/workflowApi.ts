@@ -49,6 +49,7 @@ export interface WorkflowReportPageQuery extends WorkflowReportQuery {
 
 export type CurrentStockPageQuery = WorkflowReportPageQuery;
 export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
+export type PriceVarianceAggregatePageQuery = WorkflowReportPageQuery;
 
 export interface PageNumberPage<T> {
   items: T[];
@@ -1592,6 +1593,16 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PriceVarianceBySupplierDto[]>) => getData(response),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVarianceBySupplierPage: builder.query<PageNumberPage<PriceVarianceBySupplierDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-supplier/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceBySupplierDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getPriceVarianceByPeriod: builder.query<PriceVarianceByPeriodDto[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/price-variance/by-period',
@@ -1600,12 +1611,32 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PriceVarianceByPeriodDto[]>) => getData(response),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVarianceByPeriodPage: builder.query<PageNumberPage<PriceVarianceByPeriodDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-period/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByPeriodDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getPriceVarianceByDishGroup: builder.query<PriceVarianceByDishGroupDto[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/price-variance/by-dish-group',
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByDishGroupPage: builder.query<PageNumberPage<PriceVarianceByDishGroupDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-dish-group/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByDishGroupDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
       providesTags: ['WorkflowReports'],
     }),
     getOperationalKpis: builder.query<OperationalKpiSummaryDto, void>({
@@ -1837,8 +1868,11 @@ export const {
   useGetPriceVarianceQuery,
   useGetPriceVariancePageQuery,
   useGetPriceVarianceBySupplierQuery,
+  useGetPriceVarianceBySupplierPageQuery,
   useGetPriceVarianceByPeriodQuery,
+  useGetPriceVarianceByPeriodPageQuery,
   useGetPriceVarianceByDishGroupQuery,
+  useGetPriceVarianceByDishGroupPageQuery,
   useGetOperationalKpisQuery,
   useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
