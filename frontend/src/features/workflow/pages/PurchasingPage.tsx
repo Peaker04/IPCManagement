@@ -391,17 +391,19 @@ function SupplierLineItem({
       <td>
         <select
           className="ipc-input w-full"
+          aria-label={`Nhà cung cấp cho ${line.material}`}
+          aria-required="true"
           value={selectedSupplierId}
           onChange={(e) => handleSupplierChange(e.target.value)}
         >
-          <option value="">-- Chọn Nhà cung cấp --</option>
+          <option value="">Chọn nhà cung cấp</option>
           {suppliers.map(s => (
             <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
           ))}
         </select>
         {bestQuotation && bestQuotation.supplierId !== selectedSupplierId && (
-          <div className="text-xs text-emerald-600 mt-1">
-            Giá tốt nhất: {bestQuotation.supplierName} — {bestQuotation.unitPrice.toLocaleString('vi-VN')}đ
+          <div className="text-xs text-emerald-600 mt-1" role="status" aria-live="polite">
+            Giá tham khảo tốt nhất: {bestQuotation.supplierName}, {bestQuotation.unitPrice.toLocaleString('vi-VN')} đồng
           </div>
         )}
       </td>
@@ -409,7 +411,11 @@ function SupplierLineItem({
         <input 
           type="number" 
           className="ipc-input w-full" 
-          placeholder="VD: 150000" 
+          aria-label={`Giá dự kiến cho ${line.material}`}
+          placeholder="Ví dụ: 150000" 
+          min="0"
+          step="1000"
+          inputMode="decimal"
           value={estimatedPrice || ''}
           onChange={(e) => setEstimatedPrice(Number(e.target.value))}
         />
@@ -418,6 +424,7 @@ function SupplierLineItem({
         <input
           type="date"
           className="ipc-input w-full"
+          aria-label={`Ngày giao dự kiến cho ${line.material}`}
           value={expectedDeliveryDate}
           onChange={(e) => setExpectedDeliveryDate(e.target.value)}
         />
@@ -425,7 +432,8 @@ function SupplierLineItem({
       <td>
         <input
           className="ipc-input w-full"
-          placeholder="Ghi chú"
+          aria-label={`Ghi chú cho ${line.material}`}
+          placeholder="Ghi chú thêm (không bắt buộc)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
         />
@@ -436,7 +444,7 @@ function SupplierLineItem({
           onClick={handleSave}
           disabled={isUpdating}
         >
-          {isUpdating ? 'Đang lưu...' : 'Lưu NCC'}
+          {isUpdating ? 'Đang lưu...' : 'Lưu nhà cung cấp'}
         </button>
       </td>
     </tr>
