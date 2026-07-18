@@ -274,6 +274,16 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
+    await page.setViewportSize({ width: 1365, height: 900 });
+    await page.goto(ROUTES.CHEF_DASHBOARD);
+
+    const emptyState = page.locator('.ipc-chef-empty-state');
+    await expect(emptyState).toBeVisible();
+    await expect(emptyState).toHaveCSS('min-height', '0px');
+    await expect(page.getByText('Nhật ký ca', { exact: true })).toBeVisible();
+  });
+
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 
