@@ -394,12 +394,13 @@ Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu t
 
 #### Task 4.5.2 — Approval inbox server cursor contract
 
-Status: planned next. The current route still requests `limit: 100` from a list-only endpoint and paginates locally; this task is the only accepted path for fixing the remaining unbounded approval surface.
+Status: implementation committed, backend transition-proof follow-up still required. Commit `e0e7ba1` replaces the HTTP list-only contract with a bounded cursor page and migrates the route, but the heterogeneous-source transition fixture is not yet complete.
 
 - **Outcome:** `/api/approvals/inbox` returns a bounded page envelope with stable continuation metadata; `ApprovalPage` requests one server page at a time and uses `CursorPaginationBar`. Approval actions, decision modal semantics and raw workflow values remain unchanged.
 - **Contract:** define typed query/page DTOs with bounded `limit`, opaque cursor, `items`, `hasNext` and `nextCursor`; sort by the same due-date/code/item-id tuple for every source type and encode the complete tuple in the cursor. Do not expose a cosmetic total when the backend cannot calculate one safely.
 - **Implementation boundary:** update approval DTO/controller/service, the `getApprovalRecords` RTK Query mapper, `ApprovalPage` cursor state and the shared queue pagination boundary. Preserve a compatibility service method only where existing backend tests require the list shape; the HTTP endpoint must use the page envelope.
-- **Evidence required:** backend tests prove first-page bound, cursor transition without duplicate/missing IDs, role filtering and stable ordering; frontend route smoke asserts request query/cursor changes and bounded rendered records; controls, unit, lint, build and UI audit pass.
+- **Evidence:** frontend route smoke proves the next request carries the continuation cursor; controls `14/14`, smoke `15/15`, UI audit `2/2`, unit `86/86`, lint and production build pass. Backend alternate-output compile and filtered ApprovalInbox tests pass `2/2` for the existing list behavior.
+- **Follow-up evidence still required:** backend fixtures must prove first-page bound, cursor transition without duplicate/missing IDs across purchase requests, price alerts, inventory issues and adjustments, role filtering and stable ordering. Until that exists, R61 remains Critical.
 - **Risk gate:** GitNexus currently does not resolve several backend/API symbols, so source call graph plus backend tests are authoritative until reindex. Any cursor implementation that materializes an unbounded heterogeneous source, changes approval payloads, or returns a page that cannot be resumed must stop and be redesigned before commit.
 
 #### Task 4.5.1 — CSS giữ có chủ đích, JavaScript feedback chuẩn hóa và sửa layout toàn route
