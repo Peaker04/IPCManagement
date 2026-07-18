@@ -207,7 +207,7 @@ export default function ApprovalRulesPage() {
           ) : rules.length === 0 ? (
             <div className="p-8 text-center text-slate-500 italic">Chưa có quy tắc phê duyệt nào được thiết lập.</div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
               {rules.map((rule: ApprovalRuleDto) => (
                 <div key={rule.ruleId ?? rule.ruleName} className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                   <div className="space-y-2">
@@ -217,7 +217,7 @@ export default function ApprovalRulesPage() {
                         {rule.isActive ? 'Đang hoạt động' : 'Tạm ngưng'}
                       </StatusBadge>
                     </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+                    <div className="grid grid-cols-1 gap-2 text-xs text-slate-500 sm:grid-cols-2">
                       <div>Loại chứng từ: <span className="font-semibold text-slate-700">{rule.documentType}</span></div>
                       <div>SLA xử lý: <span className="font-semibold text-slate-700">{rule.slaHours ? `${rule.slaHours} giờ` : 'Không hạn'}</span></div>
                       {rule.minAmount !== null && (
@@ -297,7 +297,7 @@ export default function ApprovalRulesPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-slate-600">Ngưỡng tối thiểu (Min đ)</label>
                 <Input type="number" value={minAmount} onChange={e => setMinAmount(e.target.value === '' ? '' : Number(e.target.value))} placeholder="Bỏ trống nếu không xét" />
@@ -336,10 +336,10 @@ export default function ApprovalRulesPage() {
 
               <div className="space-y-3">
                 {assignments.map((assignment, idx) => (
-                  <div key={idx} className="flex items-center gap-3 border border-slate-100 bg-slate-50/50 p-3 rounded-md">
+                  <div key={idx} className="flex flex-col items-stretch gap-3 rounded-md border border-slate-100 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
                     <span className="w-6 h-6 rounded-full bg-slate-200 text-slate-700 flex items-center justify-center font-bold text-xs">{assignment.sequence}</span>
                     
-                    <div className="flex-1 grid grid-cols-2 gap-3">
+                    <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2">
                       <div className="space-y-1">
                         <label className="text-[10px] font-bold text-slate-500 uppercase">Vai trò phê duyệt</label>
                         <select
@@ -369,7 +369,7 @@ export default function ApprovalRulesPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col items-center gap-1 pt-4">
+                    <div className="flex items-center gap-2 pt-1 sm:flex-col sm:items-center sm:gap-1 sm:pt-4">
                       <input
                         type="checkbox"
                         id={`req-chk-${idx}`}
@@ -383,7 +383,7 @@ export default function ApprovalRulesPage() {
                       <button
                         type="button"
                         onClick={() => handleRemoveStep(idx)}
-                        className="text-red-500 hover:text-red-700 p-1 mt-4"
+                        className="self-end p-1 text-red-500 hover:text-red-700 sm:mt-4 sm:self-auto"
                         title="Xóa bước duyệt này"
                       >
                         <Trash2 size={14} />
