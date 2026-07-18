@@ -273,6 +273,13 @@ Admin data-quality page slice:
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
 - Known boundary: Admin statistics remains the next contract-design slice; it needs explicit report-wide quantity aggregates before its bounded table endpoints can be reused without changing semantics.
 
+Reports semantic-status slice:
+
+- Reports UI and CSV output now pass operational status values through the shared `formatWorkflowStatus` helper. `open`, `resolved`, `reopened`, `warning` and `error` are presented as Vietnamese user-facing labels while raw values remain unchanged in API/query logic.
+- Evidence: frontend lint pass, unit `76/76`, and production build pass. No API payload, mutation handler or route contract changed.
+- Remaining contract gap: the supplier, period and dish-group price-variance subviews still call legacy list endpoints with `limit: 100`, then apply `useLocalPagination` in the browser. The backend methods/controllers currently return `IReadOnlyList` and expose no page metadata, so this is not true server lazy loading.
+- Next task: add separately owned page-number contracts for those three aggregate endpoints (query DTO, controller, service, RTK Query hooks and Reports consumers), preserving the legacy list endpoints until callers are migrated. This requires a fresh backend impact/ownership gate because `WorkflowReportService.cs` is user-owned dirty work.
+
 Admin purchase-summary query slice:
 
 - Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
