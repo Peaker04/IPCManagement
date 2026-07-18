@@ -10,6 +10,7 @@ import {
   SectionPanel,
   SplitWorkbench,
   StatusBadge,
+  useToast,
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
@@ -26,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 
 export default function ApprovalPage() {
+  const { toast } = useToast();
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   
@@ -75,12 +77,12 @@ export default function ApprovalPage() {
     if (!record || !status) return;
 
     if (status === 'Reject' && !reason.trim()) {
-      alert('Vui lòng nhập lý do từ chối.');
+      toast({ title: 'Chưa thể từ chối', description: 'Vui lòng nhập lý do để lưu dấu vết phê duyệt.', variant: 'warning' });
       return;
     }
 
     if (!record.targetType || !record.targetId) {
-      alert('Chứng từ này chưa có target phê duyệt hợp lệ.');
+      toast({ title: 'Thiếu đích phê duyệt', description: 'Chứng từ chưa có thông tin đích hợp lệ để xử lý.', variant: 'danger' });
       return;
     }
 
@@ -93,13 +95,17 @@ export default function ApprovalPage() {
       }).unwrap();
       
       setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
-      alert(status === 'Approve' ? 'Đã duyệt thành công.' : 'Đã từ chối thành công.');
+      toast({
+        title: status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
+        description: 'Trạng thái và lịch sử phê duyệt đã được cập nhật.',
+        variant: 'success',
+      });
     } catch (err) {
       const message =
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      alert('Chưa thể xử lý: ' + message);
+      toast({ title: 'Chưa thể xử lý phê duyệt', description: message, variant: 'danger', durationMs: 0 });
     }
   };
 

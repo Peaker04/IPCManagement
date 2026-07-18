@@ -3,6 +3,7 @@ import { PackageCheck, ShoppingCart } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
+  ConfirmDialog,
   ContextStrip,
   DemandSummary,
   DocumentRail,
@@ -13,6 +14,7 @@ import {
   StockMovementTable,
   TableViewport,
   ViewSwitcher,
+  useToast,
 } from '@/components/common';
 import { ROUTES } from '@/routes/routeConfig';
 import {
@@ -42,6 +44,7 @@ type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff'
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
 
 export default function PurchasingPage() {
+  const { toast } = useToast();
   const [searchParams] = useSearchParams();
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
@@ -110,19 +113,19 @@ export default function PurchasingPage() {
 
   const handleSubmitPurchaseRequest = async () => {
     if (!submitTargetId) {
-      alert('Chưa có đơn mua để gửi.');
+      toast({ title: 'Chưa có đơn mua để gửi', description: 'Hãy hoàn tất đề xuất mua trước khi chuyển sang phê duyệt.', variant: 'warning' });
       return;
     }
 
     try {
       await submitPurchaseRequest(submitTargetId).unwrap();
-      alert('Đã gửi đơn mua chính thức.');
+      toast({ title: 'Đã gửi đơn mua chính thức', description: 'Đơn mua đã chuyển sang luồng phê duyệt.', variant: 'success' });
     } catch (err) {
       const message =
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      alert('Chưa thể gửi đơn mua: ' + message);
+      toast({ title: 'Chưa thể gửi đơn mua', description: message, variant: 'danger', durationMs: 0 });
     }
   };
 
@@ -294,6 +297,7 @@ function SupplierLineItem({
   suppliers: SupplierDto[];
   onUpdate: ReturnType<typeof useUpdatePurchaseRequestLineSupplierMutation>[0];
 }) {
+  const { toast } = useToast();
   const [selectedSupplierId, setSelectedSupplierId] = useState(line.supplierId ?? '');
   const [estimatedPrice, setEstimatedPrice] = useState<number>(line.estimatedUnitPrice ?? 0);
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '');
@@ -316,11 +320,11 @@ function SupplierLineItem({
 
   const handleSave = async () => {
     if (!line.purchaseRequestId || !line.purchaseRequestLineId || !selectedSupplierId) {
-      alert('Vui lòng chọn Nhà cung cấp');
+      toast({ title: 'Thiếu nhà cung cấp', description: 'Vui lòng chọn nhà cung cấp cho dòng mua này.', variant: 'warning' });
       return;
     }
     if (!estimatedPrice || estimatedPrice <= 0) {
-      alert('Vui lòng nhập giá dự kiến lớn hơn 0');
+      toast({ title: 'Giá dự kiến chưa hợp lệ', description: 'Vui lòng nhập giá lớn hơn 0.', variant: 'warning' });
       return;
     }
     setIsUpdating(true);
@@ -335,13 +339,13 @@ function SupplierLineItem({
           note: note.trim() || null,
         }
       }).unwrap();
-      alert('Đã cập nhật Nhà cung cấp thành công!');
+      toast({ title: 'Đã cập nhật nhà cung cấp', variant: 'success' });
     } catch (err) {
       const message =
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      alert('Lỗi khi cập nhật Nhà cung cấp: ' + message);
+      toast({ title: 'Chưa thể cập nhật nhà cung cấp', description: message, variant: 'danger', durationMs: 0 });
     } finally {
       setIsUpdating(false);
     }
@@ -408,6 +412,7 @@ function SupplierLineItem({
 }
 
 function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
+  const { toast } = useToast();
   const { data: ingredients = [] } = useGetIngredientsQuery();
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const { data: quotations = [], isFetching } = useGetSupplierQuotationsByIngredientQuery(selectedIngredientId, {
@@ -420,6 +425,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
 
   const [form, setForm] = useState({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
 
   const resetForm = () => {
     setForm({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
@@ -429,20 +435,20 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedIngredientId) {
-      alert('Vui lòng chọn nguyên liệu');
+      toast({ title: 'Thiếu nguyên liệu', description: 'Vui lòng chọn nguyên liệu trước khi nhập báo giá.', variant: 'warning' });
       return;
     }
     if (!editingId && !form.supplierId) {
-      alert('Vui lòng chọn nhà cung cấp');
+      toast({ title: 'Thiếu nhà cung cấp', description: 'Vui lòng chọn nhà cung cấp cho báo giá.', variant: 'warning' });
       return;
     }
     const unitPrice = Number(form.unitPrice);
     if (!unitPrice || unitPrice <= 0) {
-      alert('Vui lòng nhập đơn giá lớn hơn 0');
+      toast({ title: 'Đơn giá chưa hợp lệ', description: 'Vui lòng nhập đơn giá lớn hơn 0.', variant: 'warning' });
       return;
     }
     if (!form.effectiveFrom) {
-      alert('Vui lòng nhập ngày bắt đầu hiệu lực');
+      toast({ title: 'Thiếu ngày bắt đầu', description: 'Vui lòng chọn ngày bắt đầu hiệu lực của báo giá.', variant: 'warning' });
       return;
     }
 
@@ -474,7 +480,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      alert('Lỗi khi lưu báo giá: ' + message);
+      toast({ title: 'Chưa thể lưu báo giá', description: message, variant: 'danger', durationMs: 0 });
     }
   };
 
@@ -489,18 +495,20 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
     });
   };
 
-  const handleDeactivate = async (quotationId: string) => {
-    if (!confirm('Ngừng báo giá này?')) {
-      return;
-    }
+  const handleDeactivate = (quotationId: string) => setDeactivateTargetId(quotationId);
+
+  const handleConfirmDeactivate = async () => {
+    if (!deactivateTargetId) return;
     try {
-      await deactivateQuotation(quotationId).unwrap();
+      await deactivateQuotation(deactivateTargetId).unwrap();
+      setDeactivateTargetId(null);
+      toast({ title: 'Đã ngừng báo giá', variant: 'success' });
     } catch (err) {
       const message =
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      alert('Lỗi khi ngừng báo giá: ' + message);
+      toast({ title: 'Chưa thể ngừng báo giá', description: message, variant: 'danger', durationMs: 0 });
     }
   };
 
@@ -627,6 +635,14 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
           </form>
         </>
       )}
+      <ConfirmDialog
+        open={deactivateTargetId !== null}
+        title="Ngừng báo giá này?"
+        description="Báo giá sẽ không còn được chọn cho các giao dịch mới."
+        confirmLabel="Ngừng báo giá"
+        onConfirm={handleConfirmDeactivate}
+        onOpenChange={(open) => !open && setDeactivateTargetId(null)}
+      />
     </div>
   );
 }
@@ -645,11 +661,13 @@ function PurchaseOrderManager({
   purchaseRequestLines: DemandLine[];
   currentStockRows: CurrentStockRow[];
 }) {
+  const { toast } = useToast();
   const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
   const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
   const [cancelOrder] = useCancelPurchaseOrderMutation();
   const [expandedOrderId, setExpandedOrderId] = useState<string | null>(null);
+  const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
   const orderPagination = useLocalPagination(purchaseOrders, 6);
@@ -690,21 +708,21 @@ function PurchaseOrderManager({
     try {
       await createFromRequest(purchaseRequestId).unwrap();
     } catch (err) {
-      alert('Lỗi khi tạo đơn mua hàng: ' + getErrorMessage(err));
+      toast({ title: 'Chưa thể tạo đơn mua hàng', description: getErrorMessage(err), variant: 'danger', durationMs: 0 });
     }
   };
 
   const handleReceive = async (order: PurchaseOrderDto) => {
     const warehouseId = receiveWarehouseByOrder[order.purchaseOrderId] || warehouseOptions[0]?.warehouseId || '';
     if (!warehouseId) {
-      alert('Vui lòng chọn kho nhập hàng trước khi ghi nhận.');
+      toast({ title: 'Thiếu kho nhập hàng', description: 'Vui lòng chọn kho trước khi ghi nhận nhận hàng.', variant: 'warning' });
       return;
     }
     const lines = order.lines
       .map((line) => ({ purchaseOrderLineId: line.purchaseOrderLineId, receivedQty: Number(receiveQtyByLine[line.purchaseOrderLineId] || 0) }))
       .filter((line) => line.receivedQty > 0);
     if (lines.length === 0) {
-      alert('Vui lòng nhập số lượng nhận cho ít nhất một dòng.');
+      toast({ title: 'Chưa có số lượng nhận', description: 'Vui lòng nhập số lượng cho ít nhất một dòng.', variant: 'warning' });
       return;
     }
     try {
@@ -713,18 +731,20 @@ function PurchaseOrderManager({
       setReceiveWarehouseByOrder((current) => ({ ...current, [order.purchaseOrderId]: warehouseId }));
       setExpandedOrderId(null);
     } catch (err) {
-      alert('Lỗi khi ghi nhận nhận hàng: ' + getErrorMessage(err));
+      toast({ title: 'Chưa thể ghi nhận nhận hàng', description: getErrorMessage(err), variant: 'danger', durationMs: 0 });
     }
   };
 
-  const handleCancel = async (purchaseOrderId: string) => {
-    if (!confirm('Hủy đơn mua hàng này?')) {
-      return;
-    }
+  const handleCancel = (purchaseOrderId: string) => setCancelTargetId(purchaseOrderId);
+
+  const handleConfirmCancel = async () => {
+    if (!cancelTargetId) return;
     try {
-      await cancelOrder(purchaseOrderId).unwrap();
+      await cancelOrder(cancelTargetId).unwrap();
+      setCancelTargetId(null);
+      toast({ title: 'Đã hủy đơn mua hàng', variant: 'success' });
     } catch (err) {
-      alert('Lỗi khi hủy đơn mua hàng: ' + getErrorMessage(err));
+      toast({ title: 'Chưa thể hủy đơn mua hàng', description: getErrorMessage(err), variant: 'danger', durationMs: 0 });
     }
   };
 
@@ -863,6 +883,14 @@ function PurchaseOrderManager({
           onPageChange={orderPagination.setPage}
         />
       </div>
+      <ConfirmDialog
+        open={cancelTargetId !== null}
+        title="Hủy đơn mua hàng này?"
+        description="Đơn mua sẽ không tiếp tục được xử lý trong luồng thu mua."
+        confirmLabel="Hủy đơn mua"
+        onConfirm={handleConfirmCancel}
+        onOpenChange={(open) => !open && setCancelTargetId(null)}
+      />
     </div>
   );
 }

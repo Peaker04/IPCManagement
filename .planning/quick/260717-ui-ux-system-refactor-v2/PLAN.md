@@ -355,6 +355,46 @@ GitNexus was force-refreshed after a stale-index discrepancy was detected. The g
 6. Reconcile ownership for `WeeklyMenuPage` and `AdminDataPage` before touching either file. Their existing user changes are not implementation debt that can be overwritten.
 7. Only after all consumers are migrated, remove `DataTableShell`/legacy CSS in a separate cleanup commit with a full visual and accessibility gate.
 
+### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
+
+Status: added 2026-07-18; pending ownership and visual-baseline reconciliation.
+
+Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
+
+Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu tiên clarity, trust và density trung bình. Dials: `DESIGN_VARIANCE=3`, `MOTION_INTENSITY=2`, `VISUAL_DENSITY=5`. Một accent IPC blue, một hệ radius, không thêm UI kit thứ hai. `lucide-react` được giữ vì project đã dùng sẵn; không đưa thêm icon library.
+
+Scope:
+
+- Audit toàn bộ `frontend/src` và route snapshots cho duplicate CSS, fixed widths gây overflow, nested scroll, mobile stacking, sidebar/content duplication, heading/button wrapping và feedback đặt sai vùng.
+- Giữ CSS có trách nhiệm rõ: design tokens, layout primitives, responsive rules, focus/contrast và state styles. Xóa hoặc gom CSS chỉ khi có evidence từ source inventory, computed layout hoặc visual test.
+- Tìm và loại bỏ `window.alert`, `window.confirm`, `window.prompt`, console-driven user feedback và các `setTimeout`/effect chỉ dùng để giả lập thông báo. Không xóa logging phục vụ chẩn đoán backend nếu không có replacement phù hợp.
+- Xây shared `ToastProvider`/`useToast` typed cho feedback tạm thời; dùng `InlineAlert` cho lỗi/loading/empty theo vùng; dùng shadcn/Radix `Dialog` cho confirm hoặc nội dung cần người dùng quyết định. Mỗi surface phải có title, variant, close/focus behavior và reduced-motion-safe styling.
+- Chuẩn hóa page anatomy: một `OperationalFrame`, một page header, một command area, một status/feedback region và một table viewport; không lặp sidebar, user panel, breadcrumb, title hoặc cùng một action ở nhiều tầng.
+- Migrate route theo nhóm: shell/dashboard, workflow/coordination, weekly-menu/admin (chỉ sau ownership handoff), reports, chef/purchasing/warehouse.
+
+Allowed files for the first clean slice:
+
+- `frontend/src/components/common/*` feedback/layout primitives and tests.
+- `frontend/src/components/ui/dialog.tsx` and new typed toast primitive if required by the existing stack.
+- `frontend/src/styles/*` only after token/static audit identifies an isolated safe rule; global `index.css` remains protected for route-owned changes.
+- planning artifacts and test fixtures. Dirty route files remain protected until handoff.
+
+Implementation contract:
+
+1. Build an inventory of every feedback mechanism and CSS class before editing.
+2. Run GitNexus upstream impact for each shared symbol before modification; HIGH/CRITICAL results require a warning and caller-by-caller migration.
+3. Preserve mutation handlers, API payloads, route labels, technical identifiers and existing focus/keyboard behavior.
+4. Use typed semantic copy such as `Đã lưu`, `Không thể tải dữ liệu`, `Cần xác nhận`, `Đang xử lý`; do not expose raw enum names such as `Error`, `Pending`, `Action` or `Contract` without a user-facing label.
+5. Test desktop and mobile geometry after each route group. No snapshot update is allowed until actual-vs-baseline diff has a root-cause note.
+
+Exit criteria:
+
+- Static scan reports no unapproved browser alert/confirm/prompt or user-facing console feedback.
+- Shared feedback primitive tests cover success, warning, danger, dismiss, focus and reduced-motion behavior.
+- Each route has one shell/header/feedback region and no known horizontal overflow or duplicated navigation surface at 390px and desktop viewports.
+- Existing mutation/API and accessibility gates remain green; visual failures are either fixed or documented with exact root cause.
+- CSS cleanup has a before/after inventory and does not remove tokens, focus styles, responsive rules or styles still referenced by dirty user-owned work.
+
 ### Wave 5 — Cleanup and release gate
 
 - Migrate/remove deprecated consumers.
