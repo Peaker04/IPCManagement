@@ -65,7 +65,7 @@ export default function PurchasingPage() {
     limit: 8,
     sortDirection: 'desc',
   });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
+  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 20 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
