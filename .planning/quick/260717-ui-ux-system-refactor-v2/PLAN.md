@@ -303,6 +303,14 @@ Admin stock-adjustment cursor slice:
 - Evidence: backend build and `267/267` tests pass; frontend lint, unit `72/72` and production build pass. Commit: `342a681`.
 - Risk boundary: GitNexus could not index the backend service/DTO symbols (`UNKNOWN` impact), so the filter was verified through direct compile and focused regression assertion rather than treated as zero-risk. The endpoint still materializes up to `limit + 1` rows before cursor metadata; this is bounded UI pagination, not a claim of fully database-lazy history scanning.
 
+Admin kitchen-statistics aggregate slice:
+
+- `OperationalKpiSummaryDto` now exposes report-wide issued, used and returned kitchen quantities. The service calculates them from issue lines and matching return/waste records, preserving the existing used-quantity rule (`max(0, issued - returned - waste)`).
+- `AdminDataPage` statistics no longer requests kitchen-issue and usage lists with `limit:100` merely to sum visible rows; it reads the bounded KPI response instead. Existing KPI count fields and all other consumers remain unchanged.
+- Ownership was preserved with a four-file narrow stage; the dirty BOM/contract changes in `AdminDataPage` and `WorkflowReportService` remained outside the commit. Commit: `71f69ff`.
+- Evidence: backend build, `267/267` tests, frontend lint, unit `72/72` and production build pass. GitNexus returned UNKNOWN for backend KPI symbols and LOW for the Admin page; this remains an explicit contract risk, not an ignored warning.
+- Known boundary: the aggregate currently loads distinct issue IDs before summing matching return records. This is correct and bounded at the UI boundary, but a future DB-side grouped aggregate should replace the ID materialization for very large histories.
+
 Critical shell gate result — `DataTableShell`:
 
 - GitNexus upstream impact: CRITICAL; 16 impacted symbols, 10 direct callers and 12 affected execution flows.
