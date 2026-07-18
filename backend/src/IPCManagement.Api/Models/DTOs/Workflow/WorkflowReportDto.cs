@@ -44,6 +44,9 @@ public class OperationalKpiSummaryDto
     public int FailedWorkflowCount { get; set; }
     public int CriticalDataQualityCount { get; set; }
     public int OverdueApprovalCount { get; set; }
+    public decimal TotalKitchenIssuedQty { get; set; }
+    public decimal TotalKitchenUsedQty { get; set; }
+    public decimal TotalKitchenReturnedQty { get; set; }
     public DateTime GeneratedAt { get; set; }
 }
 

@@ -28,8 +28,6 @@ import {
   useGetCurrentStockPageQuery,
   useGetDataQualityPageQuery,
   useGetIngredientDemandPageQuery,
-  useGetIssueVsReturnUsageQuery,
-  useGetKitchenIssuesQuery,
   useGetOperationalKpisQuery,
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
@@ -278,8 +276,6 @@ export default function AdminDataPage() {
   const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
   const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: priceWarningPage, pageSize: 8, warningOnly: true });
-  const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
-  const { data: usageRows = [] } = useGetIssueVsReturnUsageQuery({ limit: 100 });
   const { roleInboxItems } = useWorkflowOverview();
   const employeeQuery = useMemo(
     () => ({
@@ -305,9 +301,9 @@ export default function AdminDataPage() {
   const priceWarningCount = priceVariancePage?.totalCount ?? 0;
   const currentStockRows = currentStockPageResponse?.items ?? [];
   const totalPurchaseQty = purchasePlanPage?.totalShortageQty ?? 0;
-  const totalIssuedQty = kitchenIssueRows.reduce((total, row) => total + row.issuedQty, 0);
-  const totalUsedQty = usageRows.reduce((total, row) => total + row.usedQty, 0);
-  const totalReturnedQty = usageRows.reduce((total, row) => total + row.returnedQty, 0);
+  const totalIssuedQty = operationalKpis?.totalKitchenIssuedQty ?? 0;
+  const totalUsedQty = operationalKpis?.totalKitchenUsedQty ?? 0;
+  const totalReturnedQty = operationalKpis?.totalKitchenReturnedQty ?? 0;
   const dataQualityIssues = dataQualityReport?.page.items ?? [];
   const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
   const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);

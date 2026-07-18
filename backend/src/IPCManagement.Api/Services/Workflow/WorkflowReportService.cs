@@ -2694,6 +2694,30 @@ public class WorkflowReportService : IWorkflowReportService
 
         var lowStockCount = await ComputeLowStockCountAsync(demandWindowStart, today);
 
+        var kitchenIssueLines = QueryIssueLines(new WorkflowReportQueryDto());
+        var totalKitchenIssuedQty = await kitchenIssueLines.SumAsync(item => item.IssuedQty);
+        var kitchenIssueIds = await kitchenIssueLines
+            .Select(item => item.IssueId)
+            .Distinct()
+            .ToListAsync();
+        var kitchenReturnTotals = await _context.Inventoryreturnlines
+            .AsNoTracking()
+            .Where(item => kitchenIssueIds.Contains(item.Return.IssueId))
+            .GroupBy(item => item.Return.ReturnType)
+            .Select(group => new { ReturnType = group.Key, Quantity = group.Sum(item => item.Quantity) })
+            .ToListAsync();
+        var totalKitchenReturnedQty = kitchenReturnTotals
+            .Where(item => item.ReturnType == "RETURN")
+            .Select(item => item.Quantity)
+            .FirstOrDefault();
+        var totalKitchenWastedQty = kitchenReturnTotals
+            .Where(item => item.ReturnType == "WASTE")
+            .Select(item => item.Quantity)
+            .FirstOrDefault();
+        var totalKitchenUsedQty = WorkflowReportCalculator.CalculateUsedQuantity(
+            totalKitchenIssuedQty,
+            totalKitchenReturnedQty + totalKitchenWastedQty);
+
         return new OperationalKpiSummaryDto
         {
             ShortageCount = shortageCount,
@@ -2704,6 +2728,9 @@ public class WorkflowReportService : IWorkflowReportService
             FailedWorkflowCount = failedWorkflowCount,
             CriticalDataQualityCount = dataQuality.ErrorCount,
             OverdueApprovalCount = overdueApprovalCount,
+            TotalKitchenIssuedQty = DecimalPolicy.RoundQuantity(totalKitchenIssuedQty),
+            TotalKitchenUsedQty = totalKitchenUsedQty,
+            TotalKitchenReturnedQty = DecimalPolicy.RoundQuantity(totalKitchenReturnedQty),
             GeneratedAt = now
         };
     }

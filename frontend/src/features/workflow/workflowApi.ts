@@ -580,6 +580,9 @@ export interface OperationalKpiSummaryDto {
   failedWorkflowCount: number;
   criticalDataQualityCount: number;
   overdueApprovalCount: number;
+  totalKitchenIssuedQty: number;
+  totalKitchenUsedQty: number;
+  totalKitchenReturnedQty: number;
   generatedAt: string;
 }
 
