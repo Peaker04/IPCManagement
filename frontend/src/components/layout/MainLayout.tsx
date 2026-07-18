@@ -84,7 +84,7 @@ export const MainLayout = () => {
   const pageContext = (() => {
     switch (location.pathname) {
       case ROUTES.DASHBOARD:
-        return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan workflow', state: 'Theo dõi điểm tắc' };
+        return { title: 'Bàn điều hành hôm nay', workflow: 'Tổng quan vận hành', state: 'Theo dõi điểm tắc' };
       case ROUTES.WEEKLY_MENU:
         return { title: 'KHSX và định lượng', workflow: workflowContext.lane.label, state: workflowContext.lane.status };
       case ROUTES.MEAL_ORDERS:
