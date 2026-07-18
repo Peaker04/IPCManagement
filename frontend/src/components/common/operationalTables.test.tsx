@@ -14,7 +14,7 @@ const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => 
   title: `Việc ${index + 1}`,
   description: `Mô tả ${index + 1}`,
   due: `Hôm nay ${index + 1}`,
-  nextAction: 'Xử lý',
+  nextAction: 'PENDING',
   tone: index === 1 ? 'warning' : 'neutral',
   route: '/warehouse',
 }));
@@ -76,13 +76,14 @@ describe('RoleInbox', () => {
       <RoleInbox
         items={roleInboxItems}
         pageSize={4}
-        actionForItem={(item) => <button type="button">Mở {item.title}</button>}
+        actionForItem={(item) => <button type="button">{item.nextAction}</button>}
       />,
     );
 
     expect(screen.getByText('Việc 1')).toBeInTheDocument();
+    expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(4);
     expect(screen.queryByText('Việc 5')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Mở Việc 1' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: 'Đang chờ xử lý' })).toHaveLength(4);
 
     await userEvent.click(screen.getByRole('button', { name: /Trang sau/i }));
 
