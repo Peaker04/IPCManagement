@@ -147,6 +147,7 @@ export default function PurchasingPage() {
     <OperationalFrame
       command={
         <CommandBar
+          actionsClassName="ipc-purchasing-actions"
           actions={
             <>
               <button
