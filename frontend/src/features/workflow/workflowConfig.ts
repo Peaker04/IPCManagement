@@ -133,6 +133,8 @@ const workflowStatusLabels: Record<string, string> = {
   SENTTOKITCHEN: 'Đã gửi bếp',
   SENTTOSUPPLIER: 'Đã gửi nhà cung cấp',
   SENTTOWAREHOUSE: 'Đã gửi kho',
+  PARTIALLY_RECEIVED: 'Đã nhận một phần',
+  SUBMITTED: 'Chờ phê duyệt',
   WARNING: 'Có cảnh báo',
 };
 

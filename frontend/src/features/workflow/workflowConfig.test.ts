@@ -18,6 +18,8 @@ describe('workflowConfig', () => {
     expect(formatWorkflowStatus('ordered')).toBe('Đã đặt hàng');
     expect(formatWorkflowStatus('resolved')).toBe('Đã xử lý');
     expect(formatWorkflowStatus('reopened')).toBe('Đã mở lại');
+    expect(formatWorkflowStatus('PARTIALLY_RECEIVED')).toBe('Đã nhận một phần');
+    expect(formatWorkflowStatus('SUBMITTED')).toBe('Chờ phê duyệt');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
     expect(formatWorkflowStatus('Trạng thái riêng')).toBe('Trạng thái riêng');
   });

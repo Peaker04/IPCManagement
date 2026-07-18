@@ -39,17 +39,10 @@ import {
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '../workflowConfig';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
-
-const purchaseRequestStatusLabel: Record<string, string> = {
-  DRAFT: 'Bản nháp',
-  SUBMITTED: 'Chờ phê duyệt',
-  APPROVED: 'Đã phê duyệt',
-  REJECTED: 'Bị từ chối',
-  CANCELLED: 'Đã hủy',
-};
 
 export default function PurchasingPage() {
   const { toast } = useToast();
@@ -187,7 +180,7 @@ export default function PurchasingPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? (purchaseRequestStatusLabel[primaryPurchaseRequestLine.status] ?? primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
+            { label: 'Trạng thái mua', value: primaryPurchaseRequestLine ? formatWorkflowStatus(primaryPurchaseRequestLine.status) : 'Chưa có đơn mua', tone: primaryPurchaseRequestLine ? 'warning' : 'neutral' },
             { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
             { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
             { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchasePlan?.source ?? 'Chưa có', tone: 'neutral' },
@@ -682,13 +675,6 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   );
 }
 
-const purchaseOrderStatusLabel: Record<string, string> = {
-  ORDERED: 'Đã đặt hàng',
-  PARTIALLY_RECEIVED: 'Nhận một phần',
-  RECEIVED: 'Đã nhận đủ',
-  CANCELLED: 'Đã hủy',
-};
-
 function PurchaseOrderManager({
   purchaseRequestLines,
   currentStockRows,
@@ -845,7 +831,7 @@ function PurchaseOrderManager({
                     <td>{order.supplierName}</td>
                     <td className="font-mono">{order.purchaseRequestCode}</td>
                     <td>{order.orderDate}</td>
-                    <td>{purchaseOrderStatusLabel[order.status] ?? order.status}</td>
+                    <td>{formatWorkflowStatus(order.status)}</td>
                     <td className="space-x-2">
                       {order.status !== 'CANCELLED' && order.status !== 'RECEIVED' && (
                         <button
