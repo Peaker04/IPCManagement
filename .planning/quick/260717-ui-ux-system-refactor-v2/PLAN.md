@@ -385,6 +385,7 @@ Completed clean slices:
 - Warehouse stock movements now use the existing server cursor endpoint with a backward-compatible `StockMovementTable` controller; the route no longer requests 100 movement rows and then slices locally (`fd85c9a`). Route smoke `14/14`, controls `4/4`, and UI audit `2/2` pass.
 - Purchasing’s “Kế hoạch thu mua” now uses the existing page-number endpoint with an 8-row page and canonical `PaginationBar` instead of the unbounded `limit: 100` collection (`225780b`). The purchase-request and current-stock collections remain unchanged until their route-specific data contract is reconciled.
 - Purchasing handoff history now uses the receipt-filtered cursor endpoint and price warning context uses the page-number endpoint; both remove the previous unbounded report collections without changing order/receipt mutations (`ba71e7e`).
+- CSS inventory found 251 `.ipc-*` selectors in the clean stylesheet; four isolated selectors had zero non-CSS source references and were removed without staging the dirty dashboard CSS addition (`36bd716`). UI audit `2/2` and lint/build pass.
 
 Current blockers and next route order:
 
