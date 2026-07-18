@@ -16,6 +16,8 @@ describe('workflowConfig', () => {
     expect(formatWorkflowStatus('PENDING')).toBe('Đang chờ xử lý');
     expect(formatWorkflowStatus('SENTTOWAREHOUSE')).toBe('Đã gửi kho');
     expect(formatWorkflowStatus('ordered')).toBe('Đã đặt hàng');
+    expect(formatWorkflowStatus('resolved')).toBe('Đã xử lý');
+    expect(formatWorkflowStatus('reopened')).toBe('Đã mở lại');
     expect(formatWorkflowStatus('')).toBe('Chưa cập nhật');
     expect(formatWorkflowStatus('Trạng thái riêng')).toBe('Trạng thái riêng');
   });

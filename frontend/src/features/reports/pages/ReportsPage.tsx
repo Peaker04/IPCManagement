@@ -49,6 +49,7 @@ import {
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
@@ -268,7 +269,7 @@ const ReportsPage = () => {
         ['Tồn hiện có', (row) => row.available],
         ['Thiếu/mua', (row) => Math.max(row.required - row.available, 0)],
         ['Đơn vị', (row) => row.unit],
-        ['Trạng thái', (row) => row.status],
+        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
       ],
     },
     purchase: {
@@ -307,7 +308,7 @@ const ReportsPage = () => {
         ['Số lượng', (row) => row.quantity],
         ['Đơn vị', (row) => row.unit],
         ['Phụ trách', (row) => row.owner],
-        ['Trạng thái', (row) => row.status],
+        ['Trạng thái', (row) => formatWorkflowStatus(row.status)],
       ],
     },
     kitchen: {
@@ -358,7 +359,7 @@ const ReportsPage = () => {
         ['Mức độ', (row) => row.severity],
         ['SLA', (row) => row.slaLabel],
         ['Priority', (row) => row.priorityRank],
-        ['Trạng thái xử lý', (row) => row.remediationStatus],
+        ['Trạng thái xử lý', (row) => formatWorkflowStatus(row.remediationStatus)],
         [uiCopy.reports.owner, (row) => row.owner],
         ['Nhóm lỗi', (row) => row.category],
         ['Bảng/entity', (row) => row.entityName],
@@ -779,7 +780,7 @@ const ReportsPage = () => {
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.required, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.available, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(Math.max(row.required - row.available, 0), row.unit)}</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{row.status}</StatusBadge></td>
+                    <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.tone === 'danger' ? ROUTES.PURCHASING : ROUTES.WAREHOUSE}>{row.nextAction}</Link></td>
                   </tr>
                 ))}
@@ -1061,7 +1062,7 @@ const ReportsPage = () => {
                     </td>
                     <td>
                       <StatusBadge variant={row.remediationStatus === 'resolved' ? 'warning' : row.remediationStatus === 'reopened' ? 'danger' : 'neutral'} className="ipc-table-badge ipc-table-badge--status">
-                        {row.remediationStatus === 'resolved' ? uiCopy.reports.resolvedWithIssues : row.remediationStatus === 'reopened' ? uiCopy.reports.reopened : uiCopy.reports.open}
+                        {formatWorkflowStatus(row.remediationStatus)}
                       </StatusBadge>
                     </td>
                     <td>{row.owner}</td>

@@ -120,15 +120,20 @@ const workflowStatusLabels: Record<string, string> = {
   CREATED: 'Mới tạo',
   DRAFT: 'Bản nháp',
   EXPORTED: 'Đã xuất kho',
+  ERROR: 'Có lỗi',
   MANAGERAPPROVED: 'Quản lí đã duyệt',
   ORDERED: 'Đã đặt hàng',
   PARTIALRECEIVED: 'Đã nhận một phần',
   PENDING: 'Đang chờ xử lý',
+  OPEN: 'Đang mở',
   RECEIVED: 'Đã nhận đủ',
   REJECTED: 'Bị từ chối',
+  REOPENED: 'Đã mở lại',
+  RESOLVED: 'Đã xử lý',
   SENTTOKITCHEN: 'Đã gửi bếp',
   SENTTOSUPPLIER: 'Đã gửi nhà cung cấp',
   SENTTOWAREHOUSE: 'Đã gửi kho',
+  WARNING: 'Có cảnh báo',
 };
 
 export const formatWorkflowStatus = (status?: string) => {
