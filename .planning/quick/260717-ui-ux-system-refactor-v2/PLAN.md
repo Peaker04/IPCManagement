@@ -343,6 +343,8 @@ Wave 4 remains blocked for visual completion. Functional/accessibility gates pas
 
 Evidence added on 2026-07-18 confirms the blocker is composite rather than a single shell defect: the dirty `WeeklyMenuPage` and `AdminDataPage` feature diffs change route structure and content geometry, while `index.css` carries a large global-style diff. The remaining `DataTableShell` consumer is the user-owned BOM-current table in `AdminDataPage`; there is no clean caller available for the planned low-risk migration. The next step is ownership handoff or baseline reconciliation, not more route code or snapshot changes.
 
+GitNexus was force-refreshed after a stale-index discrepancy was detected. The graph still reports `DataTableShell` as CRITICAL (16 symbols, 12 flows), despite the current source inventory showing one production consumer. This unresolved discrepancy is itself a risk gate: cleanup must wait until graph edges are reconciled with source, and the higher-risk result must not be dismissed.
+
 ### Next execution slice — Refactor legacy shell safely
 
 1. Freeze the current visual baseline and separate failures caused by the dirty dashboard snapshots, the dirty `WeeklyMenuPage`/`AdminDataPage`, and the uncommitted shell prototype. This evidence is now recorded in `OWNERSHIP.md`.
