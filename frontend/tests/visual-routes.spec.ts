@@ -36,8 +36,8 @@ async function stubVisualApi(page: Page) {
     await route.continue();
   });
 
-  await page.route('**/api/approvals/inbox**', async (route) => fulfill(route, [
-    {
+  await page.route('**/api/approvals/inbox**', async (route) => fulfill(route, {
+    items: [{
       inboxItemId: 'purchase-pr-visual',
       targetType: 'purchase-request',
       targetId: 'pr-visual',
@@ -54,8 +54,8 @@ async function stubVisualApi(page: Page) {
       tone: 'warning',
       route: ROUTES.APPROVALS,
       materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
-    },
-  ]));
+    }], limit: 20, hasNext: false, nextCursor: null,
+  }));
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';

@@ -39,7 +39,9 @@ async function stubOperationalApis(page: Page) {
       permissions: ['*'],
     });
   });
-  await page.route('**/api/approvals/inbox**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/approvals/inbox**', async (route) => fulfillJson(route, {
+    items: [], limit: 20, hasNext: false, nextCursor: null,
+  }));
   await page.route('**/api/approval-rules**', async (route) => fulfillJson(route, []));
   await page.route('**/api/admin/employees**', async (route) => fulfillJson(route, {
     items: [],
@@ -166,8 +168,8 @@ async function stubMealOrderDraftShift(page: Page) {
 
 async function stubApprovalQueue(page: Page) {
   await page.route('**/api/approvals/inbox**', async (route) =>
-    fulfillJson(route, [
-      {
+    fulfillJson(route, {
+      items: [{
         inboxItemId: 'approval-pr-control',
         targetType: 'purchase-request',
         targetId: 'pr-control',
@@ -184,8 +186,11 @@ async function stubApprovalQueue(page: Page) {
         tone: 'warning',
         route: ROUTES.APPROVALS,
         materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
-      },
-    ]),
+      }],
+      limit: 20,
+      hasNext: false,
+      nextCursor: null,
+    }),
   );
   await page.route('**/api/workflow-reports/workflow-documents**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));

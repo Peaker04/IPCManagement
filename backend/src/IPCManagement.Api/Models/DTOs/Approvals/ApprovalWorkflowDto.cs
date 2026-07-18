@@ -33,7 +33,16 @@ public class ApprovalResultDto
 
 public class ApprovalInboxQueryDto
 {
-    public int Limit { get; set; } = 100;
+    public int Limit { get; set; } = 20;
+    public string? Cursor { get; set; }
+}
+
+public class ApprovalInboxPageDto
+{
+    public IReadOnlyList<ApprovalInboxItemDto> Items { get; set; } = [];
+    public int Limit { get; set; }
+    public bool HasNext { get; set; }
+    public string? NextCursor { get; set; }
 }
 
 public class ApprovalInboxItemDto

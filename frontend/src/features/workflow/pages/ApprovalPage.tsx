@@ -5,6 +5,7 @@ import {
   ApprovalQueue,
   CommandBar,
   ContextStrip,
+  CursorPaginationBar,
   DocumentRail,
   OperationalFrame,
   SectionPanel,
@@ -32,11 +33,27 @@ export default function ApprovalPage() {
   const { toast } = useToast();
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
+  const [approvalCursors, setApprovalCursors] = useState<string[]>([]);
   
-  const { data: approvalRecords = [] } = useGetApprovalRecordsQuery({ limit: 100 });
+  const approvalCursor = approvalCursors.at(-1);
+  const { data: approvalPage = { items: [], limit: 20, hasNext: false, nextCursor: null } } = useGetApprovalRecordsQuery({
+    limit: 20,
+    cursor: approvalCursor,
+  });
+  const approvalRecords = approvalPage.items;
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery();
   const purchaseRequests = purchaseRequestsResponse?.data ?? [];
+
+  const approvalPageNumber = approvalCursors.length + 1;
+  const goToPreviousApprovalPage = () => {
+    setApprovalCursors((current) => current.slice(0, -1));
+  };
+  const goToNextApprovalPage = () => {
+    if (approvalPage.hasNext && approvalPage.nextCursor) {
+      setApprovalCursors((current) => [...current, approvalPage.nextCursor!]);
+    }
+  };
 
   const { data: historyResponse } = useGetApprovalHistoryQuery(
     { documentType: 'purchaserequest', documentId: selectedPrId ?? '' },
@@ -194,6 +211,7 @@ export default function ApprovalPage() {
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
               <ApprovalQueue
                 records={approvalRecords}
+                pageSize={Math.max(approvalRecords.length, 1)}
                 title={null}
                 actionForRecord={(record) => (
                   <>
@@ -216,6 +234,13 @@ export default function ApprovalPage() {
                   </>
                 )}
               />
+              <CursorPaginationBar
+                page={approvalPageNumber}
+                hasNext={approvalPage.hasNext}
+                onPrevious={goToPreviousApprovalPage}
+                onNext={goToNextApprovalPage}
+                ariaLabel="Phân trang hàng đợi duyệt"
+              />
             </SectionPanel>
           </SplitWorkbench>
         </div>
@@ -227,6 +252,7 @@ export default function ApprovalPage() {
             <div>
               <ApprovalQueue
                 records={approvalRecords.filter((record) => record.type === 'purchase' || record.type === 'issue')}
+                pageSize={Math.max(approvalRecords.length, 1)}
                 title={null}
                 actionForRecord={(record) => (
                   <>
@@ -248,6 +274,13 @@ export default function ApprovalPage() {
                     </button>
                   </>
                 )}
+              />
+              <CursorPaginationBar
+                page={approvalPageNumber}
+                hasNext={approvalPage.hasNext}
+                onPrevious={goToPreviousApprovalPage}
+                onNext={goToNextApprovalPage}
+                ariaLabel="Phân trang việc đang chờ quản lí"
               />
             </div>
           </div>
