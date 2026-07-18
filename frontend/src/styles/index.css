@@ -517,8 +517,7 @@ code {
 }
 
 .ipc-input,
-.ipc-select,
-.ipc-textarea {
+.ipc-select {
   width: 100%;
   border: 1px solid var(--input);
   border-radius: var(--ipc-radius-md);
@@ -553,8 +552,7 @@ code {
 }
 
 .ipc-input:focus,
-.ipc-select:focus,
-.ipc-textarea:focus {
+.ipc-select:focus {
   border-color: var(--ipc-focus-ring);
   box-shadow: 0 0 0 3px rgb(47 111 237 / 0.18);
 }
@@ -566,8 +564,7 @@ code {
 }
 
 .ipc-input:disabled,
-.ipc-select:disabled,
-.ipc-textarea:disabled {
+.ipc-select:disabled {
   cursor: not-allowed;
   background: var(--ipc-slate-100);
   color: var(--ipc-slate-500);
@@ -660,8 +657,7 @@ code {
 
 .ipc-button:focus-visible,
 .ipc-input:focus-visible,
-.ipc-select:focus-visible,
-.ipc-textarea:focus-visible {
+.ipc-select:focus-visible {
   outline: 2px solid var(--ipc-focus-ring);
   outline-offset: 2px;
 }
