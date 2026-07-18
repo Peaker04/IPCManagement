@@ -262,6 +262,18 @@ test.describe('operational control surface', () => {
     await expect(page.getByRole('dialog', { name: 'Tạo quy tắc duyệt mới' })).toBeVisible();
   });
 
+  test('reports filters keep a consistent two-column mobile layout', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.REPORTS);
+
+    await expect(page.getByRole('heading', { name: 'Phân tích biến động giá', exact: true })).toBeVisible();
+    await expect(page.getByLabel('Từ ngày')).toBeVisible();
+    await expect(page.getByLabel('Đến ngày')).toBeVisible();
+    await expect(page.getByLabel('Ca')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 

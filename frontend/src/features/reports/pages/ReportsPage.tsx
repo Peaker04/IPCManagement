@@ -438,6 +438,7 @@ const ReportsPage = () => {
       title="Phân tích và thống kê workflow"
       command={
         <CommandBar
+          leadingClassName="!grid w-full grid-cols-2 gap-3 md:!flex md:w-auto"
           actions={
             <button
               type="button"
@@ -450,7 +451,7 @@ const ReportsPage = () => {
             </button>
           }
         >
-          <div className="ipc-command-meta">
+          <div className="ipc-command-meta col-span-2 md:col-span-auto">
             <Filter size={16} />
             <span>Bộ lọc báo cáo</span>
           </div>
