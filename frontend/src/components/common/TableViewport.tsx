@@ -18,7 +18,7 @@ export function TableViewport({ children, ariaLabel, caption, className }: Table
 
   return (
     <div
-      className={cn('ipc-table-viewport w-full overflow-auto', className)}
+      className={cn('ipc-table-viewport min-w-0 w-full overflow-auto overscroll-x-contain', className)}
       role="region"
       aria-label={ariaLabel}
       aria-describedby={caption ? captionId : undefined}
