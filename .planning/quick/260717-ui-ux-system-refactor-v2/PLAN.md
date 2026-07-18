@@ -386,7 +386,7 @@ Wave 4.5 visual evidence is recorded in `UI-REVIEW.md`: desktop dashboard/chef r
 
 ### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
 
-Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
+Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; Task 4.5.1a inventory is recorded in `CSS-JS-INVENTORY.md`; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
 
 Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
 
