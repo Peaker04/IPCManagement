@@ -2742,16 +2742,6 @@ code {
   font-weight: 700;
 }
 
-.ipc-approval-record-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px var(--ipc-space-2);
-  color: var(--ipc-slate-500);
-  font-size: 0.75rem;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
 .ipc-approval-record ul {
   display: grid;
   gap: var(--ipc-space-1);
