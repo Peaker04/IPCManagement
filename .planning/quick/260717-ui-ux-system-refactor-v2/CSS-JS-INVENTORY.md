@@ -39,3 +39,8 @@ Ngày kiểm tra: 2026-07-18
 - Chef và Coordination đã có override route-local để không giữ khoảng trống desktop trên empty state; không cần đổi `EmptyState` global.
 - `index.css` vẫn giữ rule compatibility `min-height: 220px` vì stylesheet đang dirty và là boundary ownership; không xóa rule chỉ vì đã có hai override.
 - Warehouse empty document rail là surface riêng (`DocumentRail`), không dùng `EmptyState`; không trộn hai contract để ép cùng một chiều cao.
+
+## Route evidence follow-up
+
+- Approvals mobile tái hiện ở `390px`: không có horizontal overflow, action Duyệt/Từ chối/Kiểm tra kho/Sang thu mua vẫn nhìn thấy và modal contract không bị ảnh hưởng.
+- Snapshot cũ ngắn hơn 39px (`1401px` expected, `1440px` actual) trong khi nội dung fixture hiện tại có thêm vùng chứng từ; đây là baseline/data drift, chưa phải bằng chứng để sửa CSS hoặc update snapshot.
