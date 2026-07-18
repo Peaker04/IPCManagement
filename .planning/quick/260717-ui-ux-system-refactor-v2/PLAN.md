@@ -281,6 +281,12 @@ Reports semantic-status slice:
 - Known boundary: aggregate calculation still materializes filtered receipt lines before grouping, so response paging is bounded but database-level lazy aggregation is not yet complete. A future query decomposition should push grouping/count/order into SQL before very large-history release.
 - Evidence: backend compile-only pass, backend tests `267/267` pass with `--no-build`, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Reports flow, MEDIUM. Commit: `2946327`.
 
+Purchasing semantic-status slice:
+
+- Purchasing request and purchase-order status badges now use the shared `formatWorkflowStatus` helper; duplicate route-local maps were removed while raw enum values remain unchanged for action branching.
+- Evidence: frontend lint/unit `76/76`/build pass; staged GitNexus detection reported 3 files, 1 Purchasing flow, MEDIUM. Commit: `8bb3f2b`.
+- Remaining contract gap: purchase requests, supplier quotations and purchase orders are still list endpoints with route-local pagination or a `100`-row request. They require separate page-number contracts and ownership checks before claiming full lazy loading for Purchasing.
+
 Admin purchase-summary query slice:
 
 - Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
