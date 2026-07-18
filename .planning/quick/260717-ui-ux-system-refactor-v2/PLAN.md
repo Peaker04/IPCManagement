@@ -273,6 +273,13 @@ Admin data-quality page slice:
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); commit: `f7d5501`.
 - Known boundary: Admin price variance and statistics views remain next; price variance needs a warning-aware server contract before paging only warning rows without changing semantics.
 
+Admin purchase-summary query slice:
+
+- Statistics no longer requests up to 500 purchase-plan rows just to calculate one total. It now uses `purchase-plan/page` with the existing aggregate `totalShortageQty` contract and a bounded page size of 8.
+- The user-facing statistic remains the same while the payload is bounded; no purchase table or backend behavior was changed.
+- GitNexus impact/detect for the owned `AdminDataPage` change was LOW: 1 file, 1 symbol, 0 processes. Commit: `c1379ac`.
+- Evidence: frontend lint/unit/build pass (`72/72`).
+
 Admin current-stock page slice:
 
 - `AdminDataPage` inventory now consumes `current-stock/page` with an API page size of 8, binds the table rows directly to the server page and preserves the context-strip total through `totalCount`.
