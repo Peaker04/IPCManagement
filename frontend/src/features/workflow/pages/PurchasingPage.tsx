@@ -86,7 +86,7 @@ export default function PurchasingPage() {
     available: row.currentStockQty + row.pendingReceiptQty,
     reserved: 0,
     unit: row.unitName ?? '',
-    source: row.supplierName ?? 'Chưa có NCC',
+    source: row.supplierName ?? 'Chưa có nhà cung cấp',
     estimatedUnitPrice: row.estimatedUnitPrice,
     status: row.warnings.length > 0 ? row.warnings.join(', ') : row.shortageQty > 0 ? 'Thiếu hàng' : 'Đủ hàng',
     nextAction: row.shortageQty > 0 ? 'Đề xuất mua' : 'Không cần mua',
@@ -110,7 +110,7 @@ export default function PurchasingPage() {
       available: line.currentStockQty,
       reserved: line.purchaseQty,
       unit: line.unitName,
-      source: line.supplierName || 'Chưa chọn NCC',
+      source: line.supplierName || 'Chưa chọn nhà cung cấp',
       status: request.status,
       nextAction: request.status === 'APPROVED' ? 'Tạo đơn mua hàng' : request.status === 'DRAFT' ? 'Chọn nhà cung cấp' : 'Theo dõi đơn mua',
       tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
@@ -198,8 +198,8 @@ export default function PurchasingPage() {
         ariaLabel="Chọn góc nhìn thu mua"
         tabs={[
           { id: 'purchasing-demand', label: 'Kế hoạch thu mua' },
-          { id: 'purchasing-supplier', label: 'Giá và NCC' },
-          { id: 'purchasing-quotation', label: 'Báo giá NCC' },
+          { id: 'purchasing-supplier', label: 'Giá và nhà cung cấp' },
+          { id: 'purchasing-quotation', label: 'Báo giá nhà cung cấp' },
           { id: 'purchasing-orders', label: 'Đơn mua hàng' },
           { id: 'purchasing-handoff', label: 'Handoff kho' },
         ]}
@@ -265,7 +265,7 @@ export default function PurchasingPage() {
                     />
                   ))}
                   {supplierLines.length === 0 && (
-                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Chưa có đơn mua nào để cập nhật NCC</td></tr>
+                    <tr><td colSpan={8} className="text-center text-slate-500 py-4">Chưa có đơn mua nào để cập nhật nhà cung cấp</td></tr>
                   )}
                 </tbody>
               </table>

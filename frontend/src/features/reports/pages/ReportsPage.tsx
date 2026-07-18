@@ -113,7 +113,7 @@ type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
 const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
   { id: 'lines', label: 'Theo dòng nhập' },
-  { id: 'supplier', label: 'Theo NCC' },
+  { id: 'supplier', label: 'Theo nhà cung cấp' },
   { id: 'period', label: 'Theo thời gian' },
   { id: 'dishGroup', label: 'Theo nhóm món' },
 ];
@@ -846,7 +846,7 @@ const ReportsPage = () => {
                   <th>Tồn</th>
                   <th>{uiCopy.reports.pending}</th>
                   <th>Đề xuất mua</th>
-                  <th>NCC</th>
+                    <th>Nhà cung cấp</th>
                   <th>Cảnh báo</th>
                 </tr>
               </thead>
