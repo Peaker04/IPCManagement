@@ -86,7 +86,7 @@ export default function WarehousePage() {
     if (!issueCandidate?.materialRequestId) {
       setWarehouseFeedback({
         title: 'Chưa có nhu cầu xuất kho',
-        message: 'Kho cần có demand/KHSX hợp lệ trước khi tạo phiếu xuất.',
+        message: 'Kho cần có nhu cầu nguyên liệu và kế hoạch sản xuất hợp lệ trước khi tạo phiếu xuất.',
         variant: 'warning',
       });
       setActiveView('demand');
