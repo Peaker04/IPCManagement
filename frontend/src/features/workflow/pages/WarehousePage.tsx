@@ -278,7 +278,7 @@ export default function WarehousePage() {
               title={null}
               actionForItem={(item) => (
                 <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                  {item.nextAction}
+                  {formatWorkflowStatus(item.nextAction)}
                 </Link>
               )}
             />
