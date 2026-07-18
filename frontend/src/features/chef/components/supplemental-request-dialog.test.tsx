@@ -13,9 +13,15 @@ describe('SupplementalRequestDialog user-facing copy', () => {
       />,
     );
 
-    expect(screen.getByText('Chọn nguyên liệu')).toBeInTheDocument();
-    expect(screen.getByText('Số lượng yêu cầu')).toBeInTheDocument();
-    expect(screen.getByText('Lý do yêu cầu')).toBeInTheDocument();
+    const materialLabel = screen.getByText('Chọn nguyên liệu');
+    const quantityLabel = screen.getByText('Số lượng yêu cầu');
+    const reasonLabel = screen.getByText('Lý do yêu cầu');
+    expect(materialLabel).toBeInTheDocument();
+    expect(quantityLabel).toBeInTheDocument();
+    expect(reasonLabel).toBeInTheDocument();
+    expect(materialLabel).not.toHaveClass('uppercase');
+    expect(quantityLabel).not.toHaveClass('uppercase');
+    expect(reasonLabel).not.toHaveClass('uppercase');
     expect(screen.getByPlaceholderText('Mô tả lý do (ví dụ: hao hụt trong chế biến hoặc phát sinh đột xuất)')).toBeInTheDocument();
     expect(screen.queryByText('Chọn Nguyên Liệu')).not.toBeInTheDocument();
     expect(screen.queryByText('Số Lượng Yêu Cầu')).not.toBeInTheDocument();

@@ -90,7 +90,7 @@ export function SupplementalRequestDialog({
           
           {/* Material Selection */}
           <div className="space-y-1.5">
-            <label id="supplemental-material-label" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <label id="supplemental-material-label" className="text-xs font-semibold tracking-wider text-slate-500">
               Chọn nguyên liệu <span className="text-amber-500 font-bold">*</span>
             </label>
             <Select value={selectedMaterialId} onValueChange={(val) => setSelectedMaterialId(val || '')}>
@@ -127,7 +127,7 @@ export function SupplementalRequestDialog({
 
           {/* Request Quantity */}
           <div className="space-y-1.5">
-            <label htmlFor="supplemental-request-qty" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <label htmlFor="supplemental-request-qty" className="text-xs font-semibold tracking-wider text-slate-500">
               Số lượng yêu cầu <span className="text-amber-500 font-bold">*</span>
             </label>
             <div className="relative">
@@ -153,7 +153,7 @@ export function SupplementalRequestDialog({
 
           {/* Reason */}
           <div className="space-y-1.5">
-            <label htmlFor="supplemental-reason" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            <label htmlFor="supplemental-reason" className="text-xs font-semibold tracking-wider text-slate-500">
               Lý do yêu cầu
             </label>
             <Textarea
