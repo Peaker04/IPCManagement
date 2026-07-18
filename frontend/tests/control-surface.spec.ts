@@ -52,6 +52,16 @@ async function stubOperationalApis(page: Page) {
     hasPrev: false,
     hasNext: false,
   }));
+  await page.route('**/api/admin/employees/roles', async (route) => fulfillJson(route, []));
+  await page.route('**/api/ingredients**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 500,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
   await page.route('**/api/dishes/catalog**', async (route) => fulfillJson(route, []));
@@ -477,6 +487,16 @@ test.describe('operational control surface', () => {
       scrollWidth: element.scrollWidth,
     }));
     expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('admin data keeps import actions semantic and removes inactive command chrome', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.ADMIN_DATA);
+
+    await expect(page.getByRole('button', { name: 'Kiểm tra file', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nhập dữ liệu', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Gửi thông báo vận hành', exact: true })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
