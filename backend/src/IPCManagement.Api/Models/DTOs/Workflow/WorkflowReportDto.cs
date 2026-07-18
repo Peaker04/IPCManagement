@@ -17,6 +17,7 @@ public class WorkflowReportQueryDto
     public string? SortDirection { get; set; }
     public string? Actor { get; set; }
     public string? BusinessArea { get; set; }
+    public string? MovementType { get; set; }
     public string? EntityName { get; set; }
     public string? FieldName { get; set; }
     public string? GroupBy { get; set; }

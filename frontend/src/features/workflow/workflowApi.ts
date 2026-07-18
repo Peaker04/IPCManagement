@@ -34,6 +34,7 @@ export interface WorkflowReportQuery {
   sortDirection?: 'asc' | 'desc';
   actor?: string;
   businessArea?: string;
+  movementType?: string;
   entityName?: string;
   fieldName?: string;
   groupBy?: 'day' | 'week';

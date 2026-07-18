@@ -33,7 +33,7 @@ import {
   useGetOperationalKpisQuery,
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
-  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useWorkflowOverview,
   type DataQualityIssueRow,
@@ -212,6 +212,7 @@ export default function AdminDataPage() {
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
   const [auditEntity, setAuditEntity] = useState('');
+  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [auditField, setAuditField] = useState('');
   const authToken = useAppSelector((state) => state.auth.token);
   const [priceWarningPage, setPriceWarningPage] = useState(1);
@@ -265,7 +266,14 @@ export default function AdminDataPage() {
   const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8 });
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
+  const stockMovementCursor = stockMovementCursors.at(-1);
+  const stockMovementResult = useGetStockMovementPageQuery({
+    movementType: 'adjustment',
+    cursorDate: stockMovementCursor?.cursorDate,
+    cursorId: stockMovementCursor?.cursorId,
+    limit: 8,
+    sortDirection: 'desc',
+  }, { skip: activeView !== 'inventory' });
   const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 8 });
   const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
   const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
@@ -291,7 +299,7 @@ export default function AdminDataPage() {
   const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
   const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
-  const adjustmentMovements = stockMovements.filter((movement) => movement.type === 'adjustment');
+  const adjustmentMovements = stockMovementResult.data?.items ?? [];
   const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
   const priceWarnings = priceVariancePage?.items ?? [];
   const priceWarningCount = priceVariancePage?.totalCount ?? 0;
@@ -1324,7 +1332,19 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'inventory' && (
         <SectionPanel title="Điều chỉnh tồn và thông báo">
           <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
-          <StockMovementTable movements={adjustmentMovements} />
+          <StockMovementTable movements={adjustmentMovements} pageSize={8} />
+          <CursorPaginationBar
+            page={stockMovementCursors.length + 1}
+            hasNext={stockMovementResult.data?.hasNext ?? false}
+            onPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
+            onNext={() => {
+              const nextCursorDate = stockMovementResult.data?.nextCursorDate;
+              if (nextCursorDate) {
+                setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementResult.data?.nextCursorId }]);
+              }
+            }}
+            ariaLabel="Phân trang lịch sử điều chỉnh tồn"
+          />
           <div className="mt-4">
             <RoleInbox
               items={adminInbox}

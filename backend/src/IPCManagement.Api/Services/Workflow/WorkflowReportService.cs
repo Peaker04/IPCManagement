@@ -149,6 +149,12 @@ public class WorkflowReportService : IWorkflowReportService
             movements = movements.Where(item => item.IngredientId == ingredientId);
         }
 
+        if (!string.IsNullOrWhiteSpace(query.MovementType))
+        {
+            var movementType = query.MovementType.Trim().ToUpperInvariant();
+            movements = movements.Where(item => item.MovementType.ToUpper() == movementType);
+        }
+
         movements = movements.Where(item =>
             item.MovementDate >= dateFrom &&
             item.MovementDate < dateToExclusive);
