@@ -371,7 +371,7 @@ const ReportsPage = () => {
       rows: dataQualityRows,
       columns: [
         ['Mức độ', (row) => row.severity],
-        ['SLA', (row) => row.slaLabel],
+        ['Hạn xử lý (SLA)', (row) => row.slaLabel],
         ['Priority', (row) => row.priorityRank],
         ['Trạng thái xử lý', (row) => formatWorkflowStatus(row.remediationStatus)],
         [uiCopy.reports.owner, (row) => row.owner],
@@ -1053,7 +1053,7 @@ const ReportsPage = () => {
               <thead>
                 <tr>
                   <th>Mức độ</th>
-                  <th>SLA</th>
+                  <th>Hạn xử lý (SLA)</th>
                   <th>Trạng thái xử lý</th>
                   <th>{uiCopy.reports.owner}</th>
                   <th>Nhóm lỗi</th>
