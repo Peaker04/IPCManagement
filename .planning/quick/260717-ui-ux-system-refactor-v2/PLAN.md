@@ -545,6 +545,7 @@ Current blockers and next route order:
 - Shared approval cards now explain the deadline badge as `Thời hạn xử lý` instead of exposing the standalone `SLA` abbreviation. Deadline calculation, status, action callback and API values are unchanged. `ApprovalQueue` upstream impact was LOW; staged detection classified the shared flow as MEDIUM. Evidence: focused unit `8/8`, lint/build; commit `5b8457b`.
 - `DocumentRail` owner metadata now uses a real `dl` boundary for its existing `dt/dd` pair instead of invalid description terms inside a generic `div`. The existing class, layout, copy, copy-to-clipboard toast and document actions are unchanged. `DocumentRail` upstream impact was HIGH (6 callers, 4 flows); the mitigation stayed DOM-local. Evidence: unit `87/87`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build. Commit: `d5e8db1`.
 - CSS token audit removed the duplicate `--ipc-shell-width` declaration from the clean `ui-redesign.css`; the canonical token remains in imported-first `index.css`, and no shell geometry rule changed. Evidence: token scan, build/lint, UI audit `4/4`; commit `deaa5cf`.
+- Approval queue action text now passes through `formatWorkflowStatus`, so technical values such as `PENDING` are translated while raw records and callbacks remain unchanged. `ApprovalQueue` impact was exact LOW; staged detection classified one shared flow as MEDIUM. Evidence: unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build; commit `638b3a5`.
 
 Allowed files for the first clean slice:
 
