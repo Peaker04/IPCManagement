@@ -24,7 +24,7 @@ const toneClasses = {
   danger: 'is-danger',
 };
 
-export function DocumentRail({ documents, title = 'Chứng từ workflow', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
+export function DocumentRail({ documents, title = 'Chứng từ vận hành', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
   const { toast } = useToast();
   const pagination = useLocalPagination(documents, pageSize);
 
@@ -42,7 +42,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
   };
 
   return (
-    <aside className={cn('ipc-document-rail', className)} aria-label="Danh sách chứng từ workflow">
+    <aside className={cn('ipc-document-rail', className)} aria-label="Danh sách chứng từ vận hành">
       {title && <h4>{title}</h4>}
       {pagination.rows.map((document) => (
         <article key={document.id} className={cn('ipc-document-card', toneClasses[document.tone])}>

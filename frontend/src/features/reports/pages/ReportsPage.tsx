@@ -435,7 +435,7 @@ const ReportsPage = () => {
   return (
     <OperationalFrame
       eyebrow="Dữ liệu vận hành"
-      title="Phân tích và thống kê workflow"
+      title="Phân tích và thống kê vận hành"
       command={
         <CommandBar
           leadingClassName="!grid w-full grid-cols-2 gap-3 md:!flex md:w-auto"
