@@ -3347,11 +3347,6 @@ code {
   min-width: 680px;
 }
 
-.ipc-chef-action-note,
-.ipc-chef-action-note li {
-  overflow-wrap: anywhere;
-}
-
 .ipc-chef-dialog {
   width: min(calc(100vw - 2rem), 30rem);
   max-height: min(86vh, 720px);

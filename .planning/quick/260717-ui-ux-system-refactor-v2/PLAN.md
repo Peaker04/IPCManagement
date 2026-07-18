@@ -391,6 +391,7 @@ Completed clean slices:
 - Removed the stale weekly-command action rules and their responsive overrides after confirming zero source references (`5bb26af`). UI audit `2/2` and lint/build pass.
 - Purchasing context status now translates request enums into Vietnamese user-facing labels while preserving raw enum values for business branching (`3d9c643`). Unit `75/75` and lint/build pass.
 - Workflow document statuses now use a shared `formatWorkflowStatus` label map for the shared `DocumentRail`; the Warehouse exception copy uses the same helper while raw values remain available for logic (`pending commit`). Unit `76/76`, lint and production build pass. GitNexus classified `DocumentRail` as HIGH because it has four direct page callers; mitigation is display-only mapping plus serial route gates.
+- Approval queue status badges now consume the same semantic status formatter; raw enum values remain unchanged in the record model (`pending commit`). CSS inventory also removed the isolated, unreferenced `.ipc-chef-action-note` block after confirming it was outside the dirty stylesheet diff; UI audit `2/2` and lint/build pass.
 
 Current blockers and next route order:
 
