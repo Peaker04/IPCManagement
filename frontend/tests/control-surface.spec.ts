@@ -75,6 +75,9 @@ async function stubOperationalApis(page: Page) {
       },
     ]),
   );
+  await page.route('**/api/coordination/orders**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/coordination/menu-schedules**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/coordination/meal-quantity-plans**', async (route) => fulfillJson(route, []));
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
@@ -282,6 +285,15 @@ test.describe('operational control surface', () => {
     await expect(emptyState).toBeVisible();
     await expect(emptyState).toHaveCSS('min-height', '0px');
     await expect(page.getByText('Nhật ký ca', { exact: true })).toBeVisible();
+  });
+
+  test('meal coordination empty state does not reserve desktop height on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.MEAL_ORDERS);
+
+    await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
+    await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {

@@ -83,7 +83,7 @@ export default function CoordinationPage() {
       <SectionPanel
         tone="dark"
         padded={false}
-        className="operation-surface ipc-coordination-workbench flex min-h-[560px] flex-col overflow-hidden border-slate-200 bg-white shadow-sm"
+        className="operation-surface ipc-coordination-workbench flex min-h-0 flex-col overflow-hidden border-slate-200 bg-white shadow-sm md:min-h-[560px]"
       >
         {error && (
           <InlineAlert title="Không tải được dữ liệu điều phối" variant="warning">
