@@ -1194,7 +1194,7 @@ test.describe('route smoke', () => {
     await page.getByLabel('Đến ngày').fill('2026-06-15');
     await page.getByLabel('Ca').selectOption('MORNING');
 
-    await page.getByRole('tab', { name: 'Nhu cầu NVL' }).click();
+    await page.getByRole('tab', { name: 'Nhu cầu nguyên liệu' }).click();
     await expect.poll(() => reportRequests.hasFilteredRequest('ingredient-demand')).toBe(true);
     await expect(page.getByText('Bún bò').first()).toBeVisible();
     await expect(page.getByLabel('Bảng nhu cầu nguyên liệu').getByText('Thiếu nguyên liệu')).toBeVisible();

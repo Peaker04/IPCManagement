@@ -306,6 +306,7 @@ test.describe('operational control surface', () => {
     await page.goto(ROUTES.APPROVAL_RULES);
 
     await expect(page.getByText('Loại chứng từ:').locator('..')).toContainText('Đơn mua thêm');
+    await expect(page.getByText('Thời hạn xử lý (SLA):').locator('..')).toContainText('24 giờ');
     await expect(page.getByText('Quản lý', { exact: true })).toBeVisible();
     await expect(page.getByText('purchase-request', { exact: true })).toHaveCount(0);
     await expect(page.getByText('quanly', { exact: true })).toHaveCount(0);

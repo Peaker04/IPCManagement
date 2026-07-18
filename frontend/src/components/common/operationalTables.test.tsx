@@ -3,10 +3,11 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApprovalQueue } from './ApprovalQueue';
+import { DocumentRail } from './DocumentRail';
 import { RoleInbox } from './RoleInbox';
 import { StockMovementTable } from './StockMovementTable';
 import { ToastProvider } from './ToastProvider';
-import type { ApprovalRecord, RoleInboxItem, StockMovement } from '@/features/workflow';
+import type { ApprovalRecord, RoleInboxItem, StockMovement, WorkflowDocument } from '@/features/workflow';
 
 const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => ({
   id: `task-${index + 1}`,
@@ -65,6 +66,18 @@ const movements: StockMovement[] = [
   },
 ];
 
+const documents: WorkflowDocument[] = [{
+  id: 'KHSX-20260710-001',
+  type: 'KHSX',
+  title: 'Kế hoạch sản xuất',
+  status: 'PENDING',
+  owner: 'Bếp trưởng',
+  summary: 'Đang chờ xác nhận',
+  route: '/chef-dashboard',
+  lines: [{ label: 'Số suất', value: '100' }],
+  tone: 'warning',
+}];
+
 describe('RoleInbox', () => {
   it('renders configured empty state', () => {
     render(<RoleInbox items={[]} emptyText="Không có việc" />);
@@ -120,10 +133,41 @@ describe('ApprovalQueue', () => {
     );
 
     expect(screen.getByText('Đơn mua quá hạn')).toBeInTheDocument();
-    expect(screen.getByText('SLA: Quá hạn')).toBeInTheDocument();
-    expect(screen.getByText('SLA: 2g 30p')).toBeInTheDocument();
+    expect(screen.getByText('Thời hạn xử lý: Quá hạn')).toBeInTheDocument();
+    expect(screen.getByText('Thời hạn xử lý: 2g 30p')).toBeInTheDocument();
     expect(screen.getAllByText('Đang chờ xử lý')).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Duyệt Đơn mua quá hạn' })).toBeInTheDocument();
+  });
+
+  it('translates technical next-action values before rendering them', () => {
+    render(
+      <ApprovalQueue
+        records={[{ ...buildApproval('a3', 'Đơn mua cần xử lý'), nextAction: 'PENDING' }]}
+        pageSize={1}
+      />,
+    );
+
+    const nextAction = document.querySelector('.ipc-approval-record-action');
+    expect(nextAction).toHaveTextContent('Đang chờ xử lý');
+    expect(nextAction).not.toHaveTextContent('PENDING');
+    expect(screen.queryByText('PENDING')).not.toBeInTheDocument();
+  });
+});
+
+describe('DocumentRail', () => {
+  it('renders owner metadata with valid description-list semantics', () => {
+    render(
+      <ToastProvider>
+        <DocumentRail documents={documents} />
+      </ToastProvider>,
+    );
+
+    const ownerTerm = screen.getByText('Người phụ trách');
+    expect(ownerTerm.closest('dl')).toHaveClass('ipc-document-zone-owner');
+    expect(ownerTerm.tagName).toBe('DT');
+    const ownerDefinition = screen.getByText('Bếp trưởng');
+    expect(ownerDefinition.tagName).toBe('DD');
+    expect(ownerDefinition.closest('dl')).toHaveClass('ipc-document-zone-owner');
   });
 });
 

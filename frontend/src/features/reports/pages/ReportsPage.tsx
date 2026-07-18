@@ -55,7 +55,7 @@ type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitc
 
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
-  { id: 'reports-demand', label: 'Nhu cầu NVL' },
+  { id: 'reports-demand', label: 'Nhu cầu nguyên liệu' },
   { id: 'reports-purchase', label: 'Kế hoạch thu mua' },
   { id: 'reports-stock', label: 'Tồn kho' },
   { id: 'reports-movement', label: 'Nhập/xuất kho' },
@@ -371,7 +371,7 @@ const ReportsPage = () => {
       rows: dataQualityRows,
       columns: [
         ['Mức độ', (row) => row.severity],
-        ['SLA', (row) => row.slaLabel],
+        ['Hạn xử lý (SLA)', (row) => row.slaLabel],
         ['Priority', (row) => row.priorityRank],
         ['Trạng thái xử lý', (row) => formatWorkflowStatus(row.remediationStatus)],
         [uiCopy.reports.owner, (row) => row.owner],
@@ -435,7 +435,7 @@ const ReportsPage = () => {
   return (
     <OperationalFrame
       eyebrow="Dữ liệu vận hành"
-      title="Phân tích và thống kê workflow"
+      title="Phân tích và thống kê vận hành"
       command={
         <CommandBar
           leadingClassName="!grid w-full grid-cols-2 gap-3 md:!flex md:w-auto"
@@ -784,7 +784,7 @@ const ReportsPage = () => {
                   <th>Tồn hiện có</th>
                   <th>Thiếu/mua</th>
                   <th>Trạng thái</th>
-                  <th>Handoff</th>
+                  <th>Chuyển xử lý</th>
                 </tr>
               </thead>
               <tbody>
@@ -796,7 +796,7 @@ const ReportsPage = () => {
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(row.available, row.unit)}</td>
                     <td className="ipc-numeric-cell">{formatQuantityWithUnit(Math.max(row.required - row.available, 0), row.unit)}</td>
                     <td className="ipc-badge-cell"><StatusBadge variant={row.tone}>{formatWorkflowStatus(row.status)}</StatusBadge></td>
-                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.tone === 'danger' ? ROUTES.PURCHASING : ROUTES.WAREHOUSE}>{row.nextAction}</Link></td>
+                    <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={row.tone === 'danger' ? ROUTES.PURCHASING : ROUTES.WAREHOUSE}>{formatWorkflowStatus(row.nextAction)}</Link></td>
                   </tr>
                 ))}
               </tbody>
@@ -891,7 +891,7 @@ const ReportsPage = () => {
                   <th>Nguyên liệu</th>
                   <th>Số lượng hiện tại</th>
                   <th>Cập nhật</th>
-                  <th>Handoff</th>
+                  <th>Chuyển xử lý</th>
                 </tr>
               </thead>
               <tbody>
@@ -1053,7 +1053,7 @@ const ReportsPage = () => {
               <thead>
                 <tr>
                   <th>Mức độ</th>
-                  <th>SLA</th>
+                  <th>Hạn xử lý (SLA)</th>
                   <th>Trạng thái xử lý</th>
                   <th>{uiCopy.reports.owner}</th>
                   <th>Nhóm lỗi</th>

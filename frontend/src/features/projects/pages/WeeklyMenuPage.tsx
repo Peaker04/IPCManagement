@@ -2643,7 +2643,7 @@ const WeeklyMenuPage = () => {
 
       {activeView === 'schedule' && (
         <div className="flex flex-col gap-4">
-          <SectionPanel title="Bố cục menu theo file khách hàng" icon={<Calendar size={18} color="#475569" />}>
+          <SectionPanel title="Bố cục menu theo file khách hàng" icon={<Calendar size={18} color="var(--ipc-slate-600)" />}>
             <div className="flex flex-col gap-3">
               <ContextStrip
                 items={[
@@ -2671,7 +2671,7 @@ const WeeklyMenuPage = () => {
       )}
 
       {activeView === 'production-plan' && (
-        <SectionPanel title="Kế hoạch sản xuất chi tiết" icon={<Scale size={18} color="#475569" />}>
+        <SectionPanel title="Kế hoạch sản xuất chi tiết" icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
           <div className="flex flex-col gap-3">
             <div className="grid grid-cols-[auto_minmax(220px,1fr)] items-center gap-3">
               <span className="whitespace-nowrap text-sm font-semibold text-slate-700">Ngày phục vụ:</span>
@@ -2763,7 +2763,7 @@ const WeeklyMenuPage = () => {
       )}
 
       {activeView === 'demand' && (
-        <SectionPanel title="KHSX, kiểm tồn kho và nhu cầu xuất" icon={<Scale size={18} color="#475569" />}>
+        <SectionPanel title="KHSX, kiểm tồn kho và nhu cầu xuất" icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
           <div className="flex flex-col gap-3">
             <ContextStrip
               items={[
@@ -3025,7 +3025,7 @@ const WeeklyMenuPage = () => {
         <>
           <SectionPanel
             title="Giá vốn theo ngày từ kế hoạch tuần"
-            icon={<Scale size={18} color="#475569" />}
+            icon={<Scale size={18} color="var(--ipc-slate-600)" />}
           >
             <div className="mb-6 mt-4">
               <ContextStrip
@@ -3184,7 +3184,7 @@ const WeeklyMenuPage = () => {
       {activeView === 'purchase-summary' && (
         <SectionPanel
           title="Bảng Tính Định Lượng Tổng Hợp & Đề Xuất Mua Hàng"
-          icon={<ShoppingCart size={18} color="#475569" />}
+          icon={<ShoppingCart size={18} color="var(--ipc-slate-600)" />}
           badge={
             <Toolbar>
               <div className="text-sm font-medium text-slate-600">
@@ -3335,7 +3335,7 @@ const WeeklyMenuPage = () => {
           )}
           <SectionPanel
             title="Nguyên liệu món phân tích"
-            icon={<Scale size={18} color="#475569" />}
+            icon={<Scale size={18} color="var(--ipc-slate-600)" />}
             badge={
               <div className="flex items-center gap-2">
                 <span className="text-[13px] font-medium text-slate-600 whitespace-nowrap">Món phân tích:</span>

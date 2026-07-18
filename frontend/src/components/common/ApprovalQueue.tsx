@@ -40,7 +40,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
             <strong>{record.title}</strong>
             <p>{record.source}</p>
             <div className="ipc-approval-record-action" aria-label={`Hành động kế tiếp cho ${record.title}`}>
-              <span>{record.nextAction}</span>
+              <span>{formatWorkflowStatus(record.nextAction)}</span>
               {actionForRecord?.(record)}
             </div>
           </div>
@@ -71,7 +71,7 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
                       return "bg-green-50 text-green-700 border-green-200";
                     })()
                   )}>
-                    SLA: {(() => {
+                    Thời hạn xử lý: {(() => {
                       const diffMs = new Date(record.slaDeadline).getTime() - new Date().getTime();
                       if (diffMs <= 0) return "Quá hạn";
                       const hours = Math.floor(diffMs / (1000 * 60 * 60));
