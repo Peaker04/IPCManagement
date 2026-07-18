@@ -33,14 +33,13 @@ import {
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
-  useGetPurchaseOrdersQuery,
+  useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,
 } from '@/features/workflow';
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
-import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '../workflowConfig';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
@@ -694,7 +693,9 @@ function PurchaseOrderManager({
   currentStockRows: CurrentStockRow[];
 }) {
   const { toast } = useToast();
-  const { data: purchaseOrders = [] } = useGetPurchaseOrdersQuery();
+  const [orderPage, setOrderPage] = useState(1);
+  const { data: purchaseOrdersResponse } = useGetPurchaseOrdersPageQuery({ pageNumber: orderPage, pageSize: 6 });
+  const purchaseOrders = purchaseOrdersResponse?.page.items ?? [];
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
   const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
   const [cancelOrder] = useCancelPurchaseOrderMutation();
@@ -702,7 +703,6 @@ function PurchaseOrderManager({
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
-  const orderPagination = useLocalPagination(purchaseOrders, 6);
 
   const warehouseOptions = Array.from(
     new Map(currentStockRows.map((row) => [row.warehouseId, row.warehouse])).entries()
@@ -717,10 +717,7 @@ function PurchaseOrderManager({
     suppliers.add(line.supplierId);
     supplierCountByRequest.set(line.purchaseRequestId, suppliers);
   });
-  const orderCountByRequest = new Map<string, number>();
-  purchaseOrders.forEach((order) => {
-    orderCountByRequest.set(order.purchaseRequestId, (orderCountByRequest.get(order.purchaseRequestId) ?? 0) + 1);
-  });
+  const orderCountByRequest = new Map(Object.entries(purchaseOrdersResponse?.orderCountByRequest ?? {}));
 
   const approvedRequests = Array.from(
     new Map(
@@ -835,7 +832,7 @@ function PurchaseOrderManager({
               {purchaseOrders.length === 0 && (
                 <tr><td colSpan={6} className="text-center text-slate-500 py-4">Chưa có đơn mua hàng nào</td></tr>
               )}
-              {orderPagination.rows.map((order) => (
+              {purchaseOrders.map((order) => (
                 <Fragment key={order.purchaseOrderId}>
                   <tr>
                     <td className="font-mono">{order.purchaseOrderCode}</td>
@@ -909,10 +906,10 @@ function PurchaseOrderManager({
           </table>
         </TableViewport>
         <PaginationBar
-          page={orderPagination.page}
-          pageSize={orderPagination.pageSize}
-          totalItems={orderPagination.totalItems}
-          onPageChange={orderPagination.setPage}
+          page={purchaseOrdersResponse?.page.pageNumber ?? orderPage}
+          pageSize={purchaseOrdersResponse?.page.pageSize ?? 6}
+          totalItems={purchaseOrdersResponse?.page.totalCount ?? 0}
+          onPageChange={setOrderPage}
         />
       </div>
       <ConfirmDialog

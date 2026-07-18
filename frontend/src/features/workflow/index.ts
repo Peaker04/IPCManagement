@@ -48,6 +48,7 @@ export {
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
   useGetPurchaseOrdersQuery,
+  useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,

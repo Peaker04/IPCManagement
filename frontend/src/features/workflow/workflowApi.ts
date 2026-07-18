@@ -505,6 +505,11 @@ export interface PurchaseOrderDto {
   lines: PurchaseOrderLineDto[];
 }
 
+export interface PurchaseOrderPageResponse {
+  page: PageNumberPage<PurchaseOrderDto>;
+  orderCountByRequest: Record<string, number>;
+}
+
 export interface RecordPurchaseOrderReceiptLineDto {
   purchaseOrderLineId: string;
   receivedQty: number;
@@ -1387,6 +1392,17 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
       providesTags: ['PurchaseOrders'],
     }),
+    getPurchaseOrdersPage: builder.query<PurchaseOrderPageResponse, { status?: string; pageNumber?: number; pageSize?: number } | void>({
+      query: (query) => ({
+        url: '/purchase-orders/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 6 },
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderPageResponse>) => response.data ?? {
+        page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 6, totalPages: 0, hasPrev: false, hasNext: false },
+        orderCountByRequest: {},
+      },
+      providesTags: ['PurchaseOrders'],
+    }),
     createPurchaseOrdersFromRequest: builder.mutation<PurchaseOrderDto[], string>({
       query: (purchaseRequestId) => ({
         url: `/purchase-orders/from-request/${purchaseRequestId}`,
@@ -1914,6 +1930,7 @@ export const {
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
   useGetPurchaseOrdersQuery,
+  useGetPurchaseOrdersPageQuery,
   useCreatePurchaseOrdersFromRequestMutation,
   useRecordPurchaseOrderReceiptMutation,
   useCancelPurchaseOrderMutation,

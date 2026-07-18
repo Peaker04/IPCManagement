@@ -1,6 +1,7 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
@@ -122,6 +123,31 @@ public class PurchaseOrderService : IPurchaseOrderService
             .ToListAsync(cancellationToken);
 
         return orders.Select(MapToDto).ToList();
+    }
+
+    public async Task<PurchaseOrderPageDto> GetPageAsync(PurchaseOrderPageQueryDto query, CancellationToken cancellationToken = default)
+    {
+        var pageNumber = Math.Max(1, query.PageNumber);
+        var pageSize = Math.Clamp(query.PageSize, 1, 100);
+        var filteredQuery = BuildOrderQuery(query.Status);
+        var totalCount = await filteredQuery.CountAsync(cancellationToken);
+        var orderIdsByRequest = await filteredQuery
+            .Select(order => new { order.PurchaseRequestId })
+            .ToListAsync(cancellationToken);
+        var counts = orderIdsByRequest
+            .GroupBy(order => GuidHelper.ToGuidString(order.PurchaseRequestId))
+            .ToDictionary(group => group.Key, group => group.Count());
+        var orders = await filteredQuery
+            .OrderByDescending(order => order.CreatedAt)
+            .Skip((pageNumber - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(cancellationToken);
+
+        return new PurchaseOrderPageDto
+        {
+            Page = PagedResponseDto<PurchaseOrderDto>.Create(orders.Select(MapToDto).ToList(), totalCount, pageNumber, pageSize),
+            OrderCountByRequest = counts,
+        };
     }
 
     public async Task<PurchaseOrderDto?> GetByIdAsync(string purchaseOrderId, CancellationToken cancellationToken = default)
@@ -267,6 +293,21 @@ public class PurchaseOrderService : IPurchaseOrderService
             .Include(po => po.Purchaseorderlines)
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId, cancellationToken);
+
+    private IQueryable<Purchaseorder> BuildOrderQuery(string? status)
+    {
+        var query = _context.Purchaseorders
+            .AsNoTracking()
+            .Include(po => po.Supplier)
+            .Include(po => po.PurchaseRequest)
+            .Include(po => po.Purchaseorderlines).ThenInclude(line => line.Ingredient)
+            .Include(po => po.Purchaseorderlines).ThenInclude(line => line.Unit)
+            .AsQueryable();
+
+        return string.IsNullOrWhiteSpace(status)
+            ? query
+            : query.Where(po => po.Status == status.Trim().ToUpperInvariant());
+    }
 
     private async Task<IReadOnlyList<PurchaseOrderDto>> GetByPurchaseRequestAsync(byte[] purchaseRequestId, CancellationToken cancellationToken)
     {
