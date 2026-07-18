@@ -41,7 +41,7 @@ export default function ApprovalPage() {
     cursor: approvalCursor,
   });
   const approvalRecords = approvalPage.items;
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
+  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery();
   const purchaseRequests = purchaseRequestsResponse?.data ?? [];
 
