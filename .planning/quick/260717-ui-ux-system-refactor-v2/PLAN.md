@@ -639,3 +639,4 @@ Plan v2 chỉ hoàn tất khi:
 - Copy, status, required/reason và technical identifiers nhất quán.
 - Visual/accessibility/regression evidence pass ở đủ viewport hoặc blocker được ghi rõ và được chấp thuận.
 - Dirty worktree của user không bị commit hoặc mất dữ liệu.
+- Approval document preview and Chef document/stock preview requests are now bounded to 20 records. Their rail/table consumers expose only a small local window, while Chef issue rows remain unchanged because they feed shift filtering and counts. Evidence: `eda4f22`, unit `88/88`, controls `19/19`, smoke `15/15`, lint/build; the first parallel browser run produced environment-only connection refusal, and serial reruns passed.
