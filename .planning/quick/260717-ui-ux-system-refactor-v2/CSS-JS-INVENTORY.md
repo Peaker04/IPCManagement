@@ -32,3 +32,10 @@ Ngày kiểm tra: 2026-07-18
 2. Không xóa thêm CSS trong `index.css` hoặc sửa shared shell chỉ dựa trên snapshot mismatch.
 3. Chọn từng route sạch có lỗi hình học thật, chạy GitNexus impact trước khi sửa, thêm control/overflow assertion và commit độc lập.
 4. Handoff `WeeklyMenuPage`, `AdminDataPage`, `DashboardPage` và `index.css` trước khi sửa layout hoặc cập nhật snapshot của chúng.
+
+## Empty-state follow-up
+
+- Source inventory xác nhận `EmptyState` có 3 consumer route thực tế: Chef, Coordination và route table điều phối.
+- Chef và Coordination đã có override route-local để không giữ khoảng trống desktop trên empty state; không cần đổi `EmptyState` global.
+- `index.css` vẫn giữ rule compatibility `min-height: 220px` vì stylesheet đang dirty và là boundary ownership; không xóa rule chỉ vì đã có hai override.
+- Warehouse empty document rail là surface riêng (`DocumentRail`), không dùng `EmptyState`; không trộn hai contract để ép cùng một chiều cao.
