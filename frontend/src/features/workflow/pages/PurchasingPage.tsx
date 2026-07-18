@@ -150,7 +150,6 @@ export default function PurchasingPage() {
               >
                 {isSubmittingPurchaseRequest ? 'Đang gửi...' : 'Gửi đơn mua'}
               </button>
-              <button className="ipc-button ipc-button-warning" type="button">Gửi cảnh báo biến động giá</button>
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
                 <PackageCheck size={16} />
                 Chuyển sang nhập kho
