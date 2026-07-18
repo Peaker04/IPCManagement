@@ -277,8 +277,9 @@ Reports semantic-status slice:
 
 - Reports UI and CSV output now pass operational status values through the shared `formatWorkflowStatus` helper. `open`, `resolved`, `reopened`, `warning` and `error` are presented as Vietnamese user-facing labels while raw values remain unchanged in API/query logic.
 - Evidence: frontend lint pass, unit `76/76`, and production build pass. No API payload, mutation handler or route contract changed.
-- Remaining contract gap: the supplier, period and dish-group price-variance subviews still call legacy list endpoints with `limit: 100`, then apply `useLocalPagination` in the browser. The backend methods/controllers currently return `IReadOnlyList` and expose no page metadata, so this is not true server lazy loading.
-- Next task: add separately owned page-number contracts for those three aggregate endpoints (query DTO, controller, service, RTK Query hooks and Reports consumers), preserving the legacy list endpoints until callers are migrated. This requires a fresh backend impact/ownership gate because `WorkflowReportService.cs` is user-owned dirty work.
+- The three aggregate views now use dedicated page-number endpoints with `totalCount` metadata; Reports no longer fetches `limit: 100` and slices those rows locally. Legacy list endpoints remain for compatibility.
+- Known boundary: aggregate calculation still materializes filtered receipt lines before grouping, so response paging is bounded but database-level lazy aggregation is not yet complete. A future query decomposition should push grouping/count/order into SQL before very large-history release.
+- Evidence: backend compile-only pass, backend tests `267/267` pass with `--no-build`, frontend lint/unit `76/76`/build pass, staged GitNexus detection reported 7 files, 1 Reports flow, MEDIUM. Commit: `2946327`.
 
 Admin purchase-summary query slice:
 
@@ -407,7 +408,7 @@ Current blockers and next route order:
 
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
-- Next clean route group is reports/purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
+- Next clean route group is purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Reports is now covered by page-number contracts for all primary and grouped price views. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
 
 Allowed files for the first clean slice:
 
