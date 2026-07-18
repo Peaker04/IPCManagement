@@ -19,7 +19,7 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVarianceQuery,
-  useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsQuery,
   useGetCurrentStockQuery,
   useGetStockMovementsQuery,
@@ -46,12 +46,13 @@ const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation
 export default function PurchasingPage() {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
+  const [purchasePlanPage, setPurchasePlanPage] = useState(1);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand'
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const { data: purchasePlanRows = [] } = useGetPurchasePlanQuery({ groupBy: 'day', limit: 100 });
+  const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsQuery({ pageSize: 100 });
   const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
   const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 100 });
@@ -61,7 +62,7 @@ export default function PurchasingPage() {
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchaseRequests = purchaseRequestsResponse?.data ?? [];
-  const purchasePlanLines = purchasePlanRows.map<DemandLine>((row) => ({
+  const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
     id: `${row.periodKey}-${row.ingredientId}`,
     ingredientId: row.ingredientId,
     sourceDocumentCode: row.periodKey,
@@ -213,6 +214,12 @@ export default function PurchasingPage() {
           >
             <SectionPanel title="Kế hoạch thu mua dự kiến" icon={<ShoppingCart size={18} />}>
               <DemandSummary lines={purchasePlanLines} />
+              <PaginationBar
+                page={purchasePlanResponse?.pageNumber ?? purchasePlanPage}
+                pageSize={purchasePlanResponse?.pageSize ?? 8}
+                totalItems={purchasePlanResponse?.totalCount ?? 0}
+                onPageChange={setPurchasePlanPage}
+              />
             </SectionPanel>
           </SplitWorkbench>
         </div>
