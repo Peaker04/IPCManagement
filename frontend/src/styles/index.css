@@ -205,12 +205,6 @@ code {
   text-align: left;
 }
 
-.ipc-page-section {
-  display: flex;
-  flex-direction: column;
-  gap: var(--ipc-space-4);
-}
-
 .ipc-section-panel {
   position: relative;
   overflow: clip;
@@ -364,22 +358,6 @@ code {
   min-width: 0;
   flex-direction: column;
   gap: var(--ipc-space-4);
-}
-
-.ipc-control-row {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ipc-space-2);
-}
-
-.ipc-control-cluster {
-  display: flex;
-  min-width: 0;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--ipc-space-2);
 }
 
 .ipc-lane-summary-grid {
@@ -4089,30 +4067,4 @@ code {
 * {
   scrollbar-width: thin;
   scrollbar-color: var(--ipc-slate-300) transparent;
-}
-
-/* Helper Class for explicit use or custom containers */
-.ipc-custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: var(--ipc-slate-300) transparent;
-}
-
-.ipc-custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.ipc-custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.ipc-custom-scrollbar::-webkit-scrollbar-thumb {
-  background: var(--ipc-slate-300);
-  border-radius: 999px;
-  border: 1px solid transparent;
-  background-clip: padding-box;
-}
-
-.ipc-custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: var(--ipc-slate-400);
 }
