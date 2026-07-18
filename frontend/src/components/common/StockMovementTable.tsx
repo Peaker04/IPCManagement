@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { CursorPaginationBar } from './CursorPaginationBar';
@@ -9,6 +8,7 @@ import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/features/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { useToast } from './useToast';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
@@ -75,18 +75,15 @@ function shortenDocumentNo(docNo: string): string {
 }
 
 export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
-  const [copiedDocumentNo, setCopiedDocumentNo] = useState<string | null>(null);
+  const { toast } = useToast();
   const pagination = useLocalPagination(movements, pageSize);
 
   const handleCopyDocumentNo = async (docNo: string) => {
     try {
       await navigator.clipboard.writeText(docNo);
-      setCopiedDocumentNo(docNo);
-      window.setTimeout(() => {
-        setCopiedDocumentNo((current) => (current === docNo ? null : current));
-      }, 1400);
+      toast({ title: 'Đã sao chép mã chứng từ', description: docNo, variant: 'success' });
     } catch {
-      setCopiedDocumentNo(null);
+      toast({ title: 'Không thể sao chép mã chứng từ', description: 'Trình duyệt không cho phép truy cập clipboard.', variant: 'warning' });
     }
   };
 
@@ -125,11 +122,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                       title="Sao chép mã chứng từ"
                       onClick={() => void handleCopyDocumentNo(movement.documentNo)}
                     >
-                      {copiedDocumentNo === movement.documentNo ? (
-                        <Check size={11} className="text-emerald-500" />
-                      ) : (
-                        <Copy size={11} />
-                      )}
+                      <Copy size={11} />
                     </button>
                   </div>
                 </td>

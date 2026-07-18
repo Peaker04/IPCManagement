@@ -35,13 +35,40 @@ public class SupplierQuotationService : ISupplierQuotationService
         SupplierQuotationPageQueryDto query,
         CancellationToken cancellationToken = default)
     {
-        var rows = await GetByIngredientAsync(ingredientId, cancellationToken);
-        var items = rows
+        var ingredientIdBytes = GuidHelper.ParseGuidString(ingredientId)
+            ?? throw new ArgumentException("Nguyên liệu không hợp lệ.");
+
+        var baseQuery = _context.Supplierquotations
+            .Include(q => q.Supplier)
+            .Include(q => q.Ingredient)
+            .Where(q => q.IngredientId == ingredientIdBytes);
+
+        var totalCount = await baseQuery.CountAsync(cancellationToken);
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var bestQuotationIdBytes = await baseQuery
+            .Where(q => q.IsActive != false
+                && q.Supplier.IsActive != false
+                && q.EffectiveFrom <= today
+                && (q.EffectiveTo == null || q.EffectiveTo >= today))
+            .OrderBy(q => q.UnitPrice)
+            .ThenByDescending(q => q.EffectiveFrom)
+            .ThenBy(q => q.Supplier.SupplierName)
+            .Select(q => q.QuotationId)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var bestQuotationId = bestQuotationIdBytes is null ? (Guid?)null : new Guid(bestQuotationIdBytes);
+        var rows = await baseQuery
+            .OrderBy(q => q.UnitPrice)
+            .ThenBy(q => q.Supplier.SupplierName)
             .Skip((query.PageNumber - 1) * query.PageSize)
             .Take(query.PageSize)
-            .ToList();
+            .ToListAsync(cancellationToken);
 
-        return PagedResponseDto<SupplierQuotationDto>.Create(items, rows.Count, query.PageNumber, query.PageSize);
+        return PagedResponseDto<SupplierQuotationDto>.Create(
+            MapWithBestPrice(rows, bestQuotationId),
+            totalCount,
+            query.PageNumber,
+            query.PageSize);
     }
 
     public async Task<List<SupplierQuotationDto>> GetBySupplierAsync(string supplierId, CancellationToken cancellationToken = default)
@@ -224,10 +251,10 @@ public class SupplierQuotationService : ISupplierQuotationService
         return MapWithBestPrice(siblings).First(dto => dto.QuotationId == GuidHelper.ToGuidString(quotation.QuotationId));
     }
 
-    private static List<SupplierQuotationDto> MapWithBestPrice(List<Supplierquotation> quotations)
+    private static List<SupplierQuotationDto> MapWithBestPrice(List<Supplierquotation> quotations, Guid? preferredBestQuotationId = null)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var bestQuotationId = quotations
+        var bestQuotationId = preferredBestQuotationId ?? quotations
             .Where(q => q.IsActive != false
                 && q.Supplier.IsActive != false
                 && q.EffectiveFrom <= today

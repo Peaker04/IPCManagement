@@ -678,6 +678,9 @@ async function stubProductionReportStages(page: Page) {
   });
 
   return {
+    hasEndpoint(endpoint: string) {
+      return requests.some(({ endpoint: requestEndpoint }) => requestEndpoint === endpoint);
+    },
     hasFilteredRequest(endpoint: string) {
       return requests.some(({ endpoint: requestEndpoint, url }) =>
         (requestEndpoint === endpoint || requestEndpoint === `${endpoint}/page`) &&
@@ -964,6 +967,28 @@ async function stubMobileOperationsSuccess(page: Page) {
       return;
     }
 
+    if (endpoint === 'current-stock/page') {
+      await fulfill(route, {
+        items: [{
+          warehouseId: 'wh-mobile',
+          warehouseName: 'Kho chính',
+          ingredientId: 'ing-rib',
+          ingredientName: 'Sườn heo',
+          unitId: 'unit-kg',
+          unitName: 'kg',
+          currentQty: 20,
+          lastUpdated: '2026-07-09T05:00:00Z',
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
     if (endpoint === 'kitchen-issues') {
       await fulfill(route, [
         {
@@ -1140,11 +1165,13 @@ test.describe('route smoke', () => {
   });
 
   test('warehouse movement uses bounded server cursor pages', async ({ page }) => {
-    await stubProductionReportStages(page);
+    const reportRequests = await stubProductionReportStages(page);
     await page.setViewportSize({ width: 1365, height: 900 });
     await login(page);
     await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Kho nguyên liệu' }).click();
     await expect(page).toHaveURL(ROUTES.WAREHOUSE);
+
+    await expect.poll(() => reportRequests.hasEndpoint('current-stock/page')).toBe(true);
 
     const movementTable = page.getByLabel('Bảng biến động kho');
     await expect(movementTable.getByText('Gạo tẻ trang 1')).toBeVisible();

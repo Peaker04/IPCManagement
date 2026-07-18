@@ -17,7 +17,7 @@ export function OrderStatusBanner({ status }: OrderStatusBannerProps) {
           icon={<Loader2 className="size-4 animate-spin text-[var(--ipc-primary-600)]" />}
           variant="info"
         >
-          Hệ thống đang lấy dữ liệu mới nhất từ API điều phối.
+          Hệ thống đang lấy trạng thái đơn mới nhất.
         </InlineAlert>
       ) : status === 'locked' || normalizedStatus === 'CONFIRMED' ? (
         <InlineAlert

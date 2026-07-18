@@ -353,7 +353,7 @@ Wave 4 gate execution:
 - Controls gate: `4/4` passed. Dialog naming, action reachability and protected-route controls remain addressable.
 - Route smoke: `13/13` passed after updating fixtures to the current page-number/cursor contracts. The test now waits for lazy tab activation before asserting the relevant request, instead of assuming every report tab loads eagerly.
 - UI audit: `2/2` passed, including the Admin data-quality stress table and action readability check.
-- Visual regression: `8/20` passed and `12/20` failed, matching the previously recorded baseline failure shape. Failures remain concentrated in WeeklyMenu, Reports, AdminData and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
+- Visual regression: the latest sequential run is `6/20` passed and `14/20` failed. Failures remain concentrated in WeeklyMenu, Reports, AdminData, stale Chef/Purchasing/Warehouse baselines and mobile geometry; no snapshots were regenerated. This is evidence that the visual/ownership blocker persists, not authorization to update snapshots.
 - The visual gate was run sequentially to avoid Vite cache races (`EPERM` rename) observed when Playwright projects were launched in parallel. Commit `859c97d` records only fixture contract corrections; no product snapshot or protected global-style change was staged.
 - Release verification initially caught two stale Admin badge references after removing the legacy kitchen/usage hooks; they were changed to use the new KPI aggregates and reverified by a successful frontend production build. Fix commit: `874de3b`.
 
@@ -386,11 +386,61 @@ Wave 4.5 visual evidence is recorded in `UI-REVIEW.md`: desktop dashboard/chef r
 
 ### Wave 4.5 — CSS/JavaScript debt and feedback-surface normalization
 
-Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
+Status: in progress. Shared feedback normalization and one isolated CSS cleanup slice are complete; Task 4.5.1a inventory is recorded in `CSS-JS-INVENTORY.md`; route-wide layout migration remains gated by dirty-route ownership and visual-baseline reconciliation.
 
 Objective: xử lý các lỗi layout giống ảnh tham chiếu trên toàn bộ route, giữ lại CSS thực sự tạo ra token/layout/accessibility cần thiết, loại bỏ CSS chết hoặc lặp, đồng thời thay các feedback JavaScript thô và trạng thái rải rác bằng surface React/TypeScript có ngữ nghĩa rõ ràng.
 
 Design read: đây là redesign-preserve cho sản phẩm B2B vận hành; ưu tiên clarity, trust và density trung bình. Dials: `DESIGN_VARIANCE=3`, `MOTION_INTENSITY=2`, `VISUAL_DENSITY=5`. Một accent IPC blue, một hệ radius, không thêm UI kit thứ hai. `lucide-react` được giữ vì project đã dùng sẵn; không đưa thêm icon library.
+
+#### Task 4.5.1 — CSS giữ có chủ đích, JavaScript feedback chuẩn hóa và sửa layout toàn route
+
+1. **Objective and user-visible outcome**
+   - Giữ token, layout primitive, responsive rule, focus/contrast và state style có trách nhiệm rõ; chỉ xóa CSS chết, selector trùng hoặc fixed-width gây overflow khi có source inventory/computed layout/visual evidence.
+   - Thay `window.alert`, `window.confirm`, `window.prompt`, feedback bằng `console`/timer và state tạm lặp bằng `ToastProvider`/`useToast`, `InlineAlert` hoặc shadcn/Radix `Dialog` đúng ngữ nghĩa.
+   - Chuẩn hóa mọi route về một shell, page header, command area, feedback region và table viewport. Ở 320–390px, action vẫn truy cập được, bảng cuộn trong vùng của nó và không có nested scroll hoặc trang kéo dài do dữ liệu chưa phân trang.
+
+2. **Files allowed to change**
+   - `frontend/src/components/common/*`, `frontend/src/components/ui/*` và tests liên quan.
+   - `frontend/src/styles/ui-redesign.css`, `frontend/src/styles/components.css` và stylesheet sạch khác sau selector/reference inventory.
+   - Mỗi route sạch chỉ theo một commit; `WeeklyMenuPage`, `AdminDataPage`, `DashboardPage` và `styles/index.css` chỉ sửa sau ownership handoff hoặc hunk-level approval.
+   - `frontend/tests/*` và planning artifacts cho inventory, risk, visual evidence.
+
+3. **Symbols to edit and GitNexus upstream impact**
+   - Trước khi sửa: `OperationalFrame`, `ContextStrip`, `TableViewport`, `ViewSwitcher`, `ToastProvider`, `ConfirmDialog`, `InlineAlert` và mọi caller phát hiện từ inventory.
+   - HIGH/CRITICAL phải cảnh báo, giữ compatibility contract và migrate caller theo nhóm. UNKNOWN do index stale phải được ghi rõ, đối chiếu source callers và chạy đủ route gates.
+
+4. **Existing behavior to preserve**
+   - Không đổi route slug, nav label, form field name/order, endpoint, DTO, enum/raw identifier, mutation payload, callback ownership hoặc quyền truy cập.
+   - Destructive confirmation vẫn là Dialog có focus/keyboard behavior; lỗi theo ngữ cảnh dùng InlineAlert; thành công tạm thời dùng toast.
+   - Giữ aria relationship, visible focus, reduced-motion, table region semantics và public props/classes của compatibility boundary.
+
+5. **Risk classification and mitigation**
+   - CSS deletion là Critical nếu thuộc stylesheet dirty hoặc caller chưa phân loại; chỉ xóa rule isolated có bằng chứng zero source reference.
+   - Shared layout/feedback là High/Critical tùy impact; thay đổi display-only trước, giữ logic/payload, chạy controls/smoke/UI-audit serial.
+   - Native feedback replacement là High nếu che mất quyết định bắt buộc; phân loại toast/InlineAlert/Dialog và test focus, close, error path.
+   - Visual baseline là High; không update snapshot nếu thiếu actual-vs-baseline note, viewport list và root cause.
+
+6. **Exact implementation steps**
+   - 4.5.1a: tạo selector/reference inventory và scan feedback trong `frontend/src`.
+   - 4.5.1b: chạy impact cho shared symbols, chốt allowlist và phân loại dirty ownership.
+   - 4.5.1c: sửa một route-family slice bằng Tailwind/scoped CSS mobile-first, `min-w-0`, bounded table viewport, one command region và semantic Vietnamese copy.
+   - 4.5.1d: thay feedback theo taxonomy, thêm component/route tests cho title, variant, focus, dismiss, keyboard và reduced motion.
+   - 4.5.1e: chạy static scan, unit, lint, build, controls, smoke, UI-audit và visual evidence; ghi blocker nếu baseline không đáng tin cậy.
+   - 4.5.1f: chạy `detect_changes` trên staged scope, commit một route-family slice và cập nhật plan/risk evidence.
+
+7. **Tests and commands**
+   - `rg -n "window\\.(alert|confirm|prompt)|console\\.(log|warn|error)|setTimeout" frontend/src` và phân loại từng kết quả.
+   - `npm run test:unit --workspace frontend`, `npm run lint --workspace frontend`, `npm run build --workspace frontend`.
+   - `npm run test:controls --workspace frontend`, `npm run test:smoke --workspace frontend`, `npm run test:ui-audit --workspace frontend`.
+   - `npm run test:visual --workspace frontend` để thu thập evidence; không tự động update snapshot.
+   - `git diff --check` và `node .gitnexus/run.cjs detect_changes --repo IPCManagement --scope staged` trước mỗi commit.
+
+8. **Rollback/undo condition**
+   - Dừng và revert riêng task nếu action bị mất, API/payload đổi, focus/keyboard regression, overflow tăng, toast trùng hoặc CSS ownership chưa chứng minh được.
+   - Không dùng `git reset --hard`; rollback bằng commit/task manifest, giữ nguyên dirty user-owned files.
+
+9. **Commit boundary**
+   - Mỗi commit chỉ gồm một route-family/component contract, test tương ứng và evidence plan/risk; không trộn backend feature work, dirty route work hoặc snapshot update chưa giải thích.
 
 Scope:
 
@@ -422,6 +472,22 @@ Completed clean slices:
 - Stock movement status and next-action cells now consume the shared formatter without changing movement types, cursor/local pagination or copy behavior (`4a987ab`). The demand summary no longer maintains a duplicate status map and now shares the same vocabulary (`43d2a7e`). A further CSS inventory pass removed the unreferenced `.ipc-approval-record-meta` block with selective staging; the 641-line dirty stylesheet addition remains preserved (`8de0110`).
 - Role inbox action renderers now receive a display-safe copy of `nextAction`, translating technical workflow enums without mutating the source item or route logic (`7729347`). The purchase-request list in ApprovalPage also uses the shared status formatter (`7dc6453`). Unit `76/76`, build, controls `4/4`, smoke `14/14` and UI audit `2/2` remain green.
 - Chef dashboard now consolidates stacked catalog/issue/KHSX loading, error and warning alerts into one bounded “Trạng thái dữ liệu bếp” region while keeping the shift lock alert and mutation feedback separate (`f5f1507`). The clean route gates remain green; visual baseline remains intentionally unupdated because the source already retains KHSX/table/journal content absent from the old Chef snapshot.
+- Shared stock-movement copy feedback now uses the typed `ToastProvider` for success and clipboard failure; the component no longer owns a transient `useState`/`window.setTimeout` feedback loop. Props, row actions, cursor/local pagination and document-copy behavior are unchanged. Component tests cover both outcomes. Evidence: unit `77/77`, lint, production build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. The four-caller HIGH impact was reviewed and mitigated as a display-only internal change.
+- `DocumentRail` now uses the same typed toast feedback for document-ID copy success/failure, removing its duplicate timer/local-copy state while preserving document actions, pagination and semantics. Its HIGH impact (6 callers, including dirty route files) was mitigated by changing only the internal feedback surface; the same full route gates remain green.
+- CSS inventory removed the unreferenced `.ipc-paginated-table-frame` block from `ui-redesign.css`; `PaginatedTableFrame` remains as a public compatibility adapter and `TableViewport` remains the canonical geometry owner. Source inventory found no production consumer beyond the adapter. Evidence: CSS bundle reduced, lint/build pass, controls `4/4`, smoke `14/14` and UI audit `2/2` pass.
+- Supplier quotation page contract now performs `Count`, best-price ID lookup and `Skip/Take` in the EF query instead of loading the complete ingredient quotation list before slicing. The legacy list endpoint remains unchanged for compatibility; page items still carry the correct `IsBestPrice` flag. Backend compile passes. Full backend test build is currently blocked by the already-running API process locking `IPCManagement.Api.exe` (PID 19884), so this remains a runtime verification follow-up.
+- Purchasing supplier-line controls now expose semantic Vietnamese labels and accessible names for supplier, estimated price, delivery date and note; “Lưu NCC” is now “Lưu nhà cung cấp”, the price suggestion is a live status region, and numeric input constraints are explicit. API payloads and mutation handlers are unchanged. Evidence: unit `77/77`, lint, build and smoke `14/14` pass.
+- Shared operational copy audit replaced user-facing `NCC`, `Theo NCC`, `Báo giá NCC`, and the admin lane’s `audit/BOM` shorthand in clean route/config surfaces with Vietnamese labels that explain the action. Raw codes and API enum values remain untouched. Evidence: unit `77/77`, lint/build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass.
+- Warehouse current-stock slice now consumes the existing `current-stock/page` endpoint with an 8-row server page and canonical `PaginationBar`; the previous `limit: 12` collection plus local `useLocalPagination` path was removed from `WarehousePage`. Mutation selection still reads the visible live row and stock movement cursor behavior is unchanged. The route smoke fixture now covers the page contract for desktop and mobile operations. Evidence: targeted smoke pass, full smoke `14/14`, controls `4/4`, UI audit `2/2`, unit `76/76`, lint and production build pass. Commit pending after staged GitNexus detection.
+- Chef dashboard clean-copy slice replaces user-facing `KHSX`, `BOM`, `API` and `catalog` shorthand with “kế hoạch sản xuất”, “định lượng”, “hệ thống” and “danh mục”; raw identifiers and production-plan behavior remain unchanged. Evidence: unit `77/77`, lint, production build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. The `ChefDashboardPage` impact was LOW with no direct callers.
+- Coordination and Reports clean-copy slice removes user-facing `API/backend` implementation terms from loading and error feedback, replacing them with operational language while preserving query behavior and error handling. Both page impacts were LOW with no direct callers. Evidence: unit `77/77`, lint, production build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass.
+- Coordination status banner now describes the latest order state instead of exposing the `API` implementation detail. `OrderStatusBanner` has one direct caller and GitNexus classified the display-only change as LOW risk. Evidence: unit `77/77`, lint and controls `4/4` pass.
+- Reports terminology now explains the former `BOM` shorthand as “định lượng nguyên liệu/định lượng” in report titles and data-quality context. The report query and missing-count field remain unchanged. Evidence: unit `77/77`, lint, production build and targeted Reports smoke `3/3` pass.
+- Reports now consumes the shared `uiCopy.technical.bom` vocabulary for the weighted-variance and audit headings, preserving the canonical “Định mức nguyên liệu (BOM)” explanation instead of duplicating terminology in the page. Evidence: unit `77/77`, lint, production build and targeted Reports smoke `3/3` pass.
+- Warehouse exception feedback now explains `demand/KHSX` as “nhu cầu nguyên liệu và kế hoạch sản xuất”, preserving the validation branch and export behavior. `WarehousePage` impact was LOW with no direct callers. Evidence: unit `77/77`, lint, production build and Warehouse smoke `3/3` pass.
+- Shared `ViewSwitcher` tabs now receive equal flexible sizing so wrapped mobile tab rows do not leave a narrow orphan tab; selection semantics and all eight callers remain unchanged. GitNexus could not resolve this stale-index symbol (UNKNOWN), so source inventory and full route gates were used as mitigation. Evidence: new component contract tests bring unit coverage to `79/79`, lint/build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. Visual baseline remains intentionally unupdated.
+- `TableViewport` now explicitly opts into `min-width: 0` and contained horizontal overscroll so long operational tables stay bounded inside flex layouts. Its accessibility contract is unchanged; the existing component test covers the geometry classes. Evidence: unit `79/79`, lint/build, smoke `14/14` and UI audit `2/2` pass. GitNexus could not resolve this stale-index symbol (UNKNOWN); the source inventory identified the production callers and no API/state dependencies were changed.
+- `ApprovalRulesPage` now stacks rule metadata, threshold fields and assignment rows at narrow widths, then restores multi-column layouts from `sm`/`md` breakpoints. Mutation handlers, dialogs and payloads are unchanged. GitNexus could not resolve this route symbol (UNKNOWN), so the change is constrained to page-local Tailwind classes. The control-surface fixture now includes the admin wildcard permission and approval-rule/employee responses, preventing an unrelated auth fallback from masking the route check. Evidence: unit `79/79`, lint/build, controls `5/5`, smoke `14/14` and UI audit `2/2` pass; direct in-app browser verification remains unavailable because no browser backend was exposed.
 
 Current blockers and next route order:
 

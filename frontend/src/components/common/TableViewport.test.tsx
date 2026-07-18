@@ -19,7 +19,7 @@ describe('TableViewport', () => {
 
     expect(region).toHaveAttribute('aria-describedby', description.id);
     expect(region).toHaveAttribute('tabindex', '0');
-    expect(region).toHaveClass('ipc-table-viewport', 'overflow-auto');
+    expect(region).toHaveClass('ipc-table-viewport', 'min-w-0', 'overflow-auto', 'overscroll-x-contain');
   });
 
   it('does not add a dangling description when no caption is provided', () => {

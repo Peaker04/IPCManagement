@@ -46,7 +46,7 @@ export function ViewSwitcher({
           role="tab"
           aria-selected={activeTab === tab.id}
           aria-controls={`${tab.id}-panel`}
-          className={activeTab === tab.id ? 'is-active' : undefined}
+          className={cn('flex-1 min-w-0', activeTab === tab.id && 'is-active')}
           onClick={() => onTabChange(tab.id)}
         >
           {tab.label}
