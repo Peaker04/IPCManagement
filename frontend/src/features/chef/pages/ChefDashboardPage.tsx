@@ -543,15 +543,7 @@ export default function ChefDashboardPage() {
         </>
       }
     >
-      {productionPlan.totalMeals === 0 ? (
-        <EmptyState
-          icon={<AlertCircle className="size-12 text-slate-400" />}
-          title="Không có suất ăn nào được lên lịch cho ca này."
-          description="Vui lòng điều phối suất dự kiến tại trang Điều phối trước."
-          className="text-slate-500"
-        />
-      ) : (
-        <div className="ipc-operational-view">
+      <div className="ipc-operational-view">
           {chefFeedback && (
             <InlineAlert title={chefFeedback.title} variant={chefFeedback.variant}>
               {chefFeedback.message}
@@ -630,12 +622,21 @@ export default function ChefDashboardPage() {
                 </TableViewport>
               </SectionPanel>
               <SplitWorkbench detailLabel="Nhật ký ca" detail={shiftJournal} className="ipc-chef-split-workbench">
-                <HeadChefDashboard
-                  productionPlan={productionPlan}
-                  onSupplementalRequest={handleSupplementalRequest}
-                  onExcessMaterialReturn={handleExcessMaterialReturn}
-                  onMaterialSignoff={handleMaterialSignoff}
-                />
+                {productionPlan.totalMeals === 0 ? (
+                  <EmptyState
+                    icon={<AlertCircle className="size-12 text-slate-400" />}
+                    title="Không có suất ăn nào được lên lịch cho ca này."
+                    description="Vui lòng điều phối suất dự kiến tại trang Điều phối trước. Bạn vẫn có thể xem chứng từ và nhật ký của ca ở tab bên cạnh."
+                    className="text-slate-500"
+                  />
+                ) : (
+                  <HeadChefDashboard
+                    productionPlan={productionPlan}
+                    onSupplementalRequest={handleSupplementalRequest}
+                    onExcessMaterialReturn={handleExcessMaterialReturn}
+                    onMaterialSignoff={handleMaterialSignoff}
+                  />
+                )}
               </SplitWorkbench>
             </div>
           )}
@@ -654,8 +655,7 @@ export default function ChefDashboardPage() {
               </div>
             </SectionPanel>
           )}
-        </div>
-      )}
+      </div>
     </OperationalFrame>
   )
 }
