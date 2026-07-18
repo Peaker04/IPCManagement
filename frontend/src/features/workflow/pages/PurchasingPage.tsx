@@ -28,6 +28,7 @@ import {
   useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetSupplierQuotationsByIngredientQuery,
+  useGetSupplierQuotationsByIngredientPageQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
@@ -443,13 +444,18 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
   const { toast } = useToast();
   const { data: ingredients = [] } = useGetIngredientsQuery();
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
-  const { data: quotations = [], isFetching } = useGetSupplierQuotationsByIngredientQuery(selectedIngredientId, {
+  const [quotationPage, setQuotationPage] = useState(1);
+  const { data: quotationPageResponse, isFetching } = useGetSupplierQuotationsByIngredientPageQuery({
+    ingredientId: selectedIngredientId,
+    pageNumber: quotationPage,
+    pageSize: 8,
+  }, {
     skip: !selectedIngredientId,
   });
   const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
   const [updateQuotation] = useUpdateSupplierQuotationMutation();
   const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();
-  const quotationPagination = useLocalPagination(quotations, 8);
+  const quotationRows = quotationPageResponse?.items ?? [];
 
   const [form, setForm] = useState({ supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' });
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -549,6 +555,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
           value={selectedIngredientId}
           onChange={(e) => {
             setSelectedIngredientId(e.target.value);
+            setQuotationPage(1);
             resetForm();
           }}
         >
@@ -575,7 +582,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                 </tr>
               </thead>
               <tbody>
-                {quotationPagination.rows.map((q) => (
+                {quotationRows.map((q) => (
                   <tr key={q.quotationId} className={q.isBestPrice ? 'bg-emerald-50' : ''}>
                     <td>
                       {q.supplierName}
@@ -598,17 +605,17 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
                     </td>
                   </tr>
                 ))}
-                {quotations.length === 0 && !isFetching && (
+                {quotationRows.length === 0 && !isFetching && (
                   <tr><td colSpan={7} className="text-center text-slate-500 py-4">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                 )}
               </tbody>
             </table>
           </TableViewport>
           <PaginationBar
-            page={quotationPagination.page}
-            pageSize={quotationPagination.pageSize}
-            totalItems={quotationPagination.totalItems}
-            onPageChange={quotationPagination.setPage}
+            page={quotationPageResponse?.pageNumber ?? quotationPage}
+            pageSize={quotationPageResponse?.pageSize ?? 8}
+            totalItems={quotationPageResponse?.totalCount ?? 0}
+            onPageChange={setQuotationPage}
           />
 
           <form onSubmit={handleSubmit} className="border-t border-slate-200 pt-4">

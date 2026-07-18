@@ -1,4 +1,5 @@
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Supplier;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
@@ -28,6 +29,14 @@ public class SupplierQuotationsController : ControllerBase
     {
         var quotations = await _supplierQuotationService.GetByIngredientAsync(ingredientId, cancellationToken);
         return Ok(ApiResponse<List<SupplierQuotationDto>>.SuccessResult(quotations));
+    }
+
+    [HttpGet("ingredient/{ingredientId}/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<SupplierQuotationDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetByIngredientPage(string ingredientId, [FromQuery] SupplierQuotationPageQueryDto query, CancellationToken cancellationToken)
+    {
+        var quotations = await _supplierQuotationService.GetByIngredientPageAsync(ingredientId, query, cancellationToken);
+        return Ok(ApiResponse<PagedResponseDto<SupplierQuotationDto>>.SuccessResult(quotations));
     }
 
     /// <summary>Lấy toàn bộ báo giá của một nhà cung cấp cho các nguyên liệu.</summary>

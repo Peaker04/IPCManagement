@@ -1344,6 +1344,16 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<SupplierQuotationDto[]>) => getData(response),
       providesTags: ['SupplierQuotations'],
     }),
+    getSupplierQuotationsByIngredientPage: builder.query<PageNumberPage<SupplierQuotationDto>, { ingredientId: string; pageNumber?: number; pageSize?: number }>({
+      query: ({ ingredientId, pageNumber = 1, pageSize = 8 }) => ({
+        url: `/supplier-quotations/ingredient/${ingredientId}/page`,
+        params: { pageNumber, pageSize },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<SupplierQuotationDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['SupplierQuotations'],
+    }),
     createSupplierQuotation: builder.mutation<SupplierQuotationDto, CreateSupplierQuotationDto>({
       query: (body) => ({
         url: '/supplier-quotations',
@@ -1889,6 +1899,7 @@ export const {
   useGetDataQualityPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
   useGetSupplierQuotationsByIngredientQuery,
+  useGetSupplierQuotationsByIngredientPageQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,

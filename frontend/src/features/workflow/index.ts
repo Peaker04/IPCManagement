@@ -43,6 +43,7 @@ export {
   useGetSuppliersQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetSupplierQuotationsByIngredientQuery,
+  useGetSupplierQuotationsByIngredientPageQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
