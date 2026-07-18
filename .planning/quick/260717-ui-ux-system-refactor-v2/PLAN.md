@@ -435,6 +435,7 @@ Completed clean slices:
 - Reports terminology now explains the former `BOM` shorthand as “định lượng nguyên liệu/định lượng” in report titles and data-quality context. The report query and missing-count field remain unchanged. Evidence: unit `77/77`, lint, production build and targeted Reports smoke `3/3` pass.
 - Reports now consumes the shared `uiCopy.technical.bom` vocabulary for the weighted-variance and audit headings, preserving the canonical “Định mức nguyên liệu (BOM)” explanation instead of duplicating terminology in the page. Evidence: unit `77/77`, lint, production build and targeted Reports smoke `3/3` pass.
 - Warehouse exception feedback now explains `demand/KHSX` as “nhu cầu nguyên liệu và kế hoạch sản xuất”, preserving the validation branch and export behavior. `WarehousePage` impact was LOW with no direct callers. Evidence: unit `77/77`, lint, production build and Warehouse smoke `3/3` pass.
+- Shared `ViewSwitcher` tabs now receive equal flexible sizing so wrapped mobile tab rows do not leave a narrow orphan tab; selection semantics and all eight callers remain unchanged. GitNexus could not resolve this stale-index symbol (UNKNOWN), so source inventory and full route gates were used as mitigation. Evidence: new component contract tests bring unit coverage to `79/79`, lint/build, controls `4/4`, smoke `14/14` and UI audit `2/2` pass. Visual baseline remains intentionally unupdated.
 
 Current blockers and next route order:
 
