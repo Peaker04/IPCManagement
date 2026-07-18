@@ -55,7 +55,7 @@ type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitc
 
 const reportTabs = [
   { id: 'reports-price', label: 'Biến động giá' },
-  { id: 'reports-demand', label: 'Nhu cầu NVL' },
+  { id: 'reports-demand', label: 'Nhu cầu nguyên liệu' },
   { id: 'reports-purchase', label: 'Kế hoạch thu mua' },
   { id: 'reports-stock', label: 'Tồn kho' },
   { id: 'reports-movement', label: 'Nhập/xuất kho' },
@@ -784,7 +784,7 @@ const ReportsPage = () => {
                   <th>Tồn hiện có</th>
                   <th>Thiếu/mua</th>
                   <th>Trạng thái</th>
-                  <th>Handoff</th>
+                  <th>Chuyển xử lý</th>
                 </tr>
               </thead>
               <tbody>
@@ -891,7 +891,7 @@ const ReportsPage = () => {
                   <th>Nguyên liệu</th>
                   <th>Số lượng hiện tại</th>
                   <th>Cập nhật</th>
-                  <th>Handoff</th>
+                  <th>Chuyển xử lý</th>
                 </tr>
               </thead>
               <tbody>
