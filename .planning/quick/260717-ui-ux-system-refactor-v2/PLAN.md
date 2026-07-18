@@ -1,7 +1,7 @@
 ---
 name: 260717-ui-ux-system-refactor-v2
 date: 2026-07-17
-status: wave-3-server-pagination-report-families-complete-ownership-gate-open
+status: wave-3-admin-pagination-slices-in-progress-ownership-gate-open
 type: refactor-plan
 parent: 260717-ui-ux-system-redesign
 ---
@@ -293,6 +293,15 @@ Admin current-stock page slice:
 - The existing `PaginationBar` remains the shared control; local `usePaginatedRows` slicing is removed for this table. Audit's missing display binding was corrected in the same ownership-safe pass after verification caught it.
 - Evidence: frontend lint/unit/build pass (`72/72` unit tests); staged GitNexus detection reported 1 file, 1 symbol, 0 processes, LOW. Commit: `8f39660`.
 - Known boundary: Admin cleanup, data-quality, price variance and statistics views still use their existing list-compatible endpoints and remain the next Admin migration slices.
+
+Admin stock-adjustment cursor slice:
+
+- `AdminDataPage` Inventory now requests `stock-movements/page` only while the Inventory tab is active, with `movementType=adjustment` and a cursor page size of 8; the previous `limit:100` fetch plus client-side filtering is removed.
+- `WorkflowReportQueryDto`/`WorkflowReportService` now support an optional case-insensitive `MovementType` filter. Existing callers remain unchanged when the filter is absent, while the Admin page can page only adjustment rows without losing rows because other movement types occupied the source page.
+- The table keeps `StockMovementTable` as a presentation component and uses the canonical `CursorPaginationBar` for server navigation. Its internal local pager is inert for an 8-row server page, so no duplicate controls are rendered.
+- Ownership was enforced with a five-file narrow stage; the pre-existing BOM/contract changes in `AdminDataPage`, `WorkflowReportService` and `WorkflowGenerationTests` remained outside the commit. GitNexus staged detection reported 5 files, 1 indexed symbol, 0 processes, LOW.
+- Evidence: backend build and `267/267` tests pass; frontend lint, unit `72/72` and production build pass. Commit: `342a681`.
+- Risk boundary: GitNexus could not index the backend service/DTO symbols (`UNKNOWN` impact), so the filter was verified through direct compile and focused regression assertion rather than treated as zero-risk. The endpoint still materializes up to `limit + 1` rows before cursor metadata; this is bounded UI pagination, not a claim of fully database-lazy history scanning.
 
 Critical shell gate result — `DataTableShell`:
 
