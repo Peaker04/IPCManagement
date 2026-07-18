@@ -249,73 +249,99 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         ApprovalInboxCursor? cursor,
         CancellationToken cancellationToken)
     {
-        var requestQuery = _context.Purchaserequests
-            .AsNoTracking()
-            .Include(item => item.CreatedByNavigation)
-            .Include(item => item.Purchaserequestlines)
-                .ThenInclude(line => line.Ingredient)
-            .Include(item => item.Purchaserequestlines)
-                .ThenInclude(line => line.Unit)
-            .Where(item =>
-                (item.Status == "DRAFT" || item.Status == "SENTTOSUPPLIER") &&
-                !_context.Approvalhistories.Any(history =>
-                    history.TargetType == PurchaseRequestTargetType &&
-                    history.TargetId == item.PurchaseRequestId));
-        if (cursor is not null)
-        {
-            requestQuery = requestQuery.Where(item =>
-                item.PurchaseForDate > cursor.DueDate ||
-                (item.PurchaseForDate == cursor.DueDate && item.PurchaseRequestCode.CompareTo(cursor.TargetCode) > 0));
-        }
-
-        var requests = await requestQuery
-            .OrderBy(item => item.PurchaseForDate)
-            .ThenBy(item => item.PurchaseRequestCode)
-            .Take(limit)
-            .ToListAsync(cancellationToken);
-
+        var batchSize = Math.Clamp(limit, 1, 50);
         var result = new List<ApprovalInboxItemDto>();
-        foreach (var request in requests)
+        var sourceDate = cursor?.DueDate;
+        var sourceCode = cursor?.TargetCode;
+        var firstBatch = true;
+
+        while (result.Count < limit)
         {
-            var warningLines = new List<Purchaserequestline>();
-            foreach (var line in request.Purchaserequestlines)
+            var requestQuery = _context.Purchaserequests
+                .AsNoTracking()
+                .Include(item => item.CreatedByNavigation)
+                .Include(item => item.Purchaserequestlines)
+                    .ThenInclude(line => line.Ingredient)
+                .Include(item => item.Purchaserequestlines)
+                    .ThenInclude(line => line.Unit)
+                .Where(item =>
+                    (item.Status == "DRAFT" || item.Status == "SENTTOSUPPLIER") &&
+                    !_context.Approvalhistories.Any(history =>
+                        history.TargetType == PurchaseRequestTargetType &&
+                        history.TargetId == item.PurchaseRequestId));
+            if (sourceDate is not null && sourceCode is not null)
             {
-                if (await IsPriceWarningAsync(line, cancellationToken))
+                var comparison = firstBatch ? 0 : 1;
+                requestQuery = requestQuery.Where(item =>
+                    item.PurchaseForDate > sourceDate.Value ||
+                    (item.PurchaseForDate == sourceDate.Value &&
+                        item.PurchaseRequestCode.CompareTo(sourceCode) >= comparison));
+            }
+
+            var requests = await requestQuery
+                .OrderBy(item => item.PurchaseForDate)
+                .ThenBy(item => item.PurchaseRequestCode)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+            if (requests.Count == 0)
+            {
+                break;
+            }
+
+            foreach (var request in requests)
+            {
+                var warningLines = new List<Purchaserequestline>();
+                foreach (var line in request.Purchaserequestlines)
                 {
-                    warningLines.Add(line);
+                    if (await IsPriceWarningAsync(line, cancellationToken))
+                    {
+                        warningLines.Add(line);
+                    }
+                }
+
+                if (warningLines.Count == 0)
+                {
+                    continue;
+                }
+
+                var itemDto = new ApprovalInboxItemDto
+                {
+                    InboxItemId = $"price-alert-{GuidHelper.ToGuidString(request.PurchaseRequestId)}",
+                    TargetType = PurchaseRequestTargetType,
+                    TargetId = GuidHelper.ToGuidString(request.PurchaseRequestId),
+                    TargetCode = request.PurchaseRequestCode,
+                    ItemType = "price-alert",
+                    Title = "Kiểm tra giá mua",
+                    Source = request.PurchaseRequestCode,
+                    OwnerRole = "Thu mua / Quản lý",
+                    SubmittedBy = request.CreatedByNavigation.FullName,
+                    DueDate = request.PurchaseForDate,
+                    Status = "PENDING",
+                    Reason = "Có dòng mua vượt ngưỡng giá, cần xử lý trước khi duyệt.",
+                    NextAction = "Xử lý cảnh báo giá",
+                    Tone = "danger",
+                    Route = "/approvals",
+                    Materials = warningLines
+                        .OrderBy(line => line.Ingredient.IngredientName)
+                        .Select(MapPurchaseMaterial)
+                        .ToList()
+                };
+                var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
+                await PopulateSlaAsync(itemDto, request.PurchaseRequestId, baseDocDate);
+                if (cursor is null || IsAfterCursor(itemDto, cursor))
+                {
+                    result.Add(itemDto);
                 }
             }
 
-            if (warningLines.Count == 0)
+            var last = requests[^1];
+            sourceDate = last.PurchaseForDate;
+            sourceCode = last.PurchaseRequestCode;
+            firstBatch = false;
+            if (requests.Count < batchSize)
             {
-                continue;
+                break;
             }
-
-            var itemDto = new ApprovalInboxItemDto
-            {
-                InboxItemId = $"price-alert-{GuidHelper.ToGuidString(request.PurchaseRequestId)}",
-                TargetType = PurchaseRequestTargetType,
-                TargetId = GuidHelper.ToGuidString(request.PurchaseRequestId),
-                TargetCode = request.PurchaseRequestCode,
-                ItemType = "price-alert",
-                Title = "Kiểm tra giá mua",
-                Source = request.PurchaseRequestCode,
-                OwnerRole = "Thu mua / Quản lý",
-                SubmittedBy = request.CreatedByNavigation.FullName,
-                DueDate = request.PurchaseForDate,
-                Status = "PENDING",
-                Reason = "Có dòng mua vượt ngưỡng giá, cần xử lý trước khi duyệt.",
-                NextAction = "Xử lý cảnh báo giá",
-                Tone = "danger",
-                Route = "/approvals",
-                Materials = warningLines
-                    .OrderBy(line => line.Ingredient.IngredientName)
-                    .Select(MapPurchaseMaterial)
-                    .ToList()
-            };
-            var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
-            await PopulateSlaAsync(itemDto, request.PurchaseRequestId, baseDocDate);
-            result.Add(itemDto);
         }
 
         return result;

@@ -213,7 +213,7 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-                <TableViewport ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
+                <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
                   <table className="ipc-data-table">
                     <thead>
                       <tr>

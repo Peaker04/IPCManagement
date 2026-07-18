@@ -52,6 +52,16 @@ async function stubOperationalApis(page: Page) {
     hasPrev: false,
     hasNext: false,
   }));
+  await page.route('**/api/admin/employees/roles', async (route) => fulfillJson(route, []));
+  await page.route('**/api/ingredients**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 500,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
   await page.route('**/api/dishes/catalog**', async (route) => fulfillJson(route, []));
@@ -330,6 +340,27 @@ test.describe('operational control surface', () => {
     await expect(page.getByLabel('Ca')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Xuất báo cáo' })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+
+    await page.getByRole('tab', { name: 'Chất lượng dữ liệu', exact: true }).click();
+    await expect(page.getByText('Tổng vấn đề', { exact: true })).toBeVisible();
+    await expect(page.getByText('Vấn đề ưu tiên SLA', { exact: true })).toBeVisible();
+    await expect(page.getByText('Tổng issue', { exact: true })).toHaveCount(0);
+  });
+
+  test('reports wide tables scroll inside their viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.REPORTS);
+
+    const tableViewport = page.locator('.ipc-report-table-shell');
+    const table = tableViewport.locator('table').first();
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('chef empty state does not reserve a desktop-sized gap before the shift journal', async ({ page }) => {
@@ -348,6 +379,7 @@ test.describe('operational control surface', () => {
 
     await expect(page.getByText('Chưa có dữ liệu để hiển thị', { exact: true })).toBeVisible();
     await expect(page.locator('.ipc-coordination-workbench')).toHaveCSS('min-height', '0px');
+    await expect(page.locator('.ipc-coordination-empty-state')).toHaveCSS('min-height', '0px');
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
@@ -411,6 +443,65 @@ test.describe('operational control surface', () => {
     expect(positions).toHaveLength(5);
     expect(new Set(positions.map((position) => position.left)).size).toBe(1);
     expect(positions.every((position) => position.width > 280)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('purchasing wide tables scroll inside their viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.PURCHASING);
+    await page.getByRole('tab', { name: 'Giá và nhà cung cấp' }).click();
+
+    const tableViewport = page.locator('.ipc-table-container').first();
+    const table = tableViewport.locator('table').first();
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('warehouse stock table scrolls inside its viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WAREHOUSE);
+
+    const tableViewport = page.locator('.ipc-warehouse-table-shell');
+    const table = tableViewport.locator('table');
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '720px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('weekly menu matrix keeps day columns readable inside its viewport on mobile', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.WEEKLY_MENU);
+
+    const tableViewport = page.locator('.ipc-weekly-menu-shell');
+    const table = tableViewport.locator('.ipc-schedule-table');
+    await expect(tableViewport).toBeVisible();
+    await expect(table).toHaveCSS('min-width', '980px');
+    const geometry = await tableViewport.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    }));
+    expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
+  test('admin data keeps import actions semantic and removes inactive command chrome', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.ADMIN_DATA);
+
+    await expect(page.getByRole('button', { name: 'Kiểm tra file', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Nhập dữ liệu', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Gửi thông báo vận hành', exact: true })).toHaveCount(0);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 

@@ -118,7 +118,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
         icon={<ClipboardList className="size-10" />}
         title="Chưa có dữ liệu để hiển thị"
         description="Điều chỉnh ngày, ca hoặc điều phối đơn để xem dữ liệu phù hợp."
-        className="min-h-0 border-b border-slate-200 py-10"
+        className="ipc-coordination-empty-state min-h-0 border-b border-slate-200 py-10"
       />
     )
   }
@@ -171,7 +171,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
               const variance = finalQuantity - order.forecastQuantity
 
               return (
-            <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#f8fafc]'}`}>
+            <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
               {/* Khách Hàng (gộp Mã KH + Tên) */}
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
