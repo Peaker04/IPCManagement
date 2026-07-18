@@ -499,6 +499,7 @@ Current blockers and next route order:
 - `DataTableShell` remains CRITICAL in GitNexus; do not globally replace or delete it.
 - `CommandBar` is also a CRITICAL compatibility boundary: GitNexus reports 8 direct callers across 6 flows, including dirty route callers. Do not change its shared action grouping/geometry globally; prefer route-local `actionsClassName` only when a concrete visual defect is reproduced.
 - `AdminDataPage`, `WeeklyMenuPage`, and `styles/index.css` still contain mixed user-owned feature changes; reconcile ownership before route-level layout edits or snapshot updates.
+- Approval inbox still requests `limit: 100` from a list-only `/approvals/inbox` contract; the visible `ApprovalQueue` pagination is therefore client-side and does not prove server lazy loading. Do not reduce the limit or add a cosmetic pager; introduce a real page/cursor contract with backend ownership and query-count evidence before migrating this route.
 - Next clean route group is purchasing/warehouse, using existing canonical viewport, semantic status copy and feedback primitives. Reports is now covered by page-number contracts for all primary and grouped price views. Each route requires an upstream impact check, mobile/desktop UI audit, and isolated commit. Shared table/inbox surfaces are now covered; remaining raw dashboard/admin action copy is inside dirty route files and must wait for ownership reconciliation. `DataTableShell` remains the CRITICAL compatibility boundary.
 
 Allowed files for the first clean slice:
