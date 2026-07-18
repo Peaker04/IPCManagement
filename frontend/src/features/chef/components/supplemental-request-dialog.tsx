@@ -91,11 +91,11 @@ export function SupplementalRequestDialog({
           {/* Material Selection */}
           <div className="space-y-1.5">
             <label id="supplemental-material-label" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Chọn Nguyên Liệu <span className="text-amber-500 font-bold">*</span>
+              Chọn nguyên liệu <span className="text-amber-500 font-bold">*</span>
             </label>
             <Select value={selectedMaterialId} onValueChange={(val) => setSelectedMaterialId(val || '')}>
               <SelectTrigger aria-labelledby="supplemental-material-label" className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all">
-                <SelectValue placeholder="Nhấp để chọn nguyên liệu..." />
+                <SelectValue placeholder="Chọn nguyên liệu..." />
               </SelectTrigger>
               <SelectContent className="rounded-lg border border-slate-200 bg-white shadow-lg max-h-60">
                 {materials.map((material) => (
@@ -128,7 +128,7 @@ export function SupplementalRequestDialog({
           {/* Request Quantity */}
           <div className="space-y-1.5">
             <label htmlFor="supplemental-request-qty" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Số Lượng Yêu Cầu <span className="text-amber-500 font-bold">*</span>
+              Số lượng yêu cầu <span className="text-amber-500 font-bold">*</span>
             </label>
             <div className="relative">
               <Input
@@ -154,11 +154,11 @@ export function SupplementalRequestDialog({
           {/* Reason */}
           <div className="space-y-1.5">
             <label htmlFor="supplemental-reason" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Lý Do Yêu Cầu
+              Lý do yêu cầu
             </label>
             <Textarea
               id="supplemental-reason"
-              placeholder="Mô tả chi tiết lý do (vd: hao hụt trong chế biến, phát sinh đột xuất...)"
+              placeholder="Mô tả lý do (ví dụ: hao hụt trong chế biến hoặc phát sinh đột xuất)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
               className="min-h-[80px] h-20 resize-none rounded-lg border-slate-200 bg-white text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all"
