@@ -563,7 +563,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
       <div>
         <label className="text-sm font-medium text-slate-700 mr-2">Nguyên liệu:</label>
         <select
-          className="ipc-input"
+          className="ipc-input ipc-quotation-ingredient"
           value={selectedIngredientId}
           onChange={(e) => {
             setSelectedIngredientId(e.target.value);
@@ -632,7 +632,7 @@ function SupplierQuotationManager({ suppliers }: { suppliers: SupplierDto[] }) {
 
           <form onSubmit={handleSubmit} className="border-t border-slate-200 pt-4">
             <div className="font-medium text-slate-700 mb-2">{editingId ? 'Sửa báo giá' : 'Thêm báo giá mới'}</div>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+            <div className="ipc-quotation-form-grid grid grid-cols-1 gap-3 md:grid-cols-5">
               <select
                 className="ipc-input"
                 value={form.supplierId}

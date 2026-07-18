@@ -378,6 +378,37 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('purchasing quotation form stacks fields on mobile without overflow', async ({ page }) => {
+    await page.route('**/api/ingredients**', async (route) =>
+      fulfillJson(route, {
+        items: [{ ingredientId: 'ingredient-mobile', ingredientName: 'Sườn heo', isActive: true }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 500,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      }),
+    );
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.PURCHASING);
+    await page.getByRole('tab', { name: 'Báo giá nhà cung cấp' }).click();
+    await page.locator('.ipc-quotation-ingredient').selectOption('ingredient-mobile');
+
+    const formGrid = page.locator('.ipc-quotation-form-grid');
+    await expect(formGrid).toBeVisible();
+    const positions = await formGrid.locator(':scope > *').evaluateAll((elements) =>
+      elements.map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { left: Math.round(rect.left), width: Math.round(rect.width) };
+      }),
+    );
+    expect(positions).toHaveLength(5);
+    expect(new Set(positions.map((position) => position.left)).size).toBe(1);
+    expect(positions.every((position) => position.width > 280)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('approval actions keep two compact rows on mobile without overflow', async ({ page }) => {
     await stubApprovalQueue(page);
     await page.setViewportSize({ width: 390, height: 844 });
