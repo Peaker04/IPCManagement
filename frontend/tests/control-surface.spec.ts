@@ -328,6 +328,23 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
+  test('approval actions keep two compact rows on mobile without overflow', async ({ page }) => {
+    await stubApprovalQueue(page);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(ROUTES.APPROVALS);
+
+    const actionGroup = page.locator('.ipc-approval-actions');
+    await expect(actionGroup).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Duyệt' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Sang thu mua' })).toBeVisible();
+    await expect(actionGroup.locator(':scope > div')).toHaveCount(2);
+    const rowHeights = await actionGroup.locator(':scope > div').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().height)),
+    );
+    expect(rowHeights.every((height) => height > 0)).toBe(true);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
+  });
+
   test('weekly menu import and edit dialogs open, identify themselves, and close cleanly', async ({ page }) => {
     await page.goto(ROUTES.WEEKLY_MENU);
 

@@ -114,6 +114,7 @@ export default function ApprovalPage() {
     <OperationalFrame
       command={
         <CommandBar
+          actionsClassName="ipc-approval-actions"
           actions={
             <>
               <button
