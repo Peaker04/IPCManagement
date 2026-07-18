@@ -77,9 +77,9 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                       <Table className="ipc-chef-bom-table text-xs">
                         <TableHeader>
                           <TableRow className="border-slate-200 hover:bg-transparent">
-                            <TableHead className="text-slate-600 font-semibold">Nguyên Liệu</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Đơn Vị</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Số Lượng Cần</TableHead>
+                            <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                            <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                            <TableHead className="text-slate-600 font-semibold text-right">Số lượng cần</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>

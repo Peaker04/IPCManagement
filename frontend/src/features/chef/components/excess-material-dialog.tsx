@@ -95,8 +95,8 @@ export function ExcessMaterialDialog({
 
           {/* Material Selection */}
           <div className="space-y-1.5">
-            <label id="excess-material-label" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Chọn Nguyên Liệu <span className="text-blue-500 font-bold">*</span>
+            <label id="excess-material-label" className="text-xs font-semibold tracking-wider text-slate-500">
+              Chọn nguyên liệu <span className="text-blue-500 font-bold">*</span>
             </label>
             <Select value={selectedMaterialId} onValueChange={(val) => setSelectedMaterialId(val || '')}>
               <SelectTrigger aria-labelledby="excess-material-label" className="h-10 rounded-lg border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all">
@@ -132,8 +132,8 @@ export function ExcessMaterialDialog({
 
           {/* Return Quantity */}
           <div className="space-y-1.5">
-            <label htmlFor="excess-returned-qty" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Số Lượng Trả Lại <span className="text-blue-500 font-bold">*</span>
+            <label htmlFor="excess-returned-qty" className="text-xs font-semibold tracking-wider text-slate-500">
+              Số lượng trả lại <span className="text-blue-500 font-bold">*</span>
             </label>
             <div className="relative">
               <Input
@@ -158,8 +158,8 @@ export function ExcessMaterialDialog({
 
           {/* Condition */}
           <div className="space-y-1.5">
-            <label id="excess-condition-label" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Tình Trạng Nguyên Liệu
+            <label id="excess-condition-label" className="text-xs font-semibold tracking-wider text-slate-500">
+              Tình trạng nguyên liệu
             </label>
             <ToggleGroup
               aria-labelledby="excess-condition-label"
@@ -179,29 +179,29 @@ export function ExcessMaterialDialog({
                 className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-emerald-200 data-[state=on]:bg-emerald-50 data-[state=on]:text-emerald-800 data-[state=on]:shadow-sm data-[state=on]:shadow-emerald-100/30"
               >
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                <span>Nguyên Vẹn</span>
+                <span>Nguyên vẹn</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="partially_used"
                 className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-amber-200 data-[state=on]:bg-amber-50 data-[state=on]:text-amber-800 data-[state=on]:shadow-sm data-[state=on]:shadow-amber-100/30"
               >
                 <HelpCircle className="w-3.5 h-3.5 text-amber-600 shrink-0" />
-                <span>Đã Sử Dụng</span>
+                <span>Đã sử dụng</span>
               </ToggleGroupItem>
               <ToggleGroupItem
                 value="damaged"
                 className="flex items-center justify-center gap-1.5 h-9 rounded-lg border border-slate-200 bg-white text-xs font-medium text-slate-600 transition-all duration-200 hover:bg-slate-50 cursor-pointer data-[state=on]:border-red-200 data-[state=on]:bg-red-50 data-[state=on]:text-red-800 data-[state=on]:shadow-sm data-[state=on]:shadow-red-100/30"
               >
                 <AlertCircle className="w-3.5 h-3.5 text-red-600 shrink-0" />
-                <span>Hư Hỏng</span>
+                <span>Hư hỏng</span>
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
 
           {/* Notes */}
           <div className="space-y-1.5">
-            <label htmlFor="excess-notes" className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Ghi Chú Bổ Sung
+            <label htmlFor="excess-notes" className="text-xs font-semibold tracking-wider text-slate-500">
+              Ghi chú bổ sung
             </label>
             <Textarea
               id="excess-notes"

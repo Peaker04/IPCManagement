@@ -74,7 +74,7 @@ export function OperationalActions({
             <div className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
               <Check className="w-3.5 h-3.5" />
             </div>
-            <p className="text-xs font-semibold text-slate-800 uppercase tracking-wider">
+            <p className="text-xs font-semibold text-slate-800 tracking-wider">
               Hướng dẫn nhanh
             </p>
           </div>

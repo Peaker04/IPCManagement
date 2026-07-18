@@ -69,6 +69,18 @@ export interface CursorPage<T> {
   nextCursorId?: string;
 }
 
+export interface ApprovalInboxQuery {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ApprovalInboxPage {
+  items: ApprovalRecord[];
+  limit: number;
+  hasNext: boolean;
+  nextCursor?: string | null;
+}
+
 export interface PurchaseRequestQuery {
   status?: string;
   dateFrom?: string;
@@ -503,6 +515,13 @@ export interface PurchaseOrderDto {
   orderDate: string;
   status: string;
   lines: PurchaseOrderLineDto[];
+}
+
+interface ApprovalInboxPageDto {
+  items: ApprovalInboxItemDto[];
+  limit: number;
+  hasNext: boolean;
+  nextCursor?: string | null;
 }
 
 export interface PurchaseOrderPageResponse {
@@ -953,7 +972,7 @@ export interface DataQualityIssueRemediationResult {
   note?: string;
 }
 
-const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
+const getData = <T>(response: ApiResponse<T>): T => response.data as T;
 const emptyDailyProductionPlan = (): DailyProductionPlan => ({
   serviceDate: '',
   totalPlans: 0,
@@ -1570,12 +1589,23 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: normalizeDailyProductionPlan,
       invalidatesTags: ['WorkflowReports'],
     }),
-    getApprovalRecords: builder.query<ApprovalRecord[], WorkflowReportQuery | void>({
+    getApprovalRecords: builder.query<ApprovalInboxPage, ApprovalInboxQuery | void>({
       query: (query) => ({
         url: '/approvals/inbox',
-        params: queryWithLimit(query || undefined),
+        params: {
+          limit: query?.limit ?? 20,
+          ...(query?.cursor ? { cursor: query.cursor } : {}),
+        },
       }),
-      transformResponse: (response: ApiResponse<ApprovalInboxItemDto[]>) => getData(response).map(mapApprovalInboxItem),
+      transformResponse: (response: ApiResponse<ApprovalInboxPageDto>): ApprovalInboxPage => {
+        const page = getData(response);
+        return {
+          items: (page.items ?? []).map(mapApprovalInboxItem),
+          limit: page.limit,
+          hasNext: page.hasNext,
+          nextCursor: page.nextCursor,
+        };
+      },
       providesTags: ['WorkflowReports'],
     }),
     executeApprovalDecision: builder.mutation<ApiResponse<unknown>, ApprovalDecisionRequest>({
