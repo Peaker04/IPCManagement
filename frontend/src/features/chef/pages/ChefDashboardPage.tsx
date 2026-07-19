@@ -10,7 +10,7 @@ import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
 import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
-import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/types'
+import type { ExcessMaterial, SupplementalRequest } from '@/lib/types'
 import {
   useConfirmInventoryIssueReceiptMutation,
   useCreateInventoryReturnMutation,
@@ -23,26 +23,7 @@ import {
 } from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import { countPendingKitchenReceipts, getChefReadiness } from '../chefReadiness'
-
-type ChefMaterial = Ingredient & {
-  issueId?: string
-  issueCode?: string
-  warehouseId?: string
-  ingredientId?: string
-  unitId?: string
-  isReceivedByKitchen?: boolean
-}
-
-const getMutationErrorMessage = (error: unknown, fallback: string) => {
-  if (error && typeof error === 'object' && 'data' in error) {
-    const data = (error as { data?: { message?: unknown } }).data
-    if (data && typeof data === 'object' && 'message' in data) {
-      return String(data.message)
-    }
-  }
-
-  return fallback
-}
+import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
 
 export default function ChefDashboardPage() {
   const orders = useAppSelector((state) => state.coordination.orders)
@@ -254,7 +235,7 @@ export default function ChefDashboardPage() {
     } catch (error) {
       setChefFeedback({
         title: 'Chưa gửi được yêu cầu bổ sung',
-        message: getMutationErrorMessage(error, 'Kiểm tra phiếu xuất đã nhận và thử lại.'),
+        message: getChefMutationErrorMessage(error, 'Kiểm tra phiếu xuất đã nhận và thử lại.'),
         variant: 'danger',
       })
       return false
@@ -326,7 +307,7 @@ export default function ChefDashboardPage() {
     } catch (error) {
       setChefFeedback({
         title: 'Chưa ghi nhận được phiếu trả',
-        message: getMutationErrorMessage(error, 'Kiểm tra số lượng đã xuất/đã trả và thử lại.'),
+        message: getChefMutationErrorMessage(error, 'Kiểm tra số lượng đã xuất/đã trả và thử lại.'),
         variant: 'danger',
       })
     }
@@ -347,7 +328,7 @@ export default function ChefDashboardPage() {
     } catch (error) {
       setChefFeedback({
         title: 'Chưa nhận được kế hoạch sản xuất',
-        message: getMutationErrorMessage(error, 'Không thể đánh dấu gửi bếp cho kế hoạch hôm nay.'),
+        message: getChefMutationErrorMessage(error, 'Không thể đánh dấu gửi bếp cho kế hoạch hôm nay.'),
         variant: 'warning',
       })
     }
@@ -400,7 +381,7 @@ export default function ChefDashboardPage() {
       } catch (error) {
         setChefFeedback({
           title: 'Chưa ký nhận được nguyên liệu',
-          message: getMutationErrorMessage(error, 'Kiểm tra quyền bếp trưởng hoặc trạng thái phiếu xuất rồi thử lại.'),
+          message: getChefMutationErrorMessage(error, 'Kiểm tra quyền bếp trưởng hoặc trạng thái phiếu xuất rồi thử lại.'),
           variant: 'danger',
         })
       }
