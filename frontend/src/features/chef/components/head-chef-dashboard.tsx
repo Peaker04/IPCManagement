@@ -5,18 +5,16 @@ import { ChefHeader } from './chef-header'
 import { ActiveDishesGrid } from './active-dishes-grid'
 import { MaterialChecklist } from './material-checklist'
 import { OperationalActions } from './operational-actions'
-import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
+import type { ExcessMaterial, ProductionPlan } from '@/lib/types'
 
 interface HeadChefDashboardProps {
   productionPlan: ProductionPlan
-  onSupplementalRequest?: (data: SupplementalRequest) => void
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
 }
 
 export function HeadChefDashboard({
   productionPlan,
-  onSupplementalRequest,
   onExcessMaterialReturn,
   onMaterialSignoff,
 }: HeadChefDashboardProps) {
@@ -49,7 +47,6 @@ export function HeadChefDashboard({
         <div className="ipc-chef-workbench-side xl:col-span-1">
           <OperationalActions
             materials={productionPlan.receivedMaterials}
-            onSupplementalRequest={onSupplementalRequest}
             onExcessMaterialReturn={onExcessMaterialReturn}
           />
         </div>

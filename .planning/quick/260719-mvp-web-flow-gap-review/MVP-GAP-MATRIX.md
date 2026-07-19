@@ -4,7 +4,7 @@ Ngày review: 19/07/2026
 
 ## Kết luận
 
-Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có endpoint BE. Gap làm người dùng không đi tiếp được nằm chủ yếu ở FE: endpoint tạo đề xuất mua chưa được expose, bảng server-page bị phân trang lần hai và một số nhãn `Tiếp theo` trông giống thao tác nhưng chỉ là text. Ba điểm này đã được xử lý trong lát cắt hiện tại.
+Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có endpoint BE. Các blocker FE phân trang kép, nhãn thao tác giả, thiếu mutation tạo đề xuất mua và lựa chọn kho ngầm định đã được xử lý. Control yêu cầu bổ sung chỉ lưu local state đã được gỡ khỏi production UI.
 
 ## Đối chiếu từng bước
 
@@ -18,8 +18,8 @@ Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có end
 | Chọn NCC/gửi duyệt | Tab supplier và submit | Supplier patch/submit | Đủ | UAT validation giá/NCC |
 | Duyệt | Action từng record | Inbox/decision/history | Đủ | UAT reject reason và permission |
 | PO/nhận hàng | Action theo request/order | Create/receive/cancel | Đủ | UAT partial receipt |
-| Xuất kho | Nút tạo issue | Create inventory issue | Chưa rõ lựa chọn | P1: dialog chọn material request và warehouse, không dùng dòng đầu tiên ngầm định |
-| Bếp nhận/trả | Ký nhận và return/waste | Confirm receipt/return | Đủ cho nhận/trả | P1: yêu cầu bổ sung hiện chỉ lưu React state, không được báo như đã lưu hệ thống |
+| Xuất kho | Dialog bắt buộc chọn nhu cầu và kho | Create inventory issue | Đã sửa | UAT nhiều kho/chứng từ |
+| Bếp nhận/trả | Ký nhận và return/waste; không còn control local-only | Confirm receipt/return | Đủ cho nhận/trả | Thiết kế contract supplemental issue trước khi đưa UI trở lại |
 | Dashboard/báo cáo | Link theo route, báo cáo có server paging | Workflow reports | Đủ để quan sát | UAT với dataset lớn |
 
 ## Quy tắc refactor tiếp theo
@@ -32,7 +32,7 @@ Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có end
 
 ## Thứ tự xử lý còn lại
 
-1. Refactor `WarehousePage`: dialog chọn chứng từ demand + warehouse, validate các dòng trước khi tạo issue.
-2. Chốt contract BE cho supplemental issue; sau đó thay local state trong `ChefDashboardPage` bằng mutation thật hoặc gỡ control khỏi production UI.
+1. Bổ sung endpoint candidate distinct có server paging cho material request thay vì gom tối đa 100 dòng ở client.
+2. Chốt contract BE cho supplemental issue; chỉ đưa UI trở lại sau khi có mutation thật.
 3. Tách `PurchasingPage`, `WeeklyMenuPage` và `ChefDashboardPage` thành feature sections để giảm file lớn và test từng hành động độc lập.
 4. Chạy UAT end-to-end với seed DAV tuần 15/06/2026 và ghi bằng chứng cho từng mutation.

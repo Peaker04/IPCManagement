@@ -48,16 +48,6 @@ export interface ProductionPlan {
   receivedMaterials: Ingredient[]
 }
 
-export interface SupplementalRequest {
-  ingredientId: string
-  ingredientName: string
-  unit: string
-  currentQty: number
-  requestedQty: number
-  reason?: string
-  requestedAt?: string
-}
-
 export interface ExcessMaterial {
   ingredientId: string
   ingredientName: string

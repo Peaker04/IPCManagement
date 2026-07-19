@@ -1411,6 +1411,12 @@ test.describe('route smoke', () => {
 
       await page.goto(ROUTES.WAREHOUSE);
       await page.getByRole('button', { name: 'Tạo phiếu xuất kho' }).click();
+      await expect(page.getByRole('dialog', { name: 'Tạo phiếu xuất kho' })).toBeVisible();
+      await page.getByRole('combobox', { name: 'Chọn nhu cầu nguyên liệu' }).click();
+      await page.getByRole('option', { name: /MR-20260709-MOBILE/ }).click();
+      await page.getByRole('combobox', { name: 'Chọn kho xuất' }).click();
+      await page.getByRole('option', { name: 'Kho chính' }).click();
+      await page.getByRole('button', { name: 'Xác nhận tạo phiếu' }).click();
       await expect(page.getByText('Đã tạo phiếu xuất kho').first()).toBeVisible();
       await expectNoPageOverflow(page);
 

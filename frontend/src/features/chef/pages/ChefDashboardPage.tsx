@@ -10,7 +10,7 @@ import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
 import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
-import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/types'
+import type { ExcessMaterial, Ingredient } from '@/lib/types'
 import {
   useConfirmInventoryIssueReceiptMutation,
   useCreateInventoryReturnMutation,
@@ -75,7 +75,6 @@ export default function ChefDashboardPage() {
     isError: isDailyPlanError,
   } = useGetDailyProductionPlanQuery({ serviceDate: today, shiftName: apiShiftName })
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
-  const [requests, setRequests] = useState<Array<SupplementalRequest & { day: string; shift: ShiftType }>>([])
   const [returns, setReturns] = useState<Array<ExcessMaterial & { day: string; shift: ShiftType }>>([])
   const [chefFeedback, setChefFeedback] = useState<{
     title: string
@@ -223,15 +222,6 @@ export default function ChefDashboardPage() {
       receivedMaterials,
     }
   }, [dayShiftOrders, isLocked, menuPrice, lossRate, activeDay, activeShift, signedMaterials, dishesById, activeKitchenIssueRows])
-
-  const handleSupplementalRequest = (data: SupplementalRequest) => {
-    setRequests([...requests, { ...data, day: activeDay, shift: activeShift }])
-    setChefFeedback({
-      title: 'Đã ghi nhận yêu cầu bổ sung',
-      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.requestedQty, data.unit)} đã được thêm vào nhật ký ca ${activeShift}.`,
-      variant: 'warning',
-    })
-  }
 
   const handleExcessMaterialReturn = async (data: ExcessMaterial) => {
     const issueRow = activeKitchenIssueRows.find((row) => row.id === data.ingredientId)
@@ -385,7 +375,6 @@ export default function ChefDashboardPage() {
     }))
   }
 
-  const activeRequests = requests.filter((req) => req.day === activeDay && req.shift === activeShift)
   const activeReturns = returns.filter((ret) => ret.day === activeDay && ret.shift === activeShift)
 
   const chefDataStatusMessages = [
@@ -457,22 +446,14 @@ export default function ChefDashboardPage() {
   const shiftJournal = (
     <SideRail
       title="Nhật ký hoạt động ca"
-      description="Yêu cầu bổ sung và ghi nhận nguyên liệu thừa trong ngày, ca đang chọn."
+      description="Các phiếu trả và hao hụt đã ghi nhận trong ngày, ca đang chọn."
     >
-      {activeRequests.length === 0 && activeReturns.length === 0 ? (
+      {activeReturns.length === 0 ? (
         <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
           Chưa có ngoại lệ nào được ghi nhận trong ca này.
         </div>
       ) : (
         <>
-          {activeRequests.map((req, idx) => (
-            <div key={`req-${idx}`} className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700">
-              <div className="font-bold text-slate-900">Gửi yêu cầu bổ sung</div>
-              <div className="mt-1 text-slate-600">
-                {req.ingredientName}: {req.requestedQty} {req.unit}
-              </div>
-            </div>
-          ))}
           {activeReturns.map((ret, idx) => (
             <div key={`ret-${idx}`} className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700">
               <div className="font-bold text-slate-900">Ghi nhận nguyên liệu thừa</div>
@@ -500,7 +481,6 @@ export default function ChefDashboardPage() {
               { label: 'Kế hoạch hôm nay', value: dailyProductionPlan ? `${dailyProductionPlan.sentPlans}/${dailyProductionPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: dailyProductionPlan?.sentPlans ? 'success' : 'warning' },
               { label: 'Phiếu trả', value: `${returnDocuments.length} chứng từ`, tone: 'neutral' },
               { label: 'Trạng thái nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : activeKitchenIssueRows.length > 0 ? 'Đã ký nhận' : isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: pendingKitchenReceiptCount > 0 ? 'warning' : activeKitchenIssueRows.length > 0 ? 'success' : isLocked ? 'warning' : 'neutral' },
-              { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },
             ]}
           />
           {shiftAlert}
@@ -603,7 +583,6 @@ export default function ChefDashboardPage() {
                 ) : (
                   <HeadChefDashboard
                     productionPlan={productionPlan}
-                    onSupplementalRequest={handleSupplementalRequest}
                     onExcessMaterialReturn={handleExcessMaterialReturn}
                     onMaterialSignoff={handleMaterialSignoff}
                   />

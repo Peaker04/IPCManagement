@@ -93,10 +93,10 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 ## 8. Xuất kho, bếp nhận và hoàn tất
 
 1. Vào `Kho nguyên liệu`, kiểm tra tồn hiện tại và các dòng thiếu.
-2. Tạo/xác nhận phiếu xuất theo demand đã được duyệt.
+2. Bấm `Tạo phiếu xuất kho`, chọn bắt buộc `Nhu cầu nguyên liệu` và `Kho xuất`, sau đó bấm `Xác nhận tạo phiếu`.
 3. Vào `Bếp trưởng`, mở KHSX và checklist nguyên liệu.
 4. Xác nhận bếp đã nhận đủ hoặc ghi nhận chênh lệch.
-5. Nếu có dư/thừa, dùng luồng trả dư/hao hụt theo phiếu xuất.
+5. Nếu có dư/thừa, dùng luồng trả dư/hao hụt theo phiếu xuất. UI `Yêu cầu bổ sung` chưa hiển thị trong MVP cho đến khi BE có endpoint lưu thật.
 
 ## 9. Kiểm tra bằng chứng cuối luồng
 
@@ -130,8 +130,8 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 | Chọn nhà cung cấp/gửi duyệt | Tab giá và nhà cung cấp, `Gửi đơn mua` | Update supplier và submit request | Có thể thao tác |
 | Duyệt/từ chối | Nút trên từng chứng từ và dialog lý do | Approval inbox và decision | Có thể thao tác |
 | Tạo đơn mua/nhận hàng | `Tạo đơn mua hàng`, `Ghi nhận nhận hàng` | Purchase order create/receive | Có thể thao tác |
-| Xuất kho/bếp nhận/trả dư | `Tạo phiếu xuất kho`, ký nhận, trả kho/hao hụt | Inventory issue, confirm receipt và return | Có thể thao tác, còn rủi ro chọn chứng từ tự động |
+| Xuất kho/bếp nhận/trả dư | Dialog chọn rõ nhu cầu + kho, ký nhận, trả kho/hao hụt | Inventory issue, confirm receipt và return | Đã nối API; không còn tự chọn dòng đầu tiên |
 
 Quy ước UI sau review: cột chỉ mô tả trạng thái phải dùng nhãn `Hướng xử lý`; nhãn `Thao tác` chỉ dùng khi ô có button/link thật. Bảng lấy một page từ server không được tự phân trang lần thứ hai bên trong component.
 
-Các gap còn mở được theo dõi tại `.planning/quick/260719-mvp-web-flow-gap-review/MVP-GAP-MATRIX.md`. Hai gap ưu tiên là chọn rõ chứng từ/kho khi tạo phiếu xuất và không hiển thị thành công giả cho yêu cầu bổ sung của bếp khi BE chưa lưu dữ liệu.
+Các gap còn mở được theo dõi tại `.planning/quick/260719-mvp-web-flow-gap-review/MVP-GAP-MATRIX.md`. UI kho đã bắt buộc chọn chứng từ/kho; UI yêu cầu bổ sung của bếp đã được gỡ để không báo thành công giả khi BE chưa lưu dữ liệu.

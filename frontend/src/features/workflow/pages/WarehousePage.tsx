@@ -20,6 +20,7 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useCreateInventoryIssueMutation,
+  useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
   useGetIngredientDemandPageQuery,
   useGetKitchenIssuesQuery,
@@ -29,6 +30,9 @@ import {
 } from '@/features/workflow';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '../workflowConfig';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -45,6 +49,9 @@ export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [demandPage, setDemandPage] = useState(1);
+  const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
+  const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
+  const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
   const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
@@ -57,6 +64,8 @@ export default function WarehousePage() {
     pageSize: 8,
   });
   const demandLines = demandPageResponse?.items ?? [];
+  const { data: issueCandidatePage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 100 });
+  const { data: issueWarehouseRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const { data: stockMovementPage } = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
@@ -82,14 +91,37 @@ export default function WarehousePage() {
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
-  const issueCandidate = demandLines.find((line) => line.materialRequestId);
-  const selectedWarehouse = currentStockRows.find((row) => row.warehouseId);
+  const issueCandidates = Array.from(
+    (issueCandidatePage?.items ?? []).reduce((candidates, line) => {
+      if (!line.materialRequestId) return candidates;
+
+      const current = candidates.get(line.materialRequestId);
+      candidates.set(line.materialRequestId, {
+        id: line.materialRequestId,
+        code: line.sourceDocumentCode ?? line.materialRequestId,
+        serviceDate: line.serviceDate,
+        lineCount: (current?.lineCount ?? 0) + 1,
+      });
+      return candidates;
+    }, new Map<string, { id: string; code: string; serviceDate?: string; lineCount: number }>()),
+  ).map(([, candidate]) => candidate);
+  const warehouseOptions = Array.from(
+    new Map(issueWarehouseRows.filter((row) => row.warehouseId).map((row) => [row.warehouseId, row.warehouse])).entries(),
+  ).map(([id, name]) => ({ id, name }));
+  const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.id === selectedMaterialRequestId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
+
+  const openIssueDialog = () => {
+    setSelectedMaterialRequestId('');
+    setSelectedWarehouseId('');
+    setWarehouseFeedback(null);
+    setIsIssueDialogOpen(true);
+  };
 
   const handleCreateInventoryIssue = async () => {
     setWarehouseFeedback(null);
 
-    if (!issueCandidate?.materialRequestId) {
+    if (!selectedIssueCandidate) {
       setWarehouseFeedback({
         title: 'Chưa có nhu cầu xuất kho',
         message: 'Kho cần có nhu cầu nguyên liệu và kế hoạch sản xuất hợp lệ trước khi tạo phiếu xuất.',
@@ -99,7 +131,7 @@ export default function WarehousePage() {
       return;
     }
 
-    if (!selectedWarehouse?.warehouseId) {
+    if (!selectedWarehouseId) {
       setWarehouseFeedback({
         title: 'Chưa xác định kho xuất',
         message: 'Chưa có dòng tồn kho live để xác định warehouseId cho phiếu xuất.',
@@ -111,9 +143,9 @@ export default function WarehousePage() {
 
     try {
       const response = await createInventoryIssue({
-        issueDate: issueCandidate.serviceDate ?? new Date().toISOString().slice(0, 10),
-        warehouseId: selectedWarehouse.warehouseId,
-        materialRequestId: issueCandidate.materialRequestId,
+        issueDate: selectedIssueCandidate.serviceDate ?? new Date().toISOString().slice(0, 10),
+        warehouseId: selectedWarehouseId,
+        materialRequestId: selectedIssueCandidate.id,
         lines: [],
       }).unwrap();
 
@@ -124,6 +156,7 @@ export default function WarehousePage() {
           : response.message || 'Phiếu xuất kho đã được ghi nhận.',
         variant: 'info',
       });
+      setIsIssueDialogOpen(false);
       setActiveView('movement');
     } catch (error) {
       setWarehouseFeedback({
@@ -145,10 +178,9 @@ export default function WarehousePage() {
               <button
                 className="ipc-button ipc-button-primary"
                 type="button"
-                onClick={handleCreateInventoryIssue}
-                disabled={isCreatingIssue}
+                onClick={openIssueDialog}
               >
-                {isCreatingIssue ? 'Đang tạo phiếu...' : 'Tạo phiếu xuất kho'}
+                Tạo phiếu xuất kho
               </button>
               <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>
                 Xem tồn kho
@@ -182,6 +214,53 @@ export default function WarehousePage() {
         />
       }
     >
+
+      <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
+        <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
+          <DialogHeader>
+            <DialogTitle id="warehouse-issue-title">Tạo phiếu xuất kho</DialogTitle>
+            <DialogDescription id="warehouse-issue-description">
+              Chọn đúng nhu cầu nguyên liệu và kho xuất. Hệ thống không tự chọn chứng từ thay bạn.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-2">
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-material-request">Nhu cầu nguyên liệu <span aria-hidden="true" className="text-red-600">*</span></label>
+              <Select value={selectedMaterialRequestId} onValueChange={(value) => setSelectedMaterialRequestId(value ?? '')}>
+                <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
+                  <SelectValue placeholder="Chọn chứng từ cần xuất" />
+                </SelectTrigger>
+                <SelectContent>
+                  {issueCandidates.map((candidate) => (
+                    <SelectItem key={candidate.id} value={candidate.id}>
+                      {candidate.code} | {candidate.serviceDate ?? 'Chưa rõ ngày'} | {candidate.lineCount} dòng
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {issueCandidates.length === 0 && <p className="text-xs text-amber-700">Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.</p>}
+            </div>
+            <div className="grid gap-2">
+              <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-source">Kho xuất <span aria-hidden="true" className="text-red-600">*</span></label>
+              <Select value={selectedWarehouseId} onValueChange={(value) => setSelectedWarehouseId(value ?? '')}>
+                <SelectTrigger id="warehouse-source" aria-label="Chọn kho xuất">
+                  <SelectValue placeholder="Chọn kho cấp nguyên liệu" />
+                </SelectTrigger>
+                <SelectContent>
+                  {warehouseOptions.map((warehouse) => <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {warehouseOptions.length === 0 && <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsIssueDialogOpen(false)}>Hủy</Button>
+            <Button type="button" onClick={() => void handleCreateInventoryIssue()} disabled={!selectedMaterialRequestId || !selectedWarehouseId || isCreatingIssue}>
+              {isCreatingIssue ? 'Đang tạo phiếu...' : 'Xác nhận tạo phiếu'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {warehouseFeedback && (
         <InlineAlert title={warehouseFeedback.title} variant={warehouseFeedback.variant}>
