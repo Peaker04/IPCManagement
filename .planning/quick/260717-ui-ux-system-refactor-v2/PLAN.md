@@ -591,6 +591,17 @@ Exit criteria:
 - Existing mutation/API and accessibility gates remain green; visual failures are either fixed or documented with exact root cause.
 - CSS cleanup has a before/after inventory and does not remove tokens, focus styles, responsive rules or styles still referenced by dirty user-owned work.
 
+#### Task 4.5.3 — Aggregate pagination contracts for long operational surfaces
+
+Status: planned follow-up. Required before changing the remaining Weekly Menu `limit: 500` demand surface or Chef/Warehouse kitchen-issue collections.
+
+- **Objective:** expose bounded server pages that already contain the aggregates required by the UI, so lazy pagination reduces transfer/render cost without changing shortage, ready-state or pending-receipt meaning.
+- **Scope:** add or extend typed backend page DTOs for (1) demand grouped by material/date and (2) kitchen issues grouped by shift with pending/received totals; update RTK Query mappers and route consumers only after the backend contract is verified.
+- **Preserve:** raw line identifiers for mutation actions, date/customer/shift filters, aggregate totals, sorting, status semantics, export behavior and existing route/page anatomy.
+- **Impact gate:** run GitNexus impact for every backend controller/service/DTO symbol; if C# symbols remain UNKNOWN, use source call graph plus focused backend tests and warn before editing. Dirty `WorkflowReportService`, `WeeklyMenuPage`, `AdminDataPage` and shared `workflowApi` require ownership/hunk approval.
+- **Verification:** backend contract tests for page boundaries and aggregate equality against the unpaged reference; frontend unit tests for mapper/empty/loading/page transitions; serial controls, smoke, UI audit, lint/build and staged `detect_changes`.
+- **Done when:** no raw `limit: 500` demand fetch remains for the active daily summary, kitchen issue pages retain exact pending totals by shift, and no client-side slice is used as a substitute for server pagination.
+
 ### Wave 5 — Cleanup and release gate
 
 - Migrate/remove deprecated consumers.
@@ -652,3 +663,6 @@ Plan v2 chỉ hoàn tất khi:
 - Warehouse document preview is now bounded to 20 records; demand, issue and cursor movement queries remain unchanged because they support operational actions, counts or navigation. Evidence: `f4b3db8`, unit `88/88`, controls `19/19`, smoke `15/15`, lint/build.
 - Warehouse demand now uses the existing `/ingredient-demand/page` contract with 8 server rows per page and a real `PaginationBar`; the server `shortageCount` aggregate keeps the KPI and exception lane meaningful when the shortage is outside the visible page. The mobile workflow fixture now mocks the page envelope, preserving create-issue and kitchen-signoff coverage. Evidence: `506b32f`, unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build.
 - Approval’s “Danh sách đề xuất mua hàng” no longer fetches the unbounded purchase-request list behind a `max-h` scroll box; it uses the existing page-number endpoint with 8 rows per page and `PaginationBar`. Selection, history lookup, approval mutations and raw statuses remain unchanged. Evidence: `951a7c7`, unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build.
+- Purchasing’s warehouse dropdown no longer requests 100 current-stock rows when it only needs warehouse identities for receipt assignment; the bounded preview is 20 rows and purchase-order payloads/actions remain unchanged. Evidence: `2b9a205`, unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build.
+- Contract follow-up: Weekly Menu’s daily demand surface aggregates raw lines by material before calculating shortage/ready status, so it needs a backend aggregate-by-material page with total shortage/ready metadata before replacing `limit: 500`; Chef/Warehouse shift issue surfaces similarly need pending-by-shift aggregate metadata before moving to page-only rows. Client-side slicing of raw lines is disallowed for these surfaces.
+- Shared `StockMovementTable` no longer overrides the canonical document-copy control size inline at `22px`; the shared CSS token/style (`28px`) now owns all movement-table copy controls across Warehouse, Chef, Purchasing and Admin. Props, clipboard feedback, row actions and table behavior are unchanged. Evidence: `898c647`, impact HIGH with four callers, unit `88/88`, controls `19/19`, smoke `15/15`, UI audit `4/4`, lint/build.

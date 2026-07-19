@@ -110,6 +110,11 @@ export interface WeeklyMenuImportRequest {
   priceTierAmount?: number
 }
 
+export interface WeeklyMenuTemplateRequest {
+  customerId?: string
+  weekStartDate?: string
+}
+
 export interface WeeklyMenuQuery {
   customerId: string
   weekStartDate?: string
@@ -413,6 +418,17 @@ export const coordinationApi = apiSlice.injectEndpoints({
         body: buildWeeklyMenuImportFormData(request),
       }),
     }),
+    downloadWeeklyMenuTemplate: builder.mutation<Blob, WeeklyMenuTemplateRequest | void>({
+      query: (request) => ({
+        url: '/coordination/weekly-menu/template',
+        method: 'GET',
+        params: {
+          ...(request?.customerId ? { customerId: request.customerId } : {}),
+          ...(request?.weekStartDate ? { weekStartDate: request.weekStartDate } : {}),
+        },
+        responseHandler: async (response) => response.blob(),
+      }),
+    }),
     commitWeeklyMenuImport: builder.mutation<ApiResponse<WeeklyMenuImportResult>, WeeklyMenuImportRequest>({
       query: (request) => ({
         url: '/coordination/weekly-menu/import/commit',
@@ -492,6 +508,7 @@ export const {
   useSignoffCoordinationOrderMutation,
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,
+  useDownloadWeeklyMenuTemplateMutation,
   useCommitWeeklyMenuImportMutation,
   useGetCustomerImportMappingQuery,
   useSaveCustomerImportMappingMutation,
@@ -499,4 +516,5 @@ export const {
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
   useGetProductionPlansQuery,
+  useLazyGetProductionPlansQuery,
 } = coordinationApi

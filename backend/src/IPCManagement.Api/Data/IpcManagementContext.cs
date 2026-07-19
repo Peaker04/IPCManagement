@@ -48,6 +48,8 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Inventoryissueline> Inventoryissuelines { get; set; }
 
+    public virtual DbSet<Supplementalmaterialrequest> Supplementalmaterialrequests { get; set; }
+
     public virtual DbSet<Inventoryreceipt> Inventoryreceipts { get; set; }
 
     public virtual DbSet<Inventoryreceiptline> Inventoryreceiptlines { get; set; }
@@ -744,6 +746,36 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventoryissuelines_ibfk_3");
+        });
+
+        modelBuilder.Entity<Supplementalmaterialrequest>(entity =>
+        {
+            entity.HasKey(e => e.RequestId).HasName("PRIMARY");
+            entity.ToTable("supplementalmaterialrequests");
+            entity.HasIndex(e => e.RequestCode).IsUnique();
+            entity.HasIndex(e => new { e.WarehouseId, e.Status, e.RequestedAt });
+            entity.HasIndex(e => e.IssueId);
+            entity.HasIndex(e => e.IssueLineId);
+
+            entity.Property(e => e.RequestId).HasMaxLength(16).IsFixedLength().HasColumnName("requestId");
+            entity.Property(e => e.RequestCode).HasMaxLength(50).HasColumnName("requestCode");
+            entity.Property(e => e.IssueId).HasMaxLength(16).IsFixedLength().HasColumnName("issueId");
+            entity.Property(e => e.IssueLineId).HasMaxLength(16).IsFixedLength().HasColumnName("issueLineId");
+            entity.Property(e => e.WarehouseId).HasMaxLength(16).IsFixedLength().HasColumnName("warehouseId");
+            entity.Property(e => e.IngredientId).HasMaxLength(16).IsFixedLength().HasColumnName("ingredientId");
+            entity.Property(e => e.UnitId).HasMaxLength(16).IsFixedLength().HasColumnName("unitId");
+            entity.Property(e => e.RequestedQty).HasPrecision(18, 6).HasColumnName("requestedQty");
+            entity.Property(e => e.Reason).HasMaxLength(1000).HasColumnName("reason");
+            entity.Property(e => e.Status).HasMaxLength(24).HasColumnName("status");
+            entity.Property(e => e.RequestedBy).HasMaxLength(16).IsFixedLength().HasColumnName("requestedBy");
+            entity.Property(e => e.RequestedAt).HasColumnType("datetime").HasColumnName("requestedAt");
+
+            entity.HasOne<Inventoryissue>().WithMany().HasForeignKey(e => e.IssueId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Inventoryissueline>().WithMany().HasForeignKey(e => e.IssueLineId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Warehouse>().WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Ingredient>().WithMany().HasForeignKey(e => e.IngredientId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<Unit>().WithMany().HasForeignKey(e => e.UnitId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(e => e.RequestedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Inventoryreceipt>(entity =>

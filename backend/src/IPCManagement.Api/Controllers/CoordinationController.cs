@@ -1,3 +1,4 @@
+using System.Globalization;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.SampleData;
@@ -335,6 +336,22 @@ public class CoordinationController : ControllerBase
     {
         await Task.CompletedTask;
         return BadRequest(ApiResponse.FailResult("Vui lòng dùng luồng xem trước và xác nhận lưu thực đơn."));
+    }
+
+    [HttpGet("weekly-menu/template")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DownloadWeeklyMenuTemplate(
+        [FromQuery] string? customerId,
+        [FromQuery] string? weekStartDate,
+        CancellationToken cancellationToken)
+    {
+        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+        var template = await _sampleDataImportService.BuildWeeklyMenuTemplateAsync(customerId, parsedWeekStart, cancellationToken);
+        var fileDate = (parsedWeekStart ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return File(
+            template.Content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"weekly-menu-template-{template.CustomerCode}-{fileDate}.xlsx");
     }
 
     [HttpPost("weekly-menu/import/preview")]

@@ -178,6 +178,7 @@ Các tài liệu nghiệp vụ bổ sung được đặt trong `docs/`:
 - [Data Model](docs/domain/data-model.md): nhóm bảng MySQL/EF Core và các ràng buộc nghiệp vụ chính.
 - [Source Workbooks](docs/domain/source-workbooks.md): ý nghĩa các file Excel/DOCX/SQL trong `.docs`.
 - [Iter1 Actor Runbook](.docs/ITER1_ACTOR_RUNBOOK.md): hướng dẫn thao tác theo vai Admin, Operations, Planner, Purchasing, Warehouse, Chef, Manager.
+- [MVP Web Flow](docs/MVP_WEB_FLOW.md): hướng dẫn bấm từng bước trên web từ đăng nhập đến demand, duyệt, thu mua, kho và bếp.
 - [Iter1 Daily Checklist](.docs/ITER1_DAILY_CHECKLIST.md): checklist ngày/tuần cho import, validate, signoff, demand, approval, warehouse, kitchen, reports.
 - [Iter1 Destructive Endpoint Audit](.docs/ITER1_DESTRUCTIVE_ENDPOINT_AUDIT.md): audit endpoint reset/delete/regenerate và guard production cho sample-data.
 - [Iter1 Workflow Performance](.docs/ITER1_WORKFLOW_PERFORMANCE.md): dataset, ngưỡng và kết quả benchmark demand/purchase nhiều khách theo tuần.

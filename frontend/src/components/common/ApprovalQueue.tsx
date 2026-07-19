@@ -39,8 +39,11 @@ export function ApprovalQueue({ records, title = 'Hàng đợi duyệt vận hà
           <div className="ipc-approval-zone-identity">
             <strong>{record.title}</strong>
             <p>{record.source}</p>
-            <div className="ipc-approval-record-action" aria-label={`Hành động kế tiếp cho ${record.title}`}>
-              <span>{formatWorkflowStatus(record.nextAction)}</span>
+            <div
+              className="ipc-approval-record-action"
+              aria-label={`${actionForRecord ? 'Thao tác' : 'Hướng xử lý'} cho ${record.title}`}
+            >
+              {!actionForRecord && <span>{formatWorkflowStatus(record.nextAction)}</span>}
               {actionForRecord?.(record)}
             </div>
           </div>
