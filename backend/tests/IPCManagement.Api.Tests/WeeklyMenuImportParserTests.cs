@@ -2,6 +2,7 @@ using System.Collections;
 using System.IO.Compression;
 using System.Reflection;
 using System.Security;
+using System.Xml.Linq;
 using FluentAssertions;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.Entities;
@@ -11,6 +12,59 @@ namespace IPCManagement.Api.Tests;
 
 public class WeeklyMenuImportParserTests
 {
+    [Fact]
+    public async Task BuildWeeklyMenuTemplateAsync_Should_CreateThreeAlignedPriceSheets()
+    {
+        var service = new SampleDataImportService(null!, null!);
+        var template = await service.BuildWeeklyMenuTemplateAsync(null, new DateOnly(2026, 6, 15));
+        var bytes = template.Content;
+
+        using var archive = new ZipArchive(new MemoryStream(bytes), ZipArchiveMode.Read);
+        var workbookXml = ReadEntry(archive, "xl/workbook.xml");
+        var sheet1Xml = ReadEntry(archive, "xl/worksheets/sheet1.xml");
+        var sheet2Xml = ReadEntry(archive, "xl/worksheets/sheet2.xml");
+        var sheet3Xml = ReadEntry(archive, "xl/worksheets/sheet3.xml");
+
+        XDocument.Parse(workbookXml);
+        XDocument.Parse(sheet1Xml);
+        XDocument.Parse(sheet2Xml);
+        XDocument.Parse(sheet3Xml);
+
+        workbookXml.Should().Contain("IPC 25k").And.Contain("IPC 30k").And.Contain("IPC 34k");
+        sheet1Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
+        sheet2Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
+        sheet3Xml.Should().Contain("THỰC ĐƠN IPC").And.Contain("15/06/2026").And.Contain("MENU MẶN - CA SÁNG");
+        sheet1Xml.Should().Contain("""<mergeCell ref="C2:I3"/>""").And.NotContain("""<mergeCell ref="C2:H3"/>""");
+        sheet1Xml.Should().Contain("""<mergeCell ref="C4:I4"/>""").And.NotContain("""<mergeCell ref="C4:H4"/>""");
+        sheet1Xml.Should().Contain("zoomScale=\"55\"").And.Contain("zoomScaleNormal=\"55\"");
+    }
+
+    [Fact]
+    public void WeeklyMenuTemplateBuilder_Should_CreateDistinctCustomerLayouts_ForAnvAndDav()
+    {
+        var buildMethod = typeof(SampleDataImportService).Assembly
+            .GetType("IPCManagement.Api.Services.SampleData.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
+        buildMethod.Should().NotBeNull();
+
+        var davBytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "DAV"])!;
+        var anvBytes = (byte[])buildMethod.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
+
+        using var davArchive = new ZipArchive(new MemoryStream(davBytes), ZipArchiveMode.Read);
+        using var anvArchive = new ZipArchive(new MemoryStream(anvBytes), ZipArchiveMode.Read);
+        var davWorkbookXml = ReadEntry(davArchive, "xl/workbook.xml");
+        var anvWorkbookXml = ReadEntry(anvArchive, "xl/workbook.xml");
+        var davSheetXml = ReadEntry(davArchive, "xl/worksheets/sheet1.xml");
+        var anvSheetXml = ReadEntry(anvArchive, "xl/worksheets/sheet1.xml");
+
+        davWorkbookXml.Should().Contain("DAV 25k").And.Contain("DAV 30k").And.Contain("DAV 34k");
+        anvWorkbookXml.Should().Contain("ANV 25k").And.Contain("ANV 30k").And.Contain("ANV 34k");
+        davSheetXml.Should().Contain("THỰC ĐƠN DAV");
+        anvSheetXml.Should().Contain("THỰC ĐƠN AMANN");
+        anvSheetXml.Should().Contain("Phụ").And.Contain("Sữa chua");
+        davSheetXml.Should().Contain("Phụ 1").And.Contain("Phụ 2").And.NotContain("Sữa chua");
+    }
+
     [Fact]
     public void ParseWeeklyMenuWorkbook_Should_Fail_When_CustomerSheetIsMissing()
     {
@@ -140,6 +194,37 @@ public class WeeklyMenuImportParserTests
             GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
             GetEnumerable(plan, "Sections").Should().HaveCount(4);
             GetEnumerable(plan, "Items").Should().HaveCount(30);
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_RemovePortionSuffix_FromDishNames()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            CreateWorkbook(tempFile, "MENU", [
+                ["", "", "THỰC ĐƠN AMANN"],
+                [],
+                [],
+                [],
+                ["", "", "", "20/07/2026", "21/07/2026", "22/07/2026"],
+                [],
+                [],
+                ["", "", "MENU MẶN - CA SÁNG"],
+                ["", "", "Món mặn chính", "MỲ CÁ LÓC 70g", "CỐT LẾT NƯỚNG  65g", "TRỨNG LUỘC 40g"],
+            ]);
+
+            var plan = InvokeParse(tempFile, "portion-suffix.xlsx", null);
+
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "DishName"))
+                .Should()
+                .BeEquivalentTo(["MỲ CÁ LÓC", "CỐT LẾT NƯỚNG", "TRỨNG LUỘC"], options => options.WithStrictOrdering());
         }
         finally
         {
@@ -437,6 +522,46 @@ public class WeeklyMenuImportParserTests
     }
 
     [Fact]
+    public void ParseWeeklyMenuWorkbook_Should_SelectSheetMatchingPriceTier()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            static IReadOnlyList<IReadOnlyList<string>> BuildRows(string dishName) =>
+            [
+                ["", "Mẫu nhập thực đơn tuần IPC"],
+                ["", "Đơn giá BOM"],
+                ["", "Tuần bắt đầu"],
+                ["", "Loại menu / dòng", "15/06/2026"],
+                [],
+                ["", "MENU MẶN - CA SÁNG"],
+                ["", "Món mặn chính", dishName],
+                ["", "Rau", $"Rau {dishName}"]
+            ];
+
+            CreateMultiSheetWorkbook(tempFile, [
+                ("menu 25k", BuildRows("Món 25k"), null),
+                ("menu 30k", BuildRows("Món 30k"), null),
+                ("menu 34k", BuildRows("Món 34k"), null),
+            ]);
+
+            var plan = InvokeParse(tempFile, "weekly-menu-template.xlsx", new DateOnly(2026, 6, 15), null, 30000m);
+
+            GetProperty<string>(plan, "SheetName").Should().Be("menu 30k");
+            GetEnumerable(plan, "Items")
+                .Select(item => GetProperty<string>(item, "DishName"))
+                .Should()
+                .Contain("Món 30k")
+                .And.NotContain("Món 25k")
+                .And.NotContain("Món 34k");
+        }
+        finally
+        {
+            DeleteTemp(tempFile);
+        }
+    }
+
+    [Fact]
     public void ParseWeeklyMenuWorkbook_Should_UseLabelColumn_FromCustomerMapping()
     {
         var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
@@ -470,7 +595,8 @@ public class WeeklyMenuImportParserTests
         string workbookPath,
         string fileName,
         DateOnly? weekStartDate,
-        Customerimportmapping? mapping = null)
+        Customerimportmapping? mapping = null,
+        decimal? priceTierAmount = null)
     {
         var service = new SampleDataImportService(null!, null!);
         var method = typeof(SampleDataImportService).GetMethod(
@@ -478,7 +604,7 @@ public class WeeklyMenuImportParserTests
             BindingFlags.NonPublic | BindingFlags.Instance);
 
         method.Should().NotBeNull();
-        return method!.Invoke(service, [workbookPath, fileName, weekStartDate, mapping])!;
+        return method!.Invoke(service, [workbookPath, fileName, weekStartDate, mapping, priceTierAmount])!;
     }
 
     private static T GetProperty<T>(object source, string propertyName)
@@ -648,6 +774,14 @@ public class WeeklyMenuImportParserTests
         var entry = archive.CreateEntry(path);
         using var writer = new StreamWriter(entry.Open());
         writer.Write(content);
+    }
+
+    private static string ReadEntry(ZipArchive archive, string path)
+    {
+        var entry = archive.GetEntry(path);
+        entry.Should().NotBeNull($"template must include {path}");
+        using var reader = new StreamReader(entry!.Open());
+        return reader.ReadToEnd();
     }
 
     private static void DeleteTemp(string path)

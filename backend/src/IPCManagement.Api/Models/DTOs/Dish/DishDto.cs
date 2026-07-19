@@ -240,7 +240,11 @@ public class BomTemplateQueryDto
 
     public string? CustomerId { get; set; }
 
+    public string? DishId { get; set; }
+
     public bool IncludeCurrent { get; set; } = true;
+
+    public string TemplateType { get; set; } = "missing";
 }
 
 public class BomImportPreviewRequestDto

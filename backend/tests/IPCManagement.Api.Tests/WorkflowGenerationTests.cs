@@ -3413,28 +3413,27 @@ public class WorkflowGenerationTests
         updated.ActiveWeekDays.Should().Equal("t2");
         updated.ShiftNames.Should().Equal("MORNING");
         updated.DefaultMenuPrice.Should().Be(43000);
-        updated.DefaultBomRatePercent.Should().Be(135);
+        updated.DefaultBomRatePercent.Should().Be(100);
 
         var contractRow = await context.Customercontracts.AsNoTracking().SingleAsync();
         contractRow.DefaultMenuPrice.Should().Be(43000);
-        contractRow.DefaultBomRatePercent.Should().Be(135);
+        contractRow.DefaultBomRatePercent.Should().Be(100);
         contractRow.ActiveWeekDays.Should().Be("t2");
         contractRow.ShiftNames.Should().Be("MORNING");
 
         var schedule = await context.Menuschedules.AsNoTracking().SingleAsync();
         schedule.MenuPrice.Should().Be(43000);
-        schedule.BomRatePercent.Should().Be(135);
+        schedule.BomRatePercent.Should().Be(100);
 
         var audits = await context.Auditlogs.AsNoTracking()
             .Where(item => item.BusinessArea == "CustomerContract")
             .ToListAsync();
-        audits.Should().HaveCountGreaterThanOrEqualTo(5);
+        audits.Should().HaveCountGreaterThanOrEqualTo(4);
         audits.Select(item => item.FieldName).Should().Contain([
             nameof(Customer.Note),
             nameof(Customer.IsActive),
             "ContractCreated",
-            nameof(Menuschedule.MenuPrice),
-            nameof(Menuschedule.BomRatePercent)
+            nameof(Menuschedule.MenuPrice)
         ]);
     }
 
@@ -3468,7 +3467,7 @@ public class WorkflowGenerationTests
         created.ActiveWeekDays.Should().Equal("t2", "t3");
         created.ShiftNames.Should().Equal("AFTERNOON", "MORNING");
         created.DefaultMenuPrice.Should().Be(50000);
-        created.DefaultBomRatePercent.Should().Be(120);
+        created.DefaultBomRatePercent.Should().Be(100);
 
         (await context.Customers.AsNoTracking().CountAsync()).Should().Be(1);
         (await context.Customercontracts.AsNoTracking().CountAsync()).Should().Be(1);
@@ -3611,7 +3610,7 @@ public class WorkflowGenerationTests
         resolvedDish.Should().NotBeNull();
         resolvedDish!.Source.Should().Be("DISH_OVERRIDE");
         resolvedDish.PortionRatePercent.Should().Be(120);
-        resolvedDish.BomRatePercent.Should().Be(110);
+        resolvedDish.BomRatePercent.Should().Be(100);
 
         var resolvedCategory = await service.ResolvePortionRuleAsync(new ResolvePortionRuleDto
         {
@@ -3701,8 +3700,8 @@ public class WorkflowGenerationTests
 
             demand.Should().NotBeNull();
             var line = demand!.Lines.Single();
-            line.TotalRequiredQty.Should().Be(125m);
-            line.BomRatePercent.Should().Be(125m);
+            line.TotalRequiredQty.Should().Be(100m);
+            line.BomRatePercent.Should().Be(100m);
             line.AppliedPortionRuleId.Should().Be(portionRuleId);
             line.AppliedPortionRuleSource.Should().Be("DISH_OVERRIDE");
             line.AppliedPortionRatePercent.Should().Be(50m);
@@ -3711,7 +3710,7 @@ public class WorkflowGenerationTests
             GuidHelper.ToGuidString(savedLine.AppliedPortionRuleId!).Should().Be(portionRuleId);
             savedLine.AppliedPortionRuleSource.Should().Be("DISH_OVERRIDE");
             savedLine.AppliedPortionRatePercent.Should().Be(50m);
-            savedLine.BomRatePercent.Should().Be(125m);
+            savedLine.BomRatePercent.Should().Be(100m);
 
             var reportLine = (await new WorkflowReportService(context).GetIngredientDemandAsync(new WorkflowReportQueryDto
             {
@@ -3722,7 +3721,7 @@ public class WorkflowGenerationTests
             reportLine.AppliedPortionRuleId.Should().Be(portionRuleId);
             reportLine.AppliedPortionRuleSource.Should().Be("DISH_OVERRIDE");
             reportLine.AppliedPortionRatePercent.Should().Be(50m);
-            reportLine.BomRatePercent.Should().Be(125m);
+            reportLine.BomRatePercent.Should().Be(100m);
         }
     }
 
@@ -4064,7 +4063,7 @@ public class WorkflowGenerationTests
 
             updated.Should().NotBeNull();
             updated!.MenuPrice.Should().Be(25000);
-            updated.BomRatePercent.Should().Be(125);
+            updated.BomRatePercent.Should().Be(100);
         }
 
         await using (var context = fixture.CreateContext())
@@ -4074,8 +4073,8 @@ public class WorkflowGenerationTests
                 fixture.UserIdString);
 
             var line = demand!.Lines.Single();
-            line.BomRatePercent.Should().Be(125);
-            line.TotalRequiredQty.Should().Be(250);
+            line.BomRatePercent.Should().Be(100);
+            line.TotalRequiredQty.Should().Be(200);
         }
     }
 

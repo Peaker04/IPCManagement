@@ -69,17 +69,17 @@ public class DishesController : ControllerBase
         return Ok(ApiResponse<SampleImportStatusDto>.SuccessResult(result));
     }
 
-    /// <summary>Tải file mẫu BOM theo đơn giá/khách hàng, mở được bằng Excel.</summary>
+    /// <summary>Tải file Excel mẫu BOM theo đơn giá/khách hàng.</summary>
     [HttpGet("bom-template")]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> DownloadBomTemplate([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
     {
-        var csv = await _service.BuildBomTemplateCsvAsync(query, cancellationToken);
-        var bytes = System.Text.Encoding.UTF8.GetPreamble()
-            .Concat(System.Text.Encoding.UTF8.GetBytes(csv))
-            .ToArray();
+        var bytes = await _service.BuildBomTemplateWorkbookAsync(query, cancellationToken);
         var scope = string.IsNullOrWhiteSpace(query.CustomerId) ? "global" : query.CustomerId;
-        return File(bytes, "text/csv", $"bom-template-{query.PriceTier:0}-{scope}.csv");
+        return File(
+            bytes,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"bom-template-{query.TemplateType}-{query.PriceTier:0}-{scope}.xlsx");
     }
 
     /// <summary>Preview import BOM nhiều món trước khi commit.</summary>
@@ -185,10 +185,10 @@ public class DishesController : ControllerBase
     {
         var result = await _service.AddBomLineAsync(id, dto);
         if (result is null)
-            return NotFound(ApiResponse.FailResult($"Không tìm thấy món ăn với ID: {id}"));
+            return NotFound(ApiResponse.FailResult("Không tìm thấy món ăn hoặc nguyên liệu của dòng BOM."));
 
-        return CreatedAtAction(nameof(GetBomLines), new { id },
-            ApiResponse<DishCatalogBomLineDto>.SuccessResult(result, "Đã thêm dòng BOM cho món ăn."));
+        return StatusCode(StatusCodes.Status201Created,
+            ApiResponse<DishCatalogBomLineDto>.SuccessResult(result, "Đã thêm dòng BOM."));
     }
 
     /// <summary>Cập nhật một dòng BOM nguyên liệu của món ăn.</summary>

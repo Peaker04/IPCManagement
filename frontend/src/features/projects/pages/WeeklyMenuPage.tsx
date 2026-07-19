@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X } from 'lucide-react';
+import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PageStepper, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
-import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
 import { ROUTES } from '@/routes/routeConfig';
@@ -15,7 +15,7 @@ import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
 import type { CatalogDish } from '../dishCatalogApi';
-import type { CreateCustomerContractRequest, WeeklyMenuState } from '../../coordination/types';
+import type { CreateCustomerContractRequest, ProductionPlanDto, WeeklyMenuState } from '../../coordination/types';
 import {
   useCreateCustomerContractMutation,
   useCommitWeeklyMenuImportMutation,
@@ -25,7 +25,9 @@ import {
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
   useGetProductionPlansQuery,
+  useLazyGetProductionPlansQuery,
   usePreviewWeeklyMenuImportMutation,
+  useDownloadWeeklyMenuTemplateMutation,
   useSaveCustomerImportMappingMutation,
   useUpsertQuickServingsMutation,
   useUpdateWeeklyMenuBulkMutation,
@@ -756,6 +758,7 @@ const WeeklyMenuPage = () => {
   const { data: customerContractsResponse } = useGetCustomerContractsQuery();
   const customerContracts = customerContractsResponse?.data ?? [];
   const [previewImport, { isLoading: isPreviewingImport }] = usePreviewWeeklyMenuImportMutation();
+  const [downloadWeeklyMenuTemplate, { isLoading: isDownloadingWeeklyMenuTemplate }] = useDownloadWeeklyMenuTemplateMutation();
   const [commitImport, { isLoading: isCommittingImport }] = useCommitWeeklyMenuImportMutation();
   const [saveImportMapping, { isLoading: isSavingImportMapping }] = useSaveCustomerImportMappingMutation();
   const [createCustomerContract, { isLoading: isCreatingImportCustomer }] = useCreateCustomerContractMutation();
@@ -984,6 +987,52 @@ const WeeklyMenuPage = () => {
     setImportWeekStartDate(committedMenu?.weekStartDate?.split('T')[0] ?? committedMenuWeekStartDate);
     setImportPriceTierAmount(menuPrice);
     setIsImportDialogOpen(true);
+  };
+
+  const handleDownloadWeeklyMenuTemplate = async () => {
+    if (!draftImportCustomer) {
+      setImportFeedback({
+        title: 'Chọn khách hàng',
+        message: 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (!isValidWeekStartDate(importWeekStartDate)) {
+      setImportFeedback({
+        title: 'Chọn tuần bắt đầu',
+        message: 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const blob = await downloadWeeklyMenuTemplate({
+        customerId: draftImportCustomer.customerId,
+        weekStartDate: importWeekStartDate,
+      }).unwrap();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `weekly-menu-template-${draftImportCustomer.customerCode}-${importWeekStartDate}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setImportFeedback({
+        title: 'Đã tải mẫu thực đơn',
+        message: `File ${draftImportCustomer.customerCode} có 3 sheet 25k, 30k, 34k theo bố cục riêng của khách hàng.`,
+        variant: 'info',
+      });
+    } catch (err: unknown) {
+      setImportFeedback({
+        title: 'Tải mẫu thất bại',
+        message: getApiErrorMessage(err, 'Không thể tải mẫu thực đơn tuần.'),
+        variant: 'danger',
+      });
+    }
   };
 
   const handleCreateQuickImportCustomer = async () => {
@@ -1340,8 +1389,11 @@ const WeeklyMenuPage = () => {
   const [activeView, setActiveView] = useState<WeeklyMenuView>('schedule');
   const [selectedCostDayKey, setSelectedCostDayKey] = useState<string | null>(null);
   const [selectedDemandDayKey, setSelectedDemandDayKey] = useState<string | null>(null);
+  const [activeDemandAggregatePageNumber, setActiveDemandAggregatePageNumber] = useState(1);
   const [purchaseSummaryPageIndex, setPurchaseSummaryPageIndex] = useState(0);
   const [productionPlanPageIndex, setProductionPlanPageIndex] = useState(0);
+  const [weeklyProductionPlans, setWeeklyProductionPlans] = useState<ProductionPlanDto[]>([]);
+  const [isLoadingWeeklyProductionPlans, setIsLoadingWeeklyProductionPlans] = useState(false);
   const [warehouseExportFeedback, setWarehouseExportFeedback] = useState<{
     title: string;
     message: string;
@@ -1358,6 +1410,7 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu({}));
     setSelectedCostDayKey(null);
     setSelectedDemandDayKey(null);
+    setActiveDemandAggregatePageNumber(1);
     setPurchaseSummaryPageIndex(0);
     setProductionPlanPageIndex(0);
     setSelectedDishId('');
@@ -1367,13 +1420,14 @@ const WeeklyMenuPage = () => {
   };
 
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const [fetchProductionPlansForDate] = useLazyGetProductionPlansQuery();
   const selectedProductionPlanServiceDate = useMemo(() => {
     if (!selectedDemandDayKey) return undefined;
     return parseDisplayDateToIso(displayDays.find((day) => day.key === selectedDemandDayKey)?.date);
   }, [displayDays, selectedDemandDayKey]);
   const { currentData: productionPlansData } = useGetProductionPlansQuery(
-    { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate || undefined },
-    { skip: !effectiveMenuCustomerId }
+    { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate },
+    { skip: !effectiveMenuCustomerId || !selectedProductionPlanServiceDate }
   );
   const productionPlanWeekDates = useMemo(
     () => displayDays
@@ -1381,10 +1435,50 @@ const WeeklyMenuPage = () => {
       .filter((date): date is string => Boolean(date)),
     [displayDays],
   );
+
+  useEffect(() => {
+    if (!effectiveMenuCustomerId || selectedProductionPlanServiceDate || productionPlanWeekDates.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+    queueMicrotask(() => {
+      if (!isCancelled) {
+        setIsLoadingWeeklyProductionPlans(true);
+      }
+    });
+
+    void (async () => {
+      try {
+        const responses = await Promise.all(
+          productionPlanWeekDates.map((serviceDate) =>
+            fetchProductionPlansForDate(
+              { customerId: effectiveMenuCustomerId, serviceDate },
+              true,
+            ).unwrap().catch(() => null),
+          ),
+        );
+
+        if (!isCancelled) {
+          setWeeklyProductionPlans(responses.flatMap((response) => response?.data ?? []));
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingWeeklyProductionPlans(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [effectiveMenuCustomerId, fetchProductionPlansForDate, productionPlanWeekDates, selectedProductionPlanServiceDate]);
+
   const productionPlans = useMemo(() => {
-    const plans = productionPlansData?.data ?? [];
+    if (!effectiveMenuCustomerId) return [];
+    const plans = selectedProductionPlanServiceDate ? (productionPlansData?.data ?? []) : weeklyProductionPlans;
     return filterProductionPlansForSelection(plans, productionPlanWeekDates, selectedProductionPlanServiceDate);
-  }, [productionPlansData?.data, productionPlanWeekDates, selectedProductionPlanServiceDate]);
+  }, [effectiveMenuCustomerId, productionPlansData?.data, productionPlanWeekDates, selectedProductionPlanServiceDate, weeklyProductionPlans]);
   const productionDisplayDayByDate = useMemo(
     () => buildProductionDisplayDayByDate(displayDays, parseDisplayDateToIso),
     [displayDays],
@@ -2104,15 +2198,21 @@ const WeeklyMenuPage = () => {
     ? getServiceDateIso(activeDemandDay.key) || parseDisplayDateToIso(activeDemandDay.date)
     : '';
   const activeDemandReportQuery = {
-    limit: 500,
     customerId: effectiveMenuCustomerId,
     dateFrom: activeDemandDate || undefined,
     dateTo: activeDemandDate || undefined,
+    pageNumber: activeDemandAggregatePageNumber,
+    pageSize: 20,
   };
   const {
-    currentData: activeDemandReportLines,
+    currentData: activeDemandAggregatePage,
     isFetching: isFetchingActiveDemandLines,
-  } = useGetIngredientDemandQuery(activeDemandReportQuery, { skip: !effectiveMenuCustomerId || !activeDemandDate });
+  } = useGetIngredientDemandAggregatePageQuery(activeDemandReportQuery, { skip: !effectiveMenuCustomerId || !activeDemandDate });
+  const selectDemandDay = (dayKey: string | null) => {
+    setSelectedDemandDayKey(dayKey);
+    setActiveDemandAggregatePageNumber(1);
+    setProductionPlanPageIndex(0);
+  };
   const activeDemandQuickServingRows = activeDemandDay
     ? QUICK_SERVING_SHIFTS
       .map((shift) => quickServingRows.find((servingRow) =>
@@ -2120,21 +2220,13 @@ const WeeklyMenuPage = () => {
         servingRow.shiftName === shift.shiftName))
       .filter((row): row is (typeof quickServingRows)[number] => Boolean(row))
     : [];
-  const activeDemandSourceLines = activeDemandReportLines ?? (
-    activeDemandDate
-      ? demandLines.filter((line) => line.serviceDate === activeDemandDate)
-      : []
-  );
-  const activeDemandAggregatedLines = aggregateDemandLinesByMaterial(activeDemandSourceLines);
+  const activeDemandAggregatedLines = activeDemandAggregatePage?.items ?? [];
   const activeDemandWarningCount = activeDemandAggregatedLines.filter((line) => line.tone === 'warning').length;
-  const activeDemandShortageCount = activeDemandAggregatedLines.filter((line) => {
+  const activeDemandShortageCount = activeDemandAggregatePage?.shortageCount ?? activeDemandAggregatedLines.filter((line) => {
     const availableAfterReserve = line.available - line.reserved;
     return Math.max(line.required - availableAfterReserve, 0) > 0;
   }).length;
-  const activeDemandEnoughCount = activeDemandAggregatedLines.filter((line) => {
-    const availableAfterReserve = line.available - line.reserved;
-    return Math.max(line.required - availableAfterReserve, 0) === 0 && line.tone !== 'warning';
-  }).length;
+  const activeDemandEnoughCount = (activeDemandAggregatePage?.totalCount ?? activeDemandAggregatedLines.length) - activeDemandShortageCount - activeDemandWarningCount;
   const activeDemandTone: DemandLine['tone'] = activeDemandAggregatedLines.length === 0
     ? 'neutral'
     : activeDemandWarningCount > 0
@@ -2509,10 +2601,7 @@ const WeeklyMenuPage = () => {
               <select
                 className="ipc-input min-h-9 w-full text-sm"
                 value={selectedDemandDayKey || ''}
-                onChange={(e) => {
-                  setSelectedDemandDayKey(e.target.value || null);
-                  setProductionPlanPageIndex(0);
-                }}
+                onChange={(e) => selectDemandDay(e.target.value || null)}
               >
                 <option value="">Cả tuần</option>
                 {displayDays.map((d) => (
@@ -2523,7 +2612,9 @@ const WeeklyMenuPage = () => {
               </select>
             </div>
 
-            {productionPlanPages.length === 0 ? (
+            {!selectedProductionPlanServiceDate && isLoadingWeeklyProductionPlans ? (
+              <div className="py-8 text-center text-slate-500">Đang tải kế hoạch sản xuất cả tuần...</div>
+            ) : productionPlanPages.length === 0 ? (
               <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
             ) : (
               <>
@@ -2800,7 +2891,7 @@ const WeeklyMenuPage = () => {
                   type="button"
                   className="ipc-button ipc-button-ghost"
                   disabled={safeDemandDayPageIndex <= 0}
-                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
+                  onClick={() => selectDemandDay(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
                 >
                   Ngày trước
                 </button>
@@ -2808,7 +2899,7 @@ const WeeklyMenuPage = () => {
                   type="button"
                   className="ipc-button ipc-button-primary"
                   disabled={safeDemandDayPageIndex >= demandDayPages.length - 1}
-                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
+                  onClick={() => selectDemandDay(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
                 >
                   Ngày sau
                 </button>
@@ -2830,10 +2921,18 @@ const WeeklyMenuPage = () => {
                     {activeDemandStatus}
                   </StatusBadge>
                 </div>
-                {isFetchingActiveDemandLines && !activeDemandReportLines ? (
+                {isFetchingActiveDemandLines && !activeDemandAggregatePage ? (
                   <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div>
                 ) : (
                   <DemandSummary lines={activeDemandAggregatedLines} />
+                )}
+                {activeDemandAggregatePage && (
+                  <PaginationBar
+                    page={activeDemandAggregatePage.pageNumber}
+                    pageSize={activeDemandAggregatePage.pageSize}
+                    totalItems={activeDemandAggregatePage.totalCount}
+                    onPageChange={setActiveDemandAggregatePageNumber}
+                  />
                 )}
               </div>
             ) : (
@@ -3385,14 +3484,25 @@ const WeeklyMenuPage = () => {
                       aria-describedby="weekly-menu-import-file-meta"
                       disabled={isImporting}
                     />
-                    <button
-                      type="button"
-                      onClick={() => importFileInputRef.current?.click()}
-                      disabled={isImporting}
-                      className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center px-3 py-0"
-                    >
-                      Chọn file Excel
-                    </button>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadWeeklyMenuTemplate()}
+                        disabled={isDownloadingWeeklyMenuTemplate || isImporting || !draftImportCustomer}
+                        className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center gap-2 px-3 py-0"
+                      >
+                        <Download size={16} />
+                        {isDownloadingWeeklyMenuTemplate ? 'Đang tải...' : 'Tải mẫu theo khách'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => importFileInputRef.current?.click()}
+                        disabled={isImporting}
+                        className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center px-3 py-0"
+                      >
+                        Chọn file Excel
+                      </button>
+                    </div>
                   </FieldRow>
                   <div className="flex flex-col gap-1.5 md:pt-[40px]">
                     <button

@@ -11,6 +11,7 @@ public class MaterialDemandService : IMaterialDemandService
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
     private const string DemandApprovedStatus = "MANAGERAPPROVED";
+    private const decimal FixedBomRatePercent = 100m;
 
     public MaterialDemandService(IpcManagementContext context)
     {
@@ -123,7 +124,7 @@ public class MaterialDemandService : IMaterialDemandService
                     var numbers = MaterialDemandCalculator.Calculate(
                         quantityLine.FinalServings,
                         bom.GrossQtyPerServing,
-                        portionRule.BomRatePercent,
+                        FixedBomRatePercent,
                         stockConversion.Quantity,
                         portionRule.PortionRatePercent,
                         portionRule.YieldLossPercent);
@@ -761,7 +762,6 @@ public class MaterialDemandService : IMaterialDemandService
         AppliedPortionRule portionRule,
         MaterialDemandNumbers numbers)
     {
-        var bomRatePercent = portionRule.BomRatePercent;
         var existing = request.Materialrequestlines.FirstOrDefault(line =>
             line.PlanLineId.SequenceEqual(productionLine.PlanLineId) &&
             line.IngredientId.SequenceEqual(bom.IngredientId));
@@ -772,7 +772,7 @@ public class MaterialDemandService : IMaterialDemandService
             existing.PriceTierAmount = priceTier;
             existing.BomScope = bomScope;
             existing.GrossQtyPerServing = DecimalPolicy.RoundQuantity(bom.GrossQtyPerServing);
-            existing.BomRatePercent = DecimalPolicy.RoundPercent(bomRatePercent);
+            existing.BomRatePercent = FixedBomRatePercent;
             existing.AppliedPortionRuleId = portionRule.PortionRuleId;
             existing.AppliedPortionRuleSource = portionRule.Source;
             existing.AppliedPortionRatePercent = DecimalPolicy.RoundPercent(portionRule.PortionRatePercent);
@@ -795,7 +795,7 @@ public class MaterialDemandService : IMaterialDemandService
             BomScope = bomScope,
             TotalServings = servings,
             GrossQtyPerServing = DecimalPolicy.RoundQuantity(bom.GrossQtyPerServing),
-            BomRatePercent = DecimalPolicy.RoundPercent(bomRatePercent),
+            BomRatePercent = FixedBomRatePercent,
             AppliedPortionRuleId = portionRule.PortionRuleId,
             AppliedPortionRuleSource = portionRule.Source,
             AppliedPortionRatePercent = DecimalPolicy.RoundPercent(portionRule.PortionRatePercent),

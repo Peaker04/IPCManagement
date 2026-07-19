@@ -17,6 +17,11 @@ public interface ISampleDataImportService
         DateOnly? weekStartDate,
         CancellationToken cancellationToken = default);
 
+    Task<(byte[] Content, string CustomerCode)> BuildWeeklyMenuTemplateAsync(
+        string? customerId,
+        DateOnly? weekStartDate,
+        CancellationToken cancellationToken = default);
+
     Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
         Stream fileStream,
         string fileName,

@@ -33,6 +33,104 @@ public class SampleDataImportServiceTests
         textResult.Should().Be(new DateOnly(2026, 6, 15));
     }
 
+    [Fact]
+    public void EnsureBomLine_Should_KeepPresetPriceTiersSeparate()
+    {
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureBomLine",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+        var dish = new Dish { DishId = GuidHelper.NewId(), DishCode = "DISH-01", DishName = "Món thử" };
+        var ingredient = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = "ING-01",
+            IngredientName = "Nguyên liệu thử"
+        };
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
+        var bomLines = new List<Dishbom>();
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+
+        method!.Invoke(service, [dish, ingredient, unit, 0.10m, 25000m, bomLines, true, counts]);
+        method.Invoke(service, [dish, ingredient, unit, 0.12m, 30000m, bomLines, true, counts]);
+        method.Invoke(service, [dish, ingredient, unit, 0.11m, 25000m, bomLines, true, counts]);
+
+        bomLines.Should().HaveCount(2);
+        bomLines.Single(line => line.PriceTierAmount == 25000m).GrossQtyPerServing.Should().Be(0.11m);
+        bomLines.Single(line => line.PriceTierAmount == 30000m).GrossQtyPerServing.Should().Be(0.12m);
+        bomLines.Should().OnlyContain(line => line.CustomerId == null && line.BomStatus == "PUBLISHED");
+        counts.BomLinesCreated.Should().Be(2);
+        counts.BomLinesUpdated.Should().Be(1);
+    }
+
+    [Fact]
+    public void CalculateWeightedGrossQty_Should_MergeRepeatedWorkbookBatches()
+    {
+        var bananaRows = new List<IReadOnlyDictionary<string, string>>
+        {
+            new Dictionary<string, string> { ["Định lượng (gram) / khay"] = "1.03926096997691", ["Số lượng suất ăn"] = "433" },
+            new Dictionary<string, string> { ["Định lượng (gram) / khay"] = "1", ["Số lượng suất ăn"] = "262" }
+        };
+        var fishRows = new List<IReadOnlyDictionary<string, string>>
+        {
+            new Dictionary<string, string> { ["Định lượng (gram) / khay"] = "0.123076923076923", ["Số lượng suất ăn"] = "325" },
+            new Dictionary<string, string> { ["Định lượng (gram) / khay"] = "0.103448275862069", ["Số lượng suất ăn"] = "116" }
+        };
+
+        InvokePrivateStatic<decimal>("CalculateWeightedGrossQty", bananaRows).Should().Be(1.02446m);
+        InvokePrivateStatic<decimal>("CalculateWeightedGrossQty", fishRows).Should().Be(0.117914m);
+    }
+
+    [Fact]
+    public void ParsePresetGrossQtyPerServing_Should_FallbackToWeightDividedByServings()
+    {
+        IReadOnlyDictionary<string, string> row = new Dictionary<string, string>
+        {
+            ["Định lượng (gram) / khay"] = "",
+            ["Khối lượng ( kg)"] = "3.5",
+            ["Số lượng suất ăn"] = "100"
+        };
+
+        InvokePrivateStatic<decimal>("ParsePresetGrossQtyPerServing", row).Should().Be(0.035m);
+    }
+
+    [Fact]
+    public void ParsePresetGrossQtyPerServing_Should_ReadScientificNotationFromXlsxCache()
+    {
+        IReadOnlyDictionary<string, string> row = new Dictionary<string, string>
+        {
+            ["Định lượng (gram) / khay"] = "1.4999999999999999E-2",
+            ["Khối lượng ( kg)"] = "",
+            ["Số lượng suất ăn"] = "1"
+        };
+
+        InvokePrivateStatic<decimal>("ParsePresetGrossQtyPerServing", row).Should().Be(0.015m);
+    }
+
+    [Theory]
+    [InlineData("Trứng gà", "CAI")]
+    [InlineData("trứng cút lọt sẵn", "CAI")]
+    [InlineData("Sữa chua", "HOP")]
+    [InlineData("Chuối", "QUA")]
+    [InlineData("Bánh mì", "O")]
+    [InlineData("Chả cá", "MIENG")]
+    [InlineData("Căn cuộn", "CAY")]
+    [InlineData("Đậu khuôn chiên lát nhỏ", "LAT")]
+    [InlineData("Cá lóc", "KG")]
+    public void ResolvePresetBomUnit_Should_UseTechnicalUnitForCountedIngredients(string ingredientName, string expectedCode)
+    {
+        var kgUnit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
+        var presetUnits = new[] { "CAI", "HOP", "QUA", "O", "MIENG", "CAY", "LAT" }
+            .ToDictionary(
+                code => code,
+                code => new Unit { UnitId = GuidHelper.NewId(), UnitCode = code, UnitName = code },
+                StringComparer.OrdinalIgnoreCase);
+
+        var unit = InvokePrivateStatic<Unit>("ResolvePresetBomUnit", ingredientName, kgUnit, presetUnits);
+
+        unit.UnitCode.Should().Be(expectedCode);
+    }
+
     [Theory]
     [InlineData("MENU MẶN - CA SÁNG", "Mặn", "MORNING")]
     [InlineData("MENU CHAY- CA CHIỀU", "Chay", "AFTERNOON")]
@@ -111,7 +209,7 @@ public class SampleDataImportServiceTests
         ])!;
 
         GetProperty<decimal>(result, "MenuPrice").Should().Be(43000);
-        GetProperty<decimal>(result, "BomRatePercent").Should().Be(125);
+        GetProperty<decimal>(result, "BomRatePercent").Should().Be(100);
         GetProperty<bool>(result, "UsedFallback").Should().BeFalse();
     }
 
@@ -251,10 +349,10 @@ public class SampleDataImportServiceTests
         var wednesdayPolicy = InvokeContractPolicy(context, customerId, new DateOnly(2026, 6, 17), "MORNING");
 
         GetProperty<decimal>(mondayPolicy, "MenuPrice").Should().Be(40000);
-        GetProperty<decimal>(mondayPolicy, "BomRatePercent").Should().Be(110);
+        GetProperty<decimal>(mondayPolicy, "BomRatePercent").Should().Be(100);
         GetProperty<bool>(mondayPolicy, "UsedFallback").Should().BeFalse();
         GetProperty<decimal>(wednesdayPolicy, "MenuPrice").Should().Be(52000);
-        GetProperty<decimal>(wednesdayPolicy, "BomRatePercent").Should().Be(145);
+        GetProperty<decimal>(wednesdayPolicy, "BomRatePercent").Should().Be(100);
         GetProperty<bool>(wednesdayPolicy, "UsedFallback").Should().BeFalse();
     }
 

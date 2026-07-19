@@ -8,6 +8,7 @@ using IPCManagement.Api.Models.DTOs.Dish;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.SampleData;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
@@ -16,7 +17,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using NSubstitute;
+using System.IO.Compression;
 using System.Text;
+using System.Xml.Linq;
 using Xunit;
 
 namespace IPCManagement.Api.Tests;
@@ -56,6 +59,7 @@ public class DishCatalogTests
                         DishId = GuidHelper.ToBytes(dishId),
                         IngredientId = GuidHelper.ToBytes(ingredientId),
                         UnitId = GuidHelper.ToBytes(unitId),
+                        PriceTierAmount = 25000,
                         GrossQtyPerServing = 0.12m,
                         WasteRatePercent = 5,
                         EffectiveFrom = new DateOnly(2026, 6, 15),
@@ -246,6 +250,77 @@ public class DishCatalogTests
     }
 
     [Fact]
+    public async Task DishesController_AddBomLine_Should_ReturnCreated_WhenManualBomInputIsValid()
+    {
+        var dishId = Guid.NewGuid().ToString();
+        var service = Substitute.For<IDishService>();
+        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineDto>()).Returns(new DishCatalogBomLineDto
+        {
+            BomId = Guid.NewGuid().ToString(),
+            IngredientId = Guid.NewGuid().ToString(),
+            GrossQtyPerServing = 0.1m
+        });
+        var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
+
+        var actionResult = await controller.AddBomLine(dishId, new CreateDishBomLineDto());
+
+        var created = actionResult.Should().BeOfType<ObjectResult>().Subject;
+        created.StatusCode.Should().Be(StatusCodes.Status201Created);
+        created.Value.Should().BeAssignableTo<ApiResponse<DishCatalogBomLineDto>>();
+    }
+
+    [Fact]
+    public async Task DishService_GetBomCoverageAsync_Should_Not_Count_LegacyUnsupportedTier_AsComplete()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        fixture.Context.Dishboms.Add(new Dishbom
+        {
+            BomId = GuidHelper.NewId(),
+            DishId = fixture.DishId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            PriceTierAmount = 26000,
+            GrossQtyPerServing = 0.12m,
+            WasteRatePercent = 5,
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = DateOnly.FromDateTime(DateTime.Today.AddDays(-1))
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var report = await service.GetBomCoverageAsync();
+
+        report.CompleteDishes.Should().Be(0);
+        report.MissingBomDishes.Should().Be(1);
+        report.TotalBomLines.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DishService_GetBomValidationAsync_Should_Report_LegacyUnsupportedTier()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        fixture.Context.Dishboms.Add(new Dishbom
+        {
+            BomId = GuidHelper.NewId(),
+            DishId = fixture.DishId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            PriceTierAmount = 26000,
+            GrossQtyPerServing = 0.12m,
+            WasteRatePercent = 5,
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = DateOnly.FromDateTime(DateTime.Today.AddDays(-1))
+        });
+        await fixture.Context.SaveChangesAsync();
+
+        var report = await service.GetBomValidationAsync();
+
+        report.Issues.Should().Contain(issue => issue.IssueCode == "legacy_bom_tier");
+        report.Issues.Should().Contain(issue => issue.IssueCode == "missing_bom");
+    }
+
+    [Fact]
     public async Task DishService_AddBomLineAsync_Should_Block_Overlapping_EffectiveDates_ForSameScope()
     {
         await using var fixture = await CreateCatalogFixtureAsync();
@@ -257,6 +332,7 @@ public class DishCatalogTests
             DishId = fixture.DishId,
             IngredientId = fixture.IngredientId,
             UnitId = fixture.UnitId,
+            PriceTierAmount = 25000,
             GrossQtyPerServing = 0.12m,
             WasteRatePercent = 5,
             EffectiveFrom = new DateOnly(2026, 7, 1),
@@ -292,6 +368,7 @@ public class DishCatalogTests
             DishId = fixture.DishId,
             IngredientId = fixture.IngredientId,
             UnitId = fixture.UnitId,
+            PriceTierAmount = 25000,
             GrossQtyPerServing = 0.12m,
             WasteRatePercent = 5,
             EffectiveFrom = new DateOnly(2026, 7, 1),
@@ -325,6 +402,7 @@ public class DishCatalogTests
             DishId = fixture.DishId,
             IngredientId = fixture.IngredientId,
             UnitId = fixture.UnitId,
+            PriceTierAmount = 25000,
             GrossQtyPerServing = 0.12m,
             WasteRatePercent = 5,
             BomStatus = "PUBLISHED",
@@ -361,6 +439,7 @@ public class DishCatalogTests
             DishId = fixture.DishId,
             IngredientId = fixture.IngredientId,
             UnitId = fixture.UnitId,
+            PriceTierAmount = 25000,
             GrossQtyPerServing = 0.12m,
             WasteRatePercent = 5,
             BomStatus = "PUBLISHED",
@@ -455,6 +534,142 @@ public class DishCatalogTests
         rows.Should().OnlyContain(row => row.PriceTierAmount == 30000m);
         rows.Should().OnlyContain(row => row.CustomerId != null && row.CustomerId.SequenceEqual(customerId));
         rows.Select(row => row.GrossQtyPerServing).Should().Equal(0.08m, 0.12m);
+    }
+
+    [Fact]
+    public async Task DishService_BomTemplate_Should_ReturnXlsxWithBlankBomFieldsForMissingDish()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        var bytes = await service.BuildBomTemplateWorkbookAsync(new BomTemplateQueryDto
+        {
+            PriceTier = 25000,
+            DishId = GuidHelper.ToGuidString(fixture.DishId)
+        });
+        var tempFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            await File.WriteAllBytesAsync(tempFile, bytes);
+
+            using (var archive = ZipFile.OpenRead(tempFile))
+            {
+                archive.GetEntry("docProps/core.xml").Should().NotBeNull();
+                archive.GetEntry("docProps/app.xml").Should().NotBeNull();
+                var sheetEntry = archive.GetEntry("xl/worksheets/sheet1.xml");
+                sheetEntry.Should().NotBeNull();
+                using var sheetStream = sheetEntry!.Open();
+                var worksheet = XDocument.Load(sheetStream).Root!;
+                var childOrder = worksheet.Elements().Select(element => element.Name.LocalName).Take(5);
+                childOrder.Should().Equal("dimension", "sheetViews", "sheetFormatPr", "cols", "sheetData");
+            }
+
+            var reader = new XlsxWorkbookReader();
+            var rows = reader.ReadTable(tempFile, "BOM", BomTemplateWorkbookBuilder.Headers);
+
+            rows.Should().HaveCount(8);
+            rows[0]["DishCode"].Should().Be("DISH-BOM");
+            rows[0]["DishName"].Should().Be("Món BOM");
+            rows[0]["PriceTier"].Should().Be("25000");
+            rows[0]["IngredientName"].Should().BeEmpty();
+            rows[0]["UnitCode"].Should().BeEmpty();
+            rows[0]["GrossQtyPerServing"].Should().BeEmpty();
+            rows[0]["WasteRatePercent"].Should().BeEmpty();
+            rows[0]["BomStatus"].Should().Be("PUBLISHED");
+        }
+        finally
+        {
+            if (File.Exists(tempFile))
+            {
+                File.Delete(tempFile);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task DishService_BomImport_Should_PreviewAndCommitXlsxWorkbook()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        var bytes = BomTemplateWorkbookBuilder.Build(
+            34000,
+            "Global",
+            new DateOnly(2026, 7, 1),
+            [
+                [
+                    "DISH-BOM",
+                    "Món BOM",
+                    "34000",
+                    "",
+                    "Nguyên liệu BOM",
+                    "KG",
+                    "0.15",
+                    "4",
+                    "2026-07-01",
+                    "",
+                    "PUBLISHED",
+                    "Import Excel"
+                ]
+            ]);
+        var request = new BomImportCommitRequestDto { PriceTier = 34000 };
+
+        var preview = await service.PreviewBomImportAsync(new MemoryStream(bytes), request);
+        var committed = await service.CommitBomImportAsync(new MemoryStream(bytes), request, userId: null);
+
+        preview.CanCommit.Should().BeTrue();
+        preview.TotalRows.Should().Be(1);
+        preview.Rows.Single().RowNumber.Should().Be(5);
+        committed.CreatedRows.Should().Be(1);
+
+        var line = await fixture.Context.Dishboms.AsNoTracking().SingleAsync();
+        line.PriceTierAmount.Should().Be(34000);
+        line.GrossQtyPerServing.Should().Be(0.15m);
+        line.WasteRatePercent.Should().Be(4m);
+    }
+
+    [Fact]
+    public async Task DishService_BomImport_Should_CreateIngredient_WhenIngredientCodeIsBlank()
+    {
+        await using var fixture = await CreateCatalogFixtureAsync();
+        var service = CreateDishService(fixture.Context);
+        var bytes = BomTemplateWorkbookBuilder.Build(
+            25000,
+            "Global",
+            new DateOnly(2026, 7, 1),
+            [
+                [
+                    "DISH-BOM",
+                    "Món BOM",
+                    "25000",
+                    "",
+                    "Nguyên liệu mới",
+                    "KG",
+                    "0.20",
+                    "3",
+                    "2026-07-01",
+                    "",
+                    "PUBLISHED",
+                    "Tạo nguyên liệu từ file BOM"
+                ]
+            ]);
+        var request = new BomImportCommitRequestDto { PriceTier = 25000 };
+
+        var preview = await service.PreviewBomImportAsync(new MemoryStream(bytes), request);
+        var committed = await service.CommitBomImportAsync(new MemoryStream(bytes), request, userId: null);
+
+        preview.CanCommit.Should().BeTrue();
+        preview.WarningRows.Should().Be(1);
+        preview.Rows.Single().IngredientCode.Should().StartWith("ING-");
+        preview.Rows.Single().Warnings.Should().Contain(warning => warning.Contains("Nguyên liệu mới"));
+        committed.CreatedRows.Should().Be(1);
+
+        var ingredient = await fixture.Context.Ingredients.AsNoTracking().SingleAsync(item => item.IngredientName == "Nguyên liệu mới");
+        ingredient.IngredientCode.Should().StartWith("ING-");
+        ingredient.UnitId.Should().Equal(fixture.UnitId);
+        ingredient.WarehouseId.Should().Equal(fixture.WarehouseId);
+
+        var line = await fixture.Context.Dishboms.AsNoTracking().SingleAsync();
+        line.IngredientId.Should().Equal(ingredient.IngredientId);
+        line.GrossQtyPerServing.Should().Be(0.20m);
     }
 
     [Fact]

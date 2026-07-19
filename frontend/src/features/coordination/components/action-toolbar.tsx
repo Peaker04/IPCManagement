@@ -47,7 +47,7 @@ const csvHeaders: Array<[keyof OrderExportReportRow, string]> = [
   ['confirmedServings', 'Suất đã chốt'],
   ['finalServings', 'Suất cuối'],
   ['menuPrice', 'Đơn giá thực đơn'],
-  ['bomRatePercent', 'Tỷ lệ BOM'],
+  ['bomRatePercent', 'BOM áp dụng (%)'],
 ]
 
 const escapeCsvValue = (value: unknown) => {

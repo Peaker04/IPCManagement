@@ -18,6 +18,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
+    private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
 
     public WorkflowReportService(IpcManagementContext context)
     {
@@ -1336,6 +1337,7 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Include(bom => bom.Dish)
             .Where(bom =>
+                SupportedBomPriceTiers.Contains(bom.PriceTierAmount) &&
                 bom.EffectiveFrom <= today &&
                 (bom.EffectiveTo == null || bom.EffectiveTo >= today))
             .ToListAsync();
@@ -2034,6 +2036,7 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Where(dish => (dish.IsActive ?? true) && !_context.Dishboms.Any(bom =>
                 bom.DishId == dish.DishId &&
+                SupportedBomPriceTiers.Contains(bom.PriceTierAmount) &&
                 bom.BomStatus == PublishedBomStatus &&
                 bom.EffectiveFrom <= serviceDate &&
                 (bom.EffectiveTo == null || bom.EffectiveTo >= serviceDate)))
@@ -2049,7 +2052,7 @@ public class WorkflowReportService : IWorkflowReportService
             dish.DishCode,
             dish.DishName,
             "Món đang hoạt động nhưng chưa có dòng BOM/định lượng hiệu lực.",
-            "Mở Quản trị dữ liệu > Điều chỉnh để thêm BOM.",
+            "Mở Quản trị dữ liệu > BOM theo đơn giá để tải mẫu Excel và import BOM đúng tier.",
             BuildMissingBomRemediationRoute(dish.DishId, serviceDate, query))));
 
         var invalidUnitIngredients = await _context.Ingredients
@@ -2081,6 +2084,7 @@ public class WorkflowReportService : IWorkflowReportService
                 .ThenInclude(ingredient => ingredient.Unit)
             .Include(item => item.Unit)
             .Where(item =>
+                SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
                 item.BomStatus == PublishedBomStatus &&
                 item.EffectiveFrom <= serviceDate &&
                 (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
@@ -2100,6 +2104,30 @@ public class WorkflowReportService : IWorkflowReportService
                 $"BOM dùng đơn vị '{line.Unit.UnitName}' nhưng nguyên liệu đang theo '{line.Ingredient.Unit.UnitName}' và chưa có cấu hình quy đổi hợp lệ.",
                 "Cập nhật base unit / hệ số quy đổi của đơn vị trước khi tính demand hoặc sinh mua thêm.",
                 "/admin-data")));
+
+        var legacyBomLines = await _context.Dishboms
+            .AsNoTracking()
+            .Include(item => item.Dish)
+            .Include(item => item.Ingredient)
+            .Where(item =>
+                !SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
+                item.BomStatus == PublishedBomStatus &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
+            .OrderBy(item => item.Dish.DishCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(legacyBomLines.Select(line => BuildDataQualityIssue(
+            "legacy_bom_tier",
+            "error",
+            nameof(Dishbom),
+            GuidHelper.ToGuidString(line.BomId),
+            line.Dish.DishCode,
+            line.Ingredient.IngredientName,
+            $"Dòng BOM đang dùng đơn giá cũ/lệch {line.PriceTierAmount:0.##}. Chỉ chấp nhận tier 25000, 30000 hoặc 34000.",
+            "Tải mẫu BOM thiếu/theo món rồi import lại bằng Excel để tạo BOM theo tier mới.",
+            BuildMissingBomRemediationRoute(line.DishId, serviceDate, query))));
 
         var stockUnitLines = await _context.Currentstocks
             .AsNoTracking()
@@ -2153,6 +2181,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Include(item => item.Dish)
             .Include(item => item.Ingredient)
             .Where(item =>
+                SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
                 item.BomStatus == PublishedBomStatus &&
                 item.EffectiveFrom <= serviceDate &&
                 (item.EffectiveTo == null || item.EffectiveTo >= serviceDate) &&
