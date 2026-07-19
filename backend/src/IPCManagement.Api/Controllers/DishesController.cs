@@ -88,15 +88,14 @@ public class DishesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> PreviewBomImport(
         [FromForm] BomImportPreviewRequestDto request,
-        [FromForm] IFormFile file,
         CancellationToken cancellationToken)
     {
-        if (file.Length == 0)
+        if (request.File.Length == 0)
         {
             return BadRequest(ApiResponse.FailResult("File import BOM trống."));
         }
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = request.File.OpenReadStream();
         var result = await _service.PreviewBomImportAsync(stream, request, cancellationToken);
         return Ok(ApiResponse<BomImportPreviewDto>.SuccessResult(result));
     }
@@ -107,15 +106,14 @@ public class DishesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CommitBomImport(
         [FromForm] BomImportCommitRequestDto request,
-        [FromForm] IFormFile file,
         CancellationToken cancellationToken)
     {
-        if (file.Length == 0)
+        if (request.File.Length == 0)
         {
             return BadRequest(ApiResponse.FailResult("File import BOM trống."));
         }
 
-        await using var stream = file.OpenReadStream();
+        await using var stream = request.File.OpenReadStream();
         var userId = _currentUserService.GetUserId(User);
         var result = await _service.CommitBomImportAsync(stream, request, userId, cancellationToken);
         return Ok(ApiResponse<BomImportCommitResultDto>.SuccessResult(result, "Đã import BOM theo đơn giá."));

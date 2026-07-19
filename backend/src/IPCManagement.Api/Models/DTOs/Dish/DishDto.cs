@@ -245,6 +245,9 @@ public class BomTemplateQueryDto
 
 public class BomImportPreviewRequestDto
 {
+    [Required]
+    public IFormFile File { get; set; } = null!;
+
     [Range(25000, 34000)]
     public decimal PriceTier { get; set; } = 25000m;
 
