@@ -272,10 +272,10 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
-    downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string }>({
-      query: ({ priceTier, customerId }) => ({
+    downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
+      query: ({ priceTier, customerId, dishId, templateType }) => ({
         url: '/dishes/bom-template',
-        params: { priceTier, customerId },
+        params: { priceTier, customerId, dishId, templateType },
         responseHandler: (response) => response.blob(),
       }),
     }),

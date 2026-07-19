@@ -10,6 +10,7 @@ namespace IPCManagement.Api.Services;
 
 public class CoordinationService : ICoordinationService
 {
+    private const decimal FixedBomRatePercent = 100m;
     private readonly IpcManagementContext _context;
     private readonly IMaterialDemandService _materialDemandService;
 
@@ -263,18 +264,9 @@ public class CoordinationService : ICoordinationService
                 () => contract.DefaultMenuPrice = nextPrice);
         }
 
-        if (request.DefaultBomRatePercent is not null)
-        {
-            var nextBomRate = DecimalPolicy.RoundPercent(request.DefaultBomRatePercent.Value);
-            if (nextBomRate <= 0 || nextBomRate > 300)
-            {
-                throw new ArgumentException("Tỷ lệ BOM mặc định phải trong khoảng 0-300%.");
-            }
-
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.DefaultBomRatePercent),
-                contract.DefaultBomRatePercent.ToString(), nextBomRate.ToString(),
-                () => contract.DefaultBomRatePercent = nextBomRate);
-        }
+        UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.DefaultBomRatePercent),
+            contract.DefaultBomRatePercent.ToString(), FixedBomRatePercent.ToString(),
+            () => contract.DefaultBomRatePercent = FixedBomRatePercent);
 
         contract.UpdatedAt = changedAt;
         ValidateNoOverlappingContract(customer.Customercontracts, contract);
@@ -376,7 +368,7 @@ public class CoordinationService : ICoordinationService
             SlotName = NormalizeNullableCode(request.SlotName),
             DishCategory = NormalizeNullableText(request.DishCategory),
             PortionRatePercent = DecimalPolicy.RoundPercent(request.PortionRatePercent),
-            BomRatePercent = request.BomRatePercent is null ? null : DecimalPolicy.RoundPercent(request.BomRatePercent.Value),
+            BomRatePercent = null,
             YieldLossPercent = request.YieldLossPercent is null ? null : DecimalPolicy.RoundPercent(request.YieldLossPercent.Value),
             Priority = request.Priority ?? 0,
             Status = NormalizePortionRuleStatus(request.Status) ?? "ACTIVE",
@@ -472,10 +464,7 @@ public class CoordinationService : ICoordinationService
             rule.PortionRatePercent = DecimalPolicy.RoundPercent(request.PortionRatePercent.Value);
         }
 
-        if (request.BomRatePercent is not null)
-        {
-            rule.BomRatePercent = DecimalPolicy.RoundPercent(request.BomRatePercent.Value);
-        }
+        rule.BomRatePercent = null;
 
         if (request.YieldLossPercent is not null)
         {
@@ -553,7 +542,7 @@ public class CoordinationService : ICoordinationService
                 PortionRuleId = GuidHelper.ToGuidString(resolvedRule.PortionRuleId),
                 Source = ResolvePortionRuleSource(resolvedRule),
                 PortionRatePercent = resolvedRule.PortionRatePercent,
-                BomRatePercent = resolvedRule.BomRatePercent,
+                BomRatePercent = FixedBomRatePercent,
                 YieldLossPercent = resolvedRule.YieldLossPercent
             };
         }
@@ -576,7 +565,7 @@ public class CoordinationService : ICoordinationService
             {
                 Source = "CONTRACT_DEFAULT",
                 PortionRatePercent = 100,
-                BomRatePercent = matchedContract.DefaultBomRatePercent
+                BomRatePercent = FixedBomRatePercent
             };
         }
 
@@ -622,20 +611,11 @@ public class CoordinationService : ICoordinationService
             }
         }
 
-        if (request.BomRatePercent is not null)
+        if (schedule.BomRatePercent != FixedBomRatePercent)
         {
-            var nextBomRate = DecimalPolicy.RoundPercent(request.BomRatePercent.Value);
-            if (nextBomRate <= 0 || nextBomRate > 300)
-            {
-                throw new ArgumentException("Tỷ lệ BOM phải trong khoảng 0-300%.");
-            }
-
-            if (schedule.BomRatePercent != nextBomRate)
-            {
-                AddAudit(actorId, changedAt, "PortionRule", nameof(Menuschedule), schedule.MenuScheduleId,
-                    nameof(Menuschedule.BomRatePercent), schedule.BomRatePercent.ToString(), nextBomRate.ToString(), reason);
-                schedule.BomRatePercent = nextBomRate;
-            }
+            AddAudit(actorId, changedAt, "PortionRule", nameof(Menuschedule), schedule.MenuScheduleId,
+                nameof(Menuschedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason);
+            schedule.BomRatePercent = FixedBomRatePercent;
         }
 
         var status = NormalizeMenuScheduleStatus(request.Status);
@@ -1583,18 +1563,11 @@ public class CoordinationService : ICoordinationService
         var defaultMenuPrice = request.DefaultMenuPrice is null
             ? ResolveDefaultMenuPrice(schedules)
             : DecimalPolicy.RoundMoney(request.DefaultMenuPrice.Value);
-        var defaultBomRate = request.DefaultBomRatePercent is null
-            ? ResolveDefaultBomRate(schedules)
-            : DecimalPolicy.RoundPercent(request.DefaultBomRatePercent.Value);
+        var defaultBomRate = FixedBomRatePercent;
         if (defaultMenuPrice < 0)
         {
             throw new ArgumentException("Đơn giá menu mặc định không được âm.");
         }
-        if (defaultBomRate <= 0 || defaultBomRate > 300)
-        {
-            throw new ArgumentException("Tỷ lệ BOM mặc định phải trong khoảng 0-300%.");
-        }
-
         var contract = new Customercontract
         {
             ContractId = GuidHelper.NewId(),
@@ -1669,8 +1642,8 @@ public class CoordinationService : ICoordinationService
             {
                 AddAudit(actorId, changedAt, "CustomerContract", nameof(Menuschedule), schedule.MenuScheduleId,
                     nameof(Menuschedule.BomRatePercent), schedule.BomRatePercent.ToString(), contract.DefaultBomRatePercent.ToString(),
-                    "Áp dụng tỷ lệ BOM mặc định từ contract khách hàng");
-                schedule.BomRatePercent = contract.DefaultBomRatePercent;
+                    "Áp dụng BOM cố định 100% theo tier đơn giá mới");
+                schedule.BomRatePercent = FixedBomRatePercent;
             }
         }
     }
@@ -1819,9 +1792,7 @@ public class CoordinationService : ICoordinationService
             : DecimalPolicy.RoundMoney(schedules.Average(schedule => schedule.MenuPrice));
 
     private static decimal ResolveDefaultBomRate(IReadOnlyList<Menuschedule> schedules)
-        => schedules.Count == 0
-            ? 100
-            : DecimalPolicy.RoundPercent(schedules.Average(schedule => schedule.BomRatePercent));
+        => FixedBomRatePercent;
 
     private static IReadOnlyList<string> SplitCsv(string value)
         => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
@@ -1867,7 +1838,7 @@ public class CoordinationService : ICoordinationService
             ActiveWeekDays = activeWeekDays,
             ShiftNames = shiftNames,
             DefaultMenuPrice = contract is null ? (schedules.Count == 0 ? null : ResolveDefaultMenuPrice(schedules)) : contract.DefaultMenuPrice,
-            DefaultBomRatePercent = contract is null ? (schedules.Count == 0 ? null : ResolveDefaultBomRate(schedules)) : contract.DefaultBomRatePercent,
+            DefaultBomRatePercent = FixedBomRatePercent,
             LatestServiceDate = schedules.LastOrDefault()?.ServiceDate.ToString("yyyy-MM-dd")
         };
     }
@@ -2041,7 +2012,7 @@ public class CoordinationService : ICoordinationService
             Shift = ToDisplayShift(schedule.ShiftName),
             DayOfWeek = ToDayCode(schedule.ServiceDate),
             MenuPrice = DecimalPolicy.RoundMoney(schedule.MenuPrice),
-            BomRatePercent = DecimalPolicy.RoundPercent(schedule.BomRatePercent),
+            BomRatePercent = FixedBomRatePercent,
             Status = schedule.Status,
             MenuVersionId = version is null ? null : GuidHelper.ToGuidString(version.MenuVersionId),
             MenuVersionNo = version?.VersionNo,
@@ -2093,11 +2064,6 @@ public class CoordinationService : ICoordinationService
         if (rule.PortionRatePercent <= 0 || rule.PortionRatePercent > 300)
         {
             throw new ArgumentException("Tỷ lệ portion phải trong khoảng 0-300%.");
-        }
-
-        if (rule.BomRatePercent is not null && (rule.BomRatePercent <= 0 || rule.BomRatePercent > 300))
-        {
-            throw new ArgumentException("Tỷ lệ BOM phải trong khoảng 0-300%.");
         }
 
         if (rule.YieldLossPercent is not null && (rule.YieldLossPercent < 0 || rule.YieldLossPercent >= 100))
@@ -2397,7 +2363,7 @@ public class CoordinationService : ICoordinationService
             ForecastQuantity = line.ForecastServings,
             ActualQuantity = line.FinalServings,
             UnitPrice = line.MenuSchedule.MenuPrice,
-            AppliedRate = line.MenuSchedule.BomRatePercent,
+            AppliedRate = FixedBomRatePercent,
             SpecialNotes = line.Customer.Note ?? string.Empty,
             ServiceDate = line.QuantityPlan.ServiceDate.ToString("yyyy-MM-dd"),
             DayOfWeek = ToDayCode(line.QuantityPlan.ServiceDate),

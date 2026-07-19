@@ -1,15 +1,12 @@
 import { cn } from '@/lib/utils';
-import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
 import type { DemandLine } from '@/features/workflow';
-import { useLocalPagination } from '@/lib/useLocalPagination';
 import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface DemandSummaryProps {
   lines: DemandLine[];
-  pageSize?: number;
   className?: string;
 }
 
@@ -47,9 +44,7 @@ const shortenNextAction = (action: string) => {
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
 };
 
-export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryProps) {
-  const { page, rows: pageLines, totalItems, setPage } = useLocalPagination(lines, pageSize);
-
+export function DemandSummary({ lines, className }: DemandSummaryProps) {
   if (!lines.length) {
     return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
@@ -66,16 +61,16 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Khả dụng</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Trạng thái</th>
-              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Tiếp theo</th>
+              <th style={{ width: '12%' }} className="whitespace-nowrap text-center">Hướng xử lý</th>
             </tr>
           </thead>
           <tbody>
-            {pageLines.map((line, index) => {
+            {lines.map((line, index) => {
               const availableAfterReserve = line.available - line.reserved;
               const variance = availableAfterReserve - line.required;
 
               return (
-                <tr key={`${line.id}-${page}-${index}`}>
+                <tr key={`${line.id}-${index}`}>
                   <td className="truncate" title={line.material}>{line.material}</td>
                   <td className="truncate" title={line.source}>{line.source}</td>
                   <td className="ipc-numeric-cell text-right whitespace-nowrap">
@@ -109,7 +104,6 @@ export function DemandSummary({ lines, pageSize = 8, className }: DemandSummaryP
           </tbody>
         </table>
       </TableViewport>
-      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );
 }

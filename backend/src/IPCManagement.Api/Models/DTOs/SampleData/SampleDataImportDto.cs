@@ -5,6 +5,7 @@ public class SampleDataImportRequestDto
     public string? SourceDirectory { get; set; }
     public bool DryRun { get; set; } = true;
     public int? MaxRows { get; set; }
+    public bool ReplaceBomCatalog { get; set; }
 }
 
 public class SampleDataImportResultDto

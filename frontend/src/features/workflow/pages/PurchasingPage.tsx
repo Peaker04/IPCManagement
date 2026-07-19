@@ -19,15 +19,16 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVariancePageQuery,
+  useGetMaterialRequestCandidatePageQuery,
   useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsPageQuery,
   useGetCurrentStockQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
-  useGetSupplierQuotationsByIngredientQuery,
   useGetSupplierQuotationsByIngredientPageQuery,
   useCreateSupplierQuotationMutation,
   useUpdateSupplierQuotationMutation,
@@ -40,6 +41,10 @@ import {
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 import { formatWorkflowStatus } from '../workflowConfig';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { SupplierLineItem } from '../components/purchasing/SupplierLineItem';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
@@ -49,6 +54,9 @@ export default function PurchasingPage() {
   const [searchParams] = useSearchParams();
   const [purchasePlanPage, setPurchasePlanPage] = useState(1);
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
+  const [purchaseCandidatePage, setPurchaseCandidatePage] = useState(1);
+  const [isCreateRequestDialogOpen, setIsCreateRequestDialogOpen] = useState(false);
+  const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
@@ -56,6 +64,11 @@ export default function PurchasingPage() {
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
+  const { data: purchaseCandidatePageResponse, isFetching: isFetchingPurchaseCandidates } = useGetMaterialRequestCandidatePageQuery({
+    purpose: 'purchase',
+    pageNumber: purchaseCandidatePage,
+    pageSize: 8,
+  });
   const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
   const { data: receiptMovementPage } = useGetStockMovementPageQuery({
@@ -70,6 +83,7 @@ export default function PurchasingPage() {
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
+  const [createPurchaseRequestFromDemand, { isLoading: isCreatingPurchaseRequest }] = useCreatePurchaseRequestFromDemandMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchaseRequests = purchaseRequestsPageResponse?.items ?? [];
   const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
@@ -120,6 +134,42 @@ export default function PurchasingPage() {
   const primaryPurchaseRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
   const submitTargetId = primaryPurchaseRequestLine?.purchaseRequestId;
   const purchaseSummaryDocument = purchasingDocuments[0];
+  const purchaseRequestCandidates = purchaseCandidatePageResponse?.items ?? [];
+  const selectedPurchaseRequestCandidate = purchaseRequestCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
+  const formatPurchaseRequestCandidate = (candidate: (typeof purchaseRequestCandidates)[number]) =>
+    `${candidate.materialRequestCode} | ${candidate.requestDate} | ${candidate.actionableLineCount} dòng thiếu${candidate.hasExistingPurchaseRequest ? ' | Đã có đề xuất' : ''}`;
+
+  const openCreatePurchaseRequestDialog = () => {
+    setPurchaseCandidatePage(1);
+    setSelectedMaterialRequestId('');
+    setIsCreateRequestDialogOpen(true);
+  };
+
+  const handleCreatePurchaseRequest = async () => {
+    if (!selectedMaterialRequestId) {
+      toast({ title: 'Chưa chọn nhu cầu nguyên liệu', description: 'Chọn một chứng từ có dòng thiếu để tạo đề xuất mua.', variant: 'warning' });
+      return;
+    }
+
+    try {
+      const response = await createPurchaseRequestFromDemand({ materialRequestId: selectedMaterialRequestId }).unwrap();
+      setIsCreateRequestDialogOpen(false);
+      setActiveView('supplier');
+      toast({
+        title: 'Đã tạo đề xuất mua',
+        description: response.data?.purchaseRequestCode
+          ? `${response.data.purchaseRequestCode} đã sẵn sàng để chọn nhà cung cấp.`
+          : response.message || 'Đề xuất mua đã được tạo từ nhu cầu thiếu.',
+        variant: 'success',
+      });
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      toast({ title: 'Chưa thể tạo đề xuất mua', description: message, variant: 'danger', durationMs: 0 });
+    }
+  };
 
   const handleSubmitPurchaseRequest = async () => {
     if (!submitTargetId) {
@@ -149,9 +199,9 @@ export default function PurchasingPage() {
               <button
                 className="ipc-button ipc-button-primary"
                 type="button"
-                onClick={() => setActiveView('supplier')}
+                onClick={openCreatePurchaseRequestDialog}
               >
-                Chọn nhà cung cấp
+                Tạo đề xuất mua
               </button>
               <button
                 className="ipc-button ipc-button-primary"
@@ -164,9 +214,6 @@ export default function PurchasingPage() {
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
                 <PackageCheck size={16} />
                 Chuyển sang nhập kho
-              </Link>
-              <Link className="ipc-button ipc-button-ghost" to={ROUTES.APPROVALS}>
-                Quay lại duyệt
               </Link>
             </>
           }
@@ -313,138 +360,60 @@ export default function PurchasingPage() {
           </div>
         </SectionPanel>
       )}
+
+      <Dialog open={isCreateRequestDialogOpen} onOpenChange={setIsCreateRequestDialogOpen}>
+        <DialogContent aria-labelledby="create-purchase-request-title" aria-describedby="create-purchase-request-description">
+          <DialogHeader>
+            <DialogTitle id="create-purchase-request-title">Tạo đề xuất mua từ nhu cầu thiếu</DialogTitle>
+            <DialogDescription id="create-purchase-request-description">
+              Chọn đúng chứng từ nhu cầu. Hệ thống chỉ tạo các dòng còn thiếu sau khi đối chiếu tồn kho.
+            </DialogDescription>
+          </DialogHeader>
+          {purchaseRequestCandidates.length > 0 ? (
+            <div className="grid gap-2">
+              <label id="purchase-demand-request-label" className="text-sm font-medium text-slate-700">
+                Chứng từ nhu cầu nguyên liệu
+              </label>
+              <Select value={selectedMaterialRequestId} onValueChange={(value) => setSelectedMaterialRequestId(value ?? '')}>
+                <SelectTrigger aria-labelledby="purchase-demand-request-label" className="w-full">
+                  <SelectValue placeholder="Chọn chứng từ nhu cầu">
+                    {selectedPurchaseRequestCandidate ? formatPurchaseRequestCandidate(selectedPurchaseRequestCandidate) : null}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                {purchaseRequestCandidates.map((candidate) => (
+                  <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>
+                    {formatPurchaseRequestCandidate(candidate)}
+                  </SelectItem>
+                ))}
+                </SelectContent>
+              </Select>
+              <PaginationBar
+                page={purchaseCandidatePage}
+                pageSize={purchaseCandidatePageResponse?.pageSize ?? 8}
+                totalItems={purchaseCandidatePageResponse?.totalCount ?? 0}
+                onPageChange={(page) => {
+                  setSelectedMaterialRequestId('');
+                  setPurchaseCandidatePage(page);
+                }}
+              />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">
+              {isFetchingPurchaseCandidates ? 'Đang tải chứng từ nhu cầu...' : 'Không có chứng từ nhu cầu hợp lệ để tạo đề xuất mua.'}
+            </p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsCreateRequestDialogOpen(false)} disabled={isCreatingPurchaseRequest}>
+              Hủy
+            </Button>
+            <Button type="button" onClick={() => void handleCreatePurchaseRequest()} disabled={!selectedMaterialRequestId || isCreatingPurchaseRequest}>
+              {isCreatingPurchaseRequest ? 'Đang tạo...' : 'Tạo đề xuất'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
-  );
-}
-
-function SupplierLineItem({
-  line,
-  suppliers,
-  onUpdate,
-}: {
-  line: DemandLine;
-  suppliers: SupplierDto[];
-  onUpdate: ReturnType<typeof useUpdatePurchaseRequestLineSupplierMutation>[0];
-}) {
-  const { toast } = useToast();
-  const [selectedSupplierId, setSelectedSupplierId] = useState(line.supplierId ?? '');
-  const [estimatedPrice, setEstimatedPrice] = useState<number>(line.estimatedUnitPrice ?? 0);
-  const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '');
-  const [note, setNote] = useState(line.note ?? '');
-  const [isUpdating, setIsUpdating] = useState(false);
-
-  const { data: quotations = [] } = useGetSupplierQuotationsByIngredientQuery(line.ingredientId ?? '', {
-    skip: !line.ingredientId,
-  });
-
-  const handleSupplierChange = (supplierId: string) => {
-    setSelectedSupplierId(supplierId);
-    const matched = quotations.find((q) => q.supplierId === supplierId && q.isActive);
-    if (matched) {
-      setEstimatedPrice(matched.unitPrice);
-    }
-  };
-
-  const bestQuotation = quotations.find((q) => q.isBestPrice);
-
-  const handleSave = async () => {
-    if (!line.purchaseRequestId || !line.purchaseRequestLineId || !selectedSupplierId) {
-      toast({ title: 'Thiếu nhà cung cấp', description: 'Vui lòng chọn nhà cung cấp cho dòng mua này.', variant: 'warning' });
-      return;
-    }
-    if (!estimatedPrice || estimatedPrice <= 0) {
-      toast({ title: 'Giá dự kiến chưa hợp lệ', description: 'Vui lòng nhập giá lớn hơn 0.', variant: 'warning' });
-      return;
-    }
-    setIsUpdating(true);
-    try {
-      await onUpdate({
-        purchaseRequestId: line.purchaseRequestId,
-        purchaseRequestLineId: line.purchaseRequestLineId,
-        data: {
-          supplierId: selectedSupplierId,
-          estimatedUnitPrice: estimatedPrice,
-          expectedDeliveryDate: expectedDeliveryDate || null,
-          note: note.trim() || null,
-        }
-      }).unwrap();
-      toast({ title: 'Đã cập nhật nhà cung cấp', variant: 'success' });
-    } catch (err) {
-      const message =
-        (err as { data?: { message?: string }; message?: string })?.data?.message ??
-        (err as { message?: string })?.message ??
-        'Đã xảy ra lỗi không xác định.';
-      toast({ title: 'Chưa thể cập nhật nhà cung cấp', description: message, variant: 'danger', durationMs: 0 });
-    } finally {
-      setIsUpdating(false);
-    }
-  };
-
-  return (
-    <tr>
-      <td className="text-slate-500 font-mono text-sm">{line.sourceDocumentCode}</td>
-      <td className="font-medium text-slate-800">{line.material}</td>
-      <td className="text-right">{line.reserved} <span className="text-slate-500">{line.unit}</span></td>
-      <td>
-        <select
-          className="ipc-input w-full"
-          aria-label={`Nhà cung cấp cho ${line.material}`}
-          aria-required="true"
-          value={selectedSupplierId}
-          onChange={(e) => handleSupplierChange(e.target.value)}
-        >
-          <option value="">Chọn nhà cung cấp</option>
-          {suppliers.map(s => (
-            <option key={s.supplierId} value={s.supplierId}>{s.supplierName}</option>
-          ))}
-        </select>
-        {bestQuotation && bestQuotation.supplierId !== selectedSupplierId && (
-          <div className="text-xs text-emerald-600 mt-1" role="status" aria-live="polite">
-            Giá tham khảo tốt nhất: {bestQuotation.supplierName}, {bestQuotation.unitPrice.toLocaleString('vi-VN')} đồng
-          </div>
-        )}
-      </td>
-      <td>
-        <input 
-          type="number" 
-          className="ipc-input w-full" 
-          aria-label={`Giá dự kiến cho ${line.material}`}
-          placeholder="Ví dụ: 150000" 
-          min="0"
-          step="1000"
-          inputMode="decimal"
-          value={estimatedPrice || ''}
-          onChange={(e) => setEstimatedPrice(Number(e.target.value))}
-        />
-      </td>
-      <td>
-        <input
-          type="date"
-          className="ipc-input w-full"
-          aria-label={`Ngày giao dự kiến cho ${line.material}`}
-          value={expectedDeliveryDate}
-          onChange={(e) => setExpectedDeliveryDate(e.target.value)}
-        />
-      </td>
-      <td>
-        <input
-          className="ipc-input w-full"
-          aria-label={`Ghi chú cho ${line.material}`}
-          placeholder="Ghi chú thêm (không bắt buộc)"
-          value={note}
-          onChange={(e) => setNote(e.target.value)}
-        />
-      </td>
-      <td>
-        <button
-          className="ipc-button ipc-button-primary"
-          onClick={handleSave}
-          disabled={isUpdating}
-        >
-          {isUpdating ? 'Đang lưu...' : 'Lưu nhà cung cấp'}
-        </button>
-      </td>
-    </tr>
   );
 }
 

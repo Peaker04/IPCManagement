@@ -117,7 +117,6 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
                     <button
                       type="button"
                       className="ipc-document-copy-button flex-shrink-0"
-                      style={{ width: '22px', height: '22px' }}
                       aria-label={`Sao chép mã chứng từ ${movement.documentNo}`}
                       title="Sao chép mã chứng từ"
                       onClick={() => void handleCopyDocumentNo(movement.documentNo)}

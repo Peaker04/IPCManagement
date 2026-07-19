@@ -18,6 +18,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
+    private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
 
     public WorkflowReportService(IpcManagementContext context)
     {
@@ -659,6 +660,153 @@ public class WorkflowReportService : IWorkflowReportService
         };
     }
 
+    public async Task<IngredientDemandAggregatePageDto> GetIngredientDemandAggregatePageAsync(IngredientDemandAggregatePageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var grouped = lines.GroupBy(item => new
+        {
+            item.Request.RequestDate,
+            item.IngredientId,
+            IngredientName = item.Ingredient.IngredientName,
+            item.UnitId,
+            UnitName = item.Unit.UnitName,
+        });
+
+        var totalCount = await grouped.CountAsync();
+        var shortageCount = await grouped.CountAsync(group => group.Sum(item => item.SuggestedPurchaseQty) > 0);
+        var items = await grouped
+            .OrderByDescending(group => group.Key.RequestDate)
+            .ThenBy(group => group.Key.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(group => new IngredientDemandAggregateDto
+            {
+                RequestDate = group.Key.RequestDate,
+                IngredientId = GuidHelper.ToGuidString(group.Key.IngredientId),
+                IngredientName = group.Key.IngredientName,
+                UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
+                UnitName = group.Key.UnitName,
+                TotalRequiredQty = group.Sum(item => item.TotalRequiredQty),
+                CurrentStockQty = (decimal)group.Max(item => (double)item.CurrentStockQty),
+                SuggestedPurchaseQty = group.Sum(item => item.SuggestedPurchaseQty),
+                LineCount = group.Count(),
+                HasCancelledLine = group.Any(item => item.Request.Status == "CANCELLED"),
+            })
+            .ToListAsync();
+
+        return new IngredientDemandAggregatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
+    public async Task<MaterialRequestCandidatePageDto> GetMaterialRequestCandidatePageAsync(MaterialRequestCandidatePageQueryDto query)
+    {
+        var purpose = query.Purpose.Trim().ToLowerInvariant();
+        if (purpose is not ("purchase" or "issue"))
+        {
+            throw new ArgumentException("Mục đích danh sách nhu cầu phải là purchase hoặc issue.");
+        }
+
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+        var requests = _context.Materialrequests.AsNoTracking().AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            requests = requests.Where(item => item.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            requests = requests.Where(item => item.RequestDate <= dateTo);
+        }
+
+        if (purpose == "purchase")
+        {
+            requests = requests.Where(item =>
+                item.Status != "CANCELLED" &&
+                item.Status != "EXPORTED" &&
+                item.Materialrequestlines.Any(line => line.SuggestedPurchaseQty > 0));
+        }
+        else
+        {
+            requests = requests.Where(item =>
+                (item.Status == "MANAGERAPPROVED" || item.Status == "APPROVED" || item.Status == "SENTTOWAREHOUSE") &&
+                item.Materialrequestlines.Sum(line => line.TotalRequiredQty) >
+                item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty));
+        }
+
+        var totalCount = await requests.CountAsync();
+        var items = await requests
+            .OrderByDescending(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new MaterialRequestCandidateDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                MaterialRequestCode = item.RequestCode,
+                RequestDate = item.RequestDate,
+                RequestScope = item.RequestScope,
+                Status = item.Status,
+                ActionableLineCount = purpose == "purchase"
+                    ? item.Materialrequestlines.Count(line => line.SuggestedPurchaseQty > 0)
+                    : item.Materialrequestlines.Count,
+                ActionableQuantity = purpose == "purchase"
+                    ? item.Materialrequestlines.Sum(line => line.SuggestedPurchaseQty)
+                    : item.Materialrequestlines.Sum(line => line.TotalRequiredQty) -
+                      item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty),
+                HasExistingPurchaseRequest = item.Materialrequestlines.Any(line =>
+                    line.Purchaserequestlines.Any(purchaseLine => purchaseLine.PurchaseRequest.Status != "CANCELLED")),
+            })
+            .ToListAsync();
+
+        return new MaterialRequestCandidatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+        };
+    }
+
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
     {
         var rows = await BuildPurchasePlanRowsAsync(query, NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit));
@@ -1189,6 +1337,7 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Include(bom => bom.Dish)
             .Where(bom =>
+                SupportedBomPriceTiers.Contains(bom.PriceTierAmount) &&
                 bom.EffectiveFrom <= today &&
                 (bom.EffectiveTo == null || bom.EffectiveTo >= today))
             .ToListAsync();
@@ -1887,6 +2036,7 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Where(dish => (dish.IsActive ?? true) && !_context.Dishboms.Any(bom =>
                 bom.DishId == dish.DishId &&
+                SupportedBomPriceTiers.Contains(bom.PriceTierAmount) &&
                 bom.BomStatus == PublishedBomStatus &&
                 bom.EffectiveFrom <= serviceDate &&
                 (bom.EffectiveTo == null || bom.EffectiveTo >= serviceDate)))
@@ -1902,7 +2052,7 @@ public class WorkflowReportService : IWorkflowReportService
             dish.DishCode,
             dish.DishName,
             "Món đang hoạt động nhưng chưa có dòng BOM/định lượng hiệu lực.",
-            "Mở Quản trị dữ liệu > Điều chỉnh để thêm BOM.",
+            "Mở Quản trị dữ liệu > BOM theo đơn giá để tải mẫu Excel và import BOM đúng tier.",
             BuildMissingBomRemediationRoute(dish.DishId, serviceDate, query))));
 
         var invalidUnitIngredients = await _context.Ingredients
@@ -1934,6 +2084,7 @@ public class WorkflowReportService : IWorkflowReportService
                 .ThenInclude(ingredient => ingredient.Unit)
             .Include(item => item.Unit)
             .Where(item =>
+                SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
                 item.BomStatus == PublishedBomStatus &&
                 item.EffectiveFrom <= serviceDate &&
                 (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
@@ -1953,6 +2104,30 @@ public class WorkflowReportService : IWorkflowReportService
                 $"BOM dùng đơn vị '{line.Unit.UnitName}' nhưng nguyên liệu đang theo '{line.Ingredient.Unit.UnitName}' và chưa có cấu hình quy đổi hợp lệ.",
                 "Cập nhật base unit / hệ số quy đổi của đơn vị trước khi tính demand hoặc sinh mua thêm.",
                 "/admin-data")));
+
+        var legacyBomLines = await _context.Dishboms
+            .AsNoTracking()
+            .Include(item => item.Dish)
+            .Include(item => item.Ingredient)
+            .Where(item =>
+                !SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
+                item.BomStatus == PublishedBomStatus &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
+            .OrderBy(item => item.Dish.DishCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(legacyBomLines.Select(line => BuildDataQualityIssue(
+            "legacy_bom_tier",
+            "error",
+            nameof(Dishbom),
+            GuidHelper.ToGuidString(line.BomId),
+            line.Dish.DishCode,
+            line.Ingredient.IngredientName,
+            $"Dòng BOM đang dùng đơn giá cũ/lệch {line.PriceTierAmount:0.##}. Chỉ chấp nhận tier 25000, 30000 hoặc 34000.",
+            "Tải mẫu BOM thiếu/theo món rồi import lại bằng Excel để tạo BOM theo tier mới.",
+            BuildMissingBomRemediationRoute(line.DishId, serviceDate, query))));
 
         var stockUnitLines = await _context.Currentstocks
             .AsNoTracking()
@@ -2006,6 +2181,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Include(item => item.Dish)
             .Include(item => item.Ingredient)
             .Where(item =>
+                SupportedBomPriceTiers.Contains(item.PriceTierAmount) &&
                 item.BomStatus == PublishedBomStatus &&
                 item.EffectiveFrom <= serviceDate &&
                 (item.EffectiveTo == null || item.EffectiveTo >= serviceDate) &&

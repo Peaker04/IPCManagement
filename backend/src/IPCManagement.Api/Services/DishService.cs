@@ -5,6 +5,7 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Services.SampleData;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
@@ -21,6 +22,8 @@ public class DishService : IDishService
     private const string BomStatusDraft = "DRAFT";
     private const string BomStatusPublished = "PUBLISHED";
     private const string BomStatusArchived = "ARCHIVED";
+    private const int BlankBomRowsPerDish = 8;
+    private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
 
     public DishService(IDishRepository dishRepo, IpcManagementContext context, IMemoryCache cache)
     {
@@ -80,6 +83,7 @@ public class DishService : IDishService
         var activeBomLines = await _context.Dishboms
             .AsNoTracking()
             .Where(line =>
+                SupportedBomPriceTiers.Contains(line.PriceTierAmount) &&
                 line.BomStatus == BomStatusPublished &&
                 line.EffectiveFrom <= today &&
                 (line.EffectiveTo == null || line.EffectiveTo >= today))
@@ -132,9 +136,21 @@ public class DishService : IDishService
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
             .Where(line =>
+                SupportedBomPriceTiers.Contains(line.PriceTierAmount) &&
                 line.BomStatus == BomStatusPublished &&
                 line.EffectiveFrom <= today &&
                 (line.EffectiveTo == null || line.EffectiveTo >= today))
+            .ToListAsync();
+        var legacyBomLines = await _context.Dishboms
+            .AsNoTracking()
+            .Include(line => line.Dish)
+            .Include(line => line.Ingredient)
+            .Where(line =>
+                !SupportedBomPriceTiers.Contains(line.PriceTierAmount) &&
+                line.BomStatus == BomStatusPublished &&
+                line.EffectiveFrom <= today &&
+                (line.EffectiveTo == null || line.EffectiveTo >= today))
+            .OrderBy(line => line.Dish.DishCode)
             .ToListAsync();
         var linesByDish = activeBomLines
             .GroupBy(line => GuidHelper.ToGuidString(line.DishId))
@@ -199,6 +215,13 @@ public class DishService : IDishService
             }
         }
 
+        issues.AddRange(legacyBomLines.Select(line => CreateValidationIssue(
+            line.Dish,
+            line,
+            "legacy_bom_tier",
+            "error",
+            $"Dòng BOM cũ có đơn giá {line.PriceTierAmount:0.##}; chỉ chấp nhận 25000, 30000 hoặc 34000. Hãy export/import lại bằng mẫu Excel BOM theo đơn giá.")));
+
         return new BomValidationReportDto
         {
             GeneratedAt = DateTime.UtcNow,
@@ -226,7 +249,8 @@ public class DishService : IDishService
         var dishCount = await _context.Dishes.AsNoTracking().CountAsync(dish => dish.IsActive ?? true);
         var menuCount = await _context.Menus.AsNoTracking().CountAsync();
         var menuScheduleCount = await _context.Menuschedules.AsNoTracking().CountAsync();
-        var bomLineCount = await _context.Dishboms.AsNoTracking().CountAsync();
+        var bomLineCount = await _context.Dishboms.AsNoTracking()
+            .CountAsync(line => SupportedBomPriceTiers.Contains(line.PriceTierAmount));
         var bomAdjustedCount = await _context.Bomadjustments.AsNoTracking().CountAsync();
         var lastBomAdjustedAt = await _context.Bomadjustments
             .AsNoTracking()
@@ -277,7 +301,8 @@ public class DishService : IDishService
     {
         var customerCount = await _context.Customers.AsNoTracking().CountAsync();
         var dishCount = await _context.Dishes.AsNoTracking().CountAsync(dish => dish.IsActive ?? true);
-        var bomLineCount = await _context.Dishboms.AsNoTracking().CountAsync();
+        var bomLineCount = await _context.Dishboms.AsNoTracking()
+            .CountAsync(line => SupportedBomPriceTiers.Contains(line.PriceTierAmount));
         var menuScheduleCount = await _context.Menuschedules.AsNoTracking().CountAsync();
         var mealPlanCount = await _context.Mealquantityplans.AsNoTracking().CountAsync();
         var stockCount = await _context.Currentstocks.AsNoTracking().CountAsync();
@@ -308,75 +333,80 @@ public class DishService : IDishService
         };
     }
 
-    public async Task<string> BuildBomTemplateCsvAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
+    public async Task<byte[]> BuildBomTemplateWorkbookAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
     {
         var priceTier = NormalizePriceTier(query.PriceTier);
         var customerId = ParseOptionalCustomerId(query.CustomerId);
-        var rows = new StringBuilder();
-        rows.AppendLine("DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note");
+        var dishId = ParseOptionalDishId(query.DishId);
+        var templateType = NormalizeBomTemplateType(query.TemplateType, dishId is not null);
+        var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
+        var rows = new List<IReadOnlyList<string>>();
 
-        var dishes = await _context.Dishes
+        if (templateType != "blank")
+        {
+            var dishesQuery = _context.Dishes
             .AsNoTracking()
             .Include(dish => dish.Dishboms)
                 .ThenInclude(bom => bom.Ingredient)
             .Include(dish => dish.Dishboms)
                 .ThenInclude(bom => bom.Unit)
-            .Where(dish => dish.IsActive ?? true)
-            .OrderBy(dish => dish.DishCode)
-            .ToListAsync(cancellationToken);
-        var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
+            .Where(dish => dish.IsActive ?? true);
 
-        foreach (var dish in dishes)
-        {
-            var currentLines = query.IncludeCurrent
-                ? dish.Dishboms
-                    .Where(line => line.PriceTierAmount == priceTier)
-                    .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
-                    .OrderBy(line => line.Ingredient.IngredientName)
-                    .ToList()
-                : [];
-
-            if (currentLines.Count == 0)
+            if (dishId is not null)
             {
-                rows.AppendLine(ToCsvLine([
-                    dish.DishCode,
-                    dish.DishName,
-                    priceTier.ToString("0.##", CultureInfo.InvariantCulture),
-                    customerCode ?? string.Empty,
-                    string.Empty,
-                    string.Empty,
-                    string.Empty,
-                    string.Empty,
-                    "0",
-                    DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    string.Empty,
-                    BomStatusPublished,
-                    string.Empty
-                ]));
-                continue;
+                dishesQuery = dishesQuery.Where(dish => dish.DishId.SequenceEqual(dishId));
             }
 
-            foreach (var line in currentLines)
+            var dishes = await dishesQuery
+                .OrderBy(dish => dish.DishCode)
+                .ToListAsync(cancellationToken);
+            var effectiveFrom = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+
+            foreach (var dish in dishes)
             {
-                rows.AppendLine(ToCsvLine([
-                    dish.DishCode,
-                    dish.DishName,
-                    priceTier.ToString("0.##", CultureInfo.InvariantCulture),
-                    customerCode ?? string.Empty,
-                    line.Ingredient.IngredientCode,
-                    line.Ingredient.IngredientName,
-                    line.Unit.UnitCode,
-                    line.GrossQtyPerServing.ToString("0.######", CultureInfo.InvariantCulture),
-                    line.WasteRatePercent.ToString("0.##", CultureInfo.InvariantCulture),
-                    line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    line.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
-                    line.BomStatus,
-                    string.Empty
-                ]));
+                var currentLines = query.IncludeCurrent
+                    ? dish.Dishboms
+                        .Where(line => line.PriceTierAmount == priceTier)
+                        .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
+                        .Where(line => IsPublishedBomLine(line))
+                        .Where(line => line.EffectiveFrom <= DateOnly.FromDateTime(DateTime.Today) && (line.EffectiveTo is null || line.EffectiveTo >= DateOnly.FromDateTime(DateTime.Today)))
+                        .OrderBy(line => line.Ingredient.IngredientName)
+                        .ToList()
+                    : [];
+
+                if (templateType == "missing" && currentLines.Count > 0)
+                {
+                    continue;
+                }
+
+                if (currentLines.Count == 0)
+                {
+                    AddBlankBomRows(rows, dish, priceTier, customerCode, effectiveFrom);
+                    continue;
+                }
+
+                foreach (var line in currentLines)
+                {
+                    rows.Add([
+                        dish.DishCode,
+                        dish.DishName,
+                        priceTier.ToString("0.##", CultureInfo.InvariantCulture),
+                        customerCode ?? string.Empty,
+                        line.Ingredient.IngredientName,
+                        line.Unit.UnitCode,
+                        line.GrossQtyPerServing.ToString("0.######", CultureInfo.InvariantCulture),
+                        line.WasteRatePercent.ToString("0.##", CultureInfo.InvariantCulture),
+                        line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        line.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
+                        line.BomStatus,
+                        string.Empty
+                    ]);
+                }
             }
         }
 
-        return rows.ToString();
+        var scope = customerCode is null ? "Global" : $"Customer {customerCode}";
+        return BomTemplateWorkbookBuilder.Build(priceTier, $"{scope} / {templateType}", DateOnly.FromDateTime(DateTime.Today), rows);
     }
 
     public async Task<BomImportPreviewDto> PreviewBomImportAsync(
@@ -409,18 +439,21 @@ public class DishService : IDishService
         var batchCode = $"BOM-{priceTier:0}-{now:yyyyMMddHHmmss}";
 
         await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var importedIngredients = new Dictionary<string, Ingredient>(StringComparer.OrdinalIgnoreCase);
         foreach (var row in validRows)
         {
             var effectiveFrom = row.EffectiveFrom;
             var effectiveTo = row.EffectiveTo;
             var status = NormalizeBomStatus(row.BomStatus);
+            var ingredient = row.Ingredient ?? await CreateImportedIngredientAsync(row, importedIngredients, cancellationToken);
+            var unit = row.Unit!;
             var existing = await _context.Dishboms
                 .Include(line => line.Ingredient)
                 .Include(line => line.Unit)
                 .Where(line =>
                     line.DishId == row.Dish!.DishId &&
-                    line.IngredientId == row.Ingredient!.IngredientId &&
-                    line.UnitId == row.Unit!.UnitId &&
+                    line.IngredientId == ingredient.IngredientId &&
+                    line.UnitId == unit.UnitId &&
                     line.PriceTierAmount == priceTier &&
                     line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
                     (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom))
@@ -456,8 +489,8 @@ public class DishService : IDishService
             {
                 BomId = GuidHelper.NewId(),
                 DishId = row.Dish!.DishId,
-                IngredientId = row.Ingredient!.IngredientId,
-                UnitId = row.Unit!.UnitId,
+                IngredientId = ingredient.IngredientId,
+                UnitId = unit.UnitId,
                 CustomerId = customerId,
                 PriceTierAmount = priceTier,
                 GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing),
@@ -978,17 +1011,10 @@ public class DishService : IDishService
         BomImportPreviewRequestDto request,
         CancellationToken cancellationToken)
     {
-        if (fileStream.CanSeek)
-        {
-            fileStream.Position = 0;
-        }
-
         var priceTier = NormalizePriceTier(request.PriceTier);
         var customerId = ParseOptionalCustomerId(request.CustomerId);
-        using var reader = new StreamReader(fileStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: true);
-        var content = await reader.ReadToEndAsync(cancellationToken);
-        var lines = content.Split(["\r\n", "\n"], StringSplitOptions.None);
-        if (lines.Length <= 1)
+        var importRows = await ReadBomImportSourceRowsAsync(fileStream, cancellationToken);
+        if (importRows.Count == 0)
         {
             return [];
         }
@@ -997,11 +1023,29 @@ public class DishService : IDishService
             .AsNoTracking()
             .Where(dish => dish.IsActive ?? true)
             .ToDictionaryAsync(dish => dish.DishCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
-        var ingredients = await _context.Ingredients
+        var ingredientList = await _context.Ingredients
             .AsNoTracking()
             .Include(item => item.Unit)
             .Where(item => item.IsActive ?? true)
-            .ToDictionaryAsync(item => item.IngredientCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
+            .ToListAsync(cancellationToken);
+        var ingredients = ingredientList
+            .ToDictionary(item => item.IngredientCode.Trim(), StringComparer.OrdinalIgnoreCase);
+        var ingredientNameGroups = ingredientList
+            .GroupBy(item => NormalizeIngredientLookupKey(item.IngredientName, item.Unit.UnitCode), StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var ingredientsByNameUnit = ingredientNameGroups
+            .Where(group => group.Count() == 1)
+            .ToDictionary(group => group.Key, group => group.Single(), StringComparer.OrdinalIgnoreCase);
+        var ambiguousIngredientNameUnits = ingredientNameGroups
+            .Where(group => group.Count() > 1)
+            .Select(group => group.Key)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var usedIngredientCodes = ingredientList
+            .Select(item => item.IngredientCode.Trim())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var hasWarehouse = await _context.Warehouses
+            .AsNoTracking()
+            .AnyAsync(cancellationToken);
         var units = await _context.Units
             .AsNoTracking()
             .ToDictionaryAsync(item => item.UnitCode.Trim(), StringComparer.OrdinalIgnoreCase, cancellationToken);
@@ -1011,21 +1055,11 @@ public class DishService : IDishService
             .Where(line => customerId == null ? line.CustomerId == null : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
             .ToListAsync(cancellationToken);
 
-        var header = SplitCsvLine(lines[0]).Select(NormalizeHeader).ToList();
         var result = new List<BomImportRow>();
-        for (var i = 1; i < lines.Length; i++)
+        foreach (var importRow in importRows)
         {
-            if (string.IsNullOrWhiteSpace(lines[i]))
-            {
-                continue;
-            }
-
-            var cells = SplitCsvLine(lines[i]);
             string Get(string name)
-            {
-                var index = header.IndexOf(NormalizeHeader(name));
-                return index >= 0 && index < cells.Count ? cells[index].Trim() : string.Empty;
-            }
+                => importRow.Cells.GetValueOrDefault(NormalizeHeader(name), string.Empty).Trim();
 
             var errors = new List<string>();
             var warnings = new List<string>();
@@ -1034,6 +1068,13 @@ public class DishService : IDishService
             var ingredientCode = Get("IngredientCode");
             var ingredientName = Get("IngredientName");
             var unitCode = Get("UnitCode");
+            var grossQtyText = Get("GrossQtyPerServing");
+            var wasteRateText = Get("WasteRatePercent");
+            if (IsBlankBomEntry(ingredientCode, ingredientName, unitCode, grossQtyText, wasteRateText))
+            {
+                continue;
+            }
+
             var tierText = Get("PriceTier");
             var hasTierText = !string.IsNullOrWhiteSpace(tierText);
             var normalizedRowTier = default(decimal);
@@ -1047,18 +1088,41 @@ public class DishService : IDishService
             }
 
             dishes.TryGetValue(dishCode, out var dish);
-            ingredients.TryGetValue(ingredientCode, out var ingredient);
+            var ingredient = default(Ingredient);
+            if (!string.IsNullOrWhiteSpace(ingredientCode))
+            {
+                ingredients.TryGetValue(ingredientCode, out ingredient);
+            }
             if (ingredient is not null && string.IsNullOrWhiteSpace(unitCode))
             {
                 unitCode = ingredient.Unit.UnitCode;
             }
 
             units.TryGetValue(unitCode, out var unit);
+            if (ingredient is null && string.IsNullOrWhiteSpace(ingredientCode) && !string.IsNullOrWhiteSpace(ingredientName) && unit is not null)
+            {
+                var nameUnitKey = NormalizeIngredientLookupKey(ingredientName, unit.UnitCode);
+                if (ambiguousIngredientNameUnits.Contains(nameUnitKey))
+                {
+                    errors.Add("IngredientName + UnitCode đang trùng nhiều nguyên liệu, cần nhập IngredientCode để map chính xác.");
+                }
+                else if (ingredientsByNameUnit.TryGetValue(nameUnitKey, out var matchedIngredient))
+                {
+                    ingredient = matchedIngredient;
+                    ingredientCode = matchedIngredient.IngredientCode;
+                    ingredientName = matchedIngredient.IngredientName;
+                }
+            }
+
             if (dish is null)
             {
                 errors.Add("DishCode không tồn tại hoặc món đã ngừng sử dụng.");
             }
-            if (ingredient is null)
+            if (string.IsNullOrWhiteSpace(ingredientCode) && string.IsNullOrWhiteSpace(ingredientName))
+            {
+                errors.Add("IngredientName bắt buộc khi không nhập IngredientCode.");
+            }
+            else if (!string.IsNullOrWhiteSpace(ingredientCode) && ingredient is null)
             {
                 errors.Add("IngredientCode không tồn tại hoặc nguyên liệu đã ngừng sử dụng.");
             }
@@ -1066,11 +1130,24 @@ public class DishService : IDishService
             {
                 errors.Add("UnitCode không tồn tại.");
             }
-            if (!decimal.TryParse(Get("GrossQtyPerServing"), NumberStyles.Number, CultureInfo.InvariantCulture, out var grossQty) || grossQty <= 0)
+            else if (ingredient is null && string.IsNullOrWhiteSpace(ingredientCode))
+            {
+                if (!hasWarehouse)
+                {
+                    errors.Add("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
+                }
+                else
+                {
+                    ingredientCode = CreateUniqueIngredientCode(ingredientName, usedIngredientCodes);
+                    warnings.Add($"Nguyên liệu mới sẽ được tạo khi commit: {ingredientCode}.");
+                }
+            }
+
+            if (!decimal.TryParse(grossQtyText, NumberStyles.Number, CultureInfo.InvariantCulture, out var grossQty) || grossQty <= 0)
             {
                 errors.Add("GrossQtyPerServing phải lớn hơn 0.");
             }
-            if (!decimal.TryParse(Get("WasteRatePercent"), NumberStyles.Number, CultureInfo.InvariantCulture, out var wasteRate) || wasteRate < 0 || wasteRate > 100)
+            if (!decimal.TryParse(wasteRateText, NumberStyles.Number, CultureInfo.InvariantCulture, out var wasteRate) || wasteRate < 0 || wasteRate > 100)
             {
                 errors.Add("WasteRatePercent phải nằm trong 0-100.");
             }
@@ -1126,7 +1203,7 @@ public class DishService : IDishService
             }
 
             result.Add(new BomImportRow(
-                i + 1,
+                importRow.RowNumber,
                 dishCode,
                 dishName,
                 ingredientCode,
@@ -1147,6 +1224,113 @@ public class DishService : IDishService
         }
 
         return result;
+    }
+
+    private static async Task<IReadOnlyList<BomImportSourceRow>> ReadBomImportSourceRowsAsync(
+        Stream fileStream,
+        CancellationToken cancellationToken)
+    {
+        if (fileStream.CanSeek)
+        {
+            fileStream.Position = 0;
+        }
+
+        using var buffer = new MemoryStream();
+        await fileStream.CopyToAsync(buffer, cancellationToken);
+        var bytes = buffer.ToArray();
+        if (bytes.Length == 0)
+        {
+            return [];
+        }
+
+        return IsXlsx(bytes)
+            ? ReadBomImportWorkbookRows(bytes)
+            : ReadBomImportCsvRows(bytes, cancellationToken);
+    }
+
+    private static bool IsXlsx(byte[] bytes)
+        => bytes.Length >= 2 && bytes[0] == (byte)'P' && bytes[1] == (byte)'K';
+
+    private static IReadOnlyList<BomImportSourceRow> ReadBomImportCsvRows(
+        byte[] bytes,
+        CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(new MemoryStream(bytes), Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+        var content = reader.ReadToEndAsync(cancellationToken).GetAwaiter().GetResult();
+        var lines = content.Split(["\r\n", "\n"], StringSplitOptions.None);
+        if (lines.Length <= 1)
+        {
+            return [];
+        }
+
+        var header = SplitCsvLine(lines[0]).Select(NormalizeHeader).ToList();
+        var result = new List<BomImportSourceRow>();
+        for (var i = 1; i < lines.Length; i++)
+        {
+            if (string.IsNullOrWhiteSpace(lines[i]))
+            {
+                continue;
+            }
+
+            var cells = SplitCsvLine(lines[i]);
+            var mapped = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            for (var cellIndex = 0; cellIndex < header.Count && cellIndex < cells.Count; cellIndex++)
+            {
+                mapped[header[cellIndex]] = cells[cellIndex];
+            }
+
+            result.Add(new BomImportSourceRow(i + 1, mapped));
+        }
+
+        return result;
+    }
+
+    private static IReadOnlyList<BomImportSourceRow> ReadBomImportWorkbookRows(byte[] bytes)
+    {
+        var tempFilePath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xlsx");
+        try
+        {
+            File.WriteAllBytes(tempFilePath, bytes);
+            var reader = new XlsxWorkbookReader();
+            var sheetNames = reader.GetSheetNames(tempFilePath);
+            var sheetName = sheetNames.FirstOrDefault(name => string.Equals(name, "BOM", StringComparison.OrdinalIgnoreCase))
+                ?? sheetNames.FirstOrDefault()
+                ?? throw new InvalidOperationException("File Excel không có sheet BOM.");
+            var rows = reader.ReadRowsWithMetadata(tempFilePath, sheetName);
+            var headerRow = rows.FirstOrDefault(row =>
+                BomTemplateWorkbookBuilder.Headers.All(header =>
+                    row.Cells.Values.Any(value => NormalizeHeader(value) == NormalizeHeader(header))));
+            if (headerRow is null)
+            {
+                throw new InvalidOperationException("File Excel BOM thiếu dòng header đúng cấu trúc.");
+            }
+
+            var headersByColumn = headerRow.Cells
+                .Where(item => !string.IsNullOrWhiteSpace(item.Value))
+                .ToDictionary(item => item.Key, item => NormalizeHeader(item.Value), StringComparer.OrdinalIgnoreCase);
+
+            return rows
+                .Where(row => row.RowNumber > headerRow.RowNumber)
+                .Where(row => row.Cells.Values.Any(value => !string.IsNullOrWhiteSpace(value)))
+                .Select(row =>
+                {
+                    var mapped = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    foreach (var (column, header) in headersByColumn)
+                    {
+                        mapped[header] = row.Cells.GetValueOrDefault(column, string.Empty);
+                    }
+
+                    return new BomImportSourceRow(row.RowNumber, mapped);
+                })
+                .ToList();
+        }
+        finally
+        {
+            if (File.Exists(tempFilePath))
+            {
+                File.Delete(tempFilePath);
+            }
+        }
     }
 
     private static List<string> SplitCsvLine(string line)
@@ -1188,8 +1372,106 @@ public class DishService : IDishService
     private static string NormalizeHeader(string value)
         => value.Trim().Replace(" ", string.Empty, StringComparison.OrdinalIgnoreCase).ToUpperInvariant();
 
+    private static bool IsBlankBomEntry(
+        string ingredientCode,
+        string ingredientName,
+        string unitCode,
+        string grossQty,
+        string wasteRate)
+        => string.IsNullOrWhiteSpace(ingredientCode) &&
+           string.IsNullOrWhiteSpace(ingredientName) &&
+           string.IsNullOrWhiteSpace(unitCode) &&
+           string.IsNullOrWhiteSpace(grossQty) &&
+           string.IsNullOrWhiteSpace(wasteRate);
+
+    private static string NormalizeIngredientLookupKey(string ingredientName, string unitCode)
+        => $"{NormalizeTextKey(ingredientName)}|{NormalizeTextKey(unitCode)}";
+
+    private static string NormalizeTextKey(string value)
+    {
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder();
+        foreach (var ch in normalized)
+        {
+            if (CharUnicodeInfo.GetUnicodeCategory(ch) != UnicodeCategory.NonSpacingMark && char.IsLetterOrDigit(ch))
+            {
+                builder.Append(char.ToUpperInvariant(ch));
+            }
+        }
+
+        return builder.ToString();
+    }
+
+    private static string CreateUniqueIngredientCode(string ingredientName, ISet<string> usedCodes)
+    {
+        var baseCode = CreateIngredientCodeBase(ingredientName);
+        var candidate = baseCode;
+        for (var suffix = 2; usedCodes.Contains(candidate); suffix++)
+        {
+            var trimmedBase = baseCode.Length > 44 ? baseCode[..44] : baseCode;
+            candidate = $"{trimmedBase}-{suffix}";
+        }
+
+        usedCodes.Add(candidate);
+        return candidate;
+    }
+
+    private static string CreateIngredientCodeBase(string ingredientName)
+    {
+        var key = NormalizeTextKey(ingredientName);
+        if (string.IsNullOrWhiteSpace(key))
+        {
+            key = "NEW";
+        }
+
+        return $"ING-{(key.Length > 32 ? key[..32] : key)}";
+    }
+
     private static string ToCsvLine(IEnumerable<string> cells)
         => string.Join(",", cells.Select(cell => $"\"{(cell ?? string.Empty).Replace("\"", "\"\"")}\""));
+
+    private async Task<Ingredient> CreateImportedIngredientAsync(
+        BomImportRow row,
+        IDictionary<string, Ingredient> importedIngredients,
+        CancellationToken cancellationToken)
+    {
+        if (importedIngredients.TryGetValue(row.IngredientCode, out var cachedIngredient))
+        {
+            return cachedIngredient;
+        }
+
+        var existingIngredient = await _context.Ingredients
+            .Include(item => item.Unit)
+            .FirstOrDefaultAsync(item => item.IngredientCode == row.IngredientCode, cancellationToken);
+        if (existingIngredient is not null)
+        {
+            importedIngredients[row.IngredientCode] = existingIngredient;
+            return existingIngredient;
+        }
+
+        var warehouseId = await _context.Warehouses
+            .AsNoTracking()
+            .OrderBy(item => item.WarehouseCode)
+            .Select(item => item.WarehouseId)
+            .FirstOrDefaultAsync(cancellationToken)
+            ?? throw new InvalidOperationException("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
+
+        var ingredient = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = row.IngredientCode,
+            IngredientName = row.IngredientName.Trim(),
+            UnitId = row.Unit!.UnitId,
+            WarehouseId = warehouseId,
+            ReferencePrice = 0,
+            IsFreshDaily = false,
+            IsActive = true
+        };
+
+        _context.Ingredients.Add(ingredient);
+        importedIngredients[row.IngredientCode] = ingredient;
+        return ingredient;
+    }
 
     private async Task<string?> ResolveCustomerCodeAsync(byte[]? customerId, CancellationToken cancellationToken)
     {
@@ -1220,10 +1502,60 @@ public class DishService : IDishService
         };
     }
 
+    private static bool IsSupportedBomTier(decimal tier)
+        => tier is 25000m or 30000m or 34000m;
+
+    private static string NormalizeBomTemplateType(string? templateType, bool hasDishFilter)
+    {
+        var normalized = string.IsNullOrWhiteSpace(templateType)
+            ? (hasDishFilter ? "dish" : "missing")
+            : templateType.Trim().ToLowerInvariant();
+        return normalized switch
+        {
+            "missing" or "blank" or "all" or "dish" => normalized,
+            _ => "missing"
+        };
+    }
+
     private static byte[]? ParseOptionalCustomerId(string? customerId)
         => string.IsNullOrWhiteSpace(customerId)
             ? null
             : GuidHelper.ParseGuidString(customerId) ?? throw new ArgumentException("Khách hàng không hợp lệ.");
+
+    private static byte[]? ParseOptionalDishId(string? dishId)
+        => string.IsNullOrWhiteSpace(dishId)
+            ? null
+            : GuidHelper.ParseGuidString(dishId) ?? throw new ArgumentException("Món ăn không hợp lệ.");
+
+    private static void AddBlankBomRows(
+        ICollection<IReadOnlyList<string>> rows,
+        Dish dish,
+        decimal priceTier,
+        string? customerCode,
+        string effectiveFrom)
+    {
+        for (var index = 0; index < BlankBomRowsPerDish; index++)
+        {
+            rows.Add([
+                dish.DishCode,
+                dish.DishName,
+                priceTier.ToString("0.##", CultureInfo.InvariantCulture),
+                customerCode ?? string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                string.Empty,
+                effectiveFrom,
+                string.Empty,
+                BomStatusPublished,
+                string.Empty
+            ]);
+        }
+    }
+
+    private sealed record BomImportSourceRow(
+        int RowNumber,
+        IReadOnlyDictionary<string, string> Cells);
 
     private sealed record BomImportRow(
         int RowNumber,
@@ -1313,6 +1645,7 @@ public class DishService : IDishService
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList(),
         BomLines = e.Dishboms
+            .Where(bom => IsSupportedBomTier(bom.PriceTierAmount))
             .OrderBy(bom => bom.Ingredient.IngredientName)
             .ThenBy(bom => bom.EffectiveFrom)
             .Select(MapCatalogBomLine)
@@ -1347,7 +1680,8 @@ public class DishService : IDishService
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
             .Include(line => line.Customer)
-            .Where(line => line.DishId == dishBytes);
+            .Where(line => line.DishId == dishBytes)
+            .Where(line => SupportedBomPriceTiers.Contains(line.PriceTierAmount));
 
     private Task<bool> HasOverlappingBomLineAsync(
         byte[] dishId,

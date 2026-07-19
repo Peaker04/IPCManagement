@@ -1,12 +1,12 @@
-import { useEffect, useMemo, useRef, useState, Fragment } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X, Download } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PageStepper, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
-import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
+import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
 import { ROUTES } from '@/routes/routeConfig';
@@ -14,8 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
-import type { CatalogDish } from '../dishCatalogApi';
-import type { CreateCustomerContractRequest, WeeklyMenuState } from '../../coordination/types';
+import type { CreateCustomerContractRequest, ProductionPlanDto, WeeklyMenuState } from '../../coordination/types';
 import {
   useCreateCustomerContractMutation,
   useCommitWeeklyMenuImportMutation,
@@ -25,14 +24,15 @@ import {
   useGetMealQuantityPlansQuery,
   useGetMenuSchedulesQuery,
   useGetProductionPlansQuery,
+  useLazyGetProductionPlansQuery,
   usePreviewWeeklyMenuImportMutation,
+  useDownloadWeeklyMenuTemplateMutation,
   useSaveCustomerImportMappingMutation,
   useUpsertQuickServingsMutation,
   useUpdateWeeklyMenuBulkMutation,
   useGetWeeklyMenuImportHistoryQuery,
   useRollbackWeeklyMenuImportMutation,
 } from '../../coordination/coordinationApi';
-import type { WeeklyMenuImportResult } from '../../coordination/coordinationApi';
 import {
   BOM_PRICE_TIERS,
   DEFAULT_BOM_PRICE_TIER,
@@ -45,863 +45,65 @@ import {
   normalizeBomPriceTier,
 } from '../weeklyMenuPlanning';
 import type { BomPriceTier } from '../weeklyMenuPlanning';
-
-interface MaterialSummaryEntry {
-  theory: number;
-  actual: number;
-  unit: string;
-  referencePrice: number;
-  dishNames: string[];
-}
-
-type MaterialSummary = Record<string, MaterialSummaryEntry>;
-type MaterialSummaryAccumulator = Record<string, MaterialSummaryEntry & { dishNameSet: Set<string> }>;
+import { ImportedLayoutMatrix } from '../components/ImportedLayoutMatrix';
+import {
+  formatFileSize,
+  formatImportDate,
+  formatMaterialDishSource,
+  formatMenuDishName,
+  formatQuantityVariance,
+  getApiErrorMessage,
+  getImportJobStatusLabel,
+  getShiftLabel,
+  getStoredWeekStartDate,
+  getVariantLabel,
+  importSlotLabels,
+  isMeaningfulMenuDiff,
+  isValidWeekStartDate,
+  LAST_WEEKLY_MENU_CUSTOMER_KEY,
+  LAST_WEEKLY_MENU_WEEK_KEY,
+  normalizeDishMatchKey,
+  parseDisplayDateToIso,
+  summarizeImportWarnings,
+  toLocalIsoDate,
+} from '../weekly-menu/model/formatters';
+import {
+  aggregateDemandLinesByMaterial,
+  buildImportedDayDates,
+  buildImportedLayoutRows,
+  buildPlanRowsMaterialSummary,
+  calculateTotalMaterialCost,
+  getNormalizedSlotType,
+  getQuickServingKey,
+  isWeeklyMenuRowContinuation,
+  matchesCategory,
+  matchesShift,
+  QUICK_SERVING_SHIFTS,
+  runInBatches,
+  SECTIONS,
+} from '../weekly-menu/model/scope';
+import type {
+  PurchaseSummaryMaterialEntry,
+  QuickServingShiftName,
+  ServingsStatus,
+  WeeklyMenuImportJob,
+  WeeklyMenuView,
+  WeeklyPlanRow,
+} from '../weekly-menu/model/types';
+import {
+  buildImportDuplicateGroups,
+  buildImportValidationChecks,
+  getBlockingImportIssues,
+  getImportJobStatusClass,
+  getImportWizardStep,
+  getImportWizardStepClass,
+  hasBlockingImportIssues,
+  importWizardSteps,
+} from '../weekly-menu/import/importValidation';
 
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
 const PURCHASE_SUMMARY_PAGE_SIZE = 10;
-
-type ServingsStatus = 'confirmed' | 'draft' | 'import-default' | 'missing';
-
-type WeeklyPlanRow = {
-  key: string;
-  dayKey: string;
-  dayLabel: string;
-  date: string;
-  serviceDate: string;
-  sectionLabel: string;
-  shiftLabel: string;
-  menuTypeLabel: string;
-  slotLabel: string;
-  dishId: string;
-  dishName: string;
-  portions: number;
-  importedPortions: number;
-  servingsStatus: ServingsStatus;
-  servingsStatusLabel: string;
-  hasConfirmedServings: boolean;
-  hasCatalogBom: boolean;
-  menuPrice: number;
-  bomRatePercent: number;
-  quantityFactor: number;
-};
-
-type ImportedLayoutRow = {
-  key: string;
-  firstIndex: number;
-  sourceSection: string;
-  slot: string;
-  slotLabel: string;
-  cells: Record<string, WeeklyMenuImportResult['rows'][number]>;
-};
-
-type WeeklyMenuImportJobStatus = 'idle' | 'previewing' | 'previewed' | 'committing' | 'committed' | 'failed';
-type ImportWizardStep = 'upload' | 'validate' | 'commit';
-type ImportValidationTone = 'success' | 'warning' | 'danger' | 'info' | 'neutral';
-
-type WeeklyMenuImportJob = {
-  jobId: string;
-  customerId: string;
-  customerCode: string;
-  customerName: string;
-  weekStartDate: string;
-  priceTierAmount: BomPriceTier;
-  file: File;
-  fileName: string;
-  fileSize: number;
-  status: WeeklyMenuImportJobStatus;
-  previewResult: WeeklyMenuImportResult | null;
-  warnings: string[];
-  error: string | null;
-};
-
-type ImportValidationCheck = {
-  key: string;
-  label: string;
-  value: string;
-  detail: string;
-  tone: ImportValidationTone;
-  blocking?: boolean;
-};
-
-type ImportDuplicateGroup = {
-  key: string;
-  label: string;
-  rowCount: number;
-  locations: string[];
-};
-
-type PurchaseSummaryMaterialEntry = [string, MaterialSummaryEntry];
-type QuickServingShiftName = 'MORNING' | 'AFTERNOON';
-
-const QUICK_SERVING_SHIFTS: Array<{ shiftName: QuickServingShiftName; shiftLabel: 'Ca Sáng' | 'Ca Chiều' }> = [
-  { shiftName: 'MORNING', shiftLabel: 'Ca Sáng' },
-  { shiftName: 'AFTERNOON', shiftLabel: 'Ca Chiều' },
-];
-
-const runInBatches = async <T, R>(
-  items: T[],
-  batchSize: number,
-  worker: (item: T) => Promise<R>,
-) => {
-  const results: R[] = [];
-  for (let index = 0; index < items.length; index += batchSize) {
-    const batch = items.slice(index, index + batchSize);
-    const batchResults = await Promise.all(batch.map((item) => worker(item)));
-    results.push(...batchResults);
-  }
-  return results;
-};
-
-type LayoutCellSpan = {
-  hidden: boolean;
-  span: number;
-};
-
-const importSlotLabels: Record<string, string> = {
-  main: 'Món chính',
-  sub1: 'Phụ 1',
-  sub2: 'Phụ 2',
-  rau: 'Rau',
-  canh: 'Canh',
-  fruit: 'Trái cây',
-  dessert: 'Sữa chua',
-};
-
-const getShiftLabel = (shiftName?: string) => {
-  if (shiftName === 'MORNING') return 'Ca sáng';
-  if (shiftName === 'AFTERNOON') return 'Ca chiều';
-  return shiftName || 'Chưa xác định ca';
-};
-
-const getVariantLabel = (variant?: string) => {
-  const normalized = (variant ?? '').toLowerCase();
-  if (normalized === 'savory') return 'Mặn';
-  if (normalized === 'vegetarian') return 'Chay';
-  return variant || 'Theo file';
-};
-
-const isLegacyFruitLabel = (value?: string) =>
-  normalizeDishMatchKey(value).includes('TRAI CAY');
-
-const stripDishDisplayWeight = (value?: string | null) =>
-  (value ?? '')
-    .replace(/\s*\b\d+(?:[.,]\d+)?\s*(?:g|gram|kg)\b/gi, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-const formatMenuDishName = (value?: string | null) => {
-  const stripped = stripDishDisplayWeight(value);
-  return stripped || value || '-';
-};
-
-const normalizeMenuDisplayDiff = (value?: string | null) =>
-  normalizeDishMatchKey(stripDishDisplayWeight(value));
-
-const isMeaningfulMenuDiff = (row: WeeklyMenuImportResult['previewDiff']['rows'][number]) => {
-  if (row.changeType === 'unchanged') return false;
-  return normalizeMenuDisplayDiff(row.currentDishName) !== normalizeMenuDisplayDiff(row.importedDishName);
-};
-
-const summarizeImportWarnings = (warnings: string[]) => {
-  const uniqueWarnings = Array.from(new Set(warnings.filter(Boolean)));
-  const contractWarnings = uniqueWarnings.filter((warning) =>
-    warning.includes('Không có hợp đồng hiệu lực') && warning.includes('dùng giá mặc định'),
-  );
-  const otherWarnings = uniqueWarnings.filter((warning) => !contractWarnings.includes(warning));
-
-  if (contractWarnings.length === 0) {
-    return otherWarnings;
-  }
-
-  const firstMatch = /cho\s+(.+?)\s+ngày/i.exec(contractWarnings[0]);
-  const customer = firstMatch?.[1]?.trim();
-  const priceMatch = /dùng giá mặc định\s+(.+?)(?:\s+và\s+BOM|$)/i.exec(contractWarnings[0]);
-  const price = priceMatch?.[1]?.trim();
-  const summary = [
-    `Không có hợp đồng hiệu lực${customer ? ` cho ${customer}` : ''}: ${contractWarnings.length} ca/ngày đang dùng giá mặc định${price ? ` ${price}` : ''} và BOM 100%.`,
-  ];
-
-  return [...summary, ...otherWarnings];
-};
-
-const resolveImportedSlotLabel = (
-  row: WeeklyMenuImportResult['rows'][number],
-  occurrence: number,
-) => {
-  const label = row.slotLabel || importSlotLabels[row.slot] || row.slot;
-  if (row.slot === 'fruit' && occurrence > 1 && isLegacyFruitLabel(label)) {
-    return 'Sữa chua';
-  }
-
-  return label;
-};
-
-const getNormalizedSlotType = (row: WeeklyMenuImportResult['rows'][number]) => {
-  const shift = row.dbShiftName === 'MORNING' ? 'morning' : 'afternoon';
-  const variant = row.variant?.toLowerCase() === 'vegetarian' ? 'Vegetarian' : 'Savory';
-  return `${shift}${variant}` as keyof WeeklyMenuState[string];
-};
-
-const buildImportedLayoutRows = (rows: WeeklyMenuImportResult['rows'] = []) => {
-  const rowMap = new Map<string, ImportedLayoutRow>();
-  const occurrenceByDaySlot = new Map<string, number>();
-
-  rows.forEach((row, index) => {
-    const repeatedSlotKey = [
-      row.serviceDate,
-      row.sourceSection,
-      row.dbShiftName,
-      row.variant,
-      row.slot,
-      row.slotLabel,
-    ].join('|');
-    const occurrence = (occurrenceByDaySlot.get(repeatedSlotKey) ?? 0) + 1;
-    occurrenceByDaySlot.set(repeatedSlotKey, occurrence);
-    const sourceRowKey = row.sourceRowNumber > 0 ? `row-${row.sourceRowNumber}` : `occurrence-${occurrence}`;
-    const key = [
-      row.sourceSection,
-      row.dbShiftName,
-      row.variant,
-      row.slot,
-      row.slotLabel,
-      sourceRowKey,
-    ].join('|');
-
-    const current = rowMap.get(key) ?? {
-      key,
-      firstIndex: index,
-      sourceSection: row.sourceSection,
-      slot: row.slot,
-      slotLabel: resolveImportedSlotLabel(row, occurrence),
-      cells: {},
-    };
-
-    current.cells[row.dayKey] = row;
-    rowMap.set(key, current);
-  });
-
-  return Array.from(rowMap.values()).sort((a, b) => a.firstIndex - b.firstIndex);
-};
-
-const isSameMergedDish = (
-  current?: WeeklyMenuImportResult['rows'][number],
-  next?: WeeklyMenuImportResult['rows'][number],
-) => {
-  if (!current || !next) return false;
-
-  return current.dishName.trim().toLocaleUpperCase('vi-VN') === next.dishName.trim().toLocaleUpperCase('vi-VN') &&
-    current.sourceSection === next.sourceSection &&
-    current.dbShiftName === next.dbShiftName &&
-    current.variant === next.variant;
-};
-
-const buildLayoutCellSpans = (
-  rows: ImportedLayoutRow[],
-  displayDays: Array<{ key: string }>,
-) => {
-  const spans = new Map<string, LayoutCellSpan>();
-  const hasSourceMergeMetadata = rows.some((row) =>
-    Object.values(row.cells).some((cell) => cell.sourceRowNumber > 0),
-  );
-
-  displayDays.forEach((day) => {
-    rows.forEach((row, index) => {
-      const cellKey = `${row.key}|${day.key}`;
-      const cell = row.cells[day.key];
-      if (!cell) {
-        spans.set(cellKey, { hidden: false, span: 1 });
-        return;
-      }
-
-      if (hasSourceMergeMetadata) {
-        spans.set(cellKey, {
-          hidden: cell.isMergedContinuation,
-          span: cell.isMergedContinuation ? 1 : Math.max(1, Math.min(cell.rowSpan || 1, rows.length - index)),
-        });
-        return;
-      }
-
-      const previous = rows[index - 1]?.cells[day.key];
-      if (isSameMergedDish(previous, cell)) {
-        spans.set(cellKey, { hidden: true, span: 1 });
-        return;
-      }
-
-      let span = 1;
-      for (let nextIndex = index + 1; nextIndex < rows.length; nextIndex += 1) {
-        if (!isSameMergedDish(cell, rows[nextIndex]?.cells[day.key])) {
-          break;
-        }
-
-        span += 1;
-      }
-
-      spans.set(cellKey, { hidden: false, span });
-    });
-  });
-
-  return spans;
-};
-
-const isWeeklyMenuRowContinuation = (
-  row: WeeklyMenuImportResult['rows'][number],
-  index: number,
-  rows: WeeklyMenuImportResult['rows'],
-) => {
-  if (row.isMergedContinuation) return true;
-  if (row.sourceRowNumber > 0) return false;
-
-  return isSameMergedDish(rows[index - 1], row);
-};
-
-const getDishSearchText = (dish: CatalogDish): string =>
-  [
-    dish.name,
-    dish.code,
-    dish.dishType,
-    dish.dishGroup,
-    ...dish.menuSlots,
-  ]
-    .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
-
-const matchesShift = (dish: CatalogDish, shift: 'morning' | 'afternoon') => {
-  const text = getDishSearchText(dish);
-  if (shift === 'morning') {
-    return text.includes('sáng') || text.includes('morning') || !text.includes('chiều');
-  }
-
-  return text.includes('chiều') || text.includes('afternoon') || !text.includes('sáng');
-};
-
-const matchesCategory = (dish: CatalogDish, category: 'savory' | 'vegetarian') => {
-  const text = getDishSearchText(dish);
-  const isVegetarian = text.includes('chay') || text.includes('vegetarian');
-  return category === 'vegetarian' ? isVegetarian : !isVegetarian;
-};
-
-const SECTIONS = [
-  { label: 'MENU MẶN CA SÁNG', slotType: 'morningSavory' as const, category: 'savory' as const, shift: 'morning' as const },
-  { label: 'MENU CHAY CA SÁNG', slotType: 'morningVegetarian' as const, category: 'vegetarian' as const, shift: 'morning' as const },
-  { label: 'MENU MẶN - CA CHIỀU', slotType: 'afternoonSavory' as const, category: 'savory' as const, shift: 'afternoon' as const },
-  { label: 'MENU CHAY - CA CHIỀU', slotType: 'afternoonVegetarian' as const, category: 'vegetarian' as const, shift: 'afternoon' as const }
-] as const;
-
-const normalizeDishMatchKey = (value?: string) =>
-  (value ?? '')
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[Đđ]/g, 'd')
-    .replace(/\b\d+\s*(g|gram)\b/gi, ' ')
-    .trim()
-    .replace(/\s+/g, ' ')
-    .toLocaleUpperCase('vi-VN');
-
-type WeeklyMenuView = 'schedule' | 'demand' | 'purchase-summary' | 'cost' | 'dish-materials' | 'production-plan';
-
-const addDishToMaterialSummary = (
-  summary: MaterialSummaryAccumulator,
-  dish: CatalogDish,
-  dishName: string,
-  portions: number,
-  quantityFactor: number,
-) => {
-  dish.ingredients.forEach((ingredient) => {
-    if (!summary[ingredient.name]) {
-      summary[ingredient.name] = {
-        theory: 0,
-        actual: 0,
-        unit: ingredient.unit,
-        referencePrice: ingredient.referencePrice,
-        dishNames: [],
-        dishNameSet: new Set<string>(),
-      };
-    }
-
-    const theoryQty = ingredient.grossQtyPerServing * portions;
-    summary[ingredient.name].theory += theoryQty;
-    summary[ingredient.name].actual += theoryQty * quantityFactor;
-    summary[ingredient.name].dishNameSet.add(formatMenuDishName(dishName || dish.name));
-  });
-};
-
-const finalizeMaterialSummary = (summary: MaterialSummaryAccumulator): MaterialSummary =>
-  Object.fromEntries(
-    Object.entries(summary).map(([name, data]) => [
-      name,
-      {
-        theory: data.theory,
-        actual: data.actual,
-        unit: data.unit,
-        referencePrice: data.referencePrice,
-        dishNames: Array.from(data.dishNameSet).sort((a, b) => a.localeCompare(b, 'vi-VN')),
-      },
-    ]),
-  ) as MaterialSummary;
-
-const buildPlanRowsMaterialSummary = (
-  rows: WeeklyPlanRow[],
-  dishesById: Map<string, CatalogDish>,
-  dishesByName: Map<string, CatalogDish>,
-): MaterialSummary => {
-  const summary: MaterialSummaryAccumulator = {};
-
-  rows.forEach((row) => {
-    const dish = (row.dishId ? dishesById.get(row.dishId) : undefined) ?? dishesByName.get(normalizeDishMatchKey(row.dishName));
-    if (!dish) return;
-
-    addDishToMaterialSummary(summary, dish, row.dishName, row.portions, row.quantityFactor);
-  });
-
-  return finalizeMaterialSummary(summary);
-};
-
-const calculateTotalMaterialCost = (materialSummary: MaterialSummary): number =>
-  Object.values(materialSummary).reduce((total, data) => total + data.actual * data.referencePrice, 0);
-
-const formatMaterialDishSource = (dishNames: string[]) => {
-  const uniqueNames = Array.from(new Set(dishNames.filter(Boolean)));
-  if (uniqueNames.length === 0) return 'Chưa xác định';
-  if (uniqueNames.length <= 2) return uniqueNames.join(', ');
-  return `${uniqueNames.slice(0, 2).join(', ')} +${uniqueNames.length - 2} món`;
-};
-
-const formatQuantityVariance = (value: number, unit: string) => {
-  if (value > 0) return `+${formatQuantityWithUnit(value, unit)}`;
-  if (value < 0) return `-${formatQuantityWithUnit(Math.abs(value), unit)}`;
-  return formatQuantityWithUnit(0, unit);
-};
-
-const getQuickServingKey = (serviceDate: string, shiftName: QuickServingShiftName) =>
-  `${serviceDate}|${shiftName}`;
-
-const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[] => {
-  const groups = new Map<string, {
-    id: string;
-    material: string;
-    unit: string;
-    required: number;
-    available: number;
-    reserved: number;
-    sources: Set<string>;
-    materialRequestIds: Set<string>;
-    sourceDocumentCodes: Set<string>;
-    hasCancelled: boolean;
-  }>();
-
-  lines.forEach((line) => {
-    const key = `${line.material}__${line.unit}`;
-    const current = groups.get(key) ?? {
-      id: `material-${key}`,
-      material: line.material,
-      unit: line.unit,
-      required: 0,
-      available: 0,
-      reserved: 0,
-      sources: new Set<string>(),
-      materialRequestIds: new Set<string>(),
-      sourceDocumentCodes: new Set<string>(),
-      hasCancelled: false,
-    };
-
-    current.required += line.required;
-    current.available = Math.max(current.available, line.available);
-    current.reserved += line.reserved;
-    if (line.source) current.sources.add(line.source);
-    if (line.materialRequestId) current.materialRequestIds.add(line.materialRequestId);
-    if (line.sourceDocumentCode) current.sourceDocumentCodes.add(line.sourceDocumentCode);
-    current.hasCancelled = current.hasCancelled || line.status.toLowerCase().includes('tạo lại');
-    groups.set(key, current);
-  });
-
-  return Array.from(groups.values())
-    .map((group): DemandLine => {
-      const availableAfterReserve = group.available - group.reserved;
-      const shortage = Math.max(group.required - availableAfterReserve, 0);
-      const tone: DemandLine['tone'] = group.hasCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success';
-
-      return {
-        id: group.id,
-        materialRequestId: group.materialRequestIds.size === 1 ? Array.from(group.materialRequestIds)[0] : undefined,
-        sourceDocumentCode: group.sourceDocumentCodes.size === 1 ? Array.from(group.sourceDocumentCodes)[0] : undefined,
-        material: group.material,
-        required: group.required,
-        available: group.available,
-        reserved: group.reserved,
-        unit: group.unit,
-        source: formatMaterialDishSource(Array.from(group.sources)),
-        status: group.hasCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-        nextAction: group.hasCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
-        tone,
-      };
-    })
-    .sort((left, right) => left.material.localeCompare(right.material, 'vi-VN'));
-};
-
-const formatImportDate = (value?: string) => {
-  if (!value) return 'Chưa xác định';
-  const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (dateOnlyMatch) {
-    return `${Number(dateOnlyMatch[3])}/${Number(dateOnlyMatch[2])}/${dateOnlyMatch[1]}`;
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-  return parsed.toLocaleDateString('vi-VN');
-};
-
-const formatFileSize = (bytes?: number) => {
-  if (!bytes) return '0 KB';
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024)).toLocaleString('vi-VN')} KB`;
-  return `${(bytes / (1024 * 1024)).toLocaleString('vi-VN', { maximumFractionDigits: 1 })} MB`;
-};
-
-const toLocalIsoDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const parseDisplayDateToIso = (value?: string) => {
-  if (!value) return '';
-  const isoMatch = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
-  if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}-${isoMatch[3]}`;
-
-  const displayMatch = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value.trim());
-  if (!displayMatch) return '';
-
-  return `${displayMatch[3]}-${displayMatch[2].padStart(2, '0')}-${displayMatch[1].padStart(2, '0')}`;
-};
-
-const LAST_WEEKLY_MENU_CUSTOMER_KEY = 'ipc.weeklyMenu.lastCustomerId';
-const LAST_WEEKLY_MENU_WEEK_KEY = 'ipc.weeklyMenu.lastWeekStartDate';
-
-const isValidWeekStartDate = (value: string) => {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return true;
-
-  const parsed = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-  return parsed.getDay() === 1;
-};
-
-const getStoredWeekStartDate = () => {
-  const stored = window.localStorage.getItem(LAST_WEEKLY_MENU_WEEK_KEY) ?? '';
-  if (stored && !isValidWeekStartDate(stored)) {
-    window.localStorage.removeItem(LAST_WEEKLY_MENU_WEEK_KEY);
-    return '';
-  }
-
-  return stored;
-};
-
-const getApiErrorMessage = (err: unknown, fallback: string) => {
-  const error = err as { data?: { message?: string }, message?: string };
-  return error.data?.message || error.message || fallback;
-};
-
-const getImportJobStatusLabel = (status: WeeklyMenuImportJobStatus) => {
-  switch (status) {
-    case 'previewing':
-      return 'Đang kiểm tra';
-    case 'previewed':
-      return 'Có thể lưu';
-    case 'committing':
-      return 'Đang lưu';
-    case 'committed':
-      return 'Đã lưu';
-    case 'failed':
-      return 'Cần sửa';
-    default:
-      return 'Chưa kiểm tra';
-  }
-};
-
-const getImportJobStatusClass = (status: WeeklyMenuImportJobStatus) =>
-  cn(
-    'inline-flex min-w-[116px] items-center justify-center rounded border px-2 py-1 text-xs font-bold',
-    status === 'committed' && 'border-emerald-200 bg-emerald-50 text-emerald-800',
-    status === 'previewed' && 'border-blue-200 bg-blue-50 text-blue-800',
-    (status === 'previewing' || status === 'committing') && 'border-amber-200 bg-amber-50 text-amber-800',
-    status === 'failed' && 'border-red-200 bg-red-50 text-red-700',
-    status === 'idle' && 'border-slate-200 bg-slate-50 text-slate-700',
-  );
-
-const duplicateImportWarningPattern = /dòng trùng/i;
-
-const importWizardSteps: Array<{ key: ImportWizardStep; label: string; hint: string }> = [
-  { key: 'upload', label: 'Chọn file', hint: 'Chọn khách hàng, tuần và file Excel' },
-  { key: 'validate', label: 'Kiểm tra', hint: 'Xem lỗi ngày, món ăn hoặc dòng trùng' },
-  { key: 'commit', label: 'Lưu thực đơn', hint: 'Lưu các file đã kiểm tra xong' },
-];
-
-const getImportWizardStep = (jobs: WeeklyMenuImportJob[]): ImportWizardStep => {
-  if (jobs.some((job) => job.status === 'committed')) return 'commit';
-  if (jobs.some((job) => job.status !== 'idle')) return 'validate';
-  return 'upload';
-};
-
-const getImportWizardStepClass = (step: ImportWizardStep, activeStep: ImportWizardStep) =>
-  cn(
-    'rounded-md border px-3 py-2',
-    step === activeStep && 'border-blue-300 bg-blue-50 text-blue-900',
-    step !== activeStep && 'border-slate-200 bg-white text-slate-600',
-  );
-
-const buildImportDuplicateGroups = (rows: WeeklyMenuImportResult['rows'] = []): ImportDuplicateGroup[] => {
-  const groups = new Map<string, WeeklyMenuImportResult['rows']>();
-  rows.forEach((row) => {
-    const key = [row.serviceDate, row.dbShiftName, row.variant, row.slot].join('|').toLowerCase();
-    groups.set(key, [...(groups.get(key) ?? []), row]);
-  });
-
-  return Array.from(groups.entries())
-    .filter(([, groupRows]) => groupRows.length > 1)
-    .map(([key, groupRows]) => {
-      const first = groupRows[0];
-      return {
-        key,
-        label: `${formatImportDate(first.serviceDate)} ${getShiftLabel(first.dbShiftName)} ${getVariantLabel(first.variant)} / ${first.slotLabel || importSlotLabels[first.slot] || first.slot}`,
-        rowCount: groupRows.length,
-        locations: groupRows.map((row) => `${row.sourceColumn}${row.sourceRowNumber}: ${formatMenuDishName(row.dishName)}`),
-      };
-    });
-};
-
-const getBlockingImportIssues = (result?: WeeklyMenuImportResult | null) => {
-  if (!result) return [];
-
-  const issues: string[] = [];
-  const validationErrors = result.validation?.issues
-    ?.filter((issue) => issue.severity.toLowerCase() === 'error')
-    .map((issue) => issue.message) ?? [];
-  issues.push(...validationErrors);
-
-  const duplicateGroups = buildImportDuplicateGroups(result.rows);
-  if (duplicateGroups.length > 0 || result.warnings.some((warning) => duplicateImportWarningPattern.test(warning))) {
-    issues.push('Có dòng bị trùng trong cùng ngày, ca và vị trí món. Vui lòng sửa file rồi kiểm tra lại.');
-  }
-
-  return Array.from(new Set(issues));
-};
-
-const hasBlockingImportIssues = (result?: WeeklyMenuImportResult | null) =>
-  getBlockingImportIssues(result).length > 0;
-
-const buildImportValidationChecks = (job?: WeeklyMenuImportJob): ImportValidationCheck[] => {
-  if (!job) {
-    return [
-      {
-        key: 'empty',
-        label: 'Chưa có file',
-        value: 'Chưa chọn',
-        detail: 'Thêm ít nhất một file Excel để bắt đầu kiểm tra.',
-        tone: 'neutral',
-      },
-    ];
-  }
-
-  const result = job.previewResult;
-  const duplicateGroups = buildImportDuplicateGroups(result?.rows ?? []);
-  const newDishCount = result?.rows.filter((row) => !row.existingDish).length ?? 0;
-  const warningCount = result?.validation?.warningCount ?? result?.warnings.length ?? 0;
-  const errorCount = result?.validation?.errorCount ?? 0;
-  const weekMatches = !result?.weekStartDate || !job.weekStartDate || result.weekStartDate.startsWith(job.weekStartDate);
-
-  return [
-    {
-      key: 'template',
-      label: 'File Excel',
-      value: result ? `${result.detectedLayout.sheetName || 'Trang tính'} / ${result.detectedLayout.dayColumns.length} ngày` : 'Chưa kiểm tra',
-      detail: result
-        ? `${result.detectedLayout.rowsImported} dòng món hợp lệ, ${result.detectedLayout.rowsSkipped} dòng bỏ qua.`
-        : 'Bấm Kiểm tra để đọc file Excel.',
-      tone: result ? 'success' : job.status === 'failed' ? 'danger' : 'neutral',
-      blocking: job.status === 'failed' && !result,
-    },
-    {
-      key: 'customer',
-      label: 'Khách hàng',
-      value: result ? `${result.customerCode} - ${result.customerName}` : `${job.customerCode} - ${job.customerName}`,
-      detail: result ? 'Đã nhận đúng khách hàng đã chọn.' : 'Khách hàng này sẽ dùng cho file vừa chọn.',
-      tone: result ? 'success' : 'neutral',
-    },
-    {
-      key: 'week',
-      label: 'Tuần',
-      value: result?.weekStartDate
-        ? `${formatImportDate(result.weekStartDate)} - ${formatImportDate(result.weekEndDate)}`
-        : job.weekStartDate
-          ? formatImportDate(job.weekStartDate)
-          : 'Tự nhận theo file',
-      detail: weekMatches ? 'Tuần import đã có mốc ngày rõ ràng.' : 'Tuần trong file khác ngày bắt đầu đã chọn.',
-      tone: weekMatches ? (result ? 'success' : 'neutral') : 'danger',
-      blocking: !weekMatches,
-    },
-    {
-      key: 'price-tier',
-      label: 'Định mức BOM',
-      value: formatBomTierLabel(job.priceTierAmount),
-      detail: 'Áp dụng cho toàn bộ file khi lưu menu.',
-      tone: 'success',
-    },
-    {
-      key: 'dish',
-      label: 'Món ăn',
-      value: result ? `${result.rows.length - newDishCount} đã có / ${newDishCount} món mới` : 'Chưa kiểm tra',
-      detail: newDishCount > 0
-        ? 'Món mới sẽ được tạo khi lưu; kiểm tra lại tên món.'
-        : 'Các món trong file đã khớp với danh sách món hiện có.',
-      tone: !result ? 'neutral' : newDishCount > 0 ? 'warning' : 'success',
-    },
-    {
-      key: 'duplicate',
-      label: 'Dòng trùng',
-      value: result ? `${duplicateGroups.length} nhóm trùng` : 'Chưa kiểm tra',
-      detail: duplicateGroups.length > 0
-        ? duplicateGroups.slice(0, 2).map((group) => `${group.label}: ${group.locations.join(', ')}`).join(' | ')
-        : 'Không thấy dòng trùng cùng ngày/ca/loại/ô món.',
-      tone: duplicateGroups.length > 0 || result?.validation?.issues.some((issue) => issue.code === 'DUPLICATE_SLOT') ? 'danger' : result ? 'success' : 'neutral',
-      blocking: duplicateGroups.length > 0 || result?.validation?.issues.some((issue) => issue.code === 'DUPLICATE_SLOT'),
-    },
-    {
-      key: 'critical',
-      label: 'Lỗi cần sửa',
-      value: result ? `${errorCount} lỗi` : 'Chưa kiểm tra',
-      detail: errorCount > 0
-        ? result?.validation?.issues.filter((issue) => issue.severity.toLowerCase() === 'error').slice(0, 2).map((issue) => `${issue.cell ?? issue.field ?? issue.code}: ${issue.message}`).join(' | ') ?? 'Có lỗi cần sửa.'
-        : 'Không có lỗi bắt buộc sửa; file có thể lưu nếu các mục khác ổn.',
-      tone: errorCount > 0 ? 'danger' : result ? 'success' : 'neutral',
-      blocking: errorCount > 0,
-    },
-    {
-      key: 'warnings',
-      label: 'Nhắc nhở',
-      value: result ? `${warningCount} nhắc nhở` : 'Chưa kiểm tra',
-      detail: warningCount > 0 ? summarizeImportWarnings(result?.warnings ?? []).slice(0, 2).join(' | ') : 'Không có nhắc nhở.',
-      tone: warningCount > 0 ? 'warning' : result ? 'success' : 'neutral',
-    },
-  ];
-};
-
-const buildImportedDayDates = (rows: WeeklyMenuImportResult['rows']) =>
-  rows.reduce<Record<string, string>>((dates, row) => {
-    if (!dates[row.dayKey]) {
-      dates[row.dayKey] = formatImportDate(row.serviceDate);
-    }
-
-    return dates;
-  }, {});
-
-const ImportedLayoutMatrix = ({
-  rows,
-  displayDays,
-  activeDayKey,
-  maxBodyHeight = 'max-h-[440px]',
-}: {
-  rows: ImportedLayoutRow[];
-  displayDays: Array<{ key: string; label: string; date: string }>;
-  activeDayKey?: string;
-  maxBodyHeight?: string;
-}) => {
-  const sectionNames = Array.from(new Set(rows.map((row) => row.sourceSection)));
-
-  return (
-    <TableViewport caption="Bố cục thực đơn theo file khách hàng" className={cn('ipc-weekly-menu-shell', maxBodyHeight)} ariaLabel="Bảng bố cục thực đơn theo file khách hàng">
-      <table className="ipc-data-table ipc-schedule-table">
-        <thead>
-          <tr>
-            <th className="w-[190px] min-w-[190px] border-r border-slate-200 bg-slate-100 text-left">
-              Bố cục / dòng
-            </th>
-            {displayDays.map((day, index) => (
-              <th
-                key={day.key}
-                className={cn(
-                  tableHeadClass,
-                  'border-r border-slate-200 transition-colors',
-                  index % 2 === 1 ? 'bg-slate-100' : 'bg-slate-50',
-                  day.key === activeDayKey && 'bg-blue-50 text-blue-900 ring-1 ring-inset ring-blue-200',
-                )}
-              >
-                <div className="flex flex-col items-center justify-center gap-0.5 py-1">
-                  <span className="text-[13px] font-bold text-slate-800">{day.label}</span>
-                  <span className="text-[10.5px] font-medium text-slate-500">{day.date}</span>
-                  {day.key === activeDayKey && (
-                    <span className="mt-0.5 rounded-sm bg-blue-600 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">
-                      Hôm nay
-                    </span>
-                  )}
-                </div>
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {sectionNames.map((sectionName) => {
-            const sectionRows = rows.filter((row) => row.sourceSection === sectionName);
-            const cellSpans = buildLayoutCellSpans(sectionRows, displayDays);
-
-            return (
-              <Fragment key={sectionName}>
-                <tr>
-                  <td
-                    colSpan={displayDays.length + 1}
-                    className="border-b border-r border-slate-300 bg-slate-200 py-2.5 text-center text-[12.5px] font-bold uppercase tracking-wide text-slate-900"
-                  >
-                    {sectionName}
-                  </td>
-                </tr>
-                {sectionRows.map((row) => (
-                  <tr key={row.key}>
-                    <td className="border-r border-slate-200 bg-slate-50 p-2 text-left align-middle">
-                      <span className="text-[12.5px] font-semibold text-slate-800">{row.slotLabel}</span>
-                    </td>
-                    {displayDays.map((day, index) => {
-                      const cell = row.cells[day.key];
-                      const spanInfo = cellSpans.get(`${row.key}|${day.key}`) ?? { hidden: false, span: 1 };
-                      if (spanInfo.hidden) {
-                        return null;
-                      }
-
-                      return (
-                        <td
-                          key={`${row.key}-${day.key}`}
-                          rowSpan={spanInfo.span}
-                          className={cn(
-                            'border-r border-slate-200 p-2 text-center align-middle text-[12.5px]',
-                            index % 2 === 1 ? 'bg-slate-50/60' : 'bg-white',
-                            day.key === activeDayKey && 'bg-blue-50/70',
-                            !cell && 'text-slate-400',
-                          )}
-                        >
-                          {cell ? (
-                              <span className="font-semibold text-slate-900">{formatMenuDishName(cell.dishName)}</span>
-                          ) : (
-                            '-'
-                          )}
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
-              </Fragment>
-            );
-          })}
-          {rows.length === 0 && (
-            <tr>
-              <td className="p-4 text-center text-sm text-slate-500" colSpan={displayDays.length + 1}>
-                Chưa có dữ liệu thực đơn từ file cho khách hàng và tuần đang chọn.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-    </TableViewport>
-  );
-};
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
@@ -925,6 +127,7 @@ const WeeklyMenuPage = () => {
   const { data: customerContractsResponse } = useGetCustomerContractsQuery();
   const customerContracts = customerContractsResponse?.data ?? [];
   const [previewImport, { isLoading: isPreviewingImport }] = usePreviewWeeklyMenuImportMutation();
+  const [downloadWeeklyMenuTemplate, { isLoading: isDownloadingWeeklyMenuTemplate }] = useDownloadWeeklyMenuTemplateMutation();
   const [commitImport, { isLoading: isCommittingImport }] = useCommitWeeklyMenuImportMutation();
   const [saveImportMapping, { isLoading: isSavingImportMapping }] = useSaveCustomerImportMappingMutation();
   const [createCustomerContract, { isLoading: isCreatingImportCustomer }] = useCreateCustomerContractMutation();
@@ -1153,6 +356,52 @@ const WeeklyMenuPage = () => {
     setImportWeekStartDate(committedMenu?.weekStartDate?.split('T')[0] ?? committedMenuWeekStartDate);
     setImportPriceTierAmount(menuPrice);
     setIsImportDialogOpen(true);
+  };
+
+  const handleDownloadWeeklyMenuTemplate = async () => {
+    if (!draftImportCustomer) {
+      setImportFeedback({
+        title: 'Chọn khách hàng',
+        message: 'Vui lòng chọn hoặc tạo khách hàng trước khi tải mẫu thực đơn riêng.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    if (!isValidWeekStartDate(importWeekStartDate)) {
+      setImportFeedback({
+        title: 'Chọn tuần bắt đầu',
+        message: 'Vui lòng chọn ngày thứ 2 trước khi tải mẫu để file có đúng cột ngày trong tuần.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    try {
+      const blob = await downloadWeeklyMenuTemplate({
+        customerId: draftImportCustomer.customerId,
+        weekStartDate: importWeekStartDate,
+      }).unwrap();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `weekly-menu-template-${draftImportCustomer.customerCode}-${importWeekStartDate}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      setImportFeedback({
+        title: 'Đã tải mẫu thực đơn',
+        message: `File ${draftImportCustomer.customerCode} có 3 sheet 25k, 30k, 34k theo bố cục riêng của khách hàng.`,
+        variant: 'info',
+      });
+    } catch (err: unknown) {
+      setImportFeedback({
+        title: 'Tải mẫu thất bại',
+        message: getApiErrorMessage(err, 'Không thể tải mẫu thực đơn tuần.'),
+        variant: 'danger',
+      });
+    }
   };
 
   const handleCreateQuickImportCustomer = async () => {
@@ -1509,8 +758,11 @@ const WeeklyMenuPage = () => {
   const [activeView, setActiveView] = useState<WeeklyMenuView>('schedule');
   const [selectedCostDayKey, setSelectedCostDayKey] = useState<string | null>(null);
   const [selectedDemandDayKey, setSelectedDemandDayKey] = useState<string | null>(null);
+  const [activeDemandAggregatePageNumber, setActiveDemandAggregatePageNumber] = useState(1);
   const [purchaseSummaryPageIndex, setPurchaseSummaryPageIndex] = useState(0);
   const [productionPlanPageIndex, setProductionPlanPageIndex] = useState(0);
+  const [weeklyProductionPlans, setWeeklyProductionPlans] = useState<ProductionPlanDto[]>([]);
+  const [isLoadingWeeklyProductionPlans, setIsLoadingWeeklyProductionPlans] = useState(false);
   const [warehouseExportFeedback, setWarehouseExportFeedback] = useState<{
     title: string;
     message: string;
@@ -1527,6 +779,7 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu({}));
     setSelectedCostDayKey(null);
     setSelectedDemandDayKey(null);
+    setActiveDemandAggregatePageNumber(1);
     setPurchaseSummaryPageIndex(0);
     setProductionPlanPageIndex(0);
     setSelectedDishId('');
@@ -1536,13 +789,14 @@ const WeeklyMenuPage = () => {
   };
 
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
+  const [fetchProductionPlansForDate] = useLazyGetProductionPlansQuery();
   const selectedProductionPlanServiceDate = useMemo(() => {
     if (!selectedDemandDayKey) return undefined;
     return parseDisplayDateToIso(displayDays.find((day) => day.key === selectedDemandDayKey)?.date);
   }, [displayDays, selectedDemandDayKey]);
   const { currentData: productionPlansData } = useGetProductionPlansQuery(
-    { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate || undefined },
-    { skip: !effectiveMenuCustomerId }
+    { customerId: effectiveMenuCustomerId, serviceDate: selectedProductionPlanServiceDate },
+    { skip: !effectiveMenuCustomerId || !selectedProductionPlanServiceDate }
   );
   const productionPlanWeekDates = useMemo(
     () => displayDays
@@ -1550,10 +804,50 @@ const WeeklyMenuPage = () => {
       .filter((date): date is string => Boolean(date)),
     [displayDays],
   );
+
+  useEffect(() => {
+    if (!effectiveMenuCustomerId || selectedProductionPlanServiceDate || productionPlanWeekDates.length === 0) {
+      return;
+    }
+
+    let isCancelled = false;
+    queueMicrotask(() => {
+      if (!isCancelled) {
+        setIsLoadingWeeklyProductionPlans(true);
+      }
+    });
+
+    void (async () => {
+      try {
+        const responses = await Promise.all(
+          productionPlanWeekDates.map((serviceDate) =>
+            fetchProductionPlansForDate(
+              { customerId: effectiveMenuCustomerId, serviceDate },
+              true,
+            ).unwrap().catch(() => null),
+          ),
+        );
+
+        if (!isCancelled) {
+          setWeeklyProductionPlans(responses.flatMap((response) => response?.data ?? []));
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingWeeklyProductionPlans(false);
+        }
+      }
+    })();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [effectiveMenuCustomerId, fetchProductionPlansForDate, productionPlanWeekDates, selectedProductionPlanServiceDate]);
+
   const productionPlans = useMemo(() => {
-    const plans = productionPlansData?.data ?? [];
+    if (!effectiveMenuCustomerId) return [];
+    const plans = selectedProductionPlanServiceDate ? (productionPlansData?.data ?? []) : weeklyProductionPlans;
     return filterProductionPlansForSelection(plans, productionPlanWeekDates, selectedProductionPlanServiceDate);
-  }, [productionPlansData?.data, productionPlanWeekDates, selectedProductionPlanServiceDate]);
+  }, [effectiveMenuCustomerId, productionPlansData?.data, productionPlanWeekDates, selectedProductionPlanServiceDate, weeklyProductionPlans]);
   const productionDisplayDayByDate = useMemo(
     () => buildProductionDisplayDayByDate(displayDays, parseDisplayDateToIso),
     [displayDays],
@@ -2273,15 +1567,21 @@ const WeeklyMenuPage = () => {
     ? getServiceDateIso(activeDemandDay.key) || parseDisplayDateToIso(activeDemandDay.date)
     : '';
   const activeDemandReportQuery = {
-    limit: 500,
     customerId: effectiveMenuCustomerId,
     dateFrom: activeDemandDate || undefined,
     dateTo: activeDemandDate || undefined,
+    pageNumber: activeDemandAggregatePageNumber,
+    pageSize: 20,
   };
   const {
-    currentData: activeDemandReportLines,
+    currentData: activeDemandAggregatePage,
     isFetching: isFetchingActiveDemandLines,
-  } = useGetIngredientDemandQuery(activeDemandReportQuery, { skip: !effectiveMenuCustomerId || !activeDemandDate });
+  } = useGetIngredientDemandAggregatePageQuery(activeDemandReportQuery, { skip: !effectiveMenuCustomerId || !activeDemandDate });
+  const selectDemandDay = (dayKey: string | null) => {
+    setSelectedDemandDayKey(dayKey);
+    setActiveDemandAggregatePageNumber(1);
+    setProductionPlanPageIndex(0);
+  };
   const activeDemandQuickServingRows = activeDemandDay
     ? QUICK_SERVING_SHIFTS
       .map((shift) => quickServingRows.find((servingRow) =>
@@ -2289,21 +1589,13 @@ const WeeklyMenuPage = () => {
         servingRow.shiftName === shift.shiftName))
       .filter((row): row is (typeof quickServingRows)[number] => Boolean(row))
     : [];
-  const activeDemandSourceLines = activeDemandReportLines ?? (
-    activeDemandDate
-      ? demandLines.filter((line) => line.serviceDate === activeDemandDate)
-      : []
-  );
-  const activeDemandAggregatedLines = aggregateDemandLinesByMaterial(activeDemandSourceLines);
+  const activeDemandAggregatedLines = activeDemandAggregatePage?.items ?? [];
   const activeDemandWarningCount = activeDemandAggregatedLines.filter((line) => line.tone === 'warning').length;
-  const activeDemandShortageCount = activeDemandAggregatedLines.filter((line) => {
+  const activeDemandShortageCount = activeDemandAggregatePage?.shortageCount ?? activeDemandAggregatedLines.filter((line) => {
     const availableAfterReserve = line.available - line.reserved;
     return Math.max(line.required - availableAfterReserve, 0) > 0;
   }).length;
-  const activeDemandEnoughCount = activeDemandAggregatedLines.filter((line) => {
-    const availableAfterReserve = line.available - line.reserved;
-    return Math.max(line.required - availableAfterReserve, 0) === 0 && line.tone !== 'warning';
-  }).length;
+  const activeDemandEnoughCount = (activeDemandAggregatePage?.totalCount ?? activeDemandAggregatedLines.length) - activeDemandShortageCount - activeDemandWarningCount;
   const activeDemandTone: DemandLine['tone'] = activeDemandAggregatedLines.length === 0
     ? 'neutral'
     : activeDemandWarningCount > 0
@@ -2678,10 +1970,7 @@ const WeeklyMenuPage = () => {
               <select
                 className="ipc-input min-h-9 w-full text-sm"
                 value={selectedDemandDayKey || ''}
-                onChange={(e) => {
-                  setSelectedDemandDayKey(e.target.value || null);
-                  setProductionPlanPageIndex(0);
-                }}
+                onChange={(e) => selectDemandDay(e.target.value || null)}
               >
                 <option value="">Cả tuần</option>
                 {displayDays.map((d) => (
@@ -2692,7 +1981,9 @@ const WeeklyMenuPage = () => {
               </select>
             </div>
 
-            {productionPlanPages.length === 0 ? (
+            {!selectedProductionPlanServiceDate && isLoadingWeeklyProductionPlans ? (
+              <div className="py-8 text-center text-slate-500">Đang tải kế hoạch sản xuất cả tuần...</div>
+            ) : productionPlanPages.length === 0 ? (
               <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
             ) : (
               <>
@@ -2969,7 +2260,7 @@ const WeeklyMenuPage = () => {
                   type="button"
                   className="ipc-button ipc-button-ghost"
                   disabled={safeDemandDayPageIndex <= 0}
-                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
+                  onClick={() => selectDemandDay(demandDayPages[Math.max(0, safeDemandDayPageIndex - 1)]?.key ?? null)}
                 >
                   Ngày trước
                 </button>
@@ -2977,7 +2268,7 @@ const WeeklyMenuPage = () => {
                   type="button"
                   className="ipc-button ipc-button-primary"
                   disabled={safeDemandDayPageIndex >= demandDayPages.length - 1}
-                  onClick={() => setSelectedDemandDayKey(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
+                  onClick={() => selectDemandDay(demandDayPages[Math.min(demandDayPages.length - 1, safeDemandDayPageIndex + 1)]?.key ?? null)}
                 >
                   Ngày sau
                 </button>
@@ -2999,10 +2290,18 @@ const WeeklyMenuPage = () => {
                     {activeDemandStatus}
                   </StatusBadge>
                 </div>
-                {isFetchingActiveDemandLines && !activeDemandReportLines ? (
+                {isFetchingActiveDemandLines && !activeDemandAggregatePage ? (
                   <div className="ipc-demand-summary is-empty">Đang tải nguyên liệu ngày đang xem...</div>
                 ) : (
                   <DemandSummary lines={activeDemandAggregatedLines} />
+                )}
+                {activeDemandAggregatePage && (
+                  <PaginationBar
+                    page={activeDemandAggregatePage.pageNumber}
+                    pageSize={activeDemandAggregatePage.pageSize}
+                    totalItems={activeDemandAggregatePage.totalCount}
+                    onPageChange={setActiveDemandAggregatePageNumber}
+                  />
                 )}
               </div>
             ) : (
@@ -3554,14 +2853,25 @@ const WeeklyMenuPage = () => {
                       aria-describedby="weekly-menu-import-file-meta"
                       disabled={isImporting}
                     />
-                    <button
-                      type="button"
-                      onClick={() => importFileInputRef.current?.click()}
-                      disabled={isImporting}
-                      className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center px-3 py-0"
-                    >
-                      Chọn file Excel
-                    </button>
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                      <button
+                        type="button"
+                        onClick={() => void handleDownloadWeeklyMenuTemplate()}
+                        disabled={isDownloadingWeeklyMenuTemplate || isImporting || !draftImportCustomer}
+                        className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center gap-2 px-3 py-0"
+                      >
+                        <Download size={16} />
+                        {isDownloadingWeeklyMenuTemplate ? 'Đang tải...' : 'Tải mẫu theo khách'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => importFileInputRef.current?.click()}
+                        disabled={isImporting}
+                        className="ipc-button ipc-button-ghost h-9 min-h-9 w-full justify-center px-3 py-0"
+                      >
+                        Chọn file Excel
+                      </button>
+                    </div>
                   </FieldRow>
                   <div className="flex flex-col gap-1.5 md:pt-[40px]">
                     <button

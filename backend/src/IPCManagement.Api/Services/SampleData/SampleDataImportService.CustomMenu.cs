@@ -168,6 +168,30 @@ public partial class SampleDataImportService
         return result;
     }
 
+    public async Task<(byte[] Content, string CustomerCode)> BuildWeeklyMenuTemplateAsync(
+        string? customerId,
+        DateOnly? weekStartDate,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var resolvedWeekStart = weekStartDate ?? ResolveCurrentWeekStart();
+        var customerCode = "IPC";
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            var customerBytes = GuidHelper.ParseGuidString(customerId);
+            if (customerBytes is not null)
+            {
+                customerCode = await _context.Customers
+                    .AsNoTracking()
+                    .Where(customer => customer.CustomerId.SequenceEqual(customerBytes) && customer.IsActive != false)
+                    .Select(customer => customer.CustomerCode)
+                    .FirstOrDefaultAsync(cancellationToken) ?? customerCode;
+            }
+        }
+
+        return (WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode), customerCode);
+    }
+
     public async Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
         Stream fileStream,
         string fileName,
@@ -187,12 +211,12 @@ public partial class SampleDataImportService
                 "customerId");
         }
 
-        _ = NormalizeWeeklyMenuPriceTier(priceTierAmount);
+        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
         var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping, normalizedPriceTier);
             return await BuildWeeklyMenuImportResultAsync(
                 plan,
                 customer,
@@ -238,7 +262,7 @@ public partial class SampleDataImportService
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping, normalizedPriceTier);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
             var validationResult = await BuildWeeklyMenuImportResultAsync(
                 plan,
@@ -371,7 +395,9 @@ public partial class SampleDataImportService
             cancellationToken);
         ApplyMenuVersion(result, version);
 
-        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
+        var existingDishes = await _context.Dishes
+            .Include(dish => dish.Dishboms)
+            .ToListAsync(cancellationToken);
         var existingMenus = await _context.Menus.ToListAsync(cancellationToken);
         var existingMenuItems = await _context.Menuitems.ToListAsync(cancellationToken);
         var existingSchedules = await _context.Menuschedules.ToListAsync(cancellationToken);
@@ -528,6 +554,13 @@ public partial class SampleDataImportService
         return normalized;
     }
 
+    private static DateOnly ResolveCurrentWeekStart()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var offset = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-offset);
+    }
+
     private async Task<int> InvalidateWorkflowDocumentsForMenuReimportAsync(
         Customer customer,
         DateOnly weekStartDate,
@@ -639,10 +672,12 @@ public partial class SampleDataImportService
         bool committed,
         CancellationToken cancellationToken)
     {
-        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
+        var existingDishes = await _context.Dishes
+            .Include(dish => dish.Dishboms)
+            .ToListAsync(cancellationToken);
         var existingByName = existingDishes
             .GroupBy(dish => NormalizeDishMatchKey(dish.DishName), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(group => group.Key, SelectPreferredImportedDish, StringComparer.OrdinalIgnoreCase);
 
         var result = new WeeklyMenuImportResultDto
         {
@@ -712,7 +747,8 @@ public partial class SampleDataImportService
         string workbookPath,
         string originalFileName,
         DateOnly? weekStartFallback,
-        Customerimportmapping? mapping = null)
+        Customerimportmapping? mapping = null,
+        decimal? priceTierAmount = null)
     {
         var sheetCandidates = _reader.GetSheetNames(workbookPath)
             .Select(sheetName =>
@@ -731,7 +767,18 @@ public partial class SampleDataImportService
                 .Where(candidate => candidate.SheetName.Contains(mapping.SheetNameHint, StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
-        var best = (sheetsMatchingHint.Count > 0 ? sheetsMatchingHint : sheetCandidates)
+        var sheetsMatchingPriceTier = priceTierAmount is null
+            ? []
+            : sheetCandidates
+                .Where(candidate => SheetNameMatchesPriceTier(candidate.SheetName, priceTierAmount.Value))
+                .ToList();
+        var candidatePool = sheetsMatchingPriceTier.Count > 0
+            ? sheetsMatchingPriceTier
+            : sheetsMatchingHint.Count > 0
+                ? sheetsMatchingHint
+                : sheetCandidates;
+
+        var best = candidatePool
             .OrderByDescending(candidate => candidate.Score)
             .FirstOrDefault();
         if (best is null || best.Score < 20)
@@ -775,6 +822,15 @@ public partial class SampleDataImportService
         AddDuplicateImportWarnings(plan);
 
         return plan;
+    }
+
+    private static bool SheetNameMatchesPriceTier(string sheetName, decimal priceTierAmount)
+    {
+        var normalized = NormalizeText(sheetName);
+        var rounded = DecimalPolicy.RoundMoney(priceTierAmount);
+        var tierInThousands = rounded / 1000m;
+        return normalized.Contains(rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains($"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int ScoreMenuSheet(
@@ -1402,9 +1458,14 @@ public partial class SampleDataImportService
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
+        var cleanDishName = NormalizeDishCell(dishName);
         var normalized = NormalizeDishMatchKey(dishName);
-        var existing = dishes.FirstOrDefault(item =>
-            string.Equals(NormalizeDishMatchKey(item.DishName), normalized, StringComparison.OrdinalIgnoreCase));
+        var existing = dishes
+            .Where(item => string.Equals(NormalizeDishMatchKey(item.DishName), normalized, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(HasPublishedBom)
+            .ThenBy(item => HasPortionSuffix(item.DishName))
+            .ThenBy(item => item.DishName.Length)
+            .FirstOrDefault();
         if (existing is not null)
         {
             existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
@@ -1414,14 +1475,18 @@ public partial class SampleDataImportService
             return existing;
         }
 
-        return EnsureDish(dishName, dishGroup, dishType, dishes, dryRun, counts);
+        return EnsureDish(cleanDishName, dishGroup, dishType, dishes, dryRun, counts);
     }
 
     private static string GetColumnValue(IReadOnlyDictionary<string, string> row, string column)
         => row.TryGetValue(column, out var value) ? value.Trim() : string.Empty;
 
     private static string NormalizeDishCell(string value)
-        => Regex.Replace(value.Trim(), @"\s+", " ");
+    {
+        var normalized = Regex.Replace(value.Trim(), @"\s+", " ");
+        normalized = Regex.Replace(normalized, @"\b\d+\s*(g|gram)\b", " ", RegexOptions.IgnoreCase);
+        return Regex.Replace(normalized, @"\s+", " ").Trim();
+    }
 
     private static string NormalizeText(string? value)
         => Regex.Replace(RemoveDiacritics(value ?? string.Empty).Trim().ToUpperInvariant(), @"\s+", " ");
@@ -1437,6 +1502,19 @@ public partial class SampleDataImportService
         normalized = Regex.Replace(normalized, @"\s+", " ");
         return normalized.Trim();
     }
+
+    private static bool HasPortionSuffix(string? value)
+        => Regex.IsMatch(value ?? string.Empty, @"\b\d+\s*(g|gram)\b", RegexOptions.IgnoreCase);
+
+    private static Dish SelectPreferredImportedDish(IEnumerable<Dish> dishes)
+        => dishes
+            .OrderByDescending(HasPublishedBom)
+            .ThenBy(dish => HasPortionSuffix(dish.DishName))
+            .ThenBy(dish => dish.DishName.Length)
+            .First();
+
+    private static bool HasPublishedBom(Dish dish)
+        => dish.Dishboms.Any(bom => string.Equals(bom.BomStatus, "PUBLISHED", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsHolidayCell(string value)
     {

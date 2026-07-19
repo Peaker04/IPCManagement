@@ -9,13 +9,15 @@ import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/
 
 interface HeadChefDashboardProps {
   productionPlan: ProductionPlan
-  onSupplementalRequest?: (data: SupplementalRequest) => void
+  isSubmittingSupplementalRequest?: boolean
+  onSupplementalRequest?: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
   onMaterialSignoff?: (materialId: string, signed: boolean) => void
 }
 
 export function HeadChefDashboard({
   productionPlan,
+  isSubmittingSupplementalRequest,
   onSupplementalRequest,
   onExcessMaterialReturn,
   onMaterialSignoff,
@@ -49,6 +51,7 @@ export function HeadChefDashboard({
         <div className="ipc-chef-workbench-side xl:col-span-1">
           <OperationalActions
             materials={productionPlan.receivedMaterials}
+            isSubmittingSupplementalRequest={isSubmittingSupplementalRequest}
             onSupplementalRequest={onSupplementalRequest}
             onExcessMaterialReturn={onExcessMaterialReturn}
           />

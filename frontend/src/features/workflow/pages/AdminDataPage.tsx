@@ -18,8 +18,10 @@ import {
   StockMovementTable,
   DataTableShell,
   ViewSwitcher,
+  useToast,
   type ViewTab,
 } from '@/components/common';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/routes/routeConfig';
 import { usePaginatedRows } from '@/lib/usePaginatedRows';
 import { selectCurrentUser } from '@/features/auth';
@@ -40,7 +42,13 @@ import {
   useDownloadBomTemplateMutation,
   useCommitBomImportMutation,
   usePreviewBomImportMutation,
+  useAddDishBomLineMutation,
+  useCloseDishBomLineMutation,
+  useGetAdminDishCatalogQuery,
+  useGetIngredientsQuery,
+  useUpdateDishBomLineMutation,
   type BomImportPreview,
+  type CatalogIngredient,
 } from '@/features/projects/dishCatalogApi';
 import {
   useCreateCustomerContractMutation,
@@ -69,6 +77,19 @@ import {
 } from '@/features/admin/adminApi';
 
 type AdminView = 'bom-import' | 'contracts' | 'cleanup' | 'inventory' | 'audit' | 'statistics' | 'employees';
+type BomTemplateType = 'missing' | 'blank' | 'dish';
+type BomPanelMode = 'current' | 'preview';
+
+type BomFormState = {
+  dishId: string;
+  ingredientId: string;
+  grossQtyPerServing: string;
+  wasteRatePercent: string;
+  bomStatus: 'PUBLISHED' | 'DRAFT';
+  effectiveFrom: string;
+  effectiveTo: string;
+  reason: string;
+};
 
 type ContractFormState = {
   customerCode: string;
@@ -80,12 +101,10 @@ type ContractFormState = {
   activeWeekDays: string;
   shiftNames: string;
   defaultMenuPrice: string;
-  defaultBomRatePercent: string;
 };
 
 type ScheduleRuleFormState = {
   menuPrice: string;
-  bomRatePercent: string;
   status: string;
   reason: string;
 };
@@ -100,17 +119,32 @@ const defaultContractForm: ContractFormState = {
   activeWeekDays: '',
   shiftNames: '',
   defaultMenuPrice: '',
-  defaultBomRatePercent: '',
 };
 
 const defaultScheduleRuleForm: ScheduleRuleFormState = {
   menuPrice: '',
-  bomRatePercent: '100',
   status: 'ACTIVE',
   reason: '',
 };
 
 const getTodayInputValue = () => new Date().toISOString().slice(0, 10);
+
+const getNextDayInputValue = (value: string) => {
+  const date = new Date(`${value}T00:00:00`);
+  date.setDate(date.getDate() + 1);
+  return date.toISOString().slice(0, 10);
+};
+
+const createDefaultBomForm = (): BomFormState => ({
+  dishId: '',
+  ingredientId: '',
+  grossQtyPerServing: '',
+  wasteRatePercent: '0',
+  bomStatus: 'PUBLISHED',
+  effectiveFrom: getTodayInputValue(),
+  effectiveTo: '',
+  reason: '',
+});
 
 type EmployeeFormState = {
   fullName: string;
@@ -126,6 +160,17 @@ const defaultEmployeeForm: EmployeeFormState = {
   password: '',
   roleId: '',
   isActive: true,
+};
+
+const getBomTemplateTypeLabel = (type: BomTemplateType) => {
+  switch (type) {
+    case 'blank':
+      return 'Biểu mẫu trống';
+    case 'dish':
+      return 'Món đang chọn';
+    default:
+      return 'BOM thiếu';
+  }
 };
 
 const EmptyRow = ({ colSpan }: { colSpan: number }) => (
@@ -157,16 +202,20 @@ const isAdminView = (value: string | null): value is AdminView =>
   value === 'employees';
 
 export default function AdminDataPage() {
+  const { toast } = useToast();
   const currentUser = useAppSelector(selectCurrentUser);
   const [searchParams] = useSearchParams();
+  const bomTemplateDishId = searchParams.get('dishId')?.trim() || undefined;
   const canManageEmployees = currentUser?.role === 'admin' || currentUser?.isAdminFullAccess;
   const initialView = isAdminView(searchParams.get('view')) && (searchParams.get('view') !== 'employees' || canManageEmployees)
     ? searchParams.get('view') as AdminView
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
   const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [qualityPage, setQualityPage] = useState(1);
+  const [priceWarningPage, setPriceWarningPage] = useState(1);
   const [employeePage, setEmployeePage] = useState(1);
   const [employeeSearch, setEmployeeSearch] = useState('');
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | null>(null);
@@ -185,15 +234,41 @@ export default function AdminDataPage() {
   const [bomImportFile, setBomImportFile] = useState<File | null>(null);
   const [bomImportPreview, setBomImportPreview] = useState<BomImportPreview | null>(null);
   const [bomImportFeedback, setBomImportFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  const [bomPanelMode, setBomPanelMode] = useState<BomPanelMode>('current');
+  const [bomSearch, setBomSearch] = useState('');
+  const [bomForm, setBomForm] = useState<BomFormState>(createDefaultBomForm);
+  const [editingBom, setEditingBom] = useState<{ dishId: string; line: CatalogIngredient } | null>(null);
+  const [closingBom, setClosingBom] = useState<{ dishId: string; dishName: string; line: CatalogIngredient } | null>(null);
+  const [isBomDialogOpen, setIsBomDialogOpen] = useState(false);
   const [downloadBomTemplate, downloadBomTemplateState] = useDownloadBomTemplateMutation();
   const [previewBomImport, previewBomImportState] = usePreviewBomImportMutation();
   const [commitBomImport, commitBomImportState] = useCommitBomImportMutation();
+  const [addDishBomLine, addDishBomLineState] = useAddDishBomLineMutation();
+  const [updateDishBomLine, updateDishBomLineState] = useUpdateDishBomLineMutation();
+  const [closeDishBomLine, closeDishBomLineState] = useCloseDishBomLineMutation();
+  const { data: dishCatalog = [], isLoading: isDishCatalogLoading } = useGetAdminDishCatalogQuery();
+  const { data: ingredientCatalog = [], isLoading: isIngredientCatalogLoading } = useGetIngredientsQuery();
   const { data: contractResponse } = useGetCustomerContractsQuery();
   const customerContracts = useMemo(() => contractResponse?.data ?? [], [contractResponse?.data]);
   const selectedContract = useMemo(
     () => customerContracts.find((customer) => customer.customerId === selectedContractCustomerId) ?? customerContracts[0],
     [customerContracts, selectedContractCustomerId],
   );
+  const currentBomRows = useMemo(() => {
+    const today = getTodayInputValue();
+    const search = bomSearch.trim().toLocaleLowerCase('vi-VN');
+
+    return dishCatalog
+      .filter((dish) => dish.isActive)
+      .flatMap((dish) => dish.ingredients.map((line) => ({ dish, line })))
+      .filter(({ line }) => line.priceTierAmount === bomImportTier)
+      .filter(({ line }) => bomImportCustomerId ? line.customerId === bomImportCustomerId : !line.customerId)
+      .filter(({ line }) => line.bomStatus !== 'ARCHIVED' && (!line.effectiveTo || line.effectiveTo >= today))
+      .filter(({ dish, line }) => !search || `${dish.code} ${dish.name} ${line.ingredientCode} ${line.name}`.toLocaleLowerCase('vi-VN').includes(search))
+      .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
+  }, [bomImportCustomerId, bomImportTier, bomSearch, dishCatalog]);
+  const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
   const { data: scheduleResponse } = useGetMenuSchedulesQuery(
     { customerId: selectedContract?.customerId, serviceDate: selectedContract?.latestServiceDate ?? undefined },
     { skip: !selectedContract?.customerId },
@@ -210,10 +285,8 @@ export default function AdminDataPage() {
   const [auditActor, setAuditActor] = useState('');
   const [auditArea, setAuditArea] = useState('');
   const [auditEntity, setAuditEntity] = useState('');
-  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const [auditField, setAuditField] = useState('');
   const authToken = useAppSelector((state) => state.auth.token);
-  const [priceWarningPage, setPriceWarningPage] = useState(1);
 
   const auditQuery = useMemo(
     () => ({
@@ -258,7 +331,7 @@ export default function AdminDataPage() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      alert('Lỗi khi tải file CSV: ' + err);
+      toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
     }
   };
   const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8 });
@@ -325,22 +398,28 @@ export default function AdminDataPage() {
 
   const displayLogs = auditResult.data?.items ?? [];
 
+  const handleDownloadBomTemplate = async (templateType: BomTemplateType) => {
+    if (templateType === 'dish' && !bomTemplateDishId) {
+      setBomImportFeedback({ type: 'error', message: 'Chưa có món cụ thể để tải mẫu theo món đang chọn.' });
+      return;
+    }
 
-  const handleDownloadBomTemplate = async () => {
     try {
       const blob = await downloadBomTemplate({
         priceTier: bomImportTier,
         customerId: bomImportCustomerId.trim() || undefined,
+        dishId: templateType === 'dish' ? bomTemplateDishId : undefined,
+        templateType,
       }).unwrap();
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `bom-template-${bomImportTier}-${bomImportCustomerId.trim() || 'global'}.csv`;
+      link.download = `bom-template-${templateType}-${bomImportTier}-${bomImportCustomerId.trim() || 'global'}.xlsx`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      setBomImportFeedback({ type: 'success', message: 'Đã tải file mẫu BOM mở được bằng Excel.' });
+      setBomImportFeedback({ type: 'success', message: `Đã tải ${getBomTemplateTypeLabel(templateType).toLowerCase()}. IngredientCode có thể để trống khi nhập nguyên liệu mới.` });
     } catch (error) {
       setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa tải được file mẫu BOM.') });
     }
@@ -348,7 +427,7 @@ export default function AdminDataPage() {
 
   const handlePreviewBomImport = async () => {
     if (!bomImportFile) {
-      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn file CSV/Excel-compatible trước khi preview.' });
+      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn file Excel BOM trước khi preview.' });
       return;
     }
 
@@ -360,6 +439,7 @@ export default function AdminDataPage() {
         effectiveFrom: bomImportEffectiveFrom || undefined,
       }).unwrap();
       setBomImportPreview(result);
+      setBomPanelMode('preview');
       setBomImportFeedback({
         type: result.canCommit ? 'success' : 'error',
         message: result.canCommit
@@ -385,12 +465,107 @@ export default function AdminDataPage() {
         effectiveFrom: bomImportEffectiveFrom || undefined,
       }).unwrap();
       setBomImportPreview(result);
+      setBomPanelMode('current');
       setBomImportFeedback({
         type: 'success',
         message: `Đã import BOM: tạo ${result.createdRows}, cập nhật ${result.updatedRows}, archive ${result.archivedRows}.`,
       });
     } catch (error) {
       setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Commit import BOM thất bại.') });
+    }
+  };
+
+  const openCreateBomDialog = () => {
+    const preferredDish = dishCatalog.find((dish) => dish.id === bomTemplateDishId && dish.isActive)
+      ?? dishCatalog.find((dish) => dish.isActive);
+    setEditingBom(null);
+    setBomForm({
+      ...createDefaultBomForm(),
+      dishId: preferredDish?.id ?? '',
+      ingredientId: ingredientCatalog[0]?.ingredientId ?? '',
+    });
+    setBomImportFeedback(null);
+    setIsBomDialogOpen(true);
+  };
+
+  const openEditBomDialog = (dishId: string, line: CatalogIngredient) => {
+    const today = getTodayInputValue();
+    const versionEffectiveFrom = line.bomStatus === 'PUBLISHED'
+      ? [today, getNextDayInputValue(line.effectiveFrom)].sort().at(-1) ?? today
+      : line.effectiveFrom;
+    setEditingBom({ dishId, line });
+    setBomForm({
+      dishId,
+      ingredientId: line.ingredientId,
+      grossQtyPerServing: String(line.grossQtyPerServing),
+      wasteRatePercent: String(line.wasteRatePercent),
+      bomStatus: line.bomStatus === 'DRAFT' ? 'DRAFT' : 'PUBLISHED',
+      effectiveFrom: versionEffectiveFrom,
+      effectiveTo: line.effectiveTo ?? '',
+      reason: '',
+    });
+    setBomImportFeedback(null);
+    setIsBomDialogOpen(true);
+  };
+
+  const handleSaveBomLine = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const ingredient = ingredientCatalog.find((item) => item.ingredientId === bomForm.ingredientId);
+    const quantity = Number(bomForm.grossQtyPerServing);
+    const wasteRate = Number(bomForm.wasteRatePercent);
+    if (!bomForm.dishId || !ingredient) {
+      setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn món và nguyên liệu.' });
+      return;
+    }
+    if (!Number.isFinite(quantity) || quantity <= 0 || !Number.isFinite(wasteRate) || wasteRate < 0 || wasteRate > 100) {
+      setBomImportFeedback({ type: 'error', message: 'Qty/suất phải lớn hơn 0 và hao hụt phải trong khoảng 0-100%.' });
+      return;
+    }
+    if (bomForm.effectiveTo && bomForm.effectiveTo < bomForm.effectiveFrom) {
+      setBomImportFeedback({ type: 'error', message: 'Ngày hết hiệu lực phải sau ngày bắt đầu.' });
+      return;
+    }
+    if (editingBom && !bomForm.reason.trim()) {
+      setBomImportFeedback({ type: 'error', message: 'Cần nhập lý do khi điều chỉnh dòng BOM.' });
+      return;
+    }
+
+    const request = {
+      dishId: bomForm.dishId,
+      ingredientId: ingredient.ingredientId,
+      unitId: ingredient.unitId,
+      customerId: bomImportCustomerId || null,
+      priceTierAmount: bomImportTier,
+      grossQtyPerServing: quantity,
+      wasteRatePercent: wasteRate,
+      bomStatus: bomForm.bomStatus,
+      effectiveFrom: bomForm.effectiveFrom,
+      effectiveTo: bomForm.effectiveTo || null,
+      reason: bomForm.reason.trim() || undefined,
+    };
+
+    try {
+      if (editingBom) {
+        await updateDishBomLine({ ...request, bomId: editingBom.line.bomId }).unwrap();
+      } else {
+        await addDishBomLine(request).unwrap();
+      }
+      setIsBomDialogOpen(false);
+      setBomPanelMode('current');
+      setBomImportFeedback({ type: 'success', message: editingBom ? 'Đã tạo version điều chỉnh cho dòng BOM.' : 'Đã thêm dòng BOM thủ công.' });
+    } catch (error) {
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa lưu được dòng BOM.') });
+    }
+  };
+
+  const handleCloseBomLine = async () => {
+    if (!closingBom) return;
+    try {
+      await closeDishBomLine({ dishId: closingBom.dishId, bomId: closingBom.line.bomId }).unwrap();
+      setClosingBom(null);
+      setBomImportFeedback({ type: 'success', message: 'Đã ngừng áp dụng dòng BOM; dữ liệu lịch sử vẫn được giữ lại.' });
+    } catch (error) {
+      setBomImportFeedback({ type: 'error', message: getMutationErrorMessage(error, 'Chưa ngừng áp dụng được dòng BOM.') });
     }
   };
 
@@ -406,7 +581,6 @@ export default function AdminDataPage() {
       activeWeekDays: contract.activeWeekDays.join(','),
       shiftNames: contract.shiftNames.join(','),
       defaultMenuPrice: contract.defaultMenuPrice != null ? String(contract.defaultMenuPrice) : '',
-      defaultBomRatePercent: contract.defaultBomRatePercent != null ? String(contract.defaultBomRatePercent) : '',
     } : defaultContractForm);
     setContractFeedback(null);
   };
@@ -421,7 +595,6 @@ export default function AdminDataPage() {
       activeWeekDays: 't2,t3,t4,t5,t6,t7',
       shiftNames: 'MORNING,AFTERNOON',
       defaultMenuPrice: '25000',
-      defaultBomRatePercent: '100',
     });
     loadScheduleRuleForm(undefined);
     setContractFeedback(null);
@@ -430,7 +603,6 @@ export default function AdminDataPage() {
   const loadScheduleRuleForm = (schedule: MenuScheduleDto | undefined) => {
     setScheduleRuleForm(schedule ? {
       menuPrice: String(schedule.menuPrice),
-      bomRatePercent: String(schedule.bomRatePercent),
       status: schedule.status,
       reason: '',
     } : defaultScheduleRuleForm);
@@ -464,16 +636,8 @@ export default function AdminDataPage() {
     const defaultMenuPrice = contractForm.defaultMenuPrice.trim()
       ? Number(contractForm.defaultMenuPrice)
       : undefined;
-    const defaultBomRatePercent = contractForm.defaultBomRatePercent.trim()
-      ? Number(contractForm.defaultBomRatePercent)
-      : undefined;
-
     if (defaultMenuPrice != null && (!Number.isFinite(defaultMenuPrice) || defaultMenuPrice < 0)) {
       setContractFeedback({ type: 'error', message: 'Đơn giá mặc định không hợp lệ.' });
-      return;
-    }
-    if (defaultBomRatePercent != null && (!Number.isFinite(defaultBomRatePercent) || defaultBomRatePercent <= 0 || defaultBomRatePercent > 300)) {
-      setContractFeedback({ type: 'error', message: 'Tỷ lệ BOM mặc định phải trong khoảng 0-300%.' });
       return;
     }
 
@@ -503,7 +667,7 @@ export default function AdminDataPage() {
       activeWeekDays,
       shiftNames,
       defaultMenuPrice,
-      defaultBomRatePercent,
+      defaultBomRatePercent: 100,
     };
 
     try {
@@ -539,19 +703,14 @@ export default function AdminDataPage() {
     }
 
     const menuPrice = Number(scheduleRuleForm.menuPrice || selectedSchedule.menuPrice);
-    const bomRatePercent = Number(scheduleRuleForm.bomRatePercent || selectedSchedule.bomRatePercent);
     if (!Number.isFinite(menuPrice) || menuPrice < 0) {
       setContractFeedback({ type: 'error', message: 'Đơn giá menu không hợp lệ.' });
-      return;
-    }
-    if (!Number.isFinite(bomRatePercent) || bomRatePercent <= 0 || bomRatePercent > 300) {
-      setContractFeedback({ type: 'error', message: 'Tỷ lệ BOM phải trong khoảng 0-300%.' });
       return;
     }
 
     const body: UpdateMenuScheduleRulesRequest = {
       menuPrice,
-      bomRatePercent,
+      bomRatePercent: 100,
       status: scheduleRuleForm.status,
       reason: scheduleRuleForm.reason.trim() || undefined,
     };
@@ -785,11 +944,45 @@ export default function AdminDataPage() {
                   />
                 </FieldRow>
 
+                <FieldRow label="Tải file Excel">
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      className="ipc-button ipc-button-ghost justify-center"
+                      type="button"
+                      disabled={downloadBomTemplateState.isLoading}
+                      onClick={() => void handleDownloadBomTemplate('missing')}
+                    >
+                      <Download size={15} />
+                      BOM thiếu
+                    </button>
+                    <button
+                      className="ipc-button ipc-button-ghost justify-center"
+                      type="button"
+                      disabled={downloadBomTemplateState.isLoading}
+                      onClick={() => void handleDownloadBomTemplate('blank')}
+                    >
+                      <Download size={15} />
+                      Mẫu trống
+                    </button>
+                    {bomTemplateDishId && (
+                      <button
+                        className="ipc-button ipc-button-ghost justify-center"
+                        type="button"
+                        disabled={downloadBomTemplateState.isLoading}
+                        onClick={() => void handleDownloadBomTemplate('dish')}
+                      >
+                        <Download size={15} />
+                        Món này
+                      </button>
+                    )}
+                  </div>
+                </FieldRow>
+
                 <FieldRow label="File import">
                   <input
                     className="ipc-input w-full"
                     type="file"
-                    accept=".csv,text/csv"
+                    accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
                     onChange={(event) => {
                       setBomImportFile(event.target.files?.[0] ?? null);
                       setBomImportPreview(null);
@@ -797,16 +990,7 @@ export default function AdminDataPage() {
                   />
                 </FieldRow>
 
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                  <button
-                    className="ipc-button ipc-button-ghost"
-                    type="button"
-                    disabled={downloadBomTemplateState.isLoading}
-                    onClick={() => void handleDownloadBomTemplate()}
-                  >
-                    <Download size={15} />
-                    Tải mẫu
-                  </button>
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                   <button
                     className="ipc-button ipc-button-primary"
                     type="button"
@@ -832,6 +1016,16 @@ export default function AdminDataPage() {
                     {bomImportFeedback.message}
                   </InlineAlert>
                 )}
+
+                {bomTemplateDishId && (
+                  <InlineAlert title="Mẫu theo món thiếu BOM" variant="info">
+                    File tải xuống ưu tiên món đang được chọn từ danh sách lỗi. IngredientCode không cần nhập; chỉ điền IngredientName, UnitCode, định lượng và import lại.
+                  </InlineAlert>
+                )}
+
+                <InlineAlert title="Cấu trúc nhập BOM mới" variant="info">
+                  Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Dòng chưa điền nguyên liệu sẽ được bỏ qua khi preview; nguyên liệu mới sẽ được tạo mã sau khi commit.
+                </InlineAlert>
               </div>
 
               <div className="flex flex-col gap-3">
@@ -839,53 +1033,155 @@ export default function AdminDataPage() {
                   items={[
                     { label: 'Tier', value: `${(bomImportTier / 1000).toFixed(0)}k`, tone: 'info' },
                     { label: 'Scope', value: bomImportCustomerId ? 'Customer override' : 'Global', tone: bomImportCustomerId ? 'warning' : 'neutral' },
-                    { label: 'Dòng hợp lệ', value: `${bomImportPreview?.validRows ?? 0}/${bomImportPreview?.totalRows ?? 0}`, tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
-                    { label: 'Lỗi', value: String(bomImportPreview?.errorRows ?? 0), tone: bomImportPreview?.errorRows ? 'danger' : 'success' },
+                    { label: 'BOM hiện tại', value: `${currentBomRows.length} dòng`, tone: currentBomRows.length ? 'success' : 'neutral' },
+                    { label: 'Kết quả kiểm tra', value: bomImportPreview ? `${bomImportPreview.validRows}/${bomImportPreview.totalRows} hợp lệ` : 'Chưa kiểm tra', tone: bomImportPreview?.errorRows ? 'danger' : bomImportPreview ? 'success' : 'neutral' },
                   ]}
                 />
 
-                <PaginatedTableFrame ariaLabel="Preview import BOM theo đơn giá">
-                  <table className="ipc-data-table">
-                    <thead>
-                      <tr>
-                        <th>Dòng</th>
-                        <th>Món</th>
-                        <th>Nguyên liệu</th>
-                        <th>ĐVT</th>
-                        <th>Qty/suất</th>
-                        <th>Hao hụt</th>
-                        <th>Action</th>
-                        <th>Trạng thái</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {bomPreviewPagination.rows.map((row) => (
-                        <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
-                          <td>{row.rowNumber}</td>
-                          <td>
-                            <div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div>
-                            <div className="text-xs text-slate-500">{row.dishCode}</div>
-                          </td>
-                          <td>
-                            <div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div>
-                            <div className="text-xs text-slate-500">{row.ingredientCode}</div>
-                          </td>
-                          <td>{row.unitCode}</td>
-                          <td>{row.grossQtyPerServing}</td>
-                          <td>{row.wasteRatePercent}%</td>
-                          <td>{row.action}</td>
-                          <td>
-                            <StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>
-                              {row.errors[0] ?? row.warnings[0] ?? 'Hợp lệ'}
-                            </StatusBadge>
-                          </td>
+                <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex gap-1" role="tablist" aria-label="Chọn dữ liệu BOM hiển thị">
+                    <button
+                      className={`ipc-button ${bomPanelMode === 'current' ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={bomPanelMode === 'current'}
+                      onClick={() => setBomPanelMode('current')}
+                    >
+                      BOM hiện tại
+                    </button>
+                    <button
+                      className={`ipc-button ${bomPanelMode === 'preview' ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
+                      type="button"
+                      role="tab"
+                      aria-selected={bomPanelMode === 'preview'}
+                      onClick={() => setBomPanelMode('preview')}
+                    >
+                      Bản xem trước
+                    </button>
+                  </div>
+                  {bomPanelMode === 'current' && (
+                    <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
+                      <label className="relative min-w-0 flex-1 sm:max-w-xs">
+                        <span className="sr-only">Tìm món hoặc nguyên liệu</span>
+                        <Search className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" size={15} />
+                        <input
+                          className="ipc-input w-full !pl-9"
+                          value={bomSearch}
+                          onChange={(event) => setBomSearch(event.target.value)}
+                          placeholder="Tìm món, nguyên liệu..."
+                        />
+                      </label>
+                      <button className="ipc-button ipc-button-primary shrink-0" type="button" onClick={openCreateBomDialog}>
+                        <PlusCircle size={15} />
+                        Thêm dòng
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {bomPanelMode === 'current' ? (
+                  <DataTableShell className="max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
+                    <table className="ipc-data-table min-w-[1038px] table-fixed">
+                      <colgroup>
+                        <col className="w-[215px]" />
+                        <col className="w-[190px]" />
+                        <col className="w-[80px]" />
+                        <col className="w-[85px]" />
+                        <col className="w-[70px]" />
+                        <col className="w-[115px]" />
+                        <col className="w-[115px]" />
+                        <col className="w-[168px]" />
+                      </colgroup>
+                      <thead>
+                        <tr>
+                          <th>Món</th>
+                          <th>Nguyên liệu</th>
+                          <th>ĐVT</th>
+                          <th>Qty/suất</th>
+                          <th>Hao hụt</th>
+                          <th>Hiệu lực</th>
+                          <th>Trạng thái</th>
+                          <th className="whitespace-nowrap">Thao tác</th>
                         </tr>
-                      ))}
-                      {(!bomImportPreview || bomImportPreview.rows.length === 0) && <EmptyRow colSpan={8} />}
-                    </tbody>
-                  </table>
-                </PaginatedTableFrame>
-                <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
+                      </thead>
+                      <tbody>
+                        {currentBomRows.map(({ dish, line }) => (
+                          <tr key={line.bomId}>
+                            <td>
+                              <div className="font-semibold text-slate-900">{dish.name}</div>
+                              <div className="text-xs text-slate-500">{dish.code}</div>
+                            </td>
+                            <td>
+                              <div className="font-semibold text-slate-900">{line.name}</div>
+                              <div className="text-xs text-slate-500">{line.ingredientCode}</div>
+                            </td>
+                            <td>{line.unit}</td>
+                            <td className="ipc-numeric-cell">{line.grossQtyPerServing}</td>
+                            <td className="ipc-numeric-cell">{line.wasteRatePercent}%</td>
+                            <td>
+                              <div>{line.effectiveFrom}</div>
+                              <div className="text-xs text-slate-500">{line.effectiveTo ? `đến ${line.effectiveTo}` : 'không giới hạn'}</div>
+                            </td>
+                            <td>
+                              <StatusBadge variant={line.bomStatus === 'PUBLISHED' ? 'success' : 'warning'}>
+                                {line.bomStatusLabel || line.bomStatus}
+                              </StatusBadge>
+                            </td>
+                            <td className="whitespace-nowrap">
+                              <div className="flex flex-nowrap justify-center gap-1">
+                                <button className="ipc-button ipc-button-ghost shrink-0 whitespace-nowrap" type="button" onClick={() => openEditBomDialog(dish.id, line)}>
+                                  <Pencil size={14} /> Sửa
+                                </button>
+                                <button className="ipc-button ipc-button-ghost shrink-0 whitespace-nowrap text-rose-700" type="button" onClick={() => setClosingBom({ dishId: dish.id, dishName: dish.name, line })}>
+                                  <Power size={14} /> Ngừng
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                        {!isDishCatalogLoading && currentBomRows.length === 0 && <EmptyRow colSpan={8} />}
+                        {isDishCatalogLoading && (
+                          <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </DataTableShell>
+                ) : (
+                  <>
+                    <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
+                    <table className="ipc-data-table">
+                      <thead>
+                        <tr>
+                          <th>Dòng</th>
+                          <th>Món</th>
+                          <th>Nguyên liệu</th>
+                          <th>ĐVT</th>
+                          <th>Qty/suất</th>
+                          <th>Hao hụt</th>
+                          <th>Action</th>
+                          <th>Trạng thái</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                         {bomPreviewPagination.rows.map((row) => (
+                          <tr key={`${row.rowNumber}-${row.dishCode}-${row.ingredientCode}`}>
+                            <td>{row.rowNumber}</td>
+                            <td><div className="font-semibold text-slate-900">{row.dishName || row.dishCode}</div><div className="text-xs text-slate-500">{row.dishCode}</div></td>
+                            <td><div className="font-semibold text-slate-900">{row.ingredientName || row.ingredientCode}</div><div className="text-xs text-slate-500">{row.ingredientCode}</div></td>
+                            <td>{row.unitCode}</td>
+                            <td>{row.grossQtyPerServing}</td>
+                            <td>{row.wasteRatePercent}%</td>
+                            <td>{row.action}</td>
+                            <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors[0] ?? row.warnings[0] ?? 'Hợp lệ'}</StatusBadge></td>
+                          </tr>
+                        ))}
+                        {(!bomImportPreview || bomImportPreview.rows.length === 0) && <EmptyRow colSpan={8} />}
+                      </tbody>
+                    </table>
+                     </PaginatedTableFrame>
+                    <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
+                  </>
+                )}
               </div>
             </div>
           </SectionPanel>
@@ -900,7 +1196,7 @@ export default function AdminDataPage() {
                 { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' },
                 { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' },
                 { label: 'Ca phục vụ', value: selectedContract?.shiftNames.join(', ') || '-', tone: 'info' },
-                { label: 'BOM mặc định', value: selectedContract?.defaultBomRatePercent != null ? `${selectedContract.defaultBomRatePercent}%` : '-', tone: 'neutral' },
+                { label: 'BOM áp dụng', value: 'Theo đơn giá menu, 100%', tone: 'info' },
                 { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' },
               ]}
             />
@@ -1036,9 +1332,9 @@ export default function AdminDataPage() {
                   </label>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3">
                   <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-price">
-                    Đơn giá mặc định
+                    Đơn giá mặc định / tier BOM
                     <input
                       id="admin-contract-default-price"
                       className="ipc-input"
@@ -1048,20 +1344,6 @@ export default function AdminDataPage() {
                       value={contractForm.defaultMenuPrice}
                       onChange={(event) => setContractForm((prev) => ({ ...prev, defaultMenuPrice: event.target.value }))}
                       placeholder={selectedContract?.defaultMenuPrice?.toString() ?? '25000'}
-                    />
-                  </label>
-                  <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-default-bom-rate">
-                    BOM mặc định (%)
-                    <input
-                      id="admin-contract-default-bom-rate"
-                      className="ipc-input"
-                      type="number"
-                      min="1"
-                      max="300"
-                      step="1"
-                      value={contractForm.defaultBomRatePercent}
-                      onChange={(event) => setContractForm((prev) => ({ ...prev, defaultBomRatePercent: event.target.value }))}
-                      placeholder={selectedContract?.defaultBomRatePercent?.toString() ?? '100'}
                     />
                   </label>
                 </div>
@@ -1090,8 +1372,8 @@ export default function AdminDataPage() {
                         <th>Ngày làm việc</th>
                         <th>Ca</th>
                         <th>Hiệu lực</th>
-                        <th>Đơn giá TB</th>
-                        <th>BOM TB</th>
+                        <th>Đơn giá / tier</th>
+                        <th>BOM áp dụng</th>
                         <th>Trạng thái</th>
                       </tr>
                     </thead>
@@ -1109,7 +1391,7 @@ export default function AdminDataPage() {
                             <div className="text-xs text-slate-500">{contract.effectiveTo ? `đến ${contract.effectiveTo}` : contract.contractStatus}</div>
                           </td>
                           <td className="ipc-numeric-cell">{contract.defaultMenuPrice?.toLocaleString('vi-VN') ?? '-'}</td>
-                          <td className="ipc-numeric-cell">{contract.defaultBomRatePercent != null ? `${contract.defaultBomRatePercent}%` : '-'}</td>
+                          <td className="ipc-numeric-cell">100%</td>
                           <td>
                             <StatusBadge variant={contract.isActive ? 'success' : 'warning'}>
                               {contract.isActive ? 'Đang dùng' : 'Đã khóa'}
@@ -1122,7 +1404,7 @@ export default function AdminDataPage() {
                 </TableViewport>
 
                 <div className="grid gap-3 rounded-md border border-slate-200 bg-white p-3">
-                  <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(3,minmax(110px,0.5fr))]">
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1.4fr)_repeat(2,minmax(130px,0.5fr))]">
                     <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600" htmlFor="admin-contract-schedule">
                       Lịch thực đơn
                       <select
@@ -1148,7 +1430,7 @@ export default function AdminDataPage() {
                       </span>
                     </label>
                     <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      Đơn giá
+                      Đơn giá / tier BOM
                       <input
                         className="ipc-input"
                         inputMode="decimal"
@@ -1157,19 +1439,6 @@ export default function AdminDataPage() {
                         value={scheduleRuleForm.menuPrice}
                         onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, menuPrice: event.target.value }))}
                         placeholder={selectedSchedule?.menuPrice.toString() ?? '0'}
-                      />
-                    </label>
-                    <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
-                      BOM %
-                      <input
-                        className="ipc-input"
-                        inputMode="decimal"
-                        type="number"
-                        min="1"
-                        max="300"
-                        value={scheduleRuleForm.bomRatePercent}
-                        onChange={(event) => setScheduleRuleForm((prev) => ({ ...prev, bomRatePercent: event.target.value }))}
-                        placeholder={selectedSchedule?.bomRatePercent.toString() ?? '100'}
                       />
                     </label>
                     <label className="flex flex-col gap-1 text-[12px] font-bold text-slate-600">
@@ -1286,7 +1555,9 @@ export default function AdminDataPage() {
                       <td className="ipc-row-action-cell">
                         <Link
                           className="ipc-button ipc-button-ghost ipc-button-bounded ipc-table-action-control"
-                          to={issue.category === 'missing_bom' ? `${ROUTES.ADMIN_DATA}?view=bom-import` : issue.route || ROUTES.ADMIN_DATA}
+                          to={issue.category === 'missing_bom'
+                            ? `${ROUTES.ADMIN_DATA}?view=bom-import${issue.entityId ? `&dishId=${encodeURIComponent(issue.entityId)}` : ''}`
+                            : issue.route || ROUTES.ADMIN_DATA}
                           onClick={() => {
                             if (issue.category === 'missing_bom' && issue.entityId) {
                               setActiveView('bom-import');
@@ -1811,6 +2082,118 @@ export default function AdminDataPage() {
           </div>
         </SectionPanel>
       )}
+
+      <Dialog open={isBomDialogOpen} onOpenChange={setIsBomDialogOpen}>
+        <DialogContent aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'} className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>
+            <DialogDescription>
+              Tier {(bomImportTier / 1000).toFixed(0)}k · {bomImportCustomerId ? 'BOM theo khách hàng' : 'BOM global'}. Dòng published được điều chỉnh bằng version mới để giữ lịch sử.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form className="mt-4 grid gap-4" onSubmit={(event) => void handleSaveBomLine(event)}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-dish">
+                Món ăn <span className="text-rose-600" aria-hidden="true">*</span>
+                <select
+                  id="manual-bom-dish"
+                  className="ipc-select"
+                  value={bomForm.dishId}
+                  disabled={Boolean(editingBom)}
+                  required
+                  onChange={(event) => setBomForm((prev) => ({ ...prev, dishId: event.target.value }))}
+                >
+                  <option value="">Chọn món</option>
+                  {dishCatalog.filter((dish) => dish.isActive).map((dish) => (
+                    <option key={dish.id} value={dish.id}>{dish.code} - {dish.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-ingredient">
+                Nguyên liệu <span className="text-rose-600" aria-hidden="true">*</span>
+                <select
+                  id="manual-bom-ingredient"
+                  className="ipc-select"
+                  value={bomForm.ingredientId}
+                  required
+                  disabled={isIngredientCatalogLoading}
+                  onChange={(event) => setBomForm((prev) => ({ ...prev, ingredientId: event.target.value }))}
+                >
+                  <option value="">Chọn nguyên liệu</option>
+                  {ingredientCatalog.map((ingredient) => (
+                    <option key={ingredient.ingredientId} value={ingredient.ingredientId}>
+                      {ingredient.ingredientCode} - {ingredient.ingredientName} ({ingredient.unitName ?? 'ĐVT'})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-qty">
+                Qty/suất <span className="text-rose-600" aria-hidden="true">*</span>
+                <input id="manual-bom-qty" className="ipc-input" type="number" min="0.000001" step="0.000001" required value={bomForm.grossQtyPerServing} onChange={(event) => setBomForm((prev) => ({ ...prev, grossQtyPerServing: event.target.value }))} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-waste">
+                Hao hụt (%)
+                <input id="manual-bom-waste" className="ipc-input" type="number" min="0" max="100" step="0.01" value={bomForm.wasteRatePercent} onChange={(event) => setBomForm((prev) => ({ ...prev, wasteRatePercent: event.target.value }))} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-status">
+                Trạng thái
+                <select id="manual-bom-status" className="ipc-select" value={bomForm.bomStatus} onChange={(event) => setBomForm((prev) => ({ ...prev, bomStatus: event.target.value as BomFormState['bomStatus'] }))}>
+                  <option value="PUBLISHED">Áp dụng</option>
+                  <option value="DRAFT">Bản nháp</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-from">
+                Hiệu lực từ <span className="text-rose-600" aria-hidden="true">*</span>
+                <input id="manual-bom-from" className="ipc-input" type="date" required value={bomForm.effectiveFrom} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveFrom: event.target.value }))} />
+              </label>
+              <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-to">
+                Hiệu lực đến
+                <input id="manual-bom-to" className="ipc-input" type="date" value={bomForm.effectiveTo} onChange={(event) => setBomForm((prev) => ({ ...prev, effectiveTo: event.target.value }))} />
+              </label>
+            </div>
+
+            <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-reason">
+              Lý do điều chỉnh {editingBom && <span className="text-rose-600">*</span>}
+              <textarea id="manual-bom-reason" className="ipc-input min-h-20 py-2" maxLength={500} required={Boolean(editingBom)} value={bomForm.reason} onChange={(event) => setBomForm((prev) => ({ ...prev, reason: event.target.value }))} placeholder={editingBom ? 'Ví dụ: cập nhật định lượng theo bảng tháng 07/2026' : 'Ghi chú nếu cần'} />
+            </label>
+
+            {bomImportFeedback?.type === 'error' && (
+              <InlineAlert title="Chưa thể lưu" variant="danger">{bomImportFeedback.message}</InlineAlert>
+            )}
+
+            <DialogFooter>
+              <button className="ipc-button ipc-button-ghost" type="button" disabled={isSavingBom} onClick={() => setIsBomDialogOpen(false)}>Hủy</button>
+              <button className="ipc-button ipc-button-primary" type="submit" disabled={isSavingBom || isDishCatalogLoading || isIngredientCatalogLoading}>
+                <Save size={15} /> {isSavingBom ? 'Đang lưu...' : editingBom ? 'Lưu version mới' : 'Thêm dòng BOM'}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={closingBom !== null} onOpenChange={(open) => { if (!open) setClosingBom(null); }}>
+        <DialogContent aria-label="Ngừng áp dụng dòng BOM" className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Ngừng áp dụng dòng BOM?</DialogTitle>
+            <DialogDescription>
+              {closingBom ? `${closingBom.dishName} · ${closingBom.line.name}` : ''}. Dữ liệu không bị xóa cứng và vẫn còn trong lịch sử/audit.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-5">
+            <button className="ipc-button ipc-button-ghost" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => setClosingBom(null)}>Hủy</button>
+            <button className="ipc-button ipc-button-primary bg-rose-700 hover:bg-rose-800" type="button" disabled={closeDishBomLineState.isLoading} onClick={() => void handleCloseBomLine()}>
+              <Power size={15} /> {closeDishBomLineState.isLoading ? 'Đang xử lý...' : 'Ngừng áp dụng'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
   );
 }

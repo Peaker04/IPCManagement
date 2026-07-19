@@ -3,11 +3,12 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { ApprovalQueue } from './ApprovalQueue';
+import { DemandSummary } from './DemandSummary';
 import { DocumentRail } from './DocumentRail';
 import { RoleInbox } from './RoleInbox';
 import { StockMovementTable } from './StockMovementTable';
 import { ToastProvider } from './ToastProvider';
-import type { ApprovalRecord, RoleInboxItem, StockMovement, WorkflowDocument } from '@/features/workflow';
+import type { ApprovalRecord, DemandLine, RoleInboxItem, StockMovement, WorkflowDocument } from '@/features/workflow';
 
 const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => ({
   id: `task-${index + 1}`,
@@ -77,6 +78,29 @@ const documents: WorkflowDocument[] = [{
   lines: [{ label: 'Số suất', value: '100' }],
   tone: 'warning',
 }];
+
+const demandLines: DemandLine[] = Array.from({ length: 9 }, (_, index) => ({
+  id: `demand-${index + 1}`,
+  material: `Nguyên liệu ${index + 1}`,
+  required: 10,
+  available: 4,
+  reserved: 0,
+  unit: 'kg',
+  source: 'MR-001',
+  status: 'Thiếu nguyên liệu',
+  nextAction: 'Đề xuất mua thêm',
+  tone: 'danger',
+}));
+
+describe('DemandSummary', () => {
+  it('renders the complete server page without adding a second local pager', () => {
+    render(<DemandSummary lines={demandLines} />);
+
+    expect(screen.getByRole('columnheader', { name: 'Hướng xử lý' })).toBeInTheDocument();
+    expect(screen.getByText('Nguyên liệu 9')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Trang sau/i })).not.toBeInTheDocument();
+  });
+});
 
 describe('RoleInbox', () => {
   it('renders configured empty state', () => {

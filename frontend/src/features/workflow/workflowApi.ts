@@ -34,9 +34,9 @@ export interface WorkflowReportQuery {
   sortDirection?: 'asc' | 'desc';
   actor?: string;
   businessArea?: string;
-  movementType?: string;
   entityName?: string;
   fieldName?: string;
+  movementType?: string;
   groupBy?: 'day' | 'week';
   priceTier?: number;
   warningOnly?: boolean;
@@ -45,6 +45,10 @@ export interface WorkflowReportQuery {
 export interface WorkflowReportPageQuery extends WorkflowReportQuery {
   pageNumber?: number;
   pageSize?: number;
+}
+
+export interface MaterialRequestCandidatePageQuery extends WorkflowReportPageQuery {
+  purpose: 'purchase' | 'issue';
 }
 
 export type CurrentStockPageQuery = WorkflowReportPageQuery;
@@ -145,6 +149,20 @@ export interface CreateInventoryReceiptFromPurchaseRequest {
   lines: CreateInventoryReceiptFromPurchaseLineRequest[];
 }
 
+export interface GeneratePurchaseRequestFromDemandRequest {
+  materialRequestId: string;
+}
+
+export interface PurchaseRequestWorkflowResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: PurchaseRequestResult['lines'];
+}
+
 export interface InventoryReceiptCreatedResult {
   receiptId: string;
   receiptCode: string;
@@ -164,6 +182,30 @@ export interface CreateInventoryIssueRequest {
   materialRequestId: string;
   receivedBy?: string;
   lines: CreateInventoryIssueLineRequest[];
+}
+
+export interface CreateSupplementalMaterialRequest {
+  issueId: string;
+  issueLineId: string;
+  requestedQty: number;
+  reason?: string;
+}
+
+export interface SupplementalMaterialRequestResult {
+  requestId: string;
+  requestCode: string;
+  issueId: string;
+  issueCode: string;
+  issueLineId: string;
+  warehouseId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  requestedQty: number;
+  reason?: string;
+  status: string;
+  requestedAt: string;
 }
 
 export interface InventoryIssueCreatedResult {
@@ -254,6 +296,41 @@ interface IngredientDemandReportDto {
 
 interface IngredientDemandPageResponseDto {
   items: IngredientDemandReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
+export interface MaterialRequestCandidate {
+  materialRequestId: string;
+  materialRequestCode: string;
+  requestDate: string;
+  requestScope: string;
+  status: string;
+  actionableLineCount: number;
+  actionableQuantity: number;
+  hasExistingPurchaseRequest: boolean;
+}
+
+interface IngredientDemandAggregateReportDto {
+  requestDate: string;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  totalRequiredQty: number;
+  currentStockQty: number;
+  suggestedPurchaseQty: number;
+  lineCount: number;
+  hasCancelledLine: boolean;
+}
+
+interface IngredientDemandAggregatePageResponseDto {
+  items: IngredientDemandAggregateReportDto[];
   totalCount: number;
   pageNumber: number;
   pageSize: number;
@@ -1072,6 +1149,27 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   };
 };
 
+const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
+  const shortage = Math.max(item.suggestedPurchaseQty, 0);
+  const serviceDate = item.requestDate?.split('T')[0];
+  const isCancelled = item.hasCancelledLine;
+
+  return {
+    id: `aggregate-${serviceDate}-${item.ingredientId}-${item.unitId}`,
+    ingredientId: item.ingredientId,
+    serviceDate,
+    material: item.ingredientName ?? item.ingredientId,
+    required: item.totalRequiredQty,
+    available: item.currentStockQty,
+    reserved: 0,
+    unit: item.unitName ?? '',
+    source: `${item.lineCount} dòng nhu cầu trong ngày`,
+    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+    nextAction: isCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
+  };
+};
+
 const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   id: item.inboxItemId || item.targetCode || item.targetId,
   targetType: item.targetType,
@@ -1473,6 +1571,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['MaterialDemandStaleness'],
     }),
+    createPurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResult>, GeneratePurchaseRequestFromDemandRequest>({
+      query: (body) => ({
+        url: '/purchase-workflow/from-demand',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
       query: (purchaseRequestId) => ({
         url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
@@ -1491,6 +1597,14 @@ export const workflowApi = apiSlice.injectEndpoints({
     createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
       query: (body) => ({
         url: '/inventory-issues',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({
+      query: (body) => ({
+        url: '/supplemental-material-requests',
         method: 'POST',
         body,
       }),
@@ -1564,6 +1678,50 @@ export const workflowApi = apiSlice.injectEndpoints({
           totalCount: page?.totalCount ?? 0,
           pageNumber: page?.pageNumber ?? 1,
           pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getMaterialRequestCandidatePage: builder.query<PageNumberPage<MaterialRequestCandidate>, MaterialRequestCandidatePageQuery>({
+      query: (query) => ({
+        url: '/workflow-reports/material-request-candidates/page',
+        params: {
+          ...query,
+          pageNumber: query.pageNumber ?? 1,
+          pageSize: query.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<MaterialRequestCandidate>>) => response.data ?? {
+        items: [],
+        totalCount: 0,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 0,
+        hasPrev: false,
+        hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/aggregate/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 20,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandAggregatePageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandAggregateLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 20,
           totalPages: page?.totalPages ?? 0,
           hasPrev: page?.hasPrev ?? false,
           hasNext: page?.hasNext ?? false,
@@ -1916,11 +2074,15 @@ export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
   useGetIngredientDemandPageQuery,
+  useGetMaterialRequestCandidatePageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
+  useCreateSupplementalMaterialRequestMutation,
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchasePlanQuery,
