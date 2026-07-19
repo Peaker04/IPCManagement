@@ -1,10 +1,11 @@
-import { readFile } from 'node:fs/promises'
-import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { ROUTES } from '@/routes/routeConfig'
-
-const readFrontendSource = (relativePath: string) =>
-  readFile(path.resolve(process.cwd(), 'src', relativePath), 'utf8')
+import weeklyMenuPageSource from './projects/pages/WeeklyMenuPage.tsx?raw'
+import weeklyMenuFormattersSource from './projects/weekly-menu/model/formatters.ts?raw'
+import weeklyMenuScopeSource from './projects/weekly-menu/model/scope.ts?raw'
+import weeklyMenuImportValidationSource from './projects/weekly-menu/import/importValidation.ts?raw'
+import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
+import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
 describe('operational page refactor contracts', () => {
   it('keeps the three MVP workflows on their existing routes', () => {
@@ -13,8 +14,8 @@ describe('operational page refactor contracts', () => {
     expect(ROUTES.CHEF_DASHBOARD).toBe('/chef-dashboard')
   })
 
-  it('keeps weekly menu import, demand and schedule actions wired to real APIs', async () => {
-    const source = await readFrontendSource('features/projects/pages/WeeklyMenuPage.tsx')
+  it('keeps weekly menu import, demand and schedule actions wired to real APIs', () => {
+    const source = [weeklyMenuPageSource, weeklyMenuFormattersSource, weeklyMenuScopeSource, weeklyMenuImportValidationSource].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
     expect(source).toContain('useCommitWeeklyMenuImportMutation')
@@ -24,8 +25,8 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain("{ id: 'demand', label: 'Nhu cầu' }")
   })
 
-  it('keeps purchasing paging and purchase mutations wired to real APIs', async () => {
-    const source = await readFrontendSource('features/workflow/pages/PurchasingPage.tsx')
+  it('keeps purchasing paging and purchase mutations wired to real APIs', () => {
+    const source = purchasingPageSource
 
     expect(source).toContain('useGetMaterialRequestCandidatePageQuery')
     expect(source).toContain('pageSize: 8')
@@ -35,8 +36,8 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain('Tạo đề xuất mua')
   })
 
-  it('keeps kitchen receipt and supplemental request mutations wired to real APIs', async () => {
-    const source = await readFrontendSource('features/chef/pages/ChefDashboardPage.tsx')
+  it('keeps kitchen receipt and supplemental request mutations wired to real APIs', () => {
+    const source = chefDashboardPageSource
 
     expect(source).toContain('useConfirmInventoryIssueReceiptMutation')
     expect(source).toContain('useCreateSupplementalMaterialRequestMutation')
