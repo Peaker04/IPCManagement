@@ -23,6 +23,7 @@ import {
   useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
   useGetIngredientDemandPageQuery,
+  useGetMaterialRequestCandidatePageQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
@@ -49,6 +50,7 @@ export default function WarehousePage() {
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [demandPage, setDemandPage] = useState(1);
+  const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
@@ -64,7 +66,11 @@ export default function WarehousePage() {
     pageSize: 8,
   });
   const demandLines = demandPageResponse?.items ?? [];
-  const { data: issueCandidatePage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 100 });
+  const { data: issueCandidatePage, isFetching: isFetchingIssueCandidates } = useGetMaterialRequestCandidatePageQuery({
+    purpose: 'issue',
+    pageNumber: issueCandidatePageNumber,
+    pageSize: 8,
+  });
   const { data: issueWarehouseRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const { data: stockMovementPage } = useGetStockMovementPageQuery({
@@ -91,27 +97,15 @@ export default function WarehousePage() {
   const issueDocument = warehouseDocuments.find((document) => document.type === 'Phiếu xuất');
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
-  const issueCandidates = Array.from(
-    (issueCandidatePage?.items ?? []).reduce((candidates, line) => {
-      if (!line.materialRequestId) return candidates;
-
-      const current = candidates.get(line.materialRequestId);
-      candidates.set(line.materialRequestId, {
-        id: line.materialRequestId,
-        code: line.sourceDocumentCode ?? line.materialRequestId,
-        serviceDate: line.serviceDate,
-        lineCount: (current?.lineCount ?? 0) + 1,
-      });
-      return candidates;
-    }, new Map<string, { id: string; code: string; serviceDate?: string; lineCount: number }>()),
-  ).map(([, candidate]) => candidate);
+  const issueCandidates = issueCandidatePage?.items ?? [];
   const warehouseOptions = Array.from(
     new Map(issueWarehouseRows.filter((row) => row.warehouseId).map((row) => [row.warehouseId, row.warehouse])).entries(),
   ).map(([id, name]) => ({ id, name }));
-  const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.id === selectedMaterialRequestId);
+  const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
 
   const openIssueDialog = () => {
+    setIssueCandidatePageNumber(1);
     setSelectedMaterialRequestId('');
     setSelectedWarehouseId('');
     setWarehouseFeedback(null);
@@ -143,9 +137,9 @@ export default function WarehousePage() {
 
     try {
       const response = await createInventoryIssue({
-        issueDate: selectedIssueCandidate.serviceDate ?? new Date().toISOString().slice(0, 10),
+        issueDate: selectedIssueCandidate.requestDate,
         warehouseId: selectedWarehouseId,
-        materialRequestId: selectedIssueCandidate.id,
+        materialRequestId: selectedIssueCandidate.materialRequestId,
         lines: [],
       }).unwrap();
 
@@ -232,13 +226,26 @@ export default function WarehousePage() {
                 </SelectTrigger>
                 <SelectContent>
                   {issueCandidates.map((candidate) => (
-                    <SelectItem key={candidate.id} value={candidate.id}>
-                      {candidate.code} | {candidate.serviceDate ?? 'Chưa rõ ngày'} | {candidate.lineCount} dòng
+                    <SelectItem key={candidate.materialRequestId} value={candidate.materialRequestId}>
+                      {candidate.materialRequestCode} | {candidate.requestDate} | {candidate.actionableLineCount} dòng
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
-              {issueCandidates.length === 0 && <p className="text-xs text-amber-700">Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.</p>}
+              <PaginationBar
+                page={issueCandidatePageNumber}
+                pageSize={issueCandidatePage?.pageSize ?? 8}
+                totalItems={issueCandidatePage?.totalCount ?? 0}
+                onPageChange={(page) => {
+                  setSelectedMaterialRequestId('');
+                  setIssueCandidatePageNumber(page);
+                }}
+              />
+              {issueCandidates.length === 0 && (
+                <p className="text-xs text-amber-700">
+                  {isFetchingIssueCandidates ? 'Đang tải nhu cầu nguyên liệu...' : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
+                </p>
+              )}
             </div>
             <div className="grid gap-2">
               <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-source">Kho xuất <span aria-hidden="true" className="text-red-600">*</span></label>

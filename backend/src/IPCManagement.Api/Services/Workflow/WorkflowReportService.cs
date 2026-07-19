@@ -735,6 +735,77 @@ public class WorkflowReportService : IWorkflowReportService
         };
     }
 
+    public async Task<MaterialRequestCandidatePageDto> GetMaterialRequestCandidatePageAsync(MaterialRequestCandidatePageQueryDto query)
+    {
+        var purpose = query.Purpose.Trim().ToLowerInvariant();
+        if (purpose is not ("purchase" or "issue"))
+        {
+            throw new ArgumentException("Mục đích danh sách nhu cầu phải là purchase hoặc issue.");
+        }
+
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+        var requests = _context.Materialrequests.AsNoTracking().AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            requests = requests.Where(item => item.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            requests = requests.Where(item => item.RequestDate <= dateTo);
+        }
+
+        if (purpose == "purchase")
+        {
+            requests = requests.Where(item =>
+                item.Status != "CANCELLED" &&
+                item.Status != "EXPORTED" &&
+                item.Materialrequestlines.Any(line => line.SuggestedPurchaseQty > 0));
+        }
+        else
+        {
+            requests = requests.Where(item =>
+                (item.Status == "MANAGERAPPROVED" || item.Status == "APPROVED" || item.Status == "SENTTOWAREHOUSE") &&
+                item.Materialrequestlines.Sum(line => line.TotalRequiredQty) >
+                item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty));
+        }
+
+        var totalCount = await requests.CountAsync();
+        var items = await requests
+            .OrderByDescending(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new MaterialRequestCandidateDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                MaterialRequestCode = item.RequestCode,
+                RequestDate = item.RequestDate,
+                RequestScope = item.RequestScope,
+                Status = item.Status,
+                ActionableLineCount = purpose == "purchase"
+                    ? item.Materialrequestlines.Count(line => line.SuggestedPurchaseQty > 0)
+                    : item.Materialrequestlines.Count,
+                ActionableQuantity = purpose == "purchase"
+                    ? item.Materialrequestlines.Sum(line => line.SuggestedPurchaseQty)
+                    : item.Materialrequestlines.Sum(line => line.TotalRequiredQty) -
+                      item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty),
+                HasExistingPurchaseRequest = item.Materialrequestlines.Any(line =>
+                    line.Purchaserequestlines.Any(purchaseLine => purchaseLine.PurchaseRequest.Status != "CANCELLED")),
+            })
+            .ToListAsync();
+
+        return new MaterialRequestCandidatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+        };
+    }
+
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
     {
         var rows = await BuildPurchasePlanRowsAsync(query, NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit));

@@ -47,6 +47,10 @@ export interface WorkflowReportPageQuery extends WorkflowReportQuery {
   pageSize?: number;
 }
 
+export interface MaterialRequestCandidatePageQuery extends WorkflowReportPageQuery {
+  purpose: 'purchase' | 'issue';
+}
+
 export type CurrentStockPageQuery = WorkflowReportPageQuery;
 export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
 export type PriceVarianceAggregatePageQuery = WorkflowReportPageQuery;
@@ -275,6 +279,17 @@ interface IngredientDemandPageResponseDto {
   hasPrev: boolean;
   hasNext: boolean;
   shortageCount: number;
+}
+
+export interface MaterialRequestCandidate {
+  materialRequestId: string;
+  materialRequestCode: string;
+  requestDate: string;
+  requestScope: string;
+  status: string;
+  actionableLineCount: number;
+  actionableQuantity: number;
+  hasExistingPurchaseRequest: boolean;
 }
 
 interface IngredientDemandAggregateReportDto {
@@ -1639,6 +1654,26 @@ export const workflowApi = apiSlice.injectEndpoints({
       },
       providesTags: ['WorkflowReports'],
     }),
+    getMaterialRequestCandidatePage: builder.query<PageNumberPage<MaterialRequestCandidate>, MaterialRequestCandidatePageQuery>({
+      query: (query) => ({
+        url: '/workflow-reports/material-request-candidates/page',
+        params: {
+          ...query,
+          pageNumber: query.pageNumber ?? 1,
+          pageSize: query.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<MaterialRequestCandidate>>) => response.data ?? {
+        items: [],
+        totalCount: 0,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 0,
+        hasPrev: false,
+        hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand/aggregate/page',
@@ -2007,6 +2042,7 @@ export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
   useGetIngredientDemandPageQuery,
+  useGetMaterialRequestCandidatePageQuery,
   useGetIngredientDemandAggregatePageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,

@@ -81,6 +81,20 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IngredientDemandAggregatePageDto>.SuccessResult(
             await _workflowReportService.GetIngredientDemandAggregatePageAsync(query)));
 
+    [HttpGet("material-request-candidates/page")]
+    public async Task<IActionResult> GetMaterialRequestCandidatePage([FromQuery] MaterialRequestCandidatePageQueryDto query)
+    {
+        try
+        {
+            return Ok(ApiResponse<MaterialRequestCandidatePageDto>.SuccessResult(
+                await _workflowReportService.GetMaterialRequestCandidatePageAsync(query)));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("purchase-demand")]
     public async Task<IActionResult> GetPurchaseDemand([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(

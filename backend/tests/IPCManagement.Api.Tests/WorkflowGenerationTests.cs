@@ -58,6 +58,100 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetMaterialRequestCandidatePageAsync_Should_PagePurchaseCandidatesBeyondOneHundredRequests()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            var planLineId = await context.Productionplanlines.Select(line => line.PlanLineId).SingleAsync();
+            for (var index = 1; index <= 105; index++)
+            {
+                var requestId = GuidHelper.NewId();
+                context.Materialrequests.Add(new Materialrequest
+                {
+                    RequestId = requestId,
+                    RequestCode = $"MR-PAGED-{index:000}",
+                    PlanId = fixture.ProductionPlanId,
+                    RequestDate = new DateOnly(2026, 6, 15).AddDays(index),
+                    RequestScope = "FULLDAY",
+                    Status = "DRAFT",
+                    CreatedBy = fixture.UserId,
+                    Materialrequestlines =
+                    [
+                        new Materialrequestline
+                        {
+                            RequestLineId = GuidHelper.NewId(),
+                            RequestId = requestId,
+                            PlanLineId = planLineId,
+                            IngredientId = fixture.IngredientId,
+                            UnitId = fixture.UnitId,
+                            TotalServings = 1,
+                            GrossQtyPerServing = 1,
+                            BomRatePercent = 100,
+                            TotalRequiredQty = 1,
+                            CurrentStockQty = 0,
+                            SuggestedPurchaseQty = 1,
+                        },
+                    ],
+                });
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+            new MaterialRequestCandidatePageQueryDto
+            {
+                Purpose = "purchase",
+                PageNumber = 2,
+                PageSize = 100,
+            });
+
+        page.TotalCount.Should().Be(106);
+        page.Items.Should().HaveCount(6);
+        page.HasPrev.Should().BeTrue();
+        page.HasNext.Should().BeFalse();
+        page.Items.Should().OnlyContain(item => item.ActionableLineCount == 1 && item.ActionableQuantity > 0);
+    }
+
+    [Fact]
+    public async Task GetMaterialRequestCandidatePageAsync_Should_ReturnOnlyApprovedUnissuedRequestsForWarehouse()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var request = await context.Materialrequests.SingleAsync();
+            request.Status = "MANAGERAPPROVED";
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+            new MaterialRequestCandidatePageQueryDto
+            {
+                Purpose = "issue",
+                PageNumber = 1,
+                PageSize = 8,
+            });
+
+        var candidate = page.Items.Should().ContainSingle().Subject;
+        candidate.Status.Should().Be("MANAGERAPPROVED");
+        candidate.ActionableQuantity.Should().Be(200m);
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_CreateDemandLines_ForHappyPath()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
