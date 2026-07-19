@@ -35,4 +35,4 @@ Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có end
 1. Bổ sung endpoint candidate distinct có server paging cho material request thay vì gom tối đa 100 dòng ở client.
 2. Đã chốt contract và nối mutation lưu supplemental request `PENDING`; không dùng local state làm bằng chứng thành công.
 3. Tách `PurchasingPage`, `WeeklyMenuPage` và `ChefDashboardPage` thành feature sections để giảm file lớn và test từng hành động độc lập.
-4. Chạy UAT end-to-end với seed DAV tuần 15/06/2026 và ghi bằng chứng cho từng mutation.
+4. Live API/database UAT đã pass cho login, candidate paging và supplemental mutation; click/keyboard/visual UAT còn chờ browser runtime khả dụng.

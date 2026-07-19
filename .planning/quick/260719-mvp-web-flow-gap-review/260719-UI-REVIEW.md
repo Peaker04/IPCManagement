@@ -1,39 +1,35 @@
 ---
 review: mvp-web-flow
 date: 2026-07-19
-scope: dashboard, weekly-menu, meal-orders, approvals, purchasing, warehouse, chef-dashboard
-overall_score: 19/24
+scope: weekly-menu, purchasing, warehouse, chef-dashboard
+overall_score: 20/24
 status: conditional-pass
 ---
 
-# UI review luồng MVP
+# UI review luồng MVP — lần chạy lại
 
-Review theo 6 trụ cột GSD, kiểm tra code, component contract và control-surface tests. Taste skill chỉ được dùng cho audit/preservation vì dashboard và data table nằm ngoài phạm vi trực tiếp của skill này.
-
-| Trụ cột | Điểm | Nhận xét |
+| Trụ cột | Điểm | Bằng chứng |
 |---|---:|---|
-| Visual hierarchy | 3/4 | Command bar và tab phân tầng rõ; một số page còn quá nhiều primary action cùng cấp |
-| Composition | 3/4 | Operational frame nhất quán; file/page lớn làm section khó tách và kiểm thử |
-| Consistency | 3/4 | Action label đã thống nhất; dialog nghiệp vụ mới dùng primitive Shadcn/Base UI chung |
-| Responsive | 3/4 | Có mobile control tests, table viewport và smoke dialog kho ở tablet/mobile |
-| Accessibility | 3/4 | Control có accessible name, dialog có title/description, label gắn với select; cần tiếp tục kiểm tra keyboard E2E |
-| Interaction/polish | 4/4 | Kho bắt buộc chọn chứng từ/kho; local-only supplemental UI đã gỡ; select portal trong dialog đã sửa z-index |
+| Copywriting | 4/4 | Cột mô tả dùng `Hướng xử lý`; button dùng động từ nghiệp vụ; dialog supplemental nói rõ chưa tự xuất kho. |
+| Visuals | 3/4 | Shadcn dialog/select/button và operational frame nhất quán; page Weekly Menu vẫn quá dày. |
+| Color | 3/4 | Warning/danger/success theo semantic token hiện có, không thêm palette riêng. |
+| Typography | 3/4 | Label, mô tả và trạng thái có hierarchy ổn định; một số bảng lớn vẫn dày thông tin. |
+| Spacing | 3/4 | Dialog và command bar theo spacing chung; cần visual UAT desktop/mobile để xác nhận phần matrix dài. |
+| Experience design | 4/4 | Không còn auto-select chứng từ/kho, không còn pager kép, success chỉ xuất hiện sau API thật. |
 
-## Findings đã sửa
+## Findings đã đóng
 
-- `UI-WARN-01`: `DemandSummary` có local pager bên trong ba page đã server-page, gây hai pager và che bớt item trong page. Đã bỏ local pager.
-- `UI-WARN-02`: cột `Tiếp theo` chỉ chứa text nên tạo kỳ vọng có thể bấm. Đã đổi thành `Hướng xử lý`.
-- `UI-WARN-03`: hàng đợi duyệt hiển thị nhãn next-action cạnh các nút Duyệt/Từ chối thật. Đã ẩn nhãn khi action renderer tồn tại.
-- `UI-WARN-04`: Thu mua thiếu control gọi endpoint `from-demand`. Đã thêm dialog Shadcn/Base UI và mutation thật.
-- `UI-INFO-01`: hai shortcut command bar trùng với tab/sidebar đã được loại bỏ.
-- `UI-WARN-05`: `WarehousePage` không còn tự lấy demand/kho đầu tiên; dialog bắt buộc chọn hai giá trị trước khi submit.
-- `UI-WARN-06`: đã gỡ state, prop, dialog, test và copy yêu cầu bổ sung local-only.
-- `UI-WARN-07`: popup Select trước đây nằm dưới Dialog overlay; primitive chung đã được nâng layer và smoke test click thật đã pass.
+- Dialog Thu mua và Kho lấy candidate bằng server paging, đổi page sẽ xóa selection cũ để tránh submit nhầm.
+- `Yêu cầu cấp bổ sung` là control thật, có loading, validation, error feedback và chỉ đóng dialog khi mutation persist thành công.
+- Trường bắt buộc có dấu `*`, label và accessible name; copy tránh thuật ngữ code thô.
+- `ImportedLayoutMatrix` và `SupplierLineItem` đã tách khỏi page container mà không đổi surface người dùng.
+- Swagger runtime blocker được xử lý, giúp tài liệu API và UAT contract hoạt động trở lại.
 
-## Findings còn mở
+## Finding còn mở
 
-- `UI-INFO-02`: `SwimlaneProgress` không còn caller trong working tree nhưng chưa thể xóa độc lập vì dashboard refactor chưa được commit cùng thay đổi dependency.
+- `UI-INFO-01`: chưa có browser session để kiểm tra keyboard/focus, responsive và screenshot thực tế. Cần chạy lại visual UAT khi in-app browser hoặc Chrome được kết nối.
+- `UI-INFO-02`: tiếp tục decomposition Weekly Menu để giảm tải nhận thức khi bảo trì; đây là cấu trúc code, không phải blocker thao tác hiện tại.
 
 ## Gate
 
-Conditional pass. Không còn warning UI chặn thao tác trong scope review; build/lint/unit/control/UI-audit/smoke đều pass. Cần UAT với backend/database seed thật để chuyển sang full pass.
+`20/24 — conditional-pass`. Không còn warning UI chức năng trong scope. Chưa nâng lên full pass cho tới khi click UAT trên browser thật hoàn tất.
