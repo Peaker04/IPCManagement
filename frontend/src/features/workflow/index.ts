@@ -11,6 +11,7 @@ export {
   useUpdateDataQualityIssueRemediationMutation,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,

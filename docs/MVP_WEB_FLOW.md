@@ -118,3 +118,20 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 ## Phạm vi MVP hiện tại
 
 Đã có các mảnh chính của luồng: live API, menu import, số suất/sign-off, demand, thiếu hụt, duyệt, thu mua, kho, bếp và báo cáo. Tuy nhiên, “MVP chạy được trên web” chỉ được xem là đạt khi database đã migrate/seed và từng bước trên được kiểm tra bằng tài khoản có quyền tương ứng.
+
+## Trạng thái đối chiếu FE/BE ngày 19/07/2026
+
+| Bước | Control FE | API BE | Trạng thái |
+|---|---|---|---|
+| Nhập thực đơn | Wizard `Chọn file` → `Kiểm tra` → `Lưu thực đơn` | Preview, commit, history và rollback | Có thể thao tác |
+| Nhập/chốt số suất | Sửa số suất, `Chốt đơn`, `Hoàn tất ca`, `Mở khóa ca` | Servings, lock, sign-off và unlock | Có thể thao tác |
+| Tạo demand | `Tạo demand từ KHSX` | `POST /api/material-demand/generate` | Có thể thao tác |
+| Tạo đề xuất mua | `Tạo đề xuất mua`, chọn chứng từ nhu cầu | `POST /api/purchase-workflow/from-demand` | Đã nối lại FE ngày 19/07/2026 |
+| Chọn nhà cung cấp/gửi duyệt | Tab giá và nhà cung cấp, `Gửi đơn mua` | Update supplier và submit request | Có thể thao tác |
+| Duyệt/từ chối | Nút trên từng chứng từ và dialog lý do | Approval inbox và decision | Có thể thao tác |
+| Tạo đơn mua/nhận hàng | `Tạo đơn mua hàng`, `Ghi nhận nhận hàng` | Purchase order create/receive | Có thể thao tác |
+| Xuất kho/bếp nhận/trả dư | `Tạo phiếu xuất kho`, ký nhận, trả kho/hao hụt | Inventory issue, confirm receipt và return | Có thể thao tác, còn rủi ro chọn chứng từ tự động |
+
+Quy ước UI sau review: cột chỉ mô tả trạng thái phải dùng nhãn `Hướng xử lý`; nhãn `Thao tác` chỉ dùng khi ô có button/link thật. Bảng lấy một page từ server không được tự phân trang lần thứ hai bên trong component.
+
+Các gap còn mở được theo dõi tại `.planning/quick/260719-mvp-web-flow-gap-review/MVP-GAP-MATRIX.md`. Hai gap ưu tiên là chọn rõ chứng từ/kho khi tạo phiếu xuất và không hiển thị thành công giả cho yêu cầu bổ sung của bếp khi BE chưa lưu dữ liệu.

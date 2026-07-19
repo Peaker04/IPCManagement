@@ -66,6 +66,15 @@ async function stubOperationalApis(page: Page) {
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
   await page.route('**/api/dishes/catalog**', async (route) => fulfillJson(route, []));
   await page.route('**/api/suppliers**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/supplier-quotations/**', async (route) => fulfillJson(route, {
+    items: [],
+    totalCount: 0,
+    pageNumber: 1,
+    pageSize: 8,
+    totalPages: 0,
+    hasPrev: false,
+    hasNext: false,
+  }));
   await page.route('**/api/production-plans/daily**', async (route) => fulfillJson(route, []));
   await page.route('**/api/coordination/customers', async (route) =>
     fulfillJson(route, [{ customerId: 'customer-dav', customerCode: 'DAV', customerName: 'Draxlmaier' }]),
@@ -406,9 +415,9 @@ test.describe('operational control surface', () => {
 
     const actionGroup = page.locator('.ipc-purchasing-actions');
     await expect(actionGroup).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Chọn nhà cung cấp' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Tạo đề xuất mua' })).toBeVisible();
     await expect(page.getByRole('link', { name: 'Chuyển sang nhập kho' })).toBeVisible();
-    const widths = await actionGroup.locator(':scope > div:last-child > *').evaluateAll((elements) =>
+    const widths = await actionGroup.locator(':scope > *').evaluateAll((elements) =>
       elements.map((element) => Math.round(element.getBoundingClientRect().width)),
     );
     expect(widths.length).toBe(3);

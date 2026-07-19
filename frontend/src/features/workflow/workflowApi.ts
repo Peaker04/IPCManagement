@@ -145,6 +145,20 @@ export interface CreateInventoryReceiptFromPurchaseRequest {
   lines: CreateInventoryReceiptFromPurchaseLineRequest[];
 }
 
+export interface GeneratePurchaseRequestFromDemandRequest {
+  materialRequestId: string;
+}
+
+export interface PurchaseRequestWorkflowResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: PurchaseRequestResult['lines'];
+}
+
 export interface InventoryReceiptCreatedResult {
   receiptId: string;
   receiptCode: string;
@@ -1518,6 +1532,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       providesTags: ['MaterialDemandStaleness'],
     }),
+    createPurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResult>, GeneratePurchaseRequestFromDemandRequest>({
+      query: (body) => ({
+        url: '/purchase-workflow/from-demand',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
       query: (purchaseRequestId) => ({
         url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
@@ -1988,6 +2010,7 @@ export const {
   useGetIngredientDemandAggregatePageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,

@@ -1280,6 +1280,91 @@ test.describe('route smoke', () => {
     await expect(page.getByRole('alert')).toContainText('Có dòng mua vượt ngưỡng giá');
   });
 
+  test('purchasing creates a purchase request from a selected material demand', async ({ page }) => {
+    await page.route('**/api/approvals/inbox**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'OK', data: { items: [], limit: 20, hasNext: false, nextCursor: null } }),
+      });
+    });
+    await page.route('**/api/workflow-reports/**', async (route) => {
+      const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
+      const data = endpoint === 'ingredient-demand/page'
+        ? {
+            items: [{
+              materialRequestId: 'mr-create-1',
+              materialRequestCode: 'MR-DAV-20260618-FULLDAY',
+              requestDate: '2026-06-18',
+              status: 'APPROVED',
+              ingredientId: 'ingredient-rice',
+              ingredientName: 'Gạo tẻ',
+              unitId: 'unit-kg',
+              unitName: 'kg',
+              totalRequiredQty: 20,
+              currentStockQty: 5,
+              suggestedPurchaseQty: 15,
+            }],
+            totalCount: 1,
+            pageNumber: 1,
+            pageSize: 100,
+            totalPages: 1,
+            hasPrev: false,
+            hasNext: false,
+            shortageCount: 1,
+          }
+        : endpoint.endsWith('/page')
+          ? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }
+          : [];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'OK', data }),
+      });
+    });
+    await page.route('**/api/purchase-requests**', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'OK', data: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false } }),
+      });
+    });
+    await page.route('**/api/suppliers', async (route) => {
+      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, message: 'OK', data: [] }) });
+    });
+    await page.route('**/api/purchase-workflow/from-demand', async (route) => {
+      expect(await route.request().postDataJSON()).toEqual({ materialRequestId: 'mr-create-1' });
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'Tạo đề xuất mua hàng thành công.',
+          data: {
+            purchaseRequestId: 'pr-create-1',
+            purchaseRequestCode: 'PR-20260618-FULLDAY',
+            materialRequestId: 'mr-create-1',
+            purchaseForDate: '2026-06-18',
+            status: 'DRAFT',
+            lines: [],
+          },
+        }),
+      });
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await login(page);
+    await page.goto(ROUTES.PURCHASING);
+
+    await page.getByRole('button', { name: 'Tạo đề xuất mua' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Tạo đề xuất mua từ nhu cầu thiếu' });
+    await expect(dialog).toBeVisible();
+    await expect(dialog.getByText('MR-DAV-20260618-FULLDAY')).toBeVisible();
+    await dialog.getByRole('button', { name: 'Tạo đề xuất' }).click();
+    await expect(page.getByRole('status')).toContainText('PR-20260618-FULLDAY');
+    await expect(page.getByRole('tab', { name: 'Giá và nhà cung cấp' })).toHaveAttribute('aria-selected', 'true');
+  });
+
   test('approval inbox executes approve decision with reason', async ({ page }) => {
     await stubApprovalDecisionSuccess(page);
     await page.setViewportSize({ width: 1365, height: 900 });

@@ -19,12 +19,14 @@ import {
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetPriceVariancePageQuery,
+  useGetIngredientDemandPageQuery,
   useGetPurchasePlanPageQuery,
   useGetPurchaseRequestsPageQuery,
   useGetCurrentStockQuery,
   useGetStockMovementPageQuery,
   useGetWorkflowDocumentsQuery,
   useGetSuppliersQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetSupplierQuotationsByIngredientQuery,
@@ -40,6 +42,9 @@ import {
 import type { CurrentStockRow, DemandLine, SupplierDto, SupplierQuotationDto, PurchaseOrderDto } from '@/features/workflow';
 import { useGetIngredientsQuery, type IngredientLookup } from '@/features/projects/dishCatalogApi';
 import { formatWorkflowStatus } from '../workflowConfig';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 type PurchasingView = 'demand' | 'supplier' | 'quotation' | 'orders' | 'handoff';
 const validPurchasingViews: PurchasingView[] = ['demand', 'supplier', 'quotation', 'orders', 'handoff'];
@@ -49,6 +54,8 @@ export default function PurchasingPage() {
   const [searchParams] = useSearchParams();
   const [purchasePlanPage, setPurchasePlanPage] = useState(1);
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
+  const [isCreateRequestDialogOpen, setIsCreateRequestDialogOpen] = useState(false);
+  const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [receiptMovementCursors, setReceiptMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const initialView = searchParams.get('view');
   const [activeView, setActiveView] = useState<PurchasingView>(
@@ -56,6 +63,7 @@ export default function PurchasingPage() {
   );
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: purchasePlanPage, pageSize: 8 });
+  const { data: demandCandidatePage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 100 });
   const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({ pageNumber: purchaseRequestPage, pageSize: 8 });
   const receiptMovementCursor = receiptMovementCursors.at(-1);
   const { data: receiptMovementPage } = useGetStockMovementPageQuery({
@@ -70,6 +78,7 @@ export default function PurchasingPage() {
 
   const { data: suppliers = [] } = useGetSuppliersQuery();
   const [updateSupplier] = useUpdatePurchaseRequestLineSupplierMutation();
+  const [createPurchaseRequestFromDemand, { isLoading: isCreatingPurchaseRequest }] = useCreatePurchaseRequestFromDemandMutation();
   const [submitPurchaseRequest, { isLoading: isSubmittingPurchaseRequest }] = useSubmitPurchaseRequestMutation();
   const purchaseRequests = purchaseRequestsPageResponse?.items ?? [];
   const purchasePlanLines = (purchasePlanResponse?.items ?? []).map<DemandLine>((row) => ({
@@ -120,6 +129,54 @@ export default function PurchasingPage() {
   const primaryPurchaseRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
   const submitTargetId = primaryPurchaseRequestLine?.purchaseRequestId;
   const purchaseSummaryDocument = purchasingDocuments[0];
+  const purchaseRequestCandidates = Array.from(
+    (demandCandidatePage?.items ?? []).reduce((candidates, line) => {
+      if (!line.materialRequestId || line.tone !== 'danger') return candidates;
+
+      const current = candidates.get(line.materialRequestId);
+      candidates.set(line.materialRequestId, {
+        id: line.materialRequestId,
+        code: line.sourceDocumentCode ?? line.materialRequestId,
+        serviceDate: line.serviceDate,
+        shortageLines: (current?.shortageLines ?? 0) + 1,
+      });
+      return candidates;
+    }, new Map<string, { id: string; code: string; serviceDate?: string; shortageLines: number }>()),
+  ).map(([, candidate]) => candidate);
+  const selectedPurchaseRequestCandidate = purchaseRequestCandidates.find((candidate) => candidate.id === selectedMaterialRequestId);
+  const formatPurchaseRequestCandidate = (candidate: (typeof purchaseRequestCandidates)[number]) =>
+    `${candidate.code} | ${candidate.serviceDate ?? 'Chưa rõ ngày'} | ${candidate.shortageLines} dòng thiếu`;
+
+  const openCreatePurchaseRequestDialog = () => {
+    setSelectedMaterialRequestId(purchaseRequestCandidates[0]?.id ?? '');
+    setIsCreateRequestDialogOpen(true);
+  };
+
+  const handleCreatePurchaseRequest = async () => {
+    if (!selectedMaterialRequestId) {
+      toast({ title: 'Chưa chọn nhu cầu nguyên liệu', description: 'Chọn một chứng từ có dòng thiếu để tạo đề xuất mua.', variant: 'warning' });
+      return;
+    }
+
+    try {
+      const response = await createPurchaseRequestFromDemand({ materialRequestId: selectedMaterialRequestId }).unwrap();
+      setIsCreateRequestDialogOpen(false);
+      setActiveView('supplier');
+      toast({
+        title: 'Đã tạo đề xuất mua',
+        description: response.data?.purchaseRequestCode
+          ? `${response.data.purchaseRequestCode} đã sẵn sàng để chọn nhà cung cấp.`
+          : response.message || 'Đề xuất mua đã được tạo từ nhu cầu thiếu.',
+        variant: 'success',
+      });
+    } catch (err) {
+      const message =
+        (err as { data?: { message?: string }; message?: string })?.data?.message ??
+        (err as { message?: string })?.message ??
+        'Đã xảy ra lỗi không xác định.';
+      toast({ title: 'Chưa thể tạo đề xuất mua', description: message, variant: 'danger', durationMs: 0 });
+    }
+  };
 
   const handleSubmitPurchaseRequest = async () => {
     if (!submitTargetId) {
@@ -149,9 +206,9 @@ export default function PurchasingPage() {
               <button
                 className="ipc-button ipc-button-primary"
                 type="button"
-                onClick={() => setActiveView('supplier')}
+                onClick={openCreatePurchaseRequestDialog}
               >
-                Chọn nhà cung cấp
+                Tạo đề xuất mua
               </button>
               <button
                 className="ipc-button ipc-button-primary"
@@ -164,9 +221,6 @@ export default function PurchasingPage() {
               <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
                 <PackageCheck size={16} />
                 Chuyển sang nhập kho
-              </Link>
-              <Link className="ipc-button ipc-button-ghost" to={ROUTES.APPROVALS}>
-                Quay lại duyệt
               </Link>
             </>
           }
@@ -313,6 +367,48 @@ export default function PurchasingPage() {
           </div>
         </SectionPanel>
       )}
+
+      <Dialog open={isCreateRequestDialogOpen} onOpenChange={setIsCreateRequestDialogOpen}>
+        <DialogContent aria-labelledby="create-purchase-request-title" aria-describedby="create-purchase-request-description">
+          <DialogHeader>
+            <DialogTitle id="create-purchase-request-title">Tạo đề xuất mua từ nhu cầu thiếu</DialogTitle>
+            <DialogDescription id="create-purchase-request-description">
+              Chọn đúng chứng từ nhu cầu. Hệ thống chỉ tạo các dòng còn thiếu sau khi đối chiếu tồn kho.
+            </DialogDescription>
+          </DialogHeader>
+          {purchaseRequestCandidates.length > 0 ? (
+            <div className="grid gap-2">
+              <label id="purchase-demand-request-label" className="text-sm font-medium text-slate-700">
+                Chứng từ nhu cầu nguyên liệu
+              </label>
+              <Select value={selectedMaterialRequestId} onValueChange={(value) => setSelectedMaterialRequestId(value ?? '')}>
+                <SelectTrigger aria-labelledby="purchase-demand-request-label" className="w-full">
+                  <SelectValue placeholder="Chọn chứng từ nhu cầu">
+                    {selectedPurchaseRequestCandidate ? formatPurchaseRequestCandidate(selectedPurchaseRequestCandidate) : null}
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                {purchaseRequestCandidates.map((candidate) => (
+                  <SelectItem key={candidate.id} value={candidate.id}>
+                    {formatPurchaseRequestCandidate(candidate)}
+                  </SelectItem>
+                ))}
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">Không có chứng từ nhu cầu hợp lệ để tạo đề xuất mua.</p>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setIsCreateRequestDialogOpen(false)} disabled={isCreatingPurchaseRequest}>
+              Hủy
+            </Button>
+            <Button type="button" onClick={() => void handleCreatePurchaseRequest()} disabled={!selectedMaterialRequestId || isCreatingPurchaseRequest}>
+              {isCreatingPurchaseRequest ? 'Đang tạo...' : 'Tạo đề xuất'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </OperationalFrame>
   );
 }
