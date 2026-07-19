@@ -4,6 +4,11 @@ import weeklyMenuPageSource from './projects/pages/WeeklyMenuPage.tsx?raw'
 import weeklyMenuFormattersSource from './projects/weekly-menu/model/formatters.ts?raw'
 import weeklyMenuScopeSource from './projects/weekly-menu/model/scope.ts?raw'
 import weeklyMenuImportValidationSource from './projects/weekly-menu/import/importValidation.ts?raw'
+import weeklyMenuImportStateSource from './projects/weekly-menu/import/importState.ts?raw'
+import weeklyMenuImportWorkflowSource from './projects/weekly-menu/import/useWeeklyMenuImport.ts?raw'
+import weeklyMenuImportDialogSource from './projects/weekly-menu/import/WeeklyMenuImportDialog.tsx?raw'
+import weeklyMenuImportJobsSource from './projects/weekly-menu/import/WeeklyMenuImportJobs.tsx?raw'
+import weeklyMenuImportReviewSource from './projects/weekly-menu/import/WeeklyMenuImportReview.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
@@ -15,10 +20,24 @@ describe('operational page refactor contracts', () => {
   })
 
   it('keeps weekly menu import, demand and schedule actions wired to real APIs', () => {
-    const source = [weeklyMenuPageSource, weeklyMenuFormattersSource, weeklyMenuScopeSource, weeklyMenuImportValidationSource].join('\n')
+    const source = [
+      weeklyMenuPageSource,
+      weeklyMenuFormattersSource,
+      weeklyMenuScopeSource,
+      weeklyMenuImportValidationSource,
+      weeklyMenuImportStateSource,
+      weeklyMenuImportWorkflowSource,
+      weeklyMenuImportDialogSource,
+      weeklyMenuImportJobsSource,
+      weeklyMenuImportReviewSource,
+    ].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
     expect(source).toContain('useCommitWeeklyMenuImportMutation')
+    expect(source).toContain('useReducer(weeklyMenuImportReducer')
+    expect(source).toContain('await commitImport')
+    expect(source).toContain('.unwrap()')
+    expect(source).toContain('if (closeOnSuccess) close()')
     expect(source).toContain('useGenerateMaterialDemandMutation')
     expect(source).toContain('useUpdateWeeklyMenuBulkMutation')
     expect(source).toContain('Nhập Excel')
