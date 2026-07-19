@@ -96,7 +96,8 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 2. Bấm `Tạo phiếu xuất kho`, chọn bắt buộc `Nhu cầu nguyên liệu` và `Kho xuất`, sau đó bấm `Xác nhận tạo phiếu`.
 3. Vào `Bếp trưởng`, mở KHSX và checklist nguyên liệu.
 4. Xác nhận bếp đã nhận đủ hoặc ghi nhận chênh lệch.
-5. Nếu có dư/thừa, dùng luồng trả dư/hao hụt theo phiếu xuất. UI `Yêu cầu bổ sung` chưa hiển thị trong MVP cho đến khi BE có endpoint lưu thật.
+5. Nếu thiếu phát sinh sau khi đã nhận phiếu xuất, bấm `Yêu cầu cấp bổ sung`, chọn dòng nguyên liệu, nhập số lượng và gửi tới kho. Yêu cầu được lưu trạng thái `PENDING`; thao tác này chưa tự trừ tồn hay tạo phiếu xuất mới.
+6. Nếu có dư/thừa, dùng luồng trả dư/hao hụt theo phiếu xuất.
 
 ## 9. Kiểm tra bằng chứng cuối luồng
 
@@ -134,4 +135,4 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 
 Quy ước UI sau review: cột chỉ mô tả trạng thái phải dùng nhãn `Hướng xử lý`; nhãn `Thao tác` chỉ dùng khi ô có button/link thật. Bảng lấy một page từ server không được tự phân trang lần thứ hai bên trong component.
 
-Các gap còn mở được theo dõi tại `.planning/quick/260719-mvp-web-flow-gap-review/MVP-GAP-MATRIX.md`. UI kho đã bắt buộc chọn chứng từ/kho; UI yêu cầu bổ sung của bếp đã được gỡ để không báo thành công giả khi BE chưa lưu dữ liệu.
+Các gap còn mở được theo dõi tại `.planning/quick/260719-mvp-web-flow-gap-review/MVP-GAP-MATRIX.md`. UI kho đã bắt buộc chọn chứng từ/kho; UI yêu cầu bổ sung của bếp chỉ báo thành công sau khi API đã lưu bản ghi thật.

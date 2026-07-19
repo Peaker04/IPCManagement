@@ -10,10 +10,11 @@ import { getTodayDayCode } from '@/lib/dateUtils'
 import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
 import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
-import type { ExcessMaterial, Ingredient } from '@/lib/types'
+import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/types'
 import {
   useConfirmInventoryIssueReceiptMutation,
   useCreateInventoryReturnMutation,
+  useCreateSupplementalMaterialRequestMutation,
   useGetDailyProductionPlanQuery,
   useGetKitchenIssuesQuery,
   useGetStockMovementsQuery,
@@ -57,6 +58,7 @@ export default function ChefDashboardPage() {
   } = useGetKitchenIssuesQuery({ limit: 100 })
   const [confirmInventoryIssueReceipt, { isLoading: isConfirmingIssueReceipt }] = useConfirmInventoryIssueReceiptMutation()
   const [createInventoryReturn, { isLoading: isCreatingInventoryReturn }] = useCreateInventoryReturnMutation()
+  const [createSupplementalMaterialRequest, { isLoading: isCreatingSupplementalRequest }] = useCreateSupplementalMaterialRequestMutation()
   const [sendDailyProductionPlanToKitchen, { isLoading: isSendingDailyPlan }] = useSendDailyProductionPlanToKitchenMutation()
   const {
     data: catalogDishes = [],
@@ -222,6 +224,42 @@ export default function ChefDashboardPage() {
       receivedMaterials,
     }
   }, [dayShiftOrders, isLocked, menuPrice, lossRate, activeDay, activeShift, signedMaterials, dishesById, activeKitchenIssueRows])
+
+  const handleSupplementalRequest = async (data: SupplementalRequest) => {
+    const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
+    if (!material?.issueId || !material.isReceivedByKitchen) {
+      setChefFeedback({
+        title: 'Chưa thể gửi yêu cầu bổ sung',
+        message: 'Chỉ có thể yêu cầu thêm từ dòng nguyên liệu thuộc phiếu xuất mà bếp đã ký nhận.',
+        variant: 'warning',
+      })
+      return false
+    }
+
+    try {
+      const response = await createSupplementalMaterialRequest({
+        issueId: material.issueId,
+        issueLineId: material.id,
+        requestedQty: data.requestedQty,
+        reason: data.reason,
+      }).unwrap()
+      setChefFeedback({
+        title: 'Đã gửi yêu cầu bổ sung tới kho',
+        message: response.data
+          ? `${response.data.requestCode}: ${data.ingredientName} ${formatQuantityWithUnit(data.requestedQty, data.unit)} đang chờ kho xử lý.`
+          : response.message || 'Yêu cầu đã được lưu trên hệ thống.',
+        variant: 'info',
+      })
+      return true
+    } catch (error) {
+      setChefFeedback({
+        title: 'Chưa gửi được yêu cầu bổ sung',
+        message: getMutationErrorMessage(error, 'Kiểm tra phiếu xuất đã nhận và thử lại.'),
+        variant: 'danger',
+      })
+      return false
+    }
+  }
 
   const handleExcessMaterialReturn = async (data: ExcessMaterial) => {
     const issueRow = activeKitchenIssueRows.find((row) => row.id === data.ingredientId)
@@ -583,6 +621,8 @@ export default function ChefDashboardPage() {
                 ) : (
                   <HeadChefDashboard
                     productionPlan={productionPlan}
+                    isSubmittingSupplementalRequest={isCreatingSupplementalRequest}
+                    onSupplementalRequest={handleSupplementalRequest}
                     onExcessMaterialReturn={handleExcessMaterialReturn}
                     onMaterialSignoff={handleMaterialSignoff}
                   />

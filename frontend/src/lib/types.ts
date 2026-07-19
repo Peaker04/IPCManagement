@@ -57,3 +57,11 @@ export interface ExcessMaterial {
   notes?: string
   returnedAt?: string
 }
+
+export interface SupplementalRequest {
+  ingredientId: string
+  ingredientName: string
+  unit: string
+  requestedQty: number
+  reason?: string
+}

@@ -1,27 +1,47 @@
 'use client'
 
 import { useState } from 'react'
-import { RotateCcw, Check } from 'lucide-react'
+import { RotateCcw, PlusCircle, Check } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
 import { ExcessMaterialDialog } from './excess-material-dialog'
+import { SupplementalRequestDialog } from './supplemental-request-dialog'
 import { SectionPanel } from '@/components/common'
-import type { ExcessMaterial, Ingredient } from '@/lib/types'
+import type { ExcessMaterial, Ingredient, SupplementalRequest } from '@/lib/types'
 
 
 interface OperationalActionsProps {
   materials: Ingredient[]
+  isSubmittingSupplementalRequest?: boolean
+  onSupplementalRequest?: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn?: (data: ExcessMaterial) => void
 }
 
 export function OperationalActions({
   materials,
+  isSubmittingSupplementalRequest = false,
+  onSupplementalRequest,
   onExcessMaterialReturn,
 }: OperationalActionsProps) {
   const [excessOpen, setExcessOpen] = useState(false)
+  const [supplementalOpen, setSupplementalOpen] = useState(false)
 
   return (
     <SectionPanel title="Luồng ngoại lệ ca" description="Ghi nhận nguyên liệu thừa, trả kho hoặc hao hụt thực tế." className="ipc-chef-actions-panel sticky top-5 h-fit">
       <div className="space-y-4">
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          aria-expanded={supplementalOpen}
+          onClick={() => setSupplementalOpen(true)}
+          className="group flex w-full items-start gap-3.5 rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm transition hover:border-amber-200 hover:bg-amber-50/30"
+        >
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-50 text-amber-700"><PlusCircle size={20} /></div>
+          <div className="space-y-1">
+            <h4 className="text-sm font-semibold text-slate-800">Yêu cầu cấp bổ sung</h4>
+            <p className="text-xs leading-normal text-slate-500">Gửi nhu cầu thiếu phát sinh tới kho và theo dõi như một yêu cầu thật.</p>
+          </div>
+        </button>
+
         <button
           type="button"
           aria-haspopup="dialog"
@@ -66,6 +86,14 @@ export function OperationalActions({
           </ul>
         </div>
       </div>
+
+      <SupplementalRequestDialog
+        open={supplementalOpen}
+        onOpenChange={setSupplementalOpen}
+        materials={materials}
+        isSubmitting={isSubmittingSupplementalRequest}
+        onSubmit={async (data) => onSupplementalRequest ? onSupplementalRequest(data) : false}
+      />
 
       {/* Excess Material Return Dialog */}
       <ExcessMaterialDialog

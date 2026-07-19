@@ -19,7 +19,7 @@ Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có end
 | Duyệt | Action từng record | Inbox/decision/history | Đủ | UAT reject reason và permission |
 | PO/nhận hàng | Action theo request/order | Create/receive/cancel | Đủ | UAT partial receipt |
 | Xuất kho | Dialog bắt buộc chọn nhu cầu và kho | Create inventory issue | Đã sửa | UAT nhiều kho/chứng từ |
-| Bếp nhận/trả | Ký nhận và return/waste; không còn control local-only | Confirm receipt/return | Đủ cho nhận/trả | Thiết kế contract supplemental issue trước khi đưa UI trở lại |
+| Bếp nhận/trả/bổ sung | Ký nhận, return/waste và dialog yêu cầu cấp bổ sung | Confirm receipt/return; POST supplemental request lưu `PENDING` | Đủ để bếp gửi yêu cầu thật | Bổ sung bước kho xử lý/đóng yêu cầu nếu mở rộng sau MVP |
 | Dashboard/báo cáo | Link theo route, báo cáo có server paging | Workflow reports | Đủ để quan sát | UAT với dataset lớn |
 
 ## Quy tắc refactor tiếp theo
@@ -33,6 +33,6 @@ Luồng chính từ thực đơn đến nhận/trả nguyên liệu đã có end
 ## Thứ tự xử lý còn lại
 
 1. Bổ sung endpoint candidate distinct có server paging cho material request thay vì gom tối đa 100 dòng ở client.
-2. Chốt contract BE cho supplemental issue; chỉ đưa UI trở lại sau khi có mutation thật.
+2. Đã chốt contract và nối mutation lưu supplemental request `PENDING`; không dùng local state làm bằng chứng thành công.
 3. Tách `PurchasingPage`, `WeeklyMenuPage` và `ChefDashboardPage` thành feature sections để giảm file lớn và test từng hành động độc lập.
 4. Chạy UAT end-to-end với seed DAV tuần 15/06/2026 và ghi bằng chứng cho từng mutation.

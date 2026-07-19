@@ -184,6 +184,30 @@ export interface CreateInventoryIssueRequest {
   lines: CreateInventoryIssueLineRequest[];
 }
 
+export interface CreateSupplementalMaterialRequest {
+  issueId: string;
+  issueLineId: string;
+  requestedQty: number;
+  reason?: string;
+}
+
+export interface SupplementalMaterialRequestResult {
+  requestId: string;
+  requestCode: string;
+  issueId: string;
+  issueCode: string;
+  issueLineId: string;
+  warehouseId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  requestedQty: number;
+  reason?: string;
+  status: string;
+  requestedAt: string;
+}
+
 export interface InventoryIssueCreatedResult {
   issueId: string;
   issueCode: string;
@@ -1578,6 +1602,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({
+      query: (body) => ({
+        url: '/supplemental-material-requests',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
       query: (body) => ({
         url: '/inventory-returns',
@@ -2050,6 +2082,7 @@ export const {
   useSubmitPurchaseRequestMutation,
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
+  useCreateSupplementalMaterialRequestMutation,
   useCreateInventoryReturnMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchasePlanQuery,

@@ -2977,6 +2977,103 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("stocktakelines", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+                {
+                    b.Property<byte[]>("RequestId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IssueId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("issueId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IssueLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("issueLineId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RequestCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("requestCode");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("requestedAt");
+
+                    b.Property<byte[]>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestedBy")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("RequestedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("requestedQty");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("RequestId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("IssueId");
+
+                    b.HasIndex("IssueLineId");
+
+                    b.HasIndex("RequestCode")
+                        .IsUnique();
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("WarehouseId", "Status", "RequestedAt");
+
+                    b.ToTable("supplementalmaterialrequests", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplier", b =>
                 {
                     b.Property<byte[]>("SupplierId")
@@ -4172,6 +4269,45 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Stocktake");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissue", null)
+                        .WithMany()
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissueline", null)
+                        .WithMany()
+                        .HasForeignKey("IssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", null)
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplierquotation", b =>

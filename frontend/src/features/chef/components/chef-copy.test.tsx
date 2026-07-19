@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ActiveDishesGrid } from './active-dishes-grid';
 import { ChefHeader } from './chef-header';
@@ -67,5 +67,15 @@ describe('Chef operational copy', () => {
     render(<OperationalActions materials={[]} />);
 
     expect(screen.getByText('Hướng dẫn nhanh')).not.toHaveClass('uppercase');
+  });
+
+  it('explains that a supplemental request is persisted but does not issue stock immediately', () => {
+    render(<OperationalActions materials={[]} onSupplementalRequest={vi.fn()} />);
+
+    fireEvent.click(screen.getByRole('button', { name: /yêu cầu cấp bổ sung/i }));
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/được lưu và chuyển tới kho ở trạng thái chờ xử lý/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Gửi tới kho' })).toBeDisabled();
   });
 });
