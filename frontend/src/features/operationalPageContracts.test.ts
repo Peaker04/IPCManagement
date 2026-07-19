@@ -12,6 +12,10 @@ import weeklyMenuImportReviewSource from './projects/weekly-menu/import/WeeklyMe
 import weeklyScheduleStateSource from './projects/weekly-menu/schedule/scheduleState.ts?raw'
 import weeklyScheduleWorkflowSource from './projects/weekly-menu/schedule/useWeeklyScheduleEditor.ts?raw'
 import weeklyScheduleEditorSource from './projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx?raw'
+import weeklyProductionPlanWorkflowSource from './projects/weekly-menu/production-plan/useWeeklyProductionPlan.ts?raw'
+import weeklyProductionPlanSectionSource from './projects/weekly-menu/production-plan/ProductionPlanSection.tsx?raw'
+import materialDemandWorkflowSource from './projects/weekly-menu/demand/useMaterialDemand.ts?raw'
+import materialDemandSectionSource from './projects/weekly-menu/demand/MaterialDemandSection.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
@@ -36,6 +40,10 @@ describe('operational page refactor contracts', () => {
       weeklyScheduleStateSource,
       weeklyScheduleWorkflowSource,
       weeklyScheduleEditorSource,
+      weeklyProductionPlanWorkflowSource,
+      weeklyProductionPlanSectionSource,
+      materialDemandWorkflowSource,
+      materialDemandSectionSource,
     ].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
@@ -45,6 +53,11 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain('.unwrap()')
     expect(source).toContain('if (closeOnSuccess) close()')
     expect(source).toContain('useGenerateMaterialDemandMutation')
+    expect(source).toContain('useGetIngredientDemandAggregatePageQuery')
+    expect(source).toContain('pageSize: 20')
+    expect(source).toContain('useGetProductionPlansQuery')
+    expect(source).toContain('<ProductionPlanSection workflow={productionPlanWorkflow}')
+    expect(source).toContain('<MaterialDemandSection')
     expect(source).toContain('useUpdateWeeklyMenuBulkMutation')
     expect(source).toContain('useUpsertQuickServingsMutation')
     expect(source).toContain('useReducer(weeklyScheduleReducer')
