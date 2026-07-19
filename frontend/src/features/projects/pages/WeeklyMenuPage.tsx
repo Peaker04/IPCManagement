@@ -1,20 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Calendar, Scale, Lock, Edit, Upload, ShoppingCart, X } from 'lucide-react';
+import { Scale, Edit, Upload, ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
-import { updateWeeklyMenuDish, setWeeklyMenu } from '../../coordination/coordinationSlice';
+import { setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { CommandBar, ContextStrip, DemandSummary, DocumentRail, FieldRow, InlineAlert, OperationalFrame, PageStepper, PaginationBar, SectionPanel, StatusBadge, Toolbar, ViewSwitcher } from '@/components/common';
 import { TableViewport } from '@/components/common';
 import { useGenerateMaterialDemandMutation, useGetMaterialDemandStalenessQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow';
 import type { DemandLine, WorkflowDocument } from '@/features/workflow';
 import { ActionGuard } from '@/routes/ActionGuard';
 import { ROUTES } from '@/routes/routeConfig';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
-import type { ProductionPlanDto, WeeklyMenuState } from '../../coordination/types';
+import type { ProductionPlanDto } from '../../coordination/types';
 import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,
@@ -23,8 +22,6 @@ import {
   useGetMenuSchedulesQuery,
   useGetProductionPlansQuery,
   useLazyGetProductionPlansQuery,
-  useUpsertQuickServingsMutation,
-  useUpdateWeeklyMenuBulkMutation,
 } from '../../coordination/coordinationApi';
 import {
   buildProductionDisplayDayByDate,
@@ -35,7 +32,6 @@ import {
   isBomPriceTier,
   normalizeBomPriceTier,
 } from '../weeklyMenuPlanning';
-import { ImportedLayoutMatrix } from '../components/ImportedLayoutMatrix';
 import {
   formatImportDate,
   formatMaterialDishSource,
@@ -59,23 +55,22 @@ import {
   buildPlanRowsMaterialSummary,
   calculateTotalMaterialCost,
   getNormalizedSlotType,
-  getQuickServingKey,
   isWeeklyMenuRowContinuation,
-  matchesCategory,
   matchesShift,
-  QUICK_SERVING_SHIFTS,
   runInBatches,
   SECTIONS,
 } from '../weekly-menu/model/scope';
 import type {
   PurchaseSummaryMaterialEntry,
-  QuickServingShiftName,
-  ServingsStatus,
   WeeklyMenuView,
   WeeklyPlanRow,
 } from '../weekly-menu/model/types';
 import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
 import { WeeklyMenuImportDialog } from '../weekly-menu/import/WeeklyMenuImportDialog';
+import { useWeeklyScheduleEditor } from '../weekly-menu/schedule/useWeeklyScheduleEditor';
+import { WeeklyScheduleEditorDialog } from '../weekly-menu/schedule/WeeklyScheduleEditorDialog';
+import { WeeklyScheduleSection } from '../weekly-menu/schedule/WeeklyScheduleSection';
+import { QuickServingCell } from '../weekly-menu/schedule/QuickServingCell';
 
 const tableHeadClass = 'text-center';
 const tableCellClass = 'text-center';
@@ -102,7 +97,6 @@ const WeeklyMenuPage = () => {
   const customers = customerResponse?.data ?? [];
   const { data: customerContractsResponse } = useGetCustomerContractsQuery();
   const customerContracts = customerContractsResponse?.data ?? [];
-  const [updateWeeklyMenuBulk, { isLoading: isSavingEdit }] = useUpdateWeeklyMenuBulkMutation();
   const [selectedMenuCustomerId, setSelectedMenuCustomerId] = useState(
     () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
   );
@@ -214,7 +208,6 @@ const WeeklyMenuPage = () => {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const [quickServingInputs, setQuickServingInputs] = useState<Record<string, string>>({});
 
   const resetScopedWeeklyMenuUi = () => {
     dispatch(setWeeklyMenu({}));
@@ -226,7 +219,6 @@ const WeeklyMenuPage = () => {
     setSelectedDishId('');
     setWarehouseExportFeedback(null);
     setDemandFeedback(null);
-    setQuickServingInputs({});
   };
 
   const importWorkflow = useWeeklyMenuImport({
@@ -255,6 +247,35 @@ const WeeklyMenuPage = () => {
       }
       dispatch(setWeeklyMenu(result.importedWeeklyMenu));
     },
+  });
+
+  const weeklyScheduleScope = {
+    customerId: effectiveMenuCustomerId,
+    customerLabel: selectedCustomer
+      ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}`
+      : committedMenu?.customerCode ?? 'Chưa chọn',
+    weekStartDate: displayedWeekStartDate,
+    weekLabel: committedMenu?.weekStartDate
+      ? `${formatImportDate(committedMenu.weekStartDate)} - ${formatImportDate(committedMenu.weekEndDate)}`
+      : 'Chưa có menu',
+    menuPrice,
+    fixedBomRatePercent,
+    activeServiceLabel,
+    activeDayKey: activeServiceDay?.key,
+    displayDays,
+  };
+
+  const scheduleWorkflow = useWeeklyScheduleEditor({
+    scope: weeklyScheduleScope,
+    committedRows: committedMenu?.rows ?? [],
+    importedMenu: reduxWeeklyMenu,
+    mealQuantityPlans,
+    menuSchedules,
+    orders,
+    lockedShifts,
+    catalogDishes,
+    onMenuFeedback: setWarehouseExportFeedback,
+    onQuickServingFeedback: setDemandFeedback,
   });
 
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
@@ -333,163 +354,11 @@ const WeeklyMenuPage = () => {
   const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines]);
   const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(workflowReportQuery, { skip: !effectiveMenuCustomerId });
   const [generateMaterialDemand, { isLoading: isGeneratingDemand }] = useGenerateMaterialDemandMutation();
-  const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation();
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
     [catalogDishes],
   );
-
-  const getSectionDishes = (section: (typeof SECTIONS)[number]) =>
-    catalogDishes.filter((dish) => matchesShift(dish, section.shift) && matchesCategory(dish, section.category));
-
-  const getSectionDefaultDish = (section: (typeof SECTIONS)[number]) =>
-    getSectionDishes(section)[0] ?? catalogDishes[0];
-
-  // Modal state for bulk editing the entire menu
-  const [isEditingMenu, setIsEditingMenu] = useState<boolean>(false);
-  const [tempWeeklyMenu, setTempWeeklyMenu] = useState<WeeklyMenuState>({});
-
-  const handleOpenEdit = () => {
-    const clone: WeeklyMenuState = {};
-    displayDays.forEach((day) => {
-      clone[day.key] = {
-        morningSavory: { ...weeklyMenu[day.key]?.morningSavory },
-        morningVegetarian: { ...weeklyMenu[day.key]?.morningVegetarian },
-        afternoonSavory: { ...weeklyMenu[day.key]?.afternoonSavory },
-        afternoonVegetarian: { ...weeklyMenu[day.key]?.afternoonVegetarian },
-      };
-    });
-    setTempWeeklyMenu(clone);
-    setIsEditingMenu(true);
-  };
-
-  function getServiceDateIso(dayKey: string) {
-    const row = committedMenu?.rows?.find((r) => r.dayKey === dayKey);
-    if (row?.serviceDate) {
-      return row.serviceDate.split('T')[0];
-    }
-    return '';
-  }
-
-  const activeCustomerOrders = useMemo(
-    () => orders.filter((order) => order.customerId === effectiveMenuCustomerId),
-    [effectiveMenuCustomerId, orders],
-  );
-
-  const quantityPlanByDateShift = useMemo(() => {
-    const map = new Map<string, { servings: number; status: ServingsStatus; statusLabel: string }>();
-
-    mealQuantityPlans.forEach((plan) => {
-      const serviceDate = plan.serviceDate.split('T')[0];
-      const planStatus = plan.status.toUpperCase();
-      const isConfirmedPlan = planStatus === 'CONFIRMED' || planStatus === 'COMPLETED';
-
-      plan.lines
-        .filter((line) => !effectiveMenuCustomerId || line.customerId === effectiveMenuCustomerId)
-        .forEach((line) => {
-          const key = `${serviceDate}|${line.shiftName}`;
-          const current = map.get(key);
-          const servings = line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0;
-          const lineConfirmed = isConfirmedPlan && servings > 0;
-          const status: ServingsStatus = lineConfirmed ? 'confirmed' : servings > 0 ? 'draft' : 'missing';
-          const nextServings = (current?.servings ?? 0) + servings;
-          const nextStatus: ServingsStatus = current?.status === 'confirmed' || status === 'confirmed'
-            ? 'confirmed'
-            : current?.status === 'draft' || status === 'draft'
-              ? 'draft'
-              : 'missing';
-
-          map.set(key, {
-            servings: nextServings,
-            status: nextStatus,
-            statusLabel: nextStatus === 'confirmed' ? 'Đã chốt suất' : `Chưa chốt (${plan.status})`,
-          });
-        });
-    });
-
-    return map;
-  }, [effectiveMenuCustomerId, mealQuantityPlans]);
-
-  const getShiftServingInfo = (dayKey: string, shiftName: 'MORNING' | 'AFTERNOON') => {
-    const serviceDate = getServiceDateIso(dayKey);
-    const quantityInfo = serviceDate ? quantityPlanByDateShift.get(`${serviceDate}|${shiftName}`) : undefined;
-    if (quantityInfo && quantityInfo.servings > 0) {
-      return quantityInfo;
-    }
-
-    const shiftLabel = shiftName === 'MORNING' ? 'Ca Sáng' : 'Ca Chiều';
-    const isShiftLocked = !!lockedShifts[`${dayKey}-${shiftLabel}`];
-    const draftOrders = activeCustomerOrders.filter((order) => order.dayOfWeek === dayKey && order.shift === shiftLabel);
-    const draftServings = draftOrders.reduce(
-      (sum, order) => sum + (isShiftLocked ? order.actualQuantity : order.forecastQuantity),
-      0,
-    );
-
-    if (draftServings > 0) {
-      return {
-        servings: draftServings,
-        status: 'draft' as ServingsStatus,
-        statusLabel: 'Dự kiến điều phối',
-      };
-    }
-
-    return {
-      servings: 0,
-      status: 'missing' as ServingsStatus,
-      statusLabel: 'Chưa có số suất',
-    };
-  };
-
-  const getSlotServingInfo = (
-    dayKey: string,
-    slotType: 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian',
-  ) => {
-    const isMorning = slotType.startsWith('morning');
-    const shiftInfo = getShiftServingInfo(dayKey, isMorning ? 'MORNING' : 'AFTERNOON');
-    const savoryPortions = Math.round(shiftInfo.servings * 0.85);
-    const vegetarianPortions = shiftInfo.servings - savoryPortions;
-    const calculatedPortions = slotType.endsWith('Vegetarian') ? vegetarianPortions : savoryPortions;
-    const importedPortions = reduxWeeklyMenu[dayKey]?.[slotType]?.portions ?? 0;
-
-    if (shiftInfo.servings > 0) {
-      return {
-        portions: calculatedPortions,
-        importedPortions,
-        status: shiftInfo.status,
-        statusLabel: shiftInfo.statusLabel,
-        hasConfirmedServings: shiftInfo.status === 'confirmed',
-      };
-    }
-
-    return {
-      portions: importedPortions,
-      importedPortions,
-      status: importedPortions > 0 ? 'import-default' as ServingsStatus : 'missing' as ServingsStatus,
-      statusLabel: importedPortions > 0 ? 'Suất tạm từ import' : 'Chưa có số suất',
-      hasConfirmedServings: importedPortions > 0,
-    };
-  };
-
-  const scheduleByDateShift = useMemo(() => {
-    const schedules = new Map<string, (typeof menuSchedules)[number]>();
-    menuSchedules
-      .filter((schedule) => !effectiveMenuCustomerId || schedule.customerId === effectiveMenuCustomerId)
-      .forEach((schedule) => {
-        schedules.set(`${schedule.serviceDate.split('T')[0]}|${schedule.shiftName}`, schedule);
-      });
-    return schedules;
-  }, [effectiveMenuCustomerId, menuSchedules]);
-
-  const getLinePricing = (serviceDate: string, shiftName: string) => {
-    const schedule = scheduleByDateShift.get(`${serviceDate.split('T')[0]}|${shiftName}`);
-    const lineMenuPrice = normalizeBomPriceTier(schedule?.menuPrice ?? menuPrice);
-    return {
-      menuPrice: lineMenuPrice,
-      bomRatePercent: fixedBomRatePercent,
-      quantityFactor: 1,
-    };
-  };
 
   const handleGenerateDemand = async () => {
     if (!effectiveMenuCustomerId) {
@@ -534,43 +403,20 @@ const WeeklyMenuPage = () => {
     }
 
     const serviceDateSet = new Set(serviceDates);
-    const quickServingRowsToComplete = quickServingRows
-      .filter((row) => serviceDateSet.has(row.serviceDate) && !row.isCompleted)
-      .map((row) => ({
-        ...row,
-        nextServings: Math.round(Number.parseFloat(row.inputValue)),
-      }))
-      .filter((row) => Number.isFinite(row.nextServings) && row.nextServings > 0);
+    const pendingQuickServingCount = quickServingRows.filter((row) => {
+      const nextServings = Math.round(Number.parseFloat(row.inputValue));
+      return serviceDateSet.has(row.serviceDate) && !row.isCompleted && Number.isFinite(nextServings) && nextServings > 0;
+    }).length;
 
-    if (quickServingRowsToComplete.length > 0) {
+    if (pendingQuickServingCount > 0) {
       setDemandFeedback({
         title: 'Đang hoàn tất số suất',
-        message: `Đang lưu và chốt ${quickServingRowsToComplete.length} ca trước khi tạo nhu cầu nguyên liệu.`,
+        message: `Đang lưu và chốt ${pendingQuickServingCount} ca trước khi tạo nhu cầu nguyên liệu.`,
         variant: 'info',
       });
 
       try {
-        await runInBatches(quickServingRowsToComplete, 3, async (row) => {
-          const response = await upsertQuickServings({
-            customerId: effectiveMenuCustomerId,
-            serviceDate: row.serviceDate,
-            shiftName: row.shiftName,
-            servings: row.nextServings,
-            complete: true,
-          }).unwrap();
-
-          if (!response.success) {
-            throw new Error(response.message || 'Không hoàn tất được số suất.');
-          }
-        });
-
-        setQuickServingInputs((current) => {
-          const next = { ...current };
-          quickServingRowsToComplete.forEach((row) => {
-            delete next[row.key];
-          });
-          return next;
-        });
+        await scheduleWorkflow.actions.completePendingQuickServings(quickServingRows, serviceDates);
       } catch (error) {
         setDemandFeedback({
           title: 'Chưa hoàn tất được số suất',
@@ -625,214 +471,10 @@ const WeeklyMenuPage = () => {
     });
   };
 
-  const saveQuickServingRow = async (row: (typeof quickServingRows)[number]) => {
-    if (row.isConfirmed) {
-      throw new Error('Ca đã chốt. Điều chỉnh sau chốt cần thực hiện ở Điều phối đơn.');
-    }
-
-    if (!effectiveMenuCustomerId) {
-      throw new Error('Vui lòng chọn khách hàng trước khi lưu số suất.');
-    }
-
-    const nextServings = Number(row.inputValue);
-    if (!Number.isFinite(nextServings) || nextServings < 0) {
-      throw new Error('Số suất phải lớn hơn hoặc bằng 0.');
-    }
-
-    await upsertQuickServings({
-      customerId: effectiveMenuCustomerId,
-      serviceDate: row.serviceDate,
-      shiftName: row.shiftName,
-      servings: Math.round(nextServings),
-      complete: false,
-    }).unwrap();
-
-    setQuickServingInputs((current) => {
-      const next = { ...current };
-      delete next[row.key];
-      return next;
-    });
-  };
-
-  const handleSaveQuickServings = async (row: (typeof quickServingRows)[number]) => {
-    if (!row.hasDraftChange) return;
-
-    try {
-      await saveQuickServingRow(row);
-      setDemandFeedback({
-        title: 'Đã lưu số suất',
-        message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã cập nhật số suất dự kiến.`,
-        variant: 'info',
-      });
-    } catch (error) {
-      setDemandFeedback({
-        title: 'Chưa lưu được số suất',
-        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra lại số suất.',
-        variant: 'danger',
-      });
-    }
-  };
-
-  const handleLockQuickServings = async (row: (typeof quickServingRows)[number]) => {
-    try {
-      const nextServings = Number(row.inputValue);
-      const finalServings = Number.isFinite(nextServings) && nextServings >= 0
-        ? Math.round(nextServings)
-        : row.currentServings;
-      if (finalServings <= 0) {
-        throw new Error('Cần nhập số suất lớn hơn 0 trước khi hoàn tất ca.');
-      }
-
-      if (!effectiveMenuCustomerId) {
-        throw new Error('Vui lòng chọn khách hàng trước khi hoàn tất ca.');
-      }
-
-      await upsertQuickServings({
-        customerId: effectiveMenuCustomerId,
-        serviceDate: row.serviceDate,
-        shiftName: row.shiftName,
-        servings: finalServings,
-        complete: true,
-      }).unwrap();
-
-      setQuickServingInputs((current) => {
-        const next = { ...current };
-        delete next[row.key];
-        return next;
-      });
-
-      setDemandFeedback({
-        title: 'Đã hoàn tất suất cho KHSX',
-        message: `${row.dayLabel} ${row.date} - ${row.shiftLabel}: đã hoàn tất kế hoạch suất. Có thể tạo demand nguyên liệu.`,
-        variant: 'info',
-      });
-    } catch (error) {
-      setDemandFeedback({
-        title: 'Chưa hoàn tất được suất',
-        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.',
-        variant: 'danger',
-      });
-    }
-  };
-
-  const handleSaveEdit = async () => {
-    const slotsToUpdate: Array<{ serviceDate: string; shiftName: string; slotType: string; dishId: string }> = [];
-
-    displayDays.forEach((day) => {
-      SECTIONS.forEach((sec) => {
-        const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
-        if (isLocked) return;
-
-        const currentDishId = weeklyMenu[day.key]?.[sec.slotType]?.dishId || getSectionDefaultDish(sec)?.id;
-        const newDishId = tempWeeklyMenu[day.key]?.[sec.slotType]?.dishId;
-        if (newDishId && newDishId !== currentDishId) {
-          const serviceDateIso = getServiceDateIso(day.key);
-          if (serviceDateIso) {
-            slotsToUpdate.push({
-              serviceDate: serviceDateIso,
-              shiftName: sec.shift === 'morning' ? 'Ca Sáng' : 'Ca Chiều',
-              slotType: sec.slotType,
-              dishId: newDishId,
-            });
-          }
-        }
-      });
-    });
-
-    if (slotsToUpdate.length === 0) {
-      setIsEditingMenu(false);
-      return;
-    }
-
-    try {
-      setWarehouseExportFeedback({
-        title: 'Đang lưu chỉnh sửa',
-        message: 'Hệ thống đang ghi các thay đổi thực đơn vào backend...',
-        variant: 'info',
-      });
-
-      const response = await updateWeeklyMenuBulk({
-        customerId: effectiveMenuCustomerId,
-        slots: slotsToUpdate,
-      }).unwrap();
-
-      if (!response.success) {
-        throw new Error(response.message || 'Không thể lưu chỉnh sửa thực đơn.');
-      }
-
-      slotsToUpdate.forEach((slot) => {
-        const dayKey = displayDays.find((d) => getServiceDateIso(d.key) === slot.serviceDate)?.key;
-        if (dayKey) {
-          dispatch(updateWeeklyMenuDish({
-            day: dayKey,
-            slotType: slot.slotType as 'morningSavory' | 'morningVegetarian' | 'afternoonSavory' | 'afternoonVegetarian',
-            dishId: slot.dishId,
-          }));
-        }
-      });
-
-      if (response.data && response.data.length > 0) {
-        setWarehouseExportFeedback({
-          title: 'Lưu thành công (Có cảnh báo)',
-          message: `${response.message}\nCảnh báo:\n` + response.data.map(w => `- ${w}`).join('\n'),
-          variant: 'warning',
-        });
-      } else {
-        setWarehouseExportFeedback({
-          title: 'Cập nhật thực đơn thành công',
-          message: response.message || 'Thay đổi đã được lưu vào database.',
-          variant: 'info',
-        });
-      }
-
-      setIsEditingMenu(false);
-    } catch (err: unknown) {
-      setWarehouseExportFeedback({
-        title: 'Chỉnh sửa thực đơn thất bại',
-        message: getApiErrorMessage(err, 'Không thể lưu thay đổi vào backend.'),
-        variant: 'danger',
-      });
-    }
-  };
-
-  // Merge dishId from Redux with servings from confirmed quantity plans.
-  const weeklyMenu = (() => {
-    const merged: WeeklyMenuState = {};
-
-    displayDays.forEach(({ key: day }) => {
-      const slots = reduxWeeklyMenu[day];
-      if (!slots) return;
-      const morningSavoryServing = getSlotServingInfo(day, 'morningSavory');
-      const morningVegetarianServing = getSlotServingInfo(day, 'morningVegetarian');
-      const afternoonSavoryServing = getSlotServingInfo(day, 'afternoonSavory');
-      const afternoonVegetarianServing = getSlotServingInfo(day, 'afternoonVegetarian');
-
-      merged[day] = {
-        morningSavory: {
-          dishId: slots.morningSavory?.dishId || getSectionDefaultDish(SECTIONS[0])?.id || '',
-          portions: morningSavoryServing.portions,
-          customComponents: slots.morningSavory?.customComponents,
-        },
-        morningVegetarian: {
-          dishId: slots.morningVegetarian?.dishId || getSectionDefaultDish(SECTIONS[1])?.id || '',
-          portions: morningVegetarianServing.portions,
-          customComponents: slots.morningVegetarian?.customComponents,
-        },
-        afternoonSavory: {
-          dishId: slots.afternoonSavory?.dishId || getSectionDefaultDish(SECTIONS[2])?.id || '',
-          portions: afternoonSavoryServing.portions,
-          customComponents: slots.afternoonSavory?.customComponents,
-        },
-        afternoonVegetarian: {
-          dishId: slots.afternoonVegetarian?.dishId || getSectionDefaultDish(SECTIONS[3])?.id || '',
-          portions: afternoonVegetarianServing.portions,
-          customComponents: slots.afternoonVegetarian?.customComponents,
-        },
-      };
-    });
-
-    return merged;
-  })();
+  const weeklyMenu = scheduleWorkflow.state.weeklyMenu;
+  const getServiceDateIso = scheduleWorkflow.presentation.getServiceDate;
+  const getSlotServingInfo = scheduleWorkflow.presentation.getSlotServingInfo;
+  const getLinePricing = scheduleWorkflow.presentation.getLinePricing;
 
   const weeklyPlanRows: WeeklyPlanRow[] = committedMenu?.rows?.length ? committedMenu.rows
     .filter((row, index, rows) => !isWeeklyMenuRowContinuation(row, index, rows))
@@ -925,86 +567,8 @@ const WeeklyMenuPage = () => {
     { label: 'Đề xuất mua', value: demandLines.length ? `${aggregatedDemandLines.length} dòng` : 'Chờ demand', tone: demandLines.length ? 'info' : 'neutral' },
     { label: 'Tồn kho/cảnh báo', value: invalidBomTierCount ? `${invalidBomTierCount} sai tier` : 'OK', tone: invalidBomTierCount ? 'danger' : 'success' },
   ];
-  const quickServingRows = displayDays
-    .flatMap((day) => {
-      const serviceDate = getServiceDateIso(day.key) || parseDisplayDateToIso(day.date);
-      if (!serviceDate) return [];
-
-      return QUICK_SERVING_SHIFTS.map((shift) => {
-        const matchingPlans = mealQuantityPlans.filter((plan) => plan.serviceDate.split('T')[0] === serviceDate);
-        const planLines = matchingPlans.flatMap((plan) =>
-          plan.lines
-            .filter((line) => line.shiftName === shift.shiftName && (!effectiveMenuCustomerId || line.customerId === effectiveMenuCustomerId))
-            .map((line) => {
-              const servings = line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0;
-              return {
-                planStatus: plan.status,
-                quantityPlanId: plan.quantityPlanId,
-                quantityPlanLineId: line.quantityPlanLineId,
-                servings,
-              };
-            }),
-        );
-        const currentServings = planLines.reduce((sum, line) => sum + line.servings, 0);
-        const importedServings = Math.max(
-          0,
-          ...weeklyPlanRows
-            .filter((row) => row.dayKey === day.key && (
-              shift.shiftName === 'MORNING'
-                ? row.shiftLabel.toLowerCase().includes('sáng')
-                : row.shiftLabel.toLowerCase().includes('chiều')
-            ))
-            .map((row) => row.importedPortions || row.portions || 0),
-        );
-        const key = getQuickServingKey(serviceDate, shift.shiftName);
-        const inputValue = quickServingInputs[key] ?? String(currentServings > 0 ? currentServings : importedServings || '');
-        const normalizedStatuses = Array.from(new Set(planLines.map((line) => line.planStatus.toUpperCase())));
-        const isConfirmed = normalizedStatuses.some((status) => ['CONFIRMED', 'COMPLETED', 'ADJUSTED'].includes(status));
-        const isCompleted = normalizedStatuses.includes('COMPLETED');
-        const hasDraftChange = quickServingInputs[key] !== undefined && Number(quickServingInputs[key]) !== currentServings;
-
-        return {
-          key,
-          dayKey: day.key,
-          dayLabel: day.label,
-          date: day.date,
-          serviceDate,
-          shiftName: shift.shiftName,
-          shiftLabel: shift.shiftLabel,
-          quantityPlanId: planLines[0]?.quantityPlanId,
-          quantityPlanIds: Array.from(new Set(planLines.map((line) => line.quantityPlanId).filter(Boolean))),
-          lines: planLines.map((line) => ({
-            quantityPlanLineId: line.quantityPlanLineId,
-            servings: line.servings,
-          })),
-          currentServings,
-          importedServings,
-          inputValue,
-          hasPlanLines: planLines.length > 0,
-          hasDraftChange,
-          isConfirmed,
-          isCompleted,
-          statusLabel: planLines.length === 0
-            ? 'Chưa có kế hoạch suất'
-            : isCompleted
-              ? 'Đã hoàn tất'
-              : isConfirmed
-                ? 'Đã chốt'
-                : currentServings > 0
-                  ? 'Chưa chốt'
-                  : 'Chưa nhập suất',
-        };
-      });
-    });
-  const getQuickServingRowForPlanRow = (row: WeeklyPlanRow) => {
-    const shiftName: QuickServingShiftName = row.shiftLabel.toLowerCase().includes('sáng')
-      ? 'MORNING'
-      : 'AFTERNOON';
-
-    return quickServingRows.find((servingRow) =>
-      servingRow.serviceDate === row.serviceDate &&
-      servingRow.shiftName === shiftName);
-  };
+  const quickServingRows = scheduleWorkflow.presentation.buildQuickServingRows(weeklyPlanRows);
+  const getQuickServingRowForPlanRow = (row: WeeklyPlanRow) => scheduleWorkflow.presentation.getQuickServingRow(quickServingRows, row);
   const demandStalenessServiceDate = weeklyPlanRows[0]?.serviceDate;
   const { data: demandStalenessData } = useGetMaterialDemandStalenessQuery(
     { serviceDate: demandStalenessServiceDate ?? '', customerId: effectiveMenuCustomerId, scope: 'FULLDAY' },
@@ -1052,11 +616,7 @@ const WeeklyMenuPage = () => {
     setProductionPlanPageIndex(0);
   };
   const activeDemandQuickServingRows = activeDemandDay
-    ? QUICK_SERVING_SHIFTS
-      .map((shift) => quickServingRows.find((servingRow) =>
-        servingRow.serviceDate === activeDemandDate &&
-        servingRow.shiftName === shift.shiftName))
-      .filter((row): row is (typeof quickServingRows)[number] => Boolean(row))
+    ? quickServingRows.filter((row) => row.serviceDate === activeDemandDate)
     : [];
   const activeDemandAggregatedLines = activeDemandAggregatePage?.items ?? [];
   const activeDemandWarningCount = activeDemandAggregatedLines.filter((line) => line.tone === 'warning').length;
@@ -1262,7 +822,7 @@ const WeeklyMenuPage = () => {
             <>
               <button
                 type="button"
-                onClick={handleOpenEdit}
+                onClick={scheduleWorkflow.actions.openEditor}
                 className="ipc-button ipc-button-ghost font-semibold whitespace-nowrap"
               >
                 <Edit size={14} className="text-[var(--ipc-slate-500)]" />
@@ -1403,32 +963,13 @@ const WeeklyMenuPage = () => {
       )}
 
       {activeView === 'schedule' && (
-        <div className="flex flex-col gap-4">
-          <SectionPanel title="Bố cục menu theo file khách hàng" icon={<Calendar size={18} color="var(--ipc-slate-600)" />}>
-            <div className="flex flex-col gap-3">
-              <ContextStrip
-                items={[
-                  {
-                    label: 'Khách hàng',
-                    value: selectedCustomer ? `${selectedCustomer.customerCode} - ${selectedCustomer.customerName}` : committedMenu?.customerCode ?? 'Chưa chọn',
-                    tone: 'neutral',
-                  },
-                  {
-                    label: 'Tuần',
-                    value: committedMenu?.weekStartDate ? `${formatImportDate(committedMenu.weekStartDate)} - ${formatImportDate(committedMenu.weekEndDate)}` : 'Chưa có menu',
-                    tone: committedMenu?.weekStartDate ? 'info' : 'neutral',
-                  },
-                  {
-                    label: 'Đang thực hiện',
-                    value: activeServiceLabel,
-                    tone: activeServiceDay ? 'success' : 'warning',
-                  },
-                ]}
-              />
-              <ImportedLayoutMatrix rows={committedLayoutRows} displayDays={displayDays} activeDayKey={activeServiceDay?.key} />
-            </div>
-          </SectionPanel>
-        </div>
+        <WeeklyScheduleSection
+          scope={weeklyScheduleScope}
+          customerValue={weeklyScheduleScope.customerLabel}
+          weekValue={weeklyScheduleScope.weekLabel}
+          hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
+          rows={committedLayoutRows}
+        />
       )}
 
       {activeView === 'production-plan' && (
@@ -1570,10 +1111,10 @@ const WeeklyMenuPage = () => {
                   className="ipc-button ipc-button-primary"
                   type="button"
                   onClick={() => void handleGenerateDemand()}
-                  disabled={isGeneratingDemand || isSavingQuickServings || weeklyPlanRows.length === 0}
+                  disabled={isGeneratingDemand || scheduleWorkflow.status.isSavingQuickServings || weeklyPlanRows.length === 0}
                 >
                   <Scale size={16} />
-                  {isSavingQuickServings
+                  {scheduleWorkflow.status.isSavingQuickServings
                     ? 'Đang lưu suất...'
                     : isGeneratingDemand
                     ? 'Đang tạo demand...'
@@ -1604,7 +1145,6 @@ const WeeklyMenuPage = () => {
                 <tbody>
                   {demandPageRows.map((row) => {
                     const quickServingRow = getQuickServingRowForPlanRow(row);
-                    const isServingBusy = isSavingQuickServings;
 
                     return (
                       <tr key={row.key} className="table-row">
@@ -1620,53 +1160,7 @@ const WeeklyMenuPage = () => {
                         </td>
                         <td className={tableCellClass} title={quickServingRow?.statusLabel ?? row.servingsStatusLabel}>
                           {quickServingRow ? (
-                            <div className="flex flex-col items-center gap-1.5">
-                              <input
-                                type="number"
-                                min="0"
-                                value={quickServingRow.inputValue}
-                                onChange={(event) => setQuickServingInputs((current) => ({
-                                  ...current,
-                                  [quickServingRow.key]: event.target.value,
-                                }))}
-                                onBlur={() => {
-                                  if (quickServingRow.hasDraftChange) {
-                                    void handleSaveQuickServings(quickServingRow);
-                                  }
-                                }}
-                                onKeyDown={(event) => {
-                                  if (event.key === 'Enter') {
-                                    event.preventDefault();
-                                    event.currentTarget.blur();
-                                  }
-                                  if (event.key === 'Escape') {
-                                    setQuickServingInputs((current) => {
-                                      const next = { ...current };
-                                      delete next[quickServingRow.key];
-                                      return next;
-                                    });
-                                  }
-                                }}
-                                disabled={quickServingRow.isConfirmed}
-                                className="ipc-input h-8 w-[96px] text-center"
-                              />
-                              <span className={cn(
-                                'text-[11px] font-medium',
-                                quickServingRow.isCompleted ? 'text-emerald-700' : quickServingRow.hasDraftChange ? 'text-blue-700' : quickServingRow.hasPlanLines ? 'text-amber-700' : 'text-slate-500',
-                              )}>
-                                {quickServingRow.isCompleted
-                                  ? 'Đã hoàn tất'
-                                  : isServingBusy
-                                    ? 'Đang lưu'
-                                    : quickServingRow.hasDraftChange
-                                      ? 'Chưa lưu'
-                                  : quickServingRow.hasPlanLines
-                                    ? quickServingRow.statusLabel
-                                    : row.servingsStatus === 'import-default'
-                                      ? 'Tạm từ import'
-                                      : 'Chưa có kế hoạch'}
-                              </span>
-                            </div>
+                            <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} />
                           ) : row.servingsStatus === 'missing' ? (
                             <span className="inline-flex flex-col items-center gap-0.5">
                               <span className="font-semibold text-amber-700">Chưa chốt</span>
@@ -1699,7 +1193,7 @@ const WeeklyMenuPage = () => {
             <div className="flex min-h-[38px] flex-wrap items-center justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
                 {activeDemandQuickServingRows.map((row) => {
-                  const isServingBusy = isSavingQuickServings;
+                  const isServingBusy = scheduleWorkflow.status.isSavingQuickServings;
                   const disabled = isServingBusy || row.isCompleted || Number(row.inputValue) <= 0;
 
                   return (
@@ -1711,7 +1205,7 @@ const WeeklyMenuPage = () => {
                           row.isCompleted ? 'ipc-button-ghost' : 'ipc-button-primary',
                         )}
                         disabled={disabled}
-                        onClick={() => void handleLockQuickServings(row)}
+                        onClick={() => void scheduleWorkflow.actions.completeQuickServing(row)}
                       >
                         {row.isCompleted ? `Đã hoàn tất ${row.shiftLabel}` : `Hoàn tất ${row.shiftLabel}`}
                       </button>
@@ -2209,104 +1703,7 @@ const WeeklyMenuPage = () => {
 
       <WeeklyMenuImportDialog workflow={importWorkflow} />
 
-      {isEditingMenu && (
-        <Dialog open={isEditingMenu} onOpenChange={(open) => !open && setIsEditingMenu(false)}>
-          <DialogContent aria-label="Chỉnh sửa thực đơn tuần" className="ipc-weekly-dialog max-w-5xl overflow-hidden">
-            <DialogHeader className="sticky top-0 z-20 flex flex-row items-center justify-between gap-3 border-b border-slate-100 bg-white/95 pb-3">
-              <DialogTitle className="text-slate-900 font-bold text-lg">
-                Chỉnh sửa Thực đơn tuần (T2 - T7)
-              </DialogTitle>
-              <button
-                type="button"
-                onClick={() => setIsEditingMenu(false)}
-                className="ipc-button ipc-button-ghost ipc-button-bounded"
-                aria-label="Đóng modal chỉnh sửa thực đơn"
-                title="Đóng"
-              >
-                <X size={16} />
-                <span>Đóng</span>
-              </button>
-            </DialogHeader>
-
-            <div className="mt-4 flex max-h-[68vh] flex-col gap-6 overflow-y-auto pr-1">
-              {SECTIONS.map((sec) => (
-                <div key={sec.label} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0">
-                  <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-[13px] font-bold uppercase text-slate-800">
-                    {sec.label}
-                  </h3>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-                    {displayDays.map((day) => {
-                      const isLocked = !!lockedShifts[`${day.key}-${sec.slotType.startsWith('morning') ? 'Ca Sáng' : 'Ca Chiều'}`];
-                      const slot = tempWeeklyMenu[day.key]?.[sec.slotType];
-
-                      return (
-                        <div key={day.key} className="p-2 border border-slate-200 rounded-md bg-white flex flex-col gap-1.5 shadow-sm">
-                          <div className="flex flex-col">
-                            <span className="text-[12px] font-semibold text-slate-700">{day.label}</span>
-                            <span className="text-[10px] text-slate-400">{day.date}</span>
-                          </div>
-
-                          {isLocked ? (
-                            <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">
-                              <Lock size={10} className="text-slate-400" />
-                              <span>Đã khóa</span>
-                            </div>
-                          ) : (
-                            <select
-                              value={slot?.dishId || getSectionDefaultDish(sec)?.id || ''}
-                              onChange={(e) => {
-                                setTempWeeklyMenu((prev) => ({
-                                  ...prev,
-                                  [day.key]: {
-                                    ...prev[day.key],
-                                    [sec.slotType]: {
-                                      ...prev[day.key]?.[sec.slotType],
-                                      portions: prev[day.key]?.[sec.slotType]?.portions ?? 0,
-                                      dishId: e.target.value,
-                                    },
-                                  },
-                                }));
-                              }}
-                              className="ipc-select text-[12px] h-9 p-1 w-full"
-                              disabled={getSectionDishes(sec).length === 0}
-                            >
-                              {getSectionDishes(sec).map((d, index) => (
-                                <option key={`${sec.slotType}-${d.id}-${index}`} value={d.id}>
-                                  {d.name}
-                                </option>
-                              ))}
-                              {getSectionDishes(sec).length === 0 && <option value="">Chưa có catalog</option>}
-                            </select>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <DialogFooter className="mt-6 flex justify-end gap-2 border-t border-slate-100 pt-4">
-              <button
-                type="button"
-                onClick={() => setIsEditingMenu(false)}
-                className="ipc-button ipc-button-ghost"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={handleSaveEdit}
-                disabled={isSavingEdit}
-                className="ipc-button ipc-button-primary"
-              >
-                {isSavingEdit ? 'Đang lưu...' : 'Lưu thay đổi'}
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+      <WeeklyScheduleEditorDialog workflow={scheduleWorkflow} />
 
     </OperationalFrame>
   );

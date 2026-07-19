@@ -9,6 +9,9 @@ import weeklyMenuImportWorkflowSource from './projects/weekly-menu/import/useWee
 import weeklyMenuImportDialogSource from './projects/weekly-menu/import/WeeklyMenuImportDialog.tsx?raw'
 import weeklyMenuImportJobsSource from './projects/weekly-menu/import/WeeklyMenuImportJobs.tsx?raw'
 import weeklyMenuImportReviewSource from './projects/weekly-menu/import/WeeklyMenuImportReview.tsx?raw'
+import weeklyScheduleStateSource from './projects/weekly-menu/schedule/scheduleState.ts?raw'
+import weeklyScheduleWorkflowSource from './projects/weekly-menu/schedule/useWeeklyScheduleEditor.ts?raw'
+import weeklyScheduleEditorSource from './projects/weekly-menu/schedule/WeeklyScheduleEditorDialog.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
@@ -30,6 +33,9 @@ describe('operational page refactor contracts', () => {
       weeklyMenuImportDialogSource,
       weeklyMenuImportJobsSource,
       weeklyMenuImportReviewSource,
+      weeklyScheduleStateSource,
+      weeklyScheduleWorkflowSource,
+      weeklyScheduleEditorSource,
     ].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
@@ -40,6 +46,8 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain('if (closeOnSuccess) close()')
     expect(source).toContain('useGenerateMaterialDemandMutation')
     expect(source).toContain('useUpdateWeeklyMenuBulkMutation')
+    expect(source).toContain('useUpsertQuickServingsMutation')
+    expect(source).toContain('useReducer(weeklyScheduleReducer')
     expect(source).toContain('Nhập Excel')
     expect(source).toContain("{ id: 'demand', label: 'Nhu cầu' }")
   })
