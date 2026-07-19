@@ -263,6 +263,30 @@ interface IngredientDemandPageResponseDto {
   shortageCount: number;
 }
 
+interface IngredientDemandAggregateReportDto {
+  requestDate: string;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  totalRequiredQty: number;
+  currentStockQty: number;
+  suggestedPurchaseQty: number;
+  lineCount: number;
+  hasCancelledLine: boolean;
+}
+
+interface IngredientDemandAggregatePageResponseDto {
+  items: IngredientDemandAggregateReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
 export interface PurchasePlanRow {
   periodKey: string;
   groupBy: 'day' | 'week';
@@ -1072,6 +1096,27 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   };
 };
 
+const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
+  const shortage = Math.max(item.suggestedPurchaseQty, 0);
+  const serviceDate = item.requestDate?.split('T')[0];
+  const isCancelled = item.hasCancelledLine;
+
+  return {
+    id: `aggregate-${serviceDate}-${item.ingredientId}-${item.unitId}`,
+    ingredientId: item.ingredientId,
+    serviceDate,
+    material: item.ingredientName ?? item.ingredientId,
+    required: item.totalRequiredQty,
+    available: item.currentStockQty,
+    reserved: 0,
+    unit: item.unitName ?? '',
+    source: `${item.lineCount} dòng nhu cầu trong ngày`,
+    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+    nextAction: isCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
+  };
+};
+
 const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   id: item.inboxItemId || item.targetCode || item.targetId,
   targetType: item.targetType,
@@ -1572,6 +1617,30 @@ export const workflowApi = apiSlice.injectEndpoints({
       },
       providesTags: ['WorkflowReports'],
     }),
+    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/aggregate/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 20,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandAggregatePageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandAggregateLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 20,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
     getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/production-plans/daily',
@@ -1916,6 +1985,7 @@ export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
   useGetIngredientDemandPageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGenerateMaterialDemandMutation,
   useGetMaterialDemandStalenessQuery,
   useSubmitPurchaseRequestMutation,

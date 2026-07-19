@@ -28,6 +28,36 @@ namespace IPCManagement.Api.Tests;
 public class WorkflowGenerationTests
 {
     [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_GroupDemandByIngredientAndDate()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 1,
+            });
+
+        page.TotalCount.Should().Be(1);
+        page.Items.Should().ContainSingle();
+        page.Items[0].RequestDate.Should().Be(new DateOnly(2026, 6, 15));
+        page.Items[0].TotalRequiredQty.Should().Be(200m);
+        page.Items[0].LineCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_CreateDemandLines_ForHappyPath()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

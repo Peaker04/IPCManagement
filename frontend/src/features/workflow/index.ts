@@ -18,6 +18,7 @@ export {
   useConfirmInventoryIssueReceiptMutation,
   useGetIngredientDemandQuery,
   useGetIngredientDemandPageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGetIssueVsReturnUsageQuery,
   useGetIssueVsReturnUsagePageQuery,
   useGetKitchenIssuesQuery,

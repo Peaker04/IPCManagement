@@ -659,6 +659,82 @@ public class WorkflowReportService : IWorkflowReportService
         };
     }
 
+    public async Task<IngredientDemandAggregatePageDto> GetIngredientDemandAggregatePageAsync(IngredientDemandAggregatePageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var grouped = lines.GroupBy(item => new
+        {
+            item.Request.RequestDate,
+            item.IngredientId,
+            IngredientName = item.Ingredient.IngredientName,
+            item.UnitId,
+            UnitName = item.Unit.UnitName,
+        });
+
+        var totalCount = await grouped.CountAsync();
+        var shortageCount = await grouped.CountAsync(group => group.Sum(item => item.SuggestedPurchaseQty) > 0);
+        var items = await grouped
+            .OrderByDescending(group => group.Key.RequestDate)
+            .ThenBy(group => group.Key.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(group => new IngredientDemandAggregateDto
+            {
+                RequestDate = group.Key.RequestDate,
+                IngredientId = GuidHelper.ToGuidString(group.Key.IngredientId),
+                IngredientName = group.Key.IngredientName,
+                UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
+                UnitName = group.Key.UnitName,
+                TotalRequiredQty = group.Sum(item => item.TotalRequiredQty),
+                CurrentStockQty = (decimal)group.Max(item => (double)item.CurrentStockQty),
+                SuggestedPurchaseQty = group.Sum(item => item.SuggestedPurchaseQty),
+                LineCount = group.Count(),
+                HasCancelledLine = group.Any(item => item.Request.Status == "CANCELLED"),
+            })
+            .ToListAsync();
+
+        return new IngredientDemandAggregatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
     public async Task<IReadOnlyList<PurchasePlanReportDto>> GetPurchasePlanAsync(WorkflowReportQueryDto query)
     {
         var rows = await BuildPurchasePlanRowsAsync(query, NormalizeLimit(query.Limit <= 0 ? 500 : query.Limit));
