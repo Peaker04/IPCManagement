@@ -16,6 +16,7 @@ import weeklyProductionPlanWorkflowSource from './projects/weekly-menu/productio
 import weeklyProductionPlanSectionSource from './projects/weekly-menu/production-plan/ProductionPlanSection.tsx?raw'
 import materialDemandWorkflowSource from './projects/weekly-menu/demand/useMaterialDemand.ts?raw'
 import materialDemandSectionSource from './projects/weekly-menu/demand/MaterialDemandSection.tsx?raw'
+import weeklyMenuCommandSource from './projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
@@ -44,6 +45,7 @@ describe('operational page refactor contracts', () => {
       weeklyProductionPlanSectionSource,
       materialDemandWorkflowSource,
       materialDemandSectionSource,
+      weeklyMenuCommandSource,
     ].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
