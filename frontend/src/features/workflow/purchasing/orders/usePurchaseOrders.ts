@@ -11,7 +11,7 @@ import {
 } from '@/features/workflow';
 import { getPurchasingErrorMessage, mapPurchaseRequestLines } from '../purchasingModel';
 
-export function usePurchaseOrders() {
+export function usePurchaseOrders(enabled = true) {
   const { toast } = useToast();
   const [page, setPage] = useState(1);
   const [approvedRequestPage, setApprovedRequestPage] = useState(1);
@@ -19,9 +19,18 @@ export function usePurchaseOrders() {
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
-  const { data: response } = useGetPurchaseOrdersPageQuery({ pageNumber: page, pageSize: 6 });
-  const { data: requestResponse } = useGetPurchaseRequestsPageQuery({ status: 'APPROVED', pageNumber: approvedRequestPage, pageSize: 8 });
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery({ limit: 20 });
+  const { data: response } = useGetPurchaseOrdersPageQuery(
+    { pageNumber: page, pageSize: 6 },
+    { skip: !enabled },
+  );
+  const { data: requestResponse } = useGetPurchaseRequestsPageQuery(
+    { status: 'APPROVED', pageNumber: approvedRequestPage, pageSize: 8 },
+    { skip: !enabled },
+  );
+  const { data: currentStockRows = [] } = useGetCurrentStockQuery(
+    { limit: 20 },
+    { skip: !enabled },
+  );
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
   const [recordReceipt] = useRecordPurchaseOrderReceiptMutation();
   const [cancelOrder] = useCancelPurchaseOrderMutation();

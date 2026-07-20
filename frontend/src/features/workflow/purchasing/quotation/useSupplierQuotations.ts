@@ -13,10 +13,10 @@ import { getPurchasingErrorMessage } from '../purchasingModel';
 
 const EMPTY_FORM = { supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' };
 
-export function useSupplierQuotations() {
+export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
-  const { data: ingredients = [] } = useGetIngredientsQuery();
-  const { data: suppliers = [] } = useGetSuppliersQuery();
+  const { data: ingredients = [] } = useGetIngredientsQuery(undefined, { skip: !enabled });
+  const { data: suppliers = [] } = useGetSuppliersQuery(undefined, { skip: !enabled });
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -26,7 +26,7 @@ export function useSupplierQuotations() {
     ingredientId: selectedIngredientId,
     pageNumber: page,
     pageSize: 8,
-  }, { skip: !selectedIngredientId });
+  }, { skip: !enabled || !selectedIngredientId });
   const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
   const [updateQuotation] = useUpdateSupplierQuotationMutation();
   const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();

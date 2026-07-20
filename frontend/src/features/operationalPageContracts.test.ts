@@ -87,6 +87,9 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain('useCreatePurchaseRequestFromDemandMutation')
     expect(source).toContain('useSubmitPurchaseRequestMutation')
     expect(source).toContain('useRecordPurchaseOrderReceiptMutation')
+    expect(purchasingPageSource).toContain("usePurchaseSupplier(activeView === 'supplier')")
+    expect(purchasingPageSource).toContain("useSupplierQuotations(activeView === 'quotation')")
+    expect(purchasingPageSource).toContain("usePurchaseOrders(activeView === 'orders')")
     expect(source).toContain('Tạo đề xuất mua')
   })
 

@@ -27,9 +27,9 @@ export default function PurchasingPage() {
     validPurchasingViews.includes(initialView as PurchasingView) ? (initialView as PurchasingView) : 'demand',
   );
   const demandWorkflow = usePurchaseDemand(() => setActiveView('supplier'));
-  const supplierWorkflow = usePurchaseSupplier();
-  const quotationWorkflow = useSupplierQuotations();
-  const orderWorkflow = usePurchaseOrders();
+  const supplierWorkflow = usePurchaseSupplier(activeView === 'supplier');
+  const quotationWorkflow = useSupplierQuotations(activeView === 'quotation');
+  const orderWorkflow = usePurchaseOrders(activeView === 'orders');
   const handoffWorkflow = usePurchaseHandoff();
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });

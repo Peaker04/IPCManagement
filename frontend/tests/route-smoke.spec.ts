@@ -961,6 +961,28 @@ async function stubMobileOperationsSuccess(page: Page) {
       return;
     }
 
+    if (endpoint === 'material-request-candidates/page') {
+      await fulfill(route, {
+        items: [{
+          materialRequestId: 'mr-mobile',
+          materialRequestCode: 'MR-20260709-MOBILE',
+          requestDate: '2026-07-09',
+          requestScope: 'FULLDAY',
+          status: 'CONFIRMED',
+          actionableLineCount: 1,
+          actionableQuantity: 18,
+          hasExistingPurchaseRequest: false,
+        }],
+        totalCount: 1,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 1,
+        hasPrev: false,
+        hasNext: false,
+      });
+      return;
+    }
+
     if (endpoint === 'ingredient-demand') {
       await fulfill(route, [
         {
@@ -1290,24 +1312,21 @@ test.describe('route smoke', () => {
     });
     await page.route('**/api/workflow-reports/**', async (route) => {
       const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
-      const data = endpoint === 'ingredient-demand/page'
+      const data = endpoint === 'material-request-candidates/page'
         ? {
             items: [{
               materialRequestId: 'mr-create-1',
               materialRequestCode: 'MR-DAV-20260618-FULLDAY',
               requestDate: '2026-06-18',
+              requestScope: 'FULLDAY',
               status: 'APPROVED',
-              ingredientId: 'ingredient-rice',
-              ingredientName: 'Gạo tẻ',
-              unitId: 'unit-kg',
-              unitName: 'kg',
-              totalRequiredQty: 20,
-              currentStockQty: 5,
-              suggestedPurchaseQty: 15,
+              actionableLineCount: 1,
+              actionableQuantity: 15,
+              hasExistingPurchaseRequest: false,
             }],
             totalCount: 1,
             pageNumber: 1,
-            pageSize: 100,
+            pageSize: 8,
             totalPages: 1,
             hasPrev: false,
             hasNext: false,
@@ -1359,7 +1378,8 @@ test.describe('route smoke', () => {
     await page.getByRole('button', { name: 'Tạo đề xuất mua' }).click();
     const dialog = page.getByRole('dialog', { name: 'Tạo đề xuất mua từ nhu cầu thiếu' });
     await expect(dialog).toBeVisible();
-    await expect(dialog.getByText('MR-DAV-20260618-FULLDAY')).toBeVisible();
+    await dialog.getByRole('combobox', { name: 'Chứng từ nhu cầu nguyên liệu' }).click();
+    await page.getByRole('option', { name: /MR-DAV-20260618-FULLDAY/ }).click();
     await dialog.getByRole('button', { name: 'Tạo đề xuất' }).click();
     await expect(page.getByRole('status')).toContainText('PR-20260618-FULLDAY');
     await expect(page.getByRole('tab', { name: 'Giá và nhà cung cấp' })).toHaveAttribute('aria-selected', 'true');
