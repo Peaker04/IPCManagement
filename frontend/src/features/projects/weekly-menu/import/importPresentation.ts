@@ -19,9 +19,12 @@ export const buildImportPresentation = (
   }))
   const validationChecks = buildImportValidationChecks(job)
   const duplicateGroups = buildImportDuplicateGroups(preview?.rows ?? [])
-  const issues = preview?.validation?.issues ?? []
+  const issues = preview?.validation?.issues.filter((issue) => issue.severity.toLowerCase() === 'error') ?? []
+  const warningIssues = preview?.validation?.issues
+    .filter((issue) => issue.severity.toLowerCase() === 'warning')
+    .map((issue) => `${issue.cell ?? issue.column ?? issue.field ?? 'Trong file'}: ${issue.message}`) ?? []
   const diffRows = preview?.previewDiff.rows.filter(isMeaningfulMenuDiff) ?? []
-  const warningSummary = summarizeImportWarnings(preview?.warnings ?? [])
+  const warningSummary = summarizeImportWarnings([...(preview?.warnings ?? []), ...warningIssues])
   const warningMessages = warningSummary.slice(0, 4)
   const blockingCount = validationChecks.filter((check) => check.blocking).length
   let problemMessages: string[] = []

@@ -21,7 +21,7 @@ export const buildQuantityPlanByDateShift = (
     plan.lines.filter((line) => !customerId || line.customerId === customerId).forEach((line) => {
       const key = `${serviceDate}|${line.shiftName}`
       const current = result.get(key)
-      const servings = line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0
+      const servings = line.finalServings
       const status = confirmedPlan && servings > 0 ? 'confirmed' : servings > 0 ? 'draft' : 'missing'
       const nextStatus = current?.status === 'confirmed' || status === 'confirmed'
         ? 'confirmed'
@@ -84,7 +84,7 @@ export const buildQuickServingRows = ({
           planStatus: plan.status,
           quantityPlanId: plan.quantityPlanId,
           quantityPlanLineId: line.quantityPlanLineId,
-          servings: line.finalServings || line.confirmedServings || line.adjustedServings || line.forecastServings || 0,
+          servings: line.finalServings,
         })),
     )
     const currentServings = planLines.reduce((sum, line) => sum + line.servings, 0)

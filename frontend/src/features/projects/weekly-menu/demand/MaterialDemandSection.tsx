@@ -122,7 +122,7 @@ export function MaterialDemandSection({
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-slate-800">Nguyên liệu ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Đủ {inventoryStatus.enoughCount}, thiếu {inventoryStatus.shortageCount}, tổng {presentation.aggregateLines.length} nguyên liệu</span>
+                <span className="text-xs font-medium text-slate-500">Đủ {inventoryStatus.enoughCount}, thiếu {inventoryStatus.shortageCount}, tổng {inventoryStatus.totalCount} nguyên liệu</span>
               </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>

@@ -1,24 +1,40 @@
 import { describe, expect, it } from 'vitest'
 import type { DemandLine } from '@/features/workflow'
 import type { QuickServingRow } from '../schedule/types'
-import { getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
+import { aggregateWeekStaleness, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
 
 describe('material demand model', () => {
   it('uses server totals when summarizing a paged inventory result', () => {
     const lines = [{
-      tone: 'danger',
+      tone: 'warning',
       required: 12,
       available: 4,
       reserved: 1,
     }] as DemandLine[]
 
     expect(getDemandInventoryStatus(lines, 42, 7)).toEqual({
-      warningCount: 0,
+      warningCount: 1,
       shortageCount: 7,
       enoughCount: 35,
-      tone: 'danger',
-      label: 'Thiếu nguyên liệu',
+      totalCount: 42,
+      tone: 'warning',
+      label: 'Cần tính lại',
     })
+  })
+
+  it('marks the week stale when any service date is stale and keeps date-specific reasons', () => {
+    expect(aggregateWeekStaleness([
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, lastGeneratedAt: '2026-07-20T08:00:00Z', reasons: [] } },
+      { serviceDate: '2026-07-22', staleness: { hasExistingPlan: true, isStale: true, lastGeneratedAt: '2026-07-22T09:00:00Z', reasons: ['Số suất đã thay đổi'] } },
+    ])).toEqual({
+      hasExistingPlan: true,
+      isStale: true,
+      lastGeneratedAt: '2026-07-22T09:00:00Z',
+      reasons: ['2026-07-22: Số suất đã thay đổi'],
+    })
+    expect(aggregateWeekStaleness([
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, reasons: [] } },
+    ], 2)).toBeUndefined()
   })
 
   it('selects the requested day before falling back to the active day', () => {
@@ -31,7 +47,7 @@ describe('material demand model', () => {
     expect(getDemandDayIndex(pages, null, 't2')).toBe(0)
   })
 
-  it('completes only positive, unfinished servings in the generated week', () => {
+  it('uses the consolidated selector for only positive, unfinished servings in the generated week', () => {
     const rows = [
       { serviceDate: '2026-07-20', inputValue: '125.4', isCompleted: false },
       { serviceDate: '2026-07-20', inputValue: '0', isCompleted: false },

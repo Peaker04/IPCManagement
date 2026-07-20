@@ -66,7 +66,6 @@ export type WeeklyScheduleEditorWorkflow = {
     discardQuickServing: (key: string) => void
     saveQuickServing: (row: QuickServingRow) => Promise<void>
     completeQuickServing: (row: QuickServingRow) => Promise<void>
-    completePendingQuickServings: (rows: QuickServingRow[], serviceDates: string[]) => Promise<number>
   }
   presentation: {
     sections: Array<{

@@ -1,4 +1,4 @@
-import type { DemandLine, WorkflowDocument } from '@/features/workflow'
+import type { DemandLine, MaterialDemandStaleness, WorkflowDocument } from '@/features/workflow'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 
@@ -21,12 +21,35 @@ export const getDemandDayIndex = (
 export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: number, shortageCount?: number) => {
   const warningCount = lines.filter((line) => line.tone === 'warning').length
   const shortages = shortageCount ?? lines.filter((line) => Math.max(line.required - (line.available - line.reserved), 0) > 0).length
+  const total = totalCount ?? lines.length
   return {
     warningCount,
     shortageCount: shortages,
-    enoughCount: (totalCount ?? lines.length) - shortages - warningCount,
+    enoughCount: Math.max(total - shortages, 0),
+    totalCount: total,
     tone: (lines.length === 0 ? 'neutral' : warningCount > 0 ? 'warning' : shortages > 0 ? 'danger' : 'success') as DemandLine['tone'],
     label: lines.length === 0 ? 'Chưa kiểm tồn' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Thiếu nguyên liệu' : 'Đủ nguyên liệu',
+  }
+}
+
+export const aggregateWeekStaleness = (
+  results: Array<{ serviceDate: string; staleness: MaterialDemandStaleness }>,
+  expectedDateCount = results.length,
+): MaterialDemandStaleness | undefined => {
+  if (results.length === 0 || results.length < expectedDateCount) return undefined
+  const staleResults = results.filter(({ staleness }) => staleness.isStale)
+  const generatedTimes = results
+    .map(({ staleness }) => staleness.lastGeneratedAt)
+    .filter((value): value is string => Boolean(value))
+    .sort()
+
+  return {
+    hasExistingPlan: results.some(({ staleness }) => staleness.hasExistingPlan),
+    isStale: staleResults.length > 0,
+    lastGeneratedAt: generatedTimes.at(-1) ?? null,
+    reasons: Array.from(new Set(staleResults.flatMap(({ serviceDate, staleness }) =>
+      staleness.reasons.map((reason) => `${serviceDate}: ${reason}`),
+    ))),
   }
 }
 

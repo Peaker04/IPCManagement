@@ -68,10 +68,10 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
             {['Nguyên liệu', 'ĐV', 'LT ngày', 'TT ngày', 'Món trong kế hoạch', 'Đơn giá', 'Thành tiền ngày'].map((label) => <th key={label} className={cn(tableHeadClass, 'sticky top-0 z-10 bg-slate-100', (label === 'Nguyên liệu' || label === 'Món trong kế hoạch') && 'text-left')}>{label}</th>)}
           </tr></thead>
           <tbody>
-            {Object.entries(materialSummary).map(([name, data]) => {
+            {Object.entries(materialSummary).map(([identityKey, data]) => {
               if (data.theory === 0) return null
-              return <tr key={`day-material-${name}`} className="table-row">
-                <td className={`${tableCellClass} text-left font-bold`}>{name}</td><td className={tableCellClass}>{data.unit}</td>
+              return <tr key={`day-material-${identityKey}`} className="table-row">
+                <td className={`${tableCellClass} text-left font-bold`}>{data.ingredientName}</td><td className={tableCellClass}>{data.unit}</td>
                 <td className={tableCellClass}>{data.theory.toFixed(2)}</td><td className={`${tableCellClass} font-bold text-[var(--ipc-primary-600)]`}>{data.actual.toFixed(2)}</td>
                 <td className={`${tableCellClass} text-left font-medium text-slate-800`} title={data.dishNames.join(', ')}>{formatMaterialDishSource(data.dishNames)}</td>
                 <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>

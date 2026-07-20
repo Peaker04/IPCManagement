@@ -13,7 +13,7 @@ import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '../schedule/types'
-import { buildDemandDayPages, buildKhsxDraftDocument, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
+import { aggregateWeekStaleness, buildDemandDayPages, buildKhsxDraftDocument, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
 
 type Options = {
   scope: WeeklyMenuScope
@@ -55,6 +55,10 @@ export function useMaterialDemand({
   const aggregatePageNumber = navigation.scopeKey === scopeKey ? navigation.aggregatePageNumber : 1
   const feedback = feedbackState.scopeKey === scopeKey ? feedbackState.value : null
   const setFeedback = (value: WeeklyScheduleFeedback | null) => setFeedbackState({ scopeKey, value })
+  const serviceDates = useMemo(
+    () => Array.from(new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean))),
+    [weeklyPlanRows],
+  )
   const [generateMaterialDemand, { isLoading: isGenerating }] = useGenerateMaterialDemandMutation()
   const [upsertQuickServings, { isLoading: isSavingQuickServings }] = useUpsertQuickServingsMutation()
   const reportQuery = useMemo(() => ({
@@ -65,11 +69,21 @@ export function useMaterialDemand({
   }), [reportDateFrom, reportDateTo, scope.customerId])
   const { currentData: demandLines = [] } = useGetIngredientDemandQuery(reportQuery, { skip: !scope.customerId })
   const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(reportQuery, { skip: !scope.customerId })
-  const demandStalenessServiceDate = weeklyPlanRows[0]?.serviceDate
-  const { data: stalenessData } = useGetMaterialDemandStalenessQuery(
-    { serviceDate: demandStalenessServiceDate ?? '', customerId: scope.customerId, scope: 'FULLDAY' },
-    { skip: !demandStalenessServiceDate || !scope.customerId },
-  )
+  const stalenessQuery = (serviceDate?: string) => ({
+    serviceDate: serviceDate ?? '',
+    customerId: scope.customerId,
+    scope: 'FULLDAY' as const,
+  })
+  const staleness0 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[0]), { skip: !scope.customerId || !serviceDates[0] })
+  const staleness1 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[1]), { skip: !scope.customerId || !serviceDates[1] })
+  const staleness2 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[2]), { skip: !scope.customerId || !serviceDates[2] })
+  const staleness3 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[3]), { skip: !scope.customerId || !serviceDates[3] })
+  const staleness4 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[4]), { skip: !scope.customerId || !serviceDates[4] })
+  const staleness5 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[5]), { skip: !scope.customerId || !serviceDates[5] })
+  const staleness6 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[6]), { skip: !scope.customerId || !serviceDates[6] })
+  const stalenessResults = [staleness0, staleness1, staleness2, staleness3, staleness4, staleness5, staleness6]
+    .flatMap((result, index) => result.data?.data ? [{ serviceDate: serviceDates[index], staleness: result.data.data }] : [])
+  const staleness = aggregateWeekStaleness(stalenessResults, serviceDates.length)
   const dayPages = useMemo(() => buildDemandDayPages(scope, weeklyPlanRows), [scope, weeklyPlanRows])
   const dayIndex = getDemandDayIndex(dayPages, selectedDayKey, scope.activeDayKey)
   const activeDay = dayPages[dayIndex]
@@ -98,7 +112,6 @@ export function useMaterialDemand({
       setFeedback({ title: 'Chưa chọn khách hàng', message: 'Vui lòng chọn khách hàng trước khi tạo nhu cầu nguyên liệu.', variant: 'warning' })
       return
     }
-    const serviceDates = Array.from(new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean)))
     if (serviceDates.length === 0) {
       setFeedback({ title: 'Chưa có ngày để tạo nhu cầu', message: 'Vui lòng nhập hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.', variant: 'warning' })
       return
@@ -171,7 +184,7 @@ export function useMaterialDemand({
     presentation: {
       sourceMenuValue, materialSummaryCount, weeklyPlanRows, missingBomRows: weeklyPlanRows.filter((row) => !row.hasCatalogBom),
       importDefaultRows: weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default'),
-      demandLines, aggregatedDemandLines, staleness: stalenessData?.data, dayPages, dayIndex, activeDay, activeDate,
+      demandLines, aggregatedDemandLines, staleness, dayPages, dayIndex, activeDay, activeDate,
       activeRows: activeDay?.rows ?? [], activeQuickServingRows, aggregatePage, aggregateLines, inventoryStatus, documents,
     },
   }

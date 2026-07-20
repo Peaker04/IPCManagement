@@ -47,10 +47,10 @@ export const buildWarehouseCsv = (
 ) => {
   const rows = Object.entries(materialSummary)
     .filter(([, data]) => data.theory !== 0)
-    .map(([name, data]) => [
+    .map(([, data]) => [
       weekStartDate,
       customerCode,
-      name,
+      data.ingredientName,
       data.theory.toFixed(2),
       data.actual.toFixed(2),
       data.unit,

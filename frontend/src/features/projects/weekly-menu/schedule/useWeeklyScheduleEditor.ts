@@ -7,7 +7,7 @@ import { useUpdateWeeklyMenuBulkMutation, useUpsertQuickServingsMutation } from 
 import type { CatalogDish } from '../../dishCatalogApi'
 import { normalizeBomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage } from '../model/formatters'
-import { matchesCategory, matchesShift, runInBatches, SECTIONS } from '../model/scope'
+import { matchesCategory, matchesShift, SECTIONS } from '../model/scope'
 import type { WeeklyPlanRow } from '../model/types'
 import { buildQuantityPlanByDateShift, buildQuickServingRows, cloneWeeklyMenu, getScheduleServiceDate, getShiftServingInfo } from './scheduleModel'
 import { initialWeeklyScheduleState, weeklyScheduleReducer } from './scheduleState'
@@ -189,19 +189,6 @@ export function useWeeklyScheduleEditor({
       onQuickServingFeedback({ title: 'Chưa hoàn tất được suất', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.', variant: 'danger' })
     }
   }, [onQuickServingFeedback, scope.customerId, upsertQuickServings])
-  const completePendingQuickServings = useCallback(async (rows: QuickServingRow[], serviceDates: string[]) => {
-    const dateSet = new Set(serviceDates)
-    const pending = rows.filter((row) => dateSet.has(row.serviceDate) && !row.isCompleted)
-      .map((row) => ({ ...row, nextServings: Math.round(Number.parseFloat(row.inputValue)) }))
-      .filter((row) => Number.isFinite(row.nextServings) && row.nextServings > 0)
-    await runInBatches(pending, 3, async (row) => {
-      const response = await upsertQuickServings({ customerId: scope.customerId, serviceDate: row.serviceDate, shiftName: row.shiftName, servings: row.nextServings, complete: true }).unwrap()
-      if (!response.success) throw new Error(response.message || 'Không hoàn tất được số suất.')
-      dispatch({ type: 'clear-serving', key: row.key })
-    })
-    return pending.length
-  }, [scope.customerId, upsertQuickServings])
-
   return {
     scope,
     state: { ...state, weeklyMenu },
@@ -215,7 +202,6 @@ export function useWeeklyScheduleEditor({
       discardQuickServing: (key) => dispatch({ type: 'clear-serving', key }),
       saveQuickServing,
       completeQuickServing,
-      completePendingQuickServings,
     },
     presentation: {
       sections,

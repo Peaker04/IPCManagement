@@ -126,7 +126,11 @@ const addDishToMaterialSummary = (
   quantityFactor: number,
 ) => {
   dish.ingredients.forEach((ingredient) => {
-    summary[ingredient.name] ??= {
+    const identityKey = `${ingredient.ingredientId}|${ingredient.unitId}`
+    summary[identityKey] ??= {
+      ingredientId: ingredient.ingredientId,
+      ingredientName: ingredient.name,
+      unitId: ingredient.unitId,
       theory: 0,
       actual: 0,
       unit: ingredient.unit,
@@ -135,14 +139,17 @@ const addDishToMaterialSummary = (
       dishNameSet: new Set<string>(),
     }
     const theoryQty = ingredient.grossQtyPerServing * portions
-    summary[ingredient.name].theory += theoryQty
-    summary[ingredient.name].actual += theoryQty * quantityFactor
-    summary[ingredient.name].dishNameSet.add(formatMenuDishName(dishName || dish.name))
+    summary[identityKey].theory += theoryQty
+    summary[identityKey].actual += theoryQty * quantityFactor
+    summary[identityKey].dishNameSet.add(formatMenuDishName(dishName || dish.name))
   })
 }
 
 const finalizeMaterialSummary = (summary: MaterialSummaryAccumulator): MaterialSummary =>
-  Object.fromEntries(Object.entries(summary).map(([name, data]) => [name, {
+  Object.fromEntries(Object.entries(summary).map(([identityKey, data]) => [identityKey, {
+    ingredientId: data.ingredientId,
+    ingredientName: data.ingredientName,
+    unitId: data.unitId,
     theory: data.theory,
     actual: data.actual,
     unit: data.unit,
@@ -172,14 +179,16 @@ export const getQuickServingKey = (serviceDate: string, shiftName: QuickServingS
 
 export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[] => {
   const groups = new Map<string, {
-    id: string; material: string; unit: string; required: number; available: number; reserved: number
+    id: string; ingredientId?: string; material: string; unit: string; required: number; available: number; reserved: number
     sources: Set<string>; materialRequestIds: Set<string>; sourceDocumentCodes: Set<string>; hasCancelled: boolean
   }>()
 
   lines.forEach((line) => {
-    const key = `${line.material}__${line.unit}`
+    const key = line.ingredientId
+      ? `${line.ingredientId}__${line.unit}`
+      : `${normalizeDishMatchKey(line.material)}__${line.unit}`
     const current = groups.get(key) ?? {
-      id: `material-${key}`, material: line.material, unit: line.unit, required: 0, available: 0, reserved: 0,
+      id: `material-${key}`, ingredientId: line.ingredientId, material: line.material, unit: line.unit, required: 0, available: 0, reserved: 0,
       sources: new Set<string>(), materialRequestIds: new Set<string>(), sourceDocumentCodes: new Set<string>(), hasCancelled: false,
     }
     current.required += line.required
@@ -196,6 +205,7 @@ export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[
     const shortage = Math.max(group.required - (group.available - group.reserved), 0)
     return {
       id: group.id,
+      ingredientId: group.ingredientId,
       materialRequestId: group.materialRequestIds.size === 1 ? Array.from(group.materialRequestIds)[0] : undefined,
       sourceDocumentCode: group.sourceDocumentCodes.size === 1 ? Array.from(group.sourceDocumentCodes)[0] : undefined,
       material: group.material,
