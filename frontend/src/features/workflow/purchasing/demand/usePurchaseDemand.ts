@@ -24,6 +24,7 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
   const [purchaseCandidatePage, setPurchaseCandidatePage] = useState(1);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
+  const [selectedPurchaseRequestId, setSelectedPurchaseRequestId] = useState('');
   const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({
     groupBy: 'day',
     pageNumber: purchasePlanPage,
@@ -49,7 +50,10 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
   const selectedCandidate = candidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const primaryPlan = purchasePlanLines.find((line) => line.tone === 'danger' || line.tone === 'warning') ?? purchasePlanLines[0];
   const primaryRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
-  const submitTargetId = actionableDraftRequests[0]?.purchaseRequestId;
+  const selectedPurchaseRequest = actionableDraftRequests.find(
+    (request) => request.purchaseRequestId === selectedPurchaseRequestId,
+  );
+  const submitTargetId = selectedPurchaseRequest?.purchaseRequestId;
 
   const openCreateDialog = () => {
     setPurchaseCandidatePage(1);
@@ -60,6 +64,11 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
   const changeCandidatePage = (page: number) => {
     setSelectedMaterialRequestId('');
     setPurchaseCandidatePage(page);
+  };
+
+  const changePurchaseRequestPage = (page: number) => {
+    setSelectedPurchaseRequestId('');
+    setPurchaseRequestPage(page);
   };
 
   const createPurchaseRequest = async () => {
@@ -98,9 +107,17 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
 
   return {
     presentation: { purchasePlanLines, purchaseRequestLines, primaryPlan, primaryRequestLine },
-    command: { submitTargetId, isSubmitting, openCreateDialog, submitPurchaseRequest },
+    command: {
+      submitTargetId,
+      selectedPurchaseRequestId,
+      setSelectedPurchaseRequestId,
+      draftRequests: actionableDraftRequests,
+      isSubmitting,
+      openCreateDialog,
+      submitPurchaseRequest,
+    },
     planPage: { response: purchasePlanResponse, page: purchasePlanPage, setPage: setPurchasePlanPage },
-    requestPage: { response: purchaseRequestsResponse, page: purchaseRequestPage, setPage: setPurchaseRequestPage },
+    requestPage: { response: purchaseRequestsResponse, page: purchaseRequestPage, setPage: changePurchaseRequestPage },
     dialog: {
       open: isCreateDialogOpen,
       setOpen: setIsCreateDialogOpen,

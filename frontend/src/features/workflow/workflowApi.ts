@@ -1467,6 +1467,10 @@ export const workflowApi = apiSlice.injectEndpoints({
         items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
       },
     }),
+    getWarehouseSelector: builder.query<WarehouseDto[], void>({
+      query: () => '/warehouses/selector',
+      transformResponse: (response: ApiResponse<WarehouseDto[]>) => getData(response),
+    }),
     updatePurchaseRequestLineSupplier: builder.mutation<
       ApiResponse<void>,
       { purchaseRequestId: string; purchaseRequestLineId: string; data: UpdatePurchaseRequestLineSupplierDto }
@@ -2130,6 +2134,7 @@ export const {
   useGetAuditChangePageQuery,
   useGetSuppliersQuery,
   useGetWarehousesQuery,
+  useGetWarehouseSelectorQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
   useGetDataQualityPageQuery,

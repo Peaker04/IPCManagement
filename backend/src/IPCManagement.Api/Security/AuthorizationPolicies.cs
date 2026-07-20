@@ -12,6 +12,7 @@ public static class AuthorizationPolicies
     public const string PurchaseAccess = "PurchaseAccess";
     public const string PurchaseGenerateAccess = "PurchaseGenerateAccess";
     public const string WarehouseAccess = "WarehouseAccess";
+    public const string WarehouseCatalogAccess = "WarehouseCatalogAccess";
 
     public static readonly string[] AdminRoles =
     [
@@ -60,6 +61,11 @@ public static class AuthorizationPolicies
         "ProcurementStaff", "Procurement Staff",
         "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
     ];
+
+    public static readonly string[] WarehouseCatalogRoles = WarehouseRoles
+        .Concat(PurchaseRoles)
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray();
 
     public const string AuthProfileRead = "auth.profile.read";
     public const string DashboardRead = "dashboard.read";

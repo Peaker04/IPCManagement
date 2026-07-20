@@ -30,7 +30,7 @@ export default function PurchasingPage() {
   const supplierWorkflow = usePurchaseSupplier(activeView === 'supplier');
   const quotationWorkflow = useSupplierQuotations(activeView === 'quotation');
   const orderWorkflow = usePurchaseOrders(activeView === 'orders');
-  const handoffWorkflow = usePurchaseHandoff();
+  const handoffWorkflow = usePurchaseHandoff(activeView === 'handoff');
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: 1, pageSize: 8 });
 
@@ -47,6 +47,19 @@ export default function PurchasingPage() {
           actionsClassName="ipc-purchasing-actions"
           actions={<>
             <button className="ipc-button ipc-button-primary" type="button" onClick={demandWorkflow.command.openCreateDialog}>Tạo đề xuất mua</button>
+            <select
+              className="ipc-select"
+              aria-label="Chọn đơn mua để gửi"
+              value={demandWorkflow.command.selectedPurchaseRequestId}
+              onChange={(event) => demandWorkflow.command.setSelectedPurchaseRequestId(event.target.value)}
+            >
+              <option value="">Chọn đơn mua</option>
+              {demandWorkflow.command.draftRequests.map((request) => (
+                <option key={request.purchaseRequestId} value={request.purchaseRequestId}>
+                  {request.purchaseRequestCode}
+                </option>
+              ))}
+            </select>
             <button
               className="ipc-button ipc-button-primary"
               type="button"

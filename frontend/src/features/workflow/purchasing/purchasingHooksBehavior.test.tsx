@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getCandidates: vi.fn(),
   getPlan: vi.fn(),
   getRequests: vi.fn(),
+  getStockMovements: vi.fn(),
   getQuotations: vi.fn(),
   getSuppliers: vi.fn(),
   getWarehouses: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock('@/features/workflow', () => ({
   useGetPurchaseOrdersPageQuery: mocks.getOrders,
   useGetPurchasePlanPageQuery: mocks.getPlan,
   useGetPurchaseRequestsPageQuery: mocks.getRequests,
+  useGetStockMovementPageQuery: mocks.getStockMovements,
   useGetSupplierQuotationsByIngredientPageQuery: mocks.getQuotations,
   useGetSuppliersQuery: mocks.getSuppliers,
   useRecordPurchaseOrderReceiptMutation: () => [vi.fn(), { isLoading: false }],
@@ -41,10 +43,11 @@ vi.mock('@/features/workflow', () => ({
 }))
 
 vi.mock('../workflowApi', () => ({
-  useGetWarehousesQuery: mocks.getWarehouses,
+  useGetWarehouseSelectorQuery: mocks.getWarehouses,
 }))
 
 import { usePurchaseDemand } from './demand/usePurchaseDemand'
+import { usePurchaseHandoff } from './handoff/usePurchaseHandoff'
 import { usePurchaseOrders } from './orders/usePurchaseOrders'
 import { useSupplierQuotations } from './quotation/useSupplierQuotations'
 import { usePurchaseSupplier } from './supplier/usePurchaseSupplier'
@@ -79,6 +82,7 @@ describe('purchasing hook behavior', () => {
     mocks.getCandidates.mockReturnValue({ data: undefined, isFetching: false })
     mocks.getPlan.mockReturnValue({ data: undefined })
     mocks.getRequests.mockReturnValue({ data: undefined })
+    mocks.getStockMovements.mockReturnValue({ data: undefined })
     mocks.getQuotations.mockReturnValue({ data: undefined, isFetching: false })
     mocks.getSuppliers.mockReturnValue({ data: [] })
     mocks.getWarehouses.mockReturnValue({ data: undefined })
@@ -105,22 +109,41 @@ describe('purchasing hook behavior', () => {
       { skip: true },
     )
     expect(mocks.getWarehouses).toHaveBeenCalledWith(
-      { pageNumber: 1, pageSize: 100 },
+      undefined,
+      { skip: true },
+    )
+
+    renderHook(() => usePurchaseHandoff(false))
+    expect(mocks.getStockMovements).toHaveBeenCalledWith(
+      {
+        movementType: 'receipt',
+        cursorDate: undefined,
+        cursorId: undefined,
+        limit: 8,
+        sortDirection: 'desc',
+      },
       { skip: true },
     )
   })
 
-  it('submits the actionable DRAFT request instead of the first mixed-status row', async () => {
+  it('requires explicit selection and submits the selected request when two drafts exist', async () => {
     mocks.getRequests.mockReturnValue({
-      data: { items: [makeRequest('APPROVED', 'approved'), makeRequest('DRAFT', 'draft')] },
+      data: { items: [makeRequest('DRAFT', 'draft-a'), makeRequest('DRAFT', 'draft-b')] },
     })
     mocks.submitRequest.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) })
 
     const { result } = renderHook(() => usePurchaseDemand(vi.fn()))
 
     expect(mocks.getRequests).toHaveBeenCalledWith({ status: 'DRAFT', pageNumber: 1, pageSize: 8 })
-    expect(result.current.command.submitTargetId).toBe('draft')
+    expect(result.current.command.submitTargetId).toBeUndefined()
+
+    act(() => result.current.command.setSelectedPurchaseRequestId('draft-b'))
+    expect(result.current.command.submitTargetId).toBe('draft-b')
     await act(() => result.current.command.submitPurchaseRequest())
-    expect(mocks.submitRequest).toHaveBeenCalledWith('draft')
+    expect(mocks.submitRequest).toHaveBeenLastCalledWith('draft-b')
+
+    act(() => result.current.command.setSelectedPurchaseRequestId('draft-a'))
+    await act(() => result.current.command.submitPurchaseRequest())
+    expect(mocks.submitRequest).toHaveBeenLastCalledWith('draft-a')
   })
 })

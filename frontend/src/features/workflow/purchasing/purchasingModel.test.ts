@@ -86,7 +86,7 @@ describe('purchasing model', () => {
   it('keeps only actionable DRAFT requests when backend pages contain mixed statuses', () => {
     const emptyDraft = { ...makePurchaseRequest('DRAFT', 'empty'), lines: [] };
     const requests = [
-      makePurchaseRequest('SUBMITTED', 'submitted'),
+      makePurchaseRequest('SENTTOSUPPLIER', 'submitted'),
       makePurchaseRequest('DRAFT', 'draft'),
       makePurchaseRequest('APPROVED', 'approved'),
       emptyDraft,
@@ -99,15 +99,15 @@ describe('purchasing model', () => {
   it('uses the dedicated warehouse catalog when it is empty or contains more than 20 warehouses', () => {
     expect(mapWarehouseOptions([])).toEqual([]);
 
-    const warehouses: WarehouseDto[] = Array.from({ length: 25 }, (_, index) => ({
+    const warehouses: WarehouseDto[] = Array.from({ length: 205 }, (_, index) => ({
       warehouseId: `warehouse-${index + 1}`,
       warehouseCode: `WH-${index + 1}`,
       warehouseName: `Kho ${index + 1}`,
     }));
     const options = mapWarehouseOptions(warehouses);
 
-    expect(options).toHaveLength(25);
-    expect(options[24]).toEqual({ warehouseId: 'warehouse-25', warehouse: 'Kho 25' });
+    expect(options).toHaveLength(205);
+    expect(options[204]).toEqual({ warehouseId: 'warehouse-205', warehouse: 'Kho 205' });
   });
 
   it('requires an explicit warehouse selection instead of silently using the first catalog item', () => {

@@ -8,7 +8,7 @@ import {
   useRecordPurchaseOrderReceiptMutation,
   type PurchaseOrderDto,
 } from '@/features/workflow';
-import { useGetWarehousesQuery } from '../../workflowApi';
+import { useGetWarehouseSelectorQuery } from '../../workflowApi';
 import {
   getPurchasingErrorMessage,
   getSelectedReceiptWarehouseId,
@@ -32,8 +32,8 @@ export function usePurchaseOrders(enabled = true) {
     { status: 'APPROVED', pageNumber: approvedRequestPage, pageSize: 8 },
     { skip: !enabled },
   );
-  const { data: warehouseResponse } = useGetWarehousesQuery(
-    { pageNumber: 1, pageSize: 100 },
+  const { data: warehouses = [] } = useGetWarehouseSelectorQuery(
+    undefined,
     { skip: !enabled },
   );
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
@@ -41,7 +41,7 @@ export function usePurchaseOrders(enabled = true) {
   const [cancelOrder] = useCancelPurchaseOrderMutation();
   const orders = response?.page.items ?? [];
   const purchaseRequestLines = mapPurchaseRequestLines(requestResponse?.items ?? []);
-  const warehouseOptions = mapWarehouseOptions(warehouseResponse?.items ?? []);
+  const warehouseOptions = mapWarehouseOptions(warehouses);
 
   const supplierCountByRequest = new Map<string, Set<string>>();
   purchaseRequestLines.forEach((line) => {

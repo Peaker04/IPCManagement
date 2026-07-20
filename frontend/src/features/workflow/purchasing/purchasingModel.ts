@@ -62,7 +62,7 @@ export function mapPurchaseRequestLines(requests: PurchaseRequestResult[]): Dema
       source: line.supplierName || 'Chưa chọn nhà cung cấp',
       status: request.status,
       nextAction: request.status === 'APPROVED' ? 'Tạo đơn mua hàng' : request.status === 'DRAFT' ? 'Chọn nhà cung cấp' : 'Theo dõi đơn mua',
-      tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
+      tone: request.status === 'APPROVED' ? 'success' : request.status === 'SENTTOSUPPLIER' ? 'warning' : 'neutral',
     })),
   );
 }
