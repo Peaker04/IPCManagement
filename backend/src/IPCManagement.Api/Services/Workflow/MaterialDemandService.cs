@@ -657,9 +657,19 @@ public class MaterialDemandService : IMaterialDemandService
         var existing = await _context.Materialrequests
             .Include(request => request.Materialrequestlines)
                 .ThenInclude(line => line.Purchaserequestlines)
+                    .ThenInclude(line => line.Purchaseorderline)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
         if (existing is not null)
         {
+            var hasPurchaseOrder = existing.Materialrequestlines
+                .SelectMany(line => line.Purchaserequestlines)
+                .Any(line => line.Purchaseorderline is not null);
+            if (hasPurchaseOrder)
+            {
+                throw new InvalidOperationException(
+                    "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
+            }
+
             existing.Status = existing.Status == "MANAGERAPPROVED" ? existing.Status : "DRAFT";
             return (existing, true);
         }
