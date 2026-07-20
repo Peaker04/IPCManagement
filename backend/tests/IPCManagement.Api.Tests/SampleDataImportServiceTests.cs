@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Reflection;
+using System.Security;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
@@ -140,9 +142,10 @@ public class SampleDataImportServiceTests
         await using var context = new SqliteSampleImportContext(options);
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
+        using var fixture = CreateSampleImportFixture();
         var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
         {
-            SourceDirectory = FindDocsDirectory(),
+            SourceDirectory = fixture.SourceDirectory,
             DryRun = false,
             MaxRows = 25
         };
@@ -587,21 +590,155 @@ public class SampleDataImportServiceTests
         return (T)method!.Invoke(null, args)!;
     }
 
-    private static string FindDocsDirectory()
+    private static SampleImportFixture CreateSampleImportFixture()
     {
-        var current = new DirectoryInfo(AppContext.BaseDirectory);
-        while (current is not null)
-        {
-            var docs = Path.Combine(current.FullName, ".docs");
-            if (Directory.Exists(docs))
-            {
-                return docs;
-            }
+        var sourceDirectory = Path.Combine(Path.GetTempPath(), $"ipc-sample-import-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(sourceDirectory);
 
-            current = current.Parent;
+        try
+        {
+            CreateWorkbook(
+                Path.Combine(sourceDirectory, "THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx"),
+                [
+                    ("MENU",
+                    [
+                        ["", "", "THỰC ĐƠN DRAXLMAIER"],
+                        [],
+                        [],
+                        [],
+                        ["", "", "", "15/06/2026"],
+                        [],
+                        [],
+                        ["", "", "MENU MẶN - CA SÁNG"],
+                        ["", "", "Món mặn chính", "Cá kho tộ"]
+                    ])
+                ]);
+
+            CreateWorkbook(
+                Path.Combine(sourceDirectory, "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx"),
+                [
+                    ("SUMMARY", []),
+                    ("NCC TEST",
+                    [
+                        ["Ngày Giao hàng", "Tên hàng", "Đơn vị tính", "Số lượng", "Đơn giá"],
+                        ["19/05/2026", "Khoai tây", "Kg", "2", "15000"]
+                    ])
+                ]);
+
+            return new SampleImportFixture(sourceDirectory);
+        }
+        catch
+        {
+            Directory.Delete(sourceDirectory, recursive: true);
+            throw;
+        }
+    }
+
+    private static void CreateWorkbook(
+        string path,
+        IReadOnlyList<(string SheetName, IReadOnlyList<IReadOnlyList<string>> Rows)> sheets)
+    {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+        var sheetParts = sheets
+            .Select((sheet, index) => new { sheet.SheetName, sheet.Rows, PartIndex = index + 1 })
+            .ToList();
+
+        AddEntry(archive, "[Content_Types].xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+              <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+              <Default Extension="xml" ContentType="application/xml"/>
+              <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+              {string.Concat(sheetParts.Select(part => $"""<Override PartName="/xl/worksheets/sheet{part.PartIndex}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>"""))}
+            </Types>
+            """);
+        AddEntry(archive, "_rels/.rels", """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+            </Relationships>
+            """);
+        AddEntry(archive, "xl/workbook.xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+              <sheets>
+                {string.Concat(sheetParts.Select(part => $"""<sheet name="{SecurityElement.Escape(part.SheetName)}" sheetId="{part.PartIndex}" r:id="rId{part.PartIndex}"/>"""))}
+              </sheets>
+            </workbook>
+            """);
+        AddEntry(archive, "xl/_rels/workbook.xml.rels", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              {string.Concat(sheetParts.Select(part => $"""<Relationship Id="rId{part.PartIndex}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{part.PartIndex}.xml"/>"""))}
+            </Relationships>
+            """);
+
+        foreach (var part in sheetParts)
+        {
+            AddEntry(archive, $"xl/worksheets/sheet{part.PartIndex}.xml", BuildSheet(part.Rows));
+        }
+    }
+
+    private static string BuildSheet(IReadOnlyList<IReadOnlyList<string>> rows)
+    {
+        var xmlRows = rows.Select((row, rowIndex) =>
+        {
+            var cells = row.Select((value, columnIndex) =>
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return string.Empty;
+                }
+
+                var reference = $"{ColumnLetter(columnIndex + 1)}{rowIndex + 1}";
+                return $"""<c r="{reference}" t="inlineStr"><is><t>{SecurityElement.Escape(value)}</t></is></c>""";
+            });
+
+            return $"""<row r="{rowIndex + 1}">{string.Concat(cells)}</row>""";
+        });
+
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+              <sheetData>
+                {string.Concat(xmlRows)}
+              </sheetData>
+            </worksheet>
+            """;
+    }
+
+    private static string ColumnLetter(int column)
+    {
+        var result = string.Empty;
+        while (column > 0)
+        {
+            column--;
+            result = (char)('A' + column % 26) + result;
+            column /= 26;
         }
 
-        throw new DirectoryNotFoundException("Không tìm thấy thư mục .docs cho persisted sample-import test.");
+        return result;
+    }
+
+    private static void AddEntry(ZipArchive archive, string path, string content)
+    {
+        var entry = archive.CreateEntry(path);
+        entry.LastWriteTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        using var writer = new StreamWriter(entry.Open());
+        writer.Write(content);
+    }
+
+    private sealed class SampleImportFixture(string sourceDirectory) : IDisposable
+    {
+        public string SourceDirectory { get; } = sourceDirectory;
+
+        public void Dispose()
+        {
+            if (Directory.Exists(SourceDirectory))
+            {
+                Directory.Delete(SourceDirectory, recursive: true);
+            }
+        }
     }
 
     private sealed class SqliteSampleImportContext(DbContextOptions<IpcManagementContext> options)
