@@ -64,6 +64,35 @@ public class SampleDataImportServiceTests
     }
 
     [Fact]
+    public void EnsureDish_Should_ReuseStableCode_WhenExistingDishWasRenamed()
+    {
+        const string sourceName = "Cá kho tộ";
+        var stableCode = InvokePrivateStatic<string>("StableCode", "DISH", sourceName);
+        var existing = new Dish
+        {
+            DishId = GuidHelper.NewId(),
+            DishCode = stableCode,
+            DishName = "Tên đã sửa thủ công",
+            IsActive = false
+        };
+        var dishes = new List<Dish> { existing };
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureDish",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = (Dish)method!.Invoke(service, [sourceName, "Món mặn", "MAIN", dishes, true, counts])!;
+
+        result.Should().BeSameAs(existing);
+        result.DishName.Should().Be(sourceName);
+        result.IsActive.Should().BeTrue();
+        dishes.Should().ContainSingle();
+        counts.DishesCreated.Should().Be(0);
+        counts.DishesUpdated.Should().Be(1);
+    }
+
+    [Fact]
     public void CalculateWeightedGrossQty_Should_MergeRepeatedWorkbookBatches()
     {
         var bananaRows = new List<IReadOnlyDictionary<string, string>>
