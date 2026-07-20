@@ -64,7 +64,7 @@
 
 ### Frontend feature decomposition
 
-- [ ] **REFA-01**: Các route page vận hành giữ nguyên URL, permission, API payload và hành vi người dùng trong khi được tách theo vertical workflow; page shell không quá 400 dòng, component workflow không quá 500 dòng, custom hook không quá 300 dòng, trừ ngoại lệ có lý do và review chấp thuận.
+- [x] **REFA-01**: Các route page vận hành giữ nguyên URL, permission, API payload và hành vi người dùng trong khi được tách theo vertical workflow; page shell không quá 400 dòng, component workflow không quá 500 dòng, custom hook không quá 300 dòng, trừ ngoại lệ có lý do và review chấp thuận.
 
 ## Future Requirements
 

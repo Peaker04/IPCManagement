@@ -14,7 +14,7 @@
 | 5 | Transactional apply & downstream reconciliation | Apply atomic/idempotent, giữ lịch sử và tái tạo đúng draft bị ảnh hưởng | SAFE-03, DATA-02..04, DOWN-01..05, CRUD-03 | Phase 4 + Gate B | Planned |
 | 6 | Admin shadcn cutover & manual CRUD | Đưa canonical preview/apply vào `/admin-data`, giữ CRUD thủ công và layout bảng ổn định | CRUD-01, UI-01..05 | Phase 5 | Planned |
 | 7 | Legacy retirement & rollout verification | Cleanup guarded fresh/upgrade path và xóa consumer format cũ sau compatibility gate | DATA-05, RETIRE-01..02 | Phase 6 + Gate D | Planned |
-| 8 | Operational page feature decomposition | Tách Weekly Menu, Purchasing và Chef theo vertical workflow, giữ nguyên route/API/UI contract | REFA-01 | MVP flow baseline; isolated frontend workstream | Planned |
+| 8 | Operational page feature decomposition | Tách Weekly Menu, Purchasing và Chef theo vertical workflow, giữ nguyên route/API/UI contract | REFA-01 | MVP flow baseline; isolated frontend workstream | Complete |
 
 ## Phase Details
 
