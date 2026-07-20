@@ -1044,10 +1044,9 @@ async function stubMobileOperationsSuccess(page: Page) {
       return;
     }
 
-    if (endpoint === 'kitchen-issues') {
+    if (endpoint === 'kitchen-issues' || endpoint === 'kitchen-issues/page') {
       const requestedServiceDate = new URL(route.request().url()).searchParams.get('dateFrom') ?? '2026-07-09';
-      await fulfill(route, [
-        {
+      const issue = {
           issueId: 'issue-mobile',
           issueCode: 'PXB-20260709-MOBILE',
           issueDate: requestedServiceDate,
@@ -1062,8 +1061,10 @@ async function stubMobileOperationsSuccess(page: Page) {
           issuedQty: 18,
           isReceivedByKitchen: false,
           receiptStatus: 'PENDING',
-        },
-      ]);
+      };
+      await fulfill(route, endpoint.endsWith('/page')
+        ? { items: [issue], totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false }
+        : [issue]);
       return;
     }
 
@@ -1298,6 +1299,7 @@ test.describe('route smoke', () => {
     await login(page);
     await page.goto(ROUTES.PURCHASING);
 
+    await page.getByLabel('Chọn đơn mua để gửi').selectOption('pr-1');
     await expect(page.getByRole('button', { name: 'Gửi đơn mua' })).toBeEnabled();
     await page.getByRole('button', { name: 'Gửi đơn mua' }).click();
     await expect(page.getByRole('alert')).toContainText('Có dòng mua vượt ngưỡng giá');
