@@ -44,4 +44,3 @@ Live UI UAT with the real API also passed: Weekly demand tab, explicit purchase-
 - `08-UI-REVIEW.md`: **18/24**, final pass with non-blocking quality warnings.
 - Dead UI scan: no removable operational legacy file/component found; existing callers verified for extracted sections.
 - Requirement `REFA-01`: passed.
-

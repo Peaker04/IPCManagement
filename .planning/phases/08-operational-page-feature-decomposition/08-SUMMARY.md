@@ -47,4 +47,3 @@ Feature file lớn nhất trong ba workflow là 236 dòng; không có component 
 - `2b0d7ec` explicit purchasing targets and warehouse authorization.
 - `eb88f74` paged Chef receipts.
 - `96c24d5` authoritative zero servings and active-demand status.
-

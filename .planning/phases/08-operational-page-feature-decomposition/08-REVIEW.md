@@ -21,10 +21,10 @@ status: clean
 
 # Phase 08: Final Closure Code Review Report
 
-**Reviewed:** 2026-07-20T05:50:28Z  
-**Depth:** deep, focused closure review  
-**Snapshot:** `96c24d5`  
-**Closure commit:** `96c24d5`  
+**Reviewed:** 2026-07-20T05:50:28Z
+**Depth:** deep, focused closure review
+**Snapshot:** `96c24d5`
+**Closure commit:** `96c24d5`
 **Status:** clean — **APPROVE**
 
 ## Summary
@@ -64,6 +64,6 @@ No open narrative findings remain in the focused closure scope.
 
 ---
 
-_Reviewed: 2026-07-20T05:50:28Z_  
-_Reviewer: the agent (gsd-code-reviewer)_  
+_Reviewed: 2026-07-20T05:50:28Z_
+_Reviewer: the agent (gsd-code-reviewer)_
 _Depth: deep, focused closure review_

@@ -1,10 +1,10 @@
 # Phase 8 — Final UI Review
 
-**Audited:** 2026-07-20  
-**HEAD:** `96c24d5` (`fix: preserve zero servings and active demand status`)  
-**Scope:** Lightweight closure check of `782dc13..96c24d5`, reusing the established Phase 8 18/24 audit evidence  
-**Baseline:** `08-PLAN.md`, `08-BASELINE.md`, approved IPC UI design contract, and UI Contract v2  
-**Screenshots:** refreshed 1440×900, 768×1024, and 375×812 captures from `http://localhost:5173` under `.planning/ui-reviews/08-closure-20260720-96c24d5/`; captures remain unauthenticated at `/login`, while authenticated responsive behavior is covered by the current 16-test Playwright route smoke suite  
+**Audited:** 2026-07-20
+**HEAD:** `96c24d5` (`fix: preserve zero servings and active demand status`)
+**Scope:** Lightweight closure check of `782dc13..96c24d5`, reusing the established Phase 8 18/24 audit evidence
+**Baseline:** `08-PLAN.md`, `08-BASELINE.md`, approved IPC UI design contract, and UI Contract v2
+**Screenshots:** refreshed 1440×900, 768×1024, and 375×812 captures from `http://localhost:5173` under `.planning/ui-reviews/08-closure-20260720-96c24d5/`; captures remain unauthenticated at `/login`, while authenticated responsive behavior is covered by the current 16-test Playwright route smoke suite
 **Verdict:** **FINAL PASS WITH QUALITY WARNINGS — No UI contract regression at `96c24d5`. The latest code preserves authoritative zero servings and removes the false stale-demand status without changing visible copy, layout, styling, routes, ARIA relationships, or interaction structure. The established score remains 18/24; residual copy and semantic-token consistency remain non-blocking quality debt.**
 
 ---
