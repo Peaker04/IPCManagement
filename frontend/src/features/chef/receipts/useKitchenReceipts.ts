@@ -9,20 +9,25 @@ import { filterKitchenIssues } from '../production/chefProductionModel'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
 export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void) {
-  const query = useGetKitchenIssuesQuery({ limit: 100 })
+  const query = useGetKitchenIssuesQuery({
+    dateFrom: scope.serviceDate,
+    dateTo: scope.serviceDate,
+    shiftName: scope.apiShiftName,
+    limit: 100,
+  })
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
   const rows = useMemo(
-    () => filterKitchenIssues(query.data ?? [], scope.activeShift),
-    [query.data, scope.activeShift],
+    () => filterKitchenIssues(query.data ?? [], scope.serviceDate, scope.activeShift),
+    [query.data, scope.serviceDate, scope.activeShift],
   )
 
   const signOff = async (material: ChefMaterial | undefined, signed: boolean) => {
     if (!material) return
     const issueRow = rows.find((row) => row.id === material.id)
     const signKey = issueRow
-      ? `${scope.activeDay}-${scope.activeShift}-${issueRow.issueId}-${issueRow.id}`
-      : `${scope.activeDay}-${scope.activeShift}-${material.name}`
+      ? `${scope.serviceDate}-${scope.activeShift}-${issueRow.issueId}-${issueRow.id}`
+      : `${scope.serviceDate}-${scope.activeShift}-${material.name}`
 
     if (!signed) {
       if (issueRow?.isReceivedByKitchen) {

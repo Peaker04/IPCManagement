@@ -9,7 +9,7 @@ import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
-type RecordedReturn = ExcessMaterial & { day: string; shift: ChefShiftScope['activeShift'] }
+type RecordedReturn = ExcessMaterial & { serviceDate: string; shift: ChefShiftScope['activeShift'] }
 
 export function useChefExceptions(
   scope: ChefShiftScope,
@@ -86,7 +86,7 @@ export function useChefExceptions(
       : `Bếp trả nguyên liệu thừa ${data.ingredientName} sau ca ${scope.activeShift}.`)
     try {
       const response = await createReturn({
-        returnDate: data.returnedAt?.slice(0, 10) ?? new Date().toISOString().slice(0, 10),
+        returnDate: scope.serviceDate,
         shiftName: issueRow.shiftName,
         returnType,
         warehouseId: material.warehouseId,
@@ -94,7 +94,7 @@ export function useChefExceptions(
         reason,
         lines: [{ ingredientId: material.ingredientId, quantity: data.returnedQty, unitId: material.unitId }],
       }).unwrap()
-      setReturns((current) => [...current, { ...data, day: scope.activeDay, shift: scope.activeShift }])
+      setReturns((current) => [...current, { ...data, serviceDate: scope.serviceDate, shift: scope.activeShift }])
       onFeedback({
         title: returnType === 'WASTE' ? 'Đã ghi nhận hao hụt thực tế' : 'Đã tạo phiếu trả kho',
         message: response.data
@@ -112,7 +112,7 @@ export function useChefExceptions(
   }
 
   return {
-    activeReturns: returns.filter((item) => item.day === scope.activeDay && item.shift === scope.activeShift),
+    activeReturns: returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
     requestSupplemental,
     recordReturn,
     isSubmittingSupplemental: supplementalState.isLoading,

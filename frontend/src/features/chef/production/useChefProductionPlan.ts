@@ -7,7 +7,7 @@ import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { buildChefProductionPlan, mapDailyPlanLines } from './chefProductionModel'
 
 export type ChefFeedback = { title: string; message: string; variant: 'info' | 'warning' | 'danger' }
-export type ChefShiftScope = { activeDay: string; activeShift: ShiftType; today: string; apiShiftName: string; isLocked: boolean }
+export type ChefShiftScope = { activeDay: string; activeShift: ShiftType; serviceDate: string; apiShiftName: string; isLocked: boolean }
 
 export function useChefProductionPlan(
   scope: ChefShiftScope,
@@ -19,7 +19,7 @@ export function useChefProductionPlan(
   const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
   const catalog = useGetDishesCatalogQuery()
-  const daily = useGetDailyProductionPlanQuery({ serviceDate: scope.today, shiftName: scope.apiShiftName })
+  const daily = useGetDailyProductionPlanQuery({ serviceDate: scope.serviceDate, shiftName: scope.apiShiftName })
   const [sendDailyPlan, sendState] = useSendDailyProductionPlanToKitchenMutation()
 
   const productionPlan = useMemo(() => buildChefProductionPlan({
@@ -32,6 +32,7 @@ export function useChefProductionPlan(
     isLocked: scope.isLocked,
     menuPrice,
     lossRate,
+    serviceDate: scope.serviceDate,
   }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, menuPrice, lossRate])
   const dailyPlanLines = useMemo(() => mapDailyPlanLines(daily.data), [daily.data])
   const dailyPlanWarnings = daily.data?.warnings ?? []
@@ -40,9 +41,9 @@ export function useChefProductionPlan(
   const receiveDailyPlan = async () => {
     try {
       const result = await sendDailyPlan({
-        serviceDate: scope.today,
+        serviceDate: scope.serviceDate,
         shiftName: scope.apiShiftName,
-        reason: `Bếp trưởng nhận kế hoạch sản xuất ${scope.today} ${scope.apiShiftName}.`,
+        reason: `Bếp trưởng nhận kế hoạch sản xuất ${scope.serviceDate} ${scope.apiShiftName}.`,
       }).unwrap()
       onFeedback({
         title: 'Đã nhận kế hoạch sản xuất',

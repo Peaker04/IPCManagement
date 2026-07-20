@@ -3,11 +3,11 @@ import type { CatalogDish } from '@/features/projects/dishCatalogApi'
 import type { KitchenIssueRow } from '@/features/workflow'
 import { buildChefProductionPlan, filterKitchenIssues, mapDailyPlanLines } from './chefProductionModel'
 
-const issue = (id: string, shiftName: string): KitchenIssueRow => ({
+const issue = (id: string, shiftName: string, issueDate = '2026-07-19'): KitchenIssueRow => ({
   id,
   issueId: `issue-${id}`,
   issueCode: `PX-${id}`,
-  issueDate: '2026-07-19',
+  issueDate,
   shiftName,
   warehouseId: 'warehouse-1',
   warehouse: 'Kho chính',
@@ -36,10 +36,18 @@ describe('chef production model', () => {
     })[0]).toMatchObject({ planCode: 'KHSX-001', customerName: 'Nhà máy A', planLineId: 'line-1' })
   })
 
-  it('uses selected-shift issues and falls back to all rows when no shift matches', () => {
-    const rows = [issue('morning', 'MORNING'), issue('afternoon', 'AFTERNOON')]
-    expect(filterKitchenIssues(rows, 'Ca Sáng').map((row) => row.id)).toEqual(['morning'])
-    expect(filterKitchenIssues([issue('night', 'NIGHT')], 'Ca Sáng').map((row) => row.id)).toEqual(['night'])
+  it('keeps only issues for the selected service date and shift', () => {
+    const rows = [
+      issue('morning', 'MORNING'),
+      issue('afternoon', 'AFTERNOON'),
+      issue('previous-day', 'MORNING', '2026-07-18'),
+    ]
+    expect(filterKitchenIssues(rows, '2026-07-19', 'Ca Sáng').map((row) => row.id)).toEqual(['morning'])
+  })
+
+  it('returns no issues when the selected date and shift have no match', () => {
+    expect(filterKitchenIssues([issue('night', 'NIGHT')], '2026-07-19', 'Ca Sáng')).toEqual([])
+    expect(filterKitchenIssues([issue('other-day', 'MORNING', '2026-07-18')], '2026-07-19', 'Ca Sáng')).toEqual([])
   })
 
   it('prefers live issue materials while preserving dish and meal mapping', () => {
@@ -58,9 +66,11 @@ describe('chef production model', () => {
       kitchenIssues: [issue('morning', 'MORNING')],
       signedMaterials: {},
       activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, menuPrice: 35000, lossRate: 0,
+      serviceDate: '2026-07-19',
     })
     expect(plan.totalMeals).toBe(8)
     expect(plan.activeDishes[0]).toMatchObject({ id: 'dish-1', name: 'Cơm' })
     expect(plan.receivedMaterials[0]).toMatchObject({ id: 'morning', quantity: 9, status: 'Đã nhận' })
+    expect(plan.date).toBe('2026-07-19')
   })
 })

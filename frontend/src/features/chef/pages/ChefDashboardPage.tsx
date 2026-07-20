@@ -5,8 +5,8 @@ import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
-import { getTodayDayCode } from '@/lib/dateUtils'
 import type { ShiftType } from '../../coordination/types'
+import { getBangkokDayCode, resolveChefServiceDate } from '../chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
 import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
@@ -17,19 +17,19 @@ import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
-  const [activeDay, setActiveDay] = useState<string>(getTodayDayCode())
+  const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const lockKey = `${activeDay}-${activeShift}`
-  const today = new Date().toISOString().slice(0, 10)
+  const serviceDate = resolveChefServiceDate(activeDay)
   const scope = useMemo<ChefShiftScope>(() => ({
     activeDay,
     activeShift,
-    today,
+    serviceDate,
     apiShiftName: activeShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON',
     isLocked: Boolean(lockedShifts[lockKey]),
-  }), [activeDay, activeShift, lockedShifts, lockKey, today])
+  }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
   const receipts = useKitchenReceipts(scope, setFeedback)
   const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback)

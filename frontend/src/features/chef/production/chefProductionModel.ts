@@ -1,7 +1,6 @@
 import type { CatalogDish } from '@/features/projects/dishCatalogApi'
 import type { DailyProductionPlan, KitchenIssueRow, ProductionPlanLine } from '@/features/workflow'
 import type { ProductionPlan } from '@/lib/types'
-import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
 import type { ChefMaterial } from '../chefDashboardTypes'
 
@@ -32,13 +31,13 @@ export function mapDailyPlanLines(plan?: DailyProductionPlan): DailyPlanLine[] {
   )
 }
 
-export function filterKitchenIssues(rows: KitchenIssueRow[], shift: ShiftType): KitchenIssueRow[] {
+export function filterKitchenIssues(rows: KitchenIssueRow[], serviceDate: string, shift: ShiftType): KitchenIssueRow[] {
   const normalizedShift = shift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON'
-  const matchingRows = rows.filter((row) => {
+  return rows.filter((row) => {
     const rowShift = row.shiftName?.toUpperCase()
-    return !rowShift || rowShift === 'FULLDAY' || rowShift === normalizedShift || row.shiftName === shift
+    return row.issueDate.slice(0, 10) === serviceDate
+      && (rowShift === normalizedShift || row.shiftName === shift)
   })
-  return matchingRows.length > 0 ? matchingRows : rows
 }
 
 type BuildChefProductionPlanOptions = {
@@ -51,6 +50,7 @@ type BuildChefProductionPlanOptions = {
   isLocked: boolean
   menuPrice: number
   lossRate: number
+  serviceDate: string
 }
 
 export function buildChefProductionPlan({
@@ -63,6 +63,7 @@ export function buildChefProductionPlan({
   isLocked,
   menuPrice,
   lossRate,
+  serviceDate,
 }: BuildChefProductionPlanOptions): ProductionPlan {
   const dishesById = new Map(catalogDishes.map((dish) => [dish.id, dish]))
   const selectedOrders = orders.filter((order) => order.dayOfWeek === activeDay && order.shift === activeShift)
@@ -103,7 +104,7 @@ export function buildChefProductionPlan({
     unit: item.unit,
     quantity: Number(item.quantity.toFixed(2)),
     status: isLocked ? 'Đã nhận' : 'Chờ giao',
-    signed: Boolean(signedMaterials[`${activeDay}-${activeShift}-${name}`]),
+    signed: Boolean(signedMaterials[`${serviceDate}-${activeShift}-${name}`]),
   }))
   const liveMaterials: ChefMaterial[] = kitchenIssues.map((row) => ({
     id: row.id,
@@ -111,7 +112,7 @@ export function buildChefProductionPlan({
     unit: row.unit,
     quantity: row.issuedQty,
     status: 'Đã nhận',
-    signed: row.isReceivedByKitchen || Boolean(signedMaterials[`${activeDay}-${activeShift}-${row.issueId}-${row.id}`]),
+    signed: row.isReceivedByKitchen || Boolean(signedMaterials[`${serviceDate}-${activeShift}-${row.issueId}-${row.id}`]),
     issueId: row.issueId,
     issueCode: row.issueCode,
     warehouseId: row.warehouseId,
@@ -121,7 +122,7 @@ export function buildChefProductionPlan({
   }))
 
   return {
-    date: format(new Date(), 'yyyy-MM-dd'),
+    date: serviceDate,
     shift: activeShift,
     kitchenAssignment: {
       kitchenName: 'Bếp Cảnh',
