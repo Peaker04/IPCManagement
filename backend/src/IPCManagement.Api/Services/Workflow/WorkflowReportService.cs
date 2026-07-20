@@ -704,9 +704,11 @@ public class WorkflowReportService : IWorkflowReportService
             UnitName = item.Unit.UnitName,
         });
 
-        var totalCount = await grouped.CountAsync();
-        var shortageCount = await grouped.CountAsync(group => group.Sum(item => item.SuggestedPurchaseQty) > 0);
-        var items = await grouped
+        var activeGrouped = grouped.Where(group => group.Any(item => item.Request.Status != "CANCELLED"));
+        var totalCount = await activeGrouped.CountAsync();
+        var shortageCount = await activeGrouped.CountAsync(group =>
+            group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0);
+        var items = await activeGrouped
             .OrderByDescending(group => group.Key.RequestDate)
             .ThenBy(group => group.Key.IngredientName)
             .Skip((query.PageNumber - 1) * query.PageSize)
@@ -718,10 +720,12 @@ public class WorkflowReportService : IWorkflowReportService
                 IngredientName = group.Key.IngredientName,
                 UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
                 UnitName = group.Key.UnitName,
-                TotalRequiredQty = group.Sum(item => item.TotalRequiredQty),
-                CurrentStockQty = (decimal)group.Max(item => (double)item.CurrentStockQty),
-                SuggestedPurchaseQty = group.Sum(item => item.SuggestedPurchaseQty),
-                LineCount = group.Count(),
+                TotalRequiredQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.TotalRequiredQty : 0m),
+                CurrentStockQty = (decimal)group
+                    .Where(item => item.Request.Status != "CANCELLED")
+                    .Max(item => (double)item.CurrentStockQty),
+                SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
                 HasCancelledLine = group.Any(item => item.Request.Status == "CANCELLED"),
             })
             .ToListAsync();

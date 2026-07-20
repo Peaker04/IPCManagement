@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { DemandLine } from '@/features/workflow'
 import type { QuickServingRow } from '../schedule/types'
-import { aggregateWeekStaleness, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
+import { aggregateWeekStaleness, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
 
 describe('material demand model', () => {
   it('uses server totals when summarizing a paged inventory result', () => {
@@ -14,6 +14,7 @@ describe('material demand model', () => {
 
     expect(getDemandInventoryStatus(lines, 42, 7)).toEqual({
       warningCount: 1,
+      staleCount: 1,
       shortageCount: 7,
       enoughCount: 35,
       totalCount: 42,
@@ -35,6 +36,24 @@ describe('material demand model', () => {
     expect(aggregateWeekStaleness([
       { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, reasons: [] } },
     ], 2)).toBeUndefined()
+  })
+
+  it('keeps partial week staleness loading and exposes a failed day instead of treating the week as clean', () => {
+    const dates = ['2026-07-20', '2026-07-21']
+    const cleanResult = { data: { data: { hasExistingPlan: true, isStale: false, reasons: [] } } }
+
+    expect(getWeekStalenessState(dates, [cleanResult, { isFetching: true }])).toEqual({
+      status: 'loading',
+      expectedDateCount: 2,
+      completedDateCount: 1,
+      staleness: undefined,
+    })
+    expect(getWeekStalenessState(dates, [cleanResult, { isError: true }])).toEqual({
+      status: 'error',
+      expectedDateCount: 2,
+      completedDateCount: 1,
+      staleness: undefined,
+    })
   })
 
   it('selects the requested day before falling back to the active day', () => {

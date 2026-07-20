@@ -24,6 +24,7 @@ export function MaterialDemandSection({
   const { state, status, actions, presentation } = workflow
   const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus } = presentation
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
+  const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
   return (
     <SectionPanel title="KHSX, kiểm tồn kho và nhu cầu xuất" icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
       <div className="flex flex-col gap-3">
@@ -50,12 +51,20 @@ export function MaterialDemandSection({
         {presentation.staleness?.isStale && (
           <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.staleness.reasons.join(' | ')}</InlineAlert>
         )}
+        {status.stalenessState === 'loading' && (
+          <InlineAlert title="Đang kiểm tra độ mới nhu cầu" variant="info">Đã kiểm tra {status.stalenessCompletedDateCount}/{status.stalenessExpectedDateCount} ngày trong tuần.</InlineAlert>
+        )}
+        {status.stalenessState === 'error' && (
+          <InlineAlert title="Không kiểm tra đủ độ mới nhu cầu" variant="warning">
+            Chỉ kiểm tra được {status.stalenessCompletedDateCount}/{status.stalenessExpectedDateCount} ngày. Tạm dừng tạo nhu cầu để tránh ghi đè dữ liệu chưa xác minh.
+          </InlineAlert>
+        )}
 
         <Toolbar className="justify-end">
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
-            <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || presentation.weeklyPlanRows.length === 0}>
+            <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}>
               <Scale size={16} />
-              {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tính nhu cầu...' : presentation.staleness?.isStale ? 'Tính lại nhu cầu (dữ liệu đã thay đổi)' : 'Tạo nhu cầu từ KHSX'}
+              {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tính nhu cầu...' : status.stalenessState === 'loading' ? 'Đang kiểm tra độ mới...' : status.stalenessState === 'error' ? 'Chưa xác minh được độ mới' : presentation.staleness?.isStale ? 'Tính lại nhu cầu (dữ liệu đã thay đổi)' : 'Tạo nhu cầu từ KHSX'}
             </button>
           </ActionGuard>
           <Link className="ipc-button ipc-button-warning" to={`${ROUTES.REPORTS}?view=purchase`}><ShoppingCart size={16} />Xem kế hoạch thu mua</Link>
@@ -122,7 +131,7 @@ export function MaterialDemandSection({
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">
                 <span className="text-sm font-semibold text-slate-800">Nguyên liệu ngày {activeDay ? `${activeDay.label} ${activeDay.date}` : 'đang xem'}</span>
-                <span className="text-xs font-medium text-slate-500">Đủ {inventoryStatus.enoughCount}, thiếu {inventoryStatus.shortageCount}, tổng {inventoryStatus.totalCount} nguyên liệu</span>
+                <span className="text-xs font-medium text-slate-500">Đủ {inventoryStatus.enoughCount}, thiếu {inventoryStatus.shortageCount}, cần tính lại {inventoryStatus.staleCount}, tổng {inventoryStatus.totalCount} nguyên liệu đang hoạt động</span>
               </div>
               <StatusBadge variant={inventoryStatus.tone} className="shrink-0 whitespace-nowrap">{inventoryStatus.label}</StatusBadge>
             </div>

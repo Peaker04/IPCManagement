@@ -24,6 +24,7 @@ export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: numbe
   const total = totalCount ?? lines.length
   return {
     warningCount,
+    staleCount: warningCount,
     shortageCount: shortages,
     enoughCount: Math.max(total - shortages, 0),
     totalCount: total,
@@ -50,6 +51,42 @@ export const aggregateWeekStaleness = (
     reasons: Array.from(new Set(staleResults.flatMap(({ serviceDate, staleness }) =>
       staleness.reasons.map((reason) => `${serviceDate}: ${reason}`),
     ))),
+  }
+}
+
+type WeekStalenessQueryResult = {
+  data?: { data?: MaterialDemandStaleness | null }
+  isLoading?: boolean
+  isFetching?: boolean
+  isError?: boolean
+}
+
+export const getWeekStalenessState = (
+  serviceDates: string[],
+  queryResults: WeekStalenessQueryResult[],
+) => {
+  const expectedDateCount = serviceDates.length
+  if (expectedDateCount === 0) {
+    return { status: 'idle' as const, expectedDateCount, completedDateCount: 0, staleness: undefined }
+  }
+
+  const requiredResults = queryResults.slice(0, expectedDateCount)
+  const completedResults = requiredResults.flatMap((result, index) => result.data?.data
+    ? [{ serviceDate: serviceDates[index], staleness: result.data.data }]
+    : [])
+  const completedDateCount = completedResults.length
+
+  if (requiredResults.some((result) => result.isError)) {
+    return { status: 'error' as const, expectedDateCount, completedDateCount, staleness: undefined }
+  }
+  if (completedDateCount < expectedDateCount || requiredResults.some((result) => result.isLoading || result.isFetching)) {
+    return { status: 'loading' as const, expectedDateCount, completedDateCount, staleness: undefined }
+  }
+  return {
+    status: 'ready' as const,
+    expectedDateCount,
+    completedDateCount,
+    staleness: aggregateWeekStaleness(completedResults, expectedDateCount),
   }
 }
 

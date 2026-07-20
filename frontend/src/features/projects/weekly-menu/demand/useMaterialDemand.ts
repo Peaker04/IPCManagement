@@ -13,7 +13,7 @@ import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '../schedule/types'
-import { aggregateWeekStaleness, buildDemandDayPages, buildKhsxDraftDocument, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows } from './demandModel'
+import { buildDemandDayPages, buildKhsxDraftDocument, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
 
 type Options = {
   scope: WeeklyMenuScope
@@ -81,9 +81,11 @@ export function useMaterialDemand({
   const staleness4 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[4]), { skip: !scope.customerId || !serviceDates[4] })
   const staleness5 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[5]), { skip: !scope.customerId || !serviceDates[5] })
   const staleness6 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[6]), { skip: !scope.customerId || !serviceDates[6] })
-  const stalenessResults = [staleness0, staleness1, staleness2, staleness3, staleness4, staleness5, staleness6]
-    .flatMap((result, index) => result.data?.data ? [{ serviceDate: serviceDates[index], staleness: result.data.data }] : [])
-  const staleness = aggregateWeekStaleness(stalenessResults, serviceDates.length)
+  const weekStaleness = getWeekStalenessState(
+    serviceDates,
+    [staleness0, staleness1, staleness2, staleness3, staleness4, staleness5, staleness6],
+  )
+  const staleness = weekStaleness.staleness
   const dayPages = useMemo(() => buildDemandDayPages(scope, weeklyPlanRows), [scope, weeklyPlanRows])
   const dayIndex = getDemandDayIndex(dayPages, selectedDayKey, scope.activeDayKey)
   const activeDay = dayPages[dayIndex]
@@ -114,6 +116,14 @@ export function useMaterialDemand({
     }
     if (serviceDates.length === 0) {
       setFeedback({ title: 'Chưa có ngày để tạo nhu cầu', message: 'Vui lòng nhập hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.', variant: 'warning' })
+      return
+    }
+    if (weekStaleness.status !== 'ready') {
+      setFeedback({
+        title: weekStaleness.status === 'error' ? 'Chưa kiểm tra được độ mới nhu cầu' : 'Đang kiểm tra độ mới nhu cầu',
+        message: `Đã kiểm tra ${weekStaleness.completedDateCount}/${weekStaleness.expectedDateCount} ngày. Vui lòng chờ hoặc thử lại trước khi tạo nhu cầu.`,
+        variant: weekStaleness.status === 'error' ? 'danger' : 'info',
+      })
       return
     }
     if (invalidScheduleMenuPrices.length > 0) {
@@ -171,7 +181,14 @@ export function useMaterialDemand({
   return {
     scope,
     state: { selectedDayKey, aggregatePageNumber, feedback },
-    status: { isGenerating, isSavingQuickServings, isFetchingAggregate },
+    status: {
+      isGenerating,
+      isSavingQuickServings,
+      isFetchingAggregate,
+      stalenessState: weekStaleness.status,
+      stalenessCompletedDateCount: weekStaleness.completedDateCount,
+      stalenessExpectedDateCount: weekStaleness.expectedDateCount,
+    },
     actions: {
       selectDay,
       setAggregatePage: (page: number) => setNavigation({

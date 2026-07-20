@@ -58,6 +58,69 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_ExcludeCancelledDemandFromActiveTotals()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            var activeLine = await context.Materialrequestlines.AsNoTracking().SingleAsync();
+            var cancelledRequestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new Materialrequest
+            {
+                RequestId = cancelledRequestId,
+                RequestCode = "MR-CANCELLED-STALE",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = new DateOnly(2026, 6, 15),
+                RequestScope = "FULLDAY",
+                Status = "CANCELLED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = cancelledRequestId,
+                        PlanLineId = activeLine.PlanLineId,
+                        IngredientId = activeLine.IngredientId,
+                        UnitId = activeLine.UnitId,
+                        TotalServings = 500,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 500,
+                        CurrentStockQty = 0,
+                        SuggestedPurchaseQty = 500,
+                    },
+                ],
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 20,
+            });
+
+        page.TotalCount.Should().Be(1);
+        page.ShortageCount.Should().Be(1);
+        var item = page.Items.Should().ContainSingle().Subject;
+        item.TotalRequiredQty.Should().Be(200m);
+        item.SuggestedPurchaseQty.Should().Be(200m);
+        item.LineCount.Should().Be(1);
+        item.HasCancelledLine.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task GetMaterialRequestCandidatePageAsync_Should_PagePurchaseCandidatesBeyondOneHundredRequests()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();

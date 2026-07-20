@@ -22,7 +22,7 @@ export const buildQuantityPlanByDateShift = (
       const key = `${serviceDate}|${line.shiftName}`
       const current = result.get(key)
       const servings = line.finalServings
-      const status = confirmedPlan && servings > 0 ? 'confirmed' : servings > 0 ? 'draft' : 'missing'
+      const status = confirmedPlan ? 'confirmed' : servings > 0 ? 'draft' : 'missing'
       const nextStatus = current?.status === 'confirmed' || status === 'confirmed'
         ? 'confirmed'
         : current?.status === 'draft' || status === 'draft' ? 'draft' : 'missing'
@@ -52,7 +52,7 @@ export const getShiftServingInfo = ({
   lockedShifts: Record<string, boolean>
 }) => {
   const quantityInfo = serviceDate ? quantityPlans.get(`${serviceDate}|${shiftName}`) : undefined
-  if (quantityInfo && quantityInfo.servings > 0) return quantityInfo
+  if (quantityInfo) return quantityInfo
   const shiftLabel = shiftName === 'MORNING' ? 'Ca Sáng' : 'Ca Chiều'
   const locked = !!lockedShifts[`${dayKey}-${shiftLabel}`]
   const servings = orders.filter((order) => order.dayOfWeek === dayKey && order.shift === shiftLabel)
