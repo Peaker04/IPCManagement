@@ -1045,11 +1045,12 @@ async function stubMobileOperationsSuccess(page: Page) {
     }
 
     if (endpoint === 'kitchen-issues') {
+      const requestedServiceDate = new URL(route.request().url()).searchParams.get('dateFrom') ?? '2026-07-09';
       await fulfill(route, [
         {
           issueId: 'issue-mobile',
           issueCode: 'PXB-20260709-MOBILE',
-          issueDate: '2026-07-09',
+          issueDate: requestedServiceDate,
           shiftName: 'MORNING',
           warehouseId: 'wh-mobile',
           warehouseName: 'Kho chính',
