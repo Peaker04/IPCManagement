@@ -11,6 +11,8 @@ public class MaterialDemandService : IMaterialDemandService
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
     private const string DemandApprovedStatus = "MANAGERAPPROVED";
+    private const string DemandDraftStatus = "DRAFT";
+    private const string PurchaseDraftStatus = "DRAFT";
     private const decimal FixedBomRatePercent = 100m;
 
     public MaterialDemandService(IpcManagementContext context)
@@ -657,20 +659,68 @@ public class MaterialDemandService : IMaterialDemandService
         var existing = await _context.Materialrequests
             .Include(request => request.Materialrequestlines)
                 .ThenInclude(line => line.Purchaserequestlines)
+                    .ThenInclude(line => line.PurchaseRequest)
+            .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Purchaserequestlines)
                     .ThenInclude(line => line.Purchaseorderline)
+                        .ThenInclude(line => line!.PurchaseOrder)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
         if (existing is not null)
         {
-            var hasPurchaseOrder = existing.Materialrequestlines
+            var purchaseLines = existing.Materialrequestlines
                 .SelectMany(line => line.Purchaserequestlines)
-                .Any(line => line.Purchaseorderline is not null);
-            if (hasPurchaseOrder)
+                .ToList();
+            if (purchaseLines.Any(line => line.Purchaseorderline is not null))
             {
                 throw new InvalidOperationException(
                     "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
             }
 
-            existing.Status = existing.Status == "MANAGERAPPROVED" ? existing.Status : "DRAFT";
+            var blockingPurchaseRequest = purchaseLines
+                .Select(line => line.PurchaseRequest)
+                .FirstOrDefault(request => !string.Equals(request.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase));
+            if (blockingPurchaseRequest is not null)
+            {
+                throw new InvalidOperationException(
+                    $"Không thể tính lại nhu cầu vì đề xuất mua hàng {blockingPurchaseRequest.PurchaseRequestCode} đang ở trạng thái {blockingPurchaseRequest.Status}.");
+            }
+
+            if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    $"Không thể tính lại nhu cầu đang ở trạng thái {existing.Status}. Hãy tạo luồng điều chỉnh riêng.");
+            }
+
+            if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = DateTime.UtcNow,
+                    ChangedBy = userId,
+                    BusinessArea = "Demand",
+                    EntityName = nameof(Materialrequest),
+                    EntityId = existing.RequestId,
+                    FieldName = nameof(Materialrequest.Status),
+                    OldValue = existing.Status,
+                    NewValue = DemandDraftStatus,
+                    Reason = "Hạ trạng thái duyệt vì nhu cầu được tính lại; đề xuất mua nháp phải được sinh lại."
+                });
+                existing.Status = DemandDraftStatus;
+            }
+
+            if (purchaseLines.Count > 0)
+            {
+                foreach (var purchaseLine in purchaseLines)
+                {
+                    purchaseLine.MaterialRequestLine.Purchaserequestlines.Remove(purchaseLine);
+                    purchaseLine.PurchaseRequest.Purchaserequestlines.Remove(purchaseLine);
+                }
+
+                _context.Purchaserequestlines.RemoveRange(purchaseLines);
+            }
+
             return (existing, true);
         }
 
@@ -681,7 +731,7 @@ public class MaterialDemandService : IMaterialDemandService
             PlanId = plan.PlanId,
             RequestDate = serviceDate,
             RequestScope = scope,
-            Status = "DRAFT",
+            Status = DemandDraftStatus,
             CreatedBy = userId
         };
 

@@ -130,6 +130,74 @@ public class SampleDataImportServiceTests
     }
 
     [Fact]
+    public async Task ImportAsync_Should_PersistStableIdsAndReferences_WhenRenamedRowsAreImportedAgain()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new SqliteSampleImportContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var service = new SampleDataImportService(context, null!);
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        {
+            SourceDirectory = FindDocsDirectory(),
+            DryRun = false,
+            MaxRows = 25
+        };
+
+        await service.ImportAsync(request);
+
+        var dish = await context.Dishes
+            .Include(item => item.Menuitems)
+            .FirstAsync(item => item.Menuitems.Count > 0);
+        var ingredient = await context.Ingredients
+            .Include(item => item.Inventoryreceiptlines)
+            .FirstAsync(item => item.Inventoryreceiptlines.Count > 0);
+        var originalDishName = dish.DishName;
+        var originalIngredientName = ingredient.IngredientName;
+        var dishId = dish.DishId.ToArray();
+        var ingredientId = ingredient.IngredientId.ToArray();
+        var dishCode = dish.DishCode;
+        var ingredientCode = ingredient.IngredientCode;
+        var menuItemId = dish.Menuitems.First().MenuItemId.ToArray();
+        var bomId = GuidHelper.NewId();
+
+        dish.DishName = "Tên món đã sửa thủ công";
+        ingredient.IngredientName = "Tên nguyên liệu đã sửa thủ công";
+        context.Dishboms.Add(new Dishbom
+        {
+            BomId = bomId,
+            DishId = dishId,
+            IngredientId = ingredientId,
+            UnitId = ingredient.UnitId,
+            GrossQtyPerServing = 1,
+            WasteRatePercent = 0,
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = new DateOnly(2026, 1, 1)
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        await service.ImportAsync(request);
+        context.ChangeTracker.Clear();
+
+        var persistedDish = await context.Dishes.SingleAsync(item => item.DishCode == dishCode);
+        var persistedIngredient = await context.Ingredients.SingleAsync(item => item.IngredientCode == ingredientCode);
+        persistedDish.DishId.Should().Equal(dishId);
+        persistedDish.DishName.Should().Be(originalDishName);
+        persistedIngredient.IngredientId.Should().Equal(ingredientId);
+        persistedIngredient.IngredientName.Should().Be(originalIngredientName);
+        (await context.Dishes.CountAsync(item => item.DishCode == dishCode)).Should().Be(1);
+        (await context.Ingredients.CountAsync(item => item.IngredientCode == ingredientCode)).Should().Be(1);
+        (await context.Menuitems.SingleAsync(item => item.MenuItemId == menuItemId)).DishId.Should().Equal(dishId);
+        var persistedBom = await context.Dishboms.SingleAsync(item => item.BomId == bomId);
+        persistedBom.DishId.Should().Equal(dishId);
+        persistedBom.IngredientId.Should().Equal(ingredientId);
+    }
+
+    [Fact]
     public void CalculateWeightedGrossQty_Should_MergeRepeatedWorkbookBatches()
     {
         var bananaRows = new List<IReadOnlyDictionary<string, string>>
@@ -517,6 +585,56 @@ public class SampleDataImportServiceTests
 
         method.Should().NotBeNull();
         return (T)method!.Invoke(null, args)!;
+    }
+
+    private static string FindDocsDirectory()
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var docs = Path.Combine(current.FullName, ".docs");
+            if (Directory.Exists(docs))
+            {
+                return docs;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Không tìm thấy thư mục .docs cho persisted sample-import test.");
+    }
+
+    private sealed class SqliteSampleImportContext(DbContextOptions<IpcManagementContext> options)
+        : IpcManagementContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.UseCollation(null);
+
+            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
+            {
+                property.SetCollation(null);
+                if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    property.SetColumnType("TEXT");
+                }
+
+                if (string.Equals(property.GetDefaultValueSql(), "CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase))
+                {
+                    property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+                }
+            }
+
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                var tableName = entity.GetTableName() ?? entity.Name;
+                foreach (var index in entity.GetIndexes())
+                {
+                    index.SetDatabaseName($"{tableName}_{index.GetDatabaseName()}");
+                }
+            }
+        }
     }
 
     private static object InvokeContractPolicy(
