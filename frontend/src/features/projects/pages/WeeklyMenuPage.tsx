@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
@@ -31,28 +31,16 @@ import { useWeeklyMenuImport } from '../weekly-menu/import/useWeeklyMenuImport';
 import { WeeklyMenuImportDialog } from '../weekly-menu/import/WeeklyMenuImportDialog';
 import { useWeeklyScheduleEditor } from '../weekly-menu/schedule/useWeeklyScheduleEditor';
 import { WeeklyScheduleEditorDialog } from '../weekly-menu/schedule/WeeklyScheduleEditorDialog';
-import { WeeklyScheduleSection } from '../weekly-menu/schedule/WeeklyScheduleSection';
 import type { WeeklyScheduleFeedback } from '../weekly-menu/schedule/types';
 import { useWeeklyProductionPlan } from '../weekly-menu/production-plan/useWeeklyProductionPlan';
-import { ProductionPlanSection } from '../weekly-menu/production-plan/ProductionPlanSection';
 import { useMaterialDemand } from '../weekly-menu/demand/useMaterialDemand';
-import { MaterialDemandSection } from '../weekly-menu/demand/MaterialDemandSection';
 import { useMenuCost } from '../weekly-menu/cost/useMenuCost';
 import { usePurchaseSummary } from '../weekly-menu/purchasing/usePurchaseSummary';
 import { useDishMaterials } from '../weekly-menu/dish-materials/useDishMaterials';
 import { buildWeeklyPlanRows } from '../weekly-menu/cost/weeklyPlanRowsModel';
 import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuCommandBar';
 import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
-
-const MenuCostSection = lazy(() => import('../weekly-menu/cost/MenuCostSection'));
-const PurchaseSummarySection = lazy(() => import('../weekly-menu/purchasing/PurchaseSummarySection'));
-const DishMaterialsSection = lazy(() => import('../weekly-menu/dish-materials/DishMaterialsSection'));
-
-const ReadOnlySectionFallback = ({ label }: { label: string }) => (
-  <section aria-busy="true" aria-live="polite" className="min-h-[560px] rounded-lg border border-slate-200 bg-white p-6">
-    <span className="text-sm font-medium text-slate-600">Đang tải {label}...</span>
-  </section>
-);
+import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
@@ -272,8 +260,8 @@ const WeeklyMenuPage = () => {
     { label: 'Menu', value: weeklyPlanRows.length.toString(), tone: weeklyPlanRows.length ? 'success' : 'neutral' },
     { label: 'Số lượng khách', value: weeklyRowsMissingOperationalServings.length ? `${weeklyRowsMissingOperationalServings.length} thiếu` : 'Đủ', tone: weeklyRowsMissingOperationalServings.length ? 'warning' : 'success' },
     { label: 'Định lượng', value: weeklyRowsMissingBom.length ? `${weeklyRowsMissingBom.length} thiếu BOM` : 'Đủ BOM', tone: weeklyRowsMissingBom.length ? 'danger' : 'success' },
-    { label: 'Đề xuất mua', value: demandLines.length ? `${aggregatedDemandLines.length} dòng` : 'Chờ demand', tone: demandLines.length ? 'info' : 'neutral' },
-    { label: 'Tồn kho/cảnh báo', value: invalidBomTierCount ? `${invalidBomTierCount} sai tier` : 'OK', tone: invalidBomTierCount ? 'danger' : 'success' },
+    { label: 'Đề xuất mua', value: demandLines.length ? `${aggregatedDemandLines.length} dòng` : 'Chờ tính nhu cầu', tone: demandLines.length ? 'info' : 'neutral' },
+    { label: 'Tồn kho/cảnh báo', value: invalidBomTierCount ? `${invalidBomTierCount} đơn giá sai` : 'Hợp lệ', tone: invalidBomTierCount ? 'danger' : 'success' },
   ];
   const readOnlyScopeKey = `${weeklyScheduleScope.customerId}:${weeklyScheduleScope.weekStartDate}`;
   const sourceLabel = selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'Chưa chọn';
@@ -348,44 +336,19 @@ const WeeklyMenuPage = () => {
         hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
       />
 
-      {activeView === 'schedule' && (
-        <WeeklyScheduleSection
-          scope={weeklyScheduleScope}
-          customerValue={weeklyScheduleScope.customerLabel}
-          weekValue={weeklyScheduleScope.weekLabel}
-          hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
-          rows={committedLayoutRows}
-        />
-      )}
-      {activeView === 'production-plan' && (
-        <ProductionPlanSection workflow={productionPlanWorkflow} />
-      )}
-      {activeView === 'demand' && (
-        <MaterialDemandSection
-          workflow={demandWorkflow}
-          scheduleWorkflow={scheduleWorkflow}
-          servingFeedback={scheduleFeedback}
-        />
-      )}
-
-      {/* Phân tích định lượng & giá vốn 1 khay ăn (Step 2) */}
-      {activeView === 'cost' && (
-        <Suspense fallback={<ReadOnlySectionFallback label="giá vốn" />}>
-          <MenuCostSection workflow={menuCostWorkflow} />
-        </Suspense>
-      )}
-
-      {activeView === 'purchase-summary' && (
-        <Suspense fallback={<ReadOnlySectionFallback label="tổng hợp mua" />}>
-          <PurchaseSummarySection workflow={purchaseSummaryWorkflow} />
-        </Suspense>
-      )}
-
-      {activeView === 'dish-materials' && (
-        <Suspense fallback={<ReadOnlySectionFallback label="nguyên liệu món" />}>
-          <DishMaterialsSection workflow={dishMaterialsWorkflow} />
-        </Suspense>
-      )}
+      <WeeklyMenuViewContent
+        activeView={activeView}
+        scope={weeklyScheduleScope}
+        hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
+        committedRows={committedLayoutRows}
+        scheduleWorkflow={scheduleWorkflow}
+        productionPlanWorkflow={productionPlanWorkflow}
+        demandWorkflow={demandWorkflow}
+        servingFeedback={scheduleFeedback}
+        menuCostWorkflow={menuCostWorkflow}
+        purchaseSummaryWorkflow={purchaseSummaryWorkflow}
+        dishMaterialsWorkflow={dishMaterialsWorkflow}
+      />
 
 
       <WeeklyMenuImportDialog workflow={importWorkflow} />

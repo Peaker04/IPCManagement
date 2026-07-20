@@ -33,7 +33,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
     <SectionPanel
       title="Checklist nhận nguyên liệu"
       badge={
-        <span className="text-[13px] text-slate-500 font-medium">
+        <span className="text-sm text-slate-500 font-medium">
           Ký nhận: {signedCount}/{materials.length} | Đã nhận: {receivedCount}/{materials.length}
         </span>
       }

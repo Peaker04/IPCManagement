@@ -17,27 +17,27 @@ export function WeeklyScheduleEditorDialog({ workflow }: { workflow: WeeklySched
         <div className="mt-4 flex max-h-[68vh] flex-col gap-6 overflow-y-auto pr-1">
           {presentation.sections.map((section) => (
             <div key={section.label} className="border-b border-slate-200 pb-5 last:border-0 last:pb-0">
-              <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-[13px] font-bold uppercase text-slate-800">{section.label}</h3>
+              <h3 className="mb-3 rounded bg-slate-50 px-3 py-1.5 text-sm font-semibold uppercase text-slate-800">{section.label}</h3>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
                 {scope.displayDays.map((day) => {
                   const locked = presentation.isLocked(day.key, section.slotType)
                   const slot = state.draftMenu[day.key]?.[section.slotType]
                   return (
                     <div key={day.key} className="flex flex-col gap-1.5 rounded-md border border-slate-200 bg-white p-2 shadow-sm">
-                      <div className="flex flex-col"><span className="text-[12px] font-semibold text-slate-700">{day.label}</span><span className="text-[10px] text-slate-400">{day.date}</span></div>
+                      <div className="flex flex-col"><span className="text-xs font-semibold text-slate-700">{day.label}</span><span className="text-xs text-slate-500">{day.date}</span></div>
                       {locked ? (
-                        <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-[11px] font-medium text-slate-500">
+                        <div className="flex h-9 items-center justify-center gap-1.5 rounded border border-dashed border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-500">
                           <Lock size={10} className="text-slate-400" /><span>Đã khóa</span>
                         </div>
                       ) : (
                         <select
                           value={slot?.dishId || section.defaultDishId}
                           onChange={(event) => actions.changeDish(day.key, section.slotType, event.target.value)}
-                          className="ipc-select h-9 w-full p-1 text-[12px]"
+                          className="ipc-select h-9 w-full p-1 text-xs"
                           disabled={section.dishes.length === 0}
                         >
                           {section.dishes.map((dish) => <option key={`${section.slotType}-${dish.id}`} value={dish.id}>{dish.name}</option>)}
-                          {section.dishes.length === 0 && <option value="">Chưa có catalog</option>}
+                          {section.dishes.length === 0 && <option value="">Chưa có món trong danh mục</option>}
                         </select>
                       )}
                     </div>

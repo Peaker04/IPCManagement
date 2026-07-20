@@ -28,40 +28,40 @@ export function MaterialDemandSection({
     <SectionPanel title="KHSX, kiểm tồn kho và nhu cầu xuất" icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
       <div className="flex flex-col gap-3">
         <ContextStrip items={[
-          { label: 'Nguồn menu', value: presentation.sourceMenuValue, tone: 'neutral' },
+          { label: 'Nguồn thực đơn', value: presentation.sourceMenuValue, tone: 'neutral' },
           { label: 'Dòng KHSX', value: presentation.weeklyPlanRows.length.toString(), tone: 'neutral' },
-          { label: 'Đã có BOM/catalog', value: (presentation.weeklyPlanRows.length - presentation.missingBomRows.length).toString(), tone: 'success' },
+          { label: 'Đã có định lượng BOM', value: (presentation.weeklyPlanRows.length - presentation.missingBomRows.length).toString(), tone: 'success' },
           { label: 'Chưa tính được BOM', value: presentation.missingBomRows.length.toString(), tone: presentation.missingBomRows.length > 0 ? 'warning' : 'success' },
           { label: 'Nguyên liệu tổng hợp', value: presentation.materialSummaryCount.toString(), tone: 'info' },
         ]} />
 
         {presentation.missingBomRows.length > 0 && (
-          <InlineAlert title="Một số món import chưa có BOM catalog" variant="warning">
-            Các món này vẫn được đưa vào KHSX theo tên món trong Excel, nhưng chưa sinh định lượng nguyên liệu cho đến khi được gắn với món/BOM trong catalog.
+          <InlineAlert title="Một số món từ tệp chưa có định lượng BOM" variant="warning">
+            Các món này vẫn được đưa vào KHSX theo tên trong tệp Excel, nhưng chưa thể tính nguyên liệu cho đến khi được gắn với món và định lượng trong danh mục.
           </InlineAlert>
         )}
         {presentation.importDefaultRows.length > 0 && (
-          <InlineAlert title="Đang dùng số suất default từ import" variant="warning">
-            Tạm thời hệ thống dùng số suất mặc định trong file import để chạy luồng KHSX, demand và mua thêm. Khi có dữ liệu suất chuẩn, Meal Quantity Plan đã chốt sẽ tự được ưu tiên.
+          <InlineAlert title="Đang dùng số suất tạm từ tệp" variant="warning">
+            Tạm thời hệ thống dùng số suất trong tệp nhập để lập KHSX, tính nhu cầu và đề xuất mua. Khi số suất vận hành được chốt, hệ thống sẽ tự ưu tiên dữ liệu đó.
           </InlineAlert>
         )}
         {servingFeedback && <InlineAlert title={servingFeedback.title} variant={servingFeedback.variant}>{servingFeedback.message}</InlineAlert>}
         {state.feedback && <InlineAlert title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}</InlineAlert>}
         {presentation.staleness?.isStale && (
-          <InlineAlert title="Demand đã lỗi thời, cần tính lại" variant="warning">{presentation.staleness.reasons.join(' | ')}</InlineAlert>
+          <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.staleness.reasons.join(' | ')}</InlineAlert>
         )}
 
         <Toolbar className="justify-end">
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
             <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || presentation.weeklyPlanRows.length === 0}>
               <Scale size={16} />
-              {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tạo demand...' : presentation.staleness?.isStale ? 'Tính lại demand (dữ liệu đã thay đổi)' : 'Tạo demand từ KHSX'}
+              {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tính nhu cầu...' : presentation.staleness?.isStale ? 'Tính lại nhu cầu (dữ liệu đã thay đổi)' : 'Tạo nhu cầu từ KHSX'}
             </button>
           </ActionGuard>
           <Link className="ipc-button ipc-button-warning" to={`${ROUTES.REPORTS}?view=purchase`}><ShoppingCart size={16} />Xem kế hoạch thu mua</Link>
         </Toolbar>
 
-        <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" className="h-[560px] max-h-[560px]" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
+        <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
           <table className="ipc-data-table table-fixed w-full">
             <thead><tr>
               <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
@@ -77,7 +77,7 @@ export function MaterialDemandSection({
                 const quickServingRow = scheduleWorkflow.presentation.getQuickServingRow(presentation.activeQuickServingRows, row)
                 return (
                   <tr key={row.key} className="table-row">
-                    <td className={`${tableCellClass} text-left font-semibold`}>{row.dayLabel}<div className="text-[12px] font-normal text-slate-500">{row.date}</div></td>
+                    <td className={`${tableCellClass} text-left font-semibold`}>{row.dayLabel}<div className="text-xs font-normal text-slate-500">{row.date}</div></td>
                     <td className={tableCellClass}>{row.shiftLabel}</td>
                     <td className={tableCellClass}>{row.menuTypeLabel}</td>
                     <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
@@ -86,7 +86,7 @@ export function MaterialDemandSection({
                       {quickServingRow ? <QuickServingCell row={quickServingRow} workflow={scheduleWorkflow} /> : row.servingsStatus === 'missing' ? (
                         <span className="inline-flex flex-col items-center gap-0.5"><span className="font-semibold text-amber-700">Chưa chốt</span></span>
                       ) : (
-                        <span className="inline-flex flex-col items-center gap-0.5"><span>{row.portions.toLocaleString('vi-VN')}</span>{row.servingsStatus === 'import-default' && <span className="text-[11px] font-normal text-amber-700">Tạm từ import</span>}</span>
+                        <span className="inline-flex flex-col items-center gap-0.5"><span>{row.portions.toLocaleString('vi-VN')}</span>{row.servingsStatus === 'import-default' && <span className="text-xs font-normal text-amber-700">Tạm từ tệp</span>}</span>
                       )}
                     </td>
                     <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có' : 'Chưa gắn'}</td>
@@ -130,8 +130,8 @@ export function MaterialDemandSection({
             {presentation.aggregatePage && <PaginationBar page={presentation.aggregatePage.pageNumber} pageSize={presentation.aggregatePage.pageSize} totalItems={presentation.aggregatePage.totalCount} onPageChange={actions.setAggregatePage} />}
           </div>
         ) : (
-          <InlineAlert title="Chưa sinh nhu cầu nguyên liệu backend" variant={presentation.weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
-            {presentation.weeklyPlanRows.length > 0 ? 'Bảng KHSX phía trên đã có dữ liệu từ menu. Bấm Tạo demand từ KHSX để sinh dòng nguyên liệu; kế hoạch thu mua sẽ lấy trực tiếp từ demand, tồn kho và pending receipt.' : 'Chưa có dòng KHSX từ menu đang chọn.'}
+          <InlineAlert title="Chưa tính nhu cầu nguyên liệu" variant={presentation.weeklyPlanRows.length > 0 ? 'warning' : 'info'}>
+            {presentation.weeklyPlanRows.length > 0 ? 'Bảng KHSX phía trên đã có dữ liệu từ thực đơn. Bấm Tạo nhu cầu từ KHSX để tính các dòng nguyên liệu; kế hoạch thu mua sẽ dựa trên nhu cầu, tồn kho và phiếu nhập đang chờ.' : 'Chưa có dòng KHSX từ thực đơn đang chọn.'}
           </InlineAlert>
         )}
         <DocumentRail documents={presentation.documents} title="KHSX và chứng từ đầu ra" />

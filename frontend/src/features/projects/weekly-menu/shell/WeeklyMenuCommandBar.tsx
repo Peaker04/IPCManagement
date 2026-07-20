@@ -1,5 +1,5 @@
 import { Edit, Upload } from 'lucide-react'
-import { CommandBar, FieldRow } from '@/components/common'
+import { CommandBar, FieldRow, StatusBadge } from '@/components/common'
 import { formatBomTierLabel } from '../../weeklyMenuPlanning'
 import type { CoordinationCustomerOption } from '../../../coordination/coordinationApi'
 
@@ -65,17 +65,17 @@ export const WeeklyMenuPricingContext = ({
   menuPriceSource: string
 }) => (
   <div className="mt-3 grid gap-3 rounded-md border border-slate-200 bg-slate-50/70 p-3 shadow-sm lg:grid-cols-3">
-    <FieldRow label="Định mức BOM cố định" className="[&_.ipc-field-label]:min-h-[18px]">
+    <FieldRow label="Mức định lượng cố định" className="[&_.ipc-field-label]:min-h-[18px]">
       <div className="ipc-input flex h-10 items-center justify-between bg-white text-sm font-semibold text-blue-700">
         <span>{formatBomTierLabel(menuPrice)}</span>
-        <span className="rounded border border-blue-100 bg-blue-50 px-2 py-0.5 text-[11px] font-bold uppercase text-blue-600">Đang dùng</span>
+        <StatusBadge variant="success">Đang dùng</StatusBadge>
       </div>
     </FieldRow>
     <FieldRow label="Nguồn định mức" className="[&_.ipc-field-label]:min-h-[18px]">
       <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-slate-800">{menuPriceSource}</div>
     </FieldRow>
-    <FieldRow label="BOM áp dụng" className="[&_.ipc-field-label]:min-h-[18px]">
-      <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-emerald-700">Theo tier cố định, 100%</div>
+    <FieldRow label="Tỷ lệ định lượng" className="[&_.ipc-field-label]:min-h-[18px]">
+      <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-emerald-700">Theo mức giá cố định, 100%</div>
     </FieldRow>
   </div>
 )

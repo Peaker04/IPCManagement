@@ -26,7 +26,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
         ]} />
       </div>
 
-      <TableViewport caption="Món trong kế hoạch tuần và giá vốn liên kết" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
+      <TableViewport caption="Món trong kế hoạch tuần và giá vốn liên kết" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng món kế hoạch tuần liên kết giá vốn">
         <table className="ipc-data-table ipc-cost-table table-fixed w-full">
           <thead><tr>
             <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
@@ -42,14 +42,14 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
             {rows.map((row) => {
               const unitCost = presentation.getDishUnitCost(row.dishId, row.quantityFactor)
               return <tr key={`cost-${row.key}`} className="table-row">
-                <td className={`${tableCellClass} text-left font-semibold`}>{row.dayLabel}<div className="text-[12px] font-normal text-slate-500">{row.date}</div></td>
+                <td className={`${tableCellClass} text-left font-semibold`}>{row.dayLabel}<div className="text-xs font-normal text-slate-500">{row.date}</div></td>
                 <td className={tableCellClass}>{row.shiftLabel}</td>
                 <td className={`${tableCellClass} text-left`}>{row.slotLabel}</td>
                 <td className={`${tableCellClass} text-left font-semibold`}>{row.dishName}</td>
                 <td className={tableCellClass}>{row.portions.toLocaleString('vi-VN')}</td>
                 <td className={tableCellClass}>{row.hasCatalogBom ? formatCurrency(unitCost) : '-'}</td>
                 <td className={`${tableCellClass} font-semibold`}>{row.hasCatalogBom ? formatCurrency(unitCost * row.portions) : '-'}</td>
-                <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Tính bằng BOM catalog' : 'Chờ gắn BOM'}</td>
+                <td className={cn(tableCellClass, row.hasCatalogBom ? 'text-green-700' : 'text-amber-700')}>{row.hasCatalogBom ? 'Đã có định lượng nguyên liệu' : 'Chờ gắn định lượng'}</td>
               </tr>
             })}
             {rows.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={8}>Chưa có kế hoạch ngày để liên kết giá vốn.</td></tr>}
@@ -77,7 +77,7 @@ const MenuCostSection = ({ workflow }: { workflow: MenuCostWorkflow }) => {
                 <td className={tableCellClass}>{formatCurrency(data.referencePrice)}</td><td className={`${tableCellClass} font-bold`}>{formatCurrency(data.actual * data.referencePrice)}</td>
               </tr>
             })}
-            {Object.keys(materialSummary).length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra các món đã gắn BOM catalog.</td></tr>}
+            {Object.keys(materialSummary).length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho ngày này. Kiểm tra định lượng nguyên liệu của các món.</td></tr>}
           </tbody>
         </table>
       </TableViewport>

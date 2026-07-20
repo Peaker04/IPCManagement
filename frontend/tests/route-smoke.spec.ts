@@ -1443,7 +1443,7 @@ test.describe('route smoke', () => {
       await page.goto(ROUTES.CHEF_DASHBOARD);
       await expect(page.getByText('KHSX-20260709-MOBILE').first()).toBeVisible();
       await expect(page.getByText('Bún bò').first()).toBeVisible();
-      await expect(page.getByText('30k / global')).toBeVisible();
+      await expect(page.getByText('30k / Dùng chung')).toBeVisible();
       await expect(page.getByText('Đã gửi bếp', { exact: true })).toBeVisible();
       await page.getByRole('checkbox', { name: 'Ký nhận Sườn heo' }).click();
       await expect(page.getByText('Đã ký nhận nguyên liệu')).toBeVisible();

@@ -10,6 +10,14 @@ type Props = {
   onReceivePlan: () => Promise<void>
 }
 
+const bomScopeLabels: Record<string, string> = {
+  global: 'Dùng chung',
+  customer: 'Theo khách hàng',
+  standard: 'Tiêu chuẩn',
+}
+
+const formatBomScope = (scope?: string | null) => scope ? bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình' : 'Theo cấu hình'
+
 export function ChefProductionSection({ lines, isSending, onReceivePlan }: Props) {
   return (
     <SectionPanel
@@ -39,7 +47,7 @@ export function ChefProductionSection({ lines, isSending, onReceivePlan }: Props
                 <tr key={`${line.planCode}-${line.planLineId}`}>
                   <td>{line.planCode}</td><td>{line.customerName ?? '-'}</td><td>{line.dishName ?? line.dishId}</td>
                   <td>{line.shiftName ?? '-'}</td><td className="ipc-numeric-cell">{line.totalServings}</td>
-                  <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${line.bomScope}` : 'Chưa resolve'}</td>
+                  <td>{line.priceTierAmount ? `${line.priceTierAmount / 1000}k / ${formatBomScope(line.bomScope)}` : 'Chưa xác định định lượng'}</td>
                   <td className="ipc-numeric-cell">{formatQuantityWithUnit(line.suggestedPurchaseQty, '')}</td>
                   <td className="ipc-badge-cell"><StatusBadge variant={readiness.variant}>{readiness.label}</StatusBadge></td>
                 </tr>

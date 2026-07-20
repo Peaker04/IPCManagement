@@ -17,8 +17,8 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
       title="Nguyên liệu món phân tích"
       icon={<Scale size={18} color="var(--ipc-slate-600)" />}
       badge={<div className="flex items-center gap-2">
-        <span className="text-[13px] font-medium text-slate-600 whitespace-nowrap">Món phân tích:</span>
-        <select value={analyzedDish?.id ?? ''} onChange={(event) => actions.selectDish(event.target.value)} className="ipc-select w-[280px] text-[13.5px]" disabled={presentation.isCatalogEmpty}>
+        <span className="text-sm font-medium text-slate-600 whitespace-nowrap">Món phân tích:</span>
+        <select value={analyzedDish?.id ?? ''} onChange={(event) => actions.selectDish(event.target.value)} className="ipc-select w-full text-sm sm:w-72" disabled={presentation.isCatalogEmpty}>
           <optgroup label="Ca Sáng">{presentation.dishesByShift.morning.map((dish, index) => <option key={`morning-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
           <optgroup label="Ca Chiều">{presentation.dishesByShift.afternoon.map((dish, index) => <option key={`afternoon-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
           {presentation.isCatalogEmpty && <option value="">Chưa có catalog</option>}
@@ -33,7 +33,7 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
         { label: 'Tỷ lệ giá vốn (Food Cost %)', value: `${foodCostPercent.toFixed(1)}%`, tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'success' },
         { label: 'Lợi nhuận gộp / khay (Dự kiến)', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'success' : 'danger' },
       ]} /></div>
-      <TableViewport caption="Giá vốn nguyên liệu cho một khay" className="ipc-cost-table-shell h-[560px] max-h-[560px]" ariaLabel="Bảng giá vốn nguyên liệu một khay">
+      <TableViewport caption="Giá vốn nguyên liệu cho một khay" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
         <table className="ipc-data-table ipc-cost-table">
           <thead><tr>{['Nguyên liệu', 'ĐV', 'LT / suất', 'TT / suất', 'Món trong kế hoạch', 'Đơn giá', 'Thành tiền / khay'].map((label) => <th key={label} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 ${label === 'Nguyên liệu' || label === 'Món trong kế hoạch' ? 'text-left' : ''}`}>{label}</th>)}</tr></thead>
           <tbody>

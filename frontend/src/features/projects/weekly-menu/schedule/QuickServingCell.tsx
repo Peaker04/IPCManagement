@@ -1,4 +1,5 @@
 import type { QuickServingRow, WeeklyScheduleEditorWorkflow } from './types'
+import { StatusBadge } from '@/components/common'
 
 export function QuickServingCell({ row, workflow }: { row: QuickServingRow; workflow: WeeklyScheduleEditorWorkflow }) {
   return (
@@ -19,11 +20,11 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
             workflow.actions.discardQuickServing(row.key)
           }
         }}
-        className="ipc-input h-8 w-[96px] text-center"
+        className="ipc-input h-8 w-24 text-center"
         disabled={row.isConfirmed}
         aria-label={`Số suất ${row.dayLabel} ${row.shiftLabel}`}
       />
-      <span className={`text-[11px] font-medium ${row.isCompleted ? 'text-emerald-700' : row.hasDraftChange ? 'text-blue-700' : row.hasPlanLines ? 'text-amber-700' : 'text-slate-500'}`}>
+      <StatusBadge variant={row.isCompleted ? 'success' : row.hasDraftChange ? 'neutral' : row.hasPlanLines ? 'warning' : 'neutral'}>
         {row.isCompleted
           ? 'Đã hoàn tất'
           : workflow.status.isSavingQuickServings
@@ -32,8 +33,8 @@ export function QuickServingCell({ row, workflow }: { row: QuickServingRow; work
               ? 'Chưa lưu'
               : row.hasPlanLines
                 ? row.statusLabel
-                : row.importedServings > 0 ? 'Tạm từ import' : 'Chưa có kế hoạch'}
-      </span>
+                : row.importedServings > 0 ? 'Tạm từ tệp' : 'Chưa có kế hoạch'}
+      </StatusBadge>
     </div>
   )
 }

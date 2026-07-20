@@ -26,7 +26,7 @@ export const WeeklyMenuImportDialog = ({ workflow }: { workflow: WeeklyMenuImpor
                 <div key={step.key} className={getImportWizardStepClass(step.key, wizardStep)}>
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-xs font-bold uppercase text-slate-500">Bước {index + 1}</span>
-                    {step.key === wizardStep && <span className="rounded border border-blue-200 bg-white px-2 py-0.5 text-[11px] font-bold text-blue-700">Đang xử lý</span>}
+                    {step.key === wizardStep && <span className="rounded border border-blue-200 bg-white px-2 py-0.5 text-xs font-semibold text-blue-700">Đang xử lý</span>}
                   </div>
                   <div className="mt-1 text-sm font-bold">{step.label}</div>
                   <div className="text-xs font-medium text-slate-500">{step.hint}</div>

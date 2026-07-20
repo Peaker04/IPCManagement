@@ -204,8 +204,8 @@ export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[
       reserved: group.reserved,
       unit: group.unit,
       source: formatMaterialDishSource(Array.from(group.sources)),
-      status: group.hasCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-      nextAction: group.hasCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+      status: group.hasCancelled ? 'Cần tạo lại nhu cầu' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+      nextAction: group.hasCancelled ? 'Tạo lại nhu cầu từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
       tone: group.hasCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
     }
   }).sort((left, right) => left.material.localeCompare(right.material, 'vi-VN'))

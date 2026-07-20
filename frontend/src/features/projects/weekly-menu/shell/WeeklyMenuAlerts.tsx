@@ -25,8 +25,8 @@ export function WeeklyMenuAlerts({
   return (
     <>
       {invalidBomTierCount > 0 && (
-        <InlineAlert title="Đơn giá chưa khớp tier BOM" variant="danger">
-          Có {invalidBomTierCount} lịch/ca không thuộc 25k, 30k hoặc 34k. Hệ thống sẽ chặn sinh demand để tránh dùng sai định lượng.
+        <InlineAlert title="Đơn giá chưa khớp mức định lượng" variant="danger">
+          Có {invalidBomTierCount} lịch/ca không thuộc mức 25k, 30k hoặc 34k. Hệ thống sẽ chặn tính nhu cầu nguyên liệu để tránh dùng sai định lượng.
         </InlineAlert>
       )}
       {menuFeedback && (
@@ -40,13 +40,13 @@ export function WeeklyMenuAlerts({
         </InlineAlert>
       )}
       {isCatalogLoading && (
-        <InlineAlert title="Đang tải catalog món ăn" variant="info">
-          Hệ thống đang lấy danh sách món và định lượng BOM từ API.
+        <InlineAlert title="Đang tải danh mục món ăn" variant="info">
+          Hệ thống đang lấy danh sách món và định lượng BOM.
         </InlineAlert>
       )}
       {isCatalogError && (
-        <InlineAlert title="Chưa tải được catalog món ăn" variant="warning">
-          Kiểm tra backend hoặc quyền truy cập catalog trước khi phân tích giá vốn.
+        <InlineAlert title="Chưa tải được danh mục món ăn" variant="warning">
+          Kiểm tra kết nối hệ thống hoặc quyền xem danh mục trước khi phân tích giá vốn.
         </InlineAlert>
       )}
       {isCommittedMenuFetching && hasSelectedCustomer && (
@@ -55,8 +55,8 @@ export function WeeklyMenuAlerts({
         </InlineAlert>
       )}
       {isCatalogEmpty && (
-        <InlineAlert title="Catalog món ăn đang trống" variant="warning">
-          Chưa có món ăn hoạt động nào từ API, nên thực đơn tuần và bảng định lượng chưa thể chọn món.
+        <InlineAlert title="Danh mục món ăn đang trống" variant="warning">
+          Chưa có món ăn nào đang hoạt động, nên thực đơn tuần và bảng định lượng chưa thể chọn món.
         </InlineAlert>
       )}
     </>

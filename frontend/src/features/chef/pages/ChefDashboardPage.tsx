@@ -122,10 +122,10 @@ function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: S
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
       <div className="flex items-center gap-2">
-        <select aria-label="Chọn ngày sản xuất" value={activeDay} onChange={(event) => onDayChange(event.target.value)} className="ipc-select w-[110px] min-h-8 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+        <select aria-label="Chọn ngày sản xuất" value={activeDay} onChange={(event) => onDayChange(event.target.value)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
           {DAYS_OF_WEEK.map((day) => <option key={day.key} value={day.key}>{day.label}</option>)}
         </select>
-        <select aria-label="Chọn ca sản xuất" value={activeShift} onChange={(event) => onShiftChange(event.target.value as ShiftType)} className="ipc-select w-[110px] min-h-8 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+        <select aria-label="Chọn ca sản xuất" value={activeShift} onChange={(event) => onShiftChange(event.target.value as ShiftType)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
           {SHIFTS.map((shift) => <option key={shift} value={shift}>{shift}</option>)}
         </select>
       </div>

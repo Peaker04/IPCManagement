@@ -58,11 +58,11 @@ export const buildKhsxDraftDocument = ({
     id: `KHSX-DRAFT-${customerCode}-${activeDay.key}`,
     type: 'KHSX',
     title: 'KHSX theo menu đang xem',
-    status: hasDemand ? 'Đã sinh demand' : 'DRAFT',
+    status: hasDemand ? 'Đã tạo nhu cầu' : 'Bản nháp',
     owner: 'Bếp trưởng',
     summary: hasDemand
-      ? 'Demand nguyên liệu đã được sinh từ KHSX của khách hàng đang chọn.'
-      : 'Bản KHSX tạm từ menu tuần; bấm Tạo demand từ KHSX để sinh nhu cầu nguyên liệu backend.',
+      ? 'Nhu cầu nguyên liệu đã được tạo từ KHSX của khách hàng đang chọn.'
+      : 'Bản KHSX tạm từ thực đơn tuần; bấm Tạo nhu cầu từ KHSX để hệ thống tính nguyên liệu.',
     route: '/weekly-menu',
     tone: hasDemand ? 'success' : missingBom > 0 ? 'warning' : 'neutral',
     lines: [

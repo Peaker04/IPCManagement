@@ -80,7 +80,7 @@ export function WeeklyMenuImportSetup({ workflow }: { workflow: WeeklyMenuImport
               </button>
             </div>
           </FieldRow>
-          <div className="flex flex-col gap-1.5 md:pt-[40px]">
+          <div className="flex flex-col gap-1.5 md:pt-10">
             <button
               type="button"
               onClick={actions.addJob}

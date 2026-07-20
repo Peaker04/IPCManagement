@@ -17,6 +17,7 @@ import weeklyProductionPlanSectionSource from './projects/weekly-menu/production
 import materialDemandWorkflowSource from './projects/weekly-menu/demand/useMaterialDemand.ts?raw'
 import materialDemandSectionSource from './projects/weekly-menu/demand/MaterialDemandSection.tsx?raw'
 import weeklyMenuCommandSource from './projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw'
+import weeklyMenuViewContentSource from './projects/weekly-menu/shell/WeeklyMenuViewContent.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
 import purchaseDemandWorkflowSource from './workflow/purchasing/demand/usePurchaseDemand.ts?raw'
 import purchaseOrderWorkflowSource from './workflow/purchasing/orders/usePurchaseOrders.ts?raw'
@@ -52,6 +53,7 @@ describe('operational page refactor contracts', () => {
       materialDemandWorkflowSource,
       materialDemandSectionSource,
       weeklyMenuCommandSource,
+      weeklyMenuViewContentSource,
     ].join('\n')
 
     expect(source).toContain('usePreviewWeeklyMenuImportMutation')
@@ -71,6 +73,11 @@ describe('operational page refactor contracts', () => {
     expect(source).toContain('useReducer(weeklyScheduleReducer')
     expect(source).toContain('Nhập Excel')
     expect(source).toContain("{ id: 'demand', label: 'Nhu cầu' }")
+    for (const panelId of ['schedule', 'demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials']) {
+      expect(weeklyMenuViewContentSource).toContain(`panelProps('${panelId}')`)
+    }
+    expect(weeklyMenuViewContentSource).toContain("role: 'tabpanel'")
+    expect(weeklyMenuViewContentSource).toContain("'aria-labelledby': `${id}-tab`")
   })
 
   it('keeps purchasing paging and purchase mutations wired to real APIs', () => {

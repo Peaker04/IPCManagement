@@ -100,17 +100,17 @@ export function useMaterialDemand({
     }
     const serviceDates = Array.from(new Set(weeklyPlanRows.map((row) => row.serviceDate).filter(Boolean)))
     if (serviceDates.length === 0) {
-      setFeedback({ title: 'Chưa có ngày để tạo demand', message: 'Vui lòng import hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.', variant: 'warning' })
+      setFeedback({ title: 'Chưa có ngày để tạo nhu cầu', message: 'Vui lòng nhập hoặc tải kế hoạch tuần trước khi tạo nhu cầu nguyên liệu.', variant: 'warning' })
       return
     }
     if (invalidScheduleMenuPrices.length > 0) {
-      setFeedback({ title: 'Định mức không hợp lệ', message: 'Có lịch menu dùng giá ngoài 25k, 30k hoặc 34k. Vui lòng import lại menu với định mức cố định trước khi tạo demand.', variant: 'danger' })
+      setFeedback({ title: 'Định mức không hợp lệ', message: 'Có lịch thực đơn dùng giá ngoài 25k, 30k hoặc 34k. Vui lòng nhập lại thực đơn với định mức cố định trước khi tạo nhu cầu.', variant: 'danger' })
       return
     }
     const missingServings = weeklyPlanRows.filter((row) => row.portions <= 0)
     if (missingServings.length > 0) {
       const dates = Array.from(new Set(missingServings.map((row) => row.date))).slice(0, 4)
-      setFeedback({ title: 'Chưa tạo được demand', message: `Hiện còn ${missingServings.length} dòng KHSX chưa có số suất vận hành${dates.length > 0 ? ` (${dates.join(', ')})` : ''}. Cần có số suất chốt hoặc suất default import trước khi sinh demand.`, variant: 'danger' })
+      setFeedback({ title: 'Chưa tạo được nhu cầu', message: `Hiện còn ${missingServings.length} dòng KHSX chưa có số suất vận hành${dates.length > 0 ? ` (${dates.join(', ')})` : ''}. Cần có số suất chốt hoặc số suất tạm từ tệp trước khi tạo nhu cầu.`, variant: 'danger' })
       return
     }
     const pending = getPendingQuickServingRows(quickServingRows, serviceDates)
@@ -126,7 +126,7 @@ export function useMaterialDemand({
         return
       }
     }
-    setFeedback({ title: 'Đang tạo demand', message: `Đang sinh nhu cầu nguyên liệu cho ${serviceDates.length} ngày trong tuần.`, variant: 'info' })
+    setFeedback({ title: 'Đang tạo nhu cầu', message: `Đang tính nhu cầu nguyên liệu cho ${serviceDates.length} ngày trong tuần.`, variant: 'info' })
     const results = await runInBatches(serviceDates, 2, async (serviceDate) => {
       try {
         const response = await generateMaterialDemand({ serviceDate, customerId: scope.customerId, scope: 'FULLDAY' }).unwrap()
@@ -139,7 +139,7 @@ export function useMaterialDemand({
     const succeeded = results.filter((result): result is { serviceDate: string; response: NonNullable<(typeof result)['response']> } => 'response' in result)
     if (succeeded.length === 0) {
       const firstError = results.find((result) => 'error' in result)?.error
-      setFeedback({ title: 'Chưa tạo được demand', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' })
+      setFeedback({ title: 'Chưa tạo được nhu cầu', message: getApiErrorMessage(firstError, 'Không tìm thấy số suất đã chốt cho các ngày trong tuần.'), variant: 'danger' })
       return
     }
     reduxDispatch(apiSlice.util.invalidateTags(['Coordination']))
@@ -149,8 +149,8 @@ export function useMaterialDemand({
     const missingBomCount = succeeded.reduce((sum, result) => sum + result.response.data!.missingBomDishes.length, 0)
     const planLineCount = succeeded.reduce((sum, result) => sum + result.response.data!.productionPlanLineCount, 0)
     setFeedback({
-      title: skipped > 0 ? 'Đã tạo demand cho ngày đã chốt' : 'Đã tạo demand cho tuần',
-      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Kế hoạch thu mua dự kiến sẽ lấy trực tiếp từ demand, tồn kho và pending receipt.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có BOM cần bổ sung.` : 'BOM đã đủ cho các dòng sinh demand.'}`,
+      title: skipped > 0 ? 'Đã tạo nhu cầu cho ngày đã chốt' : 'Đã tạo nhu cầu cho tuần',
+      message: `Tạo thành công ${succeeded.length}/${results.length} ngày, ${planLineCount} dòng KHSX, ${demandLineCount} dòng nguyên liệu, ${shortageLineCount} dòng thiếu. ${shortageLineCount > 0 ? 'Kế hoạch thu mua dự kiến sẽ lấy trực tiếp từ nhu cầu, tồn kho và lượng hàng đang chờ nhận.' : 'Không phát sinh dòng thiếu để mua thêm.'} ${missingBomCount > 0 ? `${missingBomCount} món chưa có định lượng nguyên liệu cần bổ sung.` : 'Định lượng nguyên liệu đã đủ cho các dòng nhu cầu.'}`,
       variant: missingBomCount > 0 || skipped > 0 ? 'warning' : 'info',
     })
   }
