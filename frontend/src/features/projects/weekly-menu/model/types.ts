@@ -3,6 +3,9 @@ import type { WeeklyMenuImportResult } from '../../../coordination/coordinationA
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 
 export interface MaterialSummaryEntry {
+  ingredientId: string
+  ingredientName: string
+  unitId: string
   theory: number
   actual: number
   unit: string

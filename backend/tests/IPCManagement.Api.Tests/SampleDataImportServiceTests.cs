@@ -1,4 +1,6 @@
+using System.IO.Compression;
 using System.Reflection;
+using System.Security;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
@@ -61,6 +63,141 @@ public class SampleDataImportServiceTests
         bomLines.Should().OnlyContain(line => line.CustomerId == null && line.BomStatus == "PUBLISHED");
         counts.BomLinesCreated.Should().Be(2);
         counts.BomLinesUpdated.Should().Be(1);
+    }
+
+    [Fact]
+    public void EnsureDish_Should_ReuseStableCode_WhenExistingDishWasRenamed()
+    {
+        const string sourceName = "Cá kho tộ";
+        var stableCode = InvokePrivateStatic<string>("StableCode", "DISH", sourceName);
+        var existing = new Dish
+        {
+            DishId = GuidHelper.NewId(),
+            DishCode = stableCode,
+            DishName = "Tên đã sửa thủ công",
+            IsActive = false
+        };
+        var dishes = new List<Dish> { existing };
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureDish",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = (Dish)method!.Invoke(service, [sourceName, "Món mặn", "MAIN", dishes, true, counts])!;
+
+        result.Should().BeSameAs(existing);
+        result.DishName.Should().Be(sourceName);
+        result.IsActive.Should().BeTrue();
+        dishes.Should().ContainSingle();
+        counts.DishesCreated.Should().Be(0);
+        counts.DishesUpdated.Should().Be(1);
+    }
+
+    [Fact]
+    public void EnsureIngredient_Should_ReuseStableCode_WhenExistingIngredientWasRenamed()
+    {
+        const string sourceName = "Sườn heo";
+        var stableCode = InvokePrivateStatic<string>("StableCode", "ING", sourceName);
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
+        var warehouse = new Warehouse { WarehouseId = GuidHelper.NewId(), WarehouseCode = "WH", WarehouseName = "Kho" };
+        var existing = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = stableCode,
+            IngredientName = "Tên đã sửa thủ công",
+            UnitId = unit.UnitId,
+            WarehouseId = warehouse.WarehouseId,
+            ReferencePrice = 0,
+            IsActive = false
+        };
+        var ingredients = new List<Ingredient> { existing };
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureIngredient",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = (Ingredient)method!.Invoke(
+            service,
+            [sourceName, unit, warehouse, 125000m, ingredients, true, counts, false])!;
+
+        result.Should().BeSameAs(existing);
+        result.IngredientName.Should().Be(sourceName);
+        result.ReferencePrice.Should().Be(125000m);
+        result.IsActive.Should().BeTrue();
+        ingredients.Should().ContainSingle();
+        counts.IngredientsCreated.Should().Be(0);
+        counts.IngredientsUpdated.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ImportAsync_Should_PersistStableIdsAndReferences_WhenRenamedRowsAreImportedAgain()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new SqliteSampleImportContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var service = new SampleDataImportService(context, null!);
+        using var fixture = CreateSampleImportFixture();
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        {
+            SourceDirectory = fixture.SourceDirectory,
+            DryRun = false,
+            MaxRows = 25
+        };
+
+        await service.ImportAsync(request);
+
+        var dish = await context.Dishes
+            .Include(item => item.Menuitems)
+            .FirstAsync(item => item.Menuitems.Count > 0);
+        var ingredient = await context.Ingredients
+            .Include(item => item.Inventoryreceiptlines)
+            .FirstAsync(item => item.Inventoryreceiptlines.Count > 0);
+        var originalDishName = dish.DishName;
+        var originalIngredientName = ingredient.IngredientName;
+        var dishId = dish.DishId.ToArray();
+        var ingredientId = ingredient.IngredientId.ToArray();
+        var dishCode = dish.DishCode;
+        var ingredientCode = ingredient.IngredientCode;
+        var menuItemId = dish.Menuitems.First().MenuItemId.ToArray();
+        var bomId = GuidHelper.NewId();
+
+        dish.DishName = "Tên món đã sửa thủ công";
+        ingredient.IngredientName = "Tên nguyên liệu đã sửa thủ công";
+        context.Dishboms.Add(new Dishbom
+        {
+            BomId = bomId,
+            DishId = dishId,
+            IngredientId = ingredientId,
+            UnitId = ingredient.UnitId,
+            GrossQtyPerServing = 1,
+            WasteRatePercent = 0,
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = new DateOnly(2026, 1, 1)
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+
+        await service.ImportAsync(request);
+        context.ChangeTracker.Clear();
+
+        var persistedDish = await context.Dishes.SingleAsync(item => item.DishCode == dishCode);
+        var persistedIngredient = await context.Ingredients.SingleAsync(item => item.IngredientCode == ingredientCode);
+        persistedDish.DishId.Should().Equal(dishId);
+        persistedDish.DishName.Should().Be(originalDishName);
+        persistedIngredient.IngredientId.Should().Equal(ingredientId);
+        persistedIngredient.IngredientName.Should().Be(originalIngredientName);
+        (await context.Dishes.CountAsync(item => item.DishCode == dishCode)).Should().Be(1);
+        (await context.Ingredients.CountAsync(item => item.IngredientCode == ingredientCode)).Should().Be(1);
+        (await context.Menuitems.SingleAsync(item => item.MenuItemId == menuItemId)).DishId.Should().Equal(dishId);
+        var persistedBom = await context.Dishboms.SingleAsync(item => item.BomId == bomId);
+        persistedBom.DishId.Should().Equal(dishId);
+        persistedBom.IngredientId.Should().Equal(ingredientId);
     }
 
     [Fact]
@@ -451,6 +588,190 @@ public class SampleDataImportServiceTests
 
         method.Should().NotBeNull();
         return (T)method!.Invoke(null, args)!;
+    }
+
+    private static SampleImportFixture CreateSampleImportFixture()
+    {
+        var sourceDirectory = Path.Combine(Path.GetTempPath(), $"ipc-sample-import-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(sourceDirectory);
+
+        try
+        {
+            CreateWorkbook(
+                Path.Combine(sourceDirectory, "THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx"),
+                [
+                    ("MENU",
+                    [
+                        ["", "", "THỰC ĐƠN DRAXLMAIER"],
+                        [],
+                        [],
+                        [],
+                        ["", "", "", "15/06/2026"],
+                        [],
+                        [],
+                        ["", "", "MENU MẶN - CA SÁNG"],
+                        ["", "", "Món mặn chính", "Cá kho tộ"]
+                    ])
+                ]);
+
+            CreateWorkbook(
+                Path.Combine(sourceDirectory, "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx"),
+                [
+                    ("SUMMARY", []),
+                    ("NCC TEST",
+                    [
+                        ["Ngày Giao hàng", "Tên hàng", "Đơn vị tính", "Số lượng", "Đơn giá"],
+                        ["19/05/2026", "Khoai tây", "Kg", "2", "15000"]
+                    ])
+                ]);
+
+            return new SampleImportFixture(sourceDirectory);
+        }
+        catch
+        {
+            Directory.Delete(sourceDirectory, recursive: true);
+            throw;
+        }
+    }
+
+    private static void CreateWorkbook(
+        string path,
+        IReadOnlyList<(string SheetName, IReadOnlyList<IReadOnlyList<string>> Rows)> sheets)
+    {
+        using var archive = ZipFile.Open(path, ZipArchiveMode.Create);
+        var sheetParts = sheets
+            .Select((sheet, index) => new { sheet.SheetName, sheet.Rows, PartIndex = index + 1 })
+            .ToList();
+
+        AddEntry(archive, "[Content_Types].xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+              <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+              <Default Extension="xml" ContentType="application/xml"/>
+              <Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>
+              {string.Concat(sheetParts.Select(part => $"""<Override PartName="/xl/worksheets/sheet{part.PartIndex}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>"""))}
+            </Types>
+            """);
+        AddEntry(archive, "_rels/.rels", """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>
+            </Relationships>
+            """);
+        AddEntry(archive, "xl/workbook.xml", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+              <sheets>
+                {string.Concat(sheetParts.Select(part => $"""<sheet name="{SecurityElement.Escape(part.SheetName)}" sheetId="{part.PartIndex}" r:id="rId{part.PartIndex}"/>"""))}
+              </sheets>
+            </workbook>
+            """);
+        AddEntry(archive, "xl/_rels/workbook.xml.rels", $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+              {string.Concat(sheetParts.Select(part => $"""<Relationship Id="rId{part.PartIndex}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet{part.PartIndex}.xml"/>"""))}
+            </Relationships>
+            """);
+
+        foreach (var part in sheetParts)
+        {
+            AddEntry(archive, $"xl/worksheets/sheet{part.PartIndex}.xml", BuildSheet(part.Rows));
+        }
+    }
+
+    private static string BuildSheet(IReadOnlyList<IReadOnlyList<string>> rows)
+    {
+        var xmlRows = rows.Select((row, rowIndex) =>
+        {
+            var cells = row.Select((value, columnIndex) =>
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    return string.Empty;
+                }
+
+                var reference = $"{ColumnLetter(columnIndex + 1)}{rowIndex + 1}";
+                return $"""<c r="{reference}" t="inlineStr"><is><t>{SecurityElement.Escape(value)}</t></is></c>""";
+            });
+
+            return $"""<row r="{rowIndex + 1}">{string.Concat(cells)}</row>""";
+        });
+
+        return $"""
+            <?xml version="1.0" encoding="UTF-8"?>
+            <worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+              <sheetData>
+                {string.Concat(xmlRows)}
+              </sheetData>
+            </worksheet>
+            """;
+    }
+
+    private static string ColumnLetter(int column)
+    {
+        var result = string.Empty;
+        while (column > 0)
+        {
+            column--;
+            result = (char)('A' + column % 26) + result;
+            column /= 26;
+        }
+
+        return result;
+    }
+
+    private static void AddEntry(ZipArchive archive, string path, string content)
+    {
+        var entry = archive.CreateEntry(path);
+        entry.LastWriteTime = new DateTimeOffset(2000, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        using var writer = new StreamWriter(entry.Open());
+        writer.Write(content);
+    }
+
+    private sealed class SampleImportFixture(string sourceDirectory) : IDisposable
+    {
+        public string SourceDirectory { get; } = sourceDirectory;
+
+        public void Dispose()
+        {
+            if (Directory.Exists(SourceDirectory))
+            {
+                Directory.Delete(SourceDirectory, recursive: true);
+            }
+        }
+    }
+
+    private sealed class SqliteSampleImportContext(DbContextOptions<IpcManagementContext> options)
+        : IpcManagementContext(options)
+    {
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+            modelBuilder.UseCollation(null);
+
+            foreach (var property in modelBuilder.Model.GetEntityTypes().SelectMany(entity => entity.GetProperties()))
+            {
+                property.SetCollation(null);
+                if (property.GetColumnType()?.StartsWith("enum(", StringComparison.OrdinalIgnoreCase) == true)
+                {
+                    property.SetColumnType("TEXT");
+                }
+
+                if (string.Equals(property.GetDefaultValueSql(), "CURRENT_TIMESTAMP(6)", StringComparison.OrdinalIgnoreCase))
+                {
+                    property.SetDefaultValueSql("CURRENT_TIMESTAMP");
+                }
+            }
+
+            foreach (var entity in modelBuilder.Model.GetEntityTypes())
+            {
+                var tableName = entity.GetTableName() ?? entity.Name;
+                foreach (var index in entity.GetIndexes())
+                {
+                    index.SetDatabaseName($"{tableName}_{index.GetDatabaseName()}");
+                }
+            }
+        }
     }
 
     private static object InvokeContractPolicy(

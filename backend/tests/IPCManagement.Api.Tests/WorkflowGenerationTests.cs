@@ -58,6 +58,69 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetIngredientDemandAggregatePageAsync_Should_ExcludeCancelledDemandFromActiveTotals()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            var activeLine = await context.Materialrequestlines.AsNoTracking().SingleAsync();
+            var cancelledRequestId = GuidHelper.NewId();
+            context.Materialrequests.Add(new Materialrequest
+            {
+                RequestId = cancelledRequestId,
+                RequestCode = "MR-CANCELLED-STALE",
+                PlanId = fixture.ProductionPlanId,
+                RequestDate = new DateOnly(2026, 6, 15),
+                RequestScope = "FULLDAY",
+                Status = "CANCELLED",
+                CreatedBy = fixture.UserId,
+                Materialrequestlines =
+                [
+                    new Materialrequestline
+                    {
+                        RequestLineId = GuidHelper.NewId(),
+                        RequestId = cancelledRequestId,
+                        PlanLineId = activeLine.PlanLineId,
+                        IngredientId = activeLine.IngredientId,
+                        UnitId = activeLine.UnitId,
+                        TotalServings = 500,
+                        GrossQtyPerServing = 1,
+                        BomRatePercent = 100,
+                        TotalRequiredQty = 500,
+                        CurrentStockQty = 0,
+                        SuggestedPurchaseQty = 500,
+                    },
+                ],
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+            new IngredientDemandAggregatePageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 20,
+            });
+
+        page.TotalCount.Should().Be(1);
+        page.ShortageCount.Should().Be(1);
+        var item = page.Items.Should().ContainSingle().Subject;
+        item.TotalRequiredQty.Should().Be(200m);
+        item.SuggestedPurchaseQty.Should().Be(200m);
+        item.LineCount.Should().Be(1);
+        item.HasCancelledLine.Should().BeFalse();
+    }
+
+    [Fact]
     public async Task GetMaterialRequestCandidatePageAsync_Should_PagePurchaseCandidatesBeyondOneHundredRequests()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -281,6 +344,209 @@ public class WorkflowGenerationTests
             purchaseLineCount.Should().Be(0);
             staleBomProductionLines.Should().Be(0);
         }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_BlockRecalculation_WhenPurchaseOrderReferencesDemand()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                fixture.UserIdString);
+            var purchaseLine = await context.Purchaserequestlines.SingleAsync();
+
+            context.Purchaseorders.Add(new Purchaseorder
+            {
+                PurchaseOrderId = GuidHelper.NewId(),
+                PurchaseOrderCode = "PO-DEMAND-LOCK",
+                PurchaseRequestId = GuidHelper.ParseGuidString(purchase!.PurchaseRequestId)!,
+                SupplierId = purchaseLine.SupplierId,
+                OrderDate = new DateOnly(2026, 6, 15),
+                Status = "ORDERED",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Purchaseorderlines =
+                [
+                    new Purchaseorderline
+                    {
+                        PurchaseOrderLineId = GuidHelper.NewId(),
+                        PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
+                        IngredientId = purchaseLine.IngredientId,
+                        UnitId = purchaseLine.UnitId,
+                        OrderedQty = purchaseLine.PurchaseQty,
+                        ReceivedQty = 0,
+                        UnitPrice = purchaseLine.EstimatedUnitPrice
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var menuItem = await context.Menuitems.SingleAsync();
+            context.Menuitems.Remove(menuItem);
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var service = new MaterialDemandService(context);
+            var act = () => service.GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Không thể tính lại nhu cầu đã phát sinh đơn mua hàng*");
+            (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+            (await context.Purchaseorderlines.AsNoTracking().CountAsync()).Should().Be(1);
+        }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_DemoteApprovedDemand_AndInvalidateDraftPurchaseRequestAtomically()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
+
+        await using var context = fixture.CreateContext();
+        var result = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        result.Should().NotBeNull();
+        result!.Status.Should().Be("DRAFT");
+        result.Lines.Should().ContainSingle().Which.TotalRequiredQty.Should().Be(240m);
+        (await context.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be("DRAFT");
+        (await context.Purchaserequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be("DRAFT");
+        (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Auditlogs.AsNoTracking().AnyAsync(audit =>
+            audit.BusinessArea == "Demand" &&
+            audit.FieldName == nameof(Materialrequest.Status) &&
+            audit.OldValue == "MANAGERAPPROVED" &&
+            audit.NewValue == "DRAFT")).Should().BeTrue();
+    }
+
+    [Theory]
+    [InlineData("SENTTOSUPPLIER")]
+    [InlineData("APPROVED")]
+    public async Task GenerateDemand_Should_BlockRecalculation_WhenPurchaseRequestIsNotDraft(string purchaseStatus)
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await SeedApprovedDemandWithPurchaseRequestAsync(fixture, purchaseStatus);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var act = () => new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage($"*đề xuất mua hàng*{purchaseStatus}*");
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        (await verificationContext.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be("MANAGERAPPROVED");
+        (await verificationContext.Materialrequestlines.AsNoTracking().Select(line => line.TotalRequiredQty).SingleAsync())
+            .Should().Be(200m);
+        (await verificationContext.Purchaserequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be(purchaseStatus);
+        (await verificationContext.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_BlockRecalculation_WhenCancelledPurchaseOrderPreservesHistory()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "APPROVED");
+
+        await using (var context = fixture.CreateContext())
+        {
+            var purchaseRequest = await context.Purchaserequests.SingleAsync();
+            var purchaseLine = await context.Purchaserequestlines.SingleAsync();
+            context.Purchaseorders.Add(new Purchaseorder
+            {
+                PurchaseOrderId = GuidHelper.NewId(),
+                PurchaseOrderCode = "PO-CANCELLED-DEMAND-LOCK",
+                PurchaseRequestId = purchaseRequest.PurchaseRequestId,
+                SupplierId = purchaseLine.SupplierId,
+                OrderDate = new DateOnly(2026, 6, 15),
+                Status = "CANCELLED",
+                CreatedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Purchaseorderlines =
+                [
+                    new Purchaseorderline
+                    {
+                        PurchaseOrderLineId = GuidHelper.NewId(),
+                        PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
+                        IngredientId = purchaseLine.IngredientId,
+                        UnitId = purchaseLine.UnitId,
+                        OrderedQty = purchaseLine.PurchaseQty,
+                        ReceivedQty = 0,
+                        UnitPrice = purchaseLine.EstimatedUnitPrice
+                    }
+                ]
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var act = () => new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Không thể tính lại nhu cầu đã phát sinh đơn mua hàng*");
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        (await verificationContext.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be("MANAGERAPPROVED");
+        (await verificationContext.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+        (await verificationContext.Purchaseorderlines.AsNoTracking().CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_RollBackDemandAndDraftPurchaseInvalidation_WhenPersistenceFails()
+    {
+        var interceptor = new FailOnPurchaseRequestLineDeleteInterceptor();
+        await using var fixture = await WorkflowFixture.CreateAsync(interceptor);
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+        await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
+
+        await using (var context = fixture.CreateContext())
+        {
+            var act = () => new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            await act.Should().ThrowAsync<DbUpdateException>();
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        (await verificationContext.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
+            .Should().Be("MANAGERAPPROVED");
+        (await verificationContext.Materialrequestlines.AsNoTracking().Select(line => line.TotalRequiredQty).SingleAsync())
+            .Should().Be(200m);
+        (await verificationContext.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -5270,6 +5536,58 @@ public class WorkflowGenerationTests
 
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
         }
+    }
+
+    private sealed class FailOnPurchaseRequestLineDeleteInterceptor : DbCommandInterceptor
+    {
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowOnPurchaseRequestLineDelete(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            ThrowOnPurchaseRequestLineDelete(command);
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private static void ThrowOnPurchaseRequestLineDelete(DbCommand command)
+        {
+            if (command.CommandText.Contains("DELETE FROM \"purchaserequestlines\"", StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Injected purchase-request line persistence failure.");
+            }
+        }
+    }
+
+    private static async Task SeedApprovedDemandWithPurchaseRequestAsync(
+        WorkflowFixture fixture,
+        string purchaseStatus)
+    {
+        await using var context = fixture.CreateContext();
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        var materialRequest = await context.Materialrequests.SingleAsync();
+        materialRequest.Status = "MANAGERAPPROVED";
+        var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            fixture.UserIdString);
+        var purchaseRequest = await context.Purchaserequests
+            .SingleAsync(request => request.PurchaseRequestId == GuidHelper.ParseGuidString(purchase!.PurchaseRequestId)!);
+        purchaseRequest.Status = purchaseStatus;
+        var quantityLine = await context.Mealquantityplanlines.SingleAsync();
+        quantityLine.FinalServings = 120;
+        await context.SaveChangesAsync();
     }
 
     private sealed class WorkflowFixture : IAsyncDisposable
