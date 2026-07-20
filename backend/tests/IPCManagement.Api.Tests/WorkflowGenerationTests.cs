@@ -117,7 +117,7 @@ public class WorkflowGenerationTests
         item.TotalRequiredQty.Should().Be(200m);
         item.SuggestedPurchaseQty.Should().Be(200m);
         item.LineCount.Should().Be(1);
-        item.HasCancelledLine.Should().BeTrue();
+        item.HasCancelledLine.Should().BeFalse();
     }
 
     [Fact]

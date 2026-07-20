@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MealQuantityPlanDto, OrderRow } from '../../../coordination/types'
-import { buildQuantityPlanByDateShift, buildQuickServingRows, getShiftServingInfo } from './scheduleModel'
+import { buildQuantityPlanByDateShift, buildQuickServingRows, getShiftServingInfo, resolveSlotServingInfo } from './scheduleModel'
 import type { WeeklyMenuScope } from './types'
 
 const plans = [{
@@ -40,17 +40,24 @@ describe('weekly schedule model', () => {
       inputValue: '',
     })
 
-    expect(getShiftServingInfo({
+    const shiftInfo = getShiftServingInfo({
       dayKey: 't2',
       shiftName: 'MORNING',
       serviceDate: '2026-07-20',
       quantityPlans: byShift,
       orders: [{ dayOfWeek: 't2', shift: 'Ca Sáng', actualQuantity: 80, forecastQuantity: 120 }] as OrderRow[],
       lockedShifts: {},
-    })).toEqual({
+    })
+    expect(shiftInfo).toEqual({
       servings: 0,
       status: 'confirmed',
       statusLabel: 'Đã chốt suất',
+    })
+    expect(resolveSlotServingInfo(shiftInfo, 120, false)).toMatchObject({
+      portions: 0,
+      importedPortions: 120,
+      status: 'confirmed',
+      hasConfirmedServings: true,
     })
   })
 })

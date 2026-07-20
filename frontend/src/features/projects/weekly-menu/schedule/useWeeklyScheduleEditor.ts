@@ -9,7 +9,7 @@ import { normalizeBomPriceTier } from '../../weeklyMenuPlanning'
 import { getApiErrorMessage } from '../model/formatters'
 import { matchesCategory, matchesShift, SECTIONS } from '../model/scope'
 import type { WeeklyPlanRow } from '../model/types'
-import { buildQuantityPlanByDateShift, buildQuickServingRows, cloneWeeklyMenu, getScheduleServiceDate, getShiftServingInfo } from './scheduleModel'
+import { buildQuantityPlanByDateShift, buildQuickServingRows, cloneWeeklyMenu, getScheduleServiceDate, getShiftServingInfo, resolveSlotServingInfo } from './scheduleModel'
 import { initialWeeklyScheduleState, weeklyScheduleReducer } from './scheduleState'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleEditorWorkflow, WeeklyScheduleFeedback } from './types'
 
@@ -81,27 +81,8 @@ export function useWeeklyScheduleEditor({
       orders: activeOrders,
       lockedShifts,
     })
-    const savoryPortions = Math.round(shiftInfo.servings * 0.85)
-    const calculatedPortions = slotType.endsWith('Vegetarian')
-      ? shiftInfo.servings - savoryPortions
-      : savoryPortions
     const importedPortions = importedMenu[dayKey]?.[slotType]?.portions ?? 0
-    if (shiftInfo.servings > 0) {
-      return {
-        portions: calculatedPortions,
-        importedPortions,
-        status: shiftInfo.status,
-        statusLabel: shiftInfo.statusLabel,
-        hasConfirmedServings: shiftInfo.status === 'confirmed',
-      }
-    }
-    return {
-      portions: importedPortions,
-      importedPortions,
-      status: importedPortions > 0 ? 'import-default' as const : 'missing' as const,
-      statusLabel: importedPortions > 0 ? 'Suất tạm từ import' : 'Chưa có số suất',
-      hasConfirmedServings: importedPortions > 0,
-    }
+    return resolveSlotServingInfo(shiftInfo, importedPortions, slotType.endsWith('Vegetarian'))
   }, [activeOrders, importedMenu, lockedShifts, quantityPlans, serviceDate])
   const weeklyMenu = useMemo(() => {
     const merged: WeeklyMenuState = {}

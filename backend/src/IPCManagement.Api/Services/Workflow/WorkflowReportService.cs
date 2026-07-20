@@ -726,7 +726,8 @@ public class WorkflowReportService : IWorkflowReportService
                     .Max(item => (double)item.CurrentStockQty),
                 SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
                 LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
-                HasCancelledLine = group.Any(item => item.Request.Status == "CANCELLED"),
+                // Cancelled history must not mark a successfully regenerated active group as stale.
+                HasCancelledLine = false,
             })
             .ToListAsync();
 

@@ -62,6 +62,31 @@ export const getShiftServingInfo = ({
     : { servings: 0, status: 'missing' as const, statusLabel: 'Chưa có số suất' }
 }
 
+export const resolveSlotServingInfo = (
+  shiftInfo: ReturnType<typeof getShiftServingInfo>,
+  importedPortions: number,
+  vegetarian: boolean,
+) => {
+  if (shiftInfo.status !== 'missing') {
+    const savoryPortions = Math.round(shiftInfo.servings * 0.85)
+    return {
+      portions: vegetarian ? shiftInfo.servings - savoryPortions : savoryPortions,
+      importedPortions,
+      status: shiftInfo.status,
+      statusLabel: shiftInfo.statusLabel,
+      hasConfirmedServings: shiftInfo.status === 'confirmed',
+    }
+  }
+
+  return {
+    portions: importedPortions,
+    importedPortions,
+    status: importedPortions > 0 ? 'import-default' as const : 'missing' as const,
+    statusLabel: importedPortions > 0 ? 'Suất tạm từ import' : 'Chưa có số suất',
+    hasConfirmedServings: importedPortions > 0,
+  }
+}
+
 export const buildQuickServingRows = ({
   scope,
   committedRows,
