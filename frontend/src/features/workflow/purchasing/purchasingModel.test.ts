@@ -1,5 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { formatPurchaseRequestCandidate, mapPurchasePlanLines, mapPurchaseRequestLines } from './purchasingModel';
+import type { PurchaseRequestResult, WarehouseDto } from '../workflowApi';
+import {
+  formatPurchaseRequestCandidate,
+  getActionableDraftPurchaseRequests,
+  getSelectedReceiptWarehouseId,
+  mapPurchasePlanLines,
+  mapPurchaseRequestLines,
+  mapWarehouseOptions,
+} from './purchasingModel';
+
+const makePurchaseRequest = (status: string, id: string): PurchaseRequestResult => ({
+  purchaseRequestId: id,
+  purchaseRequestCode: `PR-${id}`,
+  materialRequestId: `material-${id}`,
+  purchaseForDate: '2026-07-20',
+  status,
+  lines: [{
+    purchaseRequestLineId: `line-${id}`,
+    materialRequestLineId: `material-line-${id}`,
+    ingredientId: 'ingredient-1',
+    ingredientName: 'Gạo',
+    supplierId: '',
+    supplierName: '',
+    unitId: 'unit-1',
+    unitName: 'kg',
+    requiredQty: 100,
+    currentStockQty: 40,
+    purchaseQty: 60,
+    estimatedUnitPrice: 20_000,
+  }],
+});
 
 describe('purchasing model', () => {
   it('maps shortage plans without dropping stock already pending receipt', () => {
@@ -51,5 +81,37 @@ describe('purchasing model', () => {
   it('labels an existing proposal in the material-request candidate', () => {
     expect(formatPurchaseRequestCandidate({ materialRequestCode: 'MR-001', requestDate: '2026-07-20', actionableLineCount: 3, hasExistingPurchaseRequest: true }))
       .toContain('Đã có đề xuất');
+  });
+
+  it('keeps only actionable DRAFT requests when backend pages contain mixed statuses', () => {
+    const emptyDraft = { ...makePurchaseRequest('DRAFT', 'empty'), lines: [] };
+    const requests = [
+      makePurchaseRequest('SUBMITTED', 'submitted'),
+      makePurchaseRequest('DRAFT', 'draft'),
+      makePurchaseRequest('APPROVED', 'approved'),
+      emptyDraft,
+    ];
+
+    expect(getActionableDraftPurchaseRequests(requests).map((request) => request.purchaseRequestId))
+      .toEqual(['draft']);
+  });
+
+  it('uses the dedicated warehouse catalog when it is empty or contains more than 20 warehouses', () => {
+    expect(mapWarehouseOptions([])).toEqual([]);
+
+    const warehouses: WarehouseDto[] = Array.from({ length: 25 }, (_, index) => ({
+      warehouseId: `warehouse-${index + 1}`,
+      warehouseCode: `WH-${index + 1}`,
+      warehouseName: `Kho ${index + 1}`,
+    }));
+    const options = mapWarehouseOptions(warehouses);
+
+    expect(options).toHaveLength(25);
+    expect(options[24]).toEqual({ warehouseId: 'warehouse-25', warehouse: 'Kho 25' });
+  });
+
+  it('requires an explicit warehouse selection instead of silently using the first catalog item', () => {
+    expect(getSelectedReceiptWarehouseId({}, 'order-1')).toBe('');
+    expect(getSelectedReceiptWarehouseId({ 'order-1': 'warehouse-25' }, 'order-1')).toBe('warehouse-25');
   });
 });

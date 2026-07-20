@@ -1,5 +1,5 @@
 import type { DemandLine } from '@/features/workflow';
-import type { PurchaseRequestResult } from '../workflowApi';
+import type { PurchaseRequestResult, WarehouseDto } from '../workflowApi';
 
 export const getPurchasingErrorMessage = (error: unknown) =>
   (error as { data?: { message?: string }; message?: string })?.data?.message ??
@@ -65,6 +65,24 @@ export function mapPurchaseRequestLines(requests: PurchaseRequestResult[]): Dema
       tone: request.status === 'APPROVED' ? 'success' : request.status === 'SUBMITTED' ? 'warning' : 'neutral',
     })),
   );
+}
+
+export function getActionableDraftPurchaseRequests(requests: PurchaseRequestResult[]) {
+  return requests.filter((request) => request.status === 'DRAFT' && request.lines.length > 0);
+}
+
+export function mapWarehouseOptions(warehouses: WarehouseDto[]) {
+  return warehouses.map((warehouse) => ({
+    warehouseId: warehouse.warehouseId,
+    warehouse: warehouse.warehouseName,
+  }));
+}
+
+export function getSelectedReceiptWarehouseId(
+  receiveWarehouseByOrder: Record<string, string>,
+  purchaseOrderId: string,
+) {
+  return receiveWarehouseByOrder[purchaseOrderId] ?? '';
 }
 
 export function formatPurchaseRequestCandidate(candidate: {

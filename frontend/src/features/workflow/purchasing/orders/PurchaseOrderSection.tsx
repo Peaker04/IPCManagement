@@ -41,8 +41,8 @@ export function PurchaseOrderSection({ workflow }: { workflow: PurchaseOrderWork
                   {workflow.expandedOrderId === order.purchaseOrderId && <tr><td colSpan={6}>
                     <div className="space-y-2 rounded-md bg-slate-50 p-3">
                       <label className="flex flex-col gap-1 text-sm text-slate-700 md:max-w-xs">Kho nhập hàng
-                        <select className="ipc-input" value={workflow.receiveWarehouseByOrder[order.purchaseOrderId] || workflow.warehouseOptions[0]?.warehouseId || ''} onChange={(event) => workflow.setReceiveWarehouseByOrder({ ...workflow.receiveWarehouseByOrder, [order.purchaseOrderId]: event.target.value })}>
-                          {workflow.warehouseOptions.length === 0 && <option value="">Chưa có kho từ tồn hiện tại</option>}
+                        <select className="ipc-input" value={workflow.receiveWarehouseByOrder[order.purchaseOrderId] ?? ''} onChange={(event) => workflow.setReceiveWarehouseByOrder({ ...workflow.receiveWarehouseByOrder, [order.purchaseOrderId]: event.target.value })}>
+                          <option value="">{workflow.warehouseOptions.length === 0 ? 'Chưa có kho trong danh mục' : 'Chọn kho nhập hàng'}</option>
                           {workflow.warehouseOptions.map((warehouse) => <option key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouse}</option>)}
                         </select>
                       </label>

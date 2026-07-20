@@ -3,13 +3,18 @@ import { useToast } from '@/components/common';
 import {
   useCancelPurchaseOrderMutation,
   useCreatePurchaseOrdersFromRequestMutation,
-  useGetCurrentStockQuery,
   useGetPurchaseOrdersPageQuery,
   useGetPurchaseRequestsPageQuery,
   useRecordPurchaseOrderReceiptMutation,
   type PurchaseOrderDto,
 } from '@/features/workflow';
-import { getPurchasingErrorMessage, mapPurchaseRequestLines } from '../purchasingModel';
+import { useGetWarehousesQuery } from '../../workflowApi';
+import {
+  getPurchasingErrorMessage,
+  getSelectedReceiptWarehouseId,
+  mapPurchaseRequestLines,
+  mapWarehouseOptions,
+} from '../purchasingModel';
 
 export function usePurchaseOrders(enabled = true) {
   const { toast } = useToast();
@@ -27,8 +32,8 @@ export function usePurchaseOrders(enabled = true) {
     { status: 'APPROVED', pageNumber: approvedRequestPage, pageSize: 8 },
     { skip: !enabled },
   );
-  const { data: currentStockRows = [] } = useGetCurrentStockQuery(
-    { limit: 20 },
+  const { data: warehouseResponse } = useGetWarehousesQuery(
+    { pageNumber: 1, pageSize: 100 },
     { skip: !enabled },
   );
   const [createFromRequest, { isLoading: isCreating }] = useCreatePurchaseOrdersFromRequestMutation();
@@ -36,8 +41,7 @@ export function usePurchaseOrders(enabled = true) {
   const [cancelOrder] = useCancelPurchaseOrderMutation();
   const orders = response?.page.items ?? [];
   const purchaseRequestLines = mapPurchaseRequestLines(requestResponse?.items ?? []);
-  const warehouseOptions = Array.from(new Map(currentStockRows.map((row) => [row.warehouseId, row.warehouse])).entries())
-    .map(([warehouseId, warehouse]) => ({ warehouseId, warehouse }));
+  const warehouseOptions = mapWarehouseOptions(warehouseResponse?.items ?? []);
 
   const supplierCountByRequest = new Map<string, Set<string>>();
   purchaseRequestLines.forEach((line) => {
@@ -63,7 +67,7 @@ export function usePurchaseOrders(enabled = true) {
   };
 
   const receive = async (order: PurchaseOrderDto) => {
-    const warehouseId = receiveWarehouseByOrder[order.purchaseOrderId] || warehouseOptions[0]?.warehouseId || '';
+    const warehouseId = getSelectedReceiptWarehouseId(receiveWarehouseByOrder, order.purchaseOrderId);
     if (!warehouseId) {
       toast({ title: 'Thiếu kho nhập hàng', description: 'Vui lòng chọn kho trước khi ghi nhận nhận hàng.', variant: 'warning' });
       return;

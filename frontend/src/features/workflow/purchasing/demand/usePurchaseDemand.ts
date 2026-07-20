@@ -9,6 +9,7 @@ import {
 } from '@/features/workflow';
 import {
   formatPurchaseRequestCandidate,
+  getActionableDraftPurchaseRequests,
   getPurchasingErrorMessage,
   mapPurchasePlanLines,
   mapPurchaseRequestLines,
@@ -34,6 +35,7 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
     pageSize: PAGE_SIZE,
   });
   const { data: purchaseRequestsResponse } = useGetPurchaseRequestsPageQuery({
+    status: 'DRAFT',
     pageNumber: purchaseRequestPage,
     pageSize: PAGE_SIZE,
   });
@@ -41,12 +43,13 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
   const [submitRequest, { isLoading: isSubmitting }] = useSubmitPurchaseRequestMutation();
 
   const purchasePlanLines = mapPurchasePlanLines(purchasePlanResponse?.items ?? []);
-  const purchaseRequestLines = mapPurchaseRequestLines(purchaseRequestsResponse?.items ?? []);
+  const actionableDraftRequests = getActionableDraftPurchaseRequests(purchaseRequestsResponse?.items ?? []);
+  const purchaseRequestLines = mapPurchaseRequestLines(actionableDraftRequests);
   const candidates = candidateResponse?.items ?? [];
   const selectedCandidate = candidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const primaryPlan = purchasePlanLines.find((line) => line.tone === 'danger' || line.tone === 'warning') ?? purchasePlanLines[0];
   const primaryRequestLine = purchaseRequestLines.find((line) => line.purchaseRequestId) ?? purchaseRequestLines[0];
-  const submitTargetId = primaryRequestLine?.purchaseRequestId;
+  const submitTargetId = actionableDraftRequests[0]?.purchaseRequestId;
 
   const openCreateDialog = () => {
     setPurchaseCandidatePage(1);

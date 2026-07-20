@@ -149,6 +149,14 @@ export interface CreateInventoryReceiptFromPurchaseRequest {
   lines: CreateInventoryReceiptFromPurchaseLineRequest[];
 }
 
+export interface WarehouseDto {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  warehouseType?: string | null;
+  note?: string | null;
+}
+
 export interface GeneratePurchaseRequestFromDemandRequest {
   materialRequestId: string;
 }
@@ -1450,6 +1458,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       query: () => '/suppliers',
       transformResponse: (response: ApiResponse<SupplierDto[]>) => getData(response),
     }),
+    getWarehouses: builder.query<PageNumberPage<WarehouseDto>, { pageNumber?: number; pageSize?: number } | void>({
+      query: (query) => ({
+        url: '/warehouses',
+        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 100 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<WarehouseDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+    }),
     updatePurchaseRequestLineSupplier: builder.mutation<
       ApiResponse<void>,
       { purchaseRequestId: string; purchaseRequestLineId: string; data: UpdatePurchaseRequestLineSupplierDto }
@@ -2112,6 +2129,7 @@ export const {
   useGetAuditChangesQuery,
   useGetAuditChangePageQuery,
   useGetSuppliersQuery,
+  useGetWarehousesQuery,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
   useGetDataQualityPageQuery,
