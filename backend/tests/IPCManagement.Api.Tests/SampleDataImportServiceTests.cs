@@ -93,6 +93,43 @@ public class SampleDataImportServiceTests
     }
 
     [Fact]
+    public void EnsureIngredient_Should_ReuseStableCode_WhenExistingIngredientWasRenamed()
+    {
+        const string sourceName = "Sườn heo";
+        var stableCode = InvokePrivateStatic<string>("StableCode", "ING", sourceName);
+        var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
+        var warehouse = new Warehouse { WarehouseId = GuidHelper.NewId(), WarehouseCode = "WH", WarehouseName = "Kho" };
+        var existing = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = stableCode,
+            IngredientName = "Tên đã sửa thủ công",
+            UnitId = unit.UnitId,
+            WarehouseId = warehouse.WarehouseId,
+            ReferencePrice = 0,
+            IsActive = false
+        };
+        var ingredients = new List<Ingredient> { existing };
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureIngredient",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = (Ingredient)method!.Invoke(
+            service,
+            [sourceName, unit, warehouse, 125000m, ingredients, true, counts, false])!;
+
+        result.Should().BeSameAs(existing);
+        result.IngredientName.Should().Be(sourceName);
+        result.ReferencePrice.Should().Be(125000m);
+        result.IsActive.Should().BeTrue();
+        ingredients.Should().ContainSingle();
+        counts.IngredientsCreated.Should().Be(0);
+        counts.IngredientsUpdated.Should().Be(1);
+    }
+
+    [Fact]
     public void CalculateWeightedGrossQty_Should_MergeRepeatedWorkbookBatches()
     {
         var bananaRows = new List<IReadOnlyDictionary<string, string>>
