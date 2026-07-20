@@ -23,6 +23,8 @@ import purchaseOrderWorkflowSource from './workflow/purchasing/orders/usePurchas
 import supplierQuotationWorkflowSource from './workflow/purchasing/quotation/useSupplierQuotations.ts?raw'
 import purchaseHandoffWorkflowSource from './workflow/purchasing/handoff/usePurchaseHandoff.ts?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
+import kitchenReceiptWorkflowSource from './chef/receipts/useKitchenReceipts.ts?raw'
+import chefExceptionWorkflowSource from './chef/exceptions/useChefExceptions.ts?raw'
 
 describe('operational page refactor contracts', () => {
   it('keeps the three MVP workflows on their existing routes', () => {
@@ -89,7 +91,11 @@ describe('operational page refactor contracts', () => {
   })
 
   it('keeps kitchen receipt and supplemental request mutations wired to real APIs', () => {
-    const source = chefDashboardPageSource
+    const source = [
+      chefDashboardPageSource,
+      kitchenReceiptWorkflowSource,
+      chefExceptionWorkflowSource,
+    ].join('\n')
 
     expect(source).toContain('useConfirmInventoryIssueReceiptMutation')
     expect(source).toContain('useCreateSupplementalMaterialRequestMutation')
