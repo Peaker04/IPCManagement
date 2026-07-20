@@ -30,7 +30,7 @@ vi.mock('@/features/workflow', () => ({
   useCreateInventoryReturnMutation: () => [mocks.createReturn, { isLoading: false }],
   useCreateSupplementalMaterialRequestMutation: () => [mocks.createSupplemental, { isLoading: false }],
   useGetDailyProductionPlanQuery: mocks.getDailyPlan,
-  useGetKitchenIssuesQuery: mocks.getKitchenIssues,
+  useGetKitchenIssuesPageQuery: mocks.getKitchenIssues,
   useSendDailyProductionPlanToKitchenMutation: () => [mocks.sendDailyPlan, { isLoading: false }],
 }))
 
@@ -70,19 +70,28 @@ describe('chef workflow service-date behavior', () => {
     vi.clearAllMocks()
     mocks.getCatalog.mockReturnValue({ data: [], isLoading: false, isError: false })
     mocks.getDailyPlan.mockReturnValue({ data: undefined, isLoading: false, isError: false })
-    mocks.getKitchenIssues.mockReturnValue({ data: [], isLoading: false, isError: false })
+    mocks.getKitchenIssues.mockReturnValue({
+      data: { items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false },
+      isLoading: false,
+      isError: false,
+    })
   })
 
   it('queries receipts by service date and shift and cannot confirm a non-matching issue', async () => {
     const unrelatedIssue = issue({ issueDate: '2026-07-19', shiftName: 'AFTERNOON' })
-    mocks.getKitchenIssues.mockReturnValue({ data: [unrelatedIssue], isLoading: false, isError: false })
+    mocks.getKitchenIssues.mockReturnValue({
+      data: { items: [unrelatedIssue], totalCount: 1, pageNumber: 1, pageSize: 100, totalPages: 1, hasPrev: false, hasNext: false },
+      isLoading: false,
+      isError: false,
+    })
     const { result } = renderHook(() => useKitchenReceipts(scope, vi.fn()))
 
     expect(mocks.getKitchenIssues).toHaveBeenCalledWith({
       dateFrom: '2026-07-20',
       dateTo: '2026-07-20',
       shiftName: 'MORNING',
-      limit: 100,
+      pageNumber: 1,
+      pageSize: 100,
     })
     expect(result.current.rows).toEqual([])
 
@@ -96,6 +105,30 @@ describe('chef workflow service-date behavior', () => {
       issueId: unrelatedIssue.issueId,
     }, true))
     expect(mocks.confirmReceipt).not.toHaveBeenCalled()
+  })
+
+  it('exposes server totals and page navigation when a receipt has more than 100 lines', () => {
+    const firstPage = Array.from({ length: 100 }, (_, index) => issue({
+      id: `issue-1-line-${index + 1}`,
+      ingredientId: `ingredient-${index + 1}`,
+      ingredient: `Nguyên liệu ${index + 1}`,
+    }))
+    mocks.getKitchenIssues.mockReturnValue({
+      data: { items: firstPage, totalCount: 101, pageNumber: 1, pageSize: 100, totalPages: 2, hasPrev: false, hasNext: true },
+      isLoading: false,
+      isError: false,
+    })
+
+    const { result } = renderHook(() => useKitchenReceipts(scope, vi.fn()))
+
+    expect(result.current.rows).toHaveLength(100)
+    expect(result.current.pendingCount).toBe(0)
+    expect(result.current.totalCount).toBe(101)
+    expect(result.current.hasAdditionalPages).toBe(true)
+    expect(result.current.allReceived).toBe(false)
+
+    act(() => result.current.setPage(2))
+    expect(mocks.getKitchenIssues).toHaveBeenLastCalledWith(expect.objectContaining({ pageNumber: 2, pageSize: 100 }))
   })
 
   it('does not expose supplemental or return mutations when the selected scope has no issue', async () => {

@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react'
-import { EmptyState, SplitWorkbench } from '@/components/common'
+import { EmptyState, PaginationBar, SplitWorkbench } from '@/components/common'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { HeadChefDashboard } from '../components/head-chef-dashboard'
 import { ShiftJournal } from '../journal/ShiftJournal'
@@ -11,6 +11,10 @@ type Props = {
   onSupplementalRequest: (data: SupplementalRequest) => Promise<boolean>
   onExcessMaterialReturn: (data: ExcessMaterial) => Promise<void>
   onMaterialSignoff: (materialId: string, signed: boolean) => Promise<void>
+  receiptPage: number
+  receiptPageSize: number
+  receiptTotalCount: number
+  onReceiptPageChange: (page: number) => void
 }
 
 export function KitchenReceiptSection({
@@ -20,6 +24,10 @@ export function KitchenReceiptSection({
   onSupplementalRequest,
   onExcessMaterialReturn,
   onMaterialSignoff,
+  receiptPage,
+  receiptPageSize,
+  receiptTotalCount,
+  onReceiptPageChange,
 }: Props) {
   return (
     <SplitWorkbench detailLabel="Nhật ký ca" detail={<ShiftJournal returns={returns} />} className="ipc-chef-split-workbench">
@@ -31,13 +39,22 @@ export function KitchenReceiptSection({
           className="ipc-chef-empty-state !min-h-0 py-8 text-slate-500"
         />
       ) : (
-        <HeadChefDashboard
-          productionPlan={productionPlan}
-          isSubmittingSupplementalRequest={isSubmittingSupplemental}
-          onSupplementalRequest={onSupplementalRequest}
-          onExcessMaterialReturn={(data) => void onExcessMaterialReturn(data)}
-          onMaterialSignoff={(materialId, signed) => void onMaterialSignoff(materialId, signed)}
-        />
+        <>
+          <HeadChefDashboard
+            productionPlan={productionPlan}
+            isSubmittingSupplementalRequest={isSubmittingSupplemental}
+            onSupplementalRequest={onSupplementalRequest}
+            onExcessMaterialReturn={(data) => void onExcessMaterialReturn(data)}
+            onMaterialSignoff={(materialId, signed) => void onMaterialSignoff(materialId, signed)}
+          />
+          <PaginationBar
+            className="mt-4"
+            page={receiptPage}
+            pageSize={receiptPageSize}
+            totalItems={receiptTotalCount}
+            onPageChange={onReceiptPageChange}
+          />
+        </>
       )}
     </SplitWorkbench>
   )

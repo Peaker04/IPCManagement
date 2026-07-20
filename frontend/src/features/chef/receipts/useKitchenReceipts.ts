@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import {
   useConfirmInventoryIssueReceiptMutation,
-  useGetKitchenIssuesQuery,
+  useGetKitchenIssuesPageQuery,
 } from '@/features/workflow'
 import { countPendingKitchenReceipts } from '../chefReadiness'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
@@ -9,18 +9,26 @@ import { filterKitchenIssues } from '../production/chefProductionModel'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
 export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void) {
-  const query = useGetKitchenIssuesQuery({
+  const scopeKey = `${scope.serviceDate}-${scope.apiShiftName}`
+  const [pagination, setPagination] = useState({ scopeKey, page: 1 })
+  const page = pagination.scopeKey === scopeKey ? pagination.page : 1
+  const setPage = (nextPage: number) => setPagination({ scopeKey, page: nextPage })
+  const query = useGetKitchenIssuesPageQuery({
     dateFrom: scope.serviceDate,
     dateTo: scope.serviceDate,
     shiftName: scope.apiShiftName,
-    limit: 100,
+    pageNumber: page,
+    pageSize: 100,
   })
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
+  const response = query.currentData ?? query.data
   const rows = useMemo(
-    () => filterKitchenIssues(query.data ?? [], scope.serviceDate, scope.activeShift),
-    [query.data, scope.serviceDate, scope.activeShift],
+    () => filterKitchenIssues(response?.items ?? [], scope.serviceDate, scope.activeShift),
+    [response?.items, scope.serviceDate, scope.activeShift],
   )
+  const pendingCount = countPendingKitchenReceipts(rows)
+  const hasAdditionalPages = (response?.totalPages ?? 0) > 1
 
   const signOff = async (material: ChefMaterial | undefined, signed: boolean) => {
     if (!material) return
@@ -66,7 +74,13 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
   return {
     rows,
     signedMaterials,
-    pendingCount: countPendingKitchenReceipts(rows),
+    pendingCount,
+    page: response?.pageNumber ?? page,
+    pageSize: response?.pageSize ?? 100,
+    totalCount: response?.totalCount ?? rows.length,
+    hasAdditionalPages,
+    allReceived: rows.length > 0 && pendingCount === 0 && !hasAdditionalPages,
+    setPage,
     signOff,
     isLoading: query.isLoading,
     isError: query.isError,

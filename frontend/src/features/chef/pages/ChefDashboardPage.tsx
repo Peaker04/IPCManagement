@@ -35,6 +35,7 @@ export default function ChefDashboardPage() {
   const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback)
   const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback)
   const journal = useChefJournal()
+  const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
 
   const statusMessages = [
     production.status.isCatalogLoading ? 'Đang tải danh mục món ăn và định lượng để lập danh sách nguyên liệu.' : null,
@@ -44,8 +45,10 @@ export default function ChefDashboardPage() {
     receipts.isError ? 'Chưa tải được phiếu xuất kho; danh sách tạm dùng dữ liệu dự kiến từ định lượng.' : null,
     receipts.rows.length > 0
       ? receipts.pendingCount > 0
-        ? `${receipts.pendingCount} dòng nguyên liệu đang chờ bếp trưởng ký nhận trên hệ thống.`
-        : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
+        ? `${receipts.pendingCount} dòng nguyên liệu trên trang ${receipts.page} đang chờ bếp trưởng ký nhận.`
+        : hasUnreviewedReceiptPages
+          ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
+          : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
     production.status.isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
     production.status.isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
@@ -71,7 +74,7 @@ export default function ChefDashboardPage() {
           <ContextStrip items={[
             { label: 'Kế hoạch hôm nay', value: production.dailyPlan ? `${production.dailyPlan.sentPlans}/${production.dailyPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: production.dailyPlan?.sentPlans ? 'success' : 'warning' },
             { label: 'Phiếu trả', value: `${journal.returnDocuments.length} chứng từ`, tone: 'neutral' },
-            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký` : receipts.rows.length > 0 ? 'Đã ký nhận' : scope.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 ? 'warning' : receipts.rows.length > 0 ? 'success' : scope.isLocked ? 'warning' : 'neutral' },
+            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : scope.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : scope.isLocked ? 'warning' : 'neutral' },
           ]} />
           <ShiftAlert isLocked={scope.isLocked} />
           {statusMessages.length > 0 && (
@@ -101,6 +104,10 @@ export default function ChefDashboardPage() {
               onSupplementalRequest={exceptions.requestSupplemental}
               onExcessMaterialReturn={exceptions.recordReturn}
               onMaterialSignoff={signOffMaterial}
+              receiptPage={receipts.page}
+              receiptPageSize={receipts.pageSize}
+              receiptTotalCount={receipts.totalCount}
+              onReceiptPageChange={receipts.setPage}
             />
           </div>
         )}
