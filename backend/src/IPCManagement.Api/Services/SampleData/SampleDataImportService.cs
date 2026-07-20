@@ -902,10 +902,13 @@ public partial class SampleDataImportService : ISampleDataImportService
     {
         referencePrice = DecimalPolicy.RoundMoney(referencePrice);
         var normalized = NormalizeName(ingredientName);
+        var stableCode = StableCode("ING", ingredientName);
         var existing = ingredients.FirstOrDefault(item =>
-            string.Equals(NormalizeName(item.IngredientName), normalized, StringComparison.OrdinalIgnoreCase));
+            string.Equals(NormalizeName(item.IngredientName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.IngredientCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
+            existing.IngredientName = ingredientName.Trim();
             if (updateUnit && !existing.UnitId.SequenceEqual(unit.UnitId))
             {
                 existing.UnitId = unit.UnitId;
@@ -925,7 +928,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         var ingredient = new Ingredient
         {
             IngredientId = GuidHelper.NewId(),
-            IngredientCode = StableCode("ING", ingredientName),
+            IngredientCode = stableCode,
             IngredientName = ingredientName.Trim(),
             UnitId = unit.UnitId,
             WarehouseId = warehouse.WarehouseId,
@@ -966,10 +969,13 @@ public partial class SampleDataImportService : ISampleDataImportService
         SampleDataImportCountsDto counts)
     {
         var normalized = NormalizeName(dishName);
+        var stableCode = StableCode("DISH", dishName);
         var existing = dishes.FirstOrDefault(item =>
-            string.Equals(NormalizeName(item.DishName), normalized, StringComparison.OrdinalIgnoreCase));
+            string.Equals(NormalizeName(item.DishName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.DishCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
+            existing.DishName = dishName.Trim();
             existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
             existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
             existing.IsActive = true;
@@ -981,7 +987,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         var dish = new Dish
         {
             DishId = GuidHelper.NewId(),
-            DishCode = StableCode("DISH", dishName),
+            DishCode = stableCode,
             DishName = dishName.Trim(),
             DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? null : dishGroup.Trim(),
             DishType = string.IsNullOrWhiteSpace(dishType) ? null : dishType.Trim(),

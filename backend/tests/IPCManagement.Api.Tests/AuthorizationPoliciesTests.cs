@@ -23,6 +23,8 @@ public class AuthorizationPoliciesTests
         permissions.Should().Contain(AuthorizationPolicies.PurchaseRead);
         permissions.Should().Contain(AuthorizationPolicies.PurchaseGenerate);
         permissions.Should().NotContain(AuthorizationPolicies.DemandGenerate);
+        AuthorizationPolicies.WarehouseCatalogRoles.Should().Contain("Thu mua");
+        AuthorizationPolicies.WarehouseRoles.Should().NotContain("Thu mua");
     }
 
     [Fact]

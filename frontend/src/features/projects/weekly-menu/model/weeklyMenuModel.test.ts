@@ -8,7 +8,9 @@ import {
   parseDisplayDateToIso,
   summarizeImportWarnings,
 } from './formatters'
-import { aggregateDemandLinesByMaterial, getQuickServingKey } from './scope'
+import type { CatalogDish } from '../../dishCatalogApi'
+import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, getQuickServingKey } from './scope'
+import type { WeeklyPlanRow } from './types'
 
 const demandLine = (overrides: Partial<DemandLine>): DemandLine => ({
   id: 'line',
@@ -50,8 +52,8 @@ describe('weekly menu pure model', () => {
 
   it('aggregates material demand and derives the next action from real stock', () => {
     const result = aggregateDemandLinesByMaterial([
-      demandLine({ id: 'a', required: 7, available: 4, reserved: 1, source: 'Cơm', materialRequestId: 'mr-1' }),
-      demandLine({ id: 'b', required: 2, available: 4, reserved: 0, source: 'Cháo', materialRequestId: 'mr-1' }),
+      demandLine({ id: 'a', ingredientId: 'rice', required: 7, available: 4, reserved: 1, source: 'Cơm', materialRequestId: 'mr-1' }),
+      demandLine({ id: 'b', ingredientId: 'rice', required: 2, available: 4, reserved: 0, source: 'Cháo', materialRequestId: 'mr-1' }),
     ])
 
     expect(result).toHaveLength(1)
@@ -66,5 +68,32 @@ describe('weekly menu pure model', () => {
     })
     expect(result[0].source).toBe('Cơm, Cháo')
     expect(getQuickServingKey('2026-07-20', 'MORNING')).toBe('2026-07-20|MORNING')
+  })
+
+  it('keeps same-name ingredients separate by stable identity in BOM and demand aggregation', () => {
+    const dish = {
+      id: 'dish-1',
+      name: 'Món thử',
+      ingredients: [
+        { ingredientId: 'ingredient-a', unitId: 'unit-kg', name: 'Bột', unit: 'kg', grossQtyPerServing: 1, referencePrice: 10 },
+        { ingredientId: 'ingredient-b', unitId: 'unit-kg', name: 'Bột', unit: 'kg', grossQtyPerServing: 2, referencePrice: 20 },
+      ],
+    } as CatalogDish
+    const summary = buildPlanRowsMaterialSummary(
+      [{ dishId: dish.id, dishName: dish.name, portions: 3, quantityFactor: 1 }] as WeeklyPlanRow[],
+      new Map([[dish.id, dish]]),
+      new Map(),
+    )
+
+    expect(Object.values(summary).map((entry) => [entry.ingredientId, entry.theory])).toEqual([
+      ['ingredient-a', 3],
+      ['ingredient-b', 6],
+    ])
+
+    const demand = aggregateDemandLinesByMaterial([
+      demandLine({ id: 'a', ingredientId: 'ingredient-a', material: 'Bột', required: 3 }),
+      demandLine({ id: 'b', ingredientId: 'ingredient-b', material: 'Bột', required: 6 }),
+    ])
+    expect(demand.map((line) => [line.id, line.required])).toHaveLength(2)
   })
 })
