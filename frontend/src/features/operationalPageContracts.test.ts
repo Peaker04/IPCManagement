@@ -18,6 +18,10 @@ import materialDemandWorkflowSource from './projects/weekly-menu/demand/useMater
 import materialDemandSectionSource from './projects/weekly-menu/demand/MaterialDemandSection.tsx?raw'
 import weeklyMenuCommandSource from './projects/weekly-menu/shell/WeeklyMenuCommandBar.tsx?raw'
 import purchasingPageSource from './workflow/pages/PurchasingPage.tsx?raw'
+import purchaseDemandWorkflowSource from './workflow/purchasing/demand/usePurchaseDemand.ts?raw'
+import purchaseOrderWorkflowSource from './workflow/purchasing/orders/usePurchaseOrders.ts?raw'
+import supplierQuotationWorkflowSource from './workflow/purchasing/quotation/useSupplierQuotations.ts?raw'
+import purchaseHandoffWorkflowSource from './workflow/purchasing/handoff/usePurchaseHandoff.ts?raw'
 import chefDashboardPageSource from './chef/pages/ChefDashboardPage.tsx?raw'
 
 describe('operational page refactor contracts', () => {
@@ -68,7 +72,13 @@ describe('operational page refactor contracts', () => {
   })
 
   it('keeps purchasing paging and purchase mutations wired to real APIs', () => {
-    const source = purchasingPageSource
+    const source = [
+      purchasingPageSource,
+      purchaseDemandWorkflowSource,
+      purchaseOrderWorkflowSource,
+      supplierQuotationWorkflowSource,
+      purchaseHandoffWorkflowSource,
+    ].join('\n')
 
     expect(source).toContain('useGetMaterialRequestCandidatePageQuery')
     expect(source).toContain('pageSize: 8')
