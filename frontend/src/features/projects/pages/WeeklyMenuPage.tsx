@@ -1,9 +1,7 @@
-
-
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common';
+import { ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
 import {
@@ -44,6 +42,7 @@ import { usePurchaseSummary } from '../weekly-menu/purchasing/usePurchaseSummary
 import { useDishMaterials } from '../weekly-menu/dish-materials/useDishMaterials';
 import { buildWeeklyPlanRows } from '../weekly-menu/cost/weeklyPlanRowsModel';
 import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuCommandBar';
+import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 
 const MenuCostSection = lazy(() => import('../weekly-menu/cost/MenuCostSection'));
 const PurchaseSummarySection = lazy(() => import('../weekly-menu/purchasing/PurchaseSummarySection'));
@@ -338,41 +337,16 @@ const WeeklyMenuPage = () => {
         onTabChange={(tabId) => setActiveView(tabId as WeeklyMenuView)}
       />
       <ContextStrip items={workflowStepItems} />
-      {invalidBomTierCount > 0 && (
-        <InlineAlert title="Đơn giá chưa khớp tier BOM" variant="danger">
-          Có {invalidBomTierCount} lịch/ca không thuộc 25k, 30k hoặc 34k. Hệ thống sẽ chặn sinh demand để tránh dùng sai định lượng.
-        </InlineAlert>
-      )}
-      {menuFeedback && (
-        <InlineAlert title={menuFeedback.title} variant={menuFeedback.variant}>
-          {menuFeedback.message}
-        </InlineAlert>
-      )}
-      {purchaseSummaryWorkflow.state.feedback && (
-        <InlineAlert title={purchaseSummaryWorkflow.state.feedback.title} variant={purchaseSummaryWorkflow.state.feedback.variant}>
-          {purchaseSummaryWorkflow.state.feedback.message}
-        </InlineAlert>
-      )}
-      {isCatalogLoading && (
-        <InlineAlert title="Đang tải catalog món ăn" variant="info">
-          Hệ thống đang lấy danh sách món và định lượng BOM từ API.
-        </InlineAlert>
-      )}
-      {isCatalogError && (
-        <InlineAlert title="Chưa tải được catalog món ăn" variant="warning">
-          Kiểm tra backend hoặc quyền truy cập catalog trước khi phân tích giá vốn.
-        </InlineAlert>
-      )}
-      {isCommittedMenuFetching && effectiveMenuCustomerId && (
-        <InlineAlert title="Đang tải thực đơn khách hàng" variant="info">
-          Hệ thống đang lấy menu, KHSX và giá vốn theo khách hàng đang chọn.
-        </InlineAlert>
-      )}
-      {isCatalogEmpty && (
-        <InlineAlert title="Catalog món ăn đang trống" variant="warning">
-          Chưa có món ăn hoạt động nào từ API, nên thực đơn tuần và bảng định lượng chưa thể chọn món.
-        </InlineAlert>
-      )}
+      <WeeklyMenuAlerts
+        invalidBomTierCount={invalidBomTierCount}
+        menuFeedback={menuFeedback}
+        purchaseFeedback={purchaseSummaryWorkflow.state.feedback}
+        isCatalogLoading={isCatalogLoading}
+        isCatalogError={isCatalogError}
+        isCatalogEmpty={isCatalogEmpty}
+        isCommittedMenuFetching={isCommittedMenuFetching}
+        hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
+      />
 
       {activeView === 'schedule' && (
         <WeeklyScheduleSection
