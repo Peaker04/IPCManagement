@@ -66,6 +66,23 @@
 
 - [x] **REFA-01**: Các route page vận hành giữ nguyên URL, permission, API payload và hành vi người dùng trong khi được tách theo vertical workflow; page shell không quá 400 dòng, component workflow không quá 500 dòng, custom hook không quá 300 dòng, trừ ngoại lệ có lý do và review chấp thuận.
 
+### Supplier purchase-history reconciliation
+
+- [ ] **SUP-01**: Hệ thống suy ra tập nhà cung cấp canonical từ chính sách `SUMMARY` đã audit và các sheet có dữ liệu được duyệt; loại header, pseudo-supplier và placeholder không có tham chiếu.
+- [ ] **SUP-02**: Hệ thống parse và normalize nguyên liệu, nhà cung cấp, đơn vị, quy cách đóng gói và ngày giao deterministic; giữ bằng chứng sheet/dòng/raw và block mọi trường hợp mơ hồ.
+- [ ] **SUP-03**: Preview read-only xuất manifest gồm SHA-256 nguồn, policy version, ngày as-of, DB fingerprint, exact action counts, diagnostics và yêu cầu bằng chứng backup/restore.
+- [ ] **SUP-04**: Apply manifest đã chấp nhận chạy atomic, giữ/version dữ liệu theo dependency và lần apply thứ hai cùng preview sau apply đều no-op.
+
+### Purchasing and receiving workflow
+
+- [ ] **PUR-01**: Material demand là approval target đầy đủ tại `/approvals`, Weekly Menu hiển thị status/link và demand chưa duyệt không thể tạo PR.
+- [ ] **PUR-02**: Thu mua có workbench server-backed theo tuần, lồng ngày phục vụ, giữ PR scope `FULLDAY` và hiển thị shortage, stage, blocker cùng counts.
+- [ ] **PUR-03**: Chỉ gợi ý nhà cung cấp từ báo giá còn hiệu lực hoặc receipt hợp lệ gần nhất; lựa chọn phải được người dùng xác nhận và lưu evidence snapshot.
+- [ ] **PUR-04**: Giá tăng lớn hơn đúng 15% phải qua ngoại lệ có reference/proposed/variance/evidence/reason và quyết định quản lý trước khi submit PR.
+- [ ] **PUR-05**: PR đã duyệt tạo tối đa một bộ PO tách theo nhà cung cấp; retry trả lại tiến độ hiện có và không sinh PO trùng.
+- [ ] **WHR-01**: Warehouse là nơi duy nhất ghi nhận nhận hàng từng phần với kho, số lượng, lot, ngày sản xuất/hết hạn; receipt, stock và PO progress cập nhật atomic, còn Thu mua chỉ đọc trạng thái.
+- [ ] **PUI-01**: UI triển khai luồng sáu giai đoạn trên route/primitives hiện có, restore tuần/ngày/stage từ URL, bảng bounded, dialog accessible và có E2E tập trung.
+
 ## Future Requirements
 
 ### Governance
@@ -123,13 +140,24 @@
 | RETIRE-02 | 7 | Zero old consumers/references after cutover |
 | RETIRE-03 | 3 | Forward-migration-only policy |
 | REFA-01 | 8 | Route-preserving vertical decomposition, file-size gates and regression verification |
+| SUP-01 | 9 | Canonical supplier derivation and exclusion policy |
+| SUP-02 | 9 | Deterministic workbook normalization with raw blockers |
+| SUP-03 | 9 | Read-only purchase-history preview manifest and drift gate |
+| SUP-04 | 9 | Atomic dependency-aware reconciliation and no-op rerun |
+| PUR-01 | 9 | Material-demand approval target and PR eligibility gate |
+| PUR-02 | 9 | Week/date purchasing workbench and FULLDAY scope |
+| PUR-03 | 9 | Evidence-backed supplier suggestion and confirmation snapshot |
+| PUR-04 | 9 | Strictly-above-15-percent auditable price exception |
+| PUR-05 | 9 | Idempotent supplier-split purchase-order creation |
+| WHR-01 | 9 | Warehouse-owned atomic partial receiving |
+| PUI-01 | 9 | Approved six-stage accessible purchasing UI and E2E |
 
 **Coverage:**
-- v1.1 requirements: 34 total
-- Mapped to phases: 34
+- v1.1 requirements: 45 total
+- Mapped to phases: 45
 - Unmapped: 0
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-07-16*
-*Last updated: 2026-07-19 after adding route-preserving frontend decomposition; coverage 34/34 with each requirement assigned to exactly one phase*
+*Last updated: 2026-07-21 after adding supplier reconciliation and purchasing workflow alignment; coverage 45/45 with each requirement assigned to exactly one phase*

@@ -288,8 +288,8 @@ route-preserving feature decomposition + regression/UAT gates
 
 ### Phase 9: Supplier canonical refresh and purchasing workflow alignment
 
-**Goal:** [To be planned]
-**Requirements**: TBD
+**Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
+**Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
 **Plans:** 0 plans
 
