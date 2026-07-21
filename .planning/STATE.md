@@ -141,6 +141,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ### Roadmap Evolution
 
+- Phase 9 added: Supplier canonical refresh and purchasing workflow alignment
 - Milestone v1.1 started after archived Phase 2; phase numbering continues at 3 rather than resetting.
 - Phase 3–7 roadmap created from approved research and 33 requirements with ingredient-level customer overlay semantics.
 - Destructive apply is gated until Phase 3 safety baseline and Phase 4 read-only preview/classifier pass; old surface retirement is gated until Phase 6 canonical UI/manual CRUD compatibility passes.

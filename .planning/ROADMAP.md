@@ -286,5 +286,16 @@ route-preserving feature decomposition + regression/UAT gates
 - Không dùng `ReplaceBomCatalog` hoặc broad SQL delete làm production cleanup runner.
 - Mỗi symbol code trước khi sửa phải có GitNexus upstream impact; trước commit phải chạy `detect_changes()` theo AGENTS.md.
 
+### Phase 9: Supplier canonical refresh and purchasing workflow alignment
+
+**Goal:** [To be planned]
+**Requirements**: TBD
+**Depends on:** Phase 8
+**Plans:** 0 plans
+
+Plans:
+
+- [ ] TBD (run /gsd-plan-phase 9 to break down)
+
 ---
 *Roadmap created: 2026-07-16 — research-first build order, customer override overlay theo nguyên liệu, retention option 2A.*
