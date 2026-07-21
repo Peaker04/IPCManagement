@@ -545,7 +545,12 @@ public partial class SampleDataImportService
 
     private static decimal NormalizeWeeklyMenuPriceTier(decimal? priceTierAmount)
     {
-        var normalized = DecimalPolicy.RoundMoney(priceTierAmount ?? WeeklyMenuPriceTiers[0]);
+        if (priceTierAmount is null)
+        {
+            throw new InvalidOperationException("Vui lòng chọn định mức 25.000, 30.000 hoặc 34.000 trước khi import menu.");
+        }
+
+        var normalized = DecimalPolicy.RoundMoney(priceTierAmount.Value);
         if (!Array.Exists(WeeklyMenuPriceTiers, tier => tier == normalized))
         {
             throw new InvalidOperationException("Định mức import menu chỉ được chọn 25.000, 30.000 hoặc 34.000.");
@@ -816,6 +821,19 @@ public partial class SampleDataImportService
         ParseMenuRows(best.RawRows, labelColumn, dayColumns, plan);
         if (plan.Items.Count == 0)
         {
+            if (priceTierAmount is not null)
+            {
+                var fallbackPlan = ParseWeeklyMenuWorkbook(
+                    workbookPath,
+                    originalFileName,
+                    weekStartFallback,
+                    mapping,
+                    null);
+                fallbackPlan.Warnings.Add(
+                    $"Sheet {best.SheetName} chưa có món; dùng menu dùng chung từ sheet {fallbackPlan.SheetName} và áp dụng định lượng tier {priceTierAmount:0}.");
+                return fallbackPlan;
+            }
+
             throw new InvalidOperationException("File Excel không có dòng món ăn hợp lệ để import.");
         }
 

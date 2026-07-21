@@ -201,6 +201,43 @@ public class SampleDataImportServiceTests
     }
 
     [Fact]
+    public async Task ImportAsync_Should_NotCreateDuplicateSupplier_WhenSameFilesAreImportedTwice()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new SqliteSampleImportContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var service = new SampleDataImportService(context, null!);
+        using var fixture = CreateSampleImportFixture();
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        {
+            SourceDirectory = fixture.SourceDirectory,
+            DryRun = false,
+            MaxRows = 25
+        };
+
+        await service.ImportAsync(request);
+        var firstSupplierIds = await context.Suppliers
+            .AsNoTracking()
+            .OrderBy(item => item.SupplierCode)
+            .Select(item => item.SupplierId)
+            .ToListAsync();
+
+        context.ChangeTracker.Clear();
+        await service.ImportAsync(request);
+        context.ChangeTracker.Clear();
+
+        var suppliers = await context.Suppliers.AsNoTracking().ToListAsync();
+        suppliers.Should().HaveCount(firstSupplierIds.Count);
+        suppliers.Select(item => Convert.ToBase64String(item.SupplierId))
+            .Should().BeEquivalentTo(firstSupplierIds.Select(Convert.ToBase64String));
+        suppliers.Should().NotContain(item => item.SupplierCode.EndsWith("-2", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
     public void CalculateWeightedGrossQty_Should_MergeRepeatedWorkbookBatches()
     {
         var bananaRows = new List<IReadOnlyDictionary<string, string>>
@@ -546,7 +583,7 @@ public class SampleDataImportServiceTests
             "broken.xlsx",
             setup.CustomerIdString,
             new DateOnly(2026, 6, 15),
-            null);
+            25000m);
 
         result.Validation.HasCriticalErrors.Should().BeTrue();
         result.Validation.Issues.Should().ContainSingle(issue =>
@@ -569,7 +606,7 @@ public class SampleDataImportServiceTests
             "broken.xlsx",
             setup.CustomerIdString,
             new DateOnly(2026, 6, 15),
-            null,
+            25000m,
             setup.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>()
