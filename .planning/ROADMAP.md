@@ -291,11 +291,58 @@ route-preserving feature decomposition + regression/UAT gates
 **Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
-**Plans:** 0 plans
+**Plans:** 14 plans across 11 dependency waves (Wave 0 through Wave 10)
 
 Plans:
 
-- [ ] TBD (run /gsd-plan-phase 9 to break down)
+**Wave 0 — safety and test seams**
+
+- [ ] 09-01-PLAN.md — Prove GitNexus/source/clone/restore baselines and create focused test seams
+
+**Wave 1 — parallel pure source and approval contracts** *(blocked on Wave 0)*
+
+- [ ] 09-02-PLAN.md — Parse and normalize the audited 20.7 workbook with explicit blockers
+- [ ] 09-06-PLAN.md — Route material demand through Manager approval and enforce role boundaries
+
+**Wave 2 — parallel read-only workbenches** *(each blocked on its Wave 1 contract)*
+
+- [ ] 09-03-PLAN.md — Build the immutable-aware preview manifest and protected Development endpoint
+- [ ] 09-07-PLAN.md — Gate request generation and expose the week/date/FULLDAY read model
+
+**Wave 3 — reconciliation persistence** *(blocked on Wave 2)*
+
+- [ ] 09-04-PLAN.md — Add forward-only run/action evidence and package snapshot schema
+
+**Wave 4 — parallel disposable apply and purchasing-decision persistence** *(blocked on Wave 3 reconciliation schema and Wave 2 workbench as declared)*
+
+- [ ] 09-05-PLAN.md — Apply the accepted manifest atomically/idempotently on a restored lane
+- [ ] 09-08-PLAN.md — Persist versioned supplier decisions, price exceptions, and PO uniqueness
+
+**Wave 5 — explicit supplier and price decision** *(blocked on Wave 4 decision schema)*
+
+- [ ] 09-09-PLAN.md — Require quote/receipt evidence and explicit Purchasing confirmation
+
+**Wave 6 — exception approval and orders** *(blocked on Wave 5)*
+
+- [ ] 09-10-PLAN.md — Enforce strict >15% exceptions and idempotent supplier-split orders
+
+**Wave 7 — Warehouse receiving** *(blocked on Wave 6)*
+
+- [ ] 09-11-PLAN.md — Consolidate actual receiving behind one Warehouse-only atomic writer
+
+**Wave 8 — frontend contracts and approval handoffs** *(blocked on Wave 7)*
+
+- [ ] 09-12-PLAN.md — Wire RTK Query, Weekly Menu approval state, and Manager evidence UI
+
+**Wave 9 — six-stage operational UI** *(blocked on Wave 8)*
+
+- [ ] 09-13-PLAN.md — Deliver the guided Purchasing workbench and Warehouse receipt interaction
+
+**Wave 10 — restored E2E and operator evidence gate** *(blocked on both Wave 4 reconciliation apply and Wave 9 UI)*
+
+- [ ] 09-14-PLAN.md — Run the exact real-stack workflow twice and stop before any real apply
+
+**Wave summary:** 09-02 and 09-06 run in parallel after Wave 0; 09-03 and 09-07 then run in parallel; 09-05 and 09-08 run in parallel only after their declared schema/workbench prerequisites. The final 09-14 join requires both the disposable reconciliation apply proof and the completed UI chain. The only human checkpoint is the final operator evidence review; it does not authorize or perform a live/shared reconciliation apply.
 
 ---
 *Roadmap created: 2026-07-16 — research-first build order, customer override overlay theo nguyên liệu, retention option 2A.*
