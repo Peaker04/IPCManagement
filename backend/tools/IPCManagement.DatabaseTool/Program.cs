@@ -45,11 +45,10 @@ try
     }
 
     var stagingDatabase = $"{targetDatabase}_clone_{Environment.ProcessId}";
-    await CloneDatabaseAsync(connection, sourceDatabase, stagingDatabase, sourceTables);
-    await VerifyCloneAsync(connection, sourceDatabase, stagingDatabase, sourceTables);
-
     try
     {
+        await CloneDatabaseAsync(connection, sourceDatabase, stagingDatabase, sourceTables);
+        await VerifyCloneAsync(connection, sourceDatabase, stagingDatabase, sourceTables);
         await CloneDatabaseAsync(connection, stagingDatabase, targetDatabase, sourceTables);
         await VerifyCloneAsync(connection, sourceDatabase, targetDatabase, sourceTables);
     }

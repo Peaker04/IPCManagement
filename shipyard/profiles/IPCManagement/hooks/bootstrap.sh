@@ -4,7 +4,9 @@ set -euo pipefail
 
 ( cd "$LANE_DIR/backend" && dotnet restore IPCManagement.slnx )
 
-if [ -f "$LANE_DIR/frontend/package-lock.json" ]; then
+if [ -f "$LANE_DIR/package-lock.json" ]; then
+  ( cd "$LANE_DIR" && npm ci )
+elif [ -f "$LANE_DIR/frontend/package-lock.json" ]; then
   ( cd "$LANE_DIR/frontend" && npm ci )
 elif [ -f "$LANE_DIR/frontend/package.json" ]; then
   ( cd "$LANE_DIR/frontend" && npm install )

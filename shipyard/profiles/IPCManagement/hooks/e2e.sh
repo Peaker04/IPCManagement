@@ -4,13 +4,18 @@
 set -euo pipefail
 
 E2E_SCRIPT="$LANE_DIR/scripts/Invoke-Iter1HappyPathE2E.ps1"
+if [ ! -f "$E2E_SCRIPT" ] && [ -n "${SOURCE_REPO:-}" ]; then
+  E2E_SCRIPT="$SOURCE_REPO/scripts/Invoke-Iter1HappyPathE2E.ps1"
+fi
 
 if [ -f "$E2E_SCRIPT" ]; then
   echo "harness: running E2E tests..."
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$E2E_SCRIPT" -BaseUrl "${API_BASE}" -SkipSeedReset
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$E2E_SCRIPT" \
+    -BaseUrl "${API_BASE}" \
+    -OutputRoot "$LANE_DIR/.artifacts/e2e" \
+    -SkipSeedReset
 else
-  echo "harness: E2E script not found, skipping"
-  exit 0
+  die "E2E script not found in lane or source repo"
 fi
 
 BRANCH_NAME="$(git -C "$LANE_DIR" branch --show-current)"
