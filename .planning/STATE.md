@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: Phase 3 planned in roadmap; ready for discuss/plan
-stopped_at: Phase 6 UI-SPEC approved
-last_updated: "2026-07-16T08:22:54.711Z"
-last_activity: 2026-07-16 — Roadmap Phase 3–7 created; requirements mapped 33/33
+stopped_at: Phase 9 UI-SPEC approved
+last_updated: "2026-07-21T15:29:44.204Z"
+last_activity: 2026-07-21 — Shipyard lane 1 E2E passed on `1e3a082`; canonical BOM remains gated before destructive apply
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 15
-  completed_plans: 0
-  percent: 0
+  total_phases: 7
+  completed_phases: 1
+  total_plans: 23
+  completed_plans: 1
+  percent: 4
 ---
 
 # Project State
@@ -207,8 +207,8 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Phase 6 UI-SPEC approved
-**Resume file:** .planning/phases/06-admin-shadcn-cutover-manual-crud/06-UI-SPEC.md
+**Stopped at:** Phase 9 UI-SPEC approved
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-UI-SPEC.md
 
 ---
 *Last updated: 2026-07-08 — documentation refresh sau v1.0 release gate*
