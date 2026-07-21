@@ -19,7 +19,7 @@ approved: 2026-07-21
 | Frameworks | xUnit (.NET 9), Vitest 4.1.10, Playwright 1.60.0 |
 | Config | `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`, `backend/coverage.runsettings`, `frontend/playwright.config.ts` |
 | Backend focused files | `PurchaseHistoryReconciliationTests.cs`, `MaterialDemandAndPriceExceptionApprovalTests.cs`, `SupplierDecisionWorkflowTests.cs`, `WarehousePurchaseReceivingTests.cs` |
-| Frontend focused files | `demandModel.test.ts`, `approval-copy.test.ts`, `purchasingModel.test.ts`, `purchasingHooksBehavior.test.tsx`, `phase9-purchasing-workflow.spec.ts`, `route-smoke.spec.ts`, `ui-audit.spec.ts`, `visual-routes.spec.ts` |
+| Frontend focused files | `demandModel.test.ts`, `approval-copy.test.ts`, `purchasingModel.test.ts`, `purchasingHooksBehavior.test.tsx`, `phase9-purchasing-workflow.spec.ts`, `route-smoke.spec.ts`, `ui-audit.spec.ts`, `visual-routes.spec.ts`, `phase9-snapshot-manifest.json` |
 | Maximum focused feedback latency | Under 60 seconds; full-suite duration is measured during execution |
 | Watch mode | Forbidden in automated verification |
 
@@ -61,7 +61,8 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 | C-FE-PURCHASE | Focused purchasing model/hook Vitest command. |
 | C-FE-PURCHASE-BUILD | Fail-fast focused purchasing Vitest, frontend lint, and frontend build. |
 | C-FE-WAREHOUSE | Fail-fast purchasing hook Vitest, frontend lint, and frontend build. |
-| C-PW-DISCOVERY | Fail-fast Playwright discovery for `phase9-purchasing-workflow`, route-smoke, UI-audit, and visual-routes plus exact assertion that eight `*phase09*.png` snapshots exist. |
+| C-PW-DISCOVERY | Fail-fast discovery of `phase9-purchasing-workflow.spec.ts`, `route-smoke.spec.ts`, `ui-audit.spec.ts`, and `visual-routes.spec.ts`; then parse `frontend/tests/phase9-snapshot-manifest.json`, require its only property to be `snapshotPaths`, and compare that array exactly against: `purchasing-phase09-1365x900-chromium-win32.png`, `purchasing-phase09-1280x900-chromium-win32.png`, `purchasing-phase09-768x1024-chromium-win32.png`, `purchasing-phase09-390x844-chromium-win32.png`, `warehouse-phase09-1365x900-chromium-win32.png`, `warehouse-phase09-1280x900-chromium-win32.png`, `warehouse-phase09-768x1024-chromium-win32.png`, and `warehouse-phase09-390x844-chromium-win32.png` under `frontend/tests/visual-routes.spec.ts-snapshots/`. This Wave 0 contract validates the registry, not PNG existence. |
+| C-PW-SNAPSHOT-ACTUAL | Run C-PW-DISCOVERY, require every registry path to exist after Plan 09-14 generation, and require the snapshot directory to contain exactly eight `*phase09*.png` files. |
 | C-FULL | Fail-fast C-BE-ALL, backend full suite, frontend lint/build/unit/smoke/UI-audit/visual, UAT marker assertions, and C-SAFETY. |
 | C-FINAL-GATE | Assert `ROUND_1=PASS`, `ROUND_2=PASS`, `REAL_APPLY_NOT_EXECUTED`, then C-SAFETY. |
 
@@ -70,7 +71,7 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 | Task | Plan | Wave | Requirements | Threats | Automated command | Planned test artifact | Plan status | Execution |
 |---|---:|---:|---|---|---|---|---|---|
 | 09-01-T1 | 01 | 0 | SUP-01..04 | T-09-01..03 | C-SAFETY + Wave 0 evidence-marker assertions | `09-WAVE0-EVIDENCE.md` | covered | planned |
-| 09-01-T2 | 01 | 0 | SUP-01..04, PUR-01..05, WHR-01, PUI-01 | T-09-02..03 | C-BE-ALL + C-PW-DISCOVERY | four backend suites + Phase 09 Playwright | covered | planned |
+| 09-01-T2 | 01 | 0 | SUP-01..04, PUR-01..05, WHR-01, PUI-01 | T-09-02..03 | C-BE-ALL + C-PW-DISCOVERY | four backend suites + four browser suites + exact eight-path snapshot manifest | covered | planned |
 | 09-02-T1 | 02 | 1 | SUP-01, SUP-02 | T-09-04..06 | C-BE-PARSER | `PurchaseHistoryReconciliationTests.cs` | covered | planned |
 | 09-02-T2 | 02 | 1 | SUP-01, SUP-02 | T-09-04..06 | C-BE-NORMALIZATION | `PurchaseHistoryReconciliationTests.cs` | covered | planned |
 | 09-06-T1 | 06 | 1 | PUR-01 | T-09-17 | C-BE-ROLE | approval/authorization tests | covered | planned |
@@ -101,7 +102,7 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 | 09-13-T1 | 13 | 9 | PUR-01..05, PUI-01 | T-09-40, T-09-41 | C-FE-PURCHASE | purchasing model/hook tests | covered | planned |
 | 09-13-T2 | 13 | 9 | PUR-01..05, PUI-01 | T-09-40, T-09-41, T-09-43 | C-FE-PURCHASE-BUILD | purchasing tests/lint/build | covered | planned |
 | 09-13-T3 | 13 | 9 | WHR-01, PUI-01 | T-09-42, T-09-43 | C-FE-WAREHOUSE | Warehouse/purchasing tests/lint/build | covered | planned |
-| 09-14-T1 | 14 | 10 | PUR-01..05, WHR-01, PUI-01 | T-09-40..46 | C-PW-DISCOVERY | focused, route, audit, visual specs + snapshots | covered | planned |
+| 09-14-T1 | 14 | 10 | PUR-01..05, WHR-01, PUI-01 | T-09-40..46 | C-PW-SNAPSHOT-ACTUAL | focused, route, audit, visual specs + the eight manifest-declared snapshots | covered | planned |
 | 09-14-T2 | 14 | 10 | SUP-04, PUR-01..05, WHR-01, PUI-01 | T-09-44..47 | C-FULL | UAT evidence + full suites | covered | planned |
 | 09-14-T3 | 14 | 10 | SUP-04 | T-09-47 | C-FINAL-GATE | operator/UAT evidence | covered | planned |
 
@@ -110,7 +111,7 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 - Total actual tasks: **35**.
 - Tasks with an automated command: **35/35**.
 - Longest consecutive run without automation: **0**.
-- Wave 0 creates every missing focused test/evidence seam before production behavior changes.
+- Wave 0 creates every missing focused test/evidence seam and the exact snapshot registry before production behavior changes; Plan 09-14 creates the registered PNGs.
 - Multi-command gates are fail-fast and assert native exit codes.
 - Destructive/schema/final gates compare protected SQL SHA-256, exact `??` porcelain status, and untracked state.
 - The human checkpoint in 09-14-T3 follows automated C-FINAL-GATE; it does not replace automation.
@@ -121,7 +122,7 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 - [ ] Protected SQL hash/status/untracked baseline captured.
 - [ ] Workbook hash, 34-sheet and 3,209-key audit reproduced.
 - [ ] Disposable clone backup/restore/fingerprint proof captured.
-- [ ] Four focused backend suites and Phase 09 Playwright seam discovered.
+- [ ] Four focused backend suites and all four Phase 09 browser suite seams discovered; the exact eight-path snapshot registry is valid without claiming PNG generation.
 
 These boxes remain unchecked until execution. Their pending state does not invalidate the approved plan-level Nyquist mapping.
 

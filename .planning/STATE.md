@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Phase 3 planned in roadmap; ready for discuss/plan
-stopped_at: Phase 9 UI-SPEC approved
-last_updated: "2026-07-21T15:29:44.204Z"
-last_activity: 2026-07-21 — Shipyard lane 1 E2E passed on `1e3a082`; canonical BOM remains gated before destructive apply
+status: Phase 9 planned; ready to execute when authorized
+stopped_at: Phase 9 planning verified with 0 blockers
+last_updated: "2026-07-21T17:14:16.069Z"
+last_activity: 2026-07-21 — Phase 9 verified with 14 plans, 0 blockers and 1 non-blocking scope warning
 progress:
   total_phases: 7
   completed_phases: 1
-  total_plans: 23
+  total_plans: 37
   completed_plans: 1
-  percent: 4
+  percent: 3
 ---
 
 # Project State
@@ -21,7 +21,7 @@ progress:
 See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 **Core value:** Staff can scan operational state quickly and complete kitchen-management tasks without visual confusion or workflow friction.
-**Current focus:** v1.1 Phase 3 — Contract, provenance & safety baseline
+**Current focus:** v1.1 Phase 9 — Supplier canonical refresh and purchasing workflow alignment
 
 ## Current Status
 
@@ -207,8 +207,8 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Phase 9 UI-SPEC approved
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-UI-SPEC.md
+**Stopped at:** Phase 9 planning verified with 0 blockers
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-01-PLAN.md
 
 ---
 *Last updated: 2026-07-08 — documentation refresh sau v1.0 release gate*
@@ -258,7 +258,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Current Position
 
-Phase: 3 of 7 — Contract, provenance & safety baseline
-Plan: Not yet created
-Status: Phase 3 planned in roadmap; ready for discuss/plan
-Last activity: 2026-07-21 — Shipyard lane 1 E2E passed on `1e3a082`; canonical BOM remains gated before destructive apply
+Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
+Plan: 14 plans across Wave 0–10
+Status: Planned and verified; ready to execute when authorized
+Last activity: 2026-07-21 — Phase 9 verified with 14 plans, 0 blockers and 1 non-blocking scope warning
