@@ -2,5 +2,6 @@
   <Project Path="src/IPCManagement.Api/IPCManagement.Api.csproj" />
   <Project Path="tests/IPCManagement.Application.Tests/IPCManagement.Application.Tests.csproj" />
   <Project Path="tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj" />
+  <Project Path="tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj" />
 </Solution>
 

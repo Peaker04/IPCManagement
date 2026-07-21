@@ -12,6 +12,49 @@ namespace IPCManagement.Api.Tests;
 
 public class WeeklyMenuImportParserTests
 {
+    [Theory]
+    [InlineData(25000, false)]
+    [InlineData(30000, true)]
+    [InlineData(34000, true)]
+    public void ParseWeeklyMenuWorkbook_Should_ParseCurrentAnvFixture_ByPriceTier(
+        decimal priceTier,
+        bool expectsSharedMenuFallback)
+    {
+        var fixturePath = Path.Combine(
+            AppContext.BaseDirectory,
+            "Fixtures",
+            "weekly-menu-template-ANV-2026-07-20.xlsx");
+
+        var plan = InvokeParse(
+            fixturePath,
+            Path.GetFileName(fixturePath),
+            new DateOnly(2026, 7, 20),
+            new Customerimportmapping { SheetNameHint = "ANV" },
+            priceTier);
+
+        GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
+        GetProperty<DateOnly>(plan, "WeekStartDate").Should().Be(new DateOnly(2026, 7, 20));
+        GetEnumerable(plan, "DayColumns").Should().HaveCount(6);
+        GetEnumerable(plan, "Sections").Should().HaveCount(4);
+        GetEnumerable(plan, "Items").Should().NotBeEmpty();
+        GetStrings(plan, "Warnings").Any(message =>
+                message.Contains("menu dùng chung", StringComparison.OrdinalIgnoreCase))
+            .Should().Be(expectsSharedMenuFallback);
+    }
+
+    [Fact]
+    public void NormalizeWeeklyMenuPriceTier_Should_RejectMissingTier()
+    {
+        var method = typeof(SampleDataImportService)
+            .GetMethod("NormalizeWeeklyMenuPriceTier", BindingFlags.NonPublic | BindingFlags.Static);
+
+        var action = () => method!.Invoke(null, [null]);
+
+        action.Should().Throw<TargetInvocationException>()
+            .WithInnerException<InvalidOperationException>()
+            .WithMessage("*chọn định mức*");
+    }
+
     [Fact]
     public async Task BuildWeeklyMenuTemplateAsync_Should_CreateThreeAlignedPriceSheets()
     {
