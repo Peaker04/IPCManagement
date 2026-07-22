@@ -1,9 +1,52 @@
 using FluentAssertions;
+using IPCManagement.Api.Security;
+using IPCManagement.Api.Services.Approvals;
 
 namespace IPCManagement.Api.Tests;
 
 public class MaterialDemandAndPriceExceptionApprovalTests
 {
+    [Theory]
+    [InlineData("Manager", true)]
+    [InlineData("Quản lý", true)]
+    [InlineData("Admin", true)]
+    [InlineData("Purchasing", false)]
+    [InlineData("Thu mua", false)]
+    [InlineData("WarehouseStaff", false)]
+    public void RoleBoundary_DecisionPermissionsAreManagerOwned(string role, bool expected)
+    {
+        var permissions = AuthorizationPolicies.ResolvePermissions(role);
+
+        permissions.Contains("material-demand.approve").Should().Be(expected);
+        permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove).Should().Be(expected);
+
+        if (role is "Purchasing" or "Thu mua")
+        {
+            permissions.Should().Contain(AuthorizationPolicies.PurchaseRead);
+            permissions.Should().Contain(AuthorizationPolicies.PurchaseGenerate);
+            permissions.Should().Contain(AuthorizationPolicies.PurchaseQuotationManage);
+        }
+    }
+
+    [Theory]
+    [InlineData("material-demand")]
+    [InlineData("materialdemand")]
+    [InlineData("demand")]
+    public void RoleBoundary_MaterialDemandTargetAliasesAreBounded(string alias)
+    {
+        ApprovalTargetTypeParser.Parse(alias)?.ToString().Should().Be("MaterialDemand");
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("material demand")]
+    [InlineData("manager-demand")]
+    [InlineData("anything")]
+    public void RoleBoundary_UnknownTargetAliasesAreRejected(string alias)
+    {
+        ApprovalTargetTypeParser.Parse(alias).Should().BeNull();
+    }
+
     [Theory]
     [InlineData("Manager", "material-demand", true)]
     [InlineData("Manager", "price-exception", true)]
