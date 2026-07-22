@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   ApprovalQueue,
   CommandBar,
   ContextStrip,
   CursorPaginationBar,
   DocumentRail,
+  InlineAlert,
   OperationalFrame,
   PaginationBar,
   SectionPanel,
@@ -28,17 +29,24 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatWorkflowStatus } from '../workflowConfig';
-import { formatApprovalDecision } from './approvalCopy';
+import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  const queueFocusRef = useRef<HTMLDivElement>(null);
   const [activeView, setActiveView] = useState<'queue' | 'role' | 'history'>('queue');
   const [selectedPrId, setSelectedPrId] = useState<string | null>(null);
   const [approvalCursors, setApprovalCursors] = useState<string[]>([]);
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
   
   const approvalCursor = approvalCursors.at(-1);
-  const { data: approvalPage = { items: [], limit: 20, hasNext: false, nextCursor: null } } = useGetApprovalRecordsQuery({
+  const {
+    data: approvalPage = { items: [], limit: 20, hasNext: false, nextCursor: null },
+    isFetching: isFetchingApprovals,
+    isError: isApprovalLoadError,
+    refetch: refetchApprovals,
+  } = useGetApprovalRecordsQuery({
     limit: 20,
     cursor: approvalCursor,
   });
@@ -67,6 +75,8 @@ export default function ApprovalPage() {
   const historyItems = historyResponse?.data ?? [];
 
   const [executeApprovalDecision, { isLoading: isDeciding }] = useExecuteApprovalDecisionMutation();
+  const [decisionError, setDecisionError] = useState<string | null>(null);
+  const [decisionAnnouncement, setDecisionAnnouncement] = useState<string | null>(null);
   
   const [decisionModal, setDecisionModal] = useState<{
     isOpen: boolean;
@@ -85,15 +95,34 @@ export default function ApprovalPage() {
     ?? purchaseDocuments[0]
     ?? workflowDocuments[0];
   const nearestDeadline = approvalRecords.find((record) => record.deadline)?.deadline;
-  const firstActionableRecord = approvalRecords.find((record) => record.type !== 'price-alert') ?? approvalRecords[0];
+  const firstActionableRecord = approvalRecords.find((record) => record.targetType && record.targetId) ?? approvalRecords[0];
+  const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
+  const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
+  const requestedRecord = approvalRecords.find((record) =>
+    record.targetType === requestedTargetType && record.targetId === requestedTargetId);
+
+  useEffect(() => {
+    if (!requestedRecord) return;
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(`approval-record-${requestedRecord.id}`)?.focus();
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [requestedRecord]);
 
   const openDecisionModal = (record: ApprovalRecord, status: 'Approve' | 'Reject') => {
+    setDecisionError(null);
     setDecisionModal({
       isOpen: true,
       record,
       status,
-      reason: status === 'Approve' ? 'Đã duyệt' : '',
+      reason: '',
     });
+  };
+
+  const closeDecisionModal = () => {
+    if (isDeciding) return;
+    setDecisionError(null);
+    setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
   };
 
   const handleDecisionSubmit = async () => {
@@ -101,12 +130,12 @@ export default function ApprovalPage() {
     if (!record || !status) return;
 
     if (status === 'Reject' && !reason.trim()) {
-      toast({ title: 'Chưa thể từ chối', description: 'Vui lòng nhập lý do để lưu dấu vết phê duyệt.', variant: 'warning' });
+      setDecisionError('Vui lòng nhập lý do để lưu dấu vết phê duyệt.');
       return;
     }
 
     if (!record.targetType || !record.targetId) {
-      toast({ title: 'Thiếu đích phê duyệt', description: 'Chứng từ chưa có thông tin đích hợp lệ để xử lý.', variant: 'danger' });
+      setDecisionError('Chứng từ chưa có thông tin đích hợp lệ để xử lý.');
       return;
     }
 
@@ -116,9 +145,14 @@ export default function ApprovalPage() {
         targetId: record.targetId,
         status,
         reason: reason.trim() || null,
+        week: searchParams.get('week') ?? undefined,
       }).unwrap();
       
       setDecisionModal({ isOpen: false, record: null, status: null, reason: '' });
+      setDecisionError(null);
+      const completedLabel = status === 'Approve' ? 'Đã duyệt' : 'Đã từ chối';
+      setDecisionAnnouncement(`${completedLabel} ${record.title.toLocaleLowerCase('vi-VN')}.`);
+      window.setTimeout(() => queueFocusRef.current?.focus(), 0);
       toast({
         title: status === 'Approve' ? 'Đã duyệt chứng từ' : 'Đã từ chối chứng từ',
         description: 'Trạng thái và lịch sử phê duyệt đã được cập nhật.',
@@ -129,9 +163,34 @@ export default function ApprovalPage() {
         (err as { data?: { message?: string }; message?: string })?.data?.message ??
         (err as { message?: string })?.message ??
         'Đã xảy ra lỗi không xác định.';
-      toast({ title: 'Chưa thể xử lý phê duyệt', description: message, variant: 'danger', durationMs: 0 });
+      setDecisionError(`Chưa thể xử lý phê duyệt. ${message} Giữ nguyên ngữ cảnh và tải lại hàng đợi trước khi thử lại.`);
     }
   };
+
+  const renderRecordActions = (record: ApprovalRecord) => (
+    <>
+      <button
+        className="ipc-button ipc-button-success"
+        type="button"
+        onClick={() => openDecisionModal(record, 'Approve')}
+        disabled={isDeciding || !record.targetType || !record.targetId}
+      >
+        {getApprovalDecisionCopy(record.targetType, 'Approve').submitLabel}
+      </button>
+      <button
+        className="ipc-button ipc-button-ghost"
+        type="button"
+        onClick={() => openDecisionModal(record, 'Reject')}
+        disabled={isDeciding || !record.targetType || !record.targetId}
+      >
+        {getApprovalDecisionCopy(record.targetType, 'Reject').submitLabel}
+      </button>
+    </>
+  );
+
+  const modalCopy = decisionModal.record && decisionModal.status
+    ? getApprovalDecisionCopy(decisionModal.record.targetType, decisionModal.status)
+    : getApprovalDecisionCopy(undefined, 'Approve');
 
   return (
     <OperationalFrame
@@ -144,7 +203,7 @@ export default function ApprovalPage() {
                 className="ipc-button ipc-button-success"
                 type="button"
                 onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Approve')}
-                disabled={!firstActionableRecord || firstActionableRecord.type === 'price-alert' || isDeciding}
+                disabled={!firstActionableRecord?.targetType || !firstActionableRecord.targetId || isDeciding}
               >
                 Duyệt
               </button>
@@ -152,7 +211,7 @@ export default function ApprovalPage() {
                 className="ipc-button ipc-button-ghost"
                 type="button"
                 onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Reject')}
-                disabled={!firstActionableRecord || isDeciding}
+                disabled={!firstActionableRecord?.targetType || !firstActionableRecord.targetId || isDeciding}
               >
                 Từ chối
               </button>
@@ -214,31 +273,27 @@ export default function ApprovalPage() {
             }
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
+              {decisionAnnouncement && <div role="status" aria-live="polite" className="sr-only">{decisionAnnouncement}</div>}
+              {requestedTargetType && requestedTargetId && !requestedRecord && !isFetchingApprovals && !isApprovalLoadError && (
+                <InlineAlert title="Không tìm thấy hồ sơ phê duyệt trong trang hiện tại" variant="warning">
+                  Hồ sơ {requestedTargetId} có thể đã được xử lý hoặc nằm ở trang khác. Tuần, ngày phục vụ và phạm vi trong đường dẫn vẫn được giữ nguyên.
+                </InlineAlert>
+              )}
+              {isApprovalLoadError && (
+                <InlineAlert title="Không tải được hàng đợi phê duyệt" variant="danger">
+                  Kiểm tra kết nối rồi thử lại. Ngữ cảnh đang chọn chưa bị thay đổi.
+                  <button className="ipc-button ipc-button-ghost ml-2" type="button" onClick={() => void refetchApprovals()}>Thử lại</button>
+                </InlineAlert>
+              )}
+              <div ref={queueFocusRef} tabIndex={-1} aria-label="Hàng đợi duyệt đã cập nhật">
               <ApprovalQueue
                 records={approvalRecords}
                 pageSize={Math.max(approvalRecords.length, 1)}
                 title={null}
-                actionForRecord={(record) => (
-                  <>
-                    <button
-                      className="ipc-button ipc-button-success"
-                      type="button"
-                      onClick={() => openDecisionModal(record, 'Approve')}
-                      disabled={isDeciding || record.type === 'price-alert'}
-                    >
-                      Duyệt
-                    </button>
-                    <button
-                      className="ipc-button ipc-button-ghost"
-                      type="button"
-                      onClick={() => openDecisionModal(record, 'Reject')}
-                      disabled={isDeciding}
-                    >
-                      Từ chối
-                    </button>
-                  </>
-                )}
+                selectedRecordId={requestedRecord?.id}
+                actionForRecord={renderRecordActions}
               />
+              </div>
               <CursorPaginationBar
                 page={approvalPageNumber}
                 hasNext={approvalPage.hasNext}
@@ -256,29 +311,11 @@ export default function ApprovalPage() {
           <div id="approval-role-panel" role="tabpanel" aria-labelledby="approval-role-tab">
             <div>
               <ApprovalQueue
-                records={approvalRecords.filter((record) => record.type === 'purchase' || record.type === 'issue')}
+                records={approvalRecords}
                 pageSize={Math.max(approvalRecords.length, 1)}
                 title={null}
-                actionForRecord={(record) => (
-                  <>
-                    <button
-                      className="ipc-button ipc-button-success"
-                      type="button"
-                      onClick={() => openDecisionModal(record, 'Approve')}
-                      disabled={isDeciding || record.type === 'price-alert'}
-                    >
-                      Duyệt
-                    </button>
-                    <button
-                      className="ipc-button ipc-button-ghost"
-                      type="button"
-                      onClick={() => openDecisionModal(record, 'Reject')}
-                      disabled={isDeciding}
-                    >
-                      Từ chối
-                    </button>
-                  </>
-                )}
+                selectedRecordId={requestedRecord?.id}
+                actionForRecord={renderRecordActions}
               />
               <CursorPaginationBar
                 page={approvalPageNumber}
@@ -392,20 +429,25 @@ export default function ApprovalPage() {
       {/* Confirmation Dialog for Approvals / Rejections */}
       <Dialog
         open={decisionModal.isOpen}
-        onOpenChange={(open) => setDecisionModal((prev) => ({ ...prev, isOpen: open }))}
+        onOpenChange={(open) => {
+          if (!open) closeDecisionModal();
+        }}
       >
         <DialogContent
-          aria-label={decisionModal.status === 'Approve' ? 'Xác nhận duyệt chứng từ' : 'Xác nhận từ chối chứng từ'}
+          aria-label={modalCopy.title}
           className="max-w-md"
+          onKeyDown={(event) => {
+            if (event.key !== 'Escape') return;
+            event.preventDefault();
+            closeDecisionModal();
+          }}
         >
           <DialogHeader>
             <DialogTitle>
-              {decisionModal.status === 'Approve' ? 'Xác nhận duyệt chứng từ' : 'Xác nhận từ chối chứng từ'}
+              {modalCopy.title}
             </DialogTitle>
             <DialogDescription>
-              {decisionModal.status === 'Approve'
-                ? 'Bạn đang chuẩn bị duyệt chứng từ này. Vui lòng ghi chú thêm nếu cần.'
-                : 'Cung cấp lý do từ chối chi tiết dưới đây.'}
+              {modalCopy.description}
             </DialogDescription>
           </DialogHeader>
 
@@ -419,16 +461,30 @@ export default function ApprovalPage() {
               onChange={(e) => setDecisionModal((prev) => ({ ...prev, reason: e.target.value }))}
               placeholder={decisionModal.status === 'Approve' ? 'Ví dụ: Đồng ý duyệt...' : 'Nhập lý do từ chối bắt buộc...'}
               className="min-h-[100px] resize-none"
+              aria-invalid={Boolean(decisionError)}
+              aria-describedby={decisionError ? 'decision-error' : undefined}
+              disabled={isDeciding}
             />
           </div>
+
+          {decisionError && (
+            <div id="decision-error" role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+              <p>{decisionError}</p>
+              <Button type="button" variant="outline" className="mt-2" onClick={() => void refetchApprovals()} disabled={isDeciding}>
+                Tải lại hàng đợi
+              </Button>
+            </div>
+          )}
 
           <DialogFooter className="gap-2">
             <Button
               type="button"
               variant="outline"
-              onClick={() => setDecisionModal((prev) => ({ ...prev, isOpen: false }))}
+              onClick={closeDecisionModal}
+              disabled={isDeciding}
+              autoFocus
             >
-              Hủy
+              {modalCopy.safeLabel}
             </Button>
             <Button
               type="button"
@@ -436,7 +492,7 @@ export default function ApprovalPage() {
               onClick={handleDecisionSubmit}
               disabled={isDeciding || (decisionModal.status === 'Reject' && !decisionModal.reason.trim())}
             >
-              {isDeciding ? 'Đang xử lý...' : decisionModal.status === 'Reject' ? 'Từ chối' : 'Duyệt'}
+              {isDeciding ? 'Đang xử lý...' : modalCopy.submitLabel}
             </Button>
           </DialogFooter>
         </DialogContent>

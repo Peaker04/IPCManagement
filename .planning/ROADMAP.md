@@ -291,7 +291,7 @@ route-preserving feature decomposition + regression/UAT gates
 **Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
-**Plans:** 9/14 plans executed
+**Plans:** 10/14 plans executed
 
 Plans:
 
@@ -328,7 +328,7 @@ Plans:
 
 **Wave 7 — Warehouse receiving** *(blocked on Wave 6)*
 
-- [ ] 09-11-PLAN.md — Consolidate actual receiving behind one Warehouse-only atomic writer
+- [x] 09-11-PLAN.md — Consolidate actual receiving behind one Warehouse-only atomic writer
 
 **Wave 8 — frontend contracts and approval handoffs** *(blocked on Wave 7)*
 

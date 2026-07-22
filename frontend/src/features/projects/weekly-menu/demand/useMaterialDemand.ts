@@ -3,6 +3,7 @@ import { useAppDispatch } from '@/app/hooks'
 import { apiSlice } from '@/api/apiSlice'
 import {
   useGenerateMaterialDemandMutation,
+  useGetApprovalHistoryQuery,
   useGetIngredientDemandAggregatePageQuery,
   useGetIngredientDemandQuery,
   useGetMaterialDemandStalenessQuery,
@@ -13,7 +14,7 @@ import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '../schedule/types'
-import { buildDemandDayPages, buildKhsxDraftDocument, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
+import { buildDemandApprovalHref, buildDemandDayPages, buildKhsxDraftDocument, getDemandApprovalPresentation, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
 
 type Options = {
   scope: WeeklyMenuScope
@@ -97,6 +98,22 @@ export function useMaterialDemand({
     pageNumber: aggregatePageNumber,
     pageSize: 20,
   }, { skip: !scope.customerId || !activeDate })
+  const activeDemand = demandLines.find((line) => line.serviceDate === activeDate && line.materialRequestId)
+  const { currentData: approvalHistoryResponse } = useGetApprovalHistoryQuery({
+    documentType: 'material-demand',
+    documentId: activeDemand?.materialRequestId ?? '',
+  }, { skip: !activeDemand?.materialRequestId })
+  const rejectionReason = approvalHistoryResponse?.data
+    ?.filter((item) => item.decision.toUpperCase() === 'REJECT')
+    .at(-1)?.reason ?? undefined
+  const demandApprovalStatus = getDemandApprovalPresentation(demandLines, activeDate, rejectionReason)
+  const approvalHref = demandApprovalStatus.targetId
+    ? buildDemandApprovalHref({
+      week: scope.weekStartDate,
+      serviceDate: activeDate,
+      targetId: demandApprovalStatus.targetId,
+    })
+    : undefined
   const aggregateLines = aggregatePage?.items ?? []
   const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
@@ -203,6 +220,8 @@ export function useMaterialDemand({
       importDefaultRows: weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default'),
       demandLines, aggregatedDemandLines, staleness, dayPages, dayIndex, activeDay, activeDate,
       activeRows: activeDay?.rows ?? [], activeQuickServingRows, aggregatePage, aggregateLines, inventoryStatus, documents,
+      demandApprovalStatus,
+      approvalHref,
     },
   }
 }

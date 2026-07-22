@@ -385,6 +385,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         ReadProperty<decimal?>(item, "TotalQuantity").Should().Be(10m);
         ReadProperty<decimal?>(item, "TotalValue").Should().BeNull();
         ReadProperty<DateTime?>(item, "SubmittedAt").Should().Be(request.Plan.CreatedAt);
+        item.SourceDocumentCode.Should().Be(request.Plan.PlanCode);
         item.Materials.Should().ContainSingle()
             .Which.Quantity.Should().Be(10m);
     }
@@ -608,6 +609,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         ReadProperty<string>(item, "EvidenceType").Should().Be("EFFECTIVE_QUOTATION");
         ReadProperty<string>(item, "EvidenceId").Should().Be(GuidHelper.ToGuidString(setup.EvidenceId));
         ReadProperty<int?>(item, "ProposalVersion").Should().Be(1);
+        item.SupplierName.Should().Be("Nhà cung cấp giá");
 
         var purchasingInbox = await inboxService.GetPendingAsync(
             BuildPrincipal("Purchasing"), new ApprovalInboxQueryDto { Limit = 20 });
