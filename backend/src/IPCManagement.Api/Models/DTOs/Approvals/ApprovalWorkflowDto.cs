@@ -63,6 +63,13 @@ public class ApprovalInboxItemDto
     public string NextAction { get; set; } = string.Empty;
     public string Tone { get; set; } = "warning";
     public string Route { get; set; } = string.Empty;
+    public DateOnly? WeekStartDate { get; set; }
+    public DateOnly? ServiceDate { get; set; }
+    public string? Scope { get; set; }
+    public int? LineCount { get; set; }
+    public decimal? TotalQuantity { get; set; }
+    public decimal? TotalValue { get; set; }
+    public DateTime? SubmittedAt { get; set; }
     public DateTime? SlaDeadline { get; set; }
     public int? SlaHours { get; set; }
     public IReadOnlyList<ApprovalInboxMaterialDto> Materials { get; set; } = [];

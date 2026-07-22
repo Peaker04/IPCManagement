@@ -2212,13 +2212,12 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
 
         var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
-        var purchaseInbox = await service.GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+        var managerInbox = await service.GetPendingAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 100 });
         var warehouseInbox = await service.GetPendingAsync(BuildPrincipal("Thủ kho"), new ApprovalInboxQueryDto { Limit = 100 });
 
-        purchaseInbox.Select(item => item.ItemType).Should().Contain("purchase");
-        purchaseInbox.Select(item => item.ItemType).Should().NotContain(["issue", "adjustment"]);
-        purchaseInbox.Should().OnlyContain(item => item.Status == "PENDING");
-        purchaseInbox.Single(item => item.ItemType == "purchase").TargetType.Should().Be("purchase-request");
+        managerInbox.Select(item => item.ItemType).Should().Contain(["purchase", "issue", "adjustment"]);
+        managerInbox.Should().OnlyContain(item => item.Status == "PENDING");
+        managerInbox.Single(item => item.ItemType == "purchase").TargetType.Should().Be("purchase-request");
 
         warehouseInbox.Select(item => item.ItemType).Should().Contain(["issue", "adjustment"]);
         warehouseInbox.Select(item => item.ItemType).Should().NotContain("purchase");
@@ -2373,7 +2372,7 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var inbox = await new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>())
-                .GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+                .GetPendingAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 100 });
 
             var alert = inbox.Should().ContainSingle(item => item.ItemType == "price-alert").Subject;
             alert.TargetType.Should().Be("purchase-request");

@@ -358,7 +358,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             Status = "CREATED",
             CreatedBy = userId,
             CreatedAt = submittedAt,
-            UpdatedAt = submittedAt
+            UpdatedAt = submittedAt,
+            CreatedByNavigation = user
         };
         var request = new Materialrequest
         {
@@ -368,7 +369,9 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             RequestDate = plan.PlanDate,
             RequestScope = "FULLDAY",
             Status = status,
-            CreatedBy = userId
+            CreatedBy = userId,
+            CreatedByNavigation = user,
+            Plan = plan
         };
 
         request.Materialrequestlines.Add(CreateInboxLine(request, ingredient, unit, 4m));
@@ -401,7 +404,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             CurrentStockQty = 0,
             SuggestedPurchaseQty = suggestedPurchaseQuantity,
             Ingredient = ingredient,
-            Unit = unit
+            Unit = unit,
+            Request = request
         };
 
     private static T? ReadProperty<T>(object instance, string propertyName)

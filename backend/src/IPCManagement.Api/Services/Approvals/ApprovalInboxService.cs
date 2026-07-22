@@ -27,6 +27,7 @@ public interface IApprovalInboxService
 public sealed class ApprovalInboxService : IApprovalInboxService
 {
     private const string PurchaseRequestTargetType = "purchase-request";
+    private const string MaterialDemandTargetType = "material-demand";
     private const string InventoryIssueTargetType = "inventory-issue";
     private const string OrderAdjustmentTargetType = "order-adjustment";
     private const int DefaultPageSize = 20;
@@ -117,6 +118,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         var permissions = ResolveUserPermissions(user);
         var inbox = new List<ApprovalInboxItemDto>();
 
+        if (permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
+        {
+            inbox.AddRange(await BuildMaterialDemandItemsAsync(limit, cursor, cancellationToken));
+        }
+
         if (permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
         {
             inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken));
@@ -134,6 +140,90 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         }
 
         return inbox;
+    }
+
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildMaterialDemandItemsAsync(
+        int limit,
+        ApprovalInboxCursor? cursor,
+        CancellationToken cancellationToken)
+    {
+        var requestQuery = _context.Materialrequests
+            .Where(item => item.Status == "DRAFT");
+        if (cursor is not null)
+        {
+            requestQuery = requestQuery.Where(item =>
+                item.RequestDate > cursor.DueDate ||
+                (item.RequestDate == cursor.DueDate && item.RequestCode.CompareTo(cursor.TargetCode) > 0));
+        }
+
+        var requests = await requestQuery
+            .OrderBy(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<ApprovalInboxItemDto>();
+        foreach (var request in requests)
+        {
+            await _context.Entry(request)
+                .Reference(item => item.CreatedByNavigation)
+                .LoadAsync(cancellationToken);
+            await _context.Entry(request)
+                .Reference(item => item.Plan)
+                .LoadAsync(cancellationToken);
+            await _context.Entry(request)
+                .Collection(item => item.Materialrequestlines)
+                .Query()
+                .Include(line => line.Ingredient)
+                .Include(line => line.Unit)
+                .LoadAsync(cancellationToken);
+
+            var materials = request.Materialrequestlines
+                .GroupBy(line => new
+                {
+                    IngredientId = Convert.ToBase64String(line.IngredientId),
+                    UnitId = Convert.ToBase64String(line.UnitId)
+                })
+                .Select(group => new ApprovalInboxMaterialDto
+                {
+                    Name = group.First().Ingredient.IngredientName,
+                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.SuggestedPurchaseQty)),
+                    Unit = group.First().Unit.UnitName
+                })
+                .OrderBy(material => material.Name)
+                .ToList();
+            var targetId = GuidHelper.ToGuidString(request.RequestId);
+            var itemDto = new ApprovalInboxItemDto
+            {
+                InboxItemId = $"material-demand-{targetId}",
+                TargetType = MaterialDemandTargetType,
+                TargetId = targetId,
+                TargetCode = request.RequestCode,
+                ItemType = MaterialDemandTargetType,
+                Title = "Duyệt nhu cầu nguyên liệu",
+                Source = request.RequestCode,
+                OwnerRole = "Quản lý",
+                SubmittedBy = request.CreatedByNavigation.FullName,
+                DueDate = request.RequestDate,
+                Status = "PENDING",
+                Reason = "Nhu cầu nguyên liệu đã tính, chờ quản lý duyệt trước khi mua hàng.",
+                NextAction = "Duyệt nhu cầu",
+                Tone = "warning",
+                Route = $"/approvals?targetType={MaterialDemandTargetType}&targetId={targetId}&serviceDate={request.RequestDate:yyyy-MM-dd}&scope={Uri.EscapeDataString(request.RequestScope)}",
+                WeekStartDate = request.Plan.WeekStartDate,
+                ServiceDate = request.RequestDate,
+                Scope = request.RequestScope,
+                LineCount = request.Materialrequestlines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(request.Materialrequestlines.Sum(line => line.SuggestedPurchaseQty)),
+                TotalValue = null,
+                SubmittedAt = request.Plan.CreatedAt,
+                Materials = materials
+            };
+            await PopulateSlaAsync(itemDto, request.RequestId, request.Plan.CreatedAt);
+            result.Add(itemDto);
+        }
+
+        return result;
     }
 
     private static int NormalizeLimit(int value, int fallback, int maximum)
