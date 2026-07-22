@@ -7,9 +7,12 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Services.Workflow;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using NSubstitute;
 using System.ComponentModel.DataAnnotations;
 
 namespace IPCManagement.Api.Tests;
@@ -29,6 +32,22 @@ public class WarehousePurchaseReceivingTests
         var roles = rolesField!.GetValue(null).Should().BeAssignableTo<string[]>().Subject;
         roles.Should().Contain(["Admin", "WarehouseStaff", "Thủ kho"]);
         roles.Should().NotContain(["Purchasing", "PurchaseStaff", "ProcurementStaff", "Manager", "Quản lý"]);
+    }
+
+    [Fact]
+    public void Authorization_Warehouse_receipt_controller_uses_dedicated_writer_policy()
+    {
+        var controllerType = typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController);
+        controllerType.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehousePurchaseReceive);
+        controllerType.GetCustomAttributes(typeof(RouteAttribute), inherit: true)
+            .Cast<RouteAttribute>()
+            .Should().ContainSingle(attribute =>
+                attribute.Template == "api/warehouse/purchase-orders/{purchaseOrderId}/receipts");
+        controllerType.GetMethod("Record")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
+            .Should().ContainSingle();
+        typeof(IPurchaseReceivingService).GetMethod("RecordAsync").Should().NotBeNull();
     }
 
     [Fact]
@@ -443,8 +462,27 @@ public class WarehousePurchaseReceivingTests
 
         public object CreateService(Func<string, CancellationToken, Task>? faultInjector = null)
         {
+            var currentStockRepository = Substitute.For<ICurrentStockRepository>();
+            currentStockRepository
+                .GetByWarehouseAndIngredientAsync(Arg.Any<byte[]>(), Arg.Any<byte[]>())
+                .Returns(callInfo =>
+                {
+                    var warehouseId = callInfo.ArgAt<byte[]>(0);
+                    var ingredientId = callInfo.ArgAt<byte[]>(1);
+                    var stock = Context.Currentstocks.Local.FirstOrDefault(item =>
+                        item.WarehouseId.AsSpan().SequenceEqual(warehouseId) &&
+                        item.IngredientId.AsSpan().SequenceEqual(ingredientId));
+                    return Task.FromResult(stock);
+                });
+            currentStockRepository
+                .ConvertQuantityAsync(Arg.Any<byte[]>(), Arg.Any<byte[]>(), Arg.Any<decimal>())
+                .Returns(callInfo => Task.FromResult(callInfo.ArgAt<decimal>(2)));
+            currentStockRepository
+                .When(repository => repository.Add(Arg.Any<Currentstock>()))
+                .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<Currentstock>()));
+
             var ledger = new StockLedgerService(
-                new CurrentStockRepository(Context),
+                currentStockRepository,
                 new StockMovementRepository(Context),
                 Context);
             return CreateReceivingService(Context, ledger, faultInjector);
