@@ -105,6 +105,7 @@ export interface ApprovalRecord {
 export interface DemandLine {
   id: string;
   materialRequestId?: string;
+  materialRequestStatus?: string;
   purchaseRequestId?: string;
   purchaseRequestLineId?: string;
   supplierId?: string;

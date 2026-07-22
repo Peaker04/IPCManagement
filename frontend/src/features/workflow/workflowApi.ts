@@ -1320,6 +1320,7 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
+    materialRequestStatus: item.status,
     ingredientId: item.ingredientId,
     bomId: item.bomId,
     priceTierAmount: item.priceTierAmount,

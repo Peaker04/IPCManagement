@@ -60,6 +60,39 @@ export function MaterialDemandSection({
           </InlineAlert>
         )}
 
+        <div className="flex min-h-11 flex-col gap-2 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-sm font-semibold text-slate-700">Phê duyệt nhu cầu</span>
+            <StatusBadge variant={presentation.demandApprovalStatus.tone}>
+              {presentation.demandApprovalStatus.label}
+            </StatusBadge>
+            {presentation.demandApprovalStatus.documentCode && (
+              <span className="font-mono text-xs font-semibold text-slate-600">
+                {presentation.demandApprovalStatus.documentCode}
+              </span>
+            )}
+          </div>
+          {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
+            <ActionGuard allowedRoles={['quanly']} requiredPermissions={['material-demand.approve']}>
+              <Link className="ipc-link text-sm font-semibold" to={presentation.approvalHref}>
+                {presentation.demandApprovalStatus.actionLabel}
+              </Link>
+            </ActionGuard>
+          )}
+          {presentation.demandApprovalStatus.status === 'approved' && (
+            <Link className="ipc-link text-sm font-semibold" to={`${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`}>
+              {presentation.demandApprovalStatus.actionLabel}
+            </Link>
+          )}
+        </div>
+        {presentation.demandApprovalStatus.status === 'rejected' && (
+          <InlineAlert title="Nhu cầu nguyên liệu đã bị từ chối" variant="danger">
+            {presentation.demandApprovalStatus.reason
+              ? `Lý do của quản lý: ${presentation.demandApprovalStatus.reason} Hãy cập nhật dữ liệu nguồn rồi tính lại nhu cầu.`
+              : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
+          </InlineAlert>
+        )}
+
         <Toolbar className="justify-end">
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
             <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}>
