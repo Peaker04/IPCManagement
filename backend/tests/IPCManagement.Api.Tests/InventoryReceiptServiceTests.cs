@@ -151,7 +151,10 @@ public class InventoryReceiptServiceTests
                 amount REAL,
                 lotNumber TEXT,
                 manufactureDate TEXT,
-                expiredDate TEXT
+                expiredDate TEXT,
+                packageQuantitySnapshot REAL,
+                packageBaseUnitIdSnapshot BLOB,
+                packagePolicyVersionSnapshot TEXT
             );
 
             CREATE TABLE auditlogs (

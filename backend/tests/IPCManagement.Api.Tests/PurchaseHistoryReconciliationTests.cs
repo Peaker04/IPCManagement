@@ -2,7 +2,10 @@ using System.ComponentModel.DataAnnotations;
 using System.Net;
 using System.Net.Http.Json;
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
+using System.Text.Json;
 using FluentAssertions;
 using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Data;
@@ -23,6 +26,7 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using MySqlConnector;
 using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
@@ -116,6 +120,101 @@ public class PurchaseHistoryReconciliationTests
         action.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckPurchaseHistoryReconciliationActionsDisposition",
             "ckPurchaseHistoryReconciliationActionsSourceRow");
+    }
+
+    [Fact]
+    public async Task Migration_fresh_database_applies_reconciliation_schema()
+    {
+        if (!MySqlMigrationTestsEnabled())
+        {
+            return;
+        }
+
+        const string database = "ipc_lane8";
+        await RecreateDisposableDatabaseAsync(database);
+        await BootstrapFreshInstallAsync(database);
+        await using var context = CreateMySqlContext(database);
+
+        await context.Database.MigrateAsync();
+
+        (await context.Database.GetAppliedMigrationsAsync()).Should().ContainSingle(
+            migration => migration == "20260721120000_AddPurchaseHistoryReconciliation");
+        (await context.Purchasehistoryreconciliationruns.CountAsync()).Should().Be(0);
+        (await context.Purchasehistoryreconciliationactions.CountAsync()).Should().Be(0);
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'inventoryreceiptlines'
+              AND COLUMN_NAME IN (
+                'packageQuantitySnapshot',
+                'packageBaseUnitIdSnapshot',
+                'packagePolicyVersionSnapshot');
+            """)).Should().Be(3);
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS
+            WHERE CONSTRAINT_SCHEMA = DATABASE()
+              AND CONSTRAINT_NAME IN (
+                'ckInventoryReceiptLinesPackageQuantityPositive',
+                'ckInventoryReceiptLinesPackageSnapshotComplete',
+                'ckPurchaseHistoryReconciliationRunsCounts',
+                'ckPurchaseHistoryReconciliationRunsRestoreVerified',
+                'ckPurchaseHistoryReconciliationRunsStatus',
+                'ckPurchaseHistoryReconciliationActionsDisposition',
+                'ckPurchaseHistoryReconciliationActionsSourceRow');
+            """)).Should().Be(7);
+
+        // Known pre-existing baseline gap: this proof is scoped to bootstrap-to-09-04,
+        // not full model parity, and the fixture must not manufacture these columns.
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'menuversions'
+              AND COLUMN_NAME IN ('successRowCount', 'errorRowCount', 'warningRowCount');
+            """)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Migration_upgrade_populated_clone_preserves_receipt_history()
+    {
+        if (!MySqlMigrationTestsEnabled())
+        {
+            return;
+        }
+
+        const string database = "ipc_lane9";
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        await using var context = CreateMySqlContext(database);
+        var appliedBefore = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        appliedBefore.Should().NotContain("20260721120000_AddPurchaseHistoryReconciliation");
+        var receiptCountBefore = await context.Inventoryreceipts.CountAsync();
+        var lineCountBefore = await context.Inventoryreceiptlines.CountAsync();
+        receiptCountBefore.Should().BeGreaterThan(0);
+        lineCountBefore.Should().BeGreaterThan(0);
+        var fingerprintBefore = await ReceiptHistoryFingerprintAsync(database);
+
+        await context.Database.MigrateAsync();
+        context.ChangeTracker.Clear();
+
+        var appliedAfter = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        appliedAfter.Should().ContainSingle(
+            migration => migration == "20260721120000_AddPurchaseHistoryReconciliation");
+        appliedAfter.Length.Should().BeGreaterThan(appliedBefore.Length);
+        (await context.Inventoryreceipts.CountAsync()).Should().Be(receiptCountBefore);
+        (await context.Inventoryreceiptlines.CountAsync()).Should().Be(lineCountBefore);
+        (await context.Inventoryreceiptlines.CountAsync(line =>
+            line.PackageQuantitySnapshot != null ||
+            line.PackageBaseUnitIdSnapshot != null ||
+            line.PackagePolicyVersionSnapshot != null)).Should().Be(0);
+        (await ReceiptHistoryFingerprintAsync(database)).Should().Be(fingerprintBefore);
     }
 
     [Theory]
@@ -787,6 +886,152 @@ public class PurchaseHistoryReconciliationTests
             .UseInMemoryDatabase($"purchase-history-preview-{Guid.NewGuid():N}")
             .Options;
         return new IpcManagementContext(options);
+    }
+
+    private static bool MySqlMigrationTestsEnabled()
+        => string.Equals(
+            Environment.GetEnvironmentVariable("IPC_RUN_MYSQL_MIGRATION_TESTS"),
+            "1",
+            StringComparison.Ordinal);
+
+    private static IpcManagementContext CreateMySqlContext(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseMySql(
+                DisposableConnectionString(database),
+                new MySqlServerVersion(new Version(8, 0, 0)))
+            .Options;
+        return new IpcManagementContext(options);
+    }
+
+    private static async Task RecreateDisposableDatabaseAsync(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        var builder = new MySqlConnectionStringBuilder(DisposableConnectionString(database))
+        {
+            Database = "mysql"
+        };
+        await using var connection = new MySqlConnection(builder.ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = $"DROP DATABASE IF EXISTS `{database}`; " +
+                              $"CREATE DATABASE `{database}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;";
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task BootstrapFreshInstallAsync(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        const string duplicateApprovalHistoryIndex =
+            "CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);";
+        const string duplicateApproverIndex =
+            "CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);";
+        var schema = await File.ReadAllTextAsync(
+            FindRepositoryFile("backend", "database", "IPCmanagement.sql"));
+        schema.Should().Contain(duplicateApprovalHistoryIndex);
+        schema.Should().Contain(duplicateApproverIndex);
+        schema.Should().NotContain("successRowCount");
+        schema.Should().NotContain("errorRowCount");
+        schema.Should().NotContain("warningRowCount");
+        schema = schema
+            .Replace(
+                "CREATE DATABASE IF NOT EXISTS ipcManagement",
+                $"CREATE DATABASE IF NOT EXISTS `{database}`",
+                StringComparison.Ordinal)
+            .Replace("USE ipcManagement;", $"USE `{database}`;", StringComparison.Ordinal)
+            .Replace(duplicateApprovalHistoryIndex, string.Empty, StringComparison.Ordinal)
+            .Replace(duplicateApproverIndex, string.Empty, StringComparison.Ordinal);
+
+        await ExecuteSqlScriptAsync(database, schema);
+        await ExecuteSqlScriptAsync(
+            database,
+            await File.ReadAllTextAsync(
+                FindRepositoryFile("backend", "database", "Init_EF_History_For_Old_DB.sql")));
+
+        // The official fresh schema already contains these four schema changes, while its
+        // history initializer omits their IDs. Register only those proven baseline gaps so
+        // every later migration still executes and any unrelated schema failure remains visible.
+        await ExecuteSqlScriptAsync(
+            database,
+            """
+            INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VALUES
+              ('20260702061320_AddImportAuditFields', '9.0.16'),
+              ('20260702072352_AddProductionPlanUpdatedAt', '9.0.16'),
+              ('20260702124738_AddSupplierQuotations', '9.0.16'),
+              ('20260702164531_AddPurchaseOrders', '9.0.16');
+            """);
+    }
+
+    private static async Task ExecuteSqlScriptAsync(string database, string sql)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        command.CommandTimeout = 120;
+        await command.ExecuteNonQueryAsync();
+    }
+
+    private static async Task<long> SchemaObjectCountAsync(string database, string sql)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToInt64(await command.ExecuteScalarAsync());
+    }
+
+    private static string DisposableConnectionString(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        using var settings = JsonDocument.Parse(
+            File.ReadAllText(FindRepositoryFile("backend", "src", "IPCManagement.Api", "appsettings.json")));
+        var configured = settings.RootElement
+            .GetProperty("ConnectionStrings")
+            .GetProperty("DefaultConnection")
+            .GetString() ?? throw new InvalidOperationException("DefaultConnection is missing.");
+        return new MySqlConnectionStringBuilder(configured)
+        {
+            Database = database
+        }.ConnectionString;
+    }
+
+    private static async Task<string> ReceiptHistoryFingerprintAsync(string database)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT payload
+            FROM (
+                SELECT CONCAT_WS('|',
+                    'R', HEX(receiptId), receiptCode, DATE_FORMAT(receiptDate, '%Y-%m-%d'),
+                    HEX(warehouseId), HEX(supplierId), COALESCE(HEX(purchaseRequestId), '<NULL>'),
+                    HEX(createdBy), DATE_FORMAT(createdAt, '%Y-%m-%dT%H:%i:%s.%f')) AS payload,
+                    CONCAT('R|', HEX(receiptId)) AS sortKey
+                FROM inventoryreceipts
+                UNION ALL
+                SELECT CONCAT_WS('|',
+                    'L', HEX(receiptLineId), HEX(receiptId), COALESCE(HEX(purchaseRequestLineId), '<NULL>'),
+                    HEX(ingredientId), HEX(unitId), CAST(quantity AS CHAR), CAST(unitPrice AS CHAR),
+                    COALESCE(CAST(amount AS CHAR), '<NULL>'), COALESCE(lotNumber, '<NULL>'),
+                    COALESCE(DATE_FORMAT(manufactureDate, '%Y-%m-%d'), '<NULL>'),
+                    COALESCE(DATE_FORMAT(expiredDate, '%Y-%m-%d'), '<NULL>')) AS payload,
+                    CONCAT('L|', HEX(receiptLineId)) AS sortKey
+                FROM inventoryreceiptlines
+            ) AS receiptHistory
+            ORDER BY sortKey;
+            """;
+        await using var reader = await command.ExecuteReaderAsync();
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        while (await reader.ReadAsync())
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(reader.GetString(0)));
+            hash.AppendData("\n"u8);
+        }
+
+        return Convert.ToHexString(hash.GetHashAndReset());
     }
 
     private static async Task SeedCatalogAsync(IpcManagementContext context)

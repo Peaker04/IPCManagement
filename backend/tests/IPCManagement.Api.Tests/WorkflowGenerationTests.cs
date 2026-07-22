@@ -6391,7 +6391,10 @@ public class WorkflowGenerationTests
                     amount TEXT NULL,
                     lotNumber TEXT NULL,
                     manufactureDate TEXT NULL,
-                    expiredDate TEXT NULL
+                    expiredDate TEXT NULL,
+                    packageQuantitySnapshot TEXT NULL,
+                    packageBaseUnitIdSnapshot BLOB NULL,
+                    packagePolicyVersionSnapshot TEXT NULL
                 );
                 CREATE TABLE inventoryissues (
                     issueId BLOB PRIMARY KEY,
