@@ -59,6 +59,21 @@ public class PurchaseHistoryReconciliationTests
         current.ImportableBusinessKeys.Should().HaveCount(17_739);
         (current.ImportableBusinessKeys.Count - legacy.ImportableBusinessKeys.Count).Should().Be(3_207);
 
+        var scientificQuantityRows = new Dictionary<int, string>
+        {
+            [9323] = "2026-05-14|Ngũ điếc",
+            [9336] = "2026-05-14|Măng khô",
+            [9379] = "2026-05-16|Rau quế"
+        };
+        foreach (var (sourceRow, expectedBusinessKey) in scientificQuantityRows)
+        {
+            var candidate = legacy.Candidates.Single(item =>
+                item.Trace.SourceSheet == "1.Rau" && item.Trace.SourceRow == sourceRow);
+            candidate.Quantity.Should().BeGreaterThan(0);
+            candidate.IsImportable.Should().BeTrue();
+            candidate.BusinessKey.Should().Be(expectedBusinessKey);
+        }
+
         using var replayStream = File.OpenRead(currentPath);
         var replay = parser.Parse(replayStream, new DateOnly(2026, 7, 20));
         replay.Candidates
