@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: Phase 9 planned; ready to execute when authorized
-stopped_at: Phase 9 planning verified with 0 blockers
-last_updated: "2026-07-21T17:14:16.069Z"
-last_activity: 2026-07-21 — Phase 9 verified with 14 plans, 0 blockers and 1 non-blocking scope warning
+status: in_progress
+stopped_at: Completed 09-01-PLAN.md
+last_updated: "2026-07-22T05:23:22.497Z"
+last_activity: 2026-07-22 — Phase 9 Plan 09-01 completed Wave 0 safety evidence and test seams
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 1
-  percent: 3
+  completed_plans: 2
+  percent: 5
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Phase 9 planning verified with 0 blockers
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-01-PLAN.md
+**Stopped at:** Completed 09-01-PLAN.md
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-02-PLAN.md
 
 ---
-*Last updated: 2026-07-08 — documentation refresh sau v1.0 release gate*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 01 Wave 0*
 
 ## Performance Metrics
 
@@ -230,6 +230,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 02 P04 | completed | frontend | primary operational mocks replaced with API hooks; build/lint/smoke pass; seeded DB spot check remains for final verification |
 | Phase 02 P05 | completed | frontend | admin statistics and report tabs completed; build/lint/smoke pass; live API spot check remains for final verification |
 | Phase 02 P06 | completed | verification | sample import, GitNexus refresh, backend/frontend verification, API spot checks, and mock-removal audit completed |
+| Phase 09 P01 | 3h 24m | 2 tasks | 16 files |
 
 ## Decisions
 
@@ -255,10 +256,12 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 02]: Admin must include statistics/reporting for demand, purchasing, stock, receipt price variance, kitchen issue, issue-vs-return usage, and audit/BOM/stock changes.
 - [Phase 02]: Start with a dev/sample seed runner or bounded backend import service; full admin Excel upload can wait until the data contract and APIs stabilize.
 - [Phase 02]: Represent savory/vegetarian/main/side/soup/dessert menu sections through `menuItems.dishSlot` under the existing schema.
+- [Phase 09]: Use the reproduced 3,207 unique case-insensitive delivery-date-plus-ingredient delta instead of unsupported 3,209.
+- [Phase 09]: Disposable clones copy DEFAULT_GENERATED temporal fields and exclude only columns with non-empty generation_expression.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 14 plans across Wave 0–10
-Status: Planned and verified; ready to execute when authorized
-Last activity: 2026-07-21 — Phase 9 verified with 14 plans, 0 blockers and 1 non-blocking scope warning
+Plan: 1 of 14 completed; next 09-02
+Status: In progress
+Last activity: 2026-07-22 — Plan 09-01 completed with exact workbook and disposable restore evidence
