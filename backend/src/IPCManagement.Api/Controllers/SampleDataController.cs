@@ -77,4 +77,45 @@ public class SampleDataController : ControllerBase
             result,
             "Xem trước đối soát lịch sử mua hàng hoàn tất."));
     }
+
+    /// <summary>Áp dụng manifest đối soát đã chấp nhận. Chỉ bật trong Development.</summary>
+    [HttpPost("purchase-history/apply")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseHistoryApplyResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApplyPurchaseHistory(
+        [FromBody] PurchaseHistoryApplyRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!_environment.IsDevelopment())
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse.FailResult("Áp dụng đối soát lịch sử mua hàng chỉ được bật trong môi trường Development."));
+        }
+
+        var actorId = GuidHelper.ParseGuidString(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        if (actorId is null)
+        {
+            return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng thực hiện đối soát."));
+        }
+
+        try
+        {
+            var result = await _purchaseHistoryReconciliationService.ApplyAsync(
+                request,
+                actorId,
+                cancellationToken);
+            return Ok(ApiResponse<PurchaseHistoryApplyResultDto>.SuccessResult(
+                result,
+                result.NoOp
+                    ? "Manifest đối soát đã được áp dụng trước đó."
+                    : "Áp dụng đối soát lịch sử mua hàng hoàn tất."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+    }
 }
