@@ -1,12 +1,15 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Services.Workflow;
 using IPCManagement.DatabaseTool;
 using Microsoft.Data.Sqlite;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -586,6 +589,244 @@ public class SupplierDecisionWorkflowTests
         var persistedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
         persistedLine.SupplierId.Should().BeNull();
         persistedLine.EstimatedUnitPrice.Should().Be(0m);
+    }
+
+    [Fact]
+    public async Task Confirmation_revalidates_server_evidence_and_appends_versioned_decisions()
+    {
+        await using var context = CreateContext();
+        var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
+        var supplier = SeedSupplier(context, "SUP-CONFIRM", "Confirm supplier");
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var generated = await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
+            },
+            UserId);
+        var demandLine = demand.Materialrequestlines.Single();
+        var quotation = SeedQuotation(context, supplier, demandLine.Ingredient, 100m, new DateOnly(2026, 7, 1));
+        await context.SaveChangesAsync();
+        var requestId = generated!.PurchaseRequestId;
+        var lineId = generated.Lines.Single().PurchaseRequestLineId;
+
+        var first = await service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+                SupplierId = GuidHelper.ToGuidString(supplier.SupplierId),
+                ProposedUnitPrice = 110m,
+                ProposedDeliveryDate = "2026-07-21",
+                ExpectedDecisionVersion = 0
+            },
+            UserId);
+        var second = await service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+                SupplierId = GuidHelper.ToGuidString(supplier.SupplierId),
+                ProposedUnitPrice = 112m,
+                ProposedDeliveryDate = "2026-07-22",
+                ExpectedDecisionVersion = 1
+            },
+            UserId);
+
+        first.Version.Should().Be(1);
+        second.Version.Should().Be(2);
+        second.Status.Should().Be("CURRENT");
+        second.DecisionFingerprint.Should().HaveLength(64).And.NotBe(first.DecisionFingerprint);
+        second.ConfirmedBy.Should().Be(UserId);
+        var decisions = await context.Purchaselinesupplierdecisions
+            .AsNoTracking()
+            .OrderBy(item => item.Version)
+            .ToListAsync();
+        decisions.Should().HaveCount(2);
+        decisions[0].Status.Should().Be("SUPERSEDED");
+        decisions[0].SupersededByDecisionId.Should().Equal(decisions[1].PurchaseLineSupplierDecisionId);
+        decisions[0].CurrentDecisionKey.Should().BeNull();
+        decisions[1].CurrentDecisionKey.Should().Equal(decisions[1].PurchaseRequestLineId);
+        var persistedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
+        persistedLine.SupplierId.Should().Equal(supplier.SupplierId);
+        persistedLine.EstimatedUnitPrice.Should().Be(112m);
+        persistedLine.ExpectedDeliveryDate.Should().Be(new DateOnly(2026, 7, 22));
+    }
+
+    [Fact]
+    public async Task Confirmation_rejects_stale_version_evidence_and_non_draft_status_without_writes()
+    {
+        await using var context = CreateContext();
+        var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
+        var supplier = SeedSupplier(context, "SUP-CONFLICT", "Conflict supplier");
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var generated = await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
+            },
+            UserId);
+        var quotation = SeedQuotation(
+            context,
+            supplier,
+            demand.Materialrequestlines.Single().Ingredient,
+            100m,
+            new DateOnly(2026, 7, 1));
+        await context.SaveChangesAsync();
+        var requestId = generated!.PurchaseRequestId;
+        var lineId = generated.Lines.Single().PurchaseRequestLineId;
+        var baseRequest = new ConfirmPurchaseLineSupplierDto
+        {
+            EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+            EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+            SupplierId = GuidHelper.ToGuidString(supplier.SupplierId),
+            ProposedUnitPrice = 105m,
+            ProposedDeliveryDate = "2026-07-21",
+            ExpectedDecisionVersion = 0
+        };
+        await service.ConfirmLineSupplierAsync(requestId, lineId, baseRequest, UserId);
+
+        var staleVersion = () => service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = baseRequest.EvidenceType,
+                EvidenceId = baseRequest.EvidenceId,
+                SupplierId = baseRequest.SupplierId,
+                ProposedUnitPrice = 106m,
+                ProposedDeliveryDate = "2026-07-22",
+                ExpectedDecisionVersion = 0
+            },
+            UserId);
+        await staleVersion.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        (await context.Purchaselinesupplierdecisions.CountAsync()).Should().Be(1);
+
+        quotation.IsActive = false;
+        await context.SaveChangesAsync();
+        var staleEvidence = () => service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = baseRequest.EvidenceType,
+                EvidenceId = baseRequest.EvidenceId,
+                SupplierId = baseRequest.SupplierId,
+                ProposedUnitPrice = 106m,
+                ProposedDeliveryDate = "2026-07-22",
+                ExpectedDecisionVersion = 1
+            },
+            UserId);
+        await staleEvidence.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        (await context.Purchaselinesupplierdecisions.CountAsync()).Should().Be(1);
+
+        var purchaseRequest = await context.Purchaserequests.SingleAsync();
+        purchaseRequest.Status = "SENTTOSUPPLIER";
+        await context.SaveChangesAsync();
+        quotation.IsActive = true;
+        await context.SaveChangesAsync();
+        var wrongStatus = () => service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = baseRequest.EvidenceType,
+                EvidenceId = baseRequest.EvidenceId,
+                SupplierId = baseRequest.SupplierId,
+                ProposedUnitPrice = 106m,
+                ProposedDeliveryDate = "2026-07-22",
+                ExpectedDecisionVersion = 1
+            },
+            UserId);
+        await wrongStatus.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*DRAFT*");
+        (await context.Purchaselinesupplierdecisions.CountAsync()).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Workbench_projects_current_and_historical_supplier_decision_references()
+    {
+        await using var context = CreateContext();
+        var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
+        var supplier = SeedSupplier(context, "SUP-AUDIT", "Audit supplier");
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var generated = await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
+            },
+            UserId);
+        var quotation = SeedQuotation(
+            context,
+            supplier,
+            demand.Materialrequestlines.Single().Ingredient,
+            100m,
+            new DateOnly(2026, 7, 1));
+        await context.SaveChangesAsync();
+        var requestId = generated!.PurchaseRequestId;
+        var lineId = generated.Lines.Single().PurchaseRequestLineId;
+        for (var version = 0; version < 2; version++)
+        {
+            await service.ConfirmLineSupplierAsync(
+                requestId,
+                lineId,
+                new ConfirmPurchaseLineSupplierDto
+                {
+                    EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                    EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+                    SupplierId = GuidHelper.ToGuidString(supplier.SupplierId),
+                    ProposedUnitPrice = 105m + version,
+                    ProposedDeliveryDate = $"2026-07-{21 + version:00}",
+                    ExpectedDecisionVersion = version
+                },
+                UserId);
+        }
+
+        var workbench = await service.GetWorkbenchWeekAsync(new PurchaseWorkbenchQueryDto
+        {
+            Week = "2026-07-20",
+            Date = "2026-07-20",
+            Stage = "supplier-price"
+        });
+
+        var line = workbench.ServiceDates.Single().PurchaseLines.Single();
+        line.SupplierDecisionStatus.Should().Be("CONFIRMED");
+        line.CurrentSupplierDecision.Should().NotBeNull();
+        line.CurrentSupplierDecision!.Version.Should().Be(2);
+        line.SupplierDecisionHistory.Select(item => item.Version).Should().Equal(2, 1);
+        line.SupplierDecisionHistory.Should().OnlyContain(item =>
+            !string.IsNullOrWhiteSpace(item.EvidenceId) &&
+            !string.IsNullOrWhiteSpace(item.ConfirmedBy) &&
+            item.DecisionFingerprint.Length == 64);
+    }
+
+    [Fact]
+    public void Confirmation_endpoint_uses_purchasing_policy_and_contract_omits_server_fields()
+    {
+        var action = typeof(PurchaseWorkflowController).GetMethod(nameof(PurchaseWorkflowController.ConfirmLineSupplier));
+        action.Should().NotBeNull();
+        action!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Should().Contain(attribute => attribute.Policy == AuthorizationPolicies.PurchaseGenerateAccess);
+        typeof(PurchaseWorkflowController).GetMethod("UpdateLineSupplier").Should().BeNull();
+
+        var clientFields = typeof(ConfirmPurchaseLineSupplierDto).GetProperties()
+            .Select(property => property.Name)
+            .ToArray();
+        clientFields.Should().NotContain([
+            "ConfirmedBy",
+            "ConfirmedAt",
+            "EvidenceReferencePrice",
+            "VariancePercent",
+            "DecisionFingerprint"
+        ]);
     }
 
     [Fact(Skip = "Plan 09-10 owns the price threshold and exception handoff.")]
