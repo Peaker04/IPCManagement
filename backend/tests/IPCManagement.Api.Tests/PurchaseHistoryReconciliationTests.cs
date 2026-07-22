@@ -848,6 +848,158 @@ public class PurchaseHistoryReconciliationTests
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
     }
 
+    [Theory]
+    [InlineData("manifest-id")]
+    [InlineData("manifest-hash")]
+    [InlineData("action-subset")]
+    [InlineData("action-superset")]
+    [InlineData("backup-identifier")]
+    [InlineData("target-fingerprint")]
+    [InlineData("restore-fingerprint")]
+    [InlineData("restore-not-verified")]
+    public async Task ApplyGuard_rejects_request_drift_before_any_write(string drift)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var service = CreateApplyService(
+            context,
+            databaseIdentity: "ipc_lane1",
+            Candidate("1.Rau", 50, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+        switch (drift)
+        {
+            case "manifest-id":
+                request.ManifestId = "stale-manifest";
+                break;
+            case "manifest-hash":
+                request.ManifestHash = new string('D', 64);
+                break;
+            case "action-subset":
+                request.AcceptedActionIds.RemoveAt(0);
+                break;
+            case "action-superset":
+                request.AcceptedActionIds.Add("unexpected-action");
+                break;
+            case "backup-identifier":
+                request.BackupRestoreEvidence!.BackupIdentifier = "another-backup";
+                break;
+            case "target-fingerprint":
+                request.BackupRestoreEvidence!.TargetFingerprint = new string('D', 64);
+                break;
+            case "restore-fingerprint":
+                request.BackupRestoreEvidence!.RestoreFingerprint = new string('D', 64);
+                break;
+            case "restore-not-verified":
+                request.BackupRestoreEvidence!.RestoreVerified = false;
+                break;
+        }
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => service.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("source")]
+    [InlineData("policy")]
+    [InlineData("as-of")]
+    [InlineData("database")]
+    [InlineData("actions")]
+    public async Task ApplyGuard_rebuilds_preview_and_rejects_freshness_drift(string drift)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var baselineCandidate = Candidate(
+            "1.Rau",
+            60,
+            "Rau",
+            "Rau muống",
+            "KG",
+            new DateOnly(2026, 7, 20),
+            10,
+            25_000);
+        var baselineService = CreateApplyService(context, "ipc_lane1", baselineCandidate);
+        var request = AcceptedApplyRequest(await baselineService.PreviewAsync());
+        var driftedService = CreateApplyService(
+            context,
+            drift == "database" ? "ipc_lane2" : "ipc_lane1",
+            drift == "source" ? new string('D', 64) : new string('A', 64),
+            drift == "as-of" ? new DateOnly(2026, 7, 21) : new DateOnly(2026, 7, 20),
+            drift == "policy" ? "purchase-history-normalization/test-drift" : PurchaseHistoryPolicyVersion.Current,
+            drift == "actions"
+                ?
+                [
+                    baselineCandidate,
+                    Candidate("1.Rau", 61, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 21), 12, 27_000)
+                ]
+                : [baselineCandidate]);
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => driftedService.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("ipcmanagement", false, false)]
+    [InlineData("ipc_e2e_template", false, false)]
+    [InlineData("ipc_lane1", true, false)]
+    [InlineData("ipc_lane1", false, true)]
+    public async Task ApplyGuard_rejects_unsafe_target_blockers_and_missing_server_actor(
+        string databaseIdentity,
+        bool includeBlocker,
+        bool omitActor)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var candidate = Candidate(
+            "1.Rau",
+            70,
+            includeBlocker ? "Không tồn tại" : "Rau",
+            "Rau muống",
+            "KG",
+            new DateOnly(2026, 7, 20),
+            10,
+            25_000);
+        var service = CreateApplyService(context, databaseIdentity, candidate);
+        var request = AcceptedApplyRequest(await service.PreviewAsync());
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => service.ValidateAcceptedManifestAsync(
+            request,
+            omitActor ? [] : Id(41),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Fact]
+    public async Task ApplyGuard_accepts_only_the_exact_server_rebuilt_preview()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var service = CreateApplyService(
+            context,
+            "ipc_lane1",
+            Candidate("1.Rau", 80, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var accepted = await service.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        accepted.Preview.Manifest.ManifestHash.Should().Be(preview.Manifest.ManifestHash);
+        accepted.DatabaseIdentity.Should().Be("ipc_lane1");
+        accepted.AppliedBy.Should().Equal(Id(41));
+        accepted.Actions.Select(action => action.ActionId).Should().Equal(request.AcceptedActionIds);
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
     [Fact(Skip = "Plan 09-05 owns immutable-history apply and no-op replay behavior.")]
     public void Apply_preserves_immutable_history_and_second_apply_is_no_op()
     {
@@ -1134,6 +1286,58 @@ public class PurchaseHistoryReconciliationTests
                     candidates),
                 policyVersion));
 
+    private static PurchaseHistoryReconciliationService CreateApplyService(
+        IpcManagementContext context,
+        string databaseIdentity,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => CreateApplyService(
+            context,
+            databaseIdentity,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidates);
+
+    private static PurchaseHistoryReconciliationService CreateApplyService(
+        IpcManagementContext context,
+        string databaseIdentity,
+        string sourceHash,
+        DateOnly asOfDate,
+        string policyVersion,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => new(
+            context,
+            () => new PurchaseHistoryPreviewSource(
+                "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx",
+                new PurchaseHistoryParseResult(
+                    sourceHash,
+                    asOfDate,
+                    1,
+                    1,
+                    1,
+                    candidates),
+                policyVersion),
+            () => databaseIdentity,
+            () => new PurchaseHistoryApplySafetyEvidence(
+                "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                new string('C', 64),
+                new string('C', 64)));
+
+    private static PurchaseHistoryApplyRequestDto AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
+        => new()
+        {
+            ManifestId = preview.Manifest.ManifestId,
+            ManifestHash = preview.Manifest.ManifestHash,
+            AcceptedActionIds = preview.Actions.Select(action => action.ActionId).ToList(),
+            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            {
+                BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                TargetFingerprint = new string('C', 64),
+                RestoreFingerprint = new string('C', 64),
+                RestoreVerified = true
+            }
+        };
+
     private static PurchaseHistorySourceCandidate Candidate(
         string sheet,
         int row,
@@ -1189,6 +1393,17 @@ public class PurchaseHistoryReconciliationTests
             await context.Inventoryreceipts.CountAsync(),
             await context.Inventoryreceiptlines.CountAsync(),
             await context.Stockmovements.CountAsync());
+
+    private static async Task<(int Suppliers, int Ingredients, int Receipts, int Lines, int Movements, int Runs, int Actions)>
+        ApplyDatabaseCountsAsync(IpcManagementContext context)
+        => (
+            await context.Suppliers.CountAsync(),
+            await context.Ingredients.CountAsync(),
+            await context.Inventoryreceipts.CountAsync(),
+            await context.Inventoryreceiptlines.CountAsync(),
+            await context.Stockmovements.CountAsync(),
+            await context.Purchasehistoryreconciliationruns.CountAsync(),
+            await context.Purchasehistoryreconciliationactions.CountAsync());
 
     private static byte[] Id(int value)
     {
