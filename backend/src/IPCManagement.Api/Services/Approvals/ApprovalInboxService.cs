@@ -27,6 +27,7 @@ public interface IApprovalInboxService
 public sealed class ApprovalInboxService : IApprovalInboxService
 {
     private const string PurchaseRequestTargetType = "purchase-request";
+    private const string MaterialDemandTargetType = "material-demand";
     private const string InventoryIssueTargetType = "inventory-issue";
     private const string OrderAdjustmentTargetType = "order-adjustment";
     private const int DefaultPageSize = 20;
@@ -117,6 +118,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         var permissions = ResolveUserPermissions(user);
         var inbox = new List<ApprovalInboxItemDto>();
 
+        if (permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
+        {
+            inbox.AddRange(await BuildMaterialDemandItemsAsync(limit, cursor, cancellationToken));
+        }
+
         if (permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
         {
             inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken));
@@ -134,6 +140,120 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         }
 
         return inbox;
+    }
+
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildMaterialDemandItemsAsync(
+        int limit,
+        ApprovalInboxCursor? cursor,
+        CancellationToken cancellationToken)
+    {
+        var requestQuery = _context.Materialrequests
+            .AsNoTracking()
+            .Where(item => item.Status == "DRAFT");
+        if (cursor is not null)
+        {
+            requestQuery = requestQuery.Where(item =>
+                item.RequestDate > cursor.DueDate ||
+                (item.RequestDate == cursor.DueDate && item.RequestCode.CompareTo(cursor.TargetCode) > 0));
+        }
+
+        var requests = await requestQuery
+            .OrderBy(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<ApprovalInboxItemDto>();
+        var ingredientNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var unitNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var request in requests)
+        {
+            var plan = await _context.Productionplans
+                .AsNoTracking()
+                .SingleAsync(item => item.PlanId.SequenceEqual(request.PlanId), cancellationToken);
+            var submittedBy = await _context.Users
+                .AsNoTracking()
+                .Where(item => item.UserId.SequenceEqual(request.CreatedBy))
+                .Select(item => item.FullName)
+                .SingleAsync(cancellationToken);
+            var requestLines = await _context.Materialrequestlines
+                .AsNoTracking()
+                .Where(line => line.RequestId.SequenceEqual(request.RequestId))
+                .ToListAsync(cancellationToken);
+            var lineDetails = new List<(string IngredientId, string UnitId, string Name, string Unit, decimal Quantity)>();
+            foreach (var line in requestLines)
+            {
+                var ingredientId = Convert.ToBase64String(line.IngredientId);
+                if (!ingredientNames.TryGetValue(ingredientId, out var ingredientName))
+                {
+                    ingredientName = await _context.Ingredients
+                        .AsNoTracking()
+                        .Where(item => item.IngredientId.SequenceEqual(line.IngredientId))
+                        .Select(item => item.IngredientName)
+                        .SingleAsync(cancellationToken);
+                    ingredientNames[ingredientId] = ingredientName;
+                }
+
+                var unitId = Convert.ToBase64String(line.UnitId);
+                if (!unitNames.TryGetValue(unitId, out var unitName))
+                {
+                    unitName = await _context.Units
+                        .AsNoTracking()
+                        .Where(item => item.UnitId.SequenceEqual(line.UnitId))
+                        .Select(item => item.UnitName)
+                        .SingleAsync(cancellationToken);
+                    unitNames[unitId] = unitName;
+                }
+
+                lineDetails.Add((ingredientId, unitId, ingredientName, unitName, line.SuggestedPurchaseQty));
+            }
+
+            var materials = lineDetails
+                .GroupBy(line => new
+                {
+                    line.IngredientId,
+                    line.UnitId
+                })
+                .Select(group => new ApprovalInboxMaterialDto
+                {
+                    Name = group.First().Name,
+                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.Quantity)),
+                    Unit = group.First().Unit
+                })
+                .OrderBy(material => material.Name)
+                .ToList();
+            var targetId = GuidHelper.ToGuidString(request.RequestId);
+            var itemDto = new ApprovalInboxItemDto
+            {
+                InboxItemId = $"material-demand-{targetId}",
+                TargetType = MaterialDemandTargetType,
+                TargetId = targetId,
+                TargetCode = request.RequestCode,
+                ItemType = MaterialDemandTargetType,
+                Title = "Duyệt nhu cầu nguyên liệu",
+                Source = request.RequestCode,
+                OwnerRole = "Quản lý",
+                SubmittedBy = submittedBy,
+                DueDate = request.RequestDate,
+                Status = "PENDING",
+                Reason = "Nhu cầu nguyên liệu đã tính, chờ quản lý duyệt trước khi mua hàng.",
+                NextAction = "Duyệt nhu cầu",
+                Tone = "warning",
+                Route = $"/approvals?targetType={MaterialDemandTargetType}&targetId={targetId}&serviceDate={request.RequestDate:yyyy-MM-dd}&scope={Uri.EscapeDataString(request.RequestScope)}",
+                WeekStartDate = plan.WeekStartDate,
+                ServiceDate = request.RequestDate,
+                Scope = request.RequestScope,
+                LineCount = requestLines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(requestLines.Sum(line => line.SuggestedPurchaseQty)),
+                TotalValue = null,
+                SubmittedAt = plan.CreatedAt,
+                Materials = materials
+            };
+            await PopulateSlaAsync(itemDto, request.RequestId, plan.CreatedAt);
+            result.Add(itemDto);
+        }
+
+        return result;
     }
 
     private static int NormalizeLimit(int value, int fallback, int maximum)
