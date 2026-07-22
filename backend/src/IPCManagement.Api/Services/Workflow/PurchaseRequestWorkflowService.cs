@@ -38,17 +38,25 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return null;
         }
 
-        var materialRequest = await _context.Materialrequests
-            .Include(item => item.Materialrequestlines)
-                .ThenInclude(line => line.Ingredient)
-            .Include(item => item.Materialrequestlines)
-                .ThenInclude(line => line.Unit)
-            .Include(item => item.Plan)
-            .FirstOrDefaultAsync(item => item.RequestId == materialRequestId, cancellationToken);
+        var materialRequest = await _context.Materialrequests.FindAsync(
+            new object[] { materialRequestId },
+            cancellationToken);
         if (materialRequest is null)
         {
             return null;
         }
+
+        await _context.Entry(materialRequest)
+            .Collection(item => item.Materialrequestlines)
+            .Query()
+            .Include(line => line.Ingredient)
+            .Include(line => line.Unit)
+            .LoadAsync(cancellationToken);
+        await _context.Entry(materialRequest)
+            .Reference(item => item.Plan)
+            .LoadAsync(cancellationToken);
+
+        await ValidateApprovedDemandEligibilityAsync(materialRequest, cancellationToken);
 
         var shortageLines = materialRequest.Materialrequestlines
             .Where(line => PurchaseRequestPlanner.CalculatePurchaseQty(line.SuggestedPurchaseQty) > 0)
@@ -60,89 +68,15 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         var purchaseRequest = await EnsurePurchaseRequestAsync(materialRequest, userIdBytes, cancellationToken);
-        var existingLines = await _context.Purchaserequestlines
-            .Include(line => line.Ingredient)
-            .Include(line => line.Supplier)
-            .Include(line => line.Unit)
-            .Where(line => line.PurchaseRequestId == purchaseRequest.PurchaseRequestId)
-            .ToListAsync(cancellationToken);
+        var existingLines = purchaseRequest.Purchaserequestlines.ToList();
         if (purchaseRequest.Status == PurchaseSubmittedStatus)
         {
             return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
         }
 
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var ingredientIds = shortageLines
-            .GroupBy(line => BuildKey(line.IngredientId))
-            .Select(group => group.First().IngredientId)
-            .ToList();
-        var quotations = await _context.Supplierquotations
-            .Include(quotation => quotation.Supplier)
-            .Where(quotation =>
-                ingredientIds.Contains(quotation.IngredientId) &&
-                quotation.IsActive != false &&
-                quotation.Supplier.IsActive != false &&
-                quotation.EffectiveFrom <= today &&
-                (quotation.EffectiveTo == null || quotation.EffectiveTo >= today))
-            .ToListAsync(cancellationToken);
-        var bestQuotationByIngredient = quotations
-            .GroupBy(quotation => BuildKey(quotation.IngredientId))
-            .ToDictionary(
-                group => group.Key,
-                group => group
-                    .OrderBy(quotation => quotation.UnitPrice)
-                    .ThenByDescending(quotation => quotation.EffectiveFrom)
-                    .ThenBy(quotation => quotation.Supplier.SupplierName, StringComparer.OrdinalIgnoreCase)
-                    .First());
-        var activeSuppliers = await _context.Suppliers
-            .Where(supplier => supplier.IsActive != false)
-            .OrderBy(supplier => supplier.SupplierCode)
-            .ToListAsync(cancellationToken);
-        var supplierById = activeSuppliers.ToDictionary(supplier => BuildKey(supplier.SupplierId));
-        var fallbackSupplier = activeSuppliers.FirstOrDefault();
-        var receiptLines = await _context.Inventoryreceiptlines
-            .Include(line => line.Unit)
-            .Include(line => line.Receipt)
-                .ThenInclude(receipt => receipt.Supplier)
-            .Where(line => ingredientIds.Contains(line.IngredientId))
-            .OrderByDescending(line => line.Receipt.ReceiptDate)
-            .ThenByDescending(line => line.Receipt.CreatedAt)
-            .ToListAsync(cancellationToken);
-        var latestReceiptByIngredient = receiptLines
-            .GroupBy(line => BuildKey(line.IngredientId))
-            .ToDictionary(group => group.Key, group => group.First());
-        var latestActiveReceiptSupplierByIngredient = receiptLines
-            .Where(line => line.Receipt.Supplier.IsActive != false)
-            .GroupBy(line => BuildKey(line.IngredientId))
-            .ToDictionary(group => group.Key, group => group.First().Receipt.SupplierId);
-
         foreach (var line in shortageLines)
         {
-            var ingredientKey = BuildKey(line.IngredientId);
-            bestQuotationByIngredient.TryGetValue(ingredientKey, out var bestQuotation);
-            if (bestQuotation is not null)
-            {
-                EnsurePurchaseRequestLine(purchaseRequest, line, bestQuotation.Supplier, bestQuotation.UnitPrice, existingLines);
-                continue;
-            }
-
-            latestReceiptByIngredient.TryGetValue(ingredientKey, out var latestReceiptLine);
-            var supplier = latestActiveReceiptSupplierByIngredient.TryGetValue(ingredientKey, out var receiptSupplierId) &&
-                           supplierById.TryGetValue(BuildKey(receiptSupplierId), out var receiptSupplier)
-                ? receiptSupplier
-                : fallbackSupplier;
-            if (supplier is null)
-            {
-                throw new InvalidOperationException($"Chưa có nhà cung cấp để tạo đề xuất mua cho '{line.Ingredient.IngredientName}'.");
-            }
-
-            var latestPrice = ResolveLatestReceiptPrice(latestReceiptLine, line.Unit);
-            EnsurePurchaseRequestLine(
-                purchaseRequest,
-                line,
-                supplier,
-                PurchaseRequestPlanner.EstimateUnitPrice(latestPrice, line.Ingredient.ReferencePrice),
-                existingLines);
+            EnsurePurchaseRequestLine(purchaseRequest, line, existingLines);
         }
 
         var shortageLineIds = shortageLines
@@ -365,7 +299,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private static string BuildPurchaseLineAuditValue(Purchaserequestline line)
-        => $"supplier={GuidHelper.ToGuidString(line.SupplierId)}; price={DecimalPolicy.RoundMoney(line.EstimatedUnitPrice)}; delivery={line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-"}; note={line.Note ?? "-"}";
+        => $"supplier={(line.SupplierId is null ? "-" : GuidHelper.ToGuidString(line.SupplierId))}; price={DecimalPolicy.RoundMoney(line.EstimatedUnitPrice)}; delivery={line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd") ?? "-"}; note={line.Note ?? "-"}";
 
     private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
         Materialrequest materialRequest,
@@ -374,6 +308,12 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     {
         var requestCode = BuildPurchaseRequestCode(materialRequest);
         var existing = await _context.Purchaserequests
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Supplier)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(item => item.PurchaseRequestCode == requestCode, cancellationToken);
         if (existing is not null)
         {
@@ -436,27 +376,21 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     private void EnsurePurchaseRequestLine(
         Purchaserequest purchaseRequest,
         Materialrequestline materialLine,
-        Supplier supplier,
-        decimal estimatedUnitPrice,
         List<Purchaserequestline> existingLines)
     {
         var purchaseQty = PurchaseRequestPlanner.CalculatePurchaseQty(materialLine.SuggestedPurchaseQty);
         var requiredQty = DecimalPolicy.RoundQuantity(materialLine.TotalRequiredQty);
         var currentStockQty = DecimalPolicy.RoundQuantity(materialLine.CurrentStockQty);
-        estimatedUnitPrice = DecimalPolicy.RoundMoney(estimatedUnitPrice);
         var existing = existingLines.FirstOrDefault(line =>
             line.MaterialRequestLineId.SequenceEqual(materialLine.RequestLineId));
         if (existing is not null)
         {
             existing.IngredientId = materialLine.IngredientId;
-            existing.SupplierId = supplier.SupplierId;
             existing.UnitId = materialLine.UnitId;
             existing.RequiredQty = requiredQty;
             existing.CurrentStockQty = currentStockQty;
             existing.PurchaseQty = purchaseQty;
-            existing.EstimatedUnitPrice = estimatedUnitPrice;
             existing.Ingredient = materialLine.Ingredient;
-            existing.Supplier = supplier;
             existing.Unit = materialLine.Unit;
             return;
         }
@@ -467,14 +401,14 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             PurchaseRequestId = purchaseRequest.PurchaseRequestId,
             MaterialRequestLineId = materialLine.RequestLineId,
             IngredientId = materialLine.IngredientId,
-            SupplierId = supplier.SupplierId,
+            SupplierId = null,
             UnitId = materialLine.UnitId,
             RequiredQty = requiredQty,
             CurrentStockQty = currentStockQty,
             PurchaseQty = purchaseQty,
-            EstimatedUnitPrice = estimatedUnitPrice,
+            EstimatedUnitPrice = 0,
+            PurchaseRequest = purchaseRequest,
             Ingredient = materialLine.Ingredient,
-            Supplier = supplier,
             Unit = materialLine.Unit
         };
 
@@ -486,6 +420,44 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     {
         var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
         return $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
+    }
+
+    private async Task ValidateApprovedDemandEligibilityAsync(
+        Materialrequest materialRequest,
+        CancellationToken cancellationToken)
+    {
+        if (!ApprovedDemandStatuses.Contains(materialRequest.Status))
+        {
+            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi tạo đề xuất mua.");
+        }
+
+        if (!string.Equals(materialRequest.RequestScope, "FULLDAY", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Đề xuất mua chỉ được tạo cho nhu cầu Cả ngày (FULLDAY).");
+        }
+
+        var requestCode = BuildPurchaseRequestCode(materialRequest);
+        var existing = await _context.Purchaserequests
+            .AsNoTracking()
+            .Include(request => request.Purchaserequestlines)
+            .FirstOrDefaultAsync(request => request.PurchaseRequestCode == requestCode, cancellationToken);
+        if (existing is null)
+        {
+            return;
+        }
+
+        var currentDemandLineIds = materialRequest.Materialrequestlines
+            .Select(line => BuildKey(line.RequestLineId))
+            .ToHashSet();
+        var belongsToCurrentDemand = existing.Purchaserequestlines.Count == 0 ||
+            existing.Purchaserequestlines.All(line =>
+                currentDemandLineIds.Contains(BuildKey(line.MaterialRequestLineId)));
+        if (existing.PurchaseForDate != materialRequest.RequestDate ||
+            existing.ShiftName is not null ||
+            !belongsToCurrentDemand)
+        {
+            throw new InvalidOperationException("Nhu cầu nguyên liệu đã cũ hoặc không khớp với đề xuất mua hiện tại.");
+        }
     }
 
     private static string BuildKey(byte[] value)
@@ -547,7 +519,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         foreach (var line in purchaseRequest.Purchaserequestlines)
         {
-            if (line.Supplier is null || line.Supplier.IsActive == false)
+            if (line.SupplierId is null || line.Supplier is null || line.Supplier.IsActive == false)
             {
                 throw new InvalidOperationException("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
             }
@@ -570,6 +542,11 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         Purchaserequestline line,
         CancellationToken cancellationToken)
     {
+        if (line.SupplierId is null)
+        {
+            throw new InvalidOperationException("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
+        }
+
         var latestReceiptPrice = await _context.Inventoryreceiptlines
             .AsNoTracking()
             .Include(item => item.Receipt)
@@ -610,8 +587,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             MaterialRequestLineId = GuidHelper.ToGuidString(line.MaterialRequestLineId),
             IngredientId = GuidHelper.ToGuidString(line.IngredientId),
             IngredientName = line.Ingredient.IngredientName,
-            SupplierId = GuidHelper.ToGuidString(line.SupplierId),
-            SupplierName = line.Supplier.SupplierName,
+            SupplierId = line.SupplierId is null ? null : GuidHelper.ToGuidString(line.SupplierId),
+            SupplierName = line.Supplier?.SupplierName,
             UnitId = GuidHelper.ToGuidString(line.UnitId),
             UnitName = line.Unit.UnitName,
             RequiredQty = line.RequiredQty,

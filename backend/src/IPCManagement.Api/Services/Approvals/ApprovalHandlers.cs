@@ -143,6 +143,11 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
 
     private async Task<decimal> ResolveReferencePriceAsync(Purchaserequestline line)
     {
+        if (line.SupplierId is null)
+        {
+            return line.Ingredient.ReferencePrice;
+        }
+
         var latestReceiptPrice = await Context.Inventoryreceiptlines
             .AsNoTracking()
             .Include(item => item.Receipt)
