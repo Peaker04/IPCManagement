@@ -73,7 +73,7 @@ export function MaterialDemandSection({
             )}
           </div>
           {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
-            <ActionGuard allowedRoles={['quanly']} requiredPermissions={['material-demand.approve']}>
+            <ActionGuard allowedRoles={['quanly']}>
               <Link className="ipc-link text-sm font-semibold" to={presentation.approvalHref}>
                 {presentation.demandApprovalStatus.actionLabel}
               </Link>
