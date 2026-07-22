@@ -88,6 +88,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Purchaseorderline> Purchaseorderlines { get; set; }
 
+    public virtual DbSet<Purchasehistoryreconciliationrun> Purchasehistoryreconciliationruns { get; set; }
+
+    public virtual DbSet<Purchasehistoryreconciliationaction> Purchasehistoryreconciliationactions { get; set; }
+
     public virtual DbSet<Quantityadjustment> Quantityadjustments { get; set; }
 
     public virtual DbSet<Quantityimportbatch> Quantityimportbatches { get; set; }
@@ -847,7 +851,16 @@ public partial class IpcManagementContext : DbContext
         {
             entity.HasKey(e => e.ReceiptLineId).HasName("PRIMARY");
 
-            entity.ToTable("inventoryreceiptlines");
+            entity.ToTable("inventoryreceiptlines", table =>
+            {
+                table.HasCheckConstraint(
+                    "ckInventoryReceiptLinesPackageSnapshotComplete",
+                    "(`packageQuantitySnapshot` IS NULL AND `packageBaseUnitIdSnapshot` IS NULL AND `packagePolicyVersionSnapshot` IS NULL) OR " +
+                    "(`packageQuantitySnapshot` IS NOT NULL AND `packageBaseUnitIdSnapshot` IS NOT NULL AND `packagePolicyVersionSnapshot` IS NOT NULL)");
+                table.HasCheckConstraint(
+                    "ckInventoryReceiptLinesPackageQuantityPositive",
+                    "`packageQuantitySnapshot` IS NULL OR `packageQuantitySnapshot` > 0");
+            });
 
             entity.HasIndex(e => new { e.IngredientId, e.ExpiredDate, e.LotNumber }, "ixInventoryReceiptLinesExpiry");
 
@@ -875,6 +888,16 @@ public partial class IpcManagementContext : DbContext
                 .HasMaxLength(100)
                 .HasColumnName("lotNumber");
             entity.Property(e => e.ManufactureDate).HasColumnName("manufactureDate");
+            entity.Property(e => e.PackageBaseUnitIdSnapshot)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("packageBaseUnitIdSnapshot");
+            entity.Property(e => e.PackagePolicyVersionSnapshot)
+                .HasMaxLength(100)
+                .HasColumnName("packagePolicyVersionSnapshot");
+            entity.Property(e => e.PackageQuantitySnapshot)
+                .HasPrecision(18, 6)
+                .HasColumnName("packageQuantitySnapshot");
             entity.Property(e => e.Quantity)
                 .HasPrecision(18, 6)
                 .HasColumnName("quantity");
@@ -912,6 +935,128 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("inventoryreceiptlines_ibfk_3");
+
+            entity.HasOne(d => d.PackageBaseUnitSnapshot).WithMany()
+                .HasForeignKey(d => d.PackageBaseUnitIdSnapshot)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("inventoryreceiptlines_ibfk_5");
+        });
+
+        modelBuilder.Entity<Purchasehistoryreconciliationrun>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseHistoryReconciliationRunId).HasName("PRIMARY");
+
+            entity.ToTable("purchasehistoryreconciliationruns", table =>
+            {
+                table.HasCheckConstraint(
+                    "ckPurchaseHistoryReconciliationRunsCounts",
+                    "`candidateCount` >= 0 AND `currentUniqueBusinessKeyCount` >= 0 AND `auditedDeltaCount` >= 0 AND " +
+                    "`actionCount` >= 0 AND `blockerCount` >= 0 AND `keepCount` >= 0 AND `versionCount` >= 0 AND " +
+                    "`deactivateCount` >= 0 AND `deleteCount` >= 0 AND `blockCount` >= 0 AND " +
+                    "`actionCount` = (`keepCount` + `versionCount` + `deactivateCount` + `deleteCount` + `blockCount`) AND " +
+                    "`blockerCount` = `blockCount`");
+                table.HasCheckConstraint(
+                    "ckPurchaseHistoryReconciliationRunsStatus",
+                    "`status` IN ('APPLIED', 'NOOP')");
+                table.HasCheckConstraint(
+                    "ckPurchaseHistoryReconciliationRunsRestoreVerified",
+                    "`restoreVerified` = 1");
+            });
+
+            entity.HasIndex(e => e.ManifestHash, "uqPurchaseHistoryReconciliationRunsManifestHash").IsUnique();
+            entity.HasIndex(e => e.ManifestId, "ixPurchaseHistoryReconciliationRunsManifestId");
+            entity.HasIndex(e => new { e.AppliedBy, e.AppliedAt }, "ixPurchaseHistoryReconciliationRunsActor");
+
+            entity.Property(e => e.PurchaseHistoryReconciliationRunId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseHistoryReconciliationRunId");
+            entity.Property(e => e.ManifestId).HasMaxLength(32).HasColumnName("manifestId");
+            entity.Property(e => e.ManifestHash).HasMaxLength(64).IsFixedLength().HasColumnName("manifestHash");
+            entity.Property(e => e.SourceName).HasMaxLength(255).HasColumnName("sourceName");
+            entity.Property(e => e.SourceSha256).HasMaxLength(64).IsFixedLength().HasColumnName("sourceSha256");
+            entity.Property(e => e.PolicyVersion).HasMaxLength(100).HasColumnName("policyVersion");
+            entity.Property(e => e.AsOfDate).HasColumnName("asOfDate");
+            entity.Property(e => e.DatabaseFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("databaseFingerprint");
+            entity.Property(e => e.BackupIdentifier).HasMaxLength(255).HasColumnName("backupIdentifier");
+            entity.Property(e => e.BackupTargetFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("backupTargetFingerprint");
+            entity.Property(e => e.RestoreFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("restoreFingerprint");
+            entity.Property(e => e.RestoreVerified).HasColumnName("restoreVerified");
+            entity.Property(e => e.AppliedBy).HasMaxLength(16).IsFixedLength().HasColumnName("appliedBy");
+            entity.Property(e => e.AppliedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("appliedAt");
+            entity.Property(e => e.Status).HasMaxLength(20).HasColumnName("status");
+            entity.Property(e => e.CandidateCount).HasColumnName("candidateCount");
+            entity.Property(e => e.CurrentUniqueBusinessKeyCount).HasColumnName("currentUniqueBusinessKeyCount");
+            entity.Property(e => e.AuditedDeltaCount).HasColumnName("auditedDeltaCount");
+            entity.Property(e => e.ActionCount).HasColumnName("actionCount");
+            entity.Property(e => e.BlockerCount).HasColumnName("blockerCount");
+            entity.Property(e => e.KeepCount).HasColumnName("keepCount");
+            entity.Property(e => e.VersionCount).HasColumnName("versionCount");
+            entity.Property(e => e.DeactivateCount).HasColumnName("deactivateCount");
+            entity.Property(e => e.DeleteCount).HasColumnName("deleteCount");
+            entity.Property(e => e.BlockCount).HasColumnName("blockCount");
+
+            entity.HasOne(d => d.AppliedByNavigation).WithMany()
+                .HasForeignKey(d => d.AppliedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchasehistoryreconciliationruns_ibfk_1");
+        });
+
+        modelBuilder.Entity<Purchasehistoryreconciliationaction>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseHistoryReconciliationActionId).HasName("PRIMARY");
+
+            entity.ToTable("purchasehistoryreconciliationactions", table =>
+            {
+                table.HasCheckConstraint(
+                    "ckPurchaseHistoryReconciliationActionsDisposition",
+                    "`actionType` IN ('keep', 'version', 'deactivate', 'delete', 'block')");
+                table.HasCheckConstraint(
+                    "ckPurchaseHistoryReconciliationActionsSourceRow",
+                    "`sourceRow` IS NULL OR `sourceRow` > 0");
+            });
+
+            entity.HasIndex(
+                    e => new { e.PurchaseHistoryReconciliationRunId, e.ActionId },
+                    "uqPurchaseHistoryReconciliationActionsRunAction")
+                .IsUnique();
+            entity.HasIndex(e => e.ActionHash, "ixPurchaseHistoryReconciliationActionsHash");
+
+            entity.Property(e => e.PurchaseHistoryReconciliationActionId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseHistoryReconciliationActionId");
+            entity.Property(e => e.PurchaseHistoryReconciliationRunId)
+                .HasMaxLength(16)
+                .IsFixedLength()
+                .HasColumnName("purchaseHistoryReconciliationRunId");
+            entity.Property(e => e.ActionId).HasMaxLength(32).IsFixedLength().HasColumnName("actionId");
+            entity.Property(e => e.ActionType).HasMaxLength(20).HasColumnName("actionType");
+            entity.Property(e => e.SourceKey).HasMaxLength(255).HasColumnName("sourceKey");
+            entity.Property(e => e.SourceSheet).HasMaxLength(100).HasColumnName("sourceSheet");
+            entity.Property(e => e.SourceRow).HasColumnName("sourceRow");
+            entity.Property(e => e.BusinessKey).HasMaxLength(300).HasColumnName("businessKey");
+            entity.Property(e => e.TargetType).HasMaxLength(100).HasColumnName("targetType");
+            entity.Property(e => e.TargetId).HasMaxLength(64).HasColumnName("targetId");
+            entity.Property(e => e.ReasonCode).HasMaxLength(100).HasColumnName("reasonCode");
+            entity.Property(e => e.BeforeEvidence).HasColumnType("text").HasColumnName("beforeEvidence");
+            entity.Property(e => e.BeforeHash).HasMaxLength(64).IsFixedLength().HasColumnName("beforeHash");
+            entity.Property(e => e.AfterEvidence).HasColumnType("text").HasColumnName("afterEvidence");
+            entity.Property(e => e.AfterHash).HasMaxLength(64).IsFixedLength().HasColumnName("afterHash");
+            entity.Property(e => e.ActionHash).HasMaxLength(64).IsFixedLength().HasColumnName("actionHash");
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("createdAt");
+
+            entity.HasOne(d => d.PurchaseHistoryReconciliationRun)
+                .WithMany(p => p.Purchasehistoryreconciliationactions)
+                .HasForeignKey(d => d.PurchaseHistoryReconciliationRunId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("purchasehistoryreconciliationactions_ibfk_1");
         });
 
         modelBuilder.Entity<Inventoryreturn>(entity =>
