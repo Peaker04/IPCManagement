@@ -14,6 +14,88 @@ namespace IPCManagement.Api.Tests;
 
 public class SupplierDecisionWorkflowTests
 {
+    [Fact]
+    public async Task Persistence_supplier_decisions_require_complete_evidence_actor_and_append_only_versions()
+    {
+        await using var context = CreateContext();
+        var entity = context.Model.FindEntityType(typeof(Purchaselinesupplierdecision));
+
+        entity.Should().NotBeNull();
+        entity!.FindProperty(nameof(Purchaselinesupplierdecision.DecisionFingerprint))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(Purchaselinesupplierdecision.Version))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(Purchaselinesupplierdecision.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
+        entity.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain([
+            "ckPurchaseLineSupplierDecisionsEvidenceComplete",
+            "ckPurchaseLineSupplierDecisionsConfirmationComplete",
+            "ckPurchaseLineSupplierDecisionsStatus",
+            "ckPurchaseLineSupplierDecisionsCurrentKey"
+        ]);
+        entity.GetIndexes().Should().Contain(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.Version)]));
+        entity.GetIndexes().Should().Contain(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.DecisionFingerprint)]));
+        entity.GetIndexes().Should().Contain(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(Purchaselinesupplierdecision.CurrentDecisionKey)]));
+
+        var line = context.Model.FindEntityType(typeof(Purchaserequestline));
+        line!.FindProperty(nameof(Purchaserequestline.IsLegacySupplierSnapshot))!.IsNullable.Should().BeFalse();
+        line.FindNavigation(nameof(Purchaserequestline.SupplierDecisions)).Should().NotBeNull();
+
+        var lineId = GuidHelper.NewId();
+        var firstId = GuidHelper.NewId();
+        var secondId = GuidHelper.NewId();
+        context.Purchaselinesupplierdecisions.AddRange(
+            new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = firstId,
+                PurchaseRequestLineId = lineId,
+                SupplierId = GuidHelper.NewId(),
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 7, 20),
+                EvidenceReferencePrice = 100m,
+                ProposedUnitPrice = 110m,
+                ProposedDeliveryDate = new DateOnly(2026, 7, 21),
+                ConfirmedBy = GuidHelper.NewId(),
+                ConfirmedAt = new DateTime(2026, 7, 20, 8, 0, 0, DateTimeKind.Utc),
+                DecisionFingerprint = new string('A', 64),
+                Version = 1,
+                Status = "SUPERSEDED",
+                SupersededByDecisionId = secondId,
+                ConcurrencyVersion = 2
+            },
+            new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = secondId,
+                PurchaseRequestLineId = lineId,
+                SupplierId = GuidHelper.NewId(),
+                EvidenceType = "LATEST_VALID_RECEIPT",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 7, 21),
+                EvidenceReferencePrice = 105m,
+                ProposedUnitPrice = 112m,
+                ProposedDeliveryDate = new DateOnly(2026, 7, 22),
+                ConfirmedBy = GuidHelper.NewId(),
+                ConfirmedAt = new DateTime(2026, 7, 21, 8, 0, 0, DateTimeKind.Utc),
+                DecisionFingerprint = new string('B', 64),
+                Version = 2,
+                Status = "CURRENT",
+                CurrentDecisionKey = lineId,
+                ConcurrencyVersion = 1
+            });
+
+        await context.SaveChangesAsync();
+
+        (await context.Purchaselinesupplierdecisions.AsNoTracking().OrderBy(item => item.Version).ToListAsync())
+            .Select(item => (item.Version, item.Status, item.DecisionFingerprint))
+            .Should().Equal(
+                (1, "SUPERSEDED", new string('A', 64)),
+                (2, "CURRENT", new string('B', 64)));
+    }
+
     [Theory]
     [InlineData("DRAFT")]
     [InlineData("REJECTED")]
