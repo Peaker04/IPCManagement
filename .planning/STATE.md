@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-06-PLAN.md
-last_updated: "2026-07-22T06:43:48.976Z"
-last_activity: 2026-07-22 — Plan 09-06 completed material-demand approval routing and Manager/Purchasing role boundaries
+stopped_at: Completed 09-03-PLAN.md
+last_updated: "2026-07-22T07:18:41.257Z"
+last_activity: 2026-07-22 — Plan 09-03 completed the drift-bound read-only purchase-history preview and guarded endpoint
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 4
-  percent: 11
+  completed_plans: 5
+  percent: 14
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-06-PLAN.md
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-03-PLAN.md
+**Stopped at:** Completed 09-03-PLAN.md
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-07-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 02 parser and normalization contract*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 03 read-only reconciliation preview*
 
 ## Performance Metrics
 
@@ -233,6 +233,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P01 | 3h 24m | 2 tasks | 16 files |
 | Phase 09 P02 | 32m | 2 tasks | 4 files |
 | Phase 09 P06 | 32m | 3 tasks | 9 files |
+| Phase 09 P03 | 16m | 2 tasks | 6 files |
 
 ## Decisions
 
@@ -266,10 +267,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Only Manager/Admin can decide material demand and purchase requests; Purchasing keeps preparation and quotation permissions only. — Enforces D-09-11 at the server authorization boundary.
 - [Phase 09]: Reuse material-request ID/status plus approval history as the durable target; replay is idempotent and stale/conflicting decisions fail. — Keeps one canonical approval path without a parallel table.
 - [Phase 09]: Approved material-demand snapshots are immutable and require an explicit future recalculation/version path. — Preserves the exact snapshot the Manager decided.
+- [Phase 09]: Resolve only the audited 20.7 workbook server-side and reject source hash or 17,739-key baseline drift.
+- [Phase 09]: Delete only sample-generated dependency-free orphans; version immutable history and deactivate referenced duplicates.
+- [Phase 09]: Bind preview manifests to source, policy, as-of date, database fingerprint, ordered action hashes, exact counts, and blockers.
+- [Phase 09]: Derive preview actor from authenticated server identity and accept no client path, actor, or replacement.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 3 of 14 completed; next 09-03
+Plan: 4 of 14 completed; next 09-07
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-06 completed material-demand approval routing and Manager/Purchasing role boundaries
+Last activity: 2026-07-22 — Plan 09-03 completed the drift-bound read-only purchase-history preview and guarded endpoint

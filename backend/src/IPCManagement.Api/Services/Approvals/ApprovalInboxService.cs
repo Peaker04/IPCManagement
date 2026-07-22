@@ -625,6 +625,11 @@ public sealed class ApprovalInboxService : IApprovalInboxService
 
     private async Task<bool> IsPriceWarningAsync(Purchaserequestline line, CancellationToken cancellationToken)
     {
+        if (line.SupplierId is null || line.EstimatedUnitPrice <= 0)
+        {
+            return false;
+        }
+
         var latestReceiptPrice = await _context.Inventoryreceiptlines
             .AsNoTracking()
             .Include(item => item.Receipt)

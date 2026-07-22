@@ -25,6 +25,25 @@ public class PurchaseWorkflowController : ControllerBase
         _currentUserService = currentUserService;
     }
 
+    /// <summary>Tải workbench thu mua theo tuần, ngày phục vụ và giai đoạn.</summary>
+    [HttpGet("workbench")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseWorkbenchWeekDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetWorkbenchWeek(
+        [FromQuery] PurchaseWorkbenchQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseRequestWorkflowService.GetWorkbenchWeekAsync(query, cancellationToken);
+            return Ok(ApiResponse<PurchaseWorkbenchWeekDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     /// <summary>Tạo đề xuất mua hàng từ các dòng nhu cầu nguyên liệu còn thiếu sau kiểm tồn.</summary>
     [HttpPost("from-demand")]
     [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]

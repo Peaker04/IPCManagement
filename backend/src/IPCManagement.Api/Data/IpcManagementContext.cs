@@ -1908,6 +1908,7 @@ public partial class IpcManagementContext : DbContext
             entity.HasOne(d => d.Supplier).WithMany(p => p.Purchaserequestlines)
                 .HasForeignKey(d => d.SupplierId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
+                .IsRequired(false)
                 .HasConstraintName("purchaserequestlines_ibfk_4");
 
             entity.HasOne(d => d.Unit).WithMany(p => p.Purchaserequestlines)

@@ -203,7 +203,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                     throw new ArgumentException("Dòng nhập không thuộc phiếu mua đã chọn.");
                 }
 
-                if (!purchaseLine.SupplierId.SequenceEqual(supplierId))
+                if (purchaseLine.SupplierId is null || !purchaseLine.SupplierId.SequenceEqual(supplierId))
                 {
                     throw new InvalidOperationException("Nhà cung cấp trên dòng nhập không khớp phiếu mua.");
                 }

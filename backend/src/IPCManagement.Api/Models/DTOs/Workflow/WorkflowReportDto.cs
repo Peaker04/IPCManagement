@@ -152,7 +152,7 @@ public class PurchaseDemandReportDto
     public string Status { get; set; } = string.Empty;
     public string IngredientId { get; set; } = string.Empty;
     public string? IngredientName { get; set; }
-    public string SupplierId { get; set; } = string.Empty;
+    public string? SupplierId { get; set; }
     public string? SupplierName { get; set; }
     public string UnitId { get; set; } = string.Empty;
     public string? UnitName { get; set; }

@@ -70,7 +70,7 @@
 
 - [x] **SUP-01**: Hệ thống suy ra tập nhà cung cấp canonical từ chính sách `SUMMARY` đã audit và các sheet có dữ liệu được duyệt; loại header, pseudo-supplier và placeholder không có tham chiếu.
 - [x] **SUP-02**: Hệ thống parse và normalize nguyên liệu, nhà cung cấp, đơn vị, quy cách đóng gói và ngày giao deterministic; giữ bằng chứng sheet/dòng/raw và block mọi trường hợp mơ hồ.
-- [ ] **SUP-03**: Preview read-only xuất manifest gồm SHA-256 nguồn, policy version, ngày as-of, DB fingerprint, exact action counts, diagnostics và yêu cầu bằng chứng backup/restore.
+- [x] **SUP-03**: Preview read-only xuất manifest gồm SHA-256 nguồn, policy version, ngày as-of, DB fingerprint, exact action counts, diagnostics và yêu cầu bằng chứng backup/restore.
 - [ ] **SUP-04**: Apply manifest đã chấp nhận chạy atomic, giữ/version dữ liệu theo dependency và lần apply thứ hai cùng preview sau apply đều no-op.
 
 ### Purchasing and receiving workflow
