@@ -68,14 +68,14 @@
 
 ### Supplier purchase-history reconciliation
 
-- [ ] **SUP-01**: Hệ thống suy ra tập nhà cung cấp canonical từ chính sách `SUMMARY` đã audit và các sheet có dữ liệu được duyệt; loại header, pseudo-supplier và placeholder không có tham chiếu.
-- [ ] **SUP-02**: Hệ thống parse và normalize nguyên liệu, nhà cung cấp, đơn vị, quy cách đóng gói và ngày giao deterministic; giữ bằng chứng sheet/dòng/raw và block mọi trường hợp mơ hồ.
+- [x] **SUP-01**: Hệ thống suy ra tập nhà cung cấp canonical từ chính sách `SUMMARY` đã audit và các sheet có dữ liệu được duyệt; loại header, pseudo-supplier và placeholder không có tham chiếu.
+- [x] **SUP-02**: Hệ thống parse và normalize nguyên liệu, nhà cung cấp, đơn vị, quy cách đóng gói và ngày giao deterministic; giữ bằng chứng sheet/dòng/raw và block mọi trường hợp mơ hồ.
 - [ ] **SUP-03**: Preview read-only xuất manifest gồm SHA-256 nguồn, policy version, ngày as-of, DB fingerprint, exact action counts, diagnostics và yêu cầu bằng chứng backup/restore.
 - [ ] **SUP-04**: Apply manifest đã chấp nhận chạy atomic, giữ/version dữ liệu theo dependency và lần apply thứ hai cùng preview sau apply đều no-op.
 
 ### Purchasing and receiving workflow
 
-- [ ] **PUR-01**: Material demand là approval target đầy đủ tại `/approvals`, Weekly Menu hiển thị status/link và demand chưa duyệt không thể tạo PR.
+- [x] **PUR-01**: Material demand là approval target đầy đủ tại `/approvals`, Weekly Menu hiển thị status/link và demand chưa duyệt không thể tạo PR.
 - [ ] **PUR-02**: Thu mua có workbench server-backed theo tuần, lồng ngày phục vụ, giữ PR scope `FULLDAY` và hiển thị shortage, stage, blocker cùng counts.
 - [ ] **PUR-03**: Chỉ gợi ý nhà cung cấp từ báo giá còn hiệu lực hoặc receipt hợp lệ gần nhất; lựa chọn phải được người dùng xác nhận và lưu evidence snapshot.
 - [ ] **PUR-04**: Giá tăng lớn hơn đúng 15% phải qua ngoại lệ có reference/proposed/variance/evidence/reason và quyết định quản lý trước khi submit PR.

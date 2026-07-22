@@ -685,29 +685,16 @@ public class MaterialDemandService : IMaterialDemandService
                     $"Không thể tính lại nhu cầu vì đề xuất mua hàng {blockingPurchaseRequest.PurchaseRequestCode} đang ở trạng thái {blockingPurchaseRequest.Status}.");
             }
 
-            if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException(
+                    "Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
+            }
+
+            if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
                     $"Không thể tính lại nhu cầu đang ở trạng thái {existing.Status}. Hãy tạo luồng điều chỉnh riêng.");
-            }
-
-            if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
-            {
-                _context.Auditlogs.Add(new Auditlog
-                {
-                    AuditId = GuidHelper.NewId(),
-                    ChangedAt = DateTime.UtcNow,
-                    ChangedBy = userId,
-                    BusinessArea = "Demand",
-                    EntityName = nameof(Materialrequest),
-                    EntityId = existing.RequestId,
-                    FieldName = nameof(Materialrequest.Status),
-                    OldValue = existing.Status,
-                    NewValue = DemandDraftStatus,
-                    Reason = "Hạ trạng thái duyệt vì nhu cầu được tính lại; đề xuất mua nháp phải được sinh lại."
-                });
-                existing.Status = DemandDraftStatus;
             }
 
             if (purchaseLines.Count > 0)

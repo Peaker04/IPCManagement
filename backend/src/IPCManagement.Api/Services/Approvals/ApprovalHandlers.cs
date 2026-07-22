@@ -159,6 +159,80 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
     }
 }
 
+public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Materialrequest>
+{
+    private const string MaterialDemandTargetType = "material-demand";
+    private const string PendingStatus = "DRAFT";
+    private const string ApprovedStatus = "MANAGERAPPROVED";
+    private const string RejectedStatus = "CANCELLED";
+
+    public MaterialDemandApprovalHandler(IpcManagementContext context) : base(context) { }
+
+    public override ApprovalTargetType TargetType => ApprovalTargetType.MaterialDemand;
+
+    protected override async Task<ApprovalResultDto?> HandleCoreAsync(
+        byte[] targetId,
+        ApprovalRequestDto request,
+        byte[] actorId)
+    {
+        var demand = await Context.Materialrequests
+            .FirstOrDefaultAsync(item => item.RequestId == targetId);
+        if (demand is null)
+        {
+            return null;
+        }
+
+        var existingHistory = await Context.Approvalhistories
+            .AsNoTracking()
+            .Where(item => item.TargetType == MaterialDemandTargetType && item.TargetId == targetId)
+            .OrderBy(item => item.ActionAt)
+            .FirstOrDefaultAsync();
+        if (existingHistory is not null)
+        {
+            var requestedDecision = request.Status.ToString().ToUpperInvariant();
+            if (!string.Equals(existingHistory.Decision, requestedDecision, StringComparison.OrdinalIgnoreCase) ||
+                !string.Equals(demand.Status, existingHistory.NewStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                throw new InvalidOperationException("Nhu cầu nguyên liệu đã có quyết định khác hoặc không còn đúng phiên bản.");
+            }
+
+            return MapExistingResult(existingHistory);
+        }
+
+        if (!string.Equals(demand.Status, PendingStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidOperationException("Chỉ nhu cầu nguyên liệu DRAFT hiện hành mới được quyết định.");
+        }
+
+        var oldStatus = demand.Status;
+        var newStatus = request.Status == ApprovalDecision.Approve ? ApprovedStatus : RejectedStatus;
+        var decidedAt = DateTime.UtcNow;
+        demand.Status = newStatus;
+        demand.ApprovedBy = actorId;
+        demand.ApprovedAt = decidedAt;
+
+        return await SaveHistoryAsync(
+            MaterialDemandTargetType,
+            targetId,
+            request,
+            actorId,
+            oldStatus,
+            newStatus);
+    }
+
+    private static ApprovalResultDto MapExistingResult(Approvalhistory history)
+        => new()
+        {
+            TargetType = history.TargetType,
+            TargetId = GuidHelper.ToGuidString(history.TargetId),
+            Status = history.Decision,
+            OldStatus = history.OldStatus,
+            NewStatus = history.NewStatus,
+            HistoryId = GuidHelper.ToGuidString(history.ApprovalHistoryId),
+            ActionAt = history.ActionAt
+        };
+}
+
 public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Inventoryreceipt>
 {
     public InventoryReceiptApprovalHandler(IpcManagementContext context) : base(context) { }

@@ -60,6 +60,7 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
     {
         var requiredPermission = targetType switch
         {
+            ApprovalTargetType.MaterialDemand => AuthorizationPolicies.MaterialDemandApprove,
             ApprovalTargetType.PurchaseRequest => AuthorizationPolicies.PurchaseRequestApprove,
             ApprovalTargetType.InventoryReceipt => AuthorizationPolicies.InventoryReceiptApprove,
             ApprovalTargetType.InventoryIssue => AuthorizationPolicies.InventoryIssueApprove,
@@ -81,6 +82,7 @@ internal static class ApprovalTargetTypeParser
         var normalized = (targetType ?? string.Empty).Trim().ToLowerInvariant();
         return normalized switch
         {
+            "demand" or "material-demand" or "materialdemand" => ApprovalTargetType.MaterialDemand,
             "purchase" or "purchase-request" or "purchaserequest" => ApprovalTargetType.PurchaseRequest,
             "receipt" or "inventory-receipt" or "inventoryreceipt" => ApprovalTargetType.InventoryReceipt,
             "issue" or "inventory-issue" or "inventoryissue" => ApprovalTargetType.InventoryIssue,

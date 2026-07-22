@@ -413,30 +413,29 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_DemoteApprovedDemand_AndInvalidateDraftPurchaseRequestAtomically()
+    public async Task GenerateDemand_Should_PreserveApprovedDemand_AndRequireExplicitRecalculationVersion()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
 
         await using var context = fixture.CreateContext();
-        var result = await new MaterialDemandService(context).GenerateAsync(
+        var act = () => new MaterialDemandService(context).GenerateAsync(
             new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        result.Should().NotBeNull();
-        result!.Status.Should().Be("DRAFT");
-        result.Lines.Should().ContainSingle().Which.TotalRequiredQty.Should().Be(240m);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Không thể tính lại nhu cầu đã được duyệt*");
         (await context.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
-            .Should().Be("DRAFT");
+            .Should().Be("MANAGERAPPROVED");
         (await context.Purchaserequests.AsNoTracking().Select(request => request.Status).SingleAsync())
             .Should().Be("DRAFT");
-        (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
         (await context.Auditlogs.AsNoTracking().AnyAsync(audit =>
             audit.BusinessArea == "Demand" &&
             audit.FieldName == nameof(Materialrequest.Status) &&
             audit.OldValue == "MANAGERAPPROVED" &&
-            audit.NewValue == "DRAFT")).Should().BeTrue();
+            audit.NewValue == "DRAFT")).Should().BeFalse();
     }
 
     [Theory]
@@ -525,10 +524,9 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_RollBackDemandAndDraftPurchaseInvalidation_WhenPersistenceFails()
+    public async Task GenerateDemand_Should_RejectApprovedSnapshotBeforeDraftPurchaseInvalidation()
     {
-        var interceptor = new FailOnPurchaseRequestLineDeleteInterceptor();
-        await using var fixture = await WorkflowFixture.CreateAsync(interceptor);
+        await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
 
@@ -538,7 +536,8 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<DbUpdateException>();
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
         }
 
         await using var verificationContext = fixture.CreateContext();
@@ -2213,13 +2212,12 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
 
         var service = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
-        var purchaseInbox = await service.GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+        var managerInbox = await service.GetPendingAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 100 });
         var warehouseInbox = await service.GetPendingAsync(BuildPrincipal("Thủ kho"), new ApprovalInboxQueryDto { Limit = 100 });
 
-        purchaseInbox.Select(item => item.ItemType).Should().Contain("purchase");
-        purchaseInbox.Select(item => item.ItemType).Should().NotContain(["issue", "adjustment"]);
-        purchaseInbox.Should().OnlyContain(item => item.Status == "PENDING");
-        purchaseInbox.Single(item => item.ItemType == "purchase").TargetType.Should().Be("purchase-request");
+        managerInbox.Select(item => item.ItemType).Should().Contain(["purchase", "issue", "adjustment"]);
+        managerInbox.Should().OnlyContain(item => item.Status == "PENDING");
+        managerInbox.Single(item => item.ItemType == "purchase").TargetType.Should().Be("purchase-request");
 
         warehouseInbox.Select(item => item.ItemType).Should().Contain(["issue", "adjustment"]);
         warehouseInbox.Select(item => item.ItemType).Should().NotContain("purchase");
@@ -2374,7 +2372,7 @@ public class WorkflowGenerationTests
         await using (var context = fixture.CreateContext())
         {
             var inbox = await new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>())
-                .GetPendingAsync(BuildPrincipal("Thu mua"), new ApprovalInboxQueryDto { Limit = 100 });
+                .GetPendingAsync(BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 100 });
 
             var alert = inbox.Should().ContainSingle(item => item.ItemType == "price-alert").Subject;
             alert.TargetType.Should().Be("purchase-request");
@@ -2469,7 +2467,7 @@ public class WorkflowGenerationTests
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Thiếu báo giá" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         result.Should().NotBeNull();
         result!.OldStatus.Should().Be("SENTTOSUPPLIER");
@@ -2520,14 +2518,14 @@ public class WorkflowGenerationTests
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần đầu" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         var act = async () => await service.ExecuteAsync(
             "purchase-request",
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần hai" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Phiếu này đã được xử lý.");
@@ -5535,37 +5533,6 @@ public class WorkflowGenerationTests
             }
 
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
-        }
-    }
-
-    private sealed class FailOnPurchaseRequestLineDeleteInterceptor : DbCommandInterceptor
-    {
-        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
-            DbCommand command,
-            CommandEventData eventData,
-            InterceptionResult<DbDataReader> result,
-            CancellationToken cancellationToken = default)
-        {
-            ThrowOnPurchaseRequestLineDelete(command);
-            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
-        }
-
-        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
-            DbCommand command,
-            CommandEventData eventData,
-            InterceptionResult<int> result,
-            CancellationToken cancellationToken = default)
-        {
-            ThrowOnPurchaseRequestLineDelete(command);
-            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
-        }
-
-        private static void ThrowOnPurchaseRequestLineDelete(DbCommand command)
-        {
-            if (command.CommandText.Contains("DELETE FROM \"purchaserequestlines\"", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException("Injected purchase-request line persistence failure.");
-            }
         }
     }
 
