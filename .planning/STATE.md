@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-04-PLAN.md
-last_updated: "2026-07-22T10:14:51.852Z"
+stopped_at: Completed 09-08-PLAN.md; 09-05 residual checkpoint preserved
+last_updated: "2026-07-22T12:34:21.742Z"
 last_activity: 2026-07-22 — Plan 09-04 completed forward reconciliation persistence and disposable migration proof
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 7
-  percent: 19
+  completed_plans: 8
+  percent: 22
 ---
 
 # Project State
@@ -207,8 +207,8 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-04-PLAN.md
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-05-PLAN.md
+**Stopped at:** Completed 09-08-PLAN.md; 09-05 residual checkpoint preserved
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-09-PLAN.md
 
 ---
 *Last updated: 2026-07-22 — completed Phase 09 Plan 04 reconciliation persistence schema*
@@ -236,6 +236,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P03 | 16m | 2 tasks | 6 files |
 | Phase 09 P07 | 55m | 2 tasks | 18 files |
 | Phase 09 P04 | 35m | 2 tasks | 10 files |
+| Phase 09 P08 | 14m | 2 tasks | 11 files |
 
 ## Decisions
 
@@ -281,10 +282,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Store receipt package evidence only as an all-null or complete positive quantity/base-unit/policy triple.
 - [Phase 09]: Keep 09-04 migration limited to audit tables and nullable snapshot columns; correct snapshot drift without unrelated supplier ALTER operations.
 - [Phase 09]: Limit fresh-install compensation to the disposable test fixture and record that it is not a full model-parity proof.
+- [Phase 09]: Mark pre-existing supplier links as legacy snapshots without creating confirmation evidence. — Preserves immutable history and prevents legacy data from satisfying the new explicit-confirmation contract.
+- [Phase 09]: Enforce one current supplier decision through a nullable unique current-decision key. — MySQL permits multiple null values for superseded rows while rejecting more than one current row per purchase-request line.
+- [Phase 09]: Reuse the existing unique purchase-order request-supplier index. — The original purchase-order migration already enforces PUR-05; recreating it would make the forward migration fail.
+- [Phase 09]: Bind strict price exceptions to one supplier-decision proposal fingerprint and version. — Edits create superseding records and cannot silently reuse a Manager decision for a changed proposal.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 6 of 14 completed; next 09-05
+Plan: 7 of 14 completed; next executable 09-09 (09-05 checkpoint preserved)
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-04 completed forward reconciliation persistence and disposable migration proof
+Last activity: 2026-07-22 — Plan 09-08 completed supplier-decision and price-exception persistence
