@@ -2,9 +2,12 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
+using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
+using IPCManagement.Api.Services;
 using IPCManagement.Api.Services.Approvals;
+using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -116,6 +119,68 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             .Should().Equal(
                 (1, "SUPERSEDED", new string('C', 64)),
                 (2, "PENDING", new string('D', 64)));
+    }
+
+    [Theory]
+    [InlineData(114.99, 14.99, false)]
+    [InlineData(115.00, 15.00, false)]
+    [InlineData(115.01, 15.01, true)]
+    public void Threshold_purchase_policy_is_strict_and_decimal_safe(
+        decimal proposedPrice,
+        decimal expectedVariance,
+        bool expectedException)
+    {
+        var variance = PurchasePricePolicy.CalculateVariancePercent(100m, proposedPrice);
+
+        variance.Should().Be(expectedVariance);
+        PurchasePricePolicy.RequiresException(variance).Should().Be(expectedException);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Threshold_missing_reference_price_is_blocking(decimal? referencePrice)
+    {
+        var act = () => PurchasePricePolicy.CalculateVariancePercent(referencePrice, 100m);
+
+        act.Should().Throw<InvalidOperationException>()
+            .WithMessage("*giá tham chiếu*");
+    }
+
+    [Fact]
+    public async Task Threshold_confirmation_creates_and_supersedes_durable_exception()
+    {
+        await using var context = CreateInboxContext();
+        var setup = await SeedPriceExceptionConfirmationAsync(context);
+        var service = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
+
+        await service.ConfirmLineSupplierAsync(
+            setup.RequestId,
+            setup.LineId,
+            BuildConfirmation(setup, 120m, "Giá nguyên liệu tăng", 0),
+            setup.ActorId);
+        await service.ConfirmLineSupplierAsync(
+            setup.RequestId,
+            setup.LineId,
+            BuildConfirmation(setup, 118m, "Cập nhật báo giá", 1),
+            setup.ActorId);
+
+        var exceptions = await context.Purchasepriceexceptions
+            .AsNoTracking()
+            .OrderBy(item => item.ProposalVersion)
+            .ToListAsync();
+        exceptions.Should().HaveCount(2);
+        exceptions[0].Status.Should().Be("SUPERSEDED");
+        exceptions[0].SupersededByExceptionId.Should().Equal(exceptions[1].PurchasePriceExceptionId);
+        exceptions[1].Status.Should().Be("PENDING");
+        exceptions[1].ProposalVersion.Should().Be(2);
+        exceptions[1].ProposalFingerprint.Should().NotBe(exceptions[0].ProposalFingerprint);
+        exceptions[1].Reason.Should().Be("Cập nhật báo giá");
+        exceptions.Should().OnlyContain(item =>
+            item.ReferencePrice == 100m &&
+            item.EvidenceId.SequenceEqual(setup.EvidenceId) &&
+            item.RequestedBy.SequenceEqual(setup.ActorIdBytes));
     }
 
     [Theory]
@@ -395,6 +460,113 @@ public class MaterialDemandAndPriceExceptionApprovalTests
 
     private static ClaimsPrincipal BuildPrincipal(string role)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)], "test"));
+
+    private static ConfirmPurchaseLineSupplierDto BuildConfirmation(
+        PriceExceptionConfirmationSetup setup,
+        decimal proposedPrice,
+        string reason,
+        int expectedVersion)
+        => new()
+        {
+            EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+            EvidenceId = GuidHelper.ToGuidString(setup.EvidenceId),
+            SupplierId = GuidHelper.ToGuidString(setup.SupplierId),
+            ProposedUnitPrice = proposedPrice,
+            ProposedDeliveryDate = "2026-07-23",
+            Note = reason,
+            ExpectedDecisionVersion = expectedVersion
+        };
+
+    private static async Task<PriceExceptionConfirmationSetup> SeedPriceExceptionConfirmationAsync(
+        IpcManagementContext context)
+    {
+        var actorId = GuidHelper.NewId();
+        var supplierId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var requestId = GuidHelper.NewId();
+        var lineId = GuidHelper.NewId();
+        var evidenceId = GuidHelper.NewId();
+        var unit = new Unit
+        {
+            UnitId = unitId,
+            UnitCode = "KG-PRICE",
+            UnitName = "kg",
+            ConvertRateToBase = 1m
+        };
+        var supplier = new Supplier
+        {
+            SupplierId = supplierId,
+            SupplierCode = "SUP-PRICE",
+            SupplierName = "Nhà cung cấp giá",
+            IsActive = true
+        };
+        var ingredient = new Ingredient
+        {
+            IngredientId = ingredientId,
+            IngredientCode = "ING-PRICE",
+            IngredientName = "Nguyên liệu giá",
+            UnitId = unitId,
+            WarehouseId = GuidHelper.NewId(),
+            ReferencePrice = 100m,
+            IsActive = true,
+            Unit = unit
+        };
+        var request = new Purchaserequest
+        {
+            PurchaseRequestId = requestId,
+            PurchaseRequestCode = "PR-PRICE-EXCEPTION",
+            RequestDate = new DateOnly(2026, 7, 22),
+            PurchaseForDate = new DateOnly(2026, 7, 23),
+            Status = "DRAFT",
+            CreatedBy = actorId
+        };
+        var line = new Purchaserequestline
+        {
+            PurchaseRequestLineId = lineId,
+            PurchaseRequestId = requestId,
+            MaterialRequestLineId = GuidHelper.NewId(),
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            RequiredQty = 10m,
+            PurchaseQty = 10m,
+            PurchaseRequest = request,
+            Ingredient = ingredient,
+            Unit = unit
+        };
+        request.Purchaserequestlines.Add(line);
+        var quotation = new Supplierquotation
+        {
+            QuotationId = evidenceId,
+            SupplierId = supplierId,
+            IngredientId = ingredientId,
+            UnitPrice = 100m,
+            EffectiveFrom = new DateOnly(2026, 7, 1),
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            Supplier = supplier,
+            Ingredient = ingredient
+        };
+        context.AddRange(unit, supplier, ingredient, request, line, quotation);
+        await context.SaveChangesAsync();
+
+        return new PriceExceptionConfirmationSetup(
+            GuidHelper.ToGuidString(requestId),
+            GuidHelper.ToGuidString(lineId),
+            GuidHelper.ToGuidString(actorId),
+            actorId,
+            supplierId,
+            evidenceId);
+    }
+
+    private sealed record PriceExceptionConfirmationSetup(
+        string RequestId,
+        string LineId,
+        string ActorId,
+        byte[] ActorIdBytes,
+        byte[] SupplierId,
+        byte[] EvidenceId);
 
     private static string FindRepositoryFile(params string[] segments)
     {
