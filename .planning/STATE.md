@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-09-PLAN.md; 09-05 residual checkpoint preserved
-last_updated: "2026-07-22T13:09:34.850Z"
-last_activity: 2026-07-22 — Plan 09-09 completed evidence-backed supplier confirmation
+stopped_at: Completed 09-10-PLAN.md; 09-05 residual checkpoint preserved
+last_updated: "2026-07-22T14:05:09.777Z"
+last_activity: 2026-07-22 — Plan 09-10 completed strict price exceptions and idempotent supplier-split orders
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 9
-  percent: 24
+  completed_plans: 10
+  percent: 27
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-09-PLAN.md; 09-05 residual checkpoint preserved
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-10-PLAN.md
+**Stopped at:** Completed 09-10-PLAN.md; 09-05 residual checkpoint preserved
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-11-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 09 evidence-backed supplier confirmation*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 10 strict exceptions and supplier-split orders*
 
 ## Performance Metrics
 
@@ -238,6 +238,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P04 | 35m | 2 tasks | 10 files |
 | Phase 09 P08 | 14m | 2 tasks | 11 files |
 | Phase 09 P09 | 28m | 2 tasks | 7 files |
+| Phase 09 P10 | 49m | 3 tasks | 12 files |
 
 ## Decisions
 
@@ -291,10 +292,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Treat confirmation as an append-only evidence snapshot: identical retries are idempotent, changed choices supersede the current row and increment the version.
 - [Phase 09]: Accept only evidence identity, proposed price/delivery, and expected version from the client; derive reference values, fingerprint, and confirmer from server state.
 - [Phase 09]: Require a current decision matching the purchase-line snapshot before submit and expose current plus historical decisions in the workbench.
+- [Phase 09]: Keep shared reporting at >=15 percent and isolate purchasing at strict >15 percent. — Preserves locked report semantics while enforcing the purchasing exception boundary.
+- [Phase 09]: Bind exception approval and purchase-order reuse to the current proposal fingerprint and version. — Superseded supplier evidence cannot authorize a changed proposal.
+- [Phase 09]: Use the existing request-supplier unique key with Serializable load-or-create and reload-on-race. — Provides stable retries without a new schema or dependency.
+- [Phase 09]: Derive purchase-order-line identity from request line plus decision fingerprint. — Makes the immutable proposal snapshot verifiable without adding a column.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 8 of 14 completed; next executable 09-10 (09-05 checkpoint preserved)
+Plan: 9 of 14 completed; next executable 09-11 (09-05 checkpoint preserved)
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-09 completed evidence-backed supplier confirmation
+Last activity: 2026-07-22 — Plan 09-10 completed strict price exceptions and idempotent supplier-split orders

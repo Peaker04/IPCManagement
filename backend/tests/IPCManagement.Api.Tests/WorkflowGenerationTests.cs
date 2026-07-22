@@ -4752,6 +4752,38 @@ public class WorkflowGenerationTests
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)));
 
+    private static PurchaseReceivingService CreatePurchaseReceivingService(IpcManagementContext context)
+        => new(
+            context,
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)));
+
+    private static RecordWarehousePurchaseReceiptDto CreatePurchaseReceiptRequest(
+        WorkflowFixture fixture,
+        string purchaseOrderId,
+        string purchaseOrderLineId,
+        decimal quantity,
+        string idempotencyKey)
+        => new()
+        {
+            PurchaseOrderId = purchaseOrderId,
+            IdempotencyKey = idempotencyKey,
+            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
+            ReceiptDate = new DateOnly(2026, 6, 2),
+            Lines =
+            [
+                new WarehousePurchaseReceiptLineDto
+                {
+                    PurchaseOrderLineId = purchaseOrderLineId,
+                    ActualQuantity = quantity,
+                    ActualUnitId = GuidHelper.ToGuidString(fixture.UnitId),
+                    ActualUnitPrice = 1000m,
+                    LotNumber = "LOT-WORKFLOW-01"
+                }
+            ]
+        };
+
     private static InventoryIssueService CreateInventoryIssueService(IpcManagementContext context)
         => new(
             new InventoryIssueRepository(context),
@@ -5080,26 +5112,25 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = CreatePurchaseOrderService(context);
-        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderService = CreatePurchaseOrderService(context);
+        var receivingService = CreatePurchaseReceivingService(context);
+        var orders = await orderService.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
-        var afterPartial = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
-        {
-            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
-            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 4 }]
-        }, fixture.UserIdString);
-        afterPartial.Status.Should().Be("PARTIALLY_RECEIVED");
-        afterPartial.Lines[0].ReceivedQty.Should().Be(4);
+        var afterPartial = await receivingService.RecordAsync(
+            CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 4m, "workflow-partial"),
+            fixture.UserIdString);
+        afterPartial.PurchaseOrderStatus.Should().Be("PARTIALLY_RECEIVED");
+        (await context.Purchaseorderlines.AsNoTracking().SingleAsync(line => line.PurchaseOrderLineId == GuidHelper.ParseGuidString(lineId)))
+            .ReceivedQty.Should().Be(4);
 
-        var afterFull = await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
-        {
-            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
-            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 6 }]
-        }, fixture.UserIdString);
-        afterFull.Status.Should().Be("RECEIVED");
-        afterFull.Lines[0].ReceivedQty.Should().Be(10);
+        var afterFull = await receivingService.RecordAsync(
+            CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 6m, "workflow-final"),
+            fixture.UserIdString);
+        afterFull.PurchaseOrderStatus.Should().Be("RECEIVED");
+        (await context.Purchaseorderlines.AsNoTracking().SingleAsync(line => line.PurchaseOrderLineId == GuidHelper.ParseGuidString(lineId)))
+            .ReceivedQty.Should().Be(10);
 
         (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(2);
         (await context.Stockmovements.AsNoTracking().CountAsync(item => item.MovementType == "RECEIPT")).Should().Be(2);
@@ -5116,16 +5147,15 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = CreatePurchaseOrderService(context);
-        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderService = CreatePurchaseOrderService(context);
+        var receivingService = CreatePurchaseReceivingService(context);
+        var orders = await orderService.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
-        var act = () => service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
-        {
-            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
-            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 11 }]
-        }, fixture.UserIdString);
+        var act = () => receivingService.RecordAsync(
+            CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 11m, "workflow-over-receipt"),
+            fixture.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
@@ -5139,18 +5169,17 @@ public class WorkflowGenerationTests
         var supplierB = GuidHelper.NewId();
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
-        var service = CreatePurchaseOrderService(context);
-        var orders = await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var orderService = CreatePurchaseOrderService(context);
+        var receivingService = CreatePurchaseReceivingService(context);
+        var orders = await orderService.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
         var orderForSupplierA = orders.First(order => order.SupplierId == GuidHelper.ToGuidString(supplierA));
         var lineId = orderForSupplierA.Lines[0].PurchaseOrderLineId;
 
-        await service.RecordReceiptAsync(orderForSupplierA.PurchaseOrderId, new RecordPurchaseOrderReceiptDto
-        {
-            WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
-            Lines = [new RecordPurchaseOrderReceiptLineDto { PurchaseOrderLineId = lineId, ReceivedQty = 2 }]
-        }, fixture.UserIdString);
+        await receivingService.RecordAsync(
+            CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 2m, "workflow-before-cancel"),
+            fixture.UserIdString);
 
-        var act = () => service.CancelAsync(orderForSupplierA.PurchaseOrderId);
+        var act = () => orderService.CancelAsync(orderForSupplierA.PurchaseOrderId);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
     }
