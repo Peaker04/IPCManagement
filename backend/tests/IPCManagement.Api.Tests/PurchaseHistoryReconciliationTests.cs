@@ -1,11 +1,27 @@
 using System.ComponentModel.DataAnnotations;
+using System.Net;
+using System.Net.Http.Json;
+using System.Security.Claims;
+using System.Text.Encodings.Web;
 using FluentAssertions;
+using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Middlewares;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.SampleData;
 using IPCManagement.DatabaseTool;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using NSubstitute;
 
 namespace IPCManagement.Api.Tests;
 
@@ -455,6 +471,72 @@ public class PurchaseHistoryReconciliationTests
         preview.Actions.Should().NotContain(action => action.ActionType == "delete");
     }
 
+    [Fact]
+    public async Task PreviewEndpoint_allows_manager_and_uses_server_identity()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        service.PreviewAsync(Arg.Any<CancellationToken>()).Returns(new PurchaseHistoryPreviewDto
+        {
+            Manifest = new PurchaseHistoryManifestDto
+            {
+                ManifestId = "manifest-1",
+                ManifestHash = new string('C', 64)
+            }
+        });
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/preview",
+            new PurchaseHistoryPreviewRequestDto());
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var payload = await response.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryPreviewDto>>();
+        payload!.Data!.PreviewedBy.Should().Be("preview-test-user");
+        payload.Data.Manifest.ManifestId.Should().Be("manifest-1");
+        await service.Received(1).PreviewAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("Chef", HttpStatusCode.Forbidden)]
+    public async Task PreviewEndpoint_rejects_unauthorized_callers_before_source_access(
+        string? role,
+        HttpStatusCode expectedStatus)
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        if (role is not null)
+        {
+            client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, role);
+        }
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/preview",
+            new PurchaseHistoryPreviewRequestDto());
+
+        response.StatusCode.Should().Be(expectedStatus);
+        await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task PreviewEndpoint_is_hidden_in_production_before_source_access()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Production");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/preview",
+            new PurchaseHistoryPreviewRequestDto());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
+    }
+
     [Fact(Skip = "Plan 09-05 owns immutable-history apply and no-op replay behavior.")]
     public void Apply_preserves_immutable_history_and_second_apply_is_no_op()
     {
@@ -642,5 +724,68 @@ public class PurchaseHistoryReconciliationTests
         var bytes = new byte[16];
         BitConverter.GetBytes(value).CopyTo(bytes, 0);
         return bytes;
+    }
+
+    private static async Task<WebApplication> CreatePreviewEndpointAppAsync(
+        IPurchaseHistoryReconciliationService reconciliationService,
+        string environmentName)
+    {
+        var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+        {
+            EnvironmentName = environmentName
+        });
+        builder.WebHost.UseTestServer();
+        builder.Services
+            .AddAuthentication(PreviewTestAuthHandler.AuthScheme)
+            .AddScheme<AuthenticationSchemeOptions, PreviewTestAuthHandler>(
+                PreviewTestAuthHandler.AuthScheme,
+                _ => { });
+        builder.Services.AddAuthorization(options =>
+        {
+            options.AddPolicy(AuthorizationPolicies.CatalogAccess, policy =>
+                policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogRoles));
+        });
+        builder.Services.AddSingleton(reconciliationService);
+        builder.Services.AddSingleton(Substitute.For<ISampleDataImportService>());
+        builder.Services.AddControllers().AddApplicationPart(typeof(SampleDataController).Assembly);
+
+        var app = builder.Build();
+        app.UseMiddleware<SampleDataProductionGuardMiddleware>();
+        app.UseAuthentication();
+        app.UseAuthorization();
+        app.MapControllers();
+        await app.StartAsync();
+        return app;
+    }
+
+    private sealed class PreviewTestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
+    {
+        public const string AuthScheme = "PurchaseHistoryPreviewTest";
+        public const string RoleHeader = "X-Test-Role";
+
+        public PreviewTestAuthHandler(
+            IOptionsMonitor<AuthenticationSchemeOptions> options,
+            ILoggerFactory logger,
+            UrlEncoder encoder)
+            : base(options, logger, encoder)
+        {
+        }
+
+        protected override Task<AuthenticateResult> HandleAuthenticateAsync()
+        {
+            if (!Request.Headers.TryGetValue(RoleHeader, out var role) || string.IsNullOrWhiteSpace(role))
+            {
+                return Task.FromResult(AuthenticateResult.NoResult());
+            }
+
+            var identity = new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.NameIdentifier, "preview-test-user"),
+                    new Claim(ClaimTypes.Role, role.ToString())
+                ],
+                AuthScheme);
+            var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), AuthScheme);
+            return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
     }
 }
