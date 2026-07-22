@@ -520,6 +520,63 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
+    [Theory]
+    [InlineData("Purchasing")]
+    [InlineData("WarehouseStaff")]
+    public async Task Non_manager_cannot_decide_price_exception(string role)
+    {
+        await using var fixture = await PriceExceptionApprovalFixture.CreateAsync();
+        var targetId = await fixture.SeedAsync("PENDING");
+
+        var act = () => fixture.CreateWorkflowService().ExecuteAsync(
+            "purchase-price-exception",
+            targetId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được phép" },
+            fixture.ActorIdString,
+            BuildPrincipal(role));
+
+        await act.Should().ThrowAsync<UnauthorizedAccessException>();
+        await using var context = fixture.CreateContext();
+        (await context.Purchasepriceexceptions.AsNoTracking().SingleAsync()).Status.Should().Be("PENDING");
+        (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Rejected_price_exception_recovers_only_with_new_supplier_proposal()
+    {
+        await using var context = CreateInboxContext();
+        var setup = await SeedPriceExceptionConfirmationAsync(context);
+        var service = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
+        await service.ConfirmLineSupplierAsync(
+            setup.RequestId,
+            setup.LineId,
+            BuildConfirmation(setup, 120m, "Giá nguyên liệu tăng", 0),
+            setup.ActorId);
+        var rejected = await context.Purchasepriceexceptions.SingleAsync();
+        rejected.Status = "REJECTED";
+        rejected.DecidedBy = GuidHelper.NewId();
+        rejected.DecisionReason = "Giá chưa hợp lệ";
+        rejected.DecidedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+
+        await service.ConfirmLineSupplierAsync(
+            setup.RequestId,
+            setup.LineId,
+            BuildConfirmation(setup, 118m, "Báo giá thay thế", 1),
+            setup.ActorId);
+
+        var exceptions = await context.Purchasepriceexceptions
+            .AsNoTracking()
+            .OrderBy(item => item.ProposalVersion)
+            .ToListAsync();
+        exceptions.Should().HaveCount(2);
+        exceptions[0].Status.Should().Be("SUPERSEDED");
+        exceptions[0].SupersededByExceptionId.Should().Equal(exceptions[1].PurchasePriceExceptionId);
+        exceptions[1].Status.Should().Be("PENDING");
+        exceptions[1].ProposalVersion.Should().Be(2);
+        (await context.Purchaserequests.AsNoTracking().SingleAsync()).Status.Should().Be("DRAFT");
+    }
+
     [Fact]
     public async Task Inbox_manager_sees_pending_price_exception_with_decision_evidence()
     {
@@ -532,6 +589,11 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             BuildConfirmation(setup, 120m, "Giá nguyên liệu tăng", 0),
             setup.ActorId);
         var priceException = await context.Purchasepriceexceptions.AsNoTracking().SingleAsync();
+        var decision = await context.Purchaselinesupplierdecisions.AsNoTracking().SingleAsync();
+        priceException.Status.Should().Be("PENDING");
+        decision.Status.Should().Be("CURRENT");
+        priceException.ProposalFingerprint.Should().Be(decision.DecisionFingerprint);
+        priceException.ProposalVersion.Should().Be(decision.Version);
 
         var inboxService = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
         var managerInbox = await inboxService.GetPendingAsync(

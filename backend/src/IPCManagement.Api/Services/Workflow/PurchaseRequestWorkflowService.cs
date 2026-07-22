@@ -906,6 +906,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 .ThenInclude(line => line.MaterialRequestLine)
             .Include(item => item.Purchaserequestlines)
                 .ThenInclude(line => line.SupplierDecisions)
+                    .ThenInclude(decision => decision.Purchasepriceexceptions)
             .FirstOrDefaultAsync(item => item.PurchaseRequestId == prIdBytes, cancellationToken);
         if (purchaseRequest is null)
         {
@@ -1302,25 +1303,67 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 throw new InvalidOperationException("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
             }
 
+        }
+
+        ValidateCurrentSupplierDecisionsAsync(purchaseRequest);
+        ValidatePriceExceptionsAsync(purchaseRequest);
+
+        return Task.CompletedTask;
+    }
+
+    private static void ValidateCurrentSupplierDecisionsAsync(Purchaserequest purchaseRequest)
+    {
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
             var currentDecision = line.SupplierDecisions.SingleOrDefault(decision =>
                 string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
             if (currentDecision is null ||
+                line.SupplierId is null ||
                 !currentDecision.SupplierId.SequenceEqual(line.SupplierId) ||
                 currentDecision.ProposedUnitPrice != DecimalPolicy.RoundMoney(line.EstimatedUnitPrice) ||
                 currentDecision.ProposedDeliveryDate != line.ExpectedDeliveryDate)
             {
                 throw new InvalidOperationException("Có dòng mua chưa có quyết định nhà cung cấp hiện hành hợp lệ.");
             }
+        }
+    }
 
-            var referencePrice = DecimalPolicy.RoundMoney(currentDecision.EvidenceReferencePrice);
-            var variance = WorkflowReportCalculator.CalculateVariancePercent(referencePrice, line.EstimatedUnitPrice);
-            if (WorkflowReportCalculator.IsPriceIncreaseWarning(variance))
+    private static void ValidatePriceExceptionsAsync(Purchaserequest purchaseRequest)
+    {
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
+            var currentDecision = line.SupplierDecisions.Single(decision =>
+                string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
+            var variance = PurchasePricePolicy.CalculateVariancePercent(
+                currentDecision.EvidenceReferencePrice,
+                currentDecision.ProposedUnitPrice);
+            if (!PurchasePricePolicy.RequiresException(variance))
             {
-                throw new InvalidOperationException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
+                continue;
+            }
+
+            var currentException = currentDecision.Purchasepriceexceptions.SingleOrDefault(priceException =>
+                string.Equals(priceException.ProposalFingerprint, currentDecision.DecisionFingerprint, StringComparison.Ordinal) &&
+                priceException.ProposalVersion == currentDecision.Version &&
+                !string.Equals(priceException.Status, "SUPERSEDED", StringComparison.Ordinal));
+            if (currentException is null)
+            {
+                throw new InvalidOperationException(
+                    "Có dòng mua cần ngoại lệ giá hiện hành trước khi gửi đơn mua.");
+            }
+
+            if (string.Equals(currentException.Status, "REJECTED", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Ngoại lệ giá đã bị từ chối; hãy cập nhật và gửi lại đề xuất giá.");
+            }
+
+            if (!string.Equals(currentException.Status, "APPROVED", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Có dòng mua cần ngoại lệ giá được Quản lý duyệt trước khi gửi đơn mua.");
             }
         }
-
-        return Task.CompletedTask;
     }
 
     private static PurchaseRequestWorkflowResultDto MapResult(
