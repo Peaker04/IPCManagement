@@ -27,6 +27,57 @@ namespace IPCManagement.Api.Tests;
 
 public class PurchaseHistoryReconciliationTests
 {
+    [Fact]
+    public void PersistenceContract_reconciliation_run_and_actions_bind_complete_audit_evidence()
+    {
+        using var context = CreateContext();
+
+        var run = context.Model.FindEntityType(typeof(Purchasehistoryreconciliationrun));
+        run.Should().NotBeNull();
+        run!.FindProperty(nameof(Purchasehistoryreconciliationrun.ManifestHash))!
+            .GetMaxLength().Should().Be(64);
+        run.FindProperty(nameof(Purchasehistoryreconciliationrun.SourceSha256))!
+            .GetMaxLength().Should().Be(64);
+        run.FindProperty(nameof(Purchasehistoryreconciliationrun.DatabaseFingerprint))!
+            .GetMaxLength().Should().Be(64);
+        run.FindProperty(nameof(Purchasehistoryreconciliationrun.BackupTargetFingerprint))!
+            .GetMaxLength().Should().Be(64);
+        run.FindProperty(nameof(Purchasehistoryreconciliationrun.RestoreFingerprint))!
+            .GetMaxLength().Should().Be(64);
+        run.GetIndexes().Should().Contain(index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(Purchasehistoryreconciliationrun.ManifestHash)]));
+        run.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
+            "ckPurchaseHistoryReconciliationRunsCounts",
+            "ckPurchaseHistoryReconciliationRunsStatus",
+            "ckPurchaseHistoryReconciliationRunsRestoreVerified");
+
+        var action = context.Model.FindEntityType(typeof(Purchasehistoryreconciliationaction));
+        action.Should().NotBeNull();
+        action!.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionId))!
+            .GetMaxLength().Should().Be(32);
+        action.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionHash))!
+            .GetMaxLength().Should().Be(64);
+        action.FindProperty(nameof(Purchasehistoryreconciliationaction.BeforeHash))!
+            .GetMaxLength().Should().Be(64);
+        action.FindProperty(nameof(Purchasehistoryreconciliationaction.AfterHash))!
+            .GetMaxLength().Should().Be(64);
+        action.GetIndexes().Should().Contain(index =>
+            index.IsUnique &&
+            index.Properties.Select(property => property.Name).SequenceEqual(
+                [
+                    nameof(Purchasehistoryreconciliationaction.PurchaseHistoryReconciliationRunId),
+                    nameof(Purchasehistoryreconciliationaction.ActionId)
+                ]));
+        action.GetForeignKeys().Should().ContainSingle(foreignKey =>
+            foreignKey.IsRequired &&
+            foreignKey.PrincipalEntityType.ClrType == typeof(Purchasehistoryreconciliationrun));
+        action.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
+            "ckPurchaseHistoryReconciliationActionsDisposition",
+            "ckPurchaseHistoryReconciliationActionsSourceRow");
+    }
+
     [Theory]
     [InlineData("ipc_lane1", "ipc_e2e_template")]
     [InlineData("ipc_e2e_template", "ipc_lane9")]

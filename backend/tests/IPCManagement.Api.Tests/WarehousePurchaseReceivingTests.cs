@@ -1,9 +1,40 @@
 using FluentAssertions;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Tests;
 
 public class WarehousePurchaseReceivingTests
 {
+    [Fact]
+    public void PackageSnapshot_model_enforces_complete_positive_conversion_triple()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseInMemoryDatabase($"warehouse-package-snapshot-{Guid.NewGuid():N}")
+            .Options;
+        using var context = new IpcManagementContext(options);
+
+        var receiptLine = context.Model.FindEntityType(typeof(Inventoryreceiptline));
+        receiptLine.Should().NotBeNull();
+        receiptLine!.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+            .GetPrecision().Should().Be(18);
+        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+            .GetScale().Should().Be(6);
+        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot))!
+            .GetMaxLength().Should().Be(16);
+        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackagePolicyVersionSnapshot))!
+            .GetMaxLength().Should().Be(100);
+        receiptLine.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
+            "ckInventoryReceiptLinesPackageSnapshotComplete",
+            "ckInventoryReceiptLinesPackageQuantityPositive");
+        receiptLine.GetForeignKeys().Should().Contain(foreignKey =>
+            !foreignKey.IsRequired &&
+            foreignKey.Properties.Select(property => property.Name)
+                .SequenceEqual([nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot)]) &&
+            foreignKey.PrincipalEntityType.ClrType == typeof(Unit));
+    }
+
     [Theory]
     [InlineData("Warehouse", true)]
     [InlineData("Purchasing", false)]
