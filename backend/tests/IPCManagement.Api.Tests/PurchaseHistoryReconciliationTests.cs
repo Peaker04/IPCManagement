@@ -845,6 +845,128 @@ public class PurchaseHistoryReconciliationTests
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
     }
 
+    [Fact]
+    public async Task ApplyEndpoint_allows_manager_uses_server_actor_and_replays_prior_audit()
+    {
+        var actorId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+        var request = EndpointApplyRequest();
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        service.ApplyAsync(
+                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<byte[]>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                new PurchaseHistoryApplyResultDto
+                {
+                    ManifestId = request.ManifestId,
+                    RunId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    AuditReference = "purchase-history-reconciliation/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    Applied = true,
+                    AppliedActionCount = 1
+                },
+                new PurchaseHistoryApplyResultDto
+                {
+                    ManifestId = request.ManifestId,
+                    RunId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    AuditReference = "purchase-history-reconciliation/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    NoOp = true,
+                    AppliedActionCount = 1
+                });
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.UserHeader, actorId.ToString());
+
+        var first = await client.PostAsJsonAsync("/api/sample-data/purchase-history/apply", request);
+        var replay = await client.PostAsJsonAsync("/api/sample-data/purchase-history/apply", request);
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstPayload = await first.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryApplyResultDto>>();
+        var replayPayload = await replay.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryApplyResultDto>>();
+        firstPayload!.Data.Should().Match<PurchaseHistoryApplyResultDto>(result =>
+            result.Applied && !result.NoOp && result.RunId == replayPayload!.Data!.RunId);
+        replayPayload!.Data.Should().Match<PurchaseHistoryApplyResultDto>(result =>
+            !result.Applied && result.NoOp && result.AuditReference == firstPayload.Data!.AuditReference);
+        firstPayload.Data!.AuditReference.Should().NotContain("\\").And.NotContain(":\\");
+        await service.Received(2).ApplyAsync(
+            Arg.Is<PurchaseHistoryApplyRequestDto>(accepted =>
+                accepted.ManifestId == request.ManifestId &&
+                accepted.ManifestHash == request.ManifestHash &&
+                accepted.AcceptedActionIds.SequenceEqual(request.AcceptedActionIds)),
+            Arg.Is<byte[]>(actor => actor.SequenceEqual(actorId.ToByteArray())),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApplyEndpoint_returns_conflict_when_manifest_changed()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        service.ApplyAsync(
+                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<byte[]>(),
+                Arg.Any<CancellationToken>())
+            .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new InvalidOperationException("Manifest drifted."));
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.UserHeader, Guid.NewGuid().ToString());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var payload = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        payload!.Success.Should().BeFalse();
+        payload.Message.Should().Be("Manifest drifted.");
+    }
+
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("Chef", HttpStatusCode.Forbidden)]
+    public async Task ApplyEndpoint_rejects_unauthorized_callers_before_apply(
+        string? role,
+        HttpStatusCode expectedStatus)
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        if (role is not null)
+        {
+            client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, role);
+        }
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(expectedStatus);
+        await service.DidNotReceive().ApplyAsync(
+            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApplyEndpoint_is_hidden_in_production_before_apply()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Production");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await service.DidNotReceive().ApplyAsync(
+            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<CancellationToken>());
+    }
+
     [Theory]
     [InlineData("manifest-id")]
     [InlineData("manifest-hash")]
@@ -1464,6 +1586,21 @@ public class PurchaseHistoryReconciliationTests
             }
         };
 
+    private static PurchaseHistoryApplyRequestDto EndpointApplyRequest()
+        => new()
+        {
+            ManifestId = "manifest-1",
+            ManifestHash = new string('C', 64),
+            AcceptedActionIds = ["action-1"],
+            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            {
+                BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                TargetFingerprint = new string('D', 64),
+                RestoreFingerprint = new string('D', 64),
+                RestoreVerified = true
+            }
+        };
+
     private static PurchaseHistorySourceCandidate Candidate(
         string sheet,
         int row,
@@ -1591,6 +1728,7 @@ public class PurchaseHistoryReconciliationTests
     {
         public const string AuthScheme = "PurchaseHistoryPreviewTest";
         public const string RoleHeader = "X-Test-Role";
+        public const string UserHeader = "X-Test-User";
 
         public PreviewTestAuthHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -1607,9 +1745,13 @@ public class PurchaseHistoryReconciliationTests
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
+            var userId = Request.Headers.TryGetValue(UserHeader, out var configuredUser) &&
+                         !string.IsNullOrWhiteSpace(configuredUser)
+                ? configuredUser.ToString()
+                : "preview-test-user";
             var identity = new ClaimsIdentity(
                 [
-                    new Claim(ClaimTypes.NameIdentifier, "preview-test-user"),
+                    new Claim(ClaimTypes.NameIdentifier, userId),
                     new Claim(ClaimTypes.Role, role.ToString())
                 ],
                 AuthScheme);
