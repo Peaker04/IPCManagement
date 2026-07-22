@@ -485,27 +485,23 @@ The concrete service must follow existing stock-ledger conventions and enforce a
 | A3 | [ASSUMED] Untracked deployment secret/config stores contain no Phase 9-specific key rename. | Runtime State Inventory | Low for code, high operationally if a hidden import/source setting exists; verify deployment before apply. |
 | A4 | [ASSUMED] Lot/manufacture/expiry requirement detail can continue using current validation plus the locked Warehouse fields; ingredient-specific mandatory-field rules were not found. | Warehouse receiving | Medium: business owners may require stricter per-category rules. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **Accept the proposed Phase 9 requirement IDs before planning.**
-   - What we know: Phase scope and locked decisions are detailed, but roadmap requirement IDs are TBD. [VERIFIED: planning artifacts]
-   - What's unclear: Whether the project owner wants the `SUP/PUR/WHR/PUI` prefixes exactly as proposed.
-   - Recommendation: Make requirements/roadmap mapping the first planning task or prerequisite checkpoint; do not execute a plan with unmapped Phase 9 requirements.
+1. **RESOLVED — Accept the Phase 9 requirement IDs.**
+   - Decision: The canonical requirement IDs are `SUP-01..SUP-04`, `PUR-01..PUR-05`, `WHR-01`, and `PUI-01`; ROADMAP and every plan use these IDs.
+   - Evidence: Phase 09 CONTEXT, ROADMAP, and the completed multi-source coverage audit.
 
-2. **Choose the durable schema shape for supplier confirmation and price-exception proposal identity.**
-   - What we know: Current PR lines require a supplier and have no confirmation/evidence record; alerts are transient. [VERIFIED: codebase]
-   - What's unclear: Separate decision/version tables versus additional snapshot fields plus an exception table.
-   - Recommendation: Use one owned supplier-decision record and one versioned price-exception record unless impact analysis shows a smaller forward migration preserves all required evidence.
+2. **RESOLVED — Use the smallest forward-only durable supplier-decision and price-exception persistence after mandatory impact analysis.**
+   - Decision: Add one versioned supplier-decision record and one versioned price-exception record, plus only the nullable/current-snapshot and unique-key changes needed to connect them. Before editing `Purchaserequestline`, `Purchaseorder`, or `IpcManagementContext`, run upstream GitNexus impact analysis; HIGH/CRITICAL scope must be reported before proceeding.
+   - Evidence: D-09-08, D-09-14, D-09-15 and Plans 09-08 through 09-10.
 
-3. **Confirm live backup/restore evidence format and target clone workflow.**
-   - What we know: Apply is forbidden without backup/restore evidence and a fresh fingerprint. [VERIFIED: D-09-10]
-   - What's unclear: The operator-approved backup identifier, restore verification artifact, and whether the existing database clone tool is the canonical mechanism.
-   - Recommendation: Add a `checkpoint:human-verify` before any apply; automated tests may apply only to a disposable clone.
+3. **RESOLVED — Require operator-owned named backup evidence plus a successful disposable clone restore/fingerprint proof.**
+   - Decision: D-09-10 apply eligibility requires the operator-owned backup identifier, exact target fingerprint, successful `ipc_e2e_template` to `ipc_laneN` restore evidence, accepted preview counts/action IDs, and exact post-restore fingerprint equality. Automated apply remains disposable-only; any real target requires a separate blocking operator authorization.
+   - Evidence: Wave 0 evidence contract and Plans 09-01, 09-05, and 09-14.
 
-4. **Resolve UI-SPEC metadata consistency.**
-   - What we know: The UI-SPEC frontmatter is `status: approved` and its content says it was verified. [VERIFIED: 09-UI-SPEC.md]
-   - What's unclear: If a trailing checker note elsewhere still says approval pending, which status the orchestrator treats as authoritative.
-   - Recommendation: Planner should treat the approved contract as canonical unless the project owner explicitly reopens it, and remove contradictory metadata only in a dedicated docs task.
+4. **RESOLVED — Server policy owns receipt lot/manufacture/expiry requirements; UI never guesses.**
+   - Decision: For each ingredient, the server returns which of lot number, manufacture date, and expiry date are required and validates the submitted raw evidence. The Warehouse UI renders those requirements, preserves raw values, and blocks submission when required evidence is absent; it never infers or fabricates dates/lot values. The approved UI-SPEC frontmatter is canonical.
+   - Evidence: D-09-18, WHR-01, approved 09-UI-SPEC, and Plans 09-11 through 09-14.
 
 ## Environment Availability
 

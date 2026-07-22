@@ -23,6 +23,7 @@ Phase 9 replaces the hard-coded 19.5 purchase-history sample source with the aud
 
 ### Historical reconciliation and cleanup
 - **D-09-07:** The 20.7 workbook supersedes the 19.5 workbook for purchase-history sample import. Reconciliation uses deterministic source/business keys and a source hash/manifest rather than filename-only identity.
+  - **Execution correction (2026-07-22):** The unsupported `3,209` note is replaced by the reproduced delta of `3,207` unique normalized `delivery date + ingredient` keys, compared case-insensitively. Wave 0 evidence owns the exact XML audit algorithm and counts.
 - **D-09-08:** Existing linked, approved, received or otherwise immutable operational history keeps its snapshot. A changed source row becomes an explicit correction/version where necessary; it is not overwritten destructively.
 - **D-09-09:** Hard deletion is limited to true sample-generated orphans absent from the new source and proven to have no operational dependency. Referenced legacy catalog data is remapped or deactivated.
 - **D-09-10:** Apply requires backup/restore evidence, a fresh database fingerprint and exact preview counts. The second apply and the post-apply preview must be no-op.
@@ -101,7 +102,7 @@ Phase 9 replaces the hard-coded 19.5 purchase-history sample source with the aud
 <specifics>
 ## Specific Ideas
 
-- Audit baseline: both workbooks contain 31 SUMMARY supplier policies, while the 20.7 source adds 3,209 deterministic purchase-line keys over 19.5.
+- Audit baseline: both workbooks contain 31 SUMMARY supplier policies, while the 20.7 source adds 3,207 unique normalized `delivery date + ingredient` keys over 19.5 (case-insensitive).
 - Live `ipc_lane1` baseline: 64 suppliers, 35 active, 29 `-2` duplicates inactive; the accidental active supplier `Nhà Cung Cấp` comes from the SUMMARY header.
 - Unit diagnostics include spelling/semantic anomalies such as `Bành`, `hủ`, `loốc`, `cay`, `lất`, `vit`, `kh`, `canh` and package text such as `Bịch (10 cái)`.
 - The purchasing workbench should answer: which week, which service date, what is short, whether demand is approved, which supplier evidence exists, which exceptions block, and whether Warehouse has received the order.
