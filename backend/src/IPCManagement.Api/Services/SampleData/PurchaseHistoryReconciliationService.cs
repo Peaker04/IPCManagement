@@ -1,6 +1,8 @@
+using System.Diagnostics;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using Microsoft.EntityFrameworkCore;
@@ -17,20 +19,31 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
 
     private readonly IpcManagementContext _context;
     private readonly Func<PurchaseHistoryPreviewSource> _sourceFactory;
+    private readonly Func<string> _databaseIdentityFactory;
+    private readonly Func<PurchaseHistoryApplySafetyEvidence> _safetyEvidenceFactory;
 
     public PurchaseHistoryReconciliationService(
         IpcManagementContext context,
         IWebHostEnvironment environment)
-        : this(context, () => ReadServerOwnedSource(environment))
+        : this(
+            context,
+            () => ReadServerOwnedSource(environment),
+            () => ResolveDatabaseIdentity(context),
+            () => LoadSafetyEvidence(environment))
     {
     }
 
     internal PurchaseHistoryReconciliationService(
         IpcManagementContext context,
-        Func<PurchaseHistoryPreviewSource> sourceFactory)
+        Func<PurchaseHistoryPreviewSource> sourceFactory,
+        Func<string>? databaseIdentityFactory = null,
+        Func<PurchaseHistoryApplySafetyEvidence>? safetyEvidenceFactory = null)
     {
         _context = context;
         _sourceFactory = sourceFactory;
+        _databaseIdentityFactory = databaseIdentityFactory ?? (() => ResolveDatabaseIdentity(context));
+        _safetyEvidenceFactory = safetyEvidenceFactory ?? (() => throw new InvalidOperationException(
+            "Apply requires verified repository safety evidence."));
     }
 
     public async Task<PurchaseHistoryPreviewDto> PreviewAsync(CancellationToken cancellationToken = default)
@@ -105,14 +118,16 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 item.CurrentQty))
             .ToListAsync(cancellationToken);
 
-        var databaseFingerprint = Hash(BuildDatabaseEvidence(
-            suppliers,
-            ingredients,
-            units,
-            receipts,
-            lines,
-            movements,
-            stocks));
+        var databaseFingerprint = BindDatabaseFingerprint(
+            _databaseIdentityFactory(),
+            BuildDatabaseEvidence(
+                suppliers,
+                ingredients,
+                units,
+                receipts,
+                lines,
+                movements,
+                stocks));
         var actions = source.ParseResult.Candidates
             .Where(candidate => candidate.Normalization?.Blockers.Count > 0)
             .Select(candidate => BuildAction(
@@ -292,6 +307,82 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         };
     }
 
+    internal async Task<ValidatedPurchaseHistoryApply> ValidateAcceptedManifestAsync(
+        PurchaseHistoryApplyRequestDto request,
+        byte[] appliedBy,
+        CancellationToken cancellationToken = default)
+    {
+        var safetyEvidence = _safetyEvidenceFactory();
+        var databaseIdentity = _databaseIdentityFactory();
+        AssertDisposableTarget(databaseIdentity);
+        if (appliedBy.Length != 16)
+        {
+            throw new InvalidOperationException("Apply requires a valid server-authenticated actor.");
+        }
+
+        if (request.BackupRestoreEvidence is null)
+        {
+            throw new InvalidOperationException("Apply requires backup and restore evidence.");
+        }
+
+        var preview = await PreviewAsync(cancellationToken);
+        if (preview.Blockers.Count != 0 || preview.Manifest.BlockerCount != 0)
+        {
+            throw new InvalidOperationException("A reconciliation manifest with blockers cannot be applied.");
+        }
+
+        if (!string.Equals(request.ManifestId, preview.Manifest.ManifestId, StringComparison.Ordinal) ||
+            !string.Equals(request.ManifestHash, preview.Manifest.ManifestHash, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("The accepted reconciliation manifest is stale.");
+        }
+
+        var expectedActionIds = preview.Actions.Select(action => action.ActionId).ToArray();
+        if (request.AcceptedActionIds.Count != expectedActionIds.Length ||
+            request.AcceptedActionIds.Distinct(StringComparer.Ordinal).Count() != expectedActionIds.Length ||
+            !request.AcceptedActionIds.SequenceEqual(expectedActionIds, StringComparer.Ordinal))
+        {
+            throw new InvalidOperationException("The accepted reconciliation action set or count has drifted.");
+        }
+
+        var suppliedEvidence = request.BackupRestoreEvidence;
+        if (!suppliedEvidence.RestoreVerified ||
+            !string.Equals(
+                suppliedEvidence.BackupIdentifier,
+                safetyEvidence.BackupIdentifier,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                suppliedEvidence.TargetFingerprint,
+                safetyEvidence.TargetFingerprint,
+                StringComparison.Ordinal) ||
+            !string.Equals(
+                suppliedEvidence.RestoreFingerprint,
+                safetyEvidence.RestoreFingerprint,
+                StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Backup or restore evidence does not match the verified disposable baseline.");
+        }
+
+        return new ValidatedPurchaseHistoryApply(
+            preview,
+            preview.Actions,
+            appliedBy.ToArray(),
+            databaseIdentity,
+            safetyEvidence);
+    }
+
+    internal static void AssertDisposableTarget(string databaseIdentity)
+    {
+        if (!Regex.IsMatch(
+                databaseIdentity,
+                "^ipc_lane[1-9]$",
+                RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
+        {
+            throw new InvalidOperationException(
+                "Purchase-history apply is restricted to ipc_lane1..ipc_lane9 disposable databases.");
+        }
+    }
+
     private static PurchaseHistoryPreviewSource ReadServerOwnedSource(IWebHostEnvironment environment)
     {
         var current = new DirectoryInfo(environment.ContentRootPath);
@@ -315,6 +406,117 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         }
 
         throw new FileNotFoundException($"Không tìm thấy nguồn lịch sử mua hàng phía server: {SourceFileName}");
+    }
+
+    private static string ResolveDatabaseIdentity(IpcManagementContext context)
+    {
+        if (!context.Database.IsRelational())
+        {
+            return context.Database.ProviderName ?? "non-relational-test";
+        }
+
+        return context.Database.GetDbConnection().Database;
+    }
+
+    private static PurchaseHistoryApplySafetyEvidence LoadSafetyEvidence(IWebHostEnvironment environment)
+    {
+        var repositoryRoot = FindRepositoryRoot(environment.ContentRootPath);
+        var evidencePath = Path.Combine(
+            repositoryRoot,
+            ".planning",
+            "phases",
+            "09-supplier-canonical-refresh-and-purchasing-workflow-alignment",
+            "09-WAVE0-EVIDENCE.md");
+        var rawEvidence = File.ReadAllText(evidencePath);
+        var protectedSqlPath = Path.Combine(
+            repositoryRoot,
+            "backend",
+            "database",
+            "Clean_Legacy_Imported_Bom_Idempotent.sql");
+        var expectedProtectedHash = EvidenceValue(rawEvidence, "ProtectedSqlSha256");
+        var actualProtectedHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(protectedSqlPath)));
+        if (!string.Equals(actualProtectedHash, expectedProtectedHash, StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Protected cleanup SQL hash does not match the Wave 0 baseline.");
+        }
+
+        const string protectedRelativePath = "backend/database/Clean_Legacy_Imported_Bom_Idempotent.sql";
+        var porcelain = RunGit(
+            repositoryRoot,
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--",
+            protectedRelativePath);
+        if (porcelain.ExitCode != 0 ||
+            !string.Equals(porcelain.Output.Trim(), $"?? {protectedRelativePath}", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Protected cleanup SQL porcelain state has changed.");
+        }
+
+        var tracked = RunGit(repositoryRoot, "ls-files", "--error-unmatch", "--", protectedRelativePath);
+        if (tracked.ExitCode == 0)
+        {
+            throw new InvalidOperationException("Protected cleanup SQL unexpectedly became tracked.");
+        }
+
+        return new PurchaseHistoryApplySafetyEvidence(
+            EvidenceValue(rawEvidence, "BackupIdentity"),
+            EvidenceValue(rawEvidence, "BackupFingerprint"),
+            EvidenceValue(rawEvidence, "PostRestoreFingerprint"));
+    }
+
+    private static string FindRepositoryRoot(string contentRootPath)
+    {
+        var current = new DirectoryInfo(contentRootPath);
+        while (current is not null)
+        {
+            if (Directory.Exists(Path.Combine(current.FullName, ".git")) &&
+                Directory.Exists(Path.Combine(current.FullName, ".planning")))
+            {
+                return current.FullName;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not resolve the repository root for apply safety validation.");
+    }
+
+    private static string EvidenceValue(string rawEvidence, string key)
+    {
+        var match = Regex.Match(
+            rawEvidence,
+            $"(?m)^{Regex.Escape(key)}=(?<value>[^\\r\\n]+)$",
+            RegexOptions.CultureInvariant);
+        return match.Success
+            ? match.Groups["value"].Value.Trim()
+            : throw new InvalidOperationException($"Wave 0 evidence is missing {key}.");
+    }
+
+    private static GitCommandResult RunGit(string repositoryRoot, params string[] arguments)
+    {
+        using var process = new Process
+        {
+            StartInfo = new ProcessStartInfo
+            {
+                FileName = "git",
+                WorkingDirectory = repositoryRoot,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            }
+        };
+        foreach (var argument in arguments)
+        {
+            process.StartInfo.ArgumentList.Add(argument);
+        }
+
+        process.Start();
+        var output = process.StandardOutput.ReadToEnd();
+        process.WaitForExit();
+        return new GitCommandResult(process.ExitCode, output);
     }
 
     private static List<PurchaseHistoryBlockerDto> BuildNormalizationBlockers(
@@ -521,6 +723,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     private static string Hash(string value)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
+    private static string BindDatabaseFingerprint(string databaseIdentity, string databaseEvidence)
+    {
+        var identityHash = Hash($"database={databaseIdentity}");
+        var stateHash = Hash(databaseEvidence);
+        return identityHash[..16] + stateHash[..48];
+    }
+
     private sealed record SupplierSnapshot(string Id, string Code, string Name, bool? IsActive);
     private sealed record IngredientSnapshot(string Id, string Code, string Name, string UnitId, decimal ReferencePrice, bool? IsActive);
     private sealed record UnitSnapshot(string Id, string Code, string Name, string? BaseUnitCode, decimal ConversionRate);
@@ -550,9 +759,22 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         SupplierSnapshot? Supplier,
         IngredientSnapshot Ingredient,
         UnitSnapshot Unit);
+    private sealed record GitCommandResult(int ExitCode, string Output);
 }
 
 internal sealed record PurchaseHistoryPreviewSource(
     string SourceName,
     PurchaseHistoryParseResult ParseResult,
     string PolicyVersion = PurchaseHistoryPolicyVersion.Current);
+
+internal sealed record PurchaseHistoryApplySafetyEvidence(
+    string BackupIdentifier,
+    string TargetFingerprint,
+    string RestoreFingerprint);
+
+internal sealed record ValidatedPurchaseHistoryApply(
+    PurchaseHistoryPreviewDto Preview,
+    IReadOnlyList<PurchaseHistoryActionDto> Actions,
+    byte[] AppliedBy,
+    string DatabaseIdentity,
+    PurchaseHistoryApplySafetyEvidence SafetyEvidence);
