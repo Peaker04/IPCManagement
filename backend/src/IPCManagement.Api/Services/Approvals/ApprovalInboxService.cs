@@ -252,6 +252,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 TotalQuantity = DecimalPolicy.RoundQuantity(requestLines.Sum(line => line.SuggestedPurchaseQty)),
                 TotalValue = null,
                 SubmittedAt = plan.CreatedAt,
+                SourceDocumentCode = plan.PlanCode,
                 Materials = materials
             };
             await PopulateSlaAsync(itemDto, request.RequestId, plan.CreatedAt);
@@ -380,6 +381,8 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         var exceptionQuery = _context.Purchasepriceexceptions
             .AsNoTracking()
             .Include(item => item.PurchaseLineSupplierDecision)
+                .ThenInclude(decision => decision.Supplier)
+            .Include(item => item.PurchaseLineSupplierDecision)
                 .ThenInclude(decision => decision.PurchaseRequestLine)
                     .ThenInclude(line => line.PurchaseRequest)
                         .ThenInclude(request => request.CreatedByNavigation)
@@ -463,6 +466,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 EvidenceDate = priceException.EvidenceDate,
                 ProposalFingerprint = priceException.ProposalFingerprint,
                 ProposalVersion = priceException.ProposalVersion,
+                SupplierName = decision.Supplier.SupplierName,
                 Materials =
                 [
                     new ApprovalInboxMaterialDto

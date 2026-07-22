@@ -81,6 +81,8 @@ public class ApprovalInboxItemDto
     public DateOnly? EvidenceDate { get; set; }
     public string? ProposalFingerprint { get; set; }
     public int? ProposalVersion { get; set; }
+    public string? SupplierName { get; set; }
+    public string? SourceDocumentCode { get; set; }
     public IReadOnlyList<ApprovalInboxMaterialDto> Materials { get; set; } = [];
 }
 
