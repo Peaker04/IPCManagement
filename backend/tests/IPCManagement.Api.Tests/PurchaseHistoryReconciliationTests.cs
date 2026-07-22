@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -1000,10 +1001,115 @@ public class PurchaseHistoryReconciliationTests
         (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
     }
 
-    [Fact(Skip = "Plan 09-05 owns immutable-history apply and no-op replay behavior.")]
-    public void Apply_preserves_immutable_history_and_second_apply_is_no_op()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Apply_rolls_back_all_business_and_audit_rows_at_each_action_boundary(int failureIndex)
     {
-        Assert.Fail("Plan 09-05 must implement guarded apply and idempotent replay.");
+        await using var fixture = await ApplyFixture.CreateAsync();
+        var service = CreateApplyServiceWithFailure(
+            fixture.Context,
+            failureIndex,
+            Candidate("1.Rau", 90, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000),
+            Candidate("1.Rau", 91, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 21), 11, 26_000),
+            Candidate("1.Rau", 92, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 22), 12, 27_000));
+        var request = AcceptedApplyRequest(await service.PreviewAsync());
+        var before = await ApplyDatabaseCountsAsync(fixture.Context);
+
+        var act = () => service.ApplyAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        fixture.Context.ChangeTracker.Clear();
+        (await ApplyDatabaseCountsAsync(fixture.Context)).Should().Be(before);
+    }
+
+    [Fact]
+    public async Task Apply_preserves_immutable_history_and_second_apply_and_post_preview_are_no_op()
+    {
+        await using var fixture = await ApplyFixture.CreateAsync();
+        var immutable = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            Id(30),
+            Id(20),
+            Id(10),
+            8,
+            22_000,
+            "SAMPLE-LINKED",
+            purchaseRequestId: Id(92));
+        fixture.Context.ChangeTracker.Clear();
+        var original = await ReceiptLineSnapshotAsync(fixture.Context, immutable.ReceiptLineId);
+        var service = CreateApplyService(
+            fixture.Context,
+            "ipc_lane1",
+            Candidate("1.Rau", 100, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+
+        var first = await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var afterFirst = await ApplyDatabaseCountsAsync(fixture.Context);
+        var replay = await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var postPreview = await service.PreviewAsync();
+
+        first.Applied.Should().BeTrue();
+        first.NoOp.Should().BeFalse();
+        replay.Applied.Should().BeFalse();
+        replay.NoOp.Should().BeTrue();
+        replay.AppliedActionCount.Should().Be(first.AppliedActionCount);
+        (await ApplyDatabaseCountsAsync(fixture.Context)).Should().Be(afterFirst);
+        (await ReceiptLineSnapshotAsync(fixture.Context, immutable.ReceiptLineId)).Should().Be(original);
+        (await fixture.Context.Inventoryreceiptlines.CountAsync()).Should().Be(2);
+        (await fixture.Context.Purchasehistoryreconciliationruns.CountAsync()).Should().Be(1);
+        var audits = await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking().ToListAsync();
+        audits.Should().ContainSingle();
+        audits[0].BeforeHash.Should().Be(preview.Actions.Single().BeforeHash);
+        audits[0].AfterHash.Should().Be(preview.Actions.Single().AfterHash);
+        postPreview.Actions.Should().BeEmpty();
+        postPreview.Blockers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Apply_deletes_only_proven_orphans_and_audits_referenced_duplicate_deactivation()
+    {
+        await using var fixture = await ApplyFixture.CreateAsync();
+        await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            Id(30), Id(20), Id(10), 10, 25_000, "SAMPLE-CANONICAL");
+        var referencedDuplicate = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU-2",
+            new DateOnly(2026, 7, 20),
+            Id(30), Id(20), Id(10), 10, 25_000, "SAMPLE-REFERENCED", Id(93));
+        var orphan = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260719-RAU",
+            new DateOnly(2026, 7, 19),
+            Id(30), Id(20), Id(10), 4, 20_000, "SAMPLE-ORPHAN");
+        fixture.Context.ChangeTracker.Clear();
+        var service = CreateApplyService(
+            fixture.Context,
+            "ipc_lane1",
+            Candidate("1.Rau", 110, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+
+        await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var postPreview = await service.PreviewAsync();
+
+        (await fixture.Context.Inventoryreceiptlines.FindAsync(orphan.ReceiptLineId)).Should().BeNull();
+        (await fixture.Context.Inventoryreceiptlines.FindAsync(referencedDuplicate.ReceiptLineId)).Should().NotBeNull();
+        (await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking()
+            .CountAsync(action => action.ActionType == "delete")).Should().Be(1);
+        (await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking()
+            .CountAsync(action => action.ActionType == "deactivate")).Should().Be(1);
+        postPreview.Actions.Should().BeEmpty();
     }
 
     private static string FindRepositoryFile(params string[] segments)
@@ -1323,6 +1429,30 @@ public class PurchaseHistoryReconciliationTests
                 new string('C', 64),
                 new string('C', 64)));
 
+    private static PurchaseHistoryReconciliationService CreateApplyServiceWithFailure(
+        IpcManagementContext context,
+        int failureIndex,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => new(
+            context,
+            () => new PurchaseHistoryPreviewSource(
+                "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx",
+                new PurchaseHistoryParseResult(
+                    new string('A', 64),
+                    new DateOnly(2026, 7, 20),
+                    1,
+                    1,
+                    1,
+                    candidates)),
+            () => "ipc_lane1",
+            () => new PurchaseHistoryApplySafetyEvidence(
+                "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                new string('C', 64),
+                new string('C', 64)),
+            (index, _) => index == failureIndex
+                ? new InvalidOperationException($"Injected action failure at boundary {index}.")
+                : null);
+
     private static PurchaseHistoryApplyRequestDto AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
         => new()
         {
@@ -1405,6 +1535,23 @@ public class PurchaseHistoryReconciliationTests
             await context.Purchasehistoryreconciliationruns.CountAsync(),
             await context.Purchasehistoryreconciliationactions.CountAsync());
 
+    private static async Task<string> ReceiptLineSnapshotAsync(IpcManagementContext context, byte[] receiptLineId)
+    {
+        var line = await context.Inventoryreceiptlines.AsNoTracking()
+            .SingleAsync(item => item.ReceiptLineId == receiptLineId);
+        return string.Join('|', new[]
+        {
+            Convert.ToHexString(line.ReceiptLineId),
+            Convert.ToHexString(line.ReceiptId),
+            line.PurchaseRequestLineId is null ? string.Empty : Convert.ToHexString(line.PurchaseRequestLineId),
+            Convert.ToHexString(line.IngredientId),
+            Convert.ToHexString(line.UnitId),
+            line.Quantity.ToString(),
+            line.UnitPrice.ToString(),
+            line.LotNumber ?? string.Empty
+        });
+    }
+
     private static byte[] Id(int value)
     {
         var bytes = new byte[16];
@@ -1472,6 +1619,123 @@ public class PurchaseHistoryReconciliationTests
                 AuthScheme);
             var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), AuthScheme);
             return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+
+    private sealed class ApplyFixture : IAsyncDisposable
+    {
+        private readonly SqliteConnection _connection;
+
+        private ApplyFixture(SqliteConnection connection, IpcManagementContext context)
+        {
+            _connection = connection;
+            Context = context;
+        }
+
+        public IpcManagementContext Context { get; }
+
+        public static async Task<ApplyFixture> CreateAsync()
+        {
+            var connection = new SqliteConnection("Data Source=:memory:");
+            await connection.OpenAsync();
+            var options = new DbContextOptionsBuilder<IpcManagementContext>()
+                .UseSqlite(connection)
+                .Options;
+            var context = new IpcManagementContext(options);
+            await CreateSchemaAsync(connection);
+            await SeedCatalogAsync(connection);
+            return new ApplyFixture(connection, context);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Context.DisposeAsync();
+            await _connection.DisposeAsync();
+        }
+
+        private static async Task SeedCatalogAsync(SqliteConnection connection)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO units(unitId, unitCode, unitName, baseUnitCode, convertRateToBase)
+                VALUES ($unitId, 'KG', 'Kilogram', NULL, 1);
+                INSERT INTO warehouses(warehouseId, warehouseCode, warehouseName, warehouseType, note)
+                VALUES ($warehouseId, 'WH-TEST', 'Kho test', 'TEST', NULL);
+                INSERT INTO ingredients(
+                    ingredientId, ingredientCode, ingredientName, unitId, warehouseId,
+                    referencePrice, isFreshDaily, isActive)
+                VALUES ($ingredientId, 'ING-RAU-MUONG', 'Rau muống', $unitId, $warehouseId, 25000, 1, 1);
+                INSERT INTO suppliers(supplierId, supplierCode, supplierName, isActive)
+                VALUES ($supplierId, 'SUP-RAU', 'Rau', 1);
+                """;
+            command.Parameters.AddWithValue("$unitId", Id(10));
+            command.Parameters.AddWithValue("$warehouseId", Id(40));
+            command.Parameters.AddWithValue("$ingredientId", Id(20));
+            command.Parameters.AddWithValue("$supplierId", Id(30));
+            await command.ExecuteNonQueryAsync();
+        }
+
+        private static async Task CreateSchemaAsync(SqliteConnection connection)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE suppliers (
+                    supplierId BLOB PRIMARY KEY, supplierCode TEXT NOT NULL,
+                    supplierName TEXT NOT NULL, isActive INTEGER NULL);
+                CREATE TABLE units (
+                    unitId BLOB PRIMARY KEY, unitCode TEXT NOT NULL, unitName TEXT NOT NULL,
+                    baseUnitCode TEXT NULL, convertRateToBase NUMERIC NOT NULL);
+                CREATE TABLE warehouses (
+                    warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL,
+                    warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT NULL);
+                CREATE TABLE ingredients (
+                    ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL,
+                    ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL,
+                    referencePrice NUMERIC NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NULL);
+                CREATE TABLE inventoryreceipts (
+                    receiptId BLOB PRIMARY KEY, receiptCode TEXT NOT NULL UNIQUE,
+                    receiptDate TEXT NOT NULL, warehouseId BLOB NOT NULL, supplierId BLOB NOT NULL,
+                    purchaseRequestId BLOB NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL);
+                CREATE TABLE inventoryreceiptlines (
+                    receiptLineId BLOB PRIMARY KEY, receiptId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
+                    quantity NUMERIC NOT NULL, unitPrice NUMERIC NOT NULL,
+                    amount NUMERIC GENERATED ALWAYS AS (quantity * unitPrice) STORED,
+                    packageQuantitySnapshot NUMERIC NULL, packageBaseUnitIdSnapshot BLOB NULL,
+                    packagePolicyVersionSnapshot TEXT NULL, lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL, expiredDate TEXT NULL);
+                CREATE TABLE stockmovements (
+                    movementId BLOB PRIMARY KEY, movementDate TEXT NOT NULL, warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, movementType TEXT NOT NULL,
+                    refTable TEXT NULL, refId BLOB NULL, quantityIn NUMERIC NOT NULL,
+                    quantityOut NUMERIC NOT NULL, beforeQty NUMERIC NOT NULL, afterQty NUMERIC NOT NULL,
+                    performedBy BLOB NOT NULL);
+                CREATE TABLE currentstocks (
+                    warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
+                    currentQty NUMERIC NOT NULL, lastUpdated TEXT NOT NULL,
+                    PRIMARY KEY (warehouseId, ingredientId, unitId));
+                CREATE TABLE purchasehistoryreconciliationruns (
+                    purchaseHistoryReconciliationRunId BLOB PRIMARY KEY, manifestId TEXT NOT NULL,
+                    manifestHash TEXT NOT NULL UNIQUE, sourceName TEXT NOT NULL, sourceSha256 TEXT NOT NULL,
+                    policyVersion TEXT NOT NULL, asOfDate TEXT NOT NULL, databaseFingerprint TEXT NOT NULL,
+                    backupIdentifier TEXT NOT NULL, backupTargetFingerprint TEXT NOT NULL,
+                    restoreFingerprint TEXT NOT NULL, restoreVerified INTEGER NOT NULL,
+                    appliedBy BLOB NOT NULL, appliedAt TEXT NOT NULL, status TEXT NOT NULL,
+                    candidateCount INTEGER NOT NULL, currentUniqueBusinessKeyCount INTEGER NOT NULL,
+                    auditedDeltaCount INTEGER NOT NULL, actionCount INTEGER NOT NULL,
+                    blockerCount INTEGER NOT NULL, keepCount INTEGER NOT NULL, versionCount INTEGER NOT NULL,
+                    deactivateCount INTEGER NOT NULL, deleteCount INTEGER NOT NULL, blockCount INTEGER NOT NULL);
+                CREATE TABLE purchasehistoryreconciliationactions (
+                    purchaseHistoryReconciliationActionId BLOB PRIMARY KEY,
+                    purchaseHistoryReconciliationRunId BLOB NOT NULL, actionId TEXT NOT NULL,
+                    actionType TEXT NOT NULL, sourceKey TEXT NOT NULL, sourceSheet TEXT NULL,
+                    sourceRow INTEGER NULL, businessKey TEXT NULL, targetType TEXT NOT NULL,
+                    targetId TEXT NOT NULL, reasonCode TEXT NOT NULL, beforeEvidence TEXT NOT NULL,
+                    beforeHash TEXT NOT NULL, afterEvidence TEXT NOT NULL, afterHash TEXT NOT NULL,
+                    actionHash TEXT NOT NULL, createdAt TEXT NOT NULL,
+                    UNIQUE(purchaseHistoryReconciliationRunId, actionId));
+                """;
+            await command.ExecuteNonQueryAsync();
         }
     }
 }
