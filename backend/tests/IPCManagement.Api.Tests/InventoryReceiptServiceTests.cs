@@ -120,6 +120,7 @@ public class InventoryReceiptServiceTests
                 materialRequestLineId BLOB,
                 ingredientId BLOB,
                 supplierId BLOB,
+                isLegacySupplierSnapshot INTEGER NOT NULL DEFAULT 0,
                 unitId BLOB,
                 requiredQty REAL,
                 currentStockQty REAL,
