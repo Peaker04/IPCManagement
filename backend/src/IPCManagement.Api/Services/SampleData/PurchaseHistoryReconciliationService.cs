@@ -113,7 +113,17 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             lines,
             movements,
             stocks));
-        var actions = new List<PurchaseHistoryActionDto>();
+        var actions = source.ParseResult.Candidates
+            .Where(candidate => candidate.Normalization?.Blockers.Count > 0)
+            .Select(candidate => BuildAction(
+                "block",
+                candidate.SourceKey,
+                candidate.BusinessKey,
+                string.Empty,
+                candidate.Normalization!.Blockers[0].Code,
+                "none",
+                CandidateEvidence(candidate)))
+            .ToList();
         var blockers = BuildNormalizationBlockers(source.ParseResult.Candidates);
         var processedLineIds = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var receiptById = receipts.ToDictionary(item => item.Id, StringComparer.OrdinalIgnoreCase);
@@ -151,6 +161,14 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             if (catalogBlocker is not null)
             {
                 blockers.Add(catalogBlocker);
+                actions.Add(BuildAction(
+                    "block",
+                    candidate.SourceKey,
+                    candidate.BusinessKey,
+                    string.Empty,
+                    catalogBlocker.Code,
+                    "none",
+                    CandidateEvidence(candidate)));
                 continue;
             }
 
@@ -172,12 +190,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                     "SOURCE_AND_DATABASE_MATCH"));
                 foreach (var duplicate in existing.Where(line => line.Line.Id != exact.Line.Id))
                 {
+                    var dependencyFree = IsDependencyFreeSample(duplicate, movements, stocks);
                     actions.Add(CreateExistingOnlyAction(
                         duplicate,
-                        IsDependencyFreeSample(duplicate, movements, stocks) ? "delete" : "keep",
-                        IsDependencyFreeSample(duplicate, movements, stocks)
+                        dependencyFree ? "delete" : "deactivate",
+                        dependencyFree
                             ? "DEPENDENCY_FREE_SAMPLE_DUPLICATE"
-                            : "REFERENCED_DUPLICATE_PRESERVED"));
+                            : "REFERENCED_DUPLICATE_REMAP_REQUIRED"));
                 }
                 continue;
             }
@@ -239,7 +258,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         {
             $"source={source.SourceName}",
             $"sourceHash={source.ParseResult.WorkbookSha256}",
-            $"policy={PurchaseHistoryPolicyVersion.Current}",
+            $"policy={source.PolicyVersion}",
             $"asOf={source.ParseResult.AsOfDate:yyyy-MM-dd}",
             $"database={databaseFingerprint}",
             $"candidateCount={source.ParseResult.Candidates.Count}",
@@ -258,7 +277,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 ManifestHash = manifestHash,
                 SourceName = source.SourceName,
                 SourceSha256 = source.ParseResult.WorkbookSha256,
-                PolicyVersion = PurchaseHistoryPolicyVersion.Current,
+                PolicyVersion = source.PolicyVersion,
                 DatabaseFingerprint = databaseFingerprint,
                 AsOfDate = source.ParseResult.AsOfDate,
                 CandidateCount = source.ParseResult.Candidates.Count,
@@ -535,4 +554,5 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
 
 internal sealed record PurchaseHistoryPreviewSource(
     string SourceName,
-    PurchaseHistoryParseResult ParseResult);
+    PurchaseHistoryParseResult ParseResult,
+    string PolicyVersion = PurchaseHistoryPolicyVersion.Current);
