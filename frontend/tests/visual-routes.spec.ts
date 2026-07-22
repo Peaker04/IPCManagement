@@ -261,3 +261,9 @@ test.describe('visual routes', () => {
     });
   }
 });
+
+test.describe('Phase 09 deterministic visual seam', () => {
+  test('discovers Purchasing and Warehouse snapshot cases', async () => {
+    test.skip(true, 'Plan 09-14 generates the eight registered PNG snapshots.');
+  });
+});

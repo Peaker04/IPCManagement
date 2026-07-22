@@ -1454,3 +1454,9 @@ test.describe('route smoke', () => {
     });
   }
 });
+
+test.describe('Phase 09 preserved-route seam', () => {
+  test('discovers the six-stage weekly-menu to Warehouse contract', async () => {
+    test.skip(true, 'Plan 09-14 owns executable smoke coverage for the four preserved routes.');
+  });
+});

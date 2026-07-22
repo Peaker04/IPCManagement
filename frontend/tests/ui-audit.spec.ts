@@ -375,3 +375,9 @@ test.describe('ui audit', () => {
     });
   }
 });
+
+test.describe('Phase 09 accessibility and responsive seam', () => {
+  test('discovers focus, overflow, and role-feedback coverage', async () => {
+    test.skip(true, 'Plan 09-14 owns Phase 09 accessibility, focus, and overflow assertions.');
+  });
+});
