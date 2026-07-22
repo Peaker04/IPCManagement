@@ -1,6 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/routes/routeConfig';
-import { PHASE09_DATE, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
+import {
+  PHASE09_DATE,
+  PHASE09_WEEK,
+  phase09PurchaseOrdersPage,
+  phase09Workbench,
+  stubPhase09Api,
+} from './phase9-test-fixture';
 
 const visualRoutes = [
   { path: ROUTES.LOGIN, name: 'login' },
@@ -57,6 +63,14 @@ async function stubVisualApi(page: Page) {
       materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
     }], limit: 20, hasNext: false, nextCursor: null,
   }));
+
+  await page.route('**/api/purchase-workflow/workbench**', async (route) => fulfill(route, phase09Workbench));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfill(route, phase09PurchaseOrdersPage));
+  await page.route('**/api/warehouses/selector**', async (route) => fulfill(route, [{
+    warehouseId: 'warehouse-main',
+    warehouseCode: 'MAIN',
+    warehouseName: 'Kho chính',
+  }]));
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';

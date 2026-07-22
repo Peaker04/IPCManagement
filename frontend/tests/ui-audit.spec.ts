@@ -2,7 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/routes/routeConfig';
-import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
+import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 type AuditIssue = {
   route: string;
@@ -176,6 +176,19 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
 
     if (pathname.startsWith('/api/coordination/weekly-menu')) {
       await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
+      return;
+    }
+
+    if (pathname === '/api/purchase-workflow/workbench') {
+      await fulfillJson(route, phase09Workbench);
+      return;
+    }
+
+    if (pathname === '/api/purchase-orders/page') {
+      await fulfillJson(route, {
+        page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
+        orderCountByRequest: {},
+      });
       return;
     }
 
