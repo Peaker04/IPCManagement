@@ -21,6 +21,12 @@ public partial class Inventoryreceiptline
 
     public decimal? Amount { get; set; }
 
+    public decimal? PackageQuantitySnapshot { get; set; }
+
+    public byte[]? PackageBaseUnitIdSnapshot { get; set; }
+
+    public string? PackagePolicyVersionSnapshot { get; set; }
+
     public string? LotNumber { get; set; }
 
     public DateOnly? ManufactureDate { get; set; }
@@ -34,4 +40,6 @@ public partial class Inventoryreceiptline
     public virtual Purchaserequestline? PurchaseRequestLine { get; set; }
 
     public virtual Unit Unit { get; set; } = null!;
+
+    public virtual Unit? PackageBaseUnitSnapshot { get; set; }
 }

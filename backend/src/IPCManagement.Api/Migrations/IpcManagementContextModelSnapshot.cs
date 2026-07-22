@@ -963,6 +963,7 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("receiptDate");
 
                     b.Property<byte[]>("SupplierId")
+                        .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("supplierId")
@@ -1028,6 +1029,22 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("manufactureDate");
 
+                    b.Property<byte[]>("PackageBaseUnitIdSnapshot")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("packageBaseUnitIdSnapshot")
+                        .IsFixedLength();
+
+                    b.Property<string>("PackagePolicyVersionSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("packagePolicyVersionSnapshot");
+
+                    b.Property<decimal?>("PackageQuantitySnapshot")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("packageQuantitySnapshot");
+
                     b.Property<byte[]>("PurchaseRequestLineId")
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
@@ -1061,6 +1078,8 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("ReceiptLineId")
                         .HasName("PRIMARY");
 
+                    b.HasIndex("PackageBaseUnitIdSnapshot");
+
                     b.HasIndex(new[] { "IngredientId", "ExpiredDate", "LotNumber" }, "ixInventoryReceiptLinesExpiry");
 
                     b.HasIndex(new[] { "PurchaseRequestLineId" }, "purchaseRequestLineId");
@@ -1070,7 +1089,12 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "UnitId" }, "unitId")
                         .HasDatabaseName("unitId3");
 
-                    b.ToTable("inventoryreceiptlines", (string)null);
+                    b.ToTable("inventoryreceiptlines", null, t =>
+                        {
+                            t.HasCheckConstraint("ckInventoryReceiptLinesPackageQuantityPositive", "`packageQuantitySnapshot` IS NULL OR `packageQuantitySnapshot` > 0");
+
+                            t.HasCheckConstraint("ckInventoryReceiptLinesPackageSnapshotComplete", "(`packageQuantitySnapshot` IS NULL AND `packageBaseUnitIdSnapshot` IS NULL AND `packagePolicyVersionSnapshot` IS NULL) OR (`packageQuantitySnapshot` IS NOT NULL AND `packageBaseUnitIdSnapshot` IS NOT NULL AND `packagePolicyVersionSnapshot` IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturn", b =>
@@ -2132,6 +2156,279 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("productionplanlines", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+                {
+                    b.Property<byte[]>("PurchaseHistoryReconciliationActionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationActionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("actionHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("char(32)")
+                        .HasColumnName("actionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("actionType");
+
+                    b.Property<string>("AfterEvidence")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("afterEvidence");
+
+                    b.Property<string>("AfterHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("afterHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("BeforeEvidence")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("beforeEvidence");
+
+                    b.Property<string>("BeforeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("beforeHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("BusinessKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("businessKey");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("PurchaseHistoryReconciliationRunId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationRunId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("reasonCode");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceKey");
+
+                    b.Property<int?>("SourceRow")
+                        .HasColumnType("int")
+                        .HasColumnName("sourceRow");
+
+                    b.Property<string>("SourceSheet")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sourceSheet");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("targetId");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("targetType");
+
+                    b.HasKey("PurchaseHistoryReconciliationActionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "ActionHash" }, "ixPurchaseHistoryReconciliationActionsHash");
+
+                    b.HasIndex(new[] { "PurchaseHistoryReconciliationRunId", "ActionId" }, "uqPurchaseHistoryReconciliationActionsRunAction")
+                        .IsUnique();
+
+                    b.ToTable("purchasehistoryreconciliationactions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationActionsDisposition", "`actionType` IN ('keep', 'version', 'deactivate', 'delete', 'block')");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationActionsSourceRow", "`sourceRow` IS NULL OR `sourceRow` > 0");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.Property<byte[]>("PurchaseHistoryReconciliationRunId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationRunId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ActionCount")
+                        .HasColumnType("int")
+                        .HasColumnName("actionCount");
+
+                    b.Property<DateTime>("AppliedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("appliedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("AppliedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("appliedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("AsOfDate")
+                        .HasColumnType("date")
+                        .HasColumnName("asOfDate");
+
+                    b.Property<int>("AuditedDeltaCount")
+                        .HasColumnType("int")
+                        .HasColumnName("auditedDeltaCount");
+
+                    b.Property<string>("BackupIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("backupIdentifier");
+
+                    b.Property<string>("BackupTargetFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("backupTargetFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("BlockCount")
+                        .HasColumnType("int")
+                        .HasColumnName("blockCount");
+
+                    b.Property<int>("BlockerCount")
+                        .HasColumnType("int")
+                        .HasColumnName("blockerCount");
+
+                    b.Property<int>("CandidateCount")
+                        .HasColumnType("int")
+                        .HasColumnName("candidateCount");
+
+                    b.Property<int>("CurrentUniqueBusinessKeyCount")
+                        .HasColumnType("int")
+                        .HasColumnName("currentUniqueBusinessKeyCount");
+
+                    b.Property<string>("DatabaseFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("databaseFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("DeactivateCount")
+                        .HasColumnType("int")
+                        .HasColumnName("deactivateCount");
+
+                    b.Property<int>("DeleteCount")
+                        .HasColumnType("int")
+                        .HasColumnName("deleteCount");
+
+                    b.Property<int>("KeepCount")
+                        .HasColumnType("int")
+                        .HasColumnName("keepCount");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("manifestHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("ManifestId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("manifestId");
+
+                    b.Property<string>("PolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("policyVersion");
+
+                    b.Property<string>("RestoreFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("restoreFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<bool>("RestoreVerified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("restoreVerified");
+
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceName");
+
+                    b.Property<string>("SourceSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("sourceSha256")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("VersionCount")
+                        .HasColumnType("int")
+                        .HasColumnName("versionCount");
+
+                    b.HasKey("PurchaseHistoryReconciliationRunId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "AppliedBy", "AppliedAt" }, "ixPurchaseHistoryReconciliationRunsActor");
+
+                    b.HasIndex(new[] { "ManifestId" }, "ixPurchaseHistoryReconciliationRunsManifestId");
+
+                    b.HasIndex(new[] { "ManifestHash" }, "uqPurchaseHistoryReconciliationRunsManifestHash")
+                        .IsUnique();
+
+                    b.ToTable("purchasehistoryreconciliationruns", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsCounts", "`candidateCount` >= 0 AND `currentUniqueBusinessKeyCount` >= 0 AND `auditedDeltaCount` >= 0 AND `actionCount` >= 0 AND `blockerCount` >= 0 AND `keepCount` >= 0 AND `versionCount` >= 0 AND `deactivateCount` >= 0 AND `deleteCount` >= 0 AND `blockCount` >= 0 AND `actionCount` = (`keepCount` + `versionCount` + `deactivateCount` + `deleteCount` + `blockCount`) AND `blockerCount` = `blockCount`");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsRestoreVerified", "`restoreVerified` = 1");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsStatus", "`status` IN ('APPLIED', 'NOOP')");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
                 {
                     b.Property<byte[]>("PurchaseOrderId")
@@ -2400,7 +2697,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("requiredQty");
 
                     b.Property<byte[]>("SupplierId")
-                        .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("supplierId")
@@ -3631,6 +3927,12 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreceiptlines_ibfk_2");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "PackageBaseUnitSnapshot")
+                        .WithMany()
+                        .HasForeignKey("PackageBaseUnitIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventoryreceiptlines_ibfk_5");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
                         .WithMany("Inventoryreceiptlines")
                         .HasForeignKey("PurchaseRequestLineId")
@@ -3649,6 +3951,8 @@ namespace IPCManagement.Api.Migrations
                         .HasConstraintName("inventoryreceiptlines_ibfk_3");
 
                     b.Navigation("Ingredient");
+
+                    b.Navigation("PackageBaseUnitSnapshot");
 
                     b.Navigation("PurchaseRequestLine");
 
@@ -3994,6 +4298,30 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Plan");
 
                     b.Navigation("QuantityPlanLine");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", "PurchaseHistoryReconciliationRun")
+                        .WithMany("Purchasehistoryreconciliationactions")
+                        .HasForeignKey("PurchaseHistoryReconciliationRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("purchasehistoryreconciliationactions_ibfk_1");
+
+                    b.Navigation("PurchaseHistoryReconciliationRun");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "AppliedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("AppliedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasehistoryreconciliationruns_ibfk_1");
+
+                    b.Navigation("AppliedByNavigation");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
@@ -4479,6 +4807,11 @@ namespace IPCManagement.Api.Migrations
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>
                 {
                     b.Navigation("Materialrequestlines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.Navigation("Purchasehistoryreconciliationactions");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>

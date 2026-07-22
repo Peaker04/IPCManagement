@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-03-PLAN.md
-last_updated: "2026-07-22T07:18:41.257Z"
-last_activity: 2026-07-22 — Plan 09-03 completed the drift-bound read-only purchase-history preview and guarded endpoint
+stopped_at: Completed 09-07-PLAN.md
+last_updated: "2026-07-22T09:32:26.709Z"
+last_activity: 2026-07-22 — Plan 09-07 completed approval-bound supplier-neutral draft generation and the bounded purchasing workbench
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 5
-  percent: 14
+  completed_plans: 6
+  percent: 16
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-03-PLAN.md
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-07-PLAN.md
+**Stopped at:** Completed 09-07-PLAN.md
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-04-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 03 read-only reconciliation preview*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 07 approved-demand purchasing workbench*
 
 ## Performance Metrics
 
@@ -234,6 +234,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P02 | 32m | 2 tasks | 4 files |
 | Phase 09 P06 | 32m | 3 tasks | 9 files |
 | Phase 09 P03 | 16m | 2 tasks | 6 files |
+| Phase 09 P07 | 55m | 2 tasks | 18 files |
 
 ## Decisions
 
@@ -271,10 +272,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Delete only sample-generated dependency-free orphans; version immutable history and deactivate referenced duplicates.
 - [Phase 09]: Bind preview manifests to source, policy, as-of date, database fingerprint, ordered action hashes, exact counts, and blockers.
 - [Phase 09]: Derive preview actor from authenticated server identity and accept no client path, actor, or replacement.
+- [Phase 09]: Generated purchase drafts are supplier-neutral; missing supplier is valid only before explicit selection, and supplier-dependent transitions reject it.
+- [Phase 09]: The purchasing workbench uses six mutually exclusive service-date stages and selected-date paging with size 8 by default and 100 maximum.
+- [Phase 09]: Price exception classification is strict: only a proposed price more than 15 percent above reference enters exception.
+- [Phase 09]: Plan 09-08 follows the 09-07 nullable SupplierId migration and must not repeat that nullability alteration.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 4 of 14 completed; next 09-07
+Plan: 5 of 14 completed; next 09-04
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-03 completed the drift-bound read-only purchase-history preview and guarded endpoint
+Last activity: 2026-07-22 — Plan 09-07 completed approval-bound supplier-neutral draft generation and the bounded purchasing workbench
