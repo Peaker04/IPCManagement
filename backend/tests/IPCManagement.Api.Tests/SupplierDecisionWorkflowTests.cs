@@ -8,6 +8,8 @@ using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using System.Data.Common;
 
 namespace IPCManagement.Api.Tests;
@@ -18,7 +20,8 @@ public class SupplierDecisionWorkflowTests
     public async Task Persistence_supplier_decisions_require_complete_evidence_actor_and_append_only_versions()
     {
         await using var context = CreateContext();
-        var entity = context.Model.FindEntityType(typeof(Purchaselinesupplierdecision));
+        var model = context.GetService<IDesignTimeModel>().Model;
+        var entity = model.FindEntityType(typeof(Purchaselinesupplierdecision));
 
         entity.Should().NotBeNull();
         entity!.FindProperty(nameof(Purchaselinesupplierdecision.DecisionFingerprint))!.IsNullable.Should().BeFalse();
@@ -32,15 +35,15 @@ public class SupplierDecisionWorkflowTests
         ]);
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual([nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.Version)]));
+                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.Version) }));
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual([nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.DecisionFingerprint)]));
+                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.DecisionFingerprint) }));
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual([nameof(Purchaselinesupplierdecision.CurrentDecisionKey)]));
+                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.CurrentDecisionKey) }));
 
-        var line = context.Model.FindEntityType(typeof(Purchaserequestline));
+        var line = model.FindEntityType(typeof(Purchaserequestline));
         line!.FindProperty(nameof(Purchaserequestline.IsLegacySupplierSnapshot))!.IsNullable.Should().BeFalse();
         line.FindNavigation(nameof(Purchaserequestline.SupplierDecisions)).Should().NotBeNull();
 

@@ -7,6 +7,8 @@ using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Approvals;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using System.Security.Claims;
 
@@ -18,7 +20,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     public async Task Persistence_price_exception_binds_one_proposal_and_preserves_superseded_decisions()
     {
         await using var context = CreateInboxContext();
-        var entity = context.Model.FindEntityType(typeof(Purchasepriceexception));
+        var model = context.GetService<IDesignTimeModel>().Model;
+        var entity = model.FindEntityType(typeof(Purchasepriceexception));
 
         entity.Should().NotBeNull();
         entity!.FindProperty(nameof(Purchasepriceexception.ProposalFingerprint))!.IsNullable.Should().BeFalse();
@@ -32,14 +35,14 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         ]);
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual([
+                .SequenceEqual(new[] {
                     nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId),
                     nameof(Purchasepriceexception.ProposalFingerprint),
                     nameof(Purchasepriceexception.ProposalVersion)
-                ]));
+                }));
         var decisionForeignKey = entity.GetForeignKeys().Single(key =>
             key.Properties.Select(property => property.Name)
-                .SequenceEqual([nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId)]));
+                .SequenceEqual(new[] { nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId) }));
         decisionForeignKey.IsRequired.Should().BeTrue();
 
         var decisionId = GuidHelper.NewId();
