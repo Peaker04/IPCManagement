@@ -261,6 +261,65 @@ public class WarehousePurchaseReceivingTests
         fixture.Context.Auditlogs.Should().BeEmpty();
     }
 
+    [Fact]
+    public void SingleWriter_old_purchase_receipt_route_and_service_contract_are_retired()
+    {
+        typeof(IPCManagement.Api.Controllers.PurchaseOrdersController)
+            .GetMethod("RecordReceipt")
+            .Should().BeNull();
+        typeof(IPurchaseOrderService)
+            .GetMethod("RecordReceiptAsync")
+            .Should().BeNull();
+        typeof(PurchaseOrderService)
+            .GetMethod("RecordReceiptAsync")
+            .Should().BeNull();
+
+        var purchaseOrderReceiptPosts = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController).Assembly
+            .GetTypes()
+            .Where(type => typeof(ControllerBase).IsAssignableFrom(type))
+            .SelectMany(type => type.GetMethods().Select(method => new
+            {
+                Controller = type,
+                Method = method,
+                ControllerRoute = type.GetCustomAttributes(typeof(RouteAttribute), inherit: true)
+                    .Cast<RouteAttribute>()
+                    .SingleOrDefault()?.Template,
+                PostRoutes = method.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
+                    .Cast<HttpPostAttribute>()
+                    .Select(attribute => attribute.Template)
+                    .ToArray()
+            }))
+            .Where(route =>
+                route.PostRoutes.Length > 0 &&
+                route.ControllerRoute?.Contains("purchase-orders", StringComparison.OrdinalIgnoreCase) == true &&
+                (route.ControllerRoute.Contains("receipts", StringComparison.OrdinalIgnoreCase) ||
+                 route.PostRoutes.Any(template =>
+                     template?.Contains("receive", StringComparison.OrdinalIgnoreCase) == true ||
+                     template?.Contains("receipt", StringComparison.OrdinalIgnoreCase) == true)))
+            .ToList();
+
+        purchaseOrderReceiptPosts.Should().ContainSingle(route =>
+            route.Controller == typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController) &&
+            route.Method.Name == "Record");
+    }
+
+    [Fact]
+    public void SingleWriter_purchase_progress_reads_and_generic_non_order_receipts_remain_separate()
+    {
+        var purchaseController = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController);
+        purchaseController.GetMethod("GetList").Should().NotBeNull();
+        purchaseController.GetMethod("GetPage").Should().NotBeNull();
+        purchaseController.GetMethod("GetById").Should().NotBeNull();
+        AuthorizationPolicies.PurchaseRoles.Should().Contain(["Manager", "Purchasing"]);
+
+        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptDto)
+            .GetProperty("PurchaseOrderId")
+            .Should().BeNull("generic inventory receipts cannot attach to a purchase order");
+        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptFromPurchaseDto)
+            .GetProperty("PurchaseOrderId")
+            .Should().BeNull("legacy purchase-request receipts cannot attach to a purchase order");
+    }
+
     private static Type GetRequiredType(System.Reflection.Assembly assembly, string typeName)
     {
         var type = assembly.GetType($"IPCManagement.Api.Models.DTOs.Workflow.{typeName}");
