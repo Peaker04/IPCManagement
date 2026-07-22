@@ -82,6 +82,7 @@ Each task followed a RED then GREEN TDD gate:
 Additional regression alignment:
 
 - `a803f51` — test: align approved demand regression
+- `0b2326b` — fix: keep demand inbox projection no-tracking
 
 ## Files Created/Modified
 
@@ -138,9 +139,17 @@ Additional regression alignment:
 - **Verification:** Targeted test and full backend suite pass.
 - **Committed in:** `a803f51`
 
+**5. [Rule 1 - Bug] Preserved no-tracking inbox projection without losing detached line context**
+- **Found during:** Final acceptance audit
+- **Issue:** The plan required `AsNoTracking`; applying it to the page query exposed detached collection loading behavior in the InMemory acceptance fixture.
+- **Fix:** Resolved plan, submitter, request-line, ingredient, and unit context through bounded no-tracking ID queries with per-page lookup caches.
+- **Files modified:** `ApprovalInboxService.cs`
+- **Verification:** Material-demand inbox acceptance 3/3, ApprovalInbox regressions 3/3, and full backend suite 368/374 pass with 6 intentional skips.
+- **Committed in:** `0b2326b`
+
 ---
 
-**Total deviations:** 4 auto-fixed (4 Rule 1 bugs)
+**Total deviations:** 5 auto-fixed (5 Rule 1 bugs)
 **Impact on plan:** All fixes were required to enforce the planned authorization and immutable-snapshot contracts; no new feature scope or dependency was added.
 
 ## Issues Encountered
@@ -171,7 +180,7 @@ None - no external service configuration or package installation required.
 ## Self-Check: PASSED
 
 - All 9 modified implementation/test files and this summary exist.
-- All 7 RED/GREEN/regression commits are present in repository history.
+- All 8 RED/GREEN/regression/acceptance-fix commits are present in repository history.
 - Full backend verification passed after the final regression alignment.
 
 ## Next Phase Readiness
