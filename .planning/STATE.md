@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-02-PLAN.md
-last_updated: "2026-07-22T06:05:33.862Z"
-last_activity: 2026-07-22 — Plan 09-02 completed deterministic purchase-history parsing and blocker-first normalization
+stopped_at: Completed 09-06-PLAN.md
+last_updated: "2026-07-22T06:43:48.976Z"
+last_activity: 2026-07-22 — Plan 09-06 completed material-demand approval routing and Manager/Purchasing role boundaries
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 3
-  percent: 8
+  completed_plans: 4
+  percent: 11
 ---
 
 # Project State
@@ -207,8 +207,8 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-02-PLAN.md
-**Resume file:** None
+**Stopped at:** Completed 09-06-PLAN.md
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-03-PLAN.md
 
 ---
 *Last updated: 2026-07-22 — completed Phase 09 Plan 02 parser and normalization contract*
@@ -232,6 +232,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 02 P06 | completed | verification | sample import, GitNexus refresh, backend/frontend verification, API spot checks, and mock-removal audit completed |
 | Phase 09 P01 | 3h 24m | 2 tasks | 16 files |
 | Phase 09 P02 | 32m | 2 tasks | 4 files |
+| Phase 09 P06 | 32m | 3 tasks | 9 files |
 
 ## Decisions
 
@@ -262,10 +263,13 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Keep purchase-history source discovery server-owned: parser input is a resolved stream, never a request path. — Prevents client-controlled file access while keeping parsing deterministic and testable.
 - [Phase 09]: Version normalization as purchase-history-normalization/2026-07-22/v1 and block every unaudited interpretation with raw evidence. — Historical reconciliation must replay identically without silent defaults, clamps, drops, or mutable policy lookup.
 - [Phase 09]: Limit apply acknowledgement to manifest identity and accepted action IDs; clients cannot send actor IDs or normalized replacements. — The server remains authoritative for source discovery, identity, normalization, and authenticated actor context.
+- [Phase 09]: Only Manager/Admin can decide material demand and purchase requests; Purchasing keeps preparation and quotation permissions only. — Enforces D-09-11 at the server authorization boundary.
+- [Phase 09]: Reuse material-request ID/status plus approval history as the durable target; replay is idempotent and stale/conflicting decisions fail. — Keeps one canonical approval path without a parallel table.
+- [Phase 09]: Approved material-demand snapshots are immutable and require an explicit future recalculation/version path. — Preserves the exact snapshot the Manager decided.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 2 of 14 completed; next 09-03
+Plan: 3 of 14 completed; next 09-03
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-02 completed deterministic purchase-history parsing and blocker-first normalization
+Last activity: 2026-07-22 — Plan 09-06 completed material-demand approval routing and Manager/Purchasing role boundaries

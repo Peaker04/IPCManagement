@@ -291,7 +291,7 @@ route-preserving feature decomposition + regression/UAT gates
 **Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
-**Plans:** 2/14 plans executed
+**Plans:** 3/14 plans executed
 
 Plans:
 
@@ -302,7 +302,7 @@ Plans:
 **Wave 1 — parallel pure source and approval contracts** *(blocked on Wave 0)*
 
 - [x] 09-02-PLAN.md — Parse and normalize the audited 20.7 workbook with explicit blockers
-- [ ] 09-06-PLAN.md — Route material demand through Manager approval and enforce role boundaries
+- [x] 09-06-PLAN.md — Route material demand through Manager approval and enforce role boundaries
 
 **Wave 2 — parallel read-only workbenches** *(each blocked on its Wave 1 contract)*
 
