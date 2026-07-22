@@ -746,6 +746,10 @@ export interface PurchaseOrderLineDto {
   orderedQty: number;
   receivedQty: number;
   unitPrice: number;
+  lotNumberRequired: boolean;
+  manufactureDateRequired: boolean;
+  expiryDateRequired: boolean;
+  blockerReason?: string | null;
 }
 
 export interface PurchaseOrderDto {
