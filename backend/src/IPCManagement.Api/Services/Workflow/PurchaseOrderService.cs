@@ -52,6 +52,14 @@ public class PurchaseOrderService : IPurchaseOrderService
         {
             throw new InvalidOperationException("Tất cả các dòng của đề xuất mua hàng này đã được tạo đơn mua hàng.");
         }
+        if (linesToConvert.Any(line => line.SupplierId is null))
+        {
+            throw new InvalidOperationException("Mọi dòng mua phải được chọn nhà cung cấp trước khi tạo đơn mua hàng.");
+        }
+
+        var supplierReadyLines = linesToConvert
+            .Select(line => new { Line = line, SupplierId = line.SupplierId! })
+            .ToList();
 
         var existingOrdersBySupplier = await _context.Purchaseorders
             .Where(po => po.PurchaseRequestId == purchaseRequestIdBytes)
@@ -60,7 +68,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
 
-        foreach (var supplierGroup in linesToConvert.GroupBy(line => Convert.ToBase64String(line.SupplierId)))
+        foreach (var supplierGroup in supplierReadyLines.GroupBy(item => Convert.ToBase64String(item.SupplierId)))
         {
             if (!existingOrdersBySupplier.TryGetValue(supplierGroup.Key, out var order))
             {
@@ -80,8 +88,9 @@ public class PurchaseOrderService : IPurchaseOrderService
                 existingOrdersBySupplier[supplierGroup.Key] = order;
             }
 
-            foreach (var line in supplierGroup)
+            foreach (var item in supplierGroup)
             {
+                var line = item.Line;
                 _context.Purchaseorderlines.Add(new Purchaseorderline
                 {
                     PurchaseOrderLineId = GuidHelper.NewId(),

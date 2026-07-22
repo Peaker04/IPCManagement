@@ -1036,7 +1036,7 @@ public class WorkflowReportService : IWorkflowReportService
 
         var purchaseLines = await lines
             .OrderByDescending(item => item.PurchaseRequest.PurchaseForDate)
-            .ThenBy(item => item.Supplier.SupplierName)
+            .ThenBy(item => item.Supplier == null ? string.Empty : item.Supplier.SupplierName)
             .Take(NormalizeLimit(query.Limit))
             .ToListAsync();
 
@@ -1053,8 +1053,8 @@ public class WorkflowReportService : IWorkflowReportService
                 Status = item.PurchaseRequest.Status,
                 IngredientId = GuidHelper.ToGuidString(item.IngredientId),
                 IngredientName = item.Ingredient.IngredientName,
-                SupplierId = GuidHelper.ToGuidString(item.SupplierId),
-                SupplierName = item.Supplier.SupplierName,
+                SupplierId = item.SupplierId is null ? null : GuidHelper.ToGuidString(item.SupplierId),
+                SupplierName = item.Supplier?.SupplierName,
                 UnitId = GuidHelper.ToGuidString(item.UnitId),
                 UnitName = item.Unit.UnitName,
                 RequiredQty = DecimalPolicy.RoundQuantity(item.RequiredQty),
@@ -1084,7 +1084,11 @@ public class WorkflowReportService : IWorkflowReportService
         }
 
         var ingredientIds = purchaseLines.Select(item => item.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
-        var supplierIds = purchaseLines.Select(item => item.SupplierId).Distinct(ByteArrayComparer.Instance).ToList();
+        var supplierIds = purchaseLines
+            .Where(item => item.SupplierId is not null)
+            .Select(item => item.SupplierId!)
+            .Distinct(ByteArrayComparer.Instance)
+            .ToList();
         var unitIds = purchaseLines.Select(item => item.UnitId).Distinct(ByteArrayComparer.Instance).ToList();
 
         var receiptLines = await _context.Inventoryreceiptlines
@@ -1107,6 +1111,11 @@ public class WorkflowReportService : IWorkflowReportService
         Purchaserequestline line,
         IReadOnlyDictionary<string, decimal> latestReceiptPrices)
     {
+        if (line.SupplierId is null)
+        {
+            return DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice);
+        }
+
         var key = BuildPurchasePriceKey(line.IngredientId, line.SupplierId, line.UnitId);
         return latestReceiptPrices.TryGetValue(key, out var latestPrice) && latestPrice > 0
             ? latestPrice
@@ -2296,7 +2305,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Include(line => line.PurchaseRequest)
             .Include(line => line.Supplier)
             .Include(line => line.Ingredient)
-            .Where(line => line.Supplier.IsActive == false)
+            .Where(line => line.SupplierId != null && line.Supplier != null && line.Supplier.IsActive == false)
             .OrderBy(line => line.PurchaseRequest.PurchaseRequestCode)
             .Take(limit)
             .ToListAsync();
@@ -2307,7 +2316,7 @@ public class WorkflowReportService : IWorkflowReportService
             nameof(Purchaserequestline),
             GuidHelper.ToGuidString(line.PurchaseRequestLineId),
             line.PurchaseRequest.PurchaseRequestCode,
-            $"{line.Ingredient.IngredientName} / {line.Supplier.SupplierName}",
+            $"{line.Ingredient.IngredientName} / {line.Supplier!.SupplierName}",
             "Dòng mua thêm đang gán nhà cung cấp đã khóa hoặc không còn dùng được.",
             "Chọn lại nhà cung cấp active hoặc bổ sung báo giá trước khi gửi mua.",
             "/purchasing")));

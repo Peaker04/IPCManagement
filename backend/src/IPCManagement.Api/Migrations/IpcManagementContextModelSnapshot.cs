@@ -963,7 +963,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("receiptDate");
 
                     b.Property<byte[]>("SupplierId")
-                        .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("supplierId")
@@ -4100,7 +4099,6 @@ namespace IPCManagement.Api.Migrations
                     b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
                         .WithMany("Purchaserequestlines")
                         .HasForeignKey("SupplierId")
-                        .IsRequired()
                         .HasConstraintName("purchaserequestlines_ibfk_4");
 
                     b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")

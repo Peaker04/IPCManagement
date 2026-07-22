@@ -308,12 +308,17 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             demand.Should().NotBeNull();
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
 
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
                 fixture.UserIdString);
             purchase.Should().NotBeNull();
             purchase!.Lines.Should().ContainSingle();
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "DRAFT";
+            await context.SaveChangesAsync();
         }
 
         await using (var context = fixture.CreateContext())
@@ -357,9 +362,11 @@ public class WorkflowGenerationTests
             var demand = await new MaterialDemandService(context).GenerateAsync(
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
                 fixture.UserIdString);
+            await SelectDefaultSupplierAsync(context, fixture, purchase!);
             var purchaseLine = await context.Purchaserequestlines.SingleAsync();
 
             context.Purchaseorders.Add(new Purchaseorder
@@ -367,7 +374,7 @@ public class WorkflowGenerationTests
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = "PO-DEMAND-LOCK",
                 PurchaseRequestId = GuidHelper.ParseGuidString(purchase!.PurchaseRequestId)!,
-                SupplierId = purchaseLine.SupplierId,
+                SupplierId = purchaseLine.SupplierId!,
                 OrderDate = new DateOnly(2026, 6, 15),
                 Status = "ORDERED",
                 CreatedBy = fixture.UserId,
@@ -483,7 +490,7 @@ public class WorkflowGenerationTests
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = "PO-CANCELLED-DEMAND-LOCK",
                 PurchaseRequestId = purchaseRequest.PurchaseRequestId,
-                SupplierId = purchaseLine.SupplierId,
+                SupplierId = purchaseLine.SupplierId!,
                 OrderDate = new DateOnly(2026, 6, 15),
                 Status = "CANCELLED",
                 CreatedBy = fixture.UserId,
@@ -562,6 +569,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             materialRequestId = demand!.MaterialRequestId;
+            await ApproveDemandAsync(context, materialRequestId);
 
             var purchaseService = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
             var purchase = await purchaseService.GenerateFromDemandAsync(
@@ -983,6 +991,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             materialRequestId = demand!.MaterialRequestId;
+            await ApproveDemandAsync(context, materialRequestId);
         }
 
         await using (var context = fixture.CreateContext())
@@ -993,12 +1002,13 @@ public class WorkflowGenerationTests
 
             purchase.Should().NotBeNull();
             purchase!.Lines.Should().ContainSingle();
-            purchase.Lines.Single().EstimatedUnitPrice.Should().Be(10000m);
+            purchase.Lines.Single().SupplierId.Should().BeNull();
+            purchase.Lines.Single().EstimatedUnitPrice.Should().Be(0m);
         }
     }
 
     [Fact]
-    public async Task GeneratePurchaseRequest_Should_AssignOnlyActiveSupplier_ToEveryLine()
+    public async Task GeneratePurchaseRequest_Should_KeepLinesSupplierNeutral_UntilExplicitSelection()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -1045,6 +1055,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             materialRequestId = demand!.MaterialRequestId;
+            await ApproveDemandAsync(context, materialRequestId);
         }
 
         await using (var context = fixture.CreateContext())
@@ -1055,19 +1066,21 @@ public class WorkflowGenerationTests
 
             purchase.Should().NotBeNull();
             var line = purchase!.Lines.Should().ContainSingle().Subject;
-            line.SupplierId.Should().Be(GuidHelper.ToGuidString(fixture.SupplierId));
-            line.SupplierId.Should().NotBe(GuidHelper.ToGuidString(inactiveSupplierId));
+            line.SupplierId.Should().BeNull();
+            line.SupplierName.Should().BeNull();
+            line.EstimatedUnitPrice.Should().Be(0m);
 
             var savedLine = await context.Purchaserequestlines
                 .Include(item => item.Supplier)
                 .AsNoTracking()
                 .SingleAsync();
-            savedLine.Supplier.IsActive.Should().BeTrue();
+            savedLine.SupplierId.Should().BeNull();
+            savedLine.Supplier.Should().BeNull();
         }
     }
 
     [Fact]
-    public async Task GeneratePurchaseRequest_Should_Block_WhenNoActiveSupplierAvailable()
+    public async Task GeneratePurchaseRequest_Should_NotRequireActiveSupplierBeforeDraftSelection()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
@@ -1086,19 +1099,19 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             materialRequestId = demand!.MaterialRequestId;
+            await ApproveDemandAsync(context, materialRequestId);
         }
 
         await using (var context = fixture.CreateContext())
         {
             var service = CreatePurchaseRequestWorkflowService(context);
-            var act = async () => await service.GenerateFromDemandAsync(
+            var purchase = await service.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
-                .WithMessage("Chưa có nhà cung cấp để tạo đề xuất mua cho 'Ingredient'.");
-
-            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+            purchase.Should().NotBeNull();
+            purchase!.Lines.Should().ContainSingle().Which.SupplierId.Should().BeNull();
+            (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
         }
     }
 
@@ -1128,8 +1141,9 @@ public class WorkflowGenerationTests
             var demand = await new MaterialDemandService(context).GenerateAsync(
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
                 fixture.UserIdString);
 
             purchaseRequestId = purchase!.PurchaseRequestId;
@@ -1162,7 +1176,7 @@ public class WorkflowGenerationTests
                 .SingleAsync();
             audit.ChangedBy.Should().Equal(fixture.UserId);
             audit.EntityId.Should().Equal(savedLine.PurchaseRequestLineId);
-            audit.OldValue.Should().Contain(GuidHelper.ToGuidString(fixture.SupplierId));
+            audit.OldValue.Should().Contain("supplier=-");
             audit.NewValue.Should().Contain(GuidHelper.ToGuidString(newSupplierId));
             audit.NewValue.Should().Contain("price=12345.68");
             audit.NewValue.Should().Contain("delivery=2026-06-16");
@@ -1183,8 +1197,9 @@ public class WorkflowGenerationTests
             var demand = await new MaterialDemandService(context).GenerateAsync(
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
                 fixture.UserIdString);
 
             purchaseRequestId = purchase!.PurchaseRequestId;
@@ -1253,6 +1268,7 @@ public class WorkflowGenerationTests
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
                 fixture.UserIdString);
             purchaseRequestId = purchase!.PurchaseRequestId;
+            await SelectDefaultSupplierAsync(context, fixture, purchase);
         }
 
         await using (var context = fixture.CreateContext())
@@ -1316,10 +1332,14 @@ public class WorkflowGenerationTests
             var demand = await new MaterialDemandService(context).GenerateAsync(
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
                 fixture.UserIdString);
             purchaseRequestId = purchase!.PurchaseRequestId;
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "DRAFT";
+            await context.SaveChangesAsync();
         }
 
         await using (var context = fixture.CreateContext())
@@ -1372,6 +1392,7 @@ public class WorkflowGenerationTests
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
                 fixture.UserIdString);
             purchaseRequestId = purchase!.PurchaseRequestId;
+            await SelectDefaultSupplierAsync(context, fixture, purchase);
         }
 
         await using (var context = fixture.CreateContext())
@@ -1413,6 +1434,7 @@ public class WorkflowGenerationTests
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
                 fixture.UserIdString);
             purchaseRequestId = purchase!.PurchaseRequestId;
+            await SelectDefaultSupplierAsync(context, fixture, purchase);
         }
 
         await using (var context = fixture.CreateContext())
@@ -1506,6 +1528,7 @@ public class WorkflowGenerationTests
             var purchase = await purchaseService.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
                 fixture.UserIdString);
+            await SelectDefaultSupplierAsync(context, fixture, purchase!);
             await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
             purchaseRequestId = purchase.PurchaseRequestId;
             purchaseRequestLineId = purchase.Lines.Single().PurchaseRequestLineId;
@@ -1992,6 +2015,7 @@ public class WorkflowGenerationTests
             var purchase = await purchaseService.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = materialRequestId },
                 fixture.UserIdString);
+            await SelectDefaultSupplierAsync(context, fixture, purchase!);
             await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
 
             purchaseRequestId = purchase.PurchaseRequestId;
@@ -2172,6 +2196,7 @@ public class WorkflowGenerationTests
         var purchase = await purchaseService.GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
             fixture.UserIdString);
+        await SelectDefaultSupplierAsync(context, fixture, purchase!);
         await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
 
         materialRequest.Status = "SENTTOWAREHOUSE";
@@ -2242,6 +2267,7 @@ public class WorkflowGenerationTests
         var purchase = await purchaseService.GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
             fixture.UserIdString);
+        await SelectDefaultSupplierAsync(context, fixture, purchase!);
         await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
         var alertPurchaseId = GuidHelper.NewId();
         context.Purchaserequests.Add(new Purchaserequest
@@ -2401,6 +2427,7 @@ public class WorkflowGenerationTests
             var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
                 fixture.UserIdString);
+            await SelectDefaultSupplierAsync(context, fixture, purchase!);
             await CreatePurchaseRequestWorkflowService(context).SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
             purchaseRequestId = purchase.PurchaseRequestId;
         }
@@ -4455,8 +4482,9 @@ public class WorkflowGenerationTests
             },
             fixture.UserIdString);
         demand.Should().NotBeNull();
+        await ApproveDemandAsync(context, demand!.MaterialRequestId);
         var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
             fixture.UserIdString);
         purchase.Should().NotBeNull();
 
@@ -4501,8 +4529,9 @@ public class WorkflowGenerationTests
             new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
         demand.Should().NotBeNull();
+        await ApproveDemandAsync(context, demand!.MaterialRequestId);
         var purchase = await new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context)).GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
             fixture.UserIdString);
         purchase.Should().NotBeNull();
 
@@ -4639,6 +4668,37 @@ public class WorkflowGenerationTests
     private static PurchaseRequestWorkflowService CreatePurchaseRequestWorkflowService(IpcManagementContext context)
         => new(context, new SupplierQuotationService(context));
 
+    private static async Task ApproveDemandAsync(IpcManagementContext context, string materialRequestId)
+    {
+        var requestId = GuidHelper.ParseGuidString(materialRequestId)
+            ?? throw new InvalidOperationException("Mã nhu cầu test không hợp lệ.");
+        var materialRequest = await context.Materialrequests.FindAsync(requestId)
+            ?? throw new InvalidOperationException("Không tìm thấy nhu cầu test.");
+        materialRequest.Status = "MANAGERAPPROVED";
+        await context.SaveChangesAsync();
+    }
+
+    private static async Task SelectDefaultSupplierAsync(
+        IpcManagementContext context,
+        WorkflowFixture fixture,
+        PurchaseRequestWorkflowResultDto purchase,
+        decimal estimatedUnitPrice = 1000m)
+    {
+        var service = CreatePurchaseRequestWorkflowService(context);
+        foreach (var line in purchase.Lines)
+        {
+            await service.UpdateLineSupplierAsync(
+                purchase.PurchaseRequestId,
+                line.PurchaseRequestLineId,
+                new UpdatePurchaseRequestLineSupplierDto
+                {
+                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
+                    EstimatedUnitPrice = estimatedUnitPrice
+                },
+                fixture.UserIdString);
+        }
+    }
+
     private static PurchaseOrderService CreatePurchaseOrderService(IpcManagementContext context)
         => new(
             context,
@@ -4688,6 +4748,7 @@ public class WorkflowGenerationTests
         var purchase = await purchaseService.GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
             fixture.UserIdString);
+        await SelectDefaultSupplierAsync(context, fixture, purchase!);
         await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
 
         return purchase.PurchaseRequestId;
@@ -5410,6 +5471,7 @@ public class WorkflowGenerationTests
                 fixture.UserIdString);
             demand.Should().NotBeNull();
             demandLineCount += demand!.Lines.Count;
+            await ApproveDemandAsync(context, demand.MaterialRequestId);
 
             var purchase = await purchaseService.GenerateFromDemandAsync(
                 new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
@@ -5549,6 +5611,7 @@ public class WorkflowGenerationTests
         var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
             new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand!.MaterialRequestId },
             fixture.UserIdString);
+        await SelectDefaultSupplierAsync(context, fixture, purchase!);
         var purchaseRequest = await context.Purchaserequests
             .SingleAsync(request => request.PurchaseRequestId == GuidHelper.ParseGuidString(purchase!.PurchaseRequestId)!);
         purchaseRequest.Status = purchaseStatus;
@@ -6202,7 +6265,7 @@ public class WorkflowGenerationTests
                     purchaseRequestId BLOB NOT NULL,
                     materialRequestLineId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
-                    supplierId BLOB NOT NULL,
+                    supplierId BLOB NULL,
                     unitId BLOB NOT NULL,
                     requiredQty TEXT NOT NULL,
                     currentStockQty TEXT NOT NULL,
