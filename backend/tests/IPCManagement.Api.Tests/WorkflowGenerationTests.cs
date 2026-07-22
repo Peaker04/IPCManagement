@@ -4935,7 +4935,7 @@ public class WorkflowGenerationTests
         await SeedSupplierAsync(context, supplierB, "NCC B");
 
         var purchaseRequestId = GuidHelper.NewId();
-        context.Purchaserequests.Add(new Purchaserequest
+        var purchaseRequest = new Purchaserequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = $"PR-DEMO-{GuidHelper.ToGuidString(purchaseRequestId)[..8]}",
@@ -4956,7 +4956,8 @@ public class WorkflowGenerationTests
                     RequiredQty = 10,
                     CurrentStockQty = 0,
                     PurchaseQty = 10,
-                    EstimatedUnitPrice = 1000
+                    EstimatedUnitPrice = 1000,
+                    ExpectedDeliveryDate = new DateOnly(2026, 6, 2)
                 },
                 new Purchaserequestline
                 {
@@ -4969,10 +4970,38 @@ public class WorkflowGenerationTests
                     RequiredQty = 5,
                     CurrentStockQty = 0,
                     PurchaseQty = 5,
-                    EstimatedUnitPrice = 2000
+                    EstimatedUnitPrice = 2000,
+                    ExpectedDeliveryDate = new DateOnly(2026, 6, 2)
                 }
             ]
-        });
+        };
+        var supplierIds = new[] { supplierA, supplierB };
+        var lineIndex = 0;
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
+            var supplierId = supplierIds[lineIndex];
+            var fingerprintSeed = lineIndex == 0 ? 'A' : 'B';
+            line.SupplierDecisions.Add(new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
+                PurchaseRequestLineId = line.PurchaseRequestLineId,
+                SupplierId = supplierId,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 6, 1),
+                EvidenceReferencePrice = line.EstimatedUnitPrice,
+                ProposedUnitPrice = line.EstimatedUnitPrice,
+                ProposedDeliveryDate = line.ExpectedDeliveryDate!.Value,
+                ConfirmedBy = fixture.UserId,
+                ConfirmedAt = DateTime.UtcNow,
+                DecisionFingerprint = new string(fingerprintSeed, 64),
+                Version = 1,
+                Status = "CURRENT",
+                CurrentDecisionKey = line.PurchaseRequestLineId
+            });
+            lineIndex++;
+        }
+        context.Purchaserequests.Add(purchaseRequest);
         await context.SaveChangesAsync();
 
         return purchaseRequestId;
@@ -5025,11 +5054,17 @@ public class WorkflowGenerationTests
         var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
 
         var service = CreatePurchaseOrderService(context);
-        await service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var first = await service.CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(purchaseRequestId),
+            fixture.UserIdString);
+        var retry = await service.CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(purchaseRequestId),
+            fixture.UserIdString);
 
-        var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
-
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        retry.Select(order => order.PurchaseOrderId)
+            .Should().BeEquivalentTo(first.Select(order => order.PurchaseOrderId));
+        (await context.Purchaseorders.CountAsync()).Should().Be(2);
+        (await context.Purchaseorderlines.CountAsync()).Should().Be(2);
     }
 
     [Fact]
@@ -6340,6 +6375,27 @@ public class WorkflowGenerationTests
                     ON purchaselinesupplierdecisions (purchaseRequestLineId, decisionFingerprint);
                 CREATE UNIQUE INDEX uqPurchaseLineSupplierDecisionsCurrentKey
                     ON purchaselinesupplierdecisions (currentDecisionKey);
+                CREATE TABLE purchasepriceexceptions (
+                    purchasePriceExceptionId BLOB PRIMARY KEY,
+                    purchaseLineSupplierDecisionId BLOB NOT NULL,
+                    referencePrice TEXT NOT NULL,
+                    proposedPrice TEXT NOT NULL,
+                    variancePercent TEXT NOT NULL,
+                    evidenceType TEXT NOT NULL,
+                    evidenceId BLOB NOT NULL,
+                    evidenceDate TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    proposalFingerprint TEXT NOT NULL,
+                    proposalVersion INTEGER NOT NULL,
+                    requestedBy BLOB NOT NULL,
+                    requestedAt TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'PENDING',
+                    decidedBy BLOB NULL,
+                    decisionReason TEXT NULL,
+                    decidedAt TEXT NULL,
+                    supersededByExceptionId BLOB NULL,
+                    concurrencyVersion INTEGER NOT NULL DEFAULT 1
+                );
                 CREATE TABLE purchaseorders (
                     purchaseOrderId BLOB PRIMARY KEY,
                     purchaseOrderCode TEXT NOT NULL,
