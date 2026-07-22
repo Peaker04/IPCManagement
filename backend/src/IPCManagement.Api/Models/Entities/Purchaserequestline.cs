@@ -29,6 +29,8 @@ public partial class Purchaserequestline
 
     public string? Note { get; set; }
 
+    public bool IsLegacySupplierSnapshot { get; set; }
+
     public virtual Ingredient Ingredient { get; set; } = null!;
 
     public virtual ICollection<Inventoryreceiptline> Inventoryreceiptlines { get; set; } = new List<Inventoryreceiptline>();
@@ -42,4 +44,6 @@ public partial class Purchaserequestline
     public virtual Unit Unit { get; set; } = null!;
 
     public virtual Purchaseorderline? Purchaseorderline { get; set; }
+
+    public virtual ICollection<Purchaselinesupplierdecision> SupplierDecisions { get; set; } = new List<Purchaselinesupplierdecision>();
 }
