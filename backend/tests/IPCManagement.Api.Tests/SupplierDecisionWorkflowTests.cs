@@ -1165,6 +1165,28 @@ public class SupplierDecisionWorkflowTests
             Supplier = supplier,
             Unit = materialLine.Unit
         };
+        if (supplier is not null)
+        {
+            line.SupplierDecisions.Add(new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
+                PurchaseRequestLineId = line.PurchaseRequestLineId,
+                SupplierId = supplier.SupplierId,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = demand.RequestDate,
+                EvidenceReferencePrice = 100m,
+                ProposedUnitPrice = estimatedUnitPrice,
+                ProposedDeliveryDate = demand.RequestDate,
+                ConfirmedBy = UserIdBytes,
+                ConfirmedAt = DateTime.UtcNow,
+                DecisionFingerprint = Convert.ToHexString(SHA256.HashData(line.PurchaseRequestLineId)),
+                Version = 1,
+                Status = "CURRENT",
+                CurrentDecisionKey = line.PurchaseRequestLineId,
+                PurchaseRequestLine = line
+            });
+        }
         request.Purchaserequestlines.Add(line);
         context.Purchaserequests.Add(request);
 

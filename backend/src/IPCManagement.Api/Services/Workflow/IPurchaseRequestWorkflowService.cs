@@ -18,10 +18,10 @@ public interface IPurchaseRequestWorkflowService
         string lineId,
         CancellationToken cancellationToken = default);
 
-    Task UpdateLineSupplierAsync(
+    Task<PurchaseLineSupplierDecisionDto> ConfirmLineSupplierAsync(
         string requestId,
         string lineId,
-        UpdatePurchaseRequestLineSupplierDto request,
+        ConfirmPurchaseLineSupplierDto request,
         string? userId,
         CancellationToken cancellationToken = default);
 

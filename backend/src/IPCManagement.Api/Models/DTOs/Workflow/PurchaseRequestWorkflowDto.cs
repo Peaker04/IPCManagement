@@ -32,6 +32,9 @@ public class PurchaseRequestWorkflowLineDto
     public decimal EstimatedUnitPrice { get; set; }
     public string? ExpectedDeliveryDate { get; set; }
     public string? Note { get; set; }
+    public string SupplierDecisionStatus { get; set; } = "BLOCKED";
+    public PurchaseLineSupplierDecisionDto? CurrentSupplierDecision { get; set; }
+    public IReadOnlyList<PurchaseLineSupplierDecisionDto> SupplierDecisionHistory { get; set; } = [];
 }
 
 public class ConfirmPurchaseRequestDto
@@ -79,6 +82,7 @@ public class PurchaseWorkbenchServiceDateDto
     public int ReceivingLineCount { get; set; }
     public int FullyReceivedLineCount { get; set; }
     public IReadOnlyList<ApprovedDemandSummaryDto> ApprovedDemands { get; set; } = [];
+    public IReadOnlyList<PurchaseRequestWorkflowLineDto> PurchaseLines { get; set; } = [];
 }
 
 public class PurchaseWorkflowStageCountsDto
