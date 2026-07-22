@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   workflowApi,
   type ConfirmPurchaseLineSupplierRequest,
@@ -137,6 +137,20 @@ const jsonResponse = (data: unknown) => new Response(
 );
 
 describe('phase 09 purchasing API contract', () => {
+  beforeEach(() => {
+    const NativeRequest = globalThis.Request;
+    vi.stubGlobal('Request', class extends NativeRequest {
+      constructor(input: RequestInfo | URL, init?: RequestInit) {
+        super(
+          typeof input === 'string' && input.startsWith('/')
+            ? `http://localhost${input}`
+            : input,
+          init,
+        );
+      }
+    });
+  });
+
   afterEach(() => {
     vi.unstubAllGlobals();
   });
