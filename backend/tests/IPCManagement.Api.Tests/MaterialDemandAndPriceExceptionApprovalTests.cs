@@ -137,9 +137,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     }
 
     [Theory]
-    [InlineData(null)]
-    [InlineData(0)]
-    [InlineData(-1)]
+    [MemberData(nameof(InvalidReferencePrices))]
     public void Threshold_missing_reference_price_is_blocking(decimal? referencePrice)
     {
         var act = () => PurchasePricePolicy.CalculateVariancePercent(referencePrice, 100m);
@@ -147,6 +145,13 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         act.Should().Throw<InvalidOperationException>()
             .WithMessage("*giá tham chiếu*");
     }
+
+    public static TheoryData<decimal?> InvalidReferencePrices => new()
+    {
+        null,
+        0m,
+        -1m
+    };
 
     [Fact]
     public async Task Threshold_confirmation_creates_and_supersedes_durable_exception()
