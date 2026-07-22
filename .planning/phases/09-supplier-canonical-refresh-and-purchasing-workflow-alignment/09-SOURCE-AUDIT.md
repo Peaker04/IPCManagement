@@ -27,7 +27,7 @@
 
 | Research feature or constraint | Disposition | Plan coverage |
 |---|---|---|
-| Verify the 20.7 workbook hash and audited 34-sheet/3,209-key baseline at execution time | COVERED | 09-01, 09-02 |
+| Verify the 20.7 workbook hash and audited 34-sheet/3,207 unique normalized delivery-date-plus-ingredient key baseline at execution time | COVERED | 09-01, 09-02 |
 | Keep parser/normalization pure and reuse the same policy for preview and apply | COVERED | 09-02, 09-03, 09-05 |
 | Preview is `AsNoTracking`, drift-protected, and produces exact counts/blockers | COVERED | 09-03 |
 | Forward-only persistence and atomic/idempotent apply with immutable-history protection | COVERED | 09-04, 09-05 |

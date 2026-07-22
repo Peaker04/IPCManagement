@@ -120,7 +120,7 @@ Every multi-command entry is executed through `pwsh -NoProfile -Command` with `$
 
 - [ ] GitNexus exact-HEAD clean/re-index evidence captured.
 - [ ] Protected SQL hash/status/untracked baseline captured.
-- [ ] Workbook hash, 34-sheet and 3,209-key audit reproduced.
+- [ ] Workbook hash, 34-sheet and 3,207 unique normalized delivery-date-plus-ingredient key audit reproduced case-insensitively.
 - [ ] Disposable clone backup/restore/fingerprint proof captured.
 - [ ] Four focused backend suites and all four Phase 09 browser suite seams discovered; the exact eight-path snapshot registry is valid without claiming PNG generation.
 

@@ -162,7 +162,7 @@ static async Task<IReadOnlyList<string>> ReadPhysicalColumnsAsync(
         FROM information_schema.columns
         WHERE table_schema = @database
           AND table_name = @table
-          AND extra NOT LIKE '%GENERATED%'
+          AND COALESCE(generation_expression, '') = ''
         ORDER BY ordinal_position;
         """;
     await using var command = new MySqlCommand(sql, connection);
