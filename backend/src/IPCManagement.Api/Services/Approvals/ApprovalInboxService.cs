@@ -148,6 +148,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         CancellationToken cancellationToken)
     {
         var requestQuery = _context.Materialrequests
+            .AsNoTracking()
             .Where(item => item.Status == "DRAFT");
         if (cursor is not null)
         {
@@ -163,32 +164,61 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ToListAsync(cancellationToken);
 
         var result = new List<ApprovalInboxItemDto>();
+        var ingredientNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var unitNames = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var request in requests)
         {
-            await _context.Entry(request)
-                .Reference(item => item.CreatedByNavigation)
-                .LoadAsync(cancellationToken);
-            await _context.Entry(request)
-                .Reference(item => item.Plan)
-                .LoadAsync(cancellationToken);
-            await _context.Entry(request)
-                .Collection(item => item.Materialrequestlines)
-                .Query()
-                .Include(line => line.Ingredient)
-                .Include(line => line.Unit)
-                .LoadAsync(cancellationToken);
+            var plan = await _context.Productionplans
+                .AsNoTracking()
+                .SingleAsync(item => item.PlanId.SequenceEqual(request.PlanId), cancellationToken);
+            var submittedBy = await _context.Users
+                .AsNoTracking()
+                .Where(item => item.UserId.SequenceEqual(request.CreatedBy))
+                .Select(item => item.FullName)
+                .SingleAsync(cancellationToken);
+            var requestLines = await _context.Materialrequestlines
+                .AsNoTracking()
+                .Where(line => line.RequestId.SequenceEqual(request.RequestId))
+                .ToListAsync(cancellationToken);
+            var lineDetails = new List<(string IngredientId, string UnitId, string Name, string Unit, decimal Quantity)>();
+            foreach (var line in requestLines)
+            {
+                var ingredientId = Convert.ToBase64String(line.IngredientId);
+                if (!ingredientNames.TryGetValue(ingredientId, out var ingredientName))
+                {
+                    ingredientName = await _context.Ingredients
+                        .AsNoTracking()
+                        .Where(item => item.IngredientId.SequenceEqual(line.IngredientId))
+                        .Select(item => item.IngredientName)
+                        .SingleAsync(cancellationToken);
+                    ingredientNames[ingredientId] = ingredientName;
+                }
 
-            var materials = request.Materialrequestlines
+                var unitId = Convert.ToBase64String(line.UnitId);
+                if (!unitNames.TryGetValue(unitId, out var unitName))
+                {
+                    unitName = await _context.Units
+                        .AsNoTracking()
+                        .Where(item => item.UnitId.SequenceEqual(line.UnitId))
+                        .Select(item => item.UnitName)
+                        .SingleAsync(cancellationToken);
+                    unitNames[unitId] = unitName;
+                }
+
+                lineDetails.Add((ingredientId, unitId, ingredientName, unitName, line.SuggestedPurchaseQty));
+            }
+
+            var materials = lineDetails
                 .GroupBy(line => new
                 {
-                    IngredientId = Convert.ToBase64String(line.IngredientId),
-                    UnitId = Convert.ToBase64String(line.UnitId)
+                    line.IngredientId,
+                    line.UnitId
                 })
                 .Select(group => new ApprovalInboxMaterialDto
                 {
-                    Name = group.First().Ingredient.IngredientName,
-                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.SuggestedPurchaseQty)),
-                    Unit = group.First().Unit.UnitName
+                    Name = group.First().Name,
+                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.Quantity)),
+                    Unit = group.First().Unit
                 })
                 .OrderBy(material => material.Name)
                 .ToList();
@@ -203,23 +233,23 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 Title = "Duyệt nhu cầu nguyên liệu",
                 Source = request.RequestCode,
                 OwnerRole = "Quản lý",
-                SubmittedBy = request.CreatedByNavigation.FullName,
+                SubmittedBy = submittedBy,
                 DueDate = request.RequestDate,
                 Status = "PENDING",
                 Reason = "Nhu cầu nguyên liệu đã tính, chờ quản lý duyệt trước khi mua hàng.",
                 NextAction = "Duyệt nhu cầu",
                 Tone = "warning",
                 Route = $"/approvals?targetType={MaterialDemandTargetType}&targetId={targetId}&serviceDate={request.RequestDate:yyyy-MM-dd}&scope={Uri.EscapeDataString(request.RequestScope)}",
-                WeekStartDate = request.Plan.WeekStartDate,
+                WeekStartDate = plan.WeekStartDate,
                 ServiceDate = request.RequestDate,
                 Scope = request.RequestScope,
-                LineCount = request.Materialrequestlines.Count,
-                TotalQuantity = DecimalPolicy.RoundQuantity(request.Materialrequestlines.Sum(line => line.SuggestedPurchaseQty)),
+                LineCount = requestLines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(requestLines.Sum(line => line.SuggestedPurchaseQty)),
                 TotalValue = null,
-                SubmittedAt = request.Plan.CreatedAt,
+                SubmittedAt = plan.CreatedAt,
                 Materials = materials
             };
-            await PopulateSlaAsync(itemDto, request.RequestId, request.Plan.CreatedAt);
+            await PopulateSlaAsync(itemDto, request.RequestId, plan.CreatedAt);
             result.Add(itemDto);
         }
 
