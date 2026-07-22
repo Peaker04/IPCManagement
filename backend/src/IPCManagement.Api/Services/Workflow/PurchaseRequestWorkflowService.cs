@@ -696,6 +696,14 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         var evidenceType = ToPersistenceEvidenceType(request.EvidenceType);
+        var referencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice);
+        var variancePercent = PurchasePricePolicy.CalculateVariancePercent(referencePrice, proposedUnitPrice);
+        var exceptionReason = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        if (PurchasePricePolicy.RequiresException(variancePercent) && exceptionReason is null)
+        {
+            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
+        }
+
         var fingerprint = BuildSupplierDecisionFingerprint(
             line.PurchaseRequestLineId,
             supplierId,
@@ -707,6 +715,19 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         if (currentDecision is not null &&
             string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
         {
+            await UpsertPriceExceptionAsync(
+                currentDecision,
+                null,
+                variancePercent,
+                exceptionReason,
+                actorId,
+                cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            if (transaction is not null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
             return MapSupplierDecision(currentDecision);
         }
 
@@ -747,10 +768,18 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         line.SupplierId = supplierId;
         line.EstimatedUnitPrice = proposedUnitPrice;
         line.ExpectedDeliveryDate = proposedDeliveryDate;
-        line.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
+        line.Note = exceptionReason;
         line.IsLegacySupplierSnapshot = false;
         line.SupplierDecisions.Add(decision);
         _context.Purchaselinesupplierdecisions.Add(decision);
+
+        await UpsertPriceExceptionAsync(
+            decision,
+            currentDecision,
+            variancePercent,
+            exceptionReason,
+            actorId,
+            cancellationToken);
 
         _context.Auditlogs.Add(new Auditlog
         {
@@ -773,6 +802,85 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         return MapSupplierDecision(decision);
+    }
+
+    private async Task UpsertPriceExceptionAsync(
+        Purchaselinesupplierdecision decision,
+        Purchaselinesupplierdecision? supersededDecision,
+        decimal variancePercent,
+        string? reason,
+        byte[] actorId,
+        CancellationToken cancellationToken)
+    {
+        if (!PurchasePricePolicy.RequiresException(variancePercent))
+        {
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
+        }
+
+        var existing = await _context.Purchasepriceexceptions.FirstOrDefaultAsync(item =>
+            item.PurchaseLineSupplierDecisionId == decision.PurchaseLineSupplierDecisionId &&
+            item.ProposalFingerprint == decision.DecisionFingerprint &&
+            item.ProposalVersion == decision.Version,
+            cancellationToken);
+        if (existing is not null)
+        {
+            return;
+        }
+
+        var exceptionId = GuidHelper.NewId();
+        if (supersededDecision is not null)
+        {
+            var priorExceptions = await _context.Purchasepriceexceptions
+                .Where(item =>
+                    item.PurchaseLineSupplierDecisionId == supersededDecision.PurchaseLineSupplierDecisionId &&
+                    item.Status != "SUPERSEDED")
+                .ToListAsync(cancellationToken);
+            foreach (var priorException in priorExceptions)
+            {
+                priorException.Status = "SUPERSEDED";
+                priorException.SupersededByExceptionId = exceptionId;
+                priorException.ConcurrencyVersion++;
+            }
+        }
+
+        var priceException = new Purchasepriceexception
+        {
+            PurchasePriceExceptionId = exceptionId,
+            PurchaseLineSupplierDecisionId = decision.PurchaseLineSupplierDecisionId,
+            ReferencePrice = DecimalPolicy.RoundMoney(decision.EvidenceReferencePrice),
+            ProposedPrice = DecimalPolicy.RoundMoney(decision.ProposedUnitPrice),
+            VariancePercent = variancePercent,
+            EvidenceType = decision.EvidenceType,
+            EvidenceId = decision.EvidenceId,
+            EvidenceDate = decision.EvidenceDate,
+            Reason = reason,
+            ProposalFingerprint = decision.DecisionFingerprint,
+            ProposalVersion = decision.Version,
+            RequestedBy = actorId,
+            RequestedAt = DateTime.UtcNow,
+            Status = "PENDING",
+            ConcurrencyVersion = 1,
+            PurchaseLineSupplierDecision = decision
+        };
+        _context.Purchasepriceexceptions.Add(priceException);
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = priceException.RequestedAt,
+            ChangedBy = actorId,
+            BusinessArea = "Purchasing",
+            EntityName = nameof(Purchasepriceexception),
+            EntityId = exceptionId,
+            FieldName = "CreatePriceException",
+            OldValue = null,
+            NewValue = decision.DecisionFingerprint,
+            Reason = reason
+        });
     }
 
     public async Task<PurchaseRequestWorkflowResultDto?> SubmitAsync(
@@ -798,6 +906,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 .ThenInclude(line => line.MaterialRequestLine)
             .Include(item => item.Purchaserequestlines)
                 .ThenInclude(line => line.SupplierDecisions)
+                    .ThenInclude(decision => decision.Purchasepriceexceptions)
             .FirstOrDefaultAsync(item => item.PurchaseRequestId == prIdBytes, cancellationToken);
         if (purchaseRequest is null)
         {
@@ -1194,25 +1303,67 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 throw new InvalidOperationException("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
             }
 
+        }
+
+        ValidateCurrentSupplierDecisionsAsync(purchaseRequest);
+        ValidatePriceExceptionsAsync(purchaseRequest);
+
+        return Task.CompletedTask;
+    }
+
+    private static void ValidateCurrentSupplierDecisionsAsync(Purchaserequest purchaseRequest)
+    {
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
             var currentDecision = line.SupplierDecisions.SingleOrDefault(decision =>
                 string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
             if (currentDecision is null ||
+                line.SupplierId is null ||
                 !currentDecision.SupplierId.SequenceEqual(line.SupplierId) ||
                 currentDecision.ProposedUnitPrice != DecimalPolicy.RoundMoney(line.EstimatedUnitPrice) ||
                 currentDecision.ProposedDeliveryDate != line.ExpectedDeliveryDate)
             {
                 throw new InvalidOperationException("Có dòng mua chưa có quyết định nhà cung cấp hiện hành hợp lệ.");
             }
+        }
+    }
 
-            var referencePrice = DecimalPolicy.RoundMoney(currentDecision.EvidenceReferencePrice);
-            var variance = WorkflowReportCalculator.CalculateVariancePercent(referencePrice, line.EstimatedUnitPrice);
-            if (WorkflowReportCalculator.IsPriceIncreaseWarning(variance))
+    private static void ValidatePriceExceptionsAsync(Purchaserequest purchaseRequest)
+    {
+        foreach (var line in purchaseRequest.Purchaserequestlines)
+        {
+            var currentDecision = line.SupplierDecisions.Single(decision =>
+                string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
+            var variance = PurchasePricePolicy.CalculateVariancePercent(
+                currentDecision.EvidenceReferencePrice,
+                currentDecision.ProposedUnitPrice);
+            if (!PurchasePricePolicy.RequiresException(variance))
             {
-                throw new InvalidOperationException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi gửi đơn mua.");
+                continue;
+            }
+
+            var currentException = currentDecision.Purchasepriceexceptions.SingleOrDefault(priceException =>
+                string.Equals(priceException.ProposalFingerprint, currentDecision.DecisionFingerprint, StringComparison.Ordinal) &&
+                priceException.ProposalVersion == currentDecision.Version &&
+                !string.Equals(priceException.Status, "SUPERSEDED", StringComparison.Ordinal));
+            if (currentException is null)
+            {
+                throw new InvalidOperationException(
+                    "Có dòng mua cần ngoại lệ giá hiện hành trước khi gửi đơn mua.");
+            }
+
+            if (string.Equals(currentException.Status, "REJECTED", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Ngoại lệ giá đã bị từ chối; hãy cập nhật và gửi lại đề xuất giá.");
+            }
+
+            if (!string.Equals(currentException.Status, "APPROVED", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "Có dòng mua cần ngoại lệ giá được Quản lý duyệt trước khi gửi đơn mua.");
             }
         }
-
-        return Task.CompletedTask;
     }
 
     private static PurchaseRequestWorkflowResultDto MapResult(
