@@ -11,7 +11,5 @@ public interface IPurchaseOrderService
 
     Task<PurchaseOrderDto?> GetByIdAsync(string purchaseOrderId, CancellationToken cancellationToken = default);
 
-    Task<PurchaseOrderDto> RecordReceiptAsync(string purchaseOrderId, RecordPurchaseOrderReceiptDto request, string? userId, CancellationToken cancellationToken = default);
-
     Task<PurchaseOrderDto> CancelAsync(string purchaseOrderId, CancellationToken cancellationToken = default);
 }
