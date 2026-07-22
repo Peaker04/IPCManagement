@@ -74,6 +74,8 @@ public sealed class PurchaseHistoryApplyRequestDto
 public sealed class PurchaseHistoryApplyResultDto
 {
     public string ManifestId { get; set; } = string.Empty;
+    public string RunId { get; set; } = string.Empty;
+    public string AuditReference { get; set; } = string.Empty;
     public bool Applied { get; set; }
     public bool NoOp { get; set; }
     public int AppliedActionCount { get; set; }

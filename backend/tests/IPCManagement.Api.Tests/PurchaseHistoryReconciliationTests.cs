@@ -567,6 +567,58 @@ public class PurchaseHistoryReconciliationTests
     }
 
     [Fact]
+    public async Task Preview_uses_the_single_active_supplier_when_an_inactive_duplicate_exists()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = Id(31),
+            SupplierCode = "SUP-RAU-LEGACY",
+            SupplierName = "Rau",
+            IsActive = false
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync(CancellationToken.None);
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "SUPPLIER_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
+    }
+
+    [Fact]
+    public async Task Preview_uses_the_single_active_ingredient_when_an_inactive_duplicate_exists()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = Id(21),
+            IngredientCode = "ING-RAU-MUONG-LEGACY",
+            IngredientName = "Rau muống",
+            UnitId = Id(10),
+            WarehouseId = Id(40),
+            ReferencePrice = 20_000,
+            IsFreshDaily = true,
+            IsActive = false
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync(CancellationToken.None);
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "INGREDIENT_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
+    }
+
+    [Fact]
     public async Task Preview_deletes_only_dependency_free_sample_orphans()
     {
         await using var context = CreateContext();

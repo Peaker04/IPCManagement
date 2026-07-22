@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -403,6 +404,8 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             return new PurchaseHistoryApplyResultDto
             {
                 ManifestId = run.ManifestId,
+                RunId = GuidHelper.ToGuidString(runId),
+                AuditReference = BuildAuditReference(runId),
                 Applied = true,
                 NoOp = false,
                 AppliedActionCount = run.ActionCount
@@ -546,6 +549,8 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         return new PurchaseHistoryApplyResultDto
         {
             ManifestId = existing.ManifestId,
+            RunId = GuidHelper.ToGuidString(existing.PurchaseHistoryReconciliationRunId),
+            AuditReference = BuildAuditReference(existing.PurchaseHistoryReconciliationRunId),
             Applied = false,
             NoOp = true,
             AppliedActionCount = existing.ActionCount
@@ -600,11 +605,11 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         var normalization = candidate.Normalization
             ?? throw new InvalidOperationException("The accepted source candidate is not normalized.");
         var supplierId = await _context.Suppliers
-            .Where(item => item.SupplierName == normalization.SupplierName)
+            .Where(item => item.SupplierName == normalization.SupplierName && item.IsActive != false)
             .Select(item => item.SupplierId)
             .SingleAsync(cancellationToken);
         var ingredient = await _context.Ingredients
-            .Where(item => item.IngredientName == normalization.IngredientName)
+            .Where(item => item.IngredientName == normalization.IngredientName && item.IsActive != false)
             .Select(item => new { item.IngredientId, item.WarehouseId })
             .SingleAsync(cancellationToken);
         var unitId = await _context.Units
@@ -699,6 +704,9 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
 
     private static byte[] DeterministicId(string value)
         => SHA256.HashData(Encoding.UTF8.GetBytes(value))[..16];
+
+    private static string BuildAuditReference(byte[] runId)
+        => $"purchase-history-reconciliation/{GuidHelper.ToGuidString(runId)}";
 
     internal static void AssertDisposableTarget(string databaseIdentity)
     {
@@ -866,12 +874,16 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         IReadOnlyList<IngredientSnapshot> ingredients,
         IReadOnlyList<UnitSnapshot> units)
     {
-        if (suppliers.Count(item => string.Equals(item.Name, normalization.SupplierName, StringComparison.OrdinalIgnoreCase)) != 1)
+        if (suppliers.Count(item =>
+                item.IsActive != false &&
+                string.Equals(item.Name, normalization.SupplierName, StringComparison.OrdinalIgnoreCase)) != 1)
         {
             return CreateBlocker("SUPPLIER_CATALOG_AMBIGUOUS", "Nhà cung cấp", normalization.SupplierName ?? string.Empty, candidate.Trace);
         }
 
-        if (ingredients.Count(item => string.Equals(item.Name, normalization.IngredientName, StringComparison.OrdinalIgnoreCase)) != 1)
+        if (ingredients.Count(item =>
+                item.IsActive != false &&
+                string.Equals(item.Name, normalization.IngredientName, StringComparison.OrdinalIgnoreCase)) != 1)
         {
             return CreateBlocker("INGREDIENT_CATALOG_AMBIGUOUS", "Tên hàng", normalization.IngredientName ?? string.Empty, candidate.Trace);
         }
