@@ -524,10 +524,9 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_RollBackDemandAndDraftPurchaseInvalidation_WhenPersistenceFails()
+    public async Task GenerateDemand_Should_RejectApprovedSnapshotBeforeDraftPurchaseInvalidation()
     {
-        var interceptor = new FailOnPurchaseRequestLineDeleteInterceptor();
-        await using var fixture = await WorkflowFixture.CreateAsync(interceptor);
+        await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
 
@@ -537,7 +536,8 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<DbUpdateException>();
+            await act.Should().ThrowAsync<InvalidOperationException>()
+                .WithMessage("Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
         }
 
         await using var verificationContext = fixture.CreateContext();
@@ -5533,37 +5533,6 @@ public class WorkflowGenerationTests
             }
 
             return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
-        }
-    }
-
-    private sealed class FailOnPurchaseRequestLineDeleteInterceptor : DbCommandInterceptor
-    {
-        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
-            DbCommand command,
-            CommandEventData eventData,
-            InterceptionResult<DbDataReader> result,
-            CancellationToken cancellationToken = default)
-        {
-            ThrowOnPurchaseRequestLineDelete(command);
-            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
-        }
-
-        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
-            DbCommand command,
-            CommandEventData eventData,
-            InterceptionResult<int> result,
-            CancellationToken cancellationToken = default)
-        {
-            ThrowOnPurchaseRequestLineDelete(command);
-            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
-        }
-
-        private static void ThrowOnPurchaseRequestLineDelete(DbCommand command)
-        {
-            if (command.CommandText.Contains("DELETE FROM \"purchaserequestlines\"", StringComparison.OrdinalIgnoreCase))
-            {
-                throw new InvalidOperationException("Injected purchase-request line persistence failure.");
-            }
         }
     }
 
