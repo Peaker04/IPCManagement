@@ -153,6 +153,7 @@
 | PUI-01 | 9 | Approved six-stage accessible purchasing UI and E2E |
 
 **Coverage:**
+
 - v1.1 requirements: 45 total
 - Mapped to phases: 45
 - Unmapped: 0

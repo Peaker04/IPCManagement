@@ -291,13 +291,13 @@ route-preserving feature decomposition + regression/UAT gates
 **Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
-**Plans:** 14 plans across 11 dependency waves (Wave 0 through Wave 10)
+**Plans:** 1/14 plans executed
 
 Plans:
 
 **Wave 0 — safety and test seams**
 
-- [ ] 09-01-PLAN.md — Prove GitNexus/source/clone/restore baselines and create focused test seams
+- [x] 09-01-PLAN.md — Prove GitNexus/source/clone/restore baselines and create focused test seams
 
 **Wave 1 — parallel pure source and approval contracts** *(blocked on Wave 0)*
 
