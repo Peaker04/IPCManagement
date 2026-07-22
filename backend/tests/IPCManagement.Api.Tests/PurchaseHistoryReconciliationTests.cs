@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Services.SampleData;
 using IPCManagement.DatabaseTool;
 
 namespace IPCManagement.Api.Tests;
@@ -38,10 +39,64 @@ public class PurchaseHistoryReconciliationTests
         keys.Should().ContainSingle();
     }
 
-    [Fact(Skip = "Plan 09-02 owns the pure purchase-history preview parser.")]
-    public void Preview_contract_requires_phase_09_02_parser()
+    [Fact]
+    public void Parser_reproduces_audited_workbook_baseline_and_deterministic_replay()
     {
-        Assert.Fail("Plan 09-02 must implement the pure purchase-history preview parser.");
+        var parser = new PurchaseHistorySourceParser();
+        var legacyPath = FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx");
+        var currentPath = FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx");
+
+        using var legacyStream = File.OpenRead(legacyPath);
+        using var currentStream = File.OpenRead(currentPath);
+        var legacy = parser.Parse(legacyStream, new DateOnly(2026, 5, 19));
+        var current = parser.Parse(currentStream, new DateOnly(2026, 7, 20));
+
+        current.WorkbookSha256.Should().Be("4A91F9EA847068ABEB147EFF7ED7401B029D698F73E495641099DD9FA552BC88");
+        current.SheetCount.Should().Be(34);
+        current.SupplierPolicyCount.Should().Be(31);
+        current.RecognizedDataSheetCount.Should().Be(30);
+        legacy.ImportableBusinessKeys.Should().HaveCount(14_532);
+        current.ImportableBusinessKeys.Should().HaveCount(17_739);
+        (current.ImportableBusinessKeys.Count - legacy.ImportableBusinessKeys.Count).Should().Be(3_207);
+
+        using var replayStream = File.OpenRead(currentPath);
+        var replay = parser.Parse(replayStream, new DateOnly(2026, 7, 20));
+        replay.Candidates
+            .Select(candidate => $"{candidate.SourceKey}|{candidate.BusinessKey}|{candidate.RowHash}")
+            .Should()
+            .Equal(current.Candidates.Select(candidate =>
+                $"{candidate.SourceKey}|{candidate.BusinessKey}|{candidate.RowHash}"));
+    }
+
+    [Fact]
+    public void Parser_retains_raw_source_trace_and_current_source_supersedes_legacy_key()
+    {
+        var parser = new PurchaseHistorySourceParser();
+        using var legacyStream = File.OpenRead(
+            FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx"));
+        using var currentStream = File.OpenRead(
+            FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx"));
+        var legacy = parser.Parse(legacyStream, new DateOnly(2026, 5, 19));
+        var current = parser.Parse(currentStream, new DateOnly(2026, 7, 20));
+        var duplicateKey = legacy.ImportableBusinessKeys.Intersect(
+            current.ImportableBusinessKeys,
+            StringComparer.OrdinalIgnoreCase).First();
+
+        var merged = PurchaseHistorySourceParser.Supersede(legacy.Candidates, current.Candidates);
+        var winner = merged.Single(candidate =>
+            string.Equals(candidate.BusinessKey, duplicateKey, StringComparison.OrdinalIgnoreCase));
+
+        winner.WorkbookSha256.Should().Be(current.WorkbookSha256);
+        winner.Trace.SourceSheet.Should().NotBeNullOrWhiteSpace();
+        winner.Trace.SourceRow.Should().BeGreaterThan(0);
+        winner.Trace.RawCells.Should().ContainKeys(
+            "Ngày Giao hàng",
+            "Tên hàng",
+            "Đơn vị tính",
+            "Số lượng",
+            "Đơn giá");
+        winner.SourceKey.Should().NotBeNullOrWhiteSpace();
+        winner.RowHash.Should().MatchRegex("^[0-9A-F]{64}$");
     }
 
     [Fact(Skip = "Plan 09-02 owns ambiguous-unit and ambiguous-supplier diagnostics.")]
@@ -54,5 +109,22 @@ public class PurchaseHistoryReconciliationTests
     public void Apply_preserves_immutable_history_and_second_apply_is_no_op()
     {
         Assert.Fail("Plan 09-05 must implement guarded apply and idempotent replay.");
+    }
+
+    private static string FindRepositoryFile(params string[] segments)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var candidate = Path.Combine([current.FullName, .. segments]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new FileNotFoundException($"Không tìm thấy file fixture: {Path.Combine(segments)}");
     }
 }
