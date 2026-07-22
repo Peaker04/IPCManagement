@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/routes/routeConfig';
+import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
 
 type AuditIssue = {
   route: string;
@@ -377,7 +378,35 @@ test.describe('ui audit', () => {
 });
 
 test.describe('Phase 09 accessibility and responsive seam', () => {
-  test('discovers focus, overflow, and role-feedback coverage', async () => {
-    test.skip(true, 'Plan 09-14 owns Phase 09 accessibility, focus, and overflow assertions.');
-  });
+  for (const viewport of [
+    { name: '1365x900', width: 1365, height: 900 },
+    { name: '1280x900', width: 1280, height: 900 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '390x844', width: 390, height: 844 },
+  ] as const) {
+    test(`keeps Phase 09 operable at ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await stubAuditApi(page);
+      await stubPhase09Api(page);
+      await login(page);
+      await navigateInApp(page, `${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
+
+      const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
+      for (const label of PHASE09_STAGE_LABELS) {
+        await expect(guide.getByRole('button', { name: new RegExp(label) })).toBeVisible();
+      }
+
+      const stageButton = guide.getByRole('button', { name: new RegExp(PHASE09_STAGE_LABELS[0]) });
+      await stageButton.focus();
+      await expect(stageButton).toBeFocused();
+      const tableRegion = page.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
+      await expect(tableRegion).toBeVisible();
+      await expect(tableRegion).toHaveAttribute('tabindex', '0');
+      await stabilize(page);
+      await expectNoAuditIssues(
+        `phase09-${viewport.name}`,
+        await collectLayoutIssues(page, 'purchasing-phase09', viewport.name),
+      );
+    });
+  }
 });

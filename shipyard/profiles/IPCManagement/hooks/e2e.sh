@@ -18,6 +18,22 @@ else
   die "E2E script not found in lane or source repo"
 fi
 
+if [ "$#" -gt 0 ]; then
+  PLAYWRIGHT_ARGS=("$@")
+  if [[ "${PLAYWRIGHT_ARGS[0]}" != tests/* ]]; then
+    PLAYWRIGHT_ARGS[0]="tests/${PLAYWRIGHT_ARGS[0]}"
+  fi
+
+  echo "harness: running scoped Playwright tests against $FE_URL..."
+  (
+    cd "$LANE_DIR/frontend"
+    PHASE09_REAL_STACK=1 \
+      PHASE09_FE_URL="$FE_URL" \
+      PHASE09_API_BASE="$API_BASE" \
+      npm exec -- playwright test "${PLAYWRIGHT_ARGS[@]}"
+  )
+fi
+
 BRANCH_NAME="$(git -C "$LANE_DIR" branch --show-current)"
 FEATURE_SLUG="$(printf '%s' "${BRANCH_NAME:-ipc-e2e}" | sed -E 's#[^A-Za-z0-9._-]+#-#g; s#^-+##; s#-+$##')"
 [ -n "$FEATURE_SLUG" ] || FEATURE_SLUG="ipc-e2e"

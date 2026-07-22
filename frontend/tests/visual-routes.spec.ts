@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/routes/routeConfig';
+import { PHASE09_DATE, PHASE09_WEEK, stubPhase09Api } from './phase9-test-fixture';
 
 const visualRoutes = [
   { path: ROUTES.LOGIN, name: 'login' },
@@ -263,7 +264,35 @@ test.describe('visual routes', () => {
 });
 
 test.describe('Phase 09 deterministic visual seam', () => {
-  test('discovers Purchasing and Warehouse snapshot cases', async () => {
-    test.skip(true, 'Plan 09-14 generates the eight registered PNG snapshots.');
-  });
+  for (const viewport of [
+    { name: '1365x900', width: 1365, height: 900 },
+    { name: '1280x900', width: 1280, height: 900 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '390x844', width: 390, height: 844 },
+  ] as const) {
+    test.describe(viewport.name, () => {
+      test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+      for (const route of [
+        {
+          name: 'purchasing-phase09',
+          path: `${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`,
+        },
+        {
+          name: 'warehouse-phase09',
+          path: `${ROUTES.WAREHOUSE}?week=${PHASE09_WEEK}&purchaseRequestId=pr-phase09`,
+        },
+      ] as const) {
+        test(`${route.name} visual baseline`, async ({ page }) => {
+          await stubVisualApi(page);
+          await stubPhase09Api(page);
+          await login(page);
+          await page.goto(route.path);
+          await expect(page.locator('.ipc-app-shell')).toBeVisible();
+          await stabilizeVisuals(page);
+          await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`);
+        });
+      }
+    });
+  }
 });

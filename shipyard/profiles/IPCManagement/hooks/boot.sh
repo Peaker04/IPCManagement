@@ -14,6 +14,6 @@ harness_spawn api "$LANE_DIR" \
   dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj \
     -c Release --no-build --urls "http://0.0.0.0:$API_PORT"
 harness_spawn frontend "$LANE_DIR/frontend" \
-  npm run dev -- --host 0.0.0.0 --port "$FE_PORT"
+  env VITE_API_BASE_URL="$API_BASE" npm run dev -- --host 0.0.0.0 --port "$FE_PORT"
 
 echo "harness: boot complete"

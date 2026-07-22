@@ -136,7 +136,7 @@ export function OrderHandoffStatus({ serviceDate, week }: { serviceDate: Purchas
       <p className="mt-2 text-[14px] leading-[1.5] text-slate-700">
         {serviceDate.fullyReceivedLineCount}/{serviceDate.receivingLineCount} dòng đã nhận đủ trên {serviceDate.orderCount} đơn đặt hàng.
       </p>
-      <Button className="mt-3 min-h-11 sm:min-h-9" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?week=${week}&purchaseRequestId=${serviceDate.purchaseRequestId ?? ''}`} />}>
+      <Button nativeButton={false} className="mt-3 min-h-11 sm:min-h-9" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?week=${week}&purchaseRequestId=${serviceDate.purchaseRequestId ?? ''}`} />}>
         <PackageCheck aria-hidden="true" />
         Mở màn hình nhập kho
       </Button>
