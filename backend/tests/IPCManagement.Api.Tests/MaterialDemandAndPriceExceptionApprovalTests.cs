@@ -457,10 +457,99 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             history.TargetType == "material-demand" && history.TargetId == terminal.RequestId)).Should().Be(1);
     }
 
-    [Fact(Skip = "Plan 09-10 owns auditable price-exception approval behavior.")]
-    public void Manager_resolves_price_exception_above_fifteen_percent()
+    [Theory]
+    [InlineData("price-exception")]
+    [InlineData("purchase-price-exception")]
+    [InlineData("purchasepriceexception")]
+    public void Manager_resolves_price_exception_above_fifteen_percent(string alias)
     {
-        Assert.Fail("Plan 09-10 must persist and resolve price exceptions.");
+        ApprovalTargetTypeParser.Parse(alias).Should().Be(ApprovalTargetType.PurchasePriceException);
+        AuthorizationPolicies.ResolvePermissions("Manager")
+            .Should().Contain(AuthorizationPolicies.PurchasePriceExceptionApprove);
+        AuthorizationPolicies.ResolvePermissions("Admin")
+            .Should().Contain(AuthorizationPolicies.PurchasePriceExceptionApprove);
+        AuthorizationPolicies.ResolvePermissions("Purchasing")
+            .Should().NotContain(AuthorizationPolicies.PurchasePriceExceptionApprove);
+        AuthorizationPolicies.ResolvePermissions("WarehouseStaff")
+            .Should().NotContain(AuthorizationPolicies.PurchasePriceExceptionApprove);
+    }
+
+    [Fact]
+    public async Task Manager_approves_current_price_exception_with_durable_history()
+    {
+        await using var fixture = await PriceExceptionApprovalFixture.CreateAsync();
+        var targetId = await fixture.SeedAsync("PENDING");
+
+        var result = await fixture.CreateWorkflowService().ExecuteAsync(
+            "purchase-price-exception",
+            targetId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Báo giá hợp lệ" },
+            fixture.ActorIdString,
+            BuildPrincipal("Manager"));
+
+        result!.TargetType.Should().Be("purchase-price-exception");
+        result.NewStatus.Should().Be("APPROVED");
+        await using var context = fixture.CreateContext();
+        var priceException = await context.Purchasepriceexceptions.AsNoTracking().SingleAsync();
+        priceException.Status.Should().Be("APPROVED");
+        priceException.DecidedBy.Should().Equal(fixture.ActorId);
+        priceException.DecisionReason.Should().Be("Báo giá hợp lệ");
+        priceException.DecidedAt.Should().NotBeNull();
+        var history = await context.Approvalhistories.AsNoTracking().SingleAsync();
+        history.TargetType.Should().Be("purchase-price-exception");
+        history.TargetId.Should().Equal(priceException.PurchasePriceExceptionId);
+        history.ActionBy.Should().Equal(fixture.ActorId);
+    }
+
+    [Fact]
+    public async Task Manager_cannot_approve_stale_price_exception_fingerprint()
+    {
+        await using var fixture = await PriceExceptionApprovalFixture.CreateAsync();
+        var targetId = await fixture.SeedAsync("PENDING", staleFingerprint: true);
+
+        var act = () => fixture.CreateWorkflowService().ExecuteAsync(
+            "purchase-price-exception",
+            targetId,
+            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được dùng" },
+            fixture.ActorIdString,
+            BuildPrincipal("Manager"));
+
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>();
+        await using var context = fixture.CreateContext();
+        (await context.Purchasepriceexceptions.AsNoTracking().SingleAsync()).Status.Should().Be("PENDING");
+        (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Inbox_manager_sees_pending_price_exception_with_decision_evidence()
+    {
+        await using var context = CreateInboxContext();
+        var setup = await SeedPriceExceptionConfirmationAsync(context);
+        var service = new PurchaseRequestWorkflowService(context, new SupplierQuotationService(context));
+        await service.ConfirmLineSupplierAsync(
+            setup.RequestId,
+            setup.LineId,
+            BuildConfirmation(setup, 120m, "Giá nguyên liệu tăng", 0),
+            setup.ActorId);
+        var priceException = await context.Purchasepriceexceptions.AsNoTracking().SingleAsync();
+
+        var inboxService = new ApprovalInboxService(context, Substitute.For<IApprovalRoutingService>());
+        var managerInbox = await inboxService.GetPendingAsync(
+            BuildPrincipal("Manager"), new ApprovalInboxQueryDto { Limit = 20 });
+        var item = managerInbox.Should().ContainSingle(candidate =>
+            candidate.TargetType == "purchase-price-exception").Subject;
+        item.TargetId.Should().Be(GuidHelper.ToGuidString(priceException.PurchasePriceExceptionId));
+        item.Reason.Should().Be("Giá nguyên liệu tăng");
+        ReadProperty<decimal?>(item, "ReferencePrice").Should().Be(100m);
+        ReadProperty<decimal?>(item, "ProposedPrice").Should().Be(120m);
+        ReadProperty<decimal?>(item, "VariancePercent").Should().Be(20m);
+        ReadProperty<string>(item, "EvidenceType").Should().Be("EFFECTIVE_QUOTATION");
+        ReadProperty<string>(item, "EvidenceId").Should().Be(GuidHelper.ToGuidString(setup.EvidenceId));
+        ReadProperty<int?>(item, "ProposalVersion").Should().Be(1);
+
+        var purchasingInbox = await inboxService.GetPendingAsync(
+            BuildPrincipal("Purchasing"), new ApprovalInboxQueryDto { Limit = 20 });
+        purchasingInbox.Should().NotContain(candidate => candidate.TargetType == "purchase-price-exception");
     }
 
     private static ClaimsPrincipal BuildPrincipal(string role)
@@ -492,6 +581,24 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var requestId = GuidHelper.NewId();
         var lineId = GuidHelper.NewId();
         var evidenceId = GuidHelper.NewId();
+        var roleId = GuidHelper.NewId();
+        var role = new Role
+        {
+            RoleId = roleId,
+            RoleCode = "PURCHASING-PRICE",
+            RoleName = "Purchasing"
+        };
+        var user = new User
+        {
+            UserId = actorId,
+            FullName = "Nhân viên thu mua",
+            Username = "purchasing-price",
+            PasswordHash = "hash",
+            RoleId = roleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            Role = role
+        };
         var unit = new Unit
         {
             UnitId = unitId,
@@ -524,7 +631,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             RequestDate = new DateOnly(2026, 7, 22),
             PurchaseForDate = new DateOnly(2026, 7, 23),
             Status = "DRAFT",
-            CreatedBy = actorId
+            CreatedBy = actorId,
+            CreatedByNavigation = user
         };
         var line = new Purchaserequestline
         {
@@ -553,7 +661,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             Supplier = supplier,
             Ingredient = ingredient
         };
-        context.AddRange(unit, supplier, ingredient, request, line, quotation);
+        context.AddRange(role, user, unit, supplier, ingredient, request, line, quotation);
         await context.SaveChangesAsync();
 
         return new PriceExceptionConfirmationSetup(
@@ -572,6 +680,143 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         byte[] ActorIdBytes,
         byte[] SupplierId,
         byte[] EvidenceId);
+
+    private sealed class PriceExceptionApprovalFixture : IAsyncDisposable
+    {
+        private readonly SqliteConnection _connection;
+        private readonly DbContextOptions<IpcManagementContext> _options;
+
+        private PriceExceptionApprovalFixture(
+            SqliteConnection connection,
+            DbContextOptions<IpcManagementContext> options)
+        {
+            _connection = connection;
+            _options = options;
+        }
+
+        public byte[] ActorId { get; } = GuidHelper.NewId();
+        public string ActorIdString => GuidHelper.ToGuidString(ActorId);
+
+        public static async Task<PriceExceptionApprovalFixture> CreateAsync()
+        {
+            var connection = new SqliteConnection("Data Source=:memory:");
+            await connection.OpenAsync();
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE purchaselinesupplierdecisions (
+                    purchaseLineSupplierDecisionId BLOB PRIMARY KEY,
+                    purchaseRequestLineId BLOB NOT NULL,
+                    supplierId BLOB NOT NULL,
+                    evidenceType TEXT NOT NULL,
+                    evidenceId BLOB NOT NULL,
+                    evidenceDate TEXT NOT NULL,
+                    evidenceReferencePrice TEXT NOT NULL,
+                    proposedUnitPrice TEXT NOT NULL,
+                    proposedDeliveryDate TEXT NOT NULL,
+                    confirmedBy BLOB NOT NULL,
+                    confirmedAt TEXT NOT NULL,
+                    decisionFingerprint TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    currentDecisionKey BLOB NULL,
+                    supersededByDecisionId BLOB NULL,
+                    concurrencyVersion INTEGER NOT NULL
+                );
+                CREATE TABLE purchasepriceexceptions (
+                    purchasePriceExceptionId BLOB PRIMARY KEY,
+                    purchaseLineSupplierDecisionId BLOB NOT NULL,
+                    referencePrice TEXT NOT NULL,
+                    proposedPrice TEXT NOT NULL,
+                    variancePercent TEXT NOT NULL,
+                    evidenceType TEXT NOT NULL,
+                    evidenceId BLOB NOT NULL,
+                    evidenceDate TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    proposalFingerprint TEXT NOT NULL,
+                    proposalVersion INTEGER NOT NULL,
+                    requestedBy BLOB NOT NULL,
+                    requestedAt TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    decidedBy BLOB NULL,
+                    decisionReason TEXT NULL,
+                    decidedAt TEXT NULL,
+                    supersededByExceptionId BLOB NULL,
+                    concurrencyVersion INTEGER NOT NULL
+                );
+                CREATE TABLE approvalhistories (
+                    approvalHistoryId BLOB PRIMARY KEY,
+                    targetType TEXT NOT NULL,
+                    targetId BLOB NOT NULL,
+                    decision TEXT NOT NULL,
+                    oldStatus TEXT NULL,
+                    newStatus TEXT NULL,
+                    reason TEXT NULL,
+                    actionBy BLOB NOT NULL,
+                    actionAt TEXT NOT NULL
+                );
+                """;
+            await command.ExecuteNonQueryAsync();
+            var options = new DbContextOptionsBuilder<IpcManagementContext>()
+                .UseSqlite(connection)
+                .Options;
+            return new PriceExceptionApprovalFixture(connection, options);
+        }
+
+        public IpcManagementContext CreateContext() => new(_options);
+
+        public IApprovalWorkflowService CreateWorkflowService()
+            => new ApprovalWorkflowService([new PurchasePriceExceptionApprovalHandler(CreateContext())]);
+
+        public async Task<string> SeedAsync(string status, bool staleFingerprint = false)
+        {
+            await using var context = CreateContext();
+            var decisionId = GuidHelper.NewId();
+            var fingerprint = new string('A', 64);
+            var decision = new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = decisionId,
+                PurchaseRequestLineId = GuidHelper.NewId(),
+                SupplierId = GuidHelper.NewId(),
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 7, 22),
+                EvidenceReferencePrice = 100m,
+                ProposedUnitPrice = 120m,
+                ProposedDeliveryDate = new DateOnly(2026, 7, 23),
+                ConfirmedBy = ActorId,
+                ConfirmedAt = DateTime.UtcNow,
+                DecisionFingerprint = staleFingerprint ? new string('B', 64) : fingerprint,
+                Version = 1,
+                Status = "CURRENT",
+                CurrentDecisionKey = GuidHelper.NewId(),
+                ConcurrencyVersion = 1
+            };
+            var priceException = new Purchasepriceexception
+            {
+                PurchasePriceExceptionId = GuidHelper.NewId(),
+                PurchaseLineSupplierDecisionId = decisionId,
+                ReferencePrice = 100m,
+                ProposedPrice = 120m,
+                VariancePercent = 20m,
+                EvidenceType = decision.EvidenceType,
+                EvidenceId = decision.EvidenceId,
+                EvidenceDate = decision.EvidenceDate,
+                Reason = "Giá nguyên liệu tăng",
+                ProposalFingerprint = fingerprint,
+                ProposalVersion = 1,
+                RequestedBy = ActorId,
+                RequestedAt = DateTime.UtcNow,
+                Status = status,
+                ConcurrencyVersion = 1,
+                PurchaseLineSupplierDecision = decision
+            };
+            context.AddRange(decision, priceException);
+            await context.SaveChangesAsync();
+            return GuidHelper.ToGuidString(priceException.PurchasePriceExceptionId);
+        }
+
+        public async ValueTask DisposeAsync() => await _connection.DisposeAsync();
+    }
 
     private static string FindRepositoryFile(params string[] segments)
     {

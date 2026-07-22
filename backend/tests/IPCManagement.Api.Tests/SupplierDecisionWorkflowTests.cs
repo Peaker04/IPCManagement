@@ -829,10 +829,74 @@ public class SupplierDecisionWorkflowTests
         ]);
     }
 
-    [Fact(Skip = "Plan 09-10 owns the price threshold and exception handoff.")]
-    public void Supplier_price_above_threshold_routes_to_manager_exception_approval()
+    [Fact]
+    public async Task Supplier_price_above_threshold_routes_to_manager_exception_approval()
     {
-        Assert.Fail("Plan 09-10 must route strict greater-than-fifteen-percent exceptions.");
+        await using var context = CreateContext();
+        var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
+        var supplier = SeedSupplier(context, "SUP-EXCEPTION", "Exception supplier");
+        await context.SaveChangesAsync();
+        var service = CreateService(context);
+        var generated = await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
+            },
+            UserId);
+        var quotation = SeedQuotation(
+            context,
+            supplier,
+            demand.Materialrequestlines.Single().Ingredient,
+            100m,
+            new DateOnly(2026, 7, 1));
+        await context.SaveChangesAsync();
+        var requestId = generated!.PurchaseRequestId;
+        var lineId = generated.Lines.Single().PurchaseRequestLineId;
+        await service.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+                SupplierId = GuidHelper.ToGuidString(supplier.SupplierId),
+                ProposedUnitPrice = 120m,
+                ProposedDeliveryDate = "2026-07-21",
+                Note = "Giá nguyên liệu tăng",
+                ExpectedDecisionVersion = 0
+            },
+            UserId);
+
+        var blocked = () => service.SubmitAsync(requestId, UserId);
+        await blocked.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*ngoại lệ giá*");
+
+        var priceException = await context.Purchasepriceexceptions.SingleAsync();
+        priceException.Status = "APPROVED";
+        priceException.DecidedBy = UserIdBytes;
+        priceException.DecisionReason = "Báo giá hợp lệ";
+        priceException.DecidedAt = DateTime.UtcNow;
+        await context.SaveChangesAsync();
+
+        var submitted = await service.SubmitAsync(requestId, UserId);
+        submitted!.Status.Should().Be("SENTTOSUPPLIER");
+    }
+
+    [Fact]
+    public async Task Submit_exactly_fifteen_percent_requires_no_exception()
+    {
+        await using var context = CreateContext();
+        var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
+        var supplier = SeedSupplier(context, "SUP-FIFTEEN", "Fifteen supplier");
+        var request = SeedPurchaseProgress(context, demand, "DRAFT", supplier, 115m);
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).SubmitAsync(
+            GuidHelper.ToGuidString(request.PurchaseRequestId),
+            UserId);
+
+        result!.Status.Should().Be("SENTTOSUPPLIER");
+        (await context.Purchasepriceexceptions.CountAsync()).Should().Be(0);
     }
 
     private static readonly byte[] UserIdBytes = GuidHelper.NewId();
