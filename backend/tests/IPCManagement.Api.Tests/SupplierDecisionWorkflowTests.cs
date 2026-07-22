@@ -5,11 +5,16 @@ using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Services.Workflow;
+using IPCManagement.DatabaseTool;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using MySqlConnector;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 using System.Data.Common;
 
 namespace IPCManagement.Api.Tests;
@@ -97,6 +102,98 @@ public class SupplierDecisionWorkflowTests
             .Should().Equal(
                 (1, "SUPERSEDED", new string('A', 64)),
                 (2, "CURRENT", new string('B', 64)));
+    }
+
+    [Fact]
+    public async Task Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema()
+    {
+        if (!MySqlMigrationTestsEnabled())
+        {
+            return;
+        }
+
+        await new PurchaseHistoryReconciliationTests().Migration_fresh_database_applies_reconciliation_schema();
+
+        const string database = "ipc_lane8";
+        await using var context = CreateMySqlContext(database);
+        (await context.Database.GetAppliedMigrationsAsync()).Should().ContainSingle(
+            migration => migration == "20260722163000_AddSupplierDecisionsAndPriceExceptions");
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.TABLES
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME IN ('purchaselinesupplierdecisions', 'purchasepriceexceptions');
+            """)).Should().Be(2);
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'purchaserequestlines'
+              AND COLUMN_NAME = 'supplierId'
+              AND IS_NULLABLE = 'YES';
+            """)).Should().Be(1);
+        (await SchemaObjectCountAsync(
+            database,
+            """
+            SELECT COUNT(*)
+            FROM INFORMATION_SCHEMA.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'purchaseorders'
+              AND INDEX_NAME = 'ixPurchaseOrdersRequestSupplier'
+              AND NON_UNIQUE = 0;
+            """)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Migration_upgrade_preserves_supplier_snapshots_and_rejects_duplicate_purchase_order_keys()
+    {
+        if (!MySqlMigrationTestsEnabled())
+        {
+            return;
+        }
+
+        const string database = "ipc_lane9";
+        await using var context = CreateMySqlContext(database);
+        var appliedBefore = (await context.Database.GetAppliedMigrationsAsync()).ToArray();
+        appliedBefore.Should().NotContain("20260722163000_AddSupplierDecisionsAndPriceExceptions");
+        var fingerprintBefore = await SupplierSnapshotFingerprintAsync(database);
+        var historicalSupplierCount = await SchemaObjectCountAsync(
+            database,
+            "SELECT COUNT(*) FROM purchaserequestlines WHERE supplierId IS NOT NULL;");
+
+        await context.Database.MigrateAsync();
+        context.ChangeTracker.Clear();
+
+        (await context.Database.GetAppliedMigrationsAsync()).Should().ContainSingle(
+            migration => migration == "20260722163000_AddSupplierDecisionsAndPriceExceptions");
+        (await SupplierSnapshotFingerprintAsync(database)).Should().Be(fingerprintBefore);
+        (await SchemaObjectCountAsync(
+            database,
+            "SELECT COUNT(*) FROM purchaserequestlines WHERE isLegacySupplierSnapshot = 1;"))
+            .Should().Be(historicalSupplierCount);
+        (await SchemaObjectCountAsync(
+            database,
+            "SELECT COUNT(*) FROM purchaselinesupplierdecisions;"))
+            .Should().Be(0, "the migration must not fabricate quote/receipt confirmation evidence");
+
+        var duplicateInsert = async () => await ExecuteNonQueryAsync(
+            database,
+            """
+            INSERT INTO purchaseorders
+                (purchaseOrderId, purchaseOrderCode, purchaseRequestId, supplierId, orderDate, status, createdBy, createdAt, updatedAt)
+            SELECT UUID_TO_BIN(UUID()), CONCAT(purchaseOrderCode, '-DUP'), purchaseRequestId, supplierId,
+                   orderDate, status, createdBy, createdAt, updatedAt
+            FROM purchaseorders
+            LIMIT 1;
+            """);
+        (await SchemaObjectCountAsync(database, "SELECT COUNT(*) FROM purchaseorders;"))
+            .Should().BeGreaterThan(0);
+        await duplicateInsert.Should().ThrowAsync<MySqlException>()
+            .Where(exception => exception.Number == 1062);
     }
 
     [Theory]
@@ -393,6 +490,94 @@ public class SupplierDecisionWorkflowTests
         return new IpcManagementContext(options);
     }
 
+    private static bool MySqlMigrationTestsEnabled()
+        => string.Equals(
+            Environment.GetEnvironmentVariable("IPC_RUN_MYSQL_MIGRATION_TESTS"),
+            "1",
+            StringComparison.Ordinal);
+
+    private static IpcManagementContext CreateMySqlContext(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseMySql(
+                DisposableConnectionString(database),
+                new MySqlServerVersion(new Version(8, 0, 0)))
+            .Options;
+        return new IpcManagementContext(options);
+    }
+
+    private static async Task<long> SchemaObjectCountAsync(string database, string sql)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return Convert.ToInt64(await command.ExecuteScalarAsync());
+    }
+
+    private static async Task<int> ExecuteNonQueryAsync(string database, string sql)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = sql;
+        return await command.ExecuteNonQueryAsync();
+    }
+
+    private static string DisposableConnectionString(string database)
+    {
+        DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
+        using var settings = JsonDocument.Parse(File.ReadAllText(
+            FindRepositoryFile("backend", "src", "IPCManagement.Api", "appsettings.json")));
+        var configured = settings.RootElement
+            .GetProperty("ConnectionStrings")
+            .GetProperty("DefaultConnection")
+            .GetString() ?? throw new InvalidOperationException("DefaultConnection is missing.");
+        return new MySqlConnectionStringBuilder(configured)
+        {
+            Database = database
+        }.ConnectionString;
+    }
+
+    private static async Task<string> SupplierSnapshotFingerprintAsync(string database)
+    {
+        await using var connection = new MySqlConnection(DisposableConnectionString(database));
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT CONCAT(HEX(purchaseRequestLineId), '|', COALESCE(HEX(supplierId), '<NULL>'))
+            FROM purchaserequestlines
+            ORDER BY HEX(purchaseRequestLineId);
+            """;
+        await using var reader = await command.ExecuteReaderAsync();
+        using var hash = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        while (await reader.ReadAsync())
+        {
+            hash.AppendData(Encoding.UTF8.GetBytes(reader.GetString(0)));
+            hash.AppendData("\n"u8);
+        }
+
+        return Convert.ToHexString(hash.GetHashAndReset());
+    }
+
+    private static string FindRepositoryFile(params string[] segments)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var candidate = Path.Combine([current.FullName, .. segments]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new FileNotFoundException($"Không tìm thấy file fixture: {Path.Combine(segments)}");
+    }
+
     private static Task CreateWorkbenchSqliteSchemaAsync(IpcManagementContext context)
         => context.Database.ExecuteSqlRawAsync("""
             CREATE TABLE materialrequests (
@@ -434,6 +619,7 @@ public class SupplierDecisionWorkflowTests
                 materialRequestLineId BLOB NOT NULL,
                 ingredientId BLOB NOT NULL,
                 supplierId BLOB NULL,
+                isLegacySupplierSnapshot INTEGER NOT NULL DEFAULT 0,
                 unitId BLOB NOT NULL,
                 requiredQty TEXT NOT NULL,
                 currentStockQty TEXT NOT NULL,
