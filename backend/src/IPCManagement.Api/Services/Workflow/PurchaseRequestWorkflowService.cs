@@ -4,6 +4,7 @@ using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 
 namespace IPCManagement.Api.Services.Workflow;
 
@@ -16,6 +17,15 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         "MANAGERAPPROVED",
         "APPROVED"
     };
+    private static readonly HashSet<string> WorkbenchStages = new(StringComparer.Ordinal)
+    {
+        "demand",
+        "supplier-price",
+        "exception",
+        "submitted",
+        "approved-order",
+        "receiving"
+    };
 
     private readonly IpcManagementContext _context;
     private readonly ISupplierQuotationService _supplierQuotationService;
@@ -24,6 +34,243 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     {
         _context = context;
         _supplierQuotationService = supplierQuotationService;
+    }
+
+    public async Task<PurchaseWorkbenchWeekDto> GetWorkbenchWeekAsync(
+        PurchaseWorkbenchQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        var weekStart = ParseWorkbenchDate(query.Week, nameof(query.Week));
+        if (weekStart.DayOfWeek != DayOfWeek.Monday)
+        {
+            throw new ArgumentException("Tuần thu mua phải bắt đầu vào thứ Hai.", nameof(query.Week));
+        }
+
+        var weekEnd = weekStart.AddDays(6);
+        DateOnly? selectedDate = null;
+        if (!string.IsNullOrWhiteSpace(query.Date))
+        {
+            selectedDate = ParseWorkbenchDate(query.Date, nameof(query.Date));
+            if (selectedDate < weekStart || selectedDate > weekEnd)
+            {
+                throw new ArgumentException("Ngày cần xem phải nằm trong tuần đã chọn.", nameof(query.Date));
+            }
+        }
+
+        var selectedStage = NormalizeWorkbenchStage(query.Stage);
+        var page = Math.Max(1, query.Page);
+        var pageSize = query.PageSize <= 0 ? 8 : Math.Min(query.PageSize, 100);
+
+        var demandRows = await BuildApprovedWorkbenchDemandQuery(weekStart, weekEnd)
+            .OrderBy(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .ToListAsync(cancellationToken);
+
+        var purchaseRequests = await _context.Purchaserequests
+            .AsNoTracking()
+            .Where(request =>
+                request.PurchaseForDate >= weekStart &&
+                request.PurchaseForDate <= weekEnd &&
+                request.ShiftName == null)
+            .OrderBy(request => request.PurchaseForDate)
+            .ThenBy(request => request.PurchaseRequestCode)
+            .ToListAsync(cancellationToken);
+        var isInMemoryProvider = string.Equals(
+            _context.Database.ProviderName,
+            "Microsoft.EntityFrameworkCore.InMemory",
+            StringComparison.Ordinal);
+        var purchaseLineQuery = _context.Purchaserequestlines
+            .AsNoTracking()
+            .Include(line => line.Ingredient)
+            .Include(line => line.PurchaseRequest)
+            .AsQueryable();
+        if (!isInMemoryProvider)
+        {
+            purchaseLineQuery = purchaseLineQuery.Where(line =>
+                line.PurchaseRequest.PurchaseForDate >= weekStart &&
+                line.PurchaseRequest.PurchaseForDate <= weekEnd &&
+                line.PurchaseRequest.ShiftName == null);
+        }
+
+        var purchaseRequestKeys = purchaseRequests
+            .Select(request => BuildKey(request.PurchaseRequestId))
+            .ToHashSet();
+        var queriedPurchaseLines = await purchaseLineQuery.ToListAsync(cancellationToken);
+        var purchaseLines = (isInMemoryProvider
+                ? _context.ChangeTracker.Entries<Purchaserequestline>()
+                    .Select(entry => entry.Entity)
+                    .Concat(queriedPurchaseLines)
+                    .DistinctBy(line => BuildKey(line.PurchaseRequestLineId))
+                : queriedPurchaseLines)
+            .Where(line => purchaseRequestKeys.Contains(BuildKey(line.PurchaseRequestId)))
+            .ToList();
+
+        var purchaseOrderQuery = _context.Purchaseorders
+            .AsNoTracking()
+            .AsSplitQuery()
+            .Include(order => order.PurchaseRequest)
+            .Include(order => order.Purchaseorderlines)
+            .AsQueryable();
+        if (!isInMemoryProvider)
+        {
+            purchaseOrderQuery = purchaseOrderQuery.Where(order =>
+                order.PurchaseRequest.PurchaseForDate >= weekStart &&
+                order.PurchaseRequest.PurchaseForDate <= weekEnd &&
+                order.PurchaseRequest.ShiftName == null);
+        }
+
+        var queriedPurchaseOrders = await purchaseOrderQuery.ToListAsync(cancellationToken);
+        var purchaseOrders = (isInMemoryProvider
+                ? _context.ChangeTracker.Entries<Purchaseorder>()
+                    .Select(entry => entry.Entity)
+                    .Concat(queriedPurchaseOrders)
+                    .DistinctBy(order => BuildKey(order.PurchaseOrderId))
+                : queriedPurchaseOrders)
+            .Where(order => purchaseRequestKeys.Contains(BuildKey(order.PurchaseRequestId)))
+            .ToList();
+
+        var purchaseByDate = purchaseRequests
+            .GroupBy(request => request.PurchaseForDate)
+            .ToDictionary(
+                group => group.Key,
+                group => group
+                    .OrderByDescending(request =>
+                        string.Equals(
+                            request.PurchaseRequestCode,
+                            $"PR-{group.Key:yyyyMMdd}-FULLDAY",
+                            StringComparison.Ordinal))
+                    .ThenBy(request => request.PurchaseRequestCode)
+                    .First());
+        var demandsByDate = demandRows
+            .GroupBy(row => row.RequestDate)
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var linesByRequest = purchaseLines
+            .GroupBy(line => BuildKey(line.PurchaseRequestId))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var ordersByRequest = purchaseOrders
+            .GroupBy(order => BuildKey(order.PurchaseRequestId))
+            .ToDictionary(group => group.Key, group => group.ToList());
+        var serviceDateValues = demandsByDate.Keys
+            .Concat(purchaseByDate.Keys)
+            .Distinct()
+            .OrderBy(date => date)
+            .ToList();
+
+        selectedDate ??= serviceDateValues.FirstOrDefault();
+        if (serviceDateValues.Count == 0)
+        {
+            selectedDate = null;
+        }
+
+        var stageCounts = new PurchaseWorkflowStageCountsDto();
+        var serviceDates = new List<PurchaseWorkbenchServiceDateDto>(serviceDateValues.Count);
+        foreach (var serviceDate in serviceDateValues)
+        {
+            demandsByDate.TryGetValue(serviceDate, out var dateDemands);
+            purchaseByDate.TryGetValue(serviceDate, out var purchaseRequest);
+            dateDemands ??= [];
+            var purchaseKey = purchaseRequest is null ? null : BuildKey(purchaseRequest.PurchaseRequestId);
+            var purchaseRequestLines = purchaseKey is not null && linesByRequest.TryGetValue(purchaseKey, out var foundLines)
+                ? foundLines
+                : [];
+            var purchaseRequestOrders = purchaseKey is not null && ordersByRequest.TryGetValue(purchaseKey, out var foundOrders)
+                ? foundOrders
+                : [];
+            var currentStage = ResolveWorkbenchStage(
+                purchaseRequest,
+                purchaseRequestLines,
+                purchaseRequestOrders);
+            IncrementWorkbenchStageCount(stageCounts, currentStage);
+
+            var orderLines = purchaseRequestOrders
+                .SelectMany(order => order.Purchaseorderlines)
+                .ToList();
+            serviceDates.Add(new PurchaseWorkbenchServiceDateDto
+            {
+                ServiceDate = serviceDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                CurrentStage = currentStage,
+                ApprovedDemandCount = dateDemands.Count,
+                ShortageLineCount = dateDemands.Sum(item => item.ShortageLineCount),
+                SupplierReadyLineCount = purchaseRequestLines.Count(IsSupplierReady),
+                BlockingExceptionCount = purchaseRequestLines.Count(HasPriceException),
+                PurchaseRequestId = purchaseRequest is null
+                    ? null
+                    : GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
+                PurchaseRequestCode = purchaseRequest?.PurchaseRequestCode,
+                PurchaseRequestStatus = purchaseRequest?.Status,
+                OrderCount = purchaseRequestOrders.Count,
+                ReceivingLineCount = orderLines.Count,
+                FullyReceivedLineCount = orderLines.Count(line =>
+                    line.OrderedQty > 0 && line.ReceivedQty >= line.OrderedQty)
+            });
+        }
+
+        var totalItems = 0;
+        IReadOnlyList<ApprovedDemandSummaryDto> selectedDetails = [];
+        if (selectedDate is not null)
+        {
+            purchaseByDate.TryGetValue(selectedDate.Value, out var selectedPurchaseRequest);
+            var selectedPurchaseKey = selectedPurchaseRequest is null
+                ? null
+                : BuildKey(selectedPurchaseRequest.PurchaseRequestId);
+            var selectedLines = selectedPurchaseKey is not null && linesByRequest.TryGetValue(selectedPurchaseKey, out var foundSelectedLines)
+                ? foundSelectedLines
+                : [];
+            var selectedOrders = selectedPurchaseKey is not null && ordersByRequest.TryGetValue(selectedPurchaseKey, out var foundSelectedOrders)
+                ? foundSelectedOrders
+                : [];
+            var selectedDateStage = ResolveWorkbenchStage(
+                selectedPurchaseRequest,
+                selectedLines,
+                selectedOrders);
+            if (selectedStage is null || string.Equals(selectedStage, selectedDateStage, StringComparison.Ordinal))
+            {
+                var detailQuery = BuildApprovedWorkbenchDemandQuery(selectedDate.Value, selectedDate.Value);
+                totalItems = await detailQuery.CountAsync(cancellationToken);
+                var detailRows = await detailQuery
+                    .OrderBy(item => item.RequestCode)
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .ToListAsync(cancellationToken);
+                selectedDetails = detailRows
+                    .Select(item => new ApprovedDemandSummaryDto
+                    {
+                        MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                        RequestCode = item.RequestCode,
+                        ServiceDate = item.RequestDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                        Status = item.Status,
+                        ShortageLineCount = item.ShortageLineCount,
+                        CurrentStage = selectedDateStage,
+                        PurchaseRequestId = selectedPurchaseRequest is null
+                            ? null
+                            : GuidHelper.ToGuidString(selectedPurchaseRequest.PurchaseRequestId),
+                        PurchaseRequestCode = selectedPurchaseRequest?.PurchaseRequestCode,
+                        PurchaseRequestStatus = selectedPurchaseRequest?.Status
+                    })
+                    .ToList();
+            }
+
+            var selectedDateText = selectedDate.Value.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var selectedDateSummary = serviceDates.SingleOrDefault(item => item.ServiceDate == selectedDateText);
+            if (selectedDateSummary is not null)
+            {
+                selectedDateSummary.ApprovedDemands = selectedDetails;
+            }
+        }
+
+        return new PurchaseWorkbenchWeekDto
+        {
+            WeekStart = weekStart.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            WeekEnd = weekEnd.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            SelectedDate = selectedDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+            SelectedStage = selectedStage,
+            Page = page,
+            PageSize = pageSize,
+            TotalItems = totalItems,
+            TotalPages = totalItems == 0 ? 0 : (int)Math.Ceiling(totalItems / (double)pageSize),
+            StageCounts = stageCounts,
+            ServiceDates = serviceDates
+        };
     }
 
     public async Task<PurchaseRequestWorkflowResultDto?> GenerateFromDemandAsync(
@@ -460,6 +707,131 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
     }
 
+    private IQueryable<WorkbenchDemandRow> BuildApprovedWorkbenchDemandQuery(
+        DateOnly dateFrom,
+        DateOnly dateTo)
+        => _context.Materialrequests
+            .AsNoTracking()
+            .Where(request =>
+                request.RequestDate >= dateFrom &&
+                request.RequestDate <= dateTo &&
+                request.RequestScope == "FULLDAY" &&
+                (request.Status == "MANAGERAPPROVED" || request.Status == "APPROVED"))
+            .Select(request => new WorkbenchDemandRow
+            {
+                RequestId = request.RequestId,
+                RequestCode = request.RequestCode,
+                RequestDate = request.RequestDate,
+                Status = request.Status,
+                ShortageLineCount = request.Materialrequestlines.Count(line => line.SuggestedPurchaseQty > 0)
+            });
+
+    private static DateOnly ParseWorkbenchDate(string? value, string parameterName)
+    {
+        if (!DateOnly.TryParseExact(
+                value,
+                "yyyy-MM-dd",
+                CultureInfo.InvariantCulture,
+                DateTimeStyles.None,
+                out var parsed))
+        {
+            throw new ArgumentException("Ngày phải có định dạng yyyy-MM-dd.", parameterName);
+        }
+
+        return parsed;
+    }
+
+    private static string? NormalizeWorkbenchStage(string? stage)
+    {
+        if (string.IsNullOrWhiteSpace(stage))
+        {
+            return null;
+        }
+
+        var normalized = stage.Trim().ToLowerInvariant();
+        if (!WorkbenchStages.Contains(normalized))
+        {
+            throw new ArgumentException("Giai đoạn thu mua không hợp lệ.", nameof(stage));
+        }
+
+        return normalized;
+    }
+
+    private static string ResolveWorkbenchStage(
+        Purchaserequest? request,
+        IReadOnlyCollection<Purchaserequestline> lines,
+        IReadOnlyCollection<Purchaseorder> orders)
+    {
+        if (request is null)
+        {
+            return "demand";
+        }
+
+        if (orders.Count > 0)
+        {
+            return "receiving";
+        }
+
+        if (string.Equals(request.Status, "APPROVED", StringComparison.OrdinalIgnoreCase))
+        {
+            return "approved-order";
+        }
+
+        if (string.Equals(request.Status, PurchaseSubmittedStatus, StringComparison.OrdinalIgnoreCase))
+        {
+            return "submitted";
+        }
+
+        return lines.Any(HasPriceException)
+            ? "exception"
+            : "supplier-price";
+    }
+
+    private static bool IsSupplierReady(Purchaserequestline line)
+        => line.SupplierId is not null &&
+           line.EstimatedUnitPrice > 0 &&
+           line.ExpectedDeliveryDate is not null;
+
+    private static bool HasPriceException(Purchaserequestline line)
+    {
+        if (line.SupplierId is null || line.EstimatedUnitPrice <= 0 || line.Ingredient.ReferencePrice <= 0)
+        {
+            return false;
+        }
+
+        var variance = WorkflowReportCalculator.CalculateVariancePercent(
+            DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice),
+            DecimalPolicy.RoundMoney(line.EstimatedUnitPrice));
+        return variance > 15m;
+    }
+
+    private static void IncrementWorkbenchStageCount(
+        PurchaseWorkflowStageCountsDto counts,
+        string stage)
+    {
+        switch (stage)
+        {
+            case "demand":
+                counts.Demand++;
+                break;
+            case "supplier-price":
+                counts.SupplierPrice++;
+                break;
+            case "exception":
+                counts.Exception++;
+                break;
+            case "submitted":
+                counts.SubmittedRequest++;
+                break;
+            case "approved-order":
+                counts.ApprovedOrder++;
+                break;
+            case "receiving":
+                counts.ReceivingProgress++;
+                break;
+        }
+    }
+
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
 
@@ -598,4 +970,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             ExpectedDeliveryDate = line.ExpectedDeliveryDate?.ToString("yyyy-MM-dd"),
             Note = line.Note
         };
+
+    private sealed class WorkbenchDemandRow
+    {
+        public byte[] RequestId { get; set; } = null!;
+        public string RequestCode { get; set; } = string.Empty;
+        public DateOnly RequestDate { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public int ShortageLineCount { get; set; }
+    }
 }

@@ -192,12 +192,16 @@ public class SupplierDecisionWorkflowTests
         var approvedStage = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 24), "FULLDAY", "MR-APPROVED");
         var receivingStage = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 25), "FULLDAY", "MR-RECEIVING");
 
-        SeedPurchaseProgress(context, supplierStage, "DRAFT");
-        SeedPurchaseProgress(context, exceptionStage, "DRAFT", supplier, estimatedUnitPrice: 120m);
+        SeedPurchaseProgress(context, supplierStage, "DRAFT", supplier, estimatedUnitPrice: 115m);
+        var exceptionRequest = SeedPurchaseProgress(context, exceptionStage, "DRAFT", supplier, estimatedUnitPrice: 120m);
         SeedPurchaseProgress(context, submittedStage, "SENTTOSUPPLIER", supplier);
         SeedPurchaseProgress(context, approvedStage, "APPROVED", supplier);
         SeedPurchaseProgress(context, receivingStage, "APPROVED", supplier, withOrder: true);
         await context.SaveChangesAsync();
+        var exceptionLine = exceptionRequest.Purchaserequestlines.Single();
+        exceptionLine.SupplierId.Should().NotBeNull();
+        exceptionLine.Ingredient.ReferencePrice.Should().Be(100m);
+        exceptionLine.EstimatedUnitPrice.Should().Be(120m);
 
         var result = await CreateService(context).GetWorkbenchWeekAsync(new PurchaseWorkbenchQueryDto
         {
@@ -205,6 +209,19 @@ public class SupplierDecisionWorkflowTests
             Date = "2026-07-20"
         });
 
+        var exceptionSummary = result.ServiceDates.Single(item => item.ServiceDate == "2026-07-22");
+        exceptionSummary.SupplierReadyLineCount.Should().Be(1);
+        exceptionSummary.BlockingExceptionCount.Should().Be(1);
+        result.ServiceDates.Single(item => item.ServiceDate == "2026-07-21")
+            .BlockingExceptionCount.Should().Be(0);
+        result.ServiceDates.Select(item => $"{item.ServiceDate}:{item.CurrentStage}")
+            .Should().Equal(
+                "2026-07-20:demand",
+                "2026-07-21:supplier-price",
+                "2026-07-22:exception",
+                "2026-07-23:submitted",
+                "2026-07-24:approved-order",
+                "2026-07-25:receiving");
         result.StageCounts.Demand.Should().Be(1);
         result.StageCounts.SupplierPrice.Should().Be(1);
         result.StageCounts.Exception.Should().Be(1);
@@ -212,9 +229,9 @@ public class SupplierDecisionWorkflowTests
         result.StageCounts.ApprovedOrder.Should().Be(1);
         result.StageCounts.ReceivingProgress.Should().Be(1);
         result.ServiceDates.Single(item => item.ServiceDate == "2026-07-25")
-            .ReceivedQty.Should().Be(5m);
+            .ReceivingLineCount.Should().Be(1);
         result.ServiceDates.Single(item => item.ServiceDate == "2026-07-25")
-            .OrderedQty.Should().Be(10m);
+            .FullyReceivedLineCount.Should().Be(0);
         demandOnly.RequestCode.Should().Be("MR-DEMAND");
     }
 
@@ -225,13 +242,24 @@ public class SupplierDecisionWorkflowTests
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
         await using var context = CreateSqliteContext(connection, counter);
-        await context.Database.EnsureCreatedAsync();
-        await context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        await CreateWorkbenchSqliteSchemaAsync(context);
         for (var index = 1; index <= 25; index++)
         {
-            SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY", $"MR-BOUND-{index:00}");
+            var requestId = GuidHelper.NewId();
+            var requestLineId = GuidHelper.NewId();
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO materialrequests
+                    (requestId, requestCode, requestDate, requestScope, status)
+                VALUES
+                    ({requestId}, {$"MR-BOUND-{index:00}"}, {new DateOnly(2026, 7, 20)}, {"FULLDAY"}, {"MANAGERAPPROVED"});
+                """);
+            await context.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO materialrequestlines
+                    (requestLineId, requestId, suggestedPurchaseQty)
+                VALUES
+                    ({requestLineId}, {requestId}, {10m});
+                """);
         }
-        await context.SaveChangesAsync();
 
         counter.Reset();
         var result = await CreateService(context).GetWorkbenchWeekAsync(new PurchaseWorkbenchQueryDto
@@ -279,6 +307,78 @@ public class SupplierDecisionWorkflowTests
             .Options;
         return new IpcManagementContext(options);
     }
+
+    private static Task CreateWorkbenchSqliteSchemaAsync(IpcManagementContext context)
+        => context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE materialrequests (
+                requestId BLOB PRIMARY KEY,
+                requestCode TEXT NOT NULL,
+                requestDate TEXT NOT NULL,
+                requestScope TEXT NOT NULL,
+                status TEXT NOT NULL
+            );
+            CREATE TABLE materialrequestlines (
+                requestLineId BLOB PRIMARY KEY,
+                requestId BLOB NOT NULL,
+                suggestedPurchaseQty TEXT NOT NULL
+            );
+            CREATE TABLE purchaserequests (
+                purchaseRequestId BLOB PRIMARY KEY,
+                purchaseRequestCode TEXT NOT NULL,
+                requestDate TEXT NOT NULL,
+                purchaseForDate TEXT NOT NULL,
+                shiftName TEXT NULL,
+                status TEXT NOT NULL,
+                createdBy BLOB NOT NULL,
+                approvedBy BLOB NULL,
+                approvedAt TEXT NULL
+            );
+            CREATE TABLE ingredients (
+                ingredientId BLOB PRIMARY KEY,
+                ingredientCode TEXT NOT NULL,
+                ingredientName TEXT NOT NULL,
+                unitId BLOB NOT NULL,
+                warehouseId BLOB NOT NULL,
+                referencePrice TEXT NOT NULL,
+                isFreshDaily INTEGER NOT NULL,
+                isActive INTEGER NULL
+            );
+            CREATE TABLE purchaserequestlines (
+                purchaseRequestLineId BLOB PRIMARY KEY,
+                purchaseRequestId BLOB NOT NULL,
+                materialRequestLineId BLOB NOT NULL,
+                ingredientId BLOB NOT NULL,
+                supplierId BLOB NULL,
+                unitId BLOB NOT NULL,
+                requiredQty TEXT NOT NULL,
+                currentStockQty TEXT NOT NULL,
+                purchaseQty TEXT NOT NULL,
+                estimatedUnitPrice TEXT NOT NULL,
+                expectedDeliveryDate TEXT NULL,
+                note TEXT NULL
+            );
+            CREATE TABLE purchaseorders (
+                purchaseOrderId BLOB PRIMARY KEY,
+                purchaseOrderCode TEXT NOT NULL,
+                purchaseRequestId BLOB NOT NULL,
+                supplierId BLOB NOT NULL,
+                orderDate TEXT NOT NULL,
+                status TEXT NOT NULL,
+                createdBy BLOB NOT NULL,
+                createdAt TEXT NOT NULL,
+                updatedAt TEXT NOT NULL
+            );
+            CREATE TABLE purchaseorderlines (
+                purchaseOrderLineId BLOB PRIMARY KEY,
+                purchaseOrderId BLOB NOT NULL,
+                purchaseRequestLineId BLOB NOT NULL,
+                ingredientId BLOB NOT NULL,
+                unitId BLOB NOT NULL,
+                orderedQty TEXT NOT NULL,
+                receivedQty TEXT NOT NULL,
+                unitPrice TEXT NOT NULL
+            );
+            """);
 
     private static PurchaseRequestWorkflowService CreateService(IpcManagementContext context)
         => new(context, new SupplierQuotationService(context));
