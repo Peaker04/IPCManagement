@@ -120,7 +120,7 @@ export function PriceExceptionStatus({ serviceDate }: { serviceDate: PurchaseWor
   );
 }
 
-export function OrderHandoffStatus({ serviceDate }: { serviceDate: PurchaseWorkbenchServiceDate }) {
+export function OrderHandoffStatus({ serviceDate, week }: { serviceDate: PurchaseWorkbenchServiceDate; week: string }) {
   const complete = serviceDate.receivingLineCount > 0 &&
     serviceDate.fullyReceivedLineCount >= serviceDate.receivingLineCount;
   const partial = serviceDate.fullyReceivedLineCount > 0 && !complete;
@@ -136,7 +136,7 @@ export function OrderHandoffStatus({ serviceDate }: { serviceDate: PurchaseWorkb
       <p className="mt-2 text-[14px] leading-[1.5] text-slate-700">
         {serviceDate.fullyReceivedLineCount}/{serviceDate.receivingLineCount} dòng đã nhận đủ trên {serviceDate.orderCount} đơn đặt hàng.
       </p>
-      <Button className="mt-3 min-h-11 sm:min-h-9" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?week=${serviceDate.serviceDate}&purchaseRequestId=${serviceDate.purchaseRequestId ?? ''}`} />}>
+      <Button className="mt-3 min-h-11 sm:min-h-9" variant="outline" render={<Link to={`${ROUTES.WAREHOUSE}?week=${week}&purchaseRequestId=${serviceDate.purchaseRequestId ?? ''}`} />}>
         <PackageCheck aria-hidden="true" />
         Mở màn hình nhập kho
       </Button>
@@ -368,7 +368,7 @@ export function PurchaseDecisionPanel({
           </div>
         ) : null}
 
-        {selectedStage === 'receiving' ? <OrderHandoffStatus serviceDate={serviceDate} /> : null}
+        {selectedStage === 'receiving' ? <OrderHandoffStatus serviceDate={serviceDate} week={week} /> : null}
       </div>
 
       <Dialog open={Boolean(confirmation)} onOpenChange={(open) => { if (!open) closeConfirmation(); }}>

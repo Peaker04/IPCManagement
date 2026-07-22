@@ -15,6 +15,7 @@ const mocks = vi.hoisted(() => ({
   submitRequest: vi.fn(),
   getSupplierEvidence: vi.fn(),
   confirmLineSupplier: vi.fn(),
+  recordWarehouseReceipt: vi.fn(),
   createFromDemand: vi.fn(),
   createOrders: vi.fn(),
 }))
@@ -51,6 +52,7 @@ vi.mock('../workflowApi', () => ({
   useGetWarehouseSelectorQuery: mocks.getWarehouses,
   useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
   useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
+  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
   useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
   useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
   useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
@@ -62,6 +64,7 @@ import { usePurchaseOrders } from './orders/usePurchaseOrders'
 import { useSupplierQuotations } from './quotation/useSupplierQuotations'
 import { usePurchaseSupplier } from './supplier/usePurchaseSupplier'
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel'
+import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog'
 
 const makeRequest = (status: string, id: string): PurchaseRequestResult => ({
   purchaseRequestId: id,
@@ -229,5 +232,80 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
     expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
+  })
+
+  it('keeps receipt evidence and idempotency key stable after a conflict', async () => {
+    mocks.recordWarehouseReceipt.mockReturnValue({
+      unwrap: vi.fn().mockRejectedValue({ data: { message: 'Phiếu nhập đã được xử lý với dữ liệu khác.' } }),
+    })
+
+    render(
+      <WarehousePurchaseReceiptDialog
+        open
+        week="2026-07-20"
+        warehouses={[{
+          warehouseId: 'warehouse-1',
+          warehouseCode: 'KHO-01',
+          warehouseName: 'Kho trung tâm',
+        }]}
+        order={{
+          purchaseOrderId: 'order-1',
+          purchaseOrderCode: 'PO-001',
+          purchaseRequestId: 'request-1',
+          purchaseRequestCode: 'PR-001',
+          supplierId: 'supplier-1',
+          supplierName: 'Nhà cung cấp Minh An',
+          orderDate: '2026-07-20',
+          status: 'ORDERED',
+          lines: [],
+        }}
+        line={{
+          purchaseOrderLineId: 'order-line-1',
+          purchaseRequestLineId: 'request-line-1',
+          ingredientId: 'ingredient-1',
+          ingredientName: 'Thịt heo',
+          unitId: 'unit-1',
+          unitName: 'kg',
+          orderedQty: 10,
+          receivedQty: 2,
+          unitPrice: 80_000,
+          lotNumberRequired: true,
+          manufactureDateRequired: true,
+          expiryDateRequired: true,
+        }}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Kho nhận *'), { target: { value: 'warehouse-1' } })
+    fireEvent.change(screen.getByLabelText('Ngày nhận *'), { target: { value: '2026-07-22' } })
+    fireEvent.change(screen.getByLabelText('Số lượng thực nhận *'), { target: { value: '3' } })
+    fireEvent.change(screen.getByLabelText('Số lô *'), { target: { value: 'LOT-2207' } })
+    fireEvent.change(screen.getByLabelText('Ngày sản xuất *'), { target: { value: '2026-07-21' } })
+    fireEvent.change(screen.getByLabelText('Hạn sử dụng *'), { target: { value: '2026-07-25' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Tiếp tục xác nhận' }))
+
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' })).toHaveFocus())
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('Phiếu nhập đã được xử lý với dữ liệu khác.'))
+
+    const firstRequest = mocks.recordWarehouseReceipt.mock.calls[0][0]
+    expect(firstRequest.data.lines[0]).toMatchObject({
+      purchaseOrderLineId: 'order-line-1',
+      actualQuantity: 3,
+      actualUnitId: 'unit-1',
+      lotNumber: 'LOT-2207',
+      manufactureDate: '2026-07-21',
+      expiryDate: '2026-07-25',
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ghi nhận nhập kho' }))
+    await waitFor(() => expect(mocks.recordWarehouseReceipt).toHaveBeenCalledTimes(2))
+    expect(mocks.recordWarehouseReceipt.mock.calls[1][0].data.idempotencyKey).toBe(firstRequest.data.idempotencyKey)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' }))
+    expect(screen.getByLabelText('Số lượng thực nhận *')).toHaveValue(3)
+    expect(screen.getByLabelText('Số lô *')).toHaveValue('LOT-2207')
   })
 })

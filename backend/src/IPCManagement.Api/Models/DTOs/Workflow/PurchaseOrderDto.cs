@@ -11,6 +11,10 @@ public class PurchaseOrderLineDto
     public decimal OrderedQty { get; set; }
     public decimal ReceivedQty { get; set; }
     public decimal UnitPrice { get; set; }
+    public bool LotNumberRequired { get; set; }
+    public bool ManufactureDateRequired { get; set; }
+    public bool ExpiryDateRequired { get; set; }
+    public string? BlockerReason { get; set; }
 }
 
 public class PurchaseOrderDto

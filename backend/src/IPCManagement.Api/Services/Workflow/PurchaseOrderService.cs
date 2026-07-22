@@ -571,7 +571,13 @@ public class PurchaseOrderService : IPurchaseOrderService
                 UnitName = line.Unit.UnitName,
                 OrderedQty = line.OrderedQty,
                 ReceivedQty = line.ReceivedQty,
-                UnitPrice = line.UnitPrice
+                UnitPrice = line.UnitPrice,
+                LotNumberRequired = true,
+                ManufactureDateRequired = line.Ingredient.IsFreshDaily,
+                ExpiryDateRequired = line.Ingredient.IsFreshDaily,
+                BlockerReason = line.Ingredient.IsActive == true
+                    ? null
+                    : $"Nguyên liệu {line.Ingredient.IngredientName} đã ngừng hoạt động."
             })
             .ToList()
     };
