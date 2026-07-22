@@ -2,6 +2,7 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
@@ -899,6 +900,124 @@ public class SupplierDecisionWorkflowTests
         (await context.Purchasepriceexceptions.CountAsync()).Should().Be(0);
     }
 
+    [Fact]
+    public async Task PurchaseOrder_creation_splits_current_decisions_by_supplier_with_complete_line_coverage()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedApprovedPurchaseRequestForOrders(context);
+        await context.SaveChangesAsync();
+
+        var orders = await CreatePurchaseOrderService(context).CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId),
+            UserId);
+
+        orders.Should().HaveCount(2);
+        orders.Select(order => order.SupplierId).Should().BeEquivalentTo(
+            GuidHelper.ToGuidString(fixture.SupplierA.SupplierId),
+            GuidHelper.ToGuidString(fixture.SupplierB.SupplierId));
+        orders.SelectMany(order => order.Lines)
+            .Select(line => line.PurchaseRequestLineId)
+            .Should().BeEquivalentTo(fixture.Request.Purchaserequestlines
+                .Select(line => GuidHelper.ToGuidString(line.PurchaseRequestLineId)));
+        orders.SelectMany(order => order.Lines)
+            .Should().OnlyContain(line => line.UnitPrice == 110m || line.UnitPrice == 120m);
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_creation_rejects_pending_current_exception()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedApprovedPurchaseRequestForOrders(context);
+        fixture.Decisions.Single(decision => decision.ProposedUnitPrice == 120m)
+            .Purchasepriceexceptions.Single().Status = "PENDING";
+        await context.SaveChangesAsync();
+
+        var act = () => CreatePurchaseOrderService(context).CreateFromApprovedRequestAsync(
+            GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId),
+            UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*ngoại lệ giá*");
+        (await context.Purchaseorders.CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_sequential_and_concurrent_retries_return_stable_ids_without_duplicates()
+    {
+        var options = new DbContextOptionsBuilder<IpcManagementContext>()
+            .UseInMemoryDatabase($"purchase-order-retry-{Guid.NewGuid():N}")
+            .Options;
+        string requestId;
+        await using (var seedContext = new IpcManagementContext(options))
+        {
+            var fixture = SeedApprovedPurchaseRequestForOrders(seedContext);
+            await seedContext.SaveChangesAsync();
+            requestId = GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId);
+        }
+
+        await using var firstContext = new IpcManagementContext(options);
+        await using var secondContext = new IpcManagementContext(options);
+        var results = await Task.WhenAll(
+            CreatePurchaseOrderService(firstContext).CreateFromApprovedRequestAsync(requestId, UserId),
+            CreatePurchaseOrderService(secondContext).CreateFromApprovedRequestAsync(requestId, UserId));
+
+        results[0].Select(order => order.PurchaseOrderId)
+            .Should().BeEquivalentTo(results[1].Select(order => order.PurchaseOrderId));
+
+        await using var verificationContext = new IpcManagementContext(options);
+        (await verificationContext.Purchaseorders.CountAsync()).Should().Be(2);
+        (await verificationContext.Purchaseorderlines.CountAsync()).Should().Be(2);
+
+        var retry = await CreatePurchaseOrderService(verificationContext)
+            .CreateFromApprovedRequestAsync(requestId, UserId);
+        retry.Select(order => order.PurchaseOrderId)
+            .Should().BeEquivalentTo(results[0].Select(order => order.PurchaseOrderId));
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_retry_rejects_changed_decision_fingerprint_even_when_price_is_unchanged()
+    {
+        await using var context = CreateContext();
+        var fixture = SeedApprovedPurchaseRequestForOrders(context);
+        await context.SaveChangesAsync();
+        var service = CreatePurchaseOrderService(context);
+        var requestId = GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId);
+        await service.CreateFromApprovedRequestAsync(requestId, UserId);
+
+        var current = fixture.Decisions.Single(decision => decision.ProposedUnitPrice == 110m);
+        current.Status = "SUPERSEDED";
+        current.CurrentDecisionKey = null;
+        var replacement = new Purchaselinesupplierdecision
+        {
+            PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
+            PurchaseRequestLineId = current.PurchaseRequestLineId,
+            SupplierId = current.SupplierId,
+            EvidenceType = current.EvidenceType,
+            EvidenceId = GuidHelper.NewId(),
+            EvidenceDate = current.EvidenceDate,
+            EvidenceReferencePrice = current.EvidenceReferencePrice,
+            ProposedUnitPrice = current.ProposedUnitPrice,
+            ProposedDeliveryDate = current.ProposedDeliveryDate,
+            ConfirmedBy = UserIdBytes,
+            ConfirmedAt = DateTime.UtcNow.AddMinutes(1),
+            DecisionFingerprint = new string('C', 64),
+            Version = 2,
+            Status = "CURRENT",
+            CurrentDecisionKey = current.PurchaseRequestLineId,
+            PurchaseRequestLine = current.PurchaseRequestLine
+        };
+        current.SupersededByDecisionId = replacement.PurchaseLineSupplierDecisionId;
+        context.Purchaselinesupplierdecisions.Add(replacement);
+        await context.SaveChangesAsync();
+
+        var act = () => service.CreateFromApprovedRequestAsync(requestId, UserId);
+
+        await act.Should().ThrowAsync<DbUpdateConcurrencyException>()
+            .WithMessage("*quyết định nhà cung cấp*");
+        (await context.Purchaseorders.CountAsync()).Should().Be(2);
+        (await context.Purchaseorderlines.CountAsync()).Should().Be(2);
+    }
+
     private static readonly byte[] UserIdBytes = GuidHelper.NewId();
     private static string UserId => GuidHelper.ToGuidString(UserIdBytes);
 
@@ -908,6 +1027,123 @@ public class SupplierDecisionWorkflowTests
             .UseInMemoryDatabase($"supplier-decision-{Guid.NewGuid():N}")
             .Options;
         return new IpcManagementContext(options);
+    }
+
+    private static PurchaseOrderService CreatePurchaseOrderService(IpcManagementContext context)
+        => new(
+            context,
+            new StockLedgerService(
+                new CurrentStockRepository(context),
+                new StockMovementRepository(context)));
+
+    private static (
+        Purchaserequest Request,
+        Supplier SupplierA,
+        Supplier SupplierB,
+        IReadOnlyList<Purchaselinesupplierdecision> Decisions)
+        SeedApprovedPurchaseRequestForOrders(IpcManagementContext context)
+    {
+        var unit = SeedUnit(context, $"KG-{Guid.NewGuid():N}", "kg", "KG", 1m);
+        var supplierA = SeedSupplier(context, $"SUP-PO-A-{Guid.NewGuid():N}", "Supplier PO A");
+        var supplierB = SeedSupplier(context, $"SUP-PO-B-{Guid.NewGuid():N}", "Supplier PO B");
+        var request = new Purchaserequest
+        {
+            PurchaseRequestId = GuidHelper.NewId(),
+            PurchaseRequestCode = $"PR-PO-{Guid.NewGuid():N}",
+            RequestDate = new DateOnly(2026, 7, 22),
+            PurchaseForDate = new DateOnly(2026, 7, 23),
+            Status = "APPROVED",
+            CreatedBy = UserIdBytes
+        };
+        var decisions = new List<Purchaselinesupplierdecision>();
+        foreach (var (supplier, proposedPrice, fingerprintSeed) in new[]
+                 {
+                     (supplierA, 110m, 'A'),
+                     (supplierB, 120m, 'B')
+                 })
+        {
+            var ingredient = new Ingredient
+            {
+                IngredientId = GuidHelper.NewId(),
+                IngredientCode = $"ING-PO-{Guid.NewGuid():N}",
+                IngredientName = $"Ingredient {fingerprintSeed}",
+                UnitId = unit.UnitId,
+                WarehouseId = GuidHelper.NewId(),
+                ReferencePrice = 100m,
+                IsActive = true,
+                Unit = unit
+            };
+            var line = new Purchaserequestline
+            {
+                PurchaseRequestLineId = GuidHelper.NewId(),
+                PurchaseRequestId = request.PurchaseRequestId,
+                MaterialRequestLineId = GuidHelper.NewId(),
+                IngredientId = ingredient.IngredientId,
+                SupplierId = supplier.SupplierId,
+                UnitId = unit.UnitId,
+                RequiredQty = 10m,
+                CurrentStockQty = 0m,
+                PurchaseQty = 10m,
+                EstimatedUnitPrice = proposedPrice,
+                ExpectedDeliveryDate = request.PurchaseForDate,
+                PurchaseRequest = request,
+                Ingredient = ingredient,
+                Supplier = supplier,
+                Unit = unit
+            };
+            var decision = new Purchaselinesupplierdecision
+            {
+                PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
+                PurchaseRequestLineId = line.PurchaseRequestLineId,
+                SupplierId = supplier.SupplierId,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = request.RequestDate,
+                EvidenceReferencePrice = 100m,
+                ProposedUnitPrice = proposedPrice,
+                ProposedDeliveryDate = request.PurchaseForDate,
+                ConfirmedBy = UserIdBytes,
+                ConfirmedAt = DateTime.UtcNow,
+                DecisionFingerprint = new string(fingerprintSeed, 64),
+                Version = 1,
+                Status = "CURRENT",
+                CurrentDecisionKey = line.PurchaseRequestLineId,
+                PurchaseRequestLine = line,
+                Supplier = supplier
+            };
+            if (PurchasePricePolicy.RequiresException(
+                    PurchasePricePolicy.CalculateVariancePercent(100m, proposedPrice)))
+            {
+                decision.Purchasepriceexceptions.Add(new Purchasepriceexception
+                {
+                    PurchasePriceExceptionId = GuidHelper.NewId(),
+                    PurchaseLineSupplierDecisionId = decision.PurchaseLineSupplierDecisionId,
+                    ReferencePrice = 100m,
+                    ProposedPrice = proposedPrice,
+                    VariancePercent = 20m,
+                    EvidenceType = decision.EvidenceType,
+                    EvidenceId = decision.EvidenceId,
+                    EvidenceDate = decision.EvidenceDate,
+                    Reason = "Giá tăng theo báo giá hiện hành",
+                    ProposalFingerprint = decision.DecisionFingerprint,
+                    ProposalVersion = decision.Version,
+                    RequestedBy = UserIdBytes,
+                    RequestedAt = DateTime.UtcNow,
+                    Status = "APPROVED",
+                    DecidedBy = UserIdBytes,
+                    DecisionReason = "Quản lý đã duyệt",
+                    DecidedAt = DateTime.UtcNow,
+                    PurchaseLineSupplierDecision = decision
+                });
+            }
+
+            line.SupplierDecisions.Add(decision);
+            request.Purchaserequestlines.Add(line);
+            decisions.Add(decision);
+        }
+
+        context.Purchaserequests.Add(request);
+        return (request, supplierA, supplierB, decisions);
     }
 
     private static bool MySqlMigrationTestsEnabled()
