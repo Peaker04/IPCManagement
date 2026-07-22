@@ -83,6 +83,7 @@ export interface ApprovalRecord {
   id: string;
   targetType?: string;
   targetId?: string;
+  targetCode?: string;
   type: ApprovalType;
   title: string;
   source: string;
@@ -95,6 +96,24 @@ export interface ApprovalRecord {
   tone: WorkflowTone;
   slaDeadline?: string | null;
   slaHours?: number | null;
+  route?: string;
+  weekStartDate?: string | null;
+  serviceDate?: string | null;
+  scope?: string | null;
+  lineCount?: number | null;
+  totalQuantity?: number | null;
+  totalValue?: number | null;
+  submittedAt?: string | null;
+  referencePrice?: number | null;
+  proposedPrice?: number | null;
+  variancePercent?: number | null;
+  evidenceType?: string | null;
+  evidenceId?: string | null;
+  evidenceDate?: string | null;
+  proposalFingerprint?: string | null;
+  proposalVersion?: number | null;
+  supplierName?: string | null;
+  sourceDocumentCode?: string | null;
   materials: Array<{
     name: string;
     quantity: number;

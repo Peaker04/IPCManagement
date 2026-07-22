@@ -589,8 +589,25 @@ interface ApprovalInboxItemDto {
   nextAction: string;
   tone: WorkflowTone;
   route: string;
+  weekStartDate?: string | null;
+  serviceDate?: string | null;
+  scope?: string | null;
+  lineCount?: number | null;
+  totalQuantity?: number | null;
+  totalValue?: number | null;
+  submittedAt?: string | null;
   slaDeadline?: string | null;
   slaHours?: number | null;
+  referencePrice?: number | null;
+  proposedPrice?: number | null;
+  variancePercent?: number | null;
+  evidenceType?: string | null;
+  evidenceId?: string | null;
+  evidenceDate?: string | null;
+  proposalFingerprint?: string | null;
+  proposalVersion?: number | null;
+  supplierName?: string | null;
+  sourceDocumentCode?: string | null;
   materials: Array<{
     name: string;
     quantity: number;
@@ -1369,7 +1386,8 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   id: item.inboxItemId || item.targetCode || item.targetId,
   targetType: item.targetType,
   targetId: item.targetId,
-  type: item.itemType === 'price-alert' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
+  targetCode: item.targetCode,
+  type: item.itemType === 'price-alert' || item.itemType === 'price-exception' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
   title: item.title,
   source: item.source || item.targetCode,
   owner: item.ownerRole,
@@ -1381,6 +1399,24 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   tone: item.tone ?? toneFromStatus(item.status),
   slaDeadline: item.slaDeadline,
   slaHours: item.slaHours,
+  route: item.route,
+  weekStartDate: item.weekStartDate,
+  serviceDate: item.serviceDate,
+  scope: item.scope,
+  lineCount: item.lineCount,
+  totalQuantity: item.totalQuantity,
+  totalValue: item.totalValue,
+  submittedAt: item.submittedAt,
+  referencePrice: item.referencePrice,
+  proposedPrice: item.proposedPrice,
+  variancePercent: item.variancePercent,
+  evidenceType: item.evidenceType,
+  evidenceId: item.evidenceId,
+  evidenceDate: item.evidenceDate,
+  proposalFingerprint: item.proposalFingerprint,
+  proposalVersion: item.proposalVersion,
+  supplierName: item.supplierName,
+  sourceDocumentCode: item.sourceDocumentCode,
   materials: item.materials ?? [],
 });
 
