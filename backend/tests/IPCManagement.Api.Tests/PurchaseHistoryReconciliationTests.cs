@@ -472,6 +472,127 @@ public class PurchaseHistoryReconciliationTests
     }
 
     [Fact]
+    public async Task Preview_emits_deactivate_and_block_actions_with_auditable_evidence()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var supplier = await context.Suppliers.SingleAsync();
+        var ingredient = await context.Ingredients.SingleAsync();
+        var unit = await context.Units.SingleAsync();
+        await SeedReceiptAsync(
+            context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            supplier.SupplierId,
+            ingredient.IngredientId,
+            unit.UnitId,
+            10,
+            25_000,
+            "SAMPLE-CANONICAL");
+        var referencedDuplicate = await SeedReceiptAsync(
+            context,
+            "RCP-SAMPLE-20260720-RAU-2",
+            new DateOnly(2026, 7, 20),
+            supplier.SupplierId,
+            ingredient.IngredientId,
+            unit.UnitId,
+            10,
+            25_000,
+            "SAMPLE-REFERENCED",
+            purchaseRequestId: Id(93));
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 30, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000),
+            Candidate("1.Rau", 31, "Không tồn tại", "Rau muống", "KG", new DateOnly(2026, 7, 21), 12, 26_000));
+
+        var preview = await service.PreviewAsync(CancellationToken.None);
+
+        preview.Actions.Should().ContainSingle(action =>
+            action.ActionType == "deactivate" &&
+            action.TargetId == Convert.ToHexString(referencedDuplicate.ReceiptLineId) &&
+            action.ReasonCode == "REFERENCED_DUPLICATE_REMAP_REQUIRED");
+        preview.Actions.Should().ContainSingle(action =>
+            action.ActionType == "block" &&
+            action.SourceKey == "1.Rau|31" &&
+            action.ReasonCode == "SUPPLIER_CATALOG_AMBIGUOUS");
+        preview.Blockers.Should().ContainSingle(blocker =>
+            blocker.Code == "SUPPLIER_CATALOG_AMBIGUOUS" && blocker.SourceRow == 31);
+    }
+
+    [Fact]
+    public async Task Preview_manifest_changes_for_source_policy_as_of_database_and_action_drift()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var candidate = Candidate(
+            "1.Rau",
+            40,
+            "Rau",
+            "Rau muống",
+            "KG",
+            new DateOnly(2026, 7, 20),
+            10,
+            25_000);
+        var baseline = await CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidate).PreviewAsync();
+        var sourceDrift = await CreatePreviewService(
+            context,
+            new string('D', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidate).PreviewAsync();
+        var asOfDrift = await CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 21),
+            PurchaseHistoryPolicyVersion.Current,
+            candidate).PreviewAsync();
+        var policyDrift = await CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            "purchase-history-normalization/test-drift",
+            candidate).PreviewAsync();
+        var actionDrift = await CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidate,
+            Candidate("1.Rau", 41, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 21), 11, 26_000)).PreviewAsync();
+
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = Id(94),
+            SupplierCode = "SUP-DRIFT",
+            SupplierName = "Nguồn DB mới",
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var databaseDrift = await CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidate).PreviewAsync();
+
+        new[]
+        {
+            sourceDrift.Manifest.ManifestHash,
+            asOfDrift.Manifest.ManifestHash,
+            policyDrift.Manifest.ManifestHash,
+            databaseDrift.Manifest.ManifestHash,
+            actionDrift.Manifest.ManifestHash
+        }.Should().OnlyContain(hash => hash != baseline.Manifest.ManifestHash);
+    }
+
+    [Fact]
     public async Task PreviewEndpoint_allows_manager_and_uses_server_identity()
     {
         var service = Substitute.For<IPurchaseHistoryReconciliationService>();
@@ -651,17 +772,31 @@ public class PurchaseHistoryReconciliationTests
     private static PurchaseHistoryReconciliationService CreatePreviewService(
         IpcManagementContext context,
         params PurchaseHistorySourceCandidate[] candidates)
+        => CreatePreviewService(
+            context,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidates);
+
+    private static PurchaseHistoryReconciliationService CreatePreviewService(
+        IpcManagementContext context,
+        string sourceHash,
+        DateOnly asOfDate,
+        string policyVersion,
+        params PurchaseHistorySourceCandidate[] candidates)
         => new(
             context,
             () => new PurchaseHistoryPreviewSource(
                 "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx",
                 new PurchaseHistoryParseResult(
-                    new string('A', 64),
-                    new DateOnly(2026, 7, 20),
+                    sourceHash,
+                    asOfDate,
                     1,
                     1,
                     1,
-                    candidates)));
+                    candidates),
+                policyVersion));
 
     private static PurchaseHistorySourceCandidate Candidate(
         string sheet,
