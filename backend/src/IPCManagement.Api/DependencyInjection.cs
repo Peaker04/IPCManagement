@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
         services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();
         services.AddScoped<IApprovalTargetHandler, MaterialDemandApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, PurchasePriceExceptionApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();

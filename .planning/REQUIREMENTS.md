@@ -77,7 +77,7 @@
 
 - [x] **PUR-01**: Material demand là approval target đầy đủ tại `/approvals`, Weekly Menu hiển thị status/link và demand chưa duyệt không thể tạo PR.
 - [x] **PUR-02**: Thu mua có workbench server-backed theo tuần, lồng ngày phục vụ, giữ PR scope `FULLDAY` và hiển thị shortage, stage, blocker cùng counts.
-- [ ] **PUR-03**: Chỉ gợi ý nhà cung cấp từ báo giá còn hiệu lực hoặc receipt hợp lệ gần nhất; lựa chọn phải được người dùng xác nhận và lưu evidence snapshot.
+- [x] **PUR-03**: Chỉ gợi ý nhà cung cấp từ báo giá còn hiệu lực hoặc receipt hợp lệ gần nhất; lựa chọn phải được người dùng xác nhận và lưu evidence snapshot.
 - [ ] **PUR-04**: Giá tăng lớn hơn đúng 15% phải qua ngoại lệ có reference/proposed/variance/evidence/reason và quyết định quản lý trước khi submit PR.
 - [ ] **PUR-05**: PR đã duyệt tạo tối đa một bộ PO tách theo nhà cung cấp; retry trả lại tiến độ hiện có và không sinh PO trùng.
 - [ ] **WHR-01**: Warehouse là nơi duy nhất ghi nhận nhận hàng từng phần với kho, số lượng, lot, ngày sản xuất/hết hạn; receipt, stock và PO progress cập nhật atomic, còn Thu mua chỉ đọc trạng thái.

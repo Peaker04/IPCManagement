@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-08-PLAN.md; 09-05 residual checkpoint preserved
-last_updated: "2026-07-22T12:34:21.742Z"
-last_activity: 2026-07-22 — Plan 09-04 completed forward reconciliation persistence and disposable migration proof
+stopped_at: Completed 09-09-PLAN.md; 09-05 residual checkpoint preserved
+last_updated: "2026-07-22T13:09:34.850Z"
+last_activity: 2026-07-22 — Plan 09-09 completed evidence-backed supplier confirmation
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 8
-  percent: 22
+  completed_plans: 9
+  percent: 24
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-08-PLAN.md; 09-05 residual checkpoint preserved
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-09-PLAN.md
+**Stopped at:** Completed 09-09-PLAN.md; 09-05 residual checkpoint preserved
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-10-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 04 reconciliation persistence schema*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 09 evidence-backed supplier confirmation*
 
 ## Performance Metrics
 
@@ -237,6 +237,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P07 | 55m | 2 tasks | 18 files |
 | Phase 09 P04 | 35m | 2 tasks | 10 files |
 | Phase 09 P08 | 14m | 2 tasks | 11 files |
+| Phase 09 P09 | 28m | 2 tasks | 7 files |
 
 ## Decisions
 
@@ -286,10 +287,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Enforce one current supplier decision through a nullable unique current-decision key. — MySQL permits multiple null values for superseded rows while rejecting more than one current row per purchase-request line.
 - [Phase 09]: Reuse the existing unique purchase-order request-supplier index. — The original purchase-order migration already enforces PUR-05; recreating it would make the forward migration fail.
 - [Phase 09]: Bind strict price exceptions to one supplier-decision proposal fingerprint and version. — Edits create superseding records and cannot silently reuse a Manager decision for a changed proposal.
+- [Phase 09]: Prefer effective quotations; only when none exist, offer each active supplier's latest comparable receipt evidence, and never infer a supplier from activity alone.
+- [Phase 09]: Treat confirmation as an append-only evidence snapshot: identical retries are idempotent, changed choices supersede the current row and increment the version.
+- [Phase 09]: Accept only evidence identity, proposed price/delivery, and expected version from the client; derive reference values, fingerprint, and confirmer from server state.
+- [Phase 09]: Require a current decision matching the purchase-line snapshot before submit and expose current plus historical decisions in the workbench.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 7 of 14 completed; next executable 09-09 (09-05 checkpoint preserved)
+Plan: 8 of 14 completed; next executable 09-10 (09-05 checkpoint preserved)
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-08 completed supplier-decision and price-exception persistence
+Last activity: 2026-07-22 — Plan 09-09 completed evidence-backed supplier confirmation
