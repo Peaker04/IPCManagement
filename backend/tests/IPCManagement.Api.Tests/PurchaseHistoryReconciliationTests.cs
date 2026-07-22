@@ -557,7 +557,7 @@ public class PurchaseHistoryReconciliationTests
         first.Manifest.DatabaseFingerprint.Should().Be(replay.Manifest.DatabaseFingerprint).And.MatchRegex("^[0-9A-F]{64}$");
         first.Manifest.SourceName.Should().Be("IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx");
         first.Manifest.SourceSha256.Should().Be(new string('A', 64));
-        first.Manifest.ActionCounts.Should().Contain(new KeyValuePair<string, int>("keep", 1));
+        first.Manifest.ActionCounts.Should().NotContainKey("keep");
         first.Manifest.ActionCounts.Should().Contain(new KeyValuePair<string, int>("version", 1));
         first.Actions.Should().OnlyContain(action =>
             action.ActionHash.Length == 64 &&
@@ -619,12 +619,8 @@ public class PurchaseHistoryReconciliationTests
 
         preview.Actions.Should().ContainSingle(action =>
             action.ActionType == "delete" && action.TargetId == Convert.ToHexString(orphanLine.ReceiptLineId));
-        preview.Actions.Should().ContainSingle(action =>
-            action.ActionType == "keep" &&
-            action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId) &&
-            action.ReasonCode == "IMMUTABLE_DEPENDENCY_PRESERVED");
         preview.Actions.Should().NotContain(action =>
-            action.ActionType == "delete" && action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId));
+            action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId));
     }
 
     [Fact]
@@ -1710,7 +1706,7 @@ public class PurchaseHistoryReconciliationTests
                     refTable TEXT NULL, refId BLOB NULL, quantityIn NUMERIC NOT NULL,
                     quantityOut NUMERIC NOT NULL, beforeQty NUMERIC NOT NULL, afterQty NUMERIC NOT NULL,
                     performedBy BLOB NOT NULL);
-                CREATE TABLE currentstocks (
+                CREATE TABLE currentstock (
                     warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
                     currentQty NUMERIC NOT NULL, lastUpdated TEXT NOT NULL,
                     PRIMARY KEY (warehouseId, ingredientId, unitId));
