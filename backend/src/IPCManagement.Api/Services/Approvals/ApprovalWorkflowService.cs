@@ -81,6 +81,7 @@ internal static class ApprovalTargetTypeParser
         var normalized = (targetType ?? string.Empty).Trim().ToLowerInvariant();
         return normalized switch
         {
+            "demand" or "material-demand" or "materialdemand" => ApprovalTargetType.MaterialDemand,
             "purchase" or "purchase-request" or "purchaserequest" => ApprovalTargetType.PurchaseRequest,
             "receipt" or "inventory-receipt" or "inventoryreceipt" => ApprovalTargetType.InventoryReceipt,
             "issue" or "inventory-issue" or "inventoryissue" => ApprovalTargetType.InventoryIssue,

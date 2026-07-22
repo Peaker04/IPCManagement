@@ -2,6 +2,7 @@ namespace IPCManagement.Api.Models.DTOs.Approvals;
 
 public enum ApprovalTargetType
 {
+    MaterialDemand,
     PurchaseRequest,
     InventoryReceipt,
     InventoryIssue,
