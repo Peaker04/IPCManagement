@@ -1,6 +1,6 @@
-import { act, renderHook } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PurchaseRequestResult } from '../workflowApi'
+import type { PurchaseRequestResult, PurchaseWorkbenchServiceDate } from '../workflowApi'
 
 const mocks = vi.hoisted(() => ({
   getIngredients: vi.fn(),
@@ -13,9 +13,14 @@ const mocks = vi.hoisted(() => ({
   getSuppliers: vi.fn(),
   getWarehouses: vi.fn(),
   submitRequest: vi.fn(),
+  getSupplierEvidence: vi.fn(),
+  confirmLineSupplier: vi.fn(),
+  createFromDemand: vi.fn(),
+  createOrders: vi.fn(),
 }))
 
-vi.mock('@/components/common', () => ({
+vi.mock('@/components/common', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@/components/common')>(),
   useToast: () => ({ toast: vi.fn() }),
 }))
 
@@ -44,6 +49,11 @@ vi.mock('@/features/workflow', () => ({
 
 vi.mock('../workflowApi', () => ({
   useGetWarehouseSelectorQuery: mocks.getWarehouses,
+  useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
+  useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
+  useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
+  useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
+  useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
 }))
 
 import { usePurchaseDemand } from './demand/usePurchaseDemand'
@@ -51,6 +61,7 @@ import { usePurchaseHandoff } from './handoff/usePurchaseHandoff'
 import { usePurchaseOrders } from './orders/usePurchaseOrders'
 import { useSupplierQuotations } from './quotation/useSupplierQuotations'
 import { usePurchaseSupplier } from './supplier/usePurchaseSupplier'
+import { PurchaseDecisionPanel } from './PurchaseDecisionPanel'
 
 const makeRequest = (status: string, id: string): PurchaseRequestResult => ({
   purchaseRequestId: id,
@@ -86,6 +97,7 @@ describe('purchasing hook behavior', () => {
     mocks.getQuotations.mockReturnValue({ data: undefined, isFetching: false })
     mocks.getSuppliers.mockReturnValue({ data: [] })
     mocks.getWarehouses.mockReturnValue({ data: undefined })
+    mocks.getSupplierEvidence.mockReturnValue({ data: { candidates: [], diagnostics: [] }, isFetching: false })
   })
 
   it('skips every inactive purchasing-tab query', () => {
@@ -145,5 +157,77 @@ describe('purchasing hook behavior', () => {
     act(() => result.current.command.setSelectedPurchaseRequestId('draft-a'))
     await act(() => result.current.command.submitPurchaseRequest())
     expect(mocks.submitRequest).toHaveBeenLastCalledWith('draft-a')
+  })
+
+  it('keeps supplier evidence visible and requires an explicit confirmation', async () => {
+    const serviceDate: PurchaseWorkbenchServiceDate = {
+      serviceDate: '2026-07-20',
+      scope: 'FULLDAY',
+      currentStage: 'supplier-price',
+      approvedDemandCount: 1,
+      shortageLineCount: 1,
+      supplierReadyLineCount: 0,
+      blockingExceptionCount: 0,
+      purchaseRequestId: 'request-1',
+      purchaseRequestCode: 'PR-001',
+      purchaseRequestStatus: 'DRAFT',
+      orderCount: 0,
+      receivingLineCount: 0,
+      fullyReceivedLineCount: 0,
+      approvedDemands: [],
+      purchaseLines: [{
+        purchaseRequestLineId: 'line-1',
+        materialRequestLineId: 'material-line-1',
+        ingredientId: 'ingredient-1',
+        ingredientName: 'Gạo',
+        unitId: 'unit-1',
+        unitName: 'kg',
+        requiredQty: 10,
+        currentStockQty: 2,
+        purchaseQty: 8,
+        estimatedUnitPrice: 20_000,
+        supplierDecisionStatus: 'UNCONFIRMED',
+        supplierDecisionHistory: [],
+      }],
+    }
+    mocks.getSupplierEvidence.mockReturnValue({
+      data: {
+        candidates: [{
+          evidenceType: 'EffectiveQuotation',
+          evidenceId: 'quote-1',
+          evidenceDate: '2026-07-18',
+          supplierId: 'supplier-1',
+          supplierName: 'Nhà cung cấp Minh An',
+          ingredientId: 'ingredient-1',
+          unitId: 'unit-1',
+          unitName: 'kg',
+          unitPrice: 20_000,
+          effectiveFrom: '2026-07-18',
+          effectiveTo: '2026-07-30',
+        }],
+        diagnostics: [],
+      },
+      isFetching: false,
+    })
+
+    render(
+      <PurchaseDecisionPanel
+        week="2026-07-20"
+        selectedStage="supplier-price"
+        serviceDate={serviceDate}
+        selectedLine={serviceDate.purchaseLines[0]}
+      />,
+    )
+
+    expect(screen.getByText('Nhà cung cấp Minh An')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' })).toBeDisabled()
+
+    fireEvent.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
+    fireEvent.change(screen.getByLabelText('Ngày giao'), { target: { value: '2026-07-21' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' }))
+
+    expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
+    expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
   })
 })
