@@ -291,7 +291,7 @@ route-preserving feature decomposition + regression/UAT gates
 **Goal:** Reconcile the audited 20.7 supplier purchase history without damaging immutable operations, then deliver the approved-demand-to-Warehouse purchasing flow with explicit supplier and price decisions.
 **Requirements**: SUP-01, SUP-02, SUP-03, SUP-04, PUR-01, PUR-02, PUR-03, PUR-04, PUR-05, WHR-01, PUI-01
 **Depends on:** Phase 8
-**Plans:** 6/14 plans executed
+**Plans:** 7/14 plans executed
 
 Plans:
 
@@ -316,7 +316,7 @@ Plans:
 **Wave 4 — parallel disposable apply and purchasing-decision persistence** *(blocked on Wave 3 reconciliation schema and Wave 2 workbench as declared)*
 
 - [ ] 09-05-PLAN.md — Apply the accepted manifest atomically/idempotently on a restored lane
-- [ ] 09-08-PLAN.md — Persist versioned supplier decisions, price exceptions, and PO uniqueness
+- [x] 09-08-PLAN.md — Persist versioned supplier decisions, price exceptions, and PO uniqueness
 
 **Wave 5 — explicit supplier and price decision** *(blocked on Wave 4 decision schema)*
 
