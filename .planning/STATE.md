@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
-status: in_progress
-stopped_at: Completed 09-01-PLAN.md
-last_updated: "2026-07-22T05:23:22.497Z"
-last_activity: 2026-07-22 — Phase 9 Plan 09-01 completed Wave 0 safety evidence and test seams
+status: executing
+stopped_at: Completed 09-02-PLAN.md
+last_updated: "2026-07-22T06:05:33.862Z"
+last_activity: 2026-07-22 — Plan 09-02 completed deterministic purchase-history parsing and blocker-first normalization
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 2
-  percent: 5
+  completed_plans: 3
+  percent: 8
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-01-PLAN.md
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-02-PLAN.md
+**Stopped at:** Completed 09-02-PLAN.md
+**Resume file:** None
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 01 Wave 0*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 02 parser and normalization contract*
 
 ## Performance Metrics
 
@@ -231,6 +231,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 02 P05 | completed | frontend | admin statistics and report tabs completed; build/lint/smoke pass; live API spot check remains for final verification |
 | Phase 02 P06 | completed | verification | sample import, GitNexus refresh, backend/frontend verification, API spot checks, and mock-removal audit completed |
 | Phase 09 P01 | 3h 24m | 2 tasks | 16 files |
+| Phase 09 P02 | 32m | 2 tasks | 4 files |
 
 ## Decisions
 
@@ -258,10 +259,13 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 02]: Represent savory/vegetarian/main/side/soup/dessert menu sections through `menuItems.dishSlot` under the existing schema.
 - [Phase 09]: Use the reproduced 3,207 unique case-insensitive delivery-date-plus-ingredient delta instead of unsupported 3,209.
 - [Phase 09]: Disposable clones copy DEFAULT_GENERATED temporal fields and exclude only columns with non-empty generation_expression.
+- [Phase 09]: Keep purchase-history source discovery server-owned: parser input is a resolved stream, never a request path. — Prevents client-controlled file access while keeping parsing deterministic and testable.
+- [Phase 09]: Version normalization as purchase-history-normalization/2026-07-22/v1 and block every unaudited interpretation with raw evidence. — Historical reconciliation must replay identically without silent defaults, clamps, drops, or mutable policy lookup.
+- [Phase 09]: Limit apply acknowledgement to manifest identity and accepted action IDs; clients cannot send actor IDs or normalized replacements. — The server remains authoritative for source discovery, identity, normalization, and authenticated actor context.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 1 of 14 completed; next 09-02
-Status: In progress
-Last activity: 2026-07-22 — Plan 09-01 completed with exact workbook and disposable restore evidence
+Plan: 2 of 14 completed; next 09-03
+Status: Ready to execute
+Last activity: 2026-07-22 — Plan 09-02 completed deterministic purchase-history parsing and blocker-first normalization
