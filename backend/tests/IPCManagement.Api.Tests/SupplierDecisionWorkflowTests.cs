@@ -515,8 +515,8 @@ public class SupplierDecisionWorkflowTests
             candidate.EvidenceType == SupplierEvidenceType.EffectiveQuotation &&
             candidate.UnitPrice == 120m &&
             candidate.UnitId == GuidHelper.ToGuidString(line.UnitId) &&
-            candidate.EffectiveFrom is not null &&
-            candidate.EvidenceDate is not null);
+            candidate.EffectiveFrom != null &&
+            candidate.EvidenceDate != null);
     }
 
     [Fact]

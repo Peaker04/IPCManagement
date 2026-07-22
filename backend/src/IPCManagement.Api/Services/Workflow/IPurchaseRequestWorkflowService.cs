@@ -13,6 +13,11 @@ public interface IPurchaseRequestWorkflowService
         string? userId,
         CancellationToken cancellationToken = default);
 
+    Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
+        string requestId,
+        string lineId,
+        CancellationToken cancellationToken = default);
+
     Task UpdateLineSupplierAsync(
         string requestId,
         string lineId,

@@ -26,6 +26,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         "approved-order",
         "receiving"
     };
+    private const string MissingSupplierEvidenceBlocker =
+        "Chưa có đơn giá hiệu lực hoặc biên nhận hợp lệ cho nguyên liệu này. Hãy cập nhật báo giá hoặc xác minh biên nhận trước khi chọn nhà cung cấp.";
 
     private readonly IpcManagementContext _context;
     private readonly ISupplierQuotationService _supplierQuotationService;
@@ -355,6 +357,185 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         await _context.SaveChangesAsync(cancellationToken);
 
         return MapResult(purchaseRequest, materialRequest.RequestId, existingLines);
+    }
+
+    public async Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
+        string requestId,
+        string lineId,
+        CancellationToken cancellationToken = default)
+    {
+        var purchaseRequestId = GuidHelper.ParseGuidString(requestId);
+        var purchaseRequestLineId = GuidHelper.ParseGuidString(lineId);
+        if (purchaseRequestId is null || purchaseRequestLineId is null)
+        {
+            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
+        }
+
+        var lineQuery = _context.Purchaserequestlines
+            .AsNoTracking()
+            .Include(item => item.PurchaseRequest)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit);
+        Purchaserequestline? line;
+        if (string.Equals(
+                _context.Database.ProviderName,
+                "Microsoft.EntityFrameworkCore.InMemory",
+                StringComparison.Ordinal))
+        {
+            var trackedAndStored = _context.ChangeTracker.Entries<Purchaserequestline>()
+                .Select(entry => entry.Entity)
+                .Concat(await lineQuery.ToListAsync(cancellationToken))
+                .DistinctBy(item => BuildKey(item.PurchaseRequestLineId));
+            line = trackedAndStored.FirstOrDefault(item =>
+                item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
+                item.PurchaseRequestLineId.SequenceEqual(purchaseRequestLineId));
+        }
+        else
+        {
+            line = await lineQuery.FirstOrDefaultAsync(item =>
+                item.PurchaseRequestId == purchaseRequestId &&
+                item.PurchaseRequestLineId == purchaseRequestLineId,
+                cancellationToken);
+        }
+
+        if (line is null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong đề xuất mua.");
+        }
+
+        var asOfDate = line.PurchaseRequest.PurchaseForDate;
+        var isInMemoryProvider = string.Equals(
+            _context.Database.ProviderName,
+            "Microsoft.EntityFrameworkCore.InMemory",
+            StringComparison.Ordinal);
+        var quotationQuery = _context.Supplierquotations
+            .AsNoTracking()
+            .Include(item => item.Supplier)
+            .AsQueryable();
+        if (!isInMemoryProvider)
+        {
+            quotationQuery = quotationQuery.Where(item =>
+                item.IngredientId == line.IngredientId &&
+                item.IsActive != false &&
+                item.Supplier.IsActive != false &&
+                item.UnitPrice > 0 &&
+                item.EffectiveFrom <= asOfDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= asOfDate));
+        }
+
+        var queriedQuotations = (isInMemoryProvider
+                ? _context.ChangeTracker.Entries<Supplierquotation>()
+                    .Select(entry => entry.Entity)
+                    .Concat(await quotationQuery.ToListAsync(cancellationToken))
+                    .DistinctBy(item => BuildKey(item.QuotationId))
+                : await quotationQuery.ToListAsync(cancellationToken))
+            .Where(item =>
+                item.IngredientId.SequenceEqual(line.IngredientId) &&
+                item.IsActive != false &&
+                item.Supplier.IsActive != false &&
+                item.UnitPrice > 0 &&
+                item.EffectiveFrom <= asOfDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= asOfDate));
+        var quotations = queriedQuotations
+            .OrderBy(item => item.UnitPrice)
+            .ThenByDescending(item => item.EffectiveFrom)
+            .ThenBy(item => item.Supplier.SupplierName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => BuildKey(item.QuotationId), StringComparer.Ordinal)
+            .ToList();
+
+        if (quotations.Count > 0)
+        {
+            return new SupplierEvidenceResultDto
+            {
+                Candidates = quotations.Select(item => new SupplierEvidenceCandidateDto
+                {
+                    EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                    EvidenceId = GuidHelper.ToGuidString(item.QuotationId),
+                    EvidenceDate = item.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    SupplierId = GuidHelper.ToGuidString(item.SupplierId),
+                    SupplierName = item.Supplier.SupplierName,
+                    IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+                    UnitId = GuidHelper.ToGuidString(line.UnitId),
+                    UnitName = line.Unit.UnitName,
+                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
+                    EffectiveFrom = item.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                    EffectiveTo = item.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+                }).ToList()
+            };
+        }
+
+        var receiptLineQuery = _context.Inventoryreceiptlines
+            .AsNoTracking()
+            .Include(item => item.Receipt)
+                .ThenInclude(receipt => receipt.Supplier)
+            .Include(item => item.Unit)
+            .AsQueryable();
+        if (!isInMemoryProvider)
+        {
+            receiptLineQuery = receiptLineQuery.Where(item =>
+                item.IngredientId == line.IngredientId &&
+                item.Quantity > 0 &&
+                item.UnitPrice > 0 &&
+                item.Receipt.ReceiptDate <= asOfDate &&
+                item.Receipt.Supplier.IsActive != false);
+        }
+
+        var queriedReceiptLines = (isInMemoryProvider
+                ? _context.ChangeTracker.Entries<Inventoryreceiptline>()
+                    .Select(entry => entry.Entity)
+                    .Concat(await receiptLineQuery.ToListAsync(cancellationToken))
+                    .DistinctBy(item => BuildKey(item.ReceiptLineId))
+                : await receiptLineQuery.ToListAsync(cancellationToken))
+            .Where(item =>
+                item.IngredientId.SequenceEqual(line.IngredientId) &&
+                item.Quantity > 0 &&
+                item.UnitPrice > 0 &&
+                item.Receipt.ReceiptDate <= asOfDate &&
+                item.Receipt.Supplier.IsActive != false);
+        var receiptLines = queriedReceiptLines
+            .OrderByDescending(item => item.Receipt.ReceiptDate)
+            .ThenByDescending(item => item.Receipt.CreatedAt)
+            .ThenBy(item => BuildKey(item.ReceiptLineId), StringComparer.Ordinal)
+            .ToList();
+
+        var diagnostics = receiptLines
+            .Where(item => !CanConvertUnits(item.Unit, line.Unit))
+            .Select(item =>
+                $"Biên nhận {GuidHelper.ToGuidString(item.ReceiptLineId)} có đơn vị {item.Unit.UnitName} không thể quy đổi sang {line.Unit.UnitName}.")
+            .OrderBy(message => message, StringComparer.Ordinal)
+            .ToList();
+
+        var candidates = receiptLines
+            .Where(item => CanConvertUnits(item.Unit, line.Unit))
+            .GroupBy(item => BuildKey(item.Receipt.SupplierId))
+            .Select(group => group
+                .OrderByDescending(item => item.Receipt.ReceiptDate)
+                .ThenByDescending(item => item.Receipt.CreatedAt)
+                .ThenBy(item => BuildKey(item.ReceiptLineId), StringComparer.Ordinal)
+                .First())
+            .Select(item => new SupplierEvidenceCandidateDto
+            {
+                EvidenceType = SupplierEvidenceType.LatestValidReceipt,
+                EvidenceId = GuidHelper.ToGuidString(item.ReceiptLineId),
+                EvidenceDate = item.Receipt.ReceiptDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
+                SupplierName = item.Receipt.Supplier.SupplierName,
+                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
+                UnitId = GuidHelper.ToGuidString(line.UnitId),
+                UnitName = line.Unit.UnitName,
+                UnitPrice = ResolveLatestReceiptPrice(item, line.Unit)
+            })
+            .OrderBy(item => item.UnitPrice)
+            .ThenBy(item => item.SupplierName, StringComparer.OrdinalIgnoreCase)
+            .ThenBy(item => item.EvidenceId, StringComparer.Ordinal)
+            .ToList();
+
+        return new SupplierEvidenceResultDto
+        {
+            Candidates = candidates,
+            Blocker = candidates.Count == 0 ? MissingSupplierEvidenceBlocker : null,
+            Diagnostics = diagnostics
+        };
     }
 
     private async Task<PurchaseRequestWorkflowResultDto?> ClearStalePurchaseRequestAsync(
