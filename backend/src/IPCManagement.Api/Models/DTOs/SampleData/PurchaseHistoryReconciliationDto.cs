@@ -9,18 +9,24 @@ public sealed class PurchaseHistoryPreviewDto
     public PurchaseHistoryManifestDto Manifest { get; set; } = new();
     public List<PurchaseHistoryActionDto> Actions { get; set; } = [];
     public List<PurchaseHistoryBlockerDto> Blockers { get; set; } = [];
+    public string PreviewedBy { get; set; } = string.Empty;
 }
 
 public sealed class PurchaseHistoryManifestDto
 {
     public string ManifestId { get; set; } = string.Empty;
     public string ManifestHash { get; set; } = string.Empty;
+    public string SourceName { get; set; } = string.Empty;
     public string SourceSha256 { get; set; } = string.Empty;
     public string PolicyVersion { get; set; } = string.Empty;
+    public string DatabaseFingerprint { get; set; } = string.Empty;
     public DateOnly AsOfDate { get; set; }
     public int CandidateCount { get; set; }
+    public int CurrentUniqueBusinessKeyCount { get; set; }
+    public int AuditedDeltaCount { get; set; }
     public int ActionCount { get; set; }
     public int BlockerCount { get; set; }
+    public Dictionary<string, int> ActionCounts { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
 public sealed class PurchaseHistoryActionDto
@@ -29,10 +35,19 @@ public sealed class PurchaseHistoryActionDto
     public string ActionType { get; set; } = string.Empty;
     public string SourceKey { get; set; } = string.Empty;
     public string? BusinessKey { get; set; }
+    public string TargetType { get; set; } = string.Empty;
+    public string TargetId { get; set; } = string.Empty;
+    public string ReasonCode { get; set; } = string.Empty;
+    public string BeforeEvidence { get; set; } = string.Empty;
+    public string BeforeHash { get; set; } = string.Empty;
+    public string AfterEvidence { get; set; } = string.Empty;
+    public string AfterHash { get; set; } = string.Empty;
+    public string ActionHash { get; set; } = string.Empty;
 }
 
 public sealed class PurchaseHistoryBlockerDto
 {
+    public string BlockerId { get; set; } = string.Empty;
     public string Code { get; set; } = string.Empty;
     public string Field { get; set; } = string.Empty;
     public string RawValue { get; set; } = string.Empty;

@@ -71,6 +71,7 @@ public static class DependencyInjection
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICoordinationService, CoordinationService>();
         services.AddScoped<ISampleDataImportService, SampleDataImportService>();
+        services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
