@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Services.SampleData;
 
 internal static class PurchaseHistoryPolicyVersion
 {
-    public const string Current = "purchase-history-normalization/2026-07-22/v2";
+    public const string Current = "purchase-history-normalization/2026-07-22/v3";
 }
 
 internal sealed class PurchaseHistoryNormalizationPolicy
@@ -20,6 +20,8 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             ["kilogram"] = "KG",
             ["ký"] = "KG",
             ["ky"] = "KG",
+            ["k"] = "KG",
+            ["g"] = "G",
             ["bich"] = "BICH",
             ["bịch"] = "BICH",
             ["cái"] = "CAI",
@@ -40,6 +42,7 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             ["lát"] = "LAT",
             ["lất"] = "LAT",
             ["lat"] = "LAT",
+            ["lát nhỏ"] = "LAT",
             ["miếng"] = "MIENG",
             ["mieng"] = "MIENG",
             ["quả"] = "QUA",
@@ -305,7 +308,7 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             : null;
         var blockers = supplier.Blockers
             .Concat(ingredient.Blockers)
-            .Concat(unit.Blockers)
+            .Concat(package?.Value is null ? unit.Blockers : [])
             .Concat(date.Blockers)
             .Concat(package?.Blockers ?? [])
             .DistinctBy(blocker => $"{blocker.Code}|{blocker.Field}|{blocker.RawValue}")
@@ -315,7 +318,7 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             Version,
             ingredient.Value?.SupplierName ?? supplier.Value,
             ingredient.Value?.IngredientName,
-            unit.Value,
+            package?.Value?.UnitCode ?? unit.Value,
             package?.Value,
             date.Blockers.Count == 0 ? candidate.DeliveryDate : null,
             blockers);

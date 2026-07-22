@@ -394,6 +394,9 @@ public class PurchaseHistoryReconciliationTests
     [InlineData("loốc", "LOC", null)]
     [InlineData("cay", "CAY", null)]
     [InlineData("lất", "LAT", null)]
+    [InlineData("g", "G", null)]
+    [InlineData("k", "KG", null)]
+    [InlineData("lát nhỏ", "LAT", null)]
     [InlineData("kh", null, "UNIT_AMBIGUOUS")]
     [InlineData("canh", null, "UNIT_AMBIGUOUS")]
     [InlineData("Bành", null, "UNIT_UNKNOWN")]
@@ -496,6 +499,28 @@ public class PurchaseHistoryReconciliationTests
         result.Value.Should().BeNull();
         result.Blockers.Should().ContainSingle(blocker =>
             blocker.Code == "PACKAGE_SIZE_REQUIRED" && blocker.RawValue == "BICH");
+    }
+
+    [Fact]
+    public void Normalization_full_candidate_accepts_explicit_decorated_package_evidence()
+    {
+        var policy = new PurchaseHistoryNormalizationPolicy(["Tạp hóa Huệ"]);
+        var candidate = Candidate(
+            "1.Rau",
+            42,
+            "Tạp hóa Huệ",
+            "Bao tay",
+            "Bịch (10 cái)",
+            new DateOnly(2026, 7, 20),
+            2,
+            25_000);
+
+        var result = policy.Normalize(candidate, new DateOnly(2026, 7, 20));
+
+        result.UnitCode.Should().Be("BICH");
+        result.Package.Should().Be(
+            new PurchaseHistoryPackageSnapshot("BICH", 10, "CAI"));
+        result.Blockers.Should().BeEmpty();
     }
 
     [Theory]
