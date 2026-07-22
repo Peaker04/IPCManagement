@@ -954,6 +954,20 @@ public class SupplierDecisionWorkflowTests
             await seedContext.SaveChangesAsync();
             requestId = GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId);
         }
+        await using (var setupVerificationContext = new IpcManagementContext(options))
+        {
+            (await setupVerificationContext.Purchaserequestlines.CountAsync()).Should().Be(2);
+            (await setupVerificationContext.Purchaselinesupplierdecisions.CountAsync()).Should().Be(2);
+            (await setupVerificationContext.Purchaserequestlines
+                    .Select(line => line.PurchaseRequestId)
+                    .ToListAsync())
+                .Select(GuidHelper.ToGuidString)
+                .Should().OnlyContain(id => id == requestId);
+        }
+
+        await using var creationContext = new IpcManagementContext(options);
+        var created = await CreatePurchaseOrderService(creationContext)
+            .CreateFromApprovedRequestAsync(requestId, UserId);
 
         await using var firstContext = new IpcManagementContext(options);
         await using var secondContext = new IpcManagementContext(options);
@@ -961,6 +975,8 @@ public class SupplierDecisionWorkflowTests
             CreatePurchaseOrderService(firstContext).CreateFromApprovedRequestAsync(requestId, UserId),
             CreatePurchaseOrderService(secondContext).CreateFromApprovedRequestAsync(requestId, UserId));
 
+        created.Select(order => order.PurchaseOrderId)
+            .Should().BeEquivalentTo(results[0].Select(order => order.PurchaseOrderId));
         results[0].Select(order => order.PurchaseOrderId)
             .Should().BeEquivalentTo(results[1].Select(order => order.PurchaseOrderId));
 
