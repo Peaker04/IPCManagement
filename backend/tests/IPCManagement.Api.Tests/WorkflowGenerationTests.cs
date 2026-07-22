@@ -1152,18 +1152,15 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = CreatePurchaseRequestWorkflowService(context);
-            await service.UpdateLineSupplierAsync(
+            await ConfirmSupplierFromQuotationAsync(
+                context,
+                fixture.UserIdString,
                 purchaseRequestId,
                 purchaseRequestLineId,
-                new UpdatePurchaseRequestLineSupplierDto
-                {
-                    SupplierId = GuidHelper.ToGuidString(newSupplierId),
-                    EstimatedUnitPrice = 12345.678m,
-                    ExpectedDeliveryDate = "2026-06-16",
-                    Note = "Giao trước 9h"
-                },
-                fixture.UserIdString);
+                newSupplierId,
+                12345.678m,
+                new DateOnly(2026, 6, 16),
+                "Giao trước 9h");
 
             var savedLine = await context.Purchaserequestlines.AsNoTracking().SingleAsync();
             savedLine.SupplierId.Should().Equal(newSupplierId);
@@ -1172,15 +1169,12 @@ public class WorkflowGenerationTests
             savedLine.Note.Should().Be("Giao trước 9h");
 
             var audit = await context.Auditlogs.AsNoTracking()
-                .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "SupplierPriceDelivery")
+                .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "ConfirmSupplierDecision")
                 .SingleAsync();
             audit.ChangedBy.Should().Equal(fixture.UserId);
-            audit.EntityId.Should().Equal(savedLine.PurchaseRequestLineId);
-            audit.OldValue.Should().Contain("supplier=-");
-            audit.NewValue.Should().Contain(GuidHelper.ToGuidString(newSupplierId));
-            audit.NewValue.Should().Contain("price=12345.68");
-            audit.NewValue.Should().Contain("delivery=2026-06-16");
-            audit.NewValue.Should().Contain("note=Giao trước 9h");
+            audit.EntityName.Should().Be(nameof(Purchaselinesupplierdecision));
+            audit.OldValue.Should().BeNull();
+            audit.NewValue.Should().HaveLength(64);
         }
     }
 
@@ -1208,16 +1202,13 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = CreatePurchaseRequestWorkflowService(context);
-            await service.UpdateLineSupplierAsync(
+            await ConfirmSupplierFromQuotationAsync(
+                context,
+                fixture.UserIdString,
                 purchaseRequestId,
                 purchaseRequestLineId,
-                new UpdatePurchaseRequestLineSupplierDto
-                {
-                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
-                    EstimatedUnitPrice = 1200m
-                },
-                fixture.UserIdString);
+                fixture.SupplierId,
+                1200m);
         }
 
         await using (var context = fixture.CreateContext())
@@ -1483,16 +1474,13 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = CreatePurchaseRequestWorkflowService(context);
-            await service.UpdateLineSupplierAsync(
+            await ConfirmSupplierFromQuotationAsync(
+                context,
+                fixture.UserIdString,
                 purchaseRequestId,
                 purchaseRequestLineId,
-                new UpdatePurchaseRequestLineSupplierDto
-                {
-                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
-                    EstimatedUnitPrice = 1200m
-                },
-                fixture.UserIdString);
+                fixture.SupplierId,
+                1200m);
         }
 
         await using (var context = fixture.CreateContext())
@@ -2384,15 +2372,13 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            await CreatePurchaseRequestWorkflowService(context).UpdateLineSupplierAsync(
+            await ConfirmSupplierFromQuotationAsync(
+                context,
+                fixture.UserIdString,
                 purchaseRequestId,
                 purchaseRequestLineId,
-                new UpdatePurchaseRequestLineSupplierDto
-                {
-                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
-                    EstimatedUnitPrice = 1200m
-                },
-                fixture.UserIdString);
+                fixture.SupplierId,
+                1200m);
         }
 
         await using (var context = fixture.CreateContext())
@@ -4687,16 +4673,72 @@ public class WorkflowGenerationTests
         var service = CreatePurchaseRequestWorkflowService(context);
         foreach (var line in purchase.Lines)
         {
-            await service.UpdateLineSupplierAsync(
+            await ConfirmSupplierFromQuotationAsync(
+                context,
+                fixture.UserIdString,
                 purchase.PurchaseRequestId,
                 line.PurchaseRequestLineId,
-                new UpdatePurchaseRequestLineSupplierDto
-                {
-                    SupplierId = GuidHelper.ToGuidString(fixture.SupplierId),
-                    EstimatedUnitPrice = estimatedUnitPrice
-                },
-                fixture.UserIdString);
+                fixture.SupplierId,
+                estimatedUnitPrice,
+                service: service);
         }
+    }
+
+    private static async Task ConfirmSupplierFromQuotationAsync(
+        IpcManagementContext context,
+        string actorUserId,
+        string purchaseRequestId,
+        string purchaseRequestLineId,
+        byte[] supplierId,
+        decimal proposedUnitPrice,
+        DateOnly? proposedDeliveryDate = null,
+        string? note = null,
+        PurchaseRequestWorkflowService? service = null)
+    {
+        var requestId = GuidHelper.ParseGuidString(purchaseRequestId)
+            ?? throw new InvalidOperationException("Mã đề xuất mua test không hợp lệ.");
+        var lineId = GuidHelper.ParseGuidString(purchaseRequestLineId)
+            ?? throw new InvalidOperationException("Mã dòng mua test không hợp lệ.");
+        var line = await context.Purchaserequestlines
+            .Include(item => item.PurchaseRequest)
+            .Include(item => item.Ingredient)
+            .Include(item => item.SupplierDecisions)
+            .SingleAsync(item =>
+                item.PurchaseRequestId == requestId &&
+                item.PurchaseRequestLineId == lineId);
+        var quotation = new Supplierquotation
+        {
+            QuotationId = GuidHelper.NewId(),
+            SupplierId = supplierId,
+            IngredientId = line.IngredientId,
+            UnitPrice = DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice),
+            EffectiveFrom = line.PurchaseRequest.PurchaseForDate.AddDays(-1),
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+        context.Supplierquotations.Add(quotation);
+        await context.SaveChangesAsync();
+
+        service ??= CreatePurchaseRequestWorkflowService(context);
+        await service.ConfirmLineSupplierAsync(
+            purchaseRequestId,
+            purchaseRequestLineId,
+            new ConfirmPurchaseLineSupplierDto
+            {
+                EvidenceType = SupplierEvidenceType.EffectiveQuotation,
+                EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
+                SupplierId = GuidHelper.ToGuidString(supplierId),
+                ProposedUnitPrice = proposedUnitPrice,
+                ProposedDeliveryDate = (proposedDeliveryDate ?? line.PurchaseRequest.PurchaseForDate.AddDays(1))
+                    .ToString("yyyy-MM-dd"),
+                ExpectedDecisionVersion = line.SupplierDecisions
+                    .Where(item => item.Status == "CURRENT")
+                    .Select(item => item.Version)
+                    .SingleOrDefault(),
+                Note = note
+            },
+            actorUserId);
     }
 
     private static PurchaseOrderService CreatePurchaseOrderService(IpcManagementContext context)
@@ -6275,6 +6317,29 @@ public class WorkflowGenerationTests
                     expectedDeliveryDate TEXT NULL,
                     note TEXT NULL
                 );
+                CREATE TABLE purchaselinesupplierdecisions (
+                    purchaseLineSupplierDecisionId BLOB PRIMARY KEY,
+                    purchaseRequestLineId BLOB NOT NULL,
+                    supplierId BLOB NOT NULL,
+                    evidenceType TEXT NOT NULL,
+                    evidenceId BLOB NOT NULL,
+                    evidenceDate TEXT NOT NULL,
+                    evidenceReferencePrice TEXT NOT NULL,
+                    proposedUnitPrice TEXT NOT NULL,
+                    proposedDeliveryDate TEXT NOT NULL,
+                    confirmedBy BLOB NOT NULL,
+                    confirmedAt TEXT NOT NULL,
+                    decisionFingerprint TEXT NOT NULL,
+                    version INTEGER NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'CURRENT',
+                    currentDecisionKey BLOB NULL,
+                    supersededByDecisionId BLOB NULL,
+                    concurrencyVersion INTEGER NOT NULL DEFAULT 1
+                );
+                CREATE UNIQUE INDEX uqPurchaseLineSupplierDecisionsLineFingerprint
+                    ON purchaselinesupplierdecisions (purchaseRequestLineId, decisionFingerprint);
+                CREATE UNIQUE INDEX uqPurchaseLineSupplierDecisionsCurrentKey
+                    ON purchaselinesupplierdecisions (currentDecisionKey);
                 CREATE TABLE purchaseorders (
                     purchaseOrderId BLOB PRIMARY KEY,
                     purchaseOrderCode TEXT NOT NULL,
