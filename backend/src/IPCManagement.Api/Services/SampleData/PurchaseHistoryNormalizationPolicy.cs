@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Services.SampleData;
 
 internal static class PurchaseHistoryPolicyVersion
 {
-    public const string Current = "purchase-history-normalization/2026-07-22/v1";
+    public const string Current = "purchase-history-normalization/2026-07-22/v2";
 }
 
 internal sealed class PurchaseHistoryNormalizationPolicy
@@ -47,7 +47,33 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             ["ổ"] = "O",
             ["o"] = "O",
             ["thùng"] = "THUNG",
-            ["thung"] = "THUNG"
+            ["thung"] = "THUNG",
+            ["bao"] = "BAO",
+            ["can"] = "CAN",
+            ["cặp"] = "CAP",
+            ["cục"] = "CUC",
+            ["đôi"] = "DOI",
+            ["lon"] = "LON",
+            ["lít"] = "LIT",
+            ["phần"] = "PHAN",
+            ["trái"] = "TRAI",
+            ["vỉ"] = "VI",
+            ["viên"] = "VIEN",
+            ["xấp"] = "XAP",
+            ["bó"] = "BO_BUNCH",
+            ["bộ"] = "BO_SET",
+            ["bình"] = "BINH",
+            ["chiếc"] = "CHIEC",
+            ["con"] = "CON",
+            ["bì"] = "BI"
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> IngredientAliases =
+        new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Cảithiaf"] = "Cải thìa",
+            ["Nấm bào ngừ"] = "Nấm bào ngư",
+            ["Bì ngòi xanh"] = "Bí ngòi xanh"
         };
 
     private static readonly HashSet<string> AmbiguousUnits =
@@ -106,6 +132,12 @@ internal sealed class PurchaseHistoryNormalizationPolicy
         {
             return PurchaseHistoryFieldResult<PurchaseHistoryNormalizedIngredient>.Blocked(
                 Blocker("INGREDIENT_MISSING", "Ingredient", rawIngredient, trace));
+        }
+
+        if (IngredientAliases.TryGetValue(normalized, out var canonicalIngredient))
+        {
+            return PurchaseHistoryFieldResult<PurchaseHistoryNormalizedIngredient>.Success(
+                new PurchaseHistoryNormalizedIngredient(canonicalIngredient, null));
         }
 
         if (_embeddedMappings.TryGetValue(normalized, out var mapping))
