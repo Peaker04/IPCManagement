@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ClipboardList, PackageOpen, Warehouse } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { ClipboardList, PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { useHasRole } from '@/app/hooks';
 import {
   CommandBar,
   ContextStrip,
@@ -29,8 +30,14 @@ import {
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
 } from '@/features/workflow';
-import { formatQuantityWithUnit } from '@/lib/formatters';
+import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '../workflowConfig';
+import {
+  useGetPurchaseOrdersPageQuery,
+  useGetWarehouseSelectorQuery,
+  type PurchaseOrderLineDto,
+} from '../workflowApi';
+import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -47,7 +54,12 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 };
 
 export default function WarehousePage() {
+  const [searchParams] = useSearchParams();
+  const canReceivePurchases = useHasRole(['warehouse']);
   const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
+  const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<string | null>(searchParams.get('purchaseOrderId'));
+  const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [demandPage, setDemandPage] = useState(1);
   const [issueCandidatePageNumber, setIssueCandidatePageNumber] = useState(1);
@@ -61,6 +73,11 @@ export default function WarehousePage() {
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const { data: purchaseOrderPageResponse, isFetching: isFetchingPurchaseOrders } = useGetPurchaseOrdersPageQuery({
+    pageNumber: purchaseOrderPageNumber,
+    pageSize: 8,
+  });
+  const { data: receiptWarehouses = [] } = useGetWarehouseSelectorQuery();
   const { data: demandPageResponse } = useGetIngredientDemandPageQuery({
     pageNumber: demandPage,
     pageSize: 8,
@@ -103,6 +120,17 @@ export default function WarehousePage() {
   ).map(([id, name]) => ({ id, name }));
   const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
+  const purchaseOrders = purchaseOrderPageResponse?.page.items ?? [];
+  const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
+  const selectedPurchaseOrder = purchaseOrders.find((order) => order.purchaseOrderId === selectedPurchaseOrderId)
+    ?? (selectedPurchaseOrderId === null
+      ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId)
+      : undefined);
+
+  const selectPurchaseOrder = (purchaseOrderId: string) => {
+    setSelectedPurchaseOrderId(selectedPurchaseOrder?.purchaseOrderId === purchaseOrderId ? '' : purchaseOrderId);
+    setSelectedReceiptLine(undefined);
+  };
 
   const openIssueDialog = () => {
     setIssueCandidatePageNumber(1);
@@ -269,11 +297,153 @@ export default function WarehousePage() {
         </DialogContent>
       </Dialog>
 
+      {selectedPurchaseOrder && selectedReceiptLine && canReceivePurchases && (
+        <WarehousePurchaseReceiptDialog
+          key={`${selectedPurchaseOrder.purchaseOrderId}-${selectedReceiptLine.purchaseOrderLineId}`}
+          open
+          order={selectedPurchaseOrder}
+          line={selectedReceiptLine}
+          warehouses={receiptWarehouses}
+          week={searchParams.get('week') ?? undefined}
+          onOpenChange={(open) => { if (!open) setSelectedReceiptLine(undefined); }}
+          onSuccess={(result) => {
+            setSelectedReceiptLine(undefined);
+            setWarehouseFeedback({
+              title: 'Đã ghi nhận nhập kho',
+              message: `Phiếu nhập ${result.receiptId} đã cập nhật tồn kho và tiến độ đơn mua.`,
+              variant: 'info',
+            });
+          }}
+        />
+      )}
+
       {warehouseFeedback && (
         <InlineAlert title={warehouseFeedback.title} variant={warehouseFeedback.variant}>
           {warehouseFeedback.message}
         </InlineAlert>
       )}
+
+      <SectionPanel
+        title="Đơn mua chờ nhập kho"
+        icon={<ReceiptText size={18} aria-hidden="true" />}
+        description="Chọn đúng đơn và dòng thực nhận. Cờ bằng chứng do máy chủ cung cấp, không suy đoán theo tên nguyên liệu."
+        className="min-w-0 overflow-hidden"
+      >
+        {!canReceivePurchases && (
+          <InlineAlert title="Chế độ chỉ đọc" variant="info" className="mb-3">
+            Chỉ vai trò Warehouse được ghi nhận phiếu nhập. Bạn vẫn có thể theo dõi tiến độ đơn mua.
+          </InlineAlert>
+        )}
+        <TableViewport
+          ariaLabel="Danh sách đơn mua và tiến độ nhập kho"
+          caption="Danh sách được phân trang và cuộn trong vùng cố định."
+          className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
+        >
+          <table className="ipc-data-table min-w-[820px]">
+            <thead>
+              <tr>
+                <th>Đơn mua</th>
+                <th>Nhà cung cấp</th>
+                <th>Đề xuất mua</th>
+                <th>Trạng thái</th>
+                <th>Tiến độ dòng</th>
+                <th>Thao tác</th>
+              </tr>
+            </thead>
+            <tbody>
+              {isFetchingPurchaseOrders && purchaseOrders.length === 0 ? (
+                Array.from({ length: 8 }, (_, index) => (
+                  <tr key={`purchase-order-skeleton-${index}`} aria-hidden="true">
+                    <td colSpan={6}><div className="h-5 animate-pulse rounded-sm bg-slate-200 motion-reduce:animate-none" /></td>
+                  </tr>
+                ))
+              ) : purchaseOrders.length === 0 ? (
+                <tr><td colSpan={6} className="h-[320px] text-center text-slate-600">Chưa có đơn mua để theo dõi nhập kho.</td></tr>
+              ) : purchaseOrders.map((order) => {
+                const completedLines = order.lines.filter((line) => line.receivedQty >= line.orderedQty).length;
+                const isSelected = selectedPurchaseOrder?.purchaseOrderId === order.purchaseOrderId;
+                return (
+                  <tr key={order.purchaseOrderId} className={isSelected ? 'bg-blue-50/60' : undefined}>
+                    <td className="font-semibold text-slate-900">{order.purchaseOrderCode}</td>
+                    <td>{order.supplierName}</td>
+                    <td>{order.purchaseRequestCode}</td>
+                    <td>{formatWorkflowStatus(order.status)}</td>
+                    <td>{completedLines}/{order.lines.length} dòng đã đủ</td>
+                    <td>
+                      <Button type="button" variant="outline" size="sm" aria-expanded={isSelected} onClick={() => selectPurchaseOrder(order.purchaseOrderId)}>
+                        {isSelected ? 'Đóng chi tiết' : 'Xem dòng nhận'}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </TableViewport>
+        <PaginationBar
+          page={purchaseOrderPageResponse?.page.pageNumber ?? purchaseOrderPageNumber}
+          pageSize={purchaseOrderPageResponse?.page.pageSize ?? 8}
+          totalItems={purchaseOrderPageResponse?.page.totalCount ?? 0}
+          onPageChange={(page) => {
+            setPurchaseOrderPageNumber(page);
+            setSelectedPurchaseOrderId('');
+            setSelectedReceiptLine(undefined);
+          }}
+        />
+
+        {selectedPurchaseOrder && (
+          <div className="mt-4 rounded-sm border border-slate-300 bg-slate-50 p-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h3 className="text-sm font-semibold text-slate-950">Chi tiết {selectedPurchaseOrder.purchaseOrderCode}</h3>
+                <p className="mt-1 text-xs text-slate-600">Số lượng và đơn giá thực nhận được xác nhận riêng cho từng dòng.</p>
+              </div>
+              <span className="text-xs font-medium text-slate-600">{selectedPurchaseOrder.orderDate}</span>
+            </div>
+            <TableViewport ariaLabel={`Chi tiết đơn mua ${selectedPurchaseOrder.purchaseOrderCode}`} caption="Các dòng và yêu cầu bằng chứng nhập kho do máy chủ cung cấp." className="max-h-[320px]">
+              <table className="ipc-data-table min-w-[900px]">
+                <thead>
+                  <tr>
+                    <th>Nguyên liệu</th>
+                    <th>Đã nhận / đặt</th>
+                    <th>Đơn giá đặt</th>
+                    <th>Bằng chứng bắt buộc</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {selectedPurchaseOrder.lines.map((line) => {
+                    const remaining = Math.max(line.orderedQty - line.receivedQty, 0);
+                    const requirements = [
+                      line.lotNumberRequired ? 'số lô' : null,
+                      line.manufactureDateRequired ? 'ngày sản xuất' : null,
+                      line.expiryDateRequired ? 'hạn sử dụng' : null,
+                    ].filter(Boolean).join(', ');
+                    return (
+                      <tr key={line.purchaseOrderLineId}>
+                        <td>
+                          <span className="block font-semibold text-slate-900">{line.ingredientName}</span>
+                          {line.blockerReason && <span className="mt-1 block text-xs text-red-700">{line.blockerReason}</span>}
+                        </td>
+                        <td>{line.receivedQty}/{line.orderedQty} {line.unitName}<span className="block text-xs text-slate-500">Còn {remaining} {line.unitName}</span></td>
+                        <td>{formatCurrency(line.unitPrice)}</td>
+                        <td>{requirements || 'Không có yêu cầu bổ sung'}</td>
+                        <td>
+                          {canReceivePurchases && (
+                            <Button type="button" size="sm" disabled={remaining <= 0 || Boolean(line.blockerReason)} onClick={() => setSelectedReceiptLine(line)}>
+                              {remaining <= 0 ? 'Đã nhận đủ' : 'Ghi nhận nhập kho'}
+                            </Button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </TableViewport>
+          </div>
+        )}
+      </SectionPanel>
 
       <ViewSwitcher
         compact

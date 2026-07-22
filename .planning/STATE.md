@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-11-PLAN.md; 09-05 residual checkpoint preserved
-last_updated: "2026-07-22T14:51:41.874Z"
-last_activity: 2026-07-22 — Plan 09-11 completed Warehouse-only atomic purchase receiving
+stopped_at: Completed 09-12-PLAN.md; 09-05 residual checkpoint preserved
+last_updated: "2026-07-22T15:22:49.908Z"
+last_activity: 2026-07-22 — Plan 09-12 completed frontend approval handoffs
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 11
-  percent: 30
+  completed_plans: 12
+  percent: 32
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-11-PLAN.md; 09-05 residual checkpoint preserved
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-12-PLAN.md
+**Stopped at:** Completed 09-12-PLAN.md; 09-05 residual checkpoint preserved
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-13-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 11 Warehouse-only atomic receiving*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 12 frontend approval handoffs*
 
 ## Performance Metrics
 
@@ -240,6 +240,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P09 | 28m | 2 tasks | 7 files |
 | Phase 09 P10 | 49m | 3 tasks | 12 files |
 | Phase 09 P11 | 25min | 3 tasks | 12 files |
+| Phase 09 P12 | 24m26s | 3 tasks | 14 files |
 
 ## Decisions
 
@@ -300,10 +301,13 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Require raw lot evidence for every purchase receipt; fresh-daily ingredients additionally require manufacture and expiry dates.
 - [Phase 09]: Derive deterministic receipt identity from purchase order plus idempotency key and validate the persisted full raw-evidence body on replay.
 - [Phase 09]: Keep purchase progress reads while removing the Purchase-owned receipt writer; Warehouse owns the sole mutation path.
+- [Phase 09]: Treat generated DRAFT material demand as the authoritative pending approval state; do not add a duplicate submit mutation. — Generation already persists the versioned snapshot and inbox record.
+- [Phase 09]: Expose demand source document and price-exception supplier as read-only inbox evidence instead of client inference. — Approval evidence must remain server-owned and auditable.
+- [Phase 09]: Keep approval dialogs contextual, safe-focused, and non-dismissible while decisions are pending. — Prevents accidental destructive confirmation and preserves recovery context.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 10 of 14 completed; next executable 09-12 (09-05 checkpoint preserved)
+Plan: 11 of 14 completed; next executable 09-13 (09-05 checkpoint preserved)
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-11 completed Warehouse-only atomic purchase receiving
+Last activity: 2026-07-22 — Plan 09-12 completed frontend approval handoffs
