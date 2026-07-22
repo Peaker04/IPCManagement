@@ -60,6 +60,7 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
     {
         var requiredPermission = targetType switch
         {
+            ApprovalTargetType.MaterialDemand => AuthorizationPolicies.MaterialDemandApprove,
             ApprovalTargetType.PurchaseRequest => AuthorizationPolicies.PurchaseRequestApprove,
             ApprovalTargetType.InventoryReceipt => AuthorizationPolicies.InventoryReceiptApprove,
             ApprovalTargetType.InventoryIssue => AuthorizationPolicies.InventoryIssueApprove,

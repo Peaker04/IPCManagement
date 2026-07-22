@@ -413,30 +413,29 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
-    public async Task GenerateDemand_Should_DemoteApprovedDemand_AndInvalidateDraftPurchaseRequestAtomically()
+    public async Task GenerateDemand_Should_PreserveApprovedDemand_AndRequireExplicitRecalculationVersion()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
         await SeedApprovedDemandWithPurchaseRequestAsync(fixture, "DRAFT");
 
         await using var context = fixture.CreateContext();
-        var result = await new MaterialDemandService(context).GenerateAsync(
+        var act = () => new MaterialDemandService(context).GenerateAsync(
             new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        result.Should().NotBeNull();
-        result!.Status.Should().Be("DRAFT");
-        result.Lines.Should().ContainSingle().Which.TotalRequiredQty.Should().Be(240m);
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Không thể tính lại nhu cầu đã được duyệt*");
         (await context.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
-            .Should().Be("DRAFT");
+            .Should().Be("MANAGERAPPROVED");
         (await context.Purchaserequests.AsNoTracking().Select(request => request.Status).SingleAsync())
             .Should().Be("DRAFT");
-        (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
         (await context.Auditlogs.AsNoTracking().AnyAsync(audit =>
             audit.BusinessArea == "Demand" &&
             audit.FieldName == nameof(Materialrequest.Status) &&
             audit.OldValue == "MANAGERAPPROVED" &&
-            audit.NewValue == "DRAFT")).Should().BeTrue();
+            audit.NewValue == "DRAFT")).Should().BeFalse();
     }
 
     [Theory]
@@ -2469,7 +2468,7 @@ public class WorkflowGenerationTests
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Thiếu báo giá" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         result.Should().NotBeNull();
         result!.OldStatus.Should().Be("SENTTOSUPPLIER");
@@ -2520,14 +2519,14 @@ public class WorkflowGenerationTests
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần đầu" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         var act = async () => await service.ExecuteAsync(
             "purchase-request",
             purchaseRequestId,
             new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Lần hai" },
             fixture.UserIdString,
-            BuildPrincipal("Thu mua"));
+            BuildPrincipal("Manager"));
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("Phiếu này đã được xử lý.");
