@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-07-PLAN.md
-last_updated: "2026-07-22T09:32:26.709Z"
-last_activity: 2026-07-22 — Plan 09-07 completed approval-bound supplier-neutral draft generation and the bounded purchasing workbench
+stopped_at: Completed 09-04-PLAN.md
+last_updated: "2026-07-22T10:14:51.852Z"
+last_activity: 2026-07-22 — Plan 09-04 completed forward reconciliation persistence and disposable migration proof
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 6
-  percent: 16
+  completed_plans: 7
+  percent: 19
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-07-PLAN.md
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-04-PLAN.md
+**Stopped at:** Completed 09-04-PLAN.md
+**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-05-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 07 approved-demand purchasing workbench*
+*Last updated: 2026-07-22 — completed Phase 09 Plan 04 reconciliation persistence schema*
 
 ## Performance Metrics
 
@@ -235,6 +235,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P06 | 32m | 3 tasks | 9 files |
 | Phase 09 P03 | 16m | 2 tasks | 6 files |
 | Phase 09 P07 | 55m | 2 tasks | 18 files |
+| Phase 09 P04 | 35m | 2 tasks | 10 files |
 
 ## Decisions
 
@@ -276,10 +277,14 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: The purchasing workbench uses six mutually exclusive service-date stages and selected-date paging with size 8 by default and 100 maximum.
 - [Phase 09]: Price exception classification is strict: only a proposed price more than 15 percent above reference enters exception.
 - [Phase 09]: Plan 09-08 follows the 09-07 nullable SupplierId migration and must not repeat that nullability alteration.
+- [Phase 09]: Persist accepted reconciliation as one unique manifest run with required server actor and deterministic action evidence.
+- [Phase 09]: Store receipt package evidence only as an all-null or complete positive quantity/base-unit/policy triple.
+- [Phase 09]: Keep 09-04 migration limited to audit tables and nullable snapshot columns; correct snapshot drift without unrelated supplier ALTER operations.
+- [Phase 09]: Limit fresh-install compensation to the disposable test fixture and record that it is not a full model-parity proof.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 5 of 14 completed; next 09-04
+Plan: 6 of 14 completed; next 09-05
 Status: Ready to execute
-Last activity: 2026-07-22 — Plan 09-07 completed approval-bound supplier-neutral draft generation and the bounded purchasing workbench
+Last activity: 2026-07-22 — Plan 09-04 completed forward reconciliation persistence and disposable migration proof

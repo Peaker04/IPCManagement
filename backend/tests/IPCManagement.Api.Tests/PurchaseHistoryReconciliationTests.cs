@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
@@ -556,13 +557,65 @@ public class PurchaseHistoryReconciliationTests
         first.Manifest.DatabaseFingerprint.Should().Be(replay.Manifest.DatabaseFingerprint).And.MatchRegex("^[0-9A-F]{64}$");
         first.Manifest.SourceName.Should().Be("IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx");
         first.Manifest.SourceSha256.Should().Be(new string('A', 64));
-        first.Manifest.ActionCounts.Should().Contain(new KeyValuePair<string, int>("keep", 1));
+        first.Manifest.ActionCounts.Should().NotContainKey("keep");
         first.Manifest.ActionCounts.Should().Contain(new KeyValuePair<string, int>("version", 1));
         first.Actions.Should().OnlyContain(action =>
             action.ActionHash.Length == 64 &&
             action.BeforeHash.Length == 64 &&
             action.AfterHash.Length == 64 &&
             !string.IsNullOrWhiteSpace(action.ReasonCode));
+    }
+
+    [Fact]
+    public async Task Preview_uses_the_single_active_supplier_when_an_inactive_duplicate_exists()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = Id(31),
+            SupplierCode = "SUP-RAU-LEGACY",
+            SupplierName = "Rau",
+            IsActive = false
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync(CancellationToken.None);
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "SUPPLIER_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
+    }
+
+    [Fact]
+    public async Task Preview_uses_the_single_active_ingredient_when_an_inactive_duplicate_exists()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = Id(21),
+            IngredientCode = "ING-RAU-MUONG-LEGACY",
+            IngredientName = "Rau muống",
+            UnitId = Id(10),
+            WarehouseId = Id(40),
+            ReferencePrice = 20_000,
+            IsFreshDaily = true,
+            IsActive = false
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync(CancellationToken.None);
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "INGREDIENT_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
     }
 
     [Fact]
@@ -618,12 +671,8 @@ public class PurchaseHistoryReconciliationTests
 
         preview.Actions.Should().ContainSingle(action =>
             action.ActionType == "delete" && action.TargetId == Convert.ToHexString(orphanLine.ReceiptLineId));
-        preview.Actions.Should().ContainSingle(action =>
-            action.ActionType == "keep" &&
-            action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId) &&
-            action.ReasonCode == "IMMUTABLE_DEPENDENCY_PRESERVED");
         preview.Actions.Should().NotContain(action =>
-            action.ActionType == "delete" && action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId));
+            action.TargetId == Convert.ToHexString(linkedLine.ReceiptLineId));
     }
 
     [Fact]
@@ -848,10 +897,389 @@ public class PurchaseHistoryReconciliationTests
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
     }
 
-    [Fact(Skip = "Plan 09-05 owns immutable-history apply and no-op replay behavior.")]
-    public void Apply_preserves_immutable_history_and_second_apply_is_no_op()
+    [Fact]
+    public async Task ApplyEndpoint_allows_manager_uses_server_actor_and_replays_prior_audit()
     {
-        Assert.Fail("Plan 09-05 must implement guarded apply and idempotent replay.");
+        var actorId = Guid.Parse("11111111-2222-3333-4444-555555555555");
+        var request = EndpointApplyRequest();
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        service.ApplyAsync(
+                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<byte[]>(),
+                Arg.Any<CancellationToken>())
+            .Returns(
+                new PurchaseHistoryApplyResultDto
+                {
+                    ManifestId = request.ManifestId,
+                    RunId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    AuditReference = "purchase-history-reconciliation/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    Applied = true,
+                    AppliedActionCount = 1
+                },
+                new PurchaseHistoryApplyResultDto
+                {
+                    ManifestId = request.ManifestId,
+                    RunId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    AuditReference = "purchase-history-reconciliation/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                    NoOp = true,
+                    AppliedActionCount = 1
+                });
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.UserHeader, actorId.ToString());
+
+        var first = await client.PostAsJsonAsync("/api/sample-data/purchase-history/apply", request);
+        var replay = await client.PostAsJsonAsync("/api/sample-data/purchase-history/apply", request);
+
+        first.StatusCode.Should().Be(HttpStatusCode.OK);
+        replay.StatusCode.Should().Be(HttpStatusCode.OK);
+        var firstPayload = await first.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryApplyResultDto>>();
+        var replayPayload = await replay.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryApplyResultDto>>();
+        firstPayload!.Data.Should().Match<PurchaseHistoryApplyResultDto>(result =>
+            result.Applied && !result.NoOp && result.RunId == replayPayload!.Data!.RunId);
+        replayPayload!.Data.Should().Match<PurchaseHistoryApplyResultDto>(result =>
+            !result.Applied && result.NoOp && result.AuditReference == firstPayload.Data!.AuditReference);
+        firstPayload.Data!.AuditReference.Should().NotContain("\\").And.NotContain(":\\");
+        await service.Received(2).ApplyAsync(
+            Arg.Is<PurchaseHistoryApplyRequestDto>(accepted =>
+                accepted.ManifestId == request.ManifestId &&
+                accepted.ManifestHash == request.ManifestHash &&
+                accepted.AcceptedActionIds.SequenceEqual(request.AcceptedActionIds)),
+            Arg.Is<byte[]>(actor => actor.SequenceEqual(actorId.ToByteArray())),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApplyEndpoint_returns_conflict_when_manifest_changed()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        service.ApplyAsync(
+                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<byte[]>(),
+                Arg.Any<CancellationToken>())
+            .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new InvalidOperationException("Manifest drifted."));
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.UserHeader, Guid.NewGuid().ToString());
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(HttpStatusCode.Conflict);
+        var payload = await response.Content.ReadFromJsonAsync<ApiResponse>();
+        payload!.Success.Should().BeFalse();
+        payload.Message.Should().Be("Manifest drifted.");
+    }
+
+    [Theory]
+    [InlineData(null, HttpStatusCode.Unauthorized)]
+    [InlineData("Chef", HttpStatusCode.Forbidden)]
+    public async Task ApplyEndpoint_rejects_unauthorized_callers_before_apply(
+        string? role,
+        HttpStatusCode expectedStatus)
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
+        using var client = app.GetTestClient();
+        if (role is not null)
+        {
+            client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, role);
+        }
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(expectedStatus);
+        await service.DidNotReceive().ApplyAsync(
+            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task ApplyEndpoint_is_hidden_in_production_before_apply()
+    {
+        var service = Substitute.For<IPurchaseHistoryReconciliationService>();
+        await using var app = await CreatePreviewEndpointAppAsync(service, "Production");
+        using var client = app.GetTestClient();
+        client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
+
+        var response = await client.PostAsJsonAsync(
+            "/api/sample-data/purchase-history/apply",
+            EndpointApplyRequest());
+
+        response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+        await service.DidNotReceive().ApplyAsync(
+            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<byte[]>(),
+            Arg.Any<CancellationToken>());
+    }
+
+    [Theory]
+    [InlineData("manifest-id")]
+    [InlineData("manifest-hash")]
+    [InlineData("action-subset")]
+    [InlineData("action-superset")]
+    [InlineData("backup-identifier")]
+    [InlineData("target-fingerprint")]
+    [InlineData("restore-fingerprint")]
+    [InlineData("restore-not-verified")]
+    public async Task ApplyGuard_rejects_request_drift_before_any_write(string drift)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var service = CreateApplyService(
+            context,
+            databaseIdentity: "ipc_lane1",
+            Candidate("1.Rau", 50, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+        switch (drift)
+        {
+            case "manifest-id":
+                request.ManifestId = "stale-manifest";
+                break;
+            case "manifest-hash":
+                request.ManifestHash = new string('D', 64);
+                break;
+            case "action-subset":
+                request.AcceptedActionIds.RemoveAt(0);
+                break;
+            case "action-superset":
+                request.AcceptedActionIds.Add("unexpected-action");
+                break;
+            case "backup-identifier":
+                request.BackupRestoreEvidence!.BackupIdentifier = "another-backup";
+                break;
+            case "target-fingerprint":
+                request.BackupRestoreEvidence!.TargetFingerprint = new string('D', 64);
+                break;
+            case "restore-fingerprint":
+                request.BackupRestoreEvidence!.RestoreFingerprint = new string('D', 64);
+                break;
+            case "restore-not-verified":
+                request.BackupRestoreEvidence!.RestoreVerified = false;
+                break;
+        }
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => service.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("source")]
+    [InlineData("policy")]
+    [InlineData("as-of")]
+    [InlineData("database")]
+    [InlineData("actions")]
+    public async Task ApplyGuard_rebuilds_preview_and_rejects_freshness_drift(string drift)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var baselineCandidate = Candidate(
+            "1.Rau",
+            60,
+            "Rau",
+            "Rau muống",
+            "KG",
+            new DateOnly(2026, 7, 20),
+            10,
+            25_000);
+        var baselineService = CreateApplyService(context, "ipc_lane1", baselineCandidate);
+        var request = AcceptedApplyRequest(await baselineService.PreviewAsync());
+        var driftedService = CreateApplyService(
+            context,
+            drift == "database" ? "ipc_lane2" : "ipc_lane1",
+            drift == "source" ? new string('D', 64) : new string('A', 64),
+            drift == "as-of" ? new DateOnly(2026, 7, 21) : new DateOnly(2026, 7, 20),
+            drift == "policy" ? "purchase-history-normalization/test-drift" : PurchaseHistoryPolicyVersion.Current,
+            drift == "actions"
+                ?
+                [
+                    baselineCandidate,
+                    Candidate("1.Rau", 61, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 21), 12, 27_000)
+                ]
+                : [baselineCandidate]);
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => driftedService.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData("ipcmanagement", false, false)]
+    [InlineData("ipc_e2e_template", false, false)]
+    [InlineData("ipc_lane1", true, false)]
+    [InlineData("ipc_lane1", false, true)]
+    public async Task ApplyGuard_rejects_unsafe_target_blockers_and_missing_server_actor(
+        string databaseIdentity,
+        bool includeBlocker,
+        bool omitActor)
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var candidate = Candidate(
+            "1.Rau",
+            70,
+            includeBlocker ? "Không tồn tại" : "Rau",
+            "Rau muống",
+            "KG",
+            new DateOnly(2026, 7, 20),
+            10,
+            25_000);
+        var service = CreateApplyService(context, databaseIdentity, candidate);
+        var request = AcceptedApplyRequest(await service.PreviewAsync());
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var act = () => service.ValidateAcceptedManifestAsync(
+            request,
+            omitActor ? [] : Id(41),
+            CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Fact]
+    public async Task ApplyGuard_accepts_only_the_exact_server_rebuilt_preview()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var service = CreateApplyService(
+            context,
+            "ipc_lane1",
+            Candidate("1.Rau", 80, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+        var before = await ApplyDatabaseCountsAsync(context);
+
+        var accepted = await service.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
+
+        accepted.Preview.Manifest.ManifestHash.Should().Be(preview.Manifest.ManifestHash);
+        accepted.DatabaseIdentity.Should().Be("ipc_lane1");
+        accepted.AppliedBy.Should().Equal(Id(41));
+        accepted.Actions.Select(action => action.ActionId).Should().Equal(request.AcceptedActionIds);
+        (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public async Task Apply_rolls_back_all_business_and_audit_rows_at_each_action_boundary(int failureIndex)
+    {
+        await using var fixture = await ApplyFixture.CreateAsync();
+        var service = CreateApplyServiceWithFailure(
+            fixture.Context,
+            failureIndex,
+            Candidate("1.Rau", 90, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000),
+            Candidate("1.Rau", 91, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 21), 11, 26_000),
+            Candidate("1.Rau", 92, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 22), 12, 27_000));
+        var request = AcceptedApplyRequest(await service.PreviewAsync());
+        var before = await ApplyDatabaseCountsAsync(fixture.Context);
+
+        var act = () => service.ApplyAsync(request, Id(41), CancellationToken.None);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        fixture.Context.ChangeTracker.Clear();
+        (await ApplyDatabaseCountsAsync(fixture.Context)).Should().Be(before);
+    }
+
+    [Fact]
+    public async Task Apply_preserves_immutable_history_and_second_apply_and_post_preview_are_no_op()
+    {
+        await using var fixture = await ApplyFixture.CreateAsync();
+        var immutable = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            Id(30),
+            Id(20),
+            Id(10),
+            8,
+            22_000,
+            "SAMPLE-LINKED",
+            purchaseRequestId: Id(92));
+        fixture.Context.ChangeTracker.Clear();
+        var original = await ReceiptLineSnapshotAsync(fixture.Context, immutable.ReceiptLineId);
+        var service = CreateApplyService(
+            fixture.Context,
+            "ipc_lane1",
+            Candidate("1.Rau", 100, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+
+        var first = await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var afterFirst = await ApplyDatabaseCountsAsync(fixture.Context);
+        var replay = await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var postPreview = await service.PreviewAsync();
+
+        first.Applied.Should().BeTrue();
+        first.NoOp.Should().BeFalse();
+        replay.Applied.Should().BeFalse();
+        replay.NoOp.Should().BeTrue();
+        replay.AppliedActionCount.Should().Be(first.AppliedActionCount);
+        (await ApplyDatabaseCountsAsync(fixture.Context)).Should().Be(afterFirst);
+        (await ReceiptLineSnapshotAsync(fixture.Context, immutable.ReceiptLineId)).Should().Be(original);
+        (await fixture.Context.Inventoryreceiptlines.CountAsync()).Should().Be(2);
+        (await fixture.Context.Purchasehistoryreconciliationruns.CountAsync()).Should().Be(1);
+        var audits = await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking().ToListAsync();
+        audits.Should().ContainSingle();
+        audits[0].BeforeHash.Should().Be(preview.Actions.Single().BeforeHash);
+        audits[0].AfterHash.Should().Be(preview.Actions.Single().AfterHash);
+        postPreview.Actions.Should().BeEmpty();
+        postPreview.Blockers.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Apply_deletes_only_proven_orphans_and_audits_referenced_duplicate_deactivation()
+    {
+        await using var fixture = await ApplyFixture.CreateAsync();
+        await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            Id(30), Id(20), Id(10), 10, 25_000, "SAMPLE-CANONICAL");
+        var referencedDuplicate = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260720-RAU-2",
+            new DateOnly(2026, 7, 20),
+            Id(30), Id(20), Id(10), 10, 25_000, "SAMPLE-REFERENCED", Id(93));
+        var orphan = await SeedReceiptAsync(
+            fixture.Context,
+            "RCP-SAMPLE-20260719-RAU",
+            new DateOnly(2026, 7, 19),
+            Id(30), Id(20), Id(10), 4, 20_000, "SAMPLE-ORPHAN");
+        fixture.Context.ChangeTracker.Clear();
+        var service = CreateApplyService(
+            fixture.Context,
+            "ipc_lane1",
+            Candidate("1.Rau", 110, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+        var preview = await service.PreviewAsync();
+        var request = AcceptedApplyRequest(preview);
+
+        await service.ApplyAsync(request, Id(41), CancellationToken.None);
+        fixture.Context.ChangeTracker.Clear();
+        var postPreview = await service.PreviewAsync();
+
+        (await fixture.Context.Inventoryreceiptlines.FindAsync(orphan.ReceiptLineId)).Should().BeNull();
+        (await fixture.Context.Inventoryreceiptlines.FindAsync(referencedDuplicate.ReceiptLineId)).Should().NotBeNull();
+        (await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking()
+            .CountAsync(action => action.ActionType == "delete")).Should().Be(1);
+        (await fixture.Context.Purchasehistoryreconciliationactions.AsNoTracking()
+            .CountAsync(action => action.ActionType == "deactivate")).Should().Be(1);
+        postPreview.Actions.Should().BeEmpty();
     }
 
     private static string FindRepositoryFile(params string[] segments)
@@ -1134,6 +1562,97 @@ public class PurchaseHistoryReconciliationTests
                     candidates),
                 policyVersion));
 
+    private static PurchaseHistoryReconciliationService CreateApplyService(
+        IpcManagementContext context,
+        string databaseIdentity,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => CreateApplyService(
+            context,
+            databaseIdentity,
+            new string('A', 64),
+            new DateOnly(2026, 7, 20),
+            PurchaseHistoryPolicyVersion.Current,
+            candidates);
+
+    private static PurchaseHistoryReconciliationService CreateApplyService(
+        IpcManagementContext context,
+        string databaseIdentity,
+        string sourceHash,
+        DateOnly asOfDate,
+        string policyVersion,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => new(
+            context,
+            () => new PurchaseHistoryPreviewSource(
+                "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx",
+                new PurchaseHistoryParseResult(
+                    sourceHash,
+                    asOfDate,
+                    1,
+                    1,
+                    1,
+                    candidates),
+                policyVersion),
+            () => databaseIdentity,
+            () => new PurchaseHistoryApplySafetyEvidence(
+                "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                new string('C', 64),
+                new string('C', 64)));
+
+    private static PurchaseHistoryReconciliationService CreateApplyServiceWithFailure(
+        IpcManagementContext context,
+        int failureIndex,
+        params PurchaseHistorySourceCandidate[] candidates)
+        => new(
+            context,
+            () => new PurchaseHistoryPreviewSource(
+                "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx",
+                new PurchaseHistoryParseResult(
+                    new string('A', 64),
+                    new DateOnly(2026, 7, 20),
+                    1,
+                    1,
+                    1,
+                    candidates)),
+            () => "ipc_lane1",
+            () => new PurchaseHistoryApplySafetyEvidence(
+                "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                new string('C', 64),
+                new string('C', 64)),
+            (index, _) => index == failureIndex
+                ? new InvalidOperationException($"Injected action failure at boundary {index}.")
+                : null);
+
+    private static PurchaseHistoryApplyRequestDto AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
+        => new()
+        {
+            ManifestId = preview.Manifest.ManifestId,
+            ManifestHash = preview.Manifest.ManifestHash,
+            AcceptedActionIds = preview.Actions.Select(action => action.ActionId).ToList(),
+            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            {
+                BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                TargetFingerprint = new string('C', 64),
+                RestoreFingerprint = new string('C', 64),
+                RestoreVerified = true
+            }
+        };
+
+    private static PurchaseHistoryApplyRequestDto EndpointApplyRequest()
+        => new()
+        {
+            ManifestId = "manifest-1",
+            ManifestHash = new string('C', 64),
+            AcceptedActionIds = ["action-1"],
+            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            {
+                BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
+                TargetFingerprint = new string('D', 64),
+                RestoreFingerprint = new string('D', 64),
+                RestoreVerified = true
+            }
+        };
+
     private static PurchaseHistorySourceCandidate Candidate(
         string sheet,
         int row,
@@ -1190,6 +1709,34 @@ public class PurchaseHistoryReconciliationTests
             await context.Inventoryreceiptlines.CountAsync(),
             await context.Stockmovements.CountAsync());
 
+    private static async Task<(int Suppliers, int Ingredients, int Receipts, int Lines, int Movements, int Runs, int Actions)>
+        ApplyDatabaseCountsAsync(IpcManagementContext context)
+        => (
+            await context.Suppliers.CountAsync(),
+            await context.Ingredients.CountAsync(),
+            await context.Inventoryreceipts.CountAsync(),
+            await context.Inventoryreceiptlines.CountAsync(),
+            await context.Stockmovements.CountAsync(),
+            await context.Purchasehistoryreconciliationruns.CountAsync(),
+            await context.Purchasehistoryreconciliationactions.CountAsync());
+
+    private static async Task<string> ReceiptLineSnapshotAsync(IpcManagementContext context, byte[] receiptLineId)
+    {
+        var line = await context.Inventoryreceiptlines.AsNoTracking()
+            .SingleAsync(item => item.ReceiptLineId == receiptLineId);
+        return string.Join('|', new[]
+        {
+            Convert.ToHexString(line.ReceiptLineId),
+            Convert.ToHexString(line.ReceiptId),
+            line.PurchaseRequestLineId is null ? string.Empty : Convert.ToHexString(line.PurchaseRequestLineId),
+            Convert.ToHexString(line.IngredientId),
+            Convert.ToHexString(line.UnitId),
+            line.Quantity.ToString(),
+            line.UnitPrice.ToString(),
+            line.LotNumber ?? string.Empty
+        });
+    }
+
     private static byte[] Id(int value)
     {
         var bytes = new byte[16];
@@ -1233,6 +1780,7 @@ public class PurchaseHistoryReconciliationTests
     {
         public const string AuthScheme = "PurchaseHistoryPreviewTest";
         public const string RoleHeader = "X-Test-Role";
+        public const string UserHeader = "X-Test-User";
 
         public PreviewTestAuthHandler(
             IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -1249,14 +1797,135 @@ public class PurchaseHistoryReconciliationTests
                 return Task.FromResult(AuthenticateResult.NoResult());
             }
 
+            var userId = Request.Headers.TryGetValue(UserHeader, out var configuredUser) &&
+                         !string.IsNullOrWhiteSpace(configuredUser)
+                ? configuredUser.ToString()
+                : "preview-test-user";
             var identity = new ClaimsIdentity(
                 [
-                    new Claim(ClaimTypes.NameIdentifier, "preview-test-user"),
+                    new Claim(ClaimTypes.NameIdentifier, userId),
                     new Claim(ClaimTypes.Role, role.ToString())
                 ],
                 AuthScheme);
             var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), AuthScheme);
             return Task.FromResult(AuthenticateResult.Success(ticket));
+        }
+    }
+
+    private sealed class ApplyFixture : IAsyncDisposable
+    {
+        private readonly SqliteConnection _connection;
+
+        private ApplyFixture(SqliteConnection connection, IpcManagementContext context)
+        {
+            _connection = connection;
+            Context = context;
+        }
+
+        public IpcManagementContext Context { get; }
+
+        public static async Task<ApplyFixture> CreateAsync()
+        {
+            var connection = new SqliteConnection("Data Source=:memory:");
+            await connection.OpenAsync();
+            var options = new DbContextOptionsBuilder<IpcManagementContext>()
+                .UseSqlite(connection)
+                .Options;
+            var context = new IpcManagementContext(options);
+            await CreateSchemaAsync(connection);
+            await SeedCatalogAsync(connection);
+            return new ApplyFixture(connection, context);
+        }
+
+        public async ValueTask DisposeAsync()
+        {
+            await Context.DisposeAsync();
+            await _connection.DisposeAsync();
+        }
+
+        private static async Task SeedCatalogAsync(SqliteConnection connection)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                INSERT INTO units(unitId, unitCode, unitName, baseUnitCode, convertRateToBase)
+                VALUES ($unitId, 'KG', 'Kilogram', NULL, 1);
+                INSERT INTO warehouses(warehouseId, warehouseCode, warehouseName, warehouseType, note)
+                VALUES ($warehouseId, 'WH-TEST', 'Kho test', 'TEST', NULL);
+                INSERT INTO ingredients(
+                    ingredientId, ingredientCode, ingredientName, unitId, warehouseId,
+                    referencePrice, isFreshDaily, isActive)
+                VALUES ($ingredientId, 'ING-RAU-MUONG', 'Rau muống', $unitId, $warehouseId, 25000, 1, 1);
+                INSERT INTO suppliers(supplierId, supplierCode, supplierName, isActive)
+                VALUES ($supplierId, 'SUP-RAU', 'Rau', 1);
+                """;
+            command.Parameters.AddWithValue("$unitId", Id(10));
+            command.Parameters.AddWithValue("$warehouseId", Id(40));
+            command.Parameters.AddWithValue("$ingredientId", Id(20));
+            command.Parameters.AddWithValue("$supplierId", Id(30));
+            await command.ExecuteNonQueryAsync();
+        }
+
+        private static async Task CreateSchemaAsync(SqliteConnection connection)
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = """
+                CREATE TABLE suppliers (
+                    supplierId BLOB PRIMARY KEY, supplierCode TEXT NOT NULL,
+                    supplierName TEXT NOT NULL, isActive INTEGER NULL);
+                CREATE TABLE units (
+                    unitId BLOB PRIMARY KEY, unitCode TEXT NOT NULL, unitName TEXT NOT NULL,
+                    baseUnitCode TEXT NULL, convertRateToBase NUMERIC NOT NULL);
+                CREATE TABLE warehouses (
+                    warehouseId BLOB PRIMARY KEY, warehouseCode TEXT NOT NULL,
+                    warehouseName TEXT NOT NULL, warehouseType TEXT NOT NULL, note TEXT NULL);
+                CREATE TABLE ingredients (
+                    ingredientId BLOB PRIMARY KEY, ingredientCode TEXT NOT NULL,
+                    ingredientName TEXT NOT NULL, unitId BLOB NOT NULL, warehouseId BLOB NOT NULL,
+                    referencePrice NUMERIC NOT NULL, isFreshDaily INTEGER NOT NULL, isActive INTEGER NULL);
+                CREATE TABLE inventoryreceipts (
+                    receiptId BLOB PRIMARY KEY, receiptCode TEXT NOT NULL UNIQUE,
+                    receiptDate TEXT NOT NULL, warehouseId BLOB NOT NULL, supplierId BLOB NOT NULL,
+                    purchaseRequestId BLOB NULL, createdBy BLOB NOT NULL, createdAt TEXT NOT NULL);
+                CREATE TABLE inventoryreceiptlines (
+                    receiptLineId BLOB PRIMARY KEY, receiptId BLOB NOT NULL,
+                    purchaseRequestLineId BLOB NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
+                    quantity NUMERIC NOT NULL, unitPrice NUMERIC NOT NULL,
+                    amount NUMERIC GENERATED ALWAYS AS (quantity * unitPrice) STORED,
+                    packageQuantitySnapshot NUMERIC NULL, packageBaseUnitIdSnapshot BLOB NULL,
+                    packagePolicyVersionSnapshot TEXT NULL, lotNumber TEXT NULL,
+                    manufactureDate TEXT NULL, expiredDate TEXT NULL);
+                CREATE TABLE stockmovements (
+                    movementId BLOB PRIMARY KEY, movementDate TEXT NOT NULL, warehouseId BLOB NOT NULL,
+                    ingredientId BLOB NOT NULL, unitId BLOB NOT NULL, movementType TEXT NOT NULL,
+                    refTable TEXT NULL, refId BLOB NULL, quantityIn NUMERIC NOT NULL,
+                    quantityOut NUMERIC NOT NULL, beforeQty NUMERIC NOT NULL, afterQty NUMERIC NOT NULL,
+                    performedBy BLOB NOT NULL);
+                CREATE TABLE currentstock (
+                    warehouseId BLOB NOT NULL, ingredientId BLOB NOT NULL, unitId BLOB NOT NULL,
+                    currentQty NUMERIC NOT NULL, lastUpdated TEXT NOT NULL,
+                    PRIMARY KEY (warehouseId, ingredientId, unitId));
+                CREATE TABLE purchasehistoryreconciliationruns (
+                    purchaseHistoryReconciliationRunId BLOB PRIMARY KEY, manifestId TEXT NOT NULL,
+                    manifestHash TEXT NOT NULL UNIQUE, sourceName TEXT NOT NULL, sourceSha256 TEXT NOT NULL,
+                    policyVersion TEXT NOT NULL, asOfDate TEXT NOT NULL, databaseFingerprint TEXT NOT NULL,
+                    backupIdentifier TEXT NOT NULL, backupTargetFingerprint TEXT NOT NULL,
+                    restoreFingerprint TEXT NOT NULL, restoreVerified INTEGER NOT NULL,
+                    appliedBy BLOB NOT NULL, appliedAt TEXT NOT NULL, status TEXT NOT NULL,
+                    candidateCount INTEGER NOT NULL, currentUniqueBusinessKeyCount INTEGER NOT NULL,
+                    auditedDeltaCount INTEGER NOT NULL, actionCount INTEGER NOT NULL,
+                    blockerCount INTEGER NOT NULL, keepCount INTEGER NOT NULL, versionCount INTEGER NOT NULL,
+                    deactivateCount INTEGER NOT NULL, deleteCount INTEGER NOT NULL, blockCount INTEGER NOT NULL);
+                CREATE TABLE purchasehistoryreconciliationactions (
+                    purchaseHistoryReconciliationActionId BLOB PRIMARY KEY,
+                    purchaseHistoryReconciliationRunId BLOB NOT NULL, actionId TEXT NOT NULL,
+                    actionType TEXT NOT NULL, sourceKey TEXT NOT NULL, sourceSheet TEXT NULL,
+                    sourceRow INTEGER NULL, businessKey TEXT NULL, targetType TEXT NOT NULL,
+                    targetId TEXT NOT NULL, reasonCode TEXT NOT NULL, beforeEvidence TEXT NOT NULL,
+                    beforeHash TEXT NOT NULL, afterEvidence TEXT NOT NULL, afterHash TEXT NOT NULL,
+                    actionHash TEXT NOT NULL, createdAt TEXT NOT NULL,
+                    UNIQUE(purchaseHistoryReconciliationRunId, actionId));
+                """;
+            await command.ExecuteNonQueryAsync();
         }
     }
 }
