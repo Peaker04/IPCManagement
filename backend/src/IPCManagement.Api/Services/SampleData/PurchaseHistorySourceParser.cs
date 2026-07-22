@@ -22,6 +22,13 @@ internal sealed class PurchaseHistorySourceParser
         "Đơn giá"
     ];
 
+    private readonly PurchaseHistoryNormalizationPolicy _normalizationPolicy;
+
+    public PurchaseHistorySourceParser(PurchaseHistoryNormalizationPolicy? normalizationPolicy = null)
+    {
+        _normalizationPolicy = normalizationPolicy ?? new PurchaseHistoryNormalizationPolicy([]);
+    }
+
     public PurchaseHistoryParseResult Parse(Stream source, DateOnly asOfDate, int? maxRowsPerSheet = null)
     {
         ArgumentNullException.ThrowIfNull(source);
@@ -38,6 +45,8 @@ internal sealed class PurchaseHistorySourceParser
         var sharedStrings = ReadSharedStrings(archive);
         var sheets = ReadSheets(archive);
         var supplierPolicies = ReadSupplierPolicies(archive, sheets, sharedStrings);
+        var normalizationPolicy = _normalizationPolicy.WithCanonicalSuppliers(
+            supplierPolicies.Values.Append("Vịt a Việt"));
         var candidates = new List<PurchaseHistorySourceCandidate>();
         var recognizedDataSheetCount = 0;
 
@@ -87,7 +96,9 @@ internal sealed class PurchaseHistorySourceParser
                     sheet.Name,
                     row.RowNumber,
                     supplierName,
-                    rawCells));
+                    rawCells,
+                    normalizationPolicy,
+                    asOfDate));
             }
         }
 
@@ -125,7 +136,9 @@ internal sealed class PurchaseHistorySourceParser
         string sourceSheet,
         int sourceRow,
         string supplierName,
-        IReadOnlyDictionary<string, string> rawCells)
+        IReadOnlyDictionary<string, string> rawCells,
+        PurchaseHistoryNormalizationPolicy normalizationPolicy,
+        DateOnly asOfDate)
     {
         var rawDate = Get(rawCells, "Ngày Giao hàng");
         var rawIngredient = Get(rawCells, "Tên hàng");
@@ -144,7 +157,7 @@ internal sealed class PurchaseHistorySourceParser
         var rowHash = Hash($"{sourceSheet}|{sourceRow}|{rowEvidence}");
         var sourceKey = Hash($"{workbookSha256}|{sourceSheet}|{sourceRow}");
 
-        return new PurchaseHistorySourceCandidate(
+        var candidate = new PurchaseHistorySourceCandidate(
             workbookSha256,
             supplierName,
             rawIngredient,
@@ -156,6 +169,10 @@ internal sealed class PurchaseHistorySourceParser
             businessKey,
             rowHash,
             new PurchaseHistorySourceTrace(sourceSheet, sourceRow, rawCells));
+        return candidate with
+        {
+            Normalization = normalizationPolicy.Normalize(candidate, asOfDate)
+        };
     }
 
     private static Dictionary<string, string> ReadSupplierPolicies(
@@ -476,6 +493,8 @@ internal sealed record PurchaseHistorySourceCandidate(
     string RowHash,
     PurchaseHistorySourceTrace Trace)
 {
+    public PurchaseHistoryNormalizationResult? Normalization { get; init; }
+
     public bool IsImportable => DeliveryDate is not null &&
                                 !string.IsNullOrWhiteSpace(RawIngredient) &&
                                 Quantity > 0 &&
