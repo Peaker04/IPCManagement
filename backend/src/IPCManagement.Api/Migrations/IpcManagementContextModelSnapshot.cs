@@ -2429,6 +2429,138 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.Property<byte[]>("PurchaseLineSupplierDecisionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseLineSupplierDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ConcurrencyVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("concurrencyVersion");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("confirmedAt");
+
+                    b.Property<byte[]>("ConfirmedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("confirmedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CurrentDecisionKey")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("currentDecisionKey")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("decisionFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("EvidenceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("evidenceDate");
+
+                    b.Property<byte[]>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("evidenceId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("EvidenceReferencePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("evidenceReferencePrice");
+
+                    b.Property<string>("EvidenceType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)")
+                        .HasColumnName("evidenceType");
+
+                    b.Property<DateOnly>("ProposedDeliveryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("proposedDeliveryDate");
+
+                    b.Property<decimal>("ProposedUnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("proposedUnitPrice");
+
+                    b.Property<byte[]>("PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestLineId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("CURRENT")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupersededByDecisionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supersededByDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("SupplierId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supplierId")
+                        .IsFixedLength();
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int")
+                        .HasColumnName("version");
+
+                    b.HasKey("PurchaseLineSupplierDecisionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "ConfirmedBy" }, "ixPurchaseLineSupplierDecisionsConfirmer");
+
+                    b.HasIndex(new[] { "SupersededByDecisionId" }, "ixPurchaseLineSupplierDecisionsSupersededBy");
+
+                    b.HasIndex(new[] { "SupplierId" }, "ixPurchaseLineSupplierDecisionsSupplier");
+
+                    b.HasIndex(new[] { "CurrentDecisionKey" }, "uqPurchaseLineSupplierDecisionsCurrentKey")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId", "DecisionFingerprint" }, "uqPurchaseLineSupplierDecisionsLineFingerprint")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId", "Version" }, "uqPurchaseLineSupplierDecisionsLineVersion")
+                        .IsUnique();
+
+                    b.ToTable("purchaselinesupplierdecisions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsConfirmationComplete", "`confirmedBy` IS NOT NULL AND `confirmedAt` IS NOT NULL AND `version` > 0 AND `concurrencyVersion` > 0");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsCurrentKey", "(`status` = 'CURRENT' AND `currentDecisionKey` = `purchaseRequestLineId` AND `supersededByDecisionId` IS NULL) OR (`status` = 'SUPERSEDED' AND `currentDecisionKey` IS NULL AND `supersededByDecisionId` IS NOT NULL)");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsEvidenceComplete", "`evidenceType` IN ('EFFECTIVE_QUOTATION', 'LATEST_VALID_RECEIPT') AND `evidenceReferencePrice` > 0 AND `proposedUnitPrice` > 0");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsStatus", "`status` IN ('CURRENT', 'SUPERSEDED')");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
                 {
                     b.Property<byte[]>("PurchaseOrderId")
@@ -2572,6 +2704,139 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("purchaseorderlines", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.Property<byte[]>("PurchasePriceExceptionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchasePriceExceptionId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ConcurrencyVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("concurrencyVersion");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("decidedAt");
+
+                    b.Property<byte[]>("DecidedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("decidedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("decisionReason");
+
+                    b.Property<DateOnly>("EvidenceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("evidenceDate");
+
+                    b.Property<byte[]>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("evidenceId")
+                        .IsFixedLength();
+
+                    b.Property<string>("EvidenceType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)")
+                        .HasColumnName("evidenceType");
+
+                    b.Property<string>("ProposalFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("proposalFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("ProposalVersion")
+                        .HasColumnType("int")
+                        .HasColumnName("proposalVersion");
+
+                    b.Property<decimal>("ProposedPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("proposedPrice");
+
+                    b.Property<byte[]>("PurchaseLineSupplierDecisionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseLineSupplierDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<decimal>("ReferencePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("referencePrice");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("requestedAt");
+
+                    b.Property<byte[]>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("PENDING")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupersededByExceptionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supersededByExceptionId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("VariancePercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)")
+                        .HasColumnName("variancePercent");
+
+                    b.HasKey("PurchasePriceExceptionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "DecidedBy" }, "ixPurchasePriceExceptionsDecider");
+
+                    b.HasIndex(new[] { "RequestedBy" }, "ixPurchasePriceExceptionsRequester");
+
+                    b.HasIndex(new[] { "SupersededByExceptionId" }, "ixPurchasePriceExceptionsSupersededBy");
+
+                    b.HasIndex(new[] { "PurchaseLineSupplierDecisionId", "ProposalFingerprint", "ProposalVersion" }, "uqPurchasePriceExceptionsProposal")
+                        .IsUnique();
+
+                    b.ToTable("purchasepriceexceptions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsDecisionComplete", "(`status` = 'PENDING' AND `decidedBy` IS NULL AND `decisionReason` IS NULL AND `decidedAt` IS NULL) OR (`status` IN ('APPROVED', 'REJECTED') AND `decidedBy` IS NOT NULL AND `decisionReason` IS NOT NULL AND `decidedAt` IS NOT NULL) OR `status` = 'SUPERSEDED'");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsStatus", "`status` IN ('PENDING', 'APPROVED', 'REJECTED', 'SUPERSEDED')");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsStrictVariance", "`referencePrice` > 0 AND `proposedPrice` > `referencePrice` AND `variancePercent` > 15");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsSupersession", "(`status` = 'SUPERSEDED' AND `supersededByExceptionId` IS NOT NULL) OR (`status` <> 'SUPERSEDED' AND `supersededByExceptionId` IS NULL)");
+                        });
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.Property<byte[]>("PurchaseRequestId")
@@ -2667,6 +2932,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
+
+                    b.Property<bool>("IsLegacySupplierSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasColumnName("isLegacySupplierSnapshot");
 
                     b.Property<byte[]>("MaterialRequestLineId")
                         .IsRequired()
@@ -4324,6 +4595,44 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("AppliedByNavigation");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ConfirmedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ConfirmedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                        .WithMany("SupplierDecisions")
+                        .HasForeignKey("PurchaseRequestLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "SupersededByDecision")
+                        .WithMany("SupersededDecisions")
+                        .HasForeignKey("SupersededByDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_4");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_2");
+
+                    b.Navigation("ConfirmedByNavigation");
+
+                    b.Navigation("PurchaseRequestLine");
+
+                    b.Navigation("SupersededByDecision");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
@@ -4384,6 +4693,43 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("PurchaseRequestLine");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "DecidedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("DecidedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchasepriceexceptions_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "PurchaseLineSupplierDecision")
+                        .WithMany("Purchasepriceexceptions")
+                        .HasForeignKey("PurchaseLineSupplierDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasepriceexceptions_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "RequestedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasepriceexceptions_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasepriceexception", "SupersededByException")
+                        .WithMany("SupersededExceptions")
+                        .HasForeignKey("SupersededByExceptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchasepriceexceptions_ibfk_4");
+
+                    b.Navigation("DecidedByNavigation");
+
+                    b.Navigation("PurchaseLineSupplierDecision");
+
+                    b.Navigation("RequestedByNavigation");
+
+                    b.Navigation("SupersededByException");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
@@ -4814,9 +5160,21 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Purchasehistoryreconciliationactions");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.Navigation("Purchasepriceexceptions");
+
+                    b.Navigation("SupersededDecisions");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
                 {
                     b.Navigation("Purchaseorderlines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.Navigation("SupersededExceptions");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
@@ -4833,6 +5191,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Inventoryreceiptlines");
 
                     b.Navigation("Purchaseorderline");
+
+                    b.Navigation("SupplierDecisions");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>

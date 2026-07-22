@@ -6266,6 +6266,7 @@ public class WorkflowGenerationTests
                     materialRequestLineId BLOB NOT NULL,
                     ingredientId BLOB NOT NULL,
                     supplierId BLOB NULL,
+                    isLegacySupplierSnapshot INTEGER NOT NULL DEFAULT 0,
                     unitId BLOB NOT NULL,
                     requiredQty TEXT NOT NULL,
                     currentStockQty TEXT NOT NULL,

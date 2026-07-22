@@ -88,6 +88,10 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<Purchaseorderline> Purchaseorderlines { get; set; }
 
+    public virtual DbSet<Purchaselinesupplierdecision> Purchaselinesupplierdecisions { get; set; }
+
+    public virtual DbSet<Purchasepriceexception> Purchasepriceexceptions { get; set; }
+
     public virtual DbSet<Purchasehistoryreconciliationrun> Purchasehistoryreconciliationruns { get; set; }
 
     public virtual DbSet<Purchasehistoryreconciliationaction> Purchasehistoryreconciliationactions { get; set; }
@@ -2016,6 +2020,9 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.Note)
                 .HasColumnType("text")
                 .HasColumnName("note");
+            entity.Property(e => e.IsLegacySupplierSnapshot)
+                .HasDefaultValue(false)
+                .HasColumnName("isLegacySupplierSnapshot");
             entity.Property(e => e.PurchaseQty)
                 .HasPrecision(18, 6)
                 .HasColumnName("purchaseQty");
@@ -2060,6 +2067,140 @@ public partial class IpcManagementContext : DbContext
                 .HasForeignKey(d => d.UnitId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("purchaserequestlines_ibfk_5");
+        });
+
+        modelBuilder.Entity<Purchaselinesupplierdecision>(entity =>
+        {
+            entity.HasKey(e => e.PurchaseLineSupplierDecisionId).HasName("PRIMARY");
+
+            entity.ToTable("purchaselinesupplierdecisions", table =>
+            {
+                table.HasCheckConstraint(
+                    "ckPurchaseLineSupplierDecisionsEvidenceComplete",
+                    "`evidenceType` IN ('EFFECTIVE_QUOTATION', 'LATEST_VALID_RECEIPT') AND " +
+                    "`evidenceReferencePrice` > 0 AND `proposedUnitPrice` > 0");
+                table.HasCheckConstraint(
+                    "ckPurchaseLineSupplierDecisionsConfirmationComplete",
+                    "`confirmedBy` IS NOT NULL AND `confirmedAt` IS NOT NULL AND `version` > 0 AND `concurrencyVersion` > 0");
+                table.HasCheckConstraint(
+                    "ckPurchaseLineSupplierDecisionsStatus",
+                    "`status` IN ('CURRENT', 'SUPERSEDED')");
+                table.HasCheckConstraint(
+                    "ckPurchaseLineSupplierDecisionsCurrentKey",
+                    "(`status` = 'CURRENT' AND `currentDecisionKey` = `purchaseRequestLineId` AND `supersededByDecisionId` IS NULL) OR " +
+                    "(`status` = 'SUPERSEDED' AND `currentDecisionKey` IS NULL AND `supersededByDecisionId` IS NOT NULL)");
+            });
+
+            entity.HasIndex(e => new { e.PurchaseRequestLineId, e.Version }, "uqPurchaseLineSupplierDecisionsLineVersion").IsUnique();
+            entity.HasIndex(e => new { e.PurchaseRequestLineId, e.DecisionFingerprint }, "uqPurchaseLineSupplierDecisionsLineFingerprint").IsUnique();
+            entity.HasIndex(e => e.CurrentDecisionKey, "uqPurchaseLineSupplierDecisionsCurrentKey").IsUnique();
+            entity.HasIndex(e => e.SupplierId, "ixPurchaseLineSupplierDecisionsSupplier");
+            entity.HasIndex(e => e.ConfirmedBy, "ixPurchaseLineSupplierDecisionsConfirmer");
+            entity.HasIndex(e => e.SupersededByDecisionId, "ixPurchaseLineSupplierDecisionsSupersededBy");
+
+            entity.Property(e => e.PurchaseLineSupplierDecisionId).HasMaxLength(16).IsFixedLength().HasColumnName("purchaseLineSupplierDecisionId");
+            entity.Property(e => e.PurchaseRequestLineId).HasMaxLength(16).IsFixedLength().HasColumnName("purchaseRequestLineId");
+            entity.Property(e => e.SupplierId).HasMaxLength(16).IsFixedLength().HasColumnName("supplierId");
+            entity.Property(e => e.EvidenceType).HasMaxLength(40).HasColumnName("evidenceType");
+            entity.Property(e => e.EvidenceId).HasMaxLength(16).IsFixedLength().HasColumnName("evidenceId");
+            entity.Property(e => e.EvidenceDate).HasColumnType("date").HasColumnName("evidenceDate");
+            entity.Property(e => e.EvidenceReferencePrice).HasPrecision(18, 2).HasColumnName("evidenceReferencePrice");
+            entity.Property(e => e.ProposedUnitPrice).HasPrecision(18, 2).HasColumnName("proposedUnitPrice");
+            entity.Property(e => e.ProposedDeliveryDate).HasColumnType("date").HasColumnName("proposedDeliveryDate");
+            entity.Property(e => e.ConfirmedBy).HasMaxLength(16).IsFixedLength().HasColumnName("confirmedBy");
+            entity.Property(e => e.ConfirmedAt).HasColumnType("datetime").HasColumnName("confirmedAt");
+            entity.Property(e => e.DecisionFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("decisionFingerprint");
+            entity.Property(e => e.Version).HasColumnName("version");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("CURRENT").HasColumnName("status");
+            entity.Property(e => e.CurrentDecisionKey).HasMaxLength(16).IsFixedLength().HasColumnName("currentDecisionKey");
+            entity.Property(e => e.SupersededByDecisionId).HasMaxLength(16).IsFixedLength().HasColumnName("supersededByDecisionId");
+            entity.Property(e => e.ConcurrencyVersion).IsConcurrencyToken().HasDefaultValue(1).HasColumnName("concurrencyVersion");
+
+            entity.HasOne(d => d.PurchaseRequestLine).WithMany(p => p.SupplierDecisions)
+                .HasForeignKey(d => d.PurchaseRequestLineId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchaselinesupplierdecisions_ibfk_1");
+            entity.HasOne(d => d.Supplier).WithMany()
+                .HasForeignKey(d => d.SupplierId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchaselinesupplierdecisions_ibfk_2");
+            entity.HasOne(d => d.ConfirmedByNavigation).WithMany()
+                .HasForeignKey(d => d.ConfirmedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchaselinesupplierdecisions_ibfk_3");
+            entity.HasOne(d => d.SupersededByDecision).WithMany(p => p.SupersededDecisions)
+                .HasForeignKey(d => d.SupersededByDecisionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchaselinesupplierdecisions_ibfk_4");
+        });
+
+        modelBuilder.Entity<Purchasepriceexception>(entity =>
+        {
+            entity.HasKey(e => e.PurchasePriceExceptionId).HasName("PRIMARY");
+
+            entity.ToTable("purchasepriceexceptions", table =>
+            {
+                table.HasCheckConstraint(
+                    "ckPurchasePriceExceptionsStrictVariance",
+                    "`referencePrice` > 0 AND `proposedPrice` > `referencePrice` AND `variancePercent` > 15");
+                table.HasCheckConstraint(
+                    "ckPurchasePriceExceptionsDecisionComplete",
+                    "(`status` = 'PENDING' AND `decidedBy` IS NULL AND `decisionReason` IS NULL AND `decidedAt` IS NULL) OR " +
+                    "(`status` IN ('APPROVED', 'REJECTED') AND `decidedBy` IS NOT NULL AND `decisionReason` IS NOT NULL AND `decidedAt` IS NOT NULL) OR " +
+                    "`status` = 'SUPERSEDED'");
+                table.HasCheckConstraint(
+                    "ckPurchasePriceExceptionsStatus",
+                    "`status` IN ('PENDING', 'APPROVED', 'REJECTED', 'SUPERSEDED')");
+                table.HasCheckConstraint(
+                    "ckPurchasePriceExceptionsSupersession",
+                    "(`status` = 'SUPERSEDED' AND `supersededByExceptionId` IS NOT NULL) OR " +
+                    "(`status` <> 'SUPERSEDED' AND `supersededByExceptionId` IS NULL)");
+            });
+
+            entity.HasIndex(
+                    e => new { e.PurchaseLineSupplierDecisionId, e.ProposalFingerprint, e.ProposalVersion },
+                    "uqPurchasePriceExceptionsProposal")
+                .IsUnique();
+            entity.HasIndex(e => e.RequestedBy, "ixPurchasePriceExceptionsRequester");
+            entity.HasIndex(e => e.DecidedBy, "ixPurchasePriceExceptionsDecider");
+            entity.HasIndex(e => e.SupersededByExceptionId, "ixPurchasePriceExceptionsSupersededBy");
+
+            entity.Property(e => e.PurchasePriceExceptionId).HasMaxLength(16).IsFixedLength().HasColumnName("purchasePriceExceptionId");
+            entity.Property(e => e.PurchaseLineSupplierDecisionId).HasMaxLength(16).IsFixedLength().HasColumnName("purchaseLineSupplierDecisionId");
+            entity.Property(e => e.ReferencePrice).HasPrecision(18, 2).HasColumnName("referencePrice");
+            entity.Property(e => e.ProposedPrice).HasPrecision(18, 2).HasColumnName("proposedPrice");
+            entity.Property(e => e.VariancePercent).HasPrecision(9, 4).HasColumnName("variancePercent");
+            entity.Property(e => e.EvidenceType).HasMaxLength(40).HasColumnName("evidenceType");
+            entity.Property(e => e.EvidenceId).HasMaxLength(16).IsFixedLength().HasColumnName("evidenceId");
+            entity.Property(e => e.EvidenceDate).HasColumnType("date").HasColumnName("evidenceDate");
+            entity.Property(e => e.Reason).HasColumnType("text").HasColumnName("reason");
+            entity.Property(e => e.ProposalFingerprint).HasMaxLength(64).IsFixedLength().HasColumnName("proposalFingerprint");
+            entity.Property(e => e.ProposalVersion).HasColumnName("proposalVersion");
+            entity.Property(e => e.RequestedBy).HasMaxLength(16).IsFixedLength().HasColumnName("requestedBy");
+            entity.Property(e => e.RequestedAt).HasColumnType("datetime").HasColumnName("requestedAt");
+            entity.Property(e => e.Status).HasMaxLength(20).HasDefaultValue("PENDING").HasColumnName("status");
+            entity.Property(e => e.DecidedBy).HasMaxLength(16).IsFixedLength().HasColumnName("decidedBy");
+            entity.Property(e => e.DecisionReason).HasColumnType("text").HasColumnName("decisionReason");
+            entity.Property(e => e.DecidedAt).HasColumnType("datetime").HasColumnName("decidedAt");
+            entity.Property(e => e.SupersededByExceptionId).HasMaxLength(16).IsFixedLength().HasColumnName("supersededByExceptionId");
+            entity.Property(e => e.ConcurrencyVersion).IsConcurrencyToken().HasDefaultValue(1).HasColumnName("concurrencyVersion");
+
+            entity.HasOne(d => d.PurchaseLineSupplierDecision).WithMany(p => p.Purchasepriceexceptions)
+                .HasForeignKey(d => d.PurchaseLineSupplierDecisionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchasepriceexceptions_ibfk_1");
+            entity.HasOne(d => d.RequestedByNavigation).WithMany()
+                .HasForeignKey(d => d.RequestedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchasepriceexceptions_ibfk_2");
+            entity.HasOne(d => d.DecidedByNavigation).WithMany()
+                .HasForeignKey(d => d.DecidedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchasepriceexceptions_ibfk_3");
+            entity.HasOne(d => d.SupersededByException).WithMany(p => p.SupersededExceptions)
+                .HasForeignKey(d => d.SupersededByExceptionId)
+                .OnDelete(DeleteBehavior.Restrict)
+                .HasConstraintName("purchasepriceexceptions_ibfk_4");
         });
 
         modelBuilder.Entity<Purchaseorder>(entity =>

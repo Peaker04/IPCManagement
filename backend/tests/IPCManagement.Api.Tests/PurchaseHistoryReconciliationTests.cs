@@ -369,6 +369,23 @@ public class PurchaseHistoryReconciliationTests
     }
 
     [Theory]
+    [InlineData("Cảithiaf", "Cải thìa")]
+    [InlineData("Nấm bào ngừ", "Nấm bào ngư")]
+    [InlineData("Bì ngòi xanh", "Bí ngòi xanh")]
+    public void Normalization_ingredient_applies_only_approved_typo_aliases(
+        string rawIngredient,
+        string expectedIngredient)
+    {
+        var policy = new PurchaseHistoryNormalizationPolicy(["Rau"]);
+
+        var result = policy.NormalizeIngredient(rawIngredient, Trace("Tên hàng", rawIngredient));
+
+        result.Value?.IngredientName.Should().Be(expectedIngredient);
+        result.Value?.SupplierName.Should().BeNull();
+        result.Blockers.Should().BeEmpty();
+    }
+
+    [Theory]
     [InlineData("kg", "KG", null)]
     [InlineData("KGS", "KG", null)]
     [InlineData("ký", "KG", null)]
@@ -392,6 +409,37 @@ public class PurchaseHistoryReconciliationTests
         result.Value.Should().Be(expectedUnit);
         result.Blockers.Select(blocker => blocker.Code).Should().BeEquivalentTo(
             expectedBlocker is null ? [] : [expectedBlocker]);
+    }
+
+    [Theory]
+    [InlineData("bao", "BAO")]
+    [InlineData("CAN", "CAN")]
+    [InlineData("cặp", "CAP")]
+    [InlineData("CỤC", "CUC")]
+    [InlineData("đôi", "DOI")]
+    [InlineData("LON", "LON")]
+    [InlineData("lít", "LIT")]
+    [InlineData("PHẦN", "PHAN")]
+    [InlineData("trái", "TRAI")]
+    [InlineData("VỈ", "VI")]
+    [InlineData("viên", "VIEN")]
+    [InlineData("XẤP", "XAP")]
+    [InlineData("bó", "BO_BUNCH")]
+    [InlineData("BỘ", "BO_SET")]
+    [InlineData("bình", "BINH")]
+    [InlineData("CHIẾC", "CHIEC")]
+    [InlineData("con", "CON")]
+    [InlineData("BÌ", "BI")]
+    public void Normalization_approved_canonical_units_is_case_insensitive(
+        string rawUnit,
+        string expectedUnit)
+    {
+        var policy = new PurchaseHistoryNormalizationPolicy(["Rau"]);
+
+        var result = policy.NormalizeUnit(rawUnit, Trace("Đơn vị tính", rawUnit));
+
+        result.Value.Should().Be(expectedUnit);
+        result.Blockers.Should().BeEmpty();
     }
 
     [Theory]

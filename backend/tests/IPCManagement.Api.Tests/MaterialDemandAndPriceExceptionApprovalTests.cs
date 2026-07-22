@@ -7,6 +7,8 @@ using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Approvals;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using System.Security.Claims;
 
@@ -14,6 +16,108 @@ namespace IPCManagement.Api.Tests;
 
 public class MaterialDemandAndPriceExceptionApprovalTests
 {
+    [Fact]
+    public void Migration_contract_keeps_supplier_nullable_and_uses_existing_po_uniqueness()
+    {
+        using var context = CreateInboxContext();
+        var model = context.GetService<IDesignTimeModel>().Model;
+        var line = model.FindEntityType(typeof(Purchaserequestline));
+        var order = model.FindEntityType(typeof(Purchaseorder));
+
+        line!.FindProperty(nameof(Purchaserequestline.SupplierId))!.IsNullable.Should().BeTrue();
+        order!.GetIndexes().Should().Contain(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name)
+                .SequenceEqual(new[] { nameof(Purchaseorder.PurchaseRequestId), nameof(Purchaseorder.SupplierId) }));
+
+        var migration = File.ReadAllText(FindRepositoryFile(
+            "backend", "src", "IPCManagement.Api", "Migrations",
+            "20260722163000_AddSupplierDecisionsAndPriceExceptions.cs"));
+        migration.Should().Contain("isLegacySupplierSnapshot");
+        migration.Should().Contain("WHERE `supplierId` IS NOT NULL");
+        migration.Should().NotContain("AlterColumn<byte[]>(\n                name: \"supplierId\"");
+        migration.Should().NotContain("DELETE FROM `purchaseorders`");
+    }
+
+    [Fact]
+    public async Task Persistence_price_exception_binds_one_proposal_and_preserves_superseded_decisions()
+    {
+        await using var context = CreateInboxContext();
+        var model = context.GetService<IDesignTimeModel>().Model;
+        var entity = model.FindEntityType(typeof(Purchasepriceexception));
+
+        entity.Should().NotBeNull();
+        entity!.FindProperty(nameof(Purchasepriceexception.ProposalFingerprint))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(Purchasepriceexception.ProposalVersion))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(Purchasepriceexception.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
+        entity.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain([
+            "ckPurchasePriceExceptionsStrictVariance",
+            "ckPurchasePriceExceptionsDecisionComplete",
+            "ckPurchasePriceExceptionsStatus",
+            "ckPurchasePriceExceptionsSupersession"
+        ]);
+        entity.GetIndexes().Should().Contain(index =>
+            index.IsUnique && index.Properties.Select(property => property.Name)
+                .SequenceEqual(new[] {
+                    nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId),
+                    nameof(Purchasepriceexception.ProposalFingerprint),
+                    nameof(Purchasepriceexception.ProposalVersion)
+                }));
+        var decisionForeignKey = entity.GetForeignKeys().Single(key =>
+            key.Properties.Select(property => property.Name)
+                .SequenceEqual(new[] { nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId) }));
+        decisionForeignKey.IsRequired.Should().BeTrue();
+
+        var decisionId = GuidHelper.NewId();
+        var firstExceptionId = GuidHelper.NewId();
+        var secondExceptionId = GuidHelper.NewId();
+        context.Purchasepriceexceptions.AddRange(
+            new Purchasepriceexception
+            {
+                PurchasePriceExceptionId = firstExceptionId,
+                PurchaseLineSupplierDecisionId = decisionId,
+                ReferencePrice = 100m,
+                ProposedPrice = 120m,
+                VariancePercent = 20m,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 7, 20),
+                Reason = "Giá đề xuất vượt ngưỡng",
+                ProposalFingerprint = new string('C', 64),
+                ProposalVersion = 1,
+                RequestedBy = GuidHelper.NewId(),
+                RequestedAt = new DateTime(2026, 7, 20, 9, 0, 0, DateTimeKind.Utc),
+                Status = "SUPERSEDED",
+                SupersededByExceptionId = secondExceptionId,
+                ConcurrencyVersion = 2
+            },
+            new Purchasepriceexception
+            {
+                PurchasePriceExceptionId = secondExceptionId,
+                PurchaseLineSupplierDecisionId = decisionId,
+                ReferencePrice = 100m,
+                ProposedPrice = 118m,
+                VariancePercent = 18m,
+                EvidenceType = "EFFECTIVE_QUOTATION",
+                EvidenceId = GuidHelper.NewId(),
+                EvidenceDate = new DateOnly(2026, 7, 21),
+                Reason = "Cập nhật báo giá",
+                ProposalFingerprint = new string('D', 64),
+                ProposalVersion = 2,
+                RequestedBy = GuidHelper.NewId(),
+                RequestedAt = new DateTime(2026, 7, 21, 9, 0, 0, DateTimeKind.Utc),
+                Status = "PENDING",
+                ConcurrencyVersion = 1
+            });
+
+        await context.SaveChangesAsync();
+
+        (await context.Purchasepriceexceptions.AsNoTracking().OrderBy(item => item.ProposalVersion).ToListAsync())
+            .Select(item => (item.ProposalVersion, item.Status, item.ProposalFingerprint))
+            .Should().Equal(
+                (1, "SUPERSEDED", new string('C', 64)),
+                (2, "PENDING", new string('D', 64)));
+    }
+
     [Theory]
     [InlineData("Manager", true)]
     [InlineData("Quản lý", true)]
@@ -291,6 +395,23 @@ public class MaterialDemandAndPriceExceptionApprovalTests
 
     private static ClaimsPrincipal BuildPrincipal(string role)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)], "test"));
+
+    private static string FindRepositoryFile(params string[] segments)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            var candidate = Path.Combine([current.FullName, .. segments]);
+            if (File.Exists(candidate))
+            {
+                return candidate;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new FileNotFoundException($"Không tìm thấy file fixture: {Path.Combine(segments)}");
+    }
 
     private static IpcManagementContext CreateInboxContext()
     {
