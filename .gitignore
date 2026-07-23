@@ -89,6 +89,7 @@ Desktop.ini
 # Internal / AI tooling (not for repo)
 # =============================================
 .claude/
+.codex/skills/
 .docs/
 .planning/
 docs/
