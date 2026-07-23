@@ -547,7 +547,7 @@ public class PurchaseHistoryReconciliationTests
             expectedBlocker is null ? [] : [expectedBlocker]);
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Normalization_parser_routes_every_candidate_once_and_retains_blocker_evidence()
     {
         var parser = new PurchaseHistorySourceParser();
