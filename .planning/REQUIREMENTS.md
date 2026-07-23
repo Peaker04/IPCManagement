@@ -81,7 +81,7 @@
 - [x] **PUR-04**: Giá tăng lớn hơn đúng 15% phải qua ngoại lệ có reference/proposed/variance/evidence/reason và quyết định quản lý trước khi submit PR.
 - [x] **PUR-05**: PR đã duyệt tạo tối đa một bộ PO tách theo nhà cung cấp; retry trả lại tiến độ hiện có và không sinh PO trùng.
 - [x] **WHR-01**: Warehouse là nơi duy nhất ghi nhận nhận hàng từng phần với kho, số lượng, lot, ngày sản xuất/hết hạn; receipt, stock và PO progress cập nhật atomic, còn Thu mua chỉ đọc trạng thái.
-- [ ] **PUI-01**: UI triển khai luồng sáu giai đoạn trên route/primitives hiện có, restore tuần/ngày/stage từ URL, bảng bounded, dialog accessible và có E2E tập trung.
+- [x] **PUI-01**: UI triển khai luồng sáu giai đoạn trên route/primitives hiện có, restore tuần/ngày/stage từ URL, bảng bounded, dialog accessible và có E2E tập trung.
 
 ## Future Requirements
 
