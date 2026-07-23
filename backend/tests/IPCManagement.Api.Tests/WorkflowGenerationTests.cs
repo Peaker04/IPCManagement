@@ -448,6 +448,7 @@ public class WorkflowGenerationTests
     [Theory]
     [InlineData("SENTTOSUPPLIER")]
     [InlineData("APPROVED")]
+    [InlineData("CANCELLED")]
     public async Task GenerateDemand_Should_BlockRecalculation_WhenPurchaseRequestIsNotDraft(string purchaseStatus)
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -4563,6 +4564,94 @@ public class WorkflowGenerationTests
             .Select(item => item.BusinessArea)
             .ToListAsync();
         auditReasons.Should().BeEquivalentTo(["Demand", "Purchase"]);
+    }
+
+    [Fact]
+    public async Task WeeklyMenuReimport_Should_AllowDemandRegeneration_ForDraftLineageWithoutPurchaseOrder()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            demand.Should().NotBeNull();
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
+            var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
+                fixture.UserIdString);
+            purchase.Should().NotBeNull();
+
+            var materialRequest = await context.Materialrequests.SingleAsync();
+            materialRequest.Status = "DRAFT";
+
+            var customer = await context.Customers.SingleAsync();
+            var version = new Menuversion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = customer.CustomerId,
+                WeekStartDate = new DateOnly(2026, 6, 15),
+                VersionNo = 2,
+                Status = "DRAFT",
+                SourceImportBatch = "MENU-CUS-20260615-V02",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            context.Menuversions.Add(version);
+            await context.SaveChangesAsync();
+
+            var importService = new SampleDataImportService(context, null!);
+            var invalidateMethod = typeof(SampleDataImportService).GetMethod(
+                "InvalidateWorkflowDocumentsForMenuReimportAsync",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            invalidateMethod.Should().NotBeNull();
+
+            var invalidateTask = (Task<int>)invalidateMethod!.Invoke(importService, [
+                customer,
+                new DateOnly(2026, 6, 15),
+                new DateOnly(2026, 6, 20),
+                version,
+                fixture.UserIdString,
+                CancellationToken.None
+            ])!;
+            (await invalidateTask).Should().Be(2);
+            await context.SaveChangesAsync();
+            var demandCancellationAudit = await context.Auditlogs.SingleAsync(item =>
+                item.BusinessArea == "Demand" &&
+                item.FieldName == "Status" &&
+                item.NewValue == "CANCELLED");
+            demandCancellationAudit.Reason =
+                "Menu re-import MENU-CUS-20260615-V01 invalidated downstream demand/PR; regenerate required.";
+            await context.SaveChangesAsync();
+        }
+
+        await using (var context = fixture.CreateContext())
+        {
+            var regenerated = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+
+            regenerated.Should().NotBeNull();
+            regenerated!.Status.Should().Be("DRAFT");
+        }
+
+        await using var verificationContext = fixture.CreateContext();
+        (await verificationContext.Materialrequests.AsNoTracking().CountAsync()).Should().Be(1);
+        (await verificationContext.Materialrequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+            .Should().Be("DRAFT");
+        (await verificationContext.Purchaserequests.AsNoTracking().CountAsync()).Should().Be(1);
+        (await verificationContext.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
+            .Should().Be("DRAFT");
+        (await verificationContext.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await verificationContext.Purchaseorderlines.AsNoTracking().CountAsync()).Should().Be(0);
+        (await verificationContext.Auditlogs.AsNoTracking().CountAsync(item =>
+            item.FieldName == "Status" &&
+            item.OldValue == "CANCELLED" &&
+            item.NewValue == "DRAFT" &&
+            item.Reason != null &&
+            item.Reason.Contains("regeneration"))).Should().Be(2);
     }
 
     private static async Task<Materialrequest> SeedReportDocumentsAsync(IpcManagementContext context, WorkflowFixture fixture)

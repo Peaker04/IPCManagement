@@ -229,6 +229,13 @@ async function navigateInApp(page: Page, path: string) {
 
   const navLink = page.locator(`a[href="${targetUrl.pathname}"]`).first();
   if (await navLink.count()) {
+    if (!(await navLink.isVisible())) {
+      const mobileNavigationToggle = page.locator('.ipc-mobile-nav-toggle');
+      if (await mobileNavigationToggle.isVisible()) {
+        await mobileNavigationToggle.click();
+        await expect(mobileNavigationToggle).toHaveAttribute('aria-expanded', 'true');
+      }
+    }
     await navLink.click();
     if (targetUrl.search) {
       await page.evaluate((nextPath) => {

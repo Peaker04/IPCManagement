@@ -340,7 +340,7 @@ Plans:
 
 **Wave 10 — restored E2E and operator evidence gate** *(blocked on both Wave 4 reconciliation apply and Wave 9 UI)*
 
-- [ ] 09-14-PLAN.md — Run the exact real-stack workflow twice and stop before any real apply
+- [x] 09-14-PLAN.md — Run the exact real-stack workflow twice and stop before any real apply
 
 **Wave summary:** 09-02 and 09-06 run in parallel after Wave 0; 09-03 and 09-07 then run in parallel; 09-05 and 09-08 run in parallel only after their declared schema/workbench prerequisites. The final 09-14 join requires both the disposable reconciliation apply proof and the completed UI chain. The only human checkpoint is the final operator evidence review; it does not authorize or perform a live/shared reconciliation apply.
 

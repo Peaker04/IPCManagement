@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-13-PLAN.md; 09-05 residual checkpoint preserved
-last_updated: "2026-07-22T16:12:05.624Z"
-last_activity: 2026-07-22 — Plan 09-13 completed Purchasing and Warehouse workbenches
+stopped_at: Completed 09-14-PLAN.md with operator-accepted disposable evidence; 09-05 residual checkpoint preserved
+last_updated: "2026-07-23T00:57:19.966Z"
+last_activity: 2026-07-23 — Plan 09-14 accepted after two restored Shipyard rounds; no real apply
 progress:
   total_phases: 7
   completed_phases: 1
   total_plans: 37
-  completed_plans: 13
-  percent: 35
+  completed_plans: 14
+  percent: 38
 ---
 
 # Project State
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-13-PLAN.md; 09-05 residual checkpoint preserved
+**Stopped at:** Completed 09-14-PLAN.md; 09-05 residual checkpoint preserved
 **Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-05-PLAN.md
 
 ---
-*Last updated: 2026-07-22 — completed Phase 09 Plan 13 Purchasing and Warehouse workbenches*
+*Last updated: 2026-07-23 — completed Phase 09 Plan 14 disposable UAT evidence checkpoint*
 
 ## Performance Metrics
 
@@ -242,6 +242,7 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 | Phase 09 P11 | 25min | 3 tasks | 12 files |
 | Phase 09 P12 | 24m26s | 3 tasks | 14 files |
 | Phase 09 P13 | 28m | 3 tasks | 12 files |
+| Phase 09 P14 | resumed | 3 tasks | browser evidence, two restored rounds, operator checkpoint |
 
 ## Decisions
 
@@ -312,6 +313,6 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
-Plan: 12 of 14 completed; 09-14 remains blocked by the preserved 09-05 checkpoint
-Status: Awaiting Phase 09 Plan 05 checkpoint resolution before Plan 09-14
-Last activity: 2026-07-22 — Plan 09-13 completed Purchasing and Warehouse workbenches
+Plan: 13 of 14 completed; 09-05 accepted-apply proof remains deferred
+Status: Plan 09-14 disposable evidence accepted; Phase 09 remains partial until SUP-04 is resolved
+Last activity: 2026-07-23 — Plan 09-14 completed with REAL_APPLY_NOT_EXECUTED
