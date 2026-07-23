@@ -93,6 +93,7 @@ Desktop.ini
 .docs/
 .planning/
 docs/
+shipyard/profiles/IPCManagement/
 AGENTS.md
 CLAUDE.md
 Project_Tracking*.xlsx
