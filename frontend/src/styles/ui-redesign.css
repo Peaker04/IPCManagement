@@ -24,6 +24,10 @@
   color: var(--ipc-slate-500);
 }
 
+.ipc-mobile-nav-toggle {
+  display: none;
+}
+
 /* Keep wide report tables readable on narrow screens; the viewport owns the scroll. */
 .ipc-redesign-shell .ipc-report-table-shell .ipc-data-table {
   min-width: 720px;
@@ -37,6 +41,10 @@
 /* Weekly menu matrices need a readable column width; the viewport owns mobile scrolling. */
 .ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table {
   min-width: 980px;
+}
+
+.ipc-redesign-shell .ipc-material-demand-table {
+  min-width: 760px;
 }
 
 /* Operational tables keep their own horizontal scroll boundary on mobile. */
@@ -112,6 +120,57 @@
 
   .ipc-redesign-shell .ipc-nav {
     padding: 8px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ipc-redesign-shell .ipc-brand {
+    min-height: 56px;
+    padding: 10px 12px;
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ipc-redesign-border);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--ipc-slate-700);
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle:hover {
+    border-color: #a9c8f6;
+    background: var(--ipc-primary-soft);
+    color: var(--ipc-primary);
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle:focus-visible {
+    outline: 2px solid var(--ipc-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .ipc-redesign-shell .ipc-sidebar:not(.is-mobile-open) .ipc-nav,
+  .ipc-redesign-shell .ipc-sidebar:not(.is-mobile-open) .ipc-sidebar-footer {
+    display: none;
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar > div:last-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar .ipc-button {
+    width: 100%;
+    max-width: none;
   }
 }
 
