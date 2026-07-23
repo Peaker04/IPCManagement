@@ -78,29 +78,6 @@ public class PurchaseOrdersController : ControllerBase
         }
     }
 
-    /// <summary>Ghi nhận số lượng đã nhận cho các dòng của một đơn mua hàng.</summary>
-    [HttpPost("{id}/receive")]
-    [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> RecordReceipt(string id, [FromBody] RecordPurchaseOrderReceiptDto request, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var userId = _currentUserService.GetUserId(User);
-            var order = await _purchaseOrderService.RecordReceiptAsync(id, request, userId, cancellationToken);
-            return Ok(ApiResponse<PurchaseOrderDto>.SuccessResult(order, "Ghi nhận nhận hàng thành công."));
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(ApiResponse.FailResult(ex.Message));
-        }
-        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
-        {
-            return BadRequest(ApiResponse.FailResult(ex.Message));
-        }
-    }
-
     /// <summary>Hủy một đơn mua hàng chưa nhận hàng.</summary>
     [HttpPost("{id}/cancel")]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]

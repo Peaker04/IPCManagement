@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Scale, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, DemandSummary, DocumentRail, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport, Toolbar } from '@/components/common'
+import { DemandSummary, DocumentRail, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport, Toolbar } from '@/components/common'
 import { ActionGuard } from '@/routes/ActionGuard'
 import { ROUTES } from '@/routes/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
@@ -26,16 +26,25 @@ export function MaterialDemandSection({
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
   return (
-    <SectionPanel title="KHSX, kiểm tồn kho và nhu cầu xuất" icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
+    <SectionPanel
+      title="KHSX, kiểm tồn kho và nhu cầu xuất"
+      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
+      description="Chốt số suất theo ngày, kiểm tra định mức nguyên liệu và tạo nhu cầu trước khi chuyển sang phê duyệt."
+      badge={(
+        <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
+          <span className="text-xs font-semibold text-slate-500">Phê duyệt nhu cầu</span>
+          <StatusBadge variant={presentation.demandApprovalStatus.tone}>
+            {presentation.demandApprovalStatus.label}
+          </StatusBadge>
+          {presentation.demandApprovalStatus.documentCode && (
+            <span className="max-w-[220px] truncate font-mono text-xs font-semibold text-slate-600" title={presentation.demandApprovalStatus.documentCode}>
+              {presentation.demandApprovalStatus.documentCode}
+            </span>
+          )}
+        </div>
+      )}
+    >
       <div className="flex flex-col gap-3">
-        <ContextStrip items={[
-          { label: 'Nguồn thực đơn', value: presentation.sourceMenuValue, tone: 'neutral' },
-          { label: 'Dòng KHSX', value: presentation.weeklyPlanRows.length.toString(), tone: 'neutral' },
-          { label: 'Đã có định lượng BOM', value: (presentation.weeklyPlanRows.length - presentation.missingBomRows.length).toString(), tone: 'success' },
-          { label: 'Chưa tính được BOM', value: presentation.missingBomRows.length.toString(), tone: presentation.missingBomRows.length > 0 ? 'warning' : 'success' },
-          { label: 'Nguyên liệu tổng hợp', value: presentation.materialSummaryCount.toString(), tone: 'info' },
-        ]} />
-
         {presentation.missingBomRows.length > 0 && (
           <InlineAlert title="Một số món từ tệp chưa có định lượng BOM" variant="warning">
             Các món này vẫn được đưa vào KHSX theo tên trong tệp Excel, nhưng chưa thể tính nguyên liệu cho đến khi được gắn với món và định lượng trong danh mục.
@@ -60,18 +69,45 @@ export function MaterialDemandSection({
           </InlineAlert>
         )}
 
-        <Toolbar className="justify-end">
+        {presentation.demandApprovalStatus.status === 'rejected' && (
+          <InlineAlert title="Nhu cầu nguyên liệu đã bị từ chối" variant="danger">
+            {presentation.demandApprovalStatus.reason
+              ? `Lý do của quản lý: ${presentation.demandApprovalStatus.reason} Hãy cập nhật dữ liệu nguồn rồi tính lại nhu cầu.`
+              : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
+          </InlineAlert>
+        )}
+
+        <Toolbar className="ipc-material-demand-toolbar justify-between gap-2 border-b border-slate-200 pb-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-600">
+            <span><strong className="text-slate-800">Ngày đang xem:</strong> {activeDay ? `${activeDay.label} ${activeDay.date}` : 'Chưa có ngày'}</span>
+            <span><strong className="text-slate-800">Dòng KHSX:</strong> {activeRows.length}</span>
+            <span><strong className="text-slate-800">Nguyên liệu:</strong> {inventoryStatus.totalCount}</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            {presentation.demandApprovalStatus.status === 'pending' && presentation.approvalHref && (
+              <ActionGuard allowedRoles={['quanly']}>
+                <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={presentation.approvalHref}>
+                  {presentation.demandApprovalStatus.actionLabel}
+                </Link>
+              </ActionGuard>
+            )}
+            {presentation.demandApprovalStatus.status === 'approved' && (
+              <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={`${ROUTES.PURCHASING}?week=${encodeURIComponent(workflow.scope.weekStartDate)}&date=${encodeURIComponent(presentation.activeDate)}`}>
+                {presentation.demandApprovalStatus.actionLabel}
+              </Link>
+            )}
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']} requiredPermissions={['demand.generate']}>
             <button className="ipc-button ipc-button-primary" type="button" onClick={() => void actions.generate()} disabled={status.isGenerating || servingBusy || isStalenessUnavailable || presentation.weeklyPlanRows.length === 0}>
               <Scale size={16} />
               {servingBusy ? 'Đang lưu suất...' : status.isGenerating ? 'Đang tính nhu cầu...' : status.stalenessState === 'loading' ? 'Đang kiểm tra độ mới...' : status.stalenessState === 'error' ? 'Chưa xác minh được độ mới' : presentation.staleness?.isStale ? 'Tính lại nhu cầu (dữ liệu đã thay đổi)' : 'Tạo nhu cầu từ KHSX'}
             </button>
           </ActionGuard>
-          <Link className="ipc-button ipc-button-warning" to={`${ROUTES.REPORTS}?view=purchase`}><ShoppingCart size={16} />Xem kế hoạch thu mua</Link>
+            <Link className="ipc-button ipc-button-ghost whitespace-nowrap" to={`${ROUTES.REPORTS}?view=purchase`}><ShoppingCart size={16} />Xem kế hoạch thu mua</Link>
+          </div>
         </Toolbar>
 
         <TableViewport caption="Kế hoạch sản xuất sinh từ kế hoạch tuần" size="weekly" ariaLabel="Bảng KHSX sinh từ kế hoạch tuần">
-          <table className="ipc-data-table table-fixed w-full">
+          <table className="ipc-data-table ipc-material-demand-table table-fixed w-full">
             <thead><tr>
               <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Ngày</th>
               <th style={{ width: '9%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Ca</th>

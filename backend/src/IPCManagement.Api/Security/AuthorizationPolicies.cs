@@ -13,6 +13,7 @@ public static class AuthorizationPolicies
     public const string PurchaseGenerateAccess = "PurchaseGenerateAccess";
     public const string WarehouseAccess = "WarehouseAccess";
     public const string WarehouseCatalogAccess = "WarehouseCatalogAccess";
+    public const string WarehousePurchaseReceive = "WarehousePurchaseReceive";
 
     public static readonly string[] AdminRoles =
     [
@@ -67,6 +68,12 @@ public static class AuthorizationPolicies
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToArray();
 
+    public static readonly string[] WarehousePurchaseReceiveRoles =
+    [
+        "Admin", "ADMIN", "Quản trị",
+        "WarehouseManager", "Warehouse Manager", "WarehouseStaff", "Warehouse Staff", "Thủ kho"
+    ];
+
     public const string AuthProfileRead = "auth.profile.read";
     public const string DashboardRead = "dashboard.read";
     public const string CatalogRead = "catalog.read";
@@ -79,6 +86,8 @@ public static class AuthorizationPolicies
     public const string InventoryRead = "inventory.read";
     public const string PurchaseRead = "purchase.read";
     public const string PurchaseGenerate = "purchase.generate";
+    public const string MaterialDemandApprove = "material-demand.approve";
+    public const string PurchasePriceExceptionApprove = "purchase.price-exception.approve";
     public const string PurchaseRequestApprove = "purchase.request.approve";
     public const string PurchaseQuotationManage = "purchase.quotation.manage";
     public const string InventoryReceiptApprove = "inventory.receipt.approve";
@@ -102,6 +111,8 @@ public static class AuthorizationPolicies
         InventoryRead,
         PurchaseRead,
         PurchaseGenerate,
+        MaterialDemandApprove,
+        PurchasePriceExceptionApprove,
         PurchaseRequestApprove,
         PurchaseQuotationManage,
         InventoryReceiptApprove,
@@ -126,6 +137,8 @@ public static class AuthorizationPolicies
         InventoryRead,
         PurchaseRead,
         PurchaseGenerate,
+        MaterialDemandApprove,
+        PurchasePriceExceptionApprove,
         PurchaseRequestApprove,
         PurchaseQuotationManage,
         InventoryReceiptApprove,
@@ -155,7 +168,6 @@ public static class AuthorizationPolicies
         InventoryRead,
         PurchaseRead,
         PurchaseGenerate,
-        PurchaseRequestApprove,
         PurchaseQuotationManage,
         InventoryReceiptApprove,
         ReportRead

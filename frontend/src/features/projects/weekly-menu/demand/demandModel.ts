@@ -2,6 +2,73 @@ import type { DemandLine, MaterialDemandStaleness, WorkflowDocument } from '@/fe
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 
+export type DemandApprovalPresentation = {
+  status: 'not-created' | 'pending' | 'approved' | 'rejected'
+  label: 'Chưa tạo' | 'Chờ duyệt' | 'Đã duyệt' | 'Từ chối'
+  tone: DemandLine['tone']
+  actionLabel: 'Tạo nhu cầu từ KHSX' | 'Mở hàng đợi duyệt' | 'Mở thu mua' | 'Tính lại nhu cầu'
+  targetId?: string
+  documentCode?: string
+  reason?: string
+}
+
+export const getDemandApprovalPresentation = (
+  lines: DemandLine[],
+  serviceDate: string,
+  rejectionReason?: string,
+): DemandApprovalPresentation => {
+  const demand = lines.find((line) => line.serviceDate === serviceDate && line.materialRequestId)
+  if (!demand) {
+    return {
+      status: 'not-created',
+      label: 'Chưa tạo',
+      tone: 'neutral',
+      actionLabel: 'Tạo nhu cầu từ KHSX',
+    }
+  }
+
+  const shared = {
+    targetId: demand.materialRequestId,
+    documentCode: demand.sourceDocumentCode,
+  }
+  switch (demand.materialRequestStatus?.trim().toUpperCase()) {
+    case 'MANAGERAPPROVED':
+    case 'APPROVED':
+      return { ...shared, status: 'approved', label: 'Đã duyệt', tone: 'success', actionLabel: 'Mở thu mua' }
+    case 'CANCELLED':
+    case 'REJECTED':
+      return {
+        ...shared,
+        status: 'rejected',
+        label: 'Từ chối',
+        tone: 'danger',
+        actionLabel: 'Tính lại nhu cầu',
+        reason: rejectionReason,
+      }
+    default:
+      return { ...shared, status: 'pending', label: 'Chờ duyệt', tone: 'warning', actionLabel: 'Mở hàng đợi duyệt' }
+  }
+}
+
+export const buildDemandApprovalHref = ({
+  week,
+  serviceDate,
+  targetId,
+}: {
+  week: string
+  serviceDate: string
+  targetId: string
+}) => {
+  const params = new URLSearchParams({
+    target: 'material-demand',
+    week,
+    date: serviceDate,
+    scope: 'FULLDAY',
+    id: targetId,
+  })
+  return `/approvals?${params.toString()}`
+}
+
 export const buildDemandDayPages = (scope: WeeklyMenuScope, rows: WeeklyPlanRow[]) =>
   scope.displayDays.map((day) => ({ ...day, rows: rows.filter((row) => row.dayKey === day.key) }))
     .filter((day) => day.rows.length > 0)

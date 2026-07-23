@@ -1,5 +1,12 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/routes/routeConfig';
+import {
+  PHASE09_DATE,
+  PHASE09_WEEK,
+  phase09PurchaseOrdersPage,
+  phase09Workbench,
+  stubPhase09Api,
+} from './phase9-test-fixture';
 
 const visualRoutes = [
   { path: ROUTES.LOGIN, name: 'login' },
@@ -56,6 +63,14 @@ async function stubVisualApi(page: Page) {
       materials: [{ name: 'Sườn heo', quantity: 15, unit: 'kg' }],
     }], limit: 20, hasNext: false, nextCursor: null,
   }));
+
+  await page.route('**/api/purchase-workflow/workbench**', async (route) => fulfill(route, phase09Workbench));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfill(route, phase09PurchaseOrdersPage));
+  await page.route('**/api/warehouses/selector**', async (route) => fulfill(route, [{
+    warehouseId: 'warehouse-main',
+    warehouseCode: 'MAIN',
+    warehouseName: 'Kho chính',
+  }]));
 
   await page.route('**/api/workflow-reports/**', async (route) => {
     const endpoint = new URL(route.request().url()).pathname.split('/workflow-reports/')[1] ?? '';
@@ -256,6 +271,40 @@ test.describe('visual routes', () => {
           await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`, {
             fullPage: true,
           });
+        });
+      }
+    });
+  }
+});
+
+test.describe('Phase 09 deterministic visual seam', () => {
+  for (const viewport of [
+    { name: '1365x900', width: 1365, height: 900 },
+    { name: '1280x900', width: 1280, height: 900 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '390x844', width: 390, height: 844 },
+  ] as const) {
+    test.describe(viewport.name, () => {
+      test.use({ viewport: { width: viewport.width, height: viewport.height } });
+
+      for (const route of [
+        {
+          name: 'purchasing-phase09',
+          path: `${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`,
+        },
+        {
+          name: 'warehouse-phase09',
+          path: `${ROUTES.WAREHOUSE}?week=${PHASE09_WEEK}&purchaseRequestId=pr-phase09`,
+        },
+      ] as const) {
+        test(`${route.name} visual baseline`, async ({ page }) => {
+          await stubVisualApi(page);
+          await stubPhase09Api(page);
+          await login(page);
+          await page.goto(route.path);
+          await expect(page.locator('.ipc-app-shell')).toBeVisible();
+          await stabilizeVisuals(page);
+          await expect(page).toHaveScreenshot(`${route.name}-${viewport.name}.png`);
         });
       }
     });

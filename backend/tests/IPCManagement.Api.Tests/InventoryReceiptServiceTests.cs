@@ -120,6 +120,7 @@ public class InventoryReceiptServiceTests
                 materialRequestLineId BLOB,
                 ingredientId BLOB,
                 supplierId BLOB,
+                isLegacySupplierSnapshot INTEGER NOT NULL DEFAULT 0,
                 unitId BLOB,
                 requiredQty REAL,
                 currentStockQty REAL,
@@ -151,7 +152,10 @@ public class InventoryReceiptServiceTests
                 amount REAL,
                 lotNumber TEXT,
                 manufactureDate TEXT,
-                expiredDate TEXT
+                expiredDate TEXT,
+                packageQuantitySnapshot REAL,
+                packageBaseUnitIdSnapshot BLOB,
+                packagePolicyVersionSnapshot TEXT
             );
 
             CREATE TABLE auditlogs (

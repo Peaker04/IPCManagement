@@ -55,6 +55,8 @@ public static class DependencyInjection
         services.AddScoped<IApprovalInboxService, ApprovalInboxService>();
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
         services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();
+        services.AddScoped<IApprovalTargetHandler, MaterialDemandApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, PurchasePriceExceptionApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
@@ -70,9 +72,11 @@ public static class DependencyInjection
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICoordinationService, CoordinationService>();
         services.AddScoped<ISampleDataImportService, SampleDataImportService>();
+        services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<IPurchaseReceivingService, PurchaseReceivingService>();
         services.AddScoped<IWorkflowReportService, WorkflowReportService>();
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<ISupplierQuotationService, SupplierQuotationService>();

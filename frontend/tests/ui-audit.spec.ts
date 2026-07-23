@@ -2,6 +2,7 @@ import { expect, type Page, test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { ROUTES } from '../src/routes/routeConfig';
+import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 type AuditIssue = {
   route: string;
@@ -178,6 +179,19 @@ async function stubAuditApi(page: Page, options?: { dataQualityIssues?: ReturnTy
       return;
     }
 
+    if (pathname === '/api/purchase-workflow/workbench') {
+      await fulfillJson(route, phase09Workbench);
+      return;
+    }
+
+    if (pathname === '/api/purchase-orders/page') {
+      await fulfillJson(route, {
+        page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
+        orderCountByRequest: {},
+      });
+      return;
+    }
+
     await fulfillJson(route, []);
   });
 }
@@ -215,6 +229,13 @@ async function navigateInApp(page: Page, path: string) {
 
   const navLink = page.locator(`a[href="${targetUrl.pathname}"]`).first();
   if (await navLink.count()) {
+    if (!(await navLink.isVisible())) {
+      const mobileNavigationToggle = page.locator('.ipc-mobile-nav-toggle');
+      if (await mobileNavigationToggle.isVisible()) {
+        await mobileNavigationToggle.click();
+        await expect(mobileNavigationToggle).toHaveAttribute('aria-expanded', 'true');
+      }
+    }
     await navLink.click();
     if (targetUrl.search) {
       await page.evaluate((nextPath) => {
@@ -372,6 +393,40 @@ test.describe('ui audit', () => {
           await collectLayoutIssues(page, 'admin-data-quality-stress', viewport.name),
         );
       });
+    });
+  }
+});
+
+test.describe('Phase 09 accessibility and responsive seam', () => {
+  for (const viewport of [
+    { name: '1365x900', width: 1365, height: 900 },
+    { name: '1280x900', width: 1280, height: 900 },
+    { name: '768x1024', width: 768, height: 1024 },
+    { name: '390x844', width: 390, height: 844 },
+  ] as const) {
+    test(`keeps Phase 09 operable at ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await stubAuditApi(page);
+      await stubPhase09Api(page);
+      await login(page);
+      await navigateInApp(page, `${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`);
+
+      const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
+      for (const label of PHASE09_STAGE_LABELS) {
+        await expect(guide.getByRole('button', { name: new RegExp(label) })).toBeVisible();
+      }
+
+      const stageButton = guide.getByRole('button', { name: new RegExp(PHASE09_STAGE_LABELS[0]) });
+      await stageButton.focus();
+      await expect(stageButton).toBeFocused();
+      const tableRegion = page.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
+      await expect(tableRegion).toBeVisible();
+      await expect(tableRegion).toHaveAttribute('tabindex', '0');
+      await stabilize(page);
+      await expectNoAuditIssues(
+        `phase09-${viewport.name}`,
+        await collectLayoutIssues(page, 'purchasing-phase09', viewport.name),
+      );
     });
   }
 });

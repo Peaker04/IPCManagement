@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '../../features/auth';
@@ -19,7 +19,9 @@ import {
   ShoppingCart,
   Warehouse,
   Database,
+  Menu,
   Settings,
+  X,
 } from 'lucide-react';
 
 type StatusTone = 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -53,6 +55,7 @@ export const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const currentUser = useAppSelector(selectCurrentUser);
+  const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
 
   const handleLogout = async () => {
     await logoutSession(dispatch, store.getState);
@@ -118,7 +121,7 @@ export const MainLayout = () => {
         {uiCopy.navigation.skipToContent}
       </a>
       {/* Sidebar */}
-      <aside className="ipc-sidebar">
+      <aside className={`ipc-sidebar${isMobileNavOpen ? ' is-mobile-open' : ''}`}>
         <div className="ipc-brand">
           <span className="ipc-brand-icon">
             <ChefHat size={21} />
@@ -127,9 +130,20 @@ export const MainLayout = () => {
             <h2 className="ipc-brand-title">IPC System</h2>
             <div className="ipc-brand-subtitle">Điều hành bếp ăn</div>
           </div>
+          <button
+            type="button"
+            className="ipc-mobile-nav-toggle"
+            aria-label={isMobileNavOpen ? 'Đóng menu điều hướng' : 'Mở menu điều hướng'}
+            aria-controls="ipc-primary-navigation"
+            aria-expanded={isMobileNavOpen}
+            onClick={() => setIsMobileNavOpen((current) => !current)}
+          >
+            {isMobileNavOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
 
         <nav
+          id="ipc-primary-navigation"
           aria-label={uiCopy.navigation.primary}
           className="ipc-nav"
         >
@@ -139,6 +153,7 @@ export const MainLayout = () => {
               <Link
                 key={item.path}
                 to={item.path}
+                onClick={() => setIsMobileNavOpen(false)}
                 aria-current={isActive ? 'page' : undefined}
                 className={[
                   'ipc-nav-link',

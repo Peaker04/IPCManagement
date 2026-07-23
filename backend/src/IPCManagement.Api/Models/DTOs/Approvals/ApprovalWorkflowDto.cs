@@ -2,6 +2,8 @@ namespace IPCManagement.Api.Models.DTOs.Approvals;
 
 public enum ApprovalTargetType
 {
+    MaterialDemand,
+    PurchasePriceException,
     PurchaseRequest,
     InventoryReceipt,
     InventoryIssue,
@@ -62,8 +64,25 @@ public class ApprovalInboxItemDto
     public string NextAction { get; set; } = string.Empty;
     public string Tone { get; set; } = "warning";
     public string Route { get; set; } = string.Empty;
+    public DateOnly? WeekStartDate { get; set; }
+    public DateOnly? ServiceDate { get; set; }
+    public string? Scope { get; set; }
+    public int? LineCount { get; set; }
+    public decimal? TotalQuantity { get; set; }
+    public decimal? TotalValue { get; set; }
+    public DateTime? SubmittedAt { get; set; }
     public DateTime? SlaDeadline { get; set; }
     public int? SlaHours { get; set; }
+    public decimal? ReferencePrice { get; set; }
+    public decimal? ProposedPrice { get; set; }
+    public decimal? VariancePercent { get; set; }
+    public string? EvidenceType { get; set; }
+    public string? EvidenceId { get; set; }
+    public DateOnly? EvidenceDate { get; set; }
+    public string? ProposalFingerprint { get; set; }
+    public int? ProposalVersion { get; set; }
+    public string? SupplierName { get; set; }
+    public string? SourceDocumentCode { get; set; }
     public IReadOnlyList<ApprovalInboxMaterialDto> Materials { get; set; } = [];
 }
 

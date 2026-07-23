@@ -676,38 +676,120 @@ public class MaterialDemandService : IMaterialDemandService
                     "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
             }
 
-            var blockingPurchaseRequest = purchaseLines
+            var purchaseRequests = purchaseLines
                 .Select(line => line.PurchaseRequest)
-                .FirstOrDefault(request => !string.Equals(request.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase));
-            if (blockingPurchaseRequest is not null)
+                .DistinctBy(request => Convert.ToBase64String(request.PurchaseRequestId))
+                .ToList();
+            Auditlog? menuReimportDemandCancellation = null;
+            if (string.Equals(existing.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            {
+                menuReimportDemandCancellation = await _context.Auditlogs
+                    .AsNoTracking()
+                    .Where(audit =>
+                        audit.EntityName == nameof(Materialrequest) &&
+                        audit.EntityId != null &&
+                        audit.EntityId.SequenceEqual(existing.RequestId) &&
+                        audit.FieldName == "Status")
+                    .OrderByDescending(audit => audit.ChangedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            var menuReimportReason = menuReimportDemandCancellation?.Reason;
+            var canRecycleMenuReimportDraft =
+                menuReimportDemandCancellation is not null &&
+                string.Equals(menuReimportDemandCancellation.OldValue, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(menuReimportDemandCancellation.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
+                menuReimportReason is not null &&
+                menuReimportReason.StartsWith("Menu re-import ", StringComparison.Ordinal) &&
+                menuReimportReason.EndsWith(
+                    " invalidated downstream demand/PR; regenerate required.",
+                    StringComparison.Ordinal);
+
+            foreach (var purchaseRequest in purchaseRequests.Where(request =>
+                         !string.Equals(request.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase)))
+            {
+                if (!canRecycleMenuReimportDraft ||
+                    !string.Equals(purchaseRequest.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể tính lại nhu cầu vì đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} đang ở trạng thái {purchaseRequest.Status}.");
+                }
+
+                var latestPurchaseStatusAudit = await _context.Auditlogs
+                    .AsNoTracking()
+                    .Where(audit =>
+                        audit.EntityName == nameof(Purchaserequest) &&
+                        audit.EntityId != null &&
+                        audit.EntityId.SequenceEqual(purchaseRequest.PurchaseRequestId) &&
+                        audit.FieldName == "Status")
+                    .OrderByDescending(audit => audit.ChangedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var purchaseMenuReimportReason = latestPurchaseStatusAudit?.Reason;
+                if (latestPurchaseStatusAudit is null ||
+                    !string.Equals(latestPurchaseStatusAudit.OldValue, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase) ||
+                    !string.Equals(latestPurchaseStatusAudit.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+                    purchaseMenuReimportReason is null ||
+                    !purchaseMenuReimportReason.StartsWith("Menu re-import ", StringComparison.Ordinal) ||
+                    !purchaseMenuReimportReason.EndsWith(
+                        " invalidated downstream demand/PR; regenerate required.",
+                        StringComparison.Ordinal))
+                {
+                    throw new InvalidOperationException(
+                        $"Không thể tính lại nhu cầu vì đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} đang ở trạng thái {purchaseRequest.Status}.");
+                }
+            }
+
+            if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
             {
                 throw new InvalidOperationException(
-                    $"Không thể tính lại nhu cầu vì đề xuất mua hàng {blockingPurchaseRequest.PurchaseRequestCode} đang ở trạng thái {blockingPurchaseRequest.Status}.");
+                    "Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
             }
 
             if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+                !canRecycleMenuReimportDraft)
             {
                 throw new InvalidOperationException(
                     $"Không thể tính lại nhu cầu đang ở trạng thái {existing.Status}. Hãy tạo luồng điều chỉnh riêng.");
             }
 
-            if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            if (canRecycleMenuReimportDraft)
             {
+                var changedAt = DateTime.UtcNow;
+                const string regenerationReason =
+                    "Reopened automatically for regeneration after menu re-import invalidated a mutable DRAFT lineage.";
+                existing.Status = DemandDraftStatus;
                 _context.Auditlogs.Add(new Auditlog
                 {
                     AuditId = GuidHelper.NewId(),
-                    ChangedAt = DateTime.UtcNow,
+                    ChangedAt = changedAt,
                     ChangedBy = userId,
                     BusinessArea = "Demand",
                     EntityName = nameof(Materialrequest),
                     EntityId = existing.RequestId,
-                    FieldName = nameof(Materialrequest.Status),
-                    OldValue = existing.Status,
+                    FieldName = "Status",
+                    OldValue = "CANCELLED",
                     NewValue = DemandDraftStatus,
-                    Reason = "Hạ trạng thái duyệt vì nhu cầu được tính lại; đề xuất mua nháp phải được sinh lại."
+                    Reason = regenerationReason
                 });
-                existing.Status = DemandDraftStatus;
+
+                foreach (var purchaseRequest in purchaseRequests.Where(request =>
+                             string.Equals(request.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)))
+                {
+                    purchaseRequest.Status = PurchaseDraftStatus;
+                    _context.Auditlogs.Add(new Auditlog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = changedAt,
+                        ChangedBy = userId,
+                        BusinessArea = "Purchase",
+                        EntityName = nameof(Purchaserequest),
+                        EntityId = purchaseRequest.PurchaseRequestId,
+                        FieldName = "Status",
+                        OldValue = "CANCELLED",
+                        NewValue = PurchaseDraftStatus,
+                        Reason = regenerationReason
+                    });
+                }
             }
 
             if (purchaseLines.Count > 0)

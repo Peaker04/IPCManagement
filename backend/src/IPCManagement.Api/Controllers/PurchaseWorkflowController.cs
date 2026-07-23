@@ -5,6 +5,7 @@ using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Controllers;
 
@@ -23,6 +24,25 @@ public class PurchaseWorkflowController : ControllerBase
     {
         _purchaseRequestWorkflowService = purchaseRequestWorkflowService;
         _currentUserService = currentUserService;
+    }
+
+    /// <summary>Tải workbench thu mua theo tuần, ngày phục vụ và giai đoạn.</summary>
+    [HttpGet("workbench")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseWorkbenchWeekDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetWorkbenchWeek(
+        [FromQuery] PurchaseWorkbenchQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseRequestWorkflowService.GetWorkbenchWeekAsync(query, cancellationToken);
+            return Ok(ApiResponse<PurchaseWorkbenchWeekDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     /// <summary>Tạo đề xuất mua hàng từ các dòng nhu cầu nguyên liệu còn thiếu sau kiểm tồn.</summary>
@@ -44,23 +64,68 @@ public class PurchaseWorkflowController : ControllerBase
         return Ok(ApiResponse<PurchaseRequestWorkflowResultDto>.SuccessResult(result, "Tạo đề xuất mua hàng thành công."));
     }
 
-    /// <summary>Gắn nhà cung cấp và đơn giá vào dòng đề xuất mua hàng.</summary>
-    [HttpPatch("requests/{id}/lines/{lineId}/supplier")]
+    /// <summary>Tải báo giá hoặc biên nhận hợp lệ để chọn nhà cung cấp.</summary>
+    [HttpGet("requests/{id}/lines/{lineId}/supplier-evidence")]
     [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<SupplierEvidenceResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateLineSupplier(
+    public async Task<IActionResult> GetSupplierEvidence(
         string id,
         string lineId,
-        [FromBody] UpdatePurchaseRequestLineSupplierDto request,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _purchaseRequestWorkflowService.GetSupplierEvidenceAsync(
+                id,
+                lineId,
+                cancellationToken);
+            return Ok(ApiResponse<SupplierEvidenceResultDto>.SuccessResult(result));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    /// <summary>Xác nhận nhà cung cấp, giá và ngày giao từ bằng chứng hiện hành.</summary>
+    [HttpPost("requests/{id}/lines/{lineId}/supplier-decision")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseLineSupplierDecisionDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ConfirmLineSupplier(
+        string id,
+        string lineId,
+        [FromBody] ConfirmPurchaseLineSupplierDto request,
         CancellationToken cancellationToken)
     {
         try
         {
             var userId = _currentUserService.GetUserId(User);
-            await _purchaseRequestWorkflowService.UpdateLineSupplierAsync(id, lineId, request, userId, cancellationToken);
-            return Ok(ApiResponse.SuccessResult("Cập nhật nhà cung cấp và đơn giá thành công."));
+            var result = await _purchaseRequestWorkflowService.ConfirmLineSupplierAsync(
+                id,
+                lineId,
+                request,
+                userId,
+                cancellationToken);
+            return Ok(ApiResponse<PurchaseLineSupplierDecisionDto>.SuccessResult(
+                result,
+                "Xác nhận nhà cung cấp thành công."));
+        }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
         }
         catch (KeyNotFoundException ex)
         {

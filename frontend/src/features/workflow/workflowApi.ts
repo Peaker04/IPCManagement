@@ -118,6 +118,147 @@ export interface PurchaseRequestResult {
   }>;
 }
 
+export interface PurchaseWorkbenchQuery {
+  week: string;
+  date?: string;
+  stage?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseWorkflowStageCounts {
+  demand: number;
+  supplierPrice: number;
+  exception: number;
+  submittedRequest: number;
+  approvedOrder: number;
+  receivingProgress: number;
+}
+
+export type SupplierEvidenceType = 'EffectiveQuotation' | 'LatestValidReceipt';
+
+export interface SupplierEvidenceCandidate {
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  evidenceDate: string;
+  supplierId: string;
+  supplierName: string;
+  ingredientId: string;
+  unitId: string;
+  unitName: string;
+  unitPrice: number;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+}
+
+export interface SupplierEvidenceResult {
+  candidates: SupplierEvidenceCandidate[];
+  blocker?: string | null;
+  diagnostics: string[];
+}
+
+export interface PurchaseLineSupplierDecision {
+  purchaseLineSupplierDecisionId: string;
+  supplierId: string;
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  evidenceDate: string;
+  evidenceReferencePrice: number;
+  proposedUnitPrice: number;
+  proposedDeliveryDate: string;
+  confirmedBy: string;
+  confirmedAt: string;
+  decisionFingerprint: string;
+  version: number;
+  status: string;
+  supersededByDecisionId?: string | null;
+  concurrencyVersion: number;
+}
+
+export interface PurchaseRequestWorkflowLine {
+  purchaseRequestLineId: string;
+  materialRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
+  unitId: string;
+  unitName: string;
+  requiredQty: number;
+  currentStockQty: number;
+  purchaseQty: number;
+  estimatedUnitPrice: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
+  supplierDecisionStatus: string;
+  currentSupplierDecision?: PurchaseLineSupplierDecision | null;
+  supplierDecisionHistory: PurchaseLineSupplierDecision[];
+}
+
+export interface ApprovedDemandSummary {
+  materialRequestId: string;
+  requestCode: string;
+  serviceDate: string;
+  scope: string;
+  status: string;
+  shortageLineCount: number;
+  currentStage: string;
+  purchaseRequestId?: string | null;
+  purchaseRequestCode?: string | null;
+  purchaseRequestStatus?: string | null;
+}
+
+export interface PurchaseWorkbenchServiceDate {
+  serviceDate: string;
+  scope: string;
+  currentStage: string;
+  approvedDemandCount: number;
+  shortageLineCount: number;
+  supplierReadyLineCount: number;
+  blockingExceptionCount: number;
+  purchaseRequestId?: string | null;
+  purchaseRequestCode?: string | null;
+  purchaseRequestStatus?: string | null;
+  orderCount: number;
+  receivingLineCount: number;
+  fullyReceivedLineCount: number;
+  approvedDemands: ApprovedDemandSummary[];
+  purchaseLines: PurchaseRequestWorkflowLine[];
+}
+
+export interface PurchaseWorkbenchWeek {
+  weekStart: string;
+  weekEnd: string;
+  selectedDate?: string | null;
+  selectedStage?: string | null;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  stageCounts: PurchaseWorkflowStageCounts;
+  serviceDates: PurchaseWorkbenchServiceDate[];
+}
+
+export interface SupplierEvidenceQuery {
+  purchaseRequestId: string;
+  purchaseRequestLineId: string;
+}
+
+export interface ConfirmPurchaseLineSupplierData {
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  supplierId: string;
+  proposedUnitPrice: number;
+  proposedDeliveryDate: string;
+  expectedDecisionVersion: number;
+  note?: string | null;
+}
+
+export interface ConfirmPurchaseLineSupplierRequest extends SupplierEvidenceQuery {
+  week: string;
+  data: ConfirmPurchaseLineSupplierData;
+}
+
 export interface ApprovalHistoryItem {
   historyId: string;
   targetType: string;
@@ -448,8 +589,25 @@ interface ApprovalInboxItemDto {
   nextAction: string;
   tone: WorkflowTone;
   route: string;
+  weekStartDate?: string | null;
+  serviceDate?: string | null;
+  scope?: string | null;
+  lineCount?: number | null;
+  totalQuantity?: number | null;
+  totalValue?: number | null;
+  submittedAt?: string | null;
   slaDeadline?: string | null;
   slaHours?: number | null;
+  referencePrice?: number | null;
+  proposedPrice?: number | null;
+  variancePercent?: number | null;
+  evidenceType?: string | null;
+  evidenceId?: string | null;
+  evidenceDate?: string | null;
+  proposalFingerprint?: string | null;
+  proposalVersion?: number | null;
+  supplierName?: string | null;
+  sourceDocumentCode?: string | null;
   materials: Array<{
     name: string;
     quantity: number;
@@ -588,6 +746,10 @@ export interface PurchaseOrderLineDto {
   orderedQty: number;
   receivedQty: number;
   unitPrice: number;
+  lotNumberRequired: boolean;
+  manufactureDateRequired: boolean;
+  expiryDateRequired: boolean;
+  blockerReason?: string | null;
 }
 
 export interface PurchaseOrderDto {
@@ -600,6 +762,50 @@ export interface PurchaseOrderDto {
   orderDate: string;
   status: string;
   lines: PurchaseOrderLineDto[];
+}
+
+export interface PurchaseReceiptEvidenceRequirements {
+  purchaseOrderLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  lotNumberRequired: boolean;
+  manufactureDateRequired: boolean;
+  expiryDateRequired: boolean;
+  blockerReason?: string | null;
+}
+
+export interface WarehousePurchaseReceiptLineRequest {
+  purchaseOrderLineId: string;
+  actualQuantity: number;
+  actualUnitId: string;
+  actualUnitPrice: number;
+  lotNumber?: string | null;
+  manufactureDate?: string | null;
+  expiryDate?: string | null;
+  packageQuantity?: number | null;
+  packageBaseUnitId?: string | null;
+  packagePolicyVersion?: string | null;
+}
+
+export interface WarehousePurchaseReceiptRequest {
+  purchaseOrderId: string;
+  idempotencyKey: string;
+  warehouseId: string;
+  receiptDate: string;
+  lines: WarehousePurchaseReceiptLineRequest[];
+}
+
+export interface WarehousePurchaseReceiptResult {
+  receiptId: string;
+  purchaseOrderId: string;
+  idempotencyKey: string;
+  purchaseOrderStatus: string;
+  evidenceRequirements: PurchaseReceiptEvidenceRequirements[];
+}
+
+export interface RecordWarehousePurchaseReceiptRequest {
+  week?: string;
+  data: WarehousePurchaseReceiptRequest;
 }
 
 interface ApprovalInboxPageDto {
@@ -913,6 +1119,7 @@ export interface ApprovalDecisionRequest {
   targetId: string;
   status: 'Approve' | 'Reject';
   reason?: string | null;
+  week?: string;
 }
 
 export interface PriceVarianceRow {
@@ -1134,6 +1341,7 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
+    materialRequestStatus: item.status,
     ingredientId: item.ingredientId,
     bomId: item.bomId,
     priceTierAmount: item.priceTierAmount,
@@ -1182,7 +1390,8 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   id: item.inboxItemId || item.targetCode || item.targetId,
   targetType: item.targetType,
   targetId: item.targetId,
-  type: item.itemType === 'price-alert' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
+  targetCode: item.targetCode,
+  type: item.itemType === 'price-alert' || item.itemType === 'price-exception' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
   title: item.title,
   source: item.source || item.targetCode,
   owner: item.ownerRole,
@@ -1194,6 +1403,24 @@ const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
   tone: item.tone ?? toneFromStatus(item.status),
   slaDeadline: item.slaDeadline,
   slaHours: item.slaHours,
+  route: item.route,
+  weekStartDate: item.weekStartDate,
+  serviceDate: item.serviceDate,
+  scope: item.scope,
+  lineCount: item.lineCount,
+  totalQuantity: item.totalQuantity,
+  totalValue: item.totalValue,
+  submittedAt: item.submittedAt,
+  referencePrice: item.referencePrice,
+  proposedPrice: item.proposedPrice,
+  variancePercent: item.variancePercent,
+  evidenceType: item.evidenceType,
+  evidenceId: item.evidenceId,
+  evidenceDate: item.evidenceDate,
+  proposalFingerprint: item.proposalFingerprint,
+  proposalVersion: item.proposalVersion,
+  supplierName: item.supplierName,
+  sourceDocumentCode: item.sourceDocumentCode,
   materials: item.materials ?? [],
 });
 
@@ -1470,6 +1697,67 @@ export const workflowApi = apiSlice.injectEndpoints({
     getWarehouseSelector: builder.query<WarehouseDto[], void>({
       query: () => '/warehouses/selector',
       transformResponse: (response: ApiResponse<WarehouseDto[]>) => getData(response),
+    }),
+    getPurchaseWorkbench: builder.query<PurchaseWorkbenchWeek, PurchaseWorkbenchQuery>({
+      query: ({ week, date, stage, page = 1, pageSize = 8 }) => ({
+        url: '/purchase-workflow/workbench',
+        params: {
+          week,
+          ...(date ? { date } : {}),
+          ...(stage ? { stage } : {}),
+          page,
+          pageSize,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PurchaseWorkbenchWeek>) => getData(response),
+      providesTags: (_result, _error, { week }) => [
+        { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
+      ],
+    }),
+    getSupplierEvidence: builder.query<SupplierEvidenceResult, SupplierEvidenceQuery>({
+      query: ({ purchaseRequestId, purchaseRequestLineId }) =>
+        `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier-evidence`,
+      transformResponse: (response: ApiResponse<SupplierEvidenceResult>) => getData(response),
+      providesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId }) => [
+        {
+          type: 'WorkflowReports',
+          id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
+        },
+      ],
+    }),
+    confirmLineSupplier: builder.mutation<PurchaseLineSupplierDecision, ConfirmPurchaseLineSupplierRequest>({
+      query: ({ purchaseRequestId, purchaseRequestLineId, data }) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier-decision`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseLineSupplierDecision>) => getData(response),
+      invalidatesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId, week }) => [
+        {
+          type: 'WorkflowReports',
+          id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
+        },
+        { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+      ],
+    }),
+    recordWarehousePurchaseReceipt: builder.mutation<
+      WarehousePurchaseReceiptResult,
+      RecordWarehousePurchaseReceiptRequest
+    >({
+      query: ({ data }) => ({
+        url: `/warehouse/purchase-orders/${data.purchaseOrderId}/receipts`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: (_result, _error, { data, week }) => [
+        { type: 'PurchaseOrders', id: data.purchaseOrderId },
+        { type: 'WorkflowReports', id: `PurchaseReceipt:${data.purchaseOrderId}` },
+        ...(week
+          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
+          : []),
+      ],
     }),
     updatePurchaseRequestLineSupplier: builder.mutation<
       ApiResponse<void>,
@@ -1785,7 +2073,13 @@ export const workflowApi = apiSlice.injectEndpoints({
           nextCursor: page.nextCursor,
         };
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: (result) => [
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        ...(result?.items ?? []).map((item) => ({
+          type: 'WorkflowReports' as const,
+          id: `ApprovalTarget:${item.targetType}:${item.targetId}`,
+        })),
+      ],
     }),
     executeApprovalDecision: builder.mutation<ApiResponse<unknown>, ApprovalDecisionRequest>({
       query: ({ targetType, targetId, status, reason }) => ({
@@ -1793,7 +2087,13 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { status: status === 'Approve' ? 0 : 1, reason },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        { type: 'WorkflowReports', id: `ApprovalTarget:${targetType}:${targetId}` },
+        ...(week
+          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
+          : []),
+      ],
     }),
     getStockMovements: builder.query<StockMovement[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -2135,6 +2435,10 @@ export const {
   useGetSuppliersQuery,
   useGetWarehousesQuery,
   useGetWarehouseSelectorQuery,
+  useGetPurchaseWorkbenchQuery,
+  useGetSupplierEvidenceQuery,
+  useConfirmLineSupplierMutation,
+  useRecordWarehousePurchaseReceiptMutation,
   useUpdatePurchaseRequestLineSupplierMutation,
   useGetDataQualityQuery,
   useGetDataQualityPageQuery,

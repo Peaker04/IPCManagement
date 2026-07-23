@@ -1,6 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { ROUTES } from '../src/routes/routeConfig';
+import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 const protectedRoutes = [
   { path: ROUTES.DASHBOARD, heading: 'Bàn điều hành hôm nay', nav: 'Tổng quan' },
@@ -703,6 +704,32 @@ async function stubProductionReportStages(page: Page) {
 }
 
 async function stubPurchasingSubmitFailure(page: Page) {
+  await page.route('**/api/purchase-workflow/workbench**', async (route) => {
+    const serviceDate = phase09Workbench.serviceDates[0];
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        success: true,
+        message: 'OK',
+        data: {
+          ...phase09Workbench,
+          selectedStage: 'submitted',
+          serviceDates: [{
+            ...serviceDate,
+            currentStage: 'submitted',
+            purchaseRequestId: 'pr-1',
+            purchaseRequestCode: 'PR-20260615-FULLDAY',
+            purchaseRequestStatus: 'DRAFT',
+            orderCount: 0,
+            receivingLineCount: 0,
+            fullyReceivedLineCount: 0,
+          }],
+        },
+      }),
+    });
+  });
+
   await page.route('**/api/approvals/inbox**', async (route) => {
     await route.fulfill({
       status: 200,
@@ -1117,6 +1144,15 @@ async function stubMobileOperationsSuccess(page: Page) {
   });
 
   await page.route('**/api/purchase-requests**', async (route) => fulfill(route, []));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfill(route, {
+    page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
+    orderCountByRequest: {},
+  }));
+  await page.route('**/api/warehouses/selector**', async (route) => fulfill(route, [{
+    warehouseId: 'wh-mobile',
+    warehouseCode: 'MAIN',
+    warehouseName: 'Kho chính',
+  }]));
   await page.route('**/api/dishes/catalog**', async (route) => fulfill(route, []));
 
   await page.route('**/api/approvals/purchase-request/pr-mobile', async (route) => {
@@ -1297,12 +1333,14 @@ test.describe('route smoke', () => {
     await stubPurchasingSubmitFailure(page);
     await page.setViewportSize({ width: 1365, height: 900 });
     await login(page);
-    await page.goto(ROUTES.PURCHASING);
+    await page.goto(`${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=submitted`);
 
-    await page.getByLabel('Chọn đơn mua để gửi').selectOption('pr-1');
-    await expect(page.getByRole('button', { name: 'Gửi đơn mua' })).toBeEnabled();
-    await page.getByRole('button', { name: 'Gửi đơn mua' }).click();
-    await expect(page.getByRole('alert')).toContainText('Có dòng mua vượt ngưỡng giá');
+    await page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' }).getByRole('button', { name: /Gửi đề xuất mua/ }).click();
+    await page.locator('#purchase-decision-panel').getByRole('button', { name: 'Gửi đề xuất mua' }).click();
+    const dialog = page.getByRole('dialog', { name: 'Gửi đề xuất mua' });
+    await expect(dialog).toBeVisible();
+    await dialog.getByRole('button', { name: 'Gửi đề xuất mua' }).click();
+    await expect(dialog.getByRole('alert')).toContainText('Có dòng mua vượt ngưỡng giá');
   });
 
   test('purchasing creates a purchase request from a selected material demand', async ({ page }) => {
@@ -1373,19 +1411,59 @@ test.describe('route smoke', () => {
         }),
       });
     });
+    await page.route('**/api/purchase-workflow/workbench**', async (route) => {
+      const serviceDate = phase09Workbench.serviceDates[0];
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'OK',
+          data: {
+            ...phase09Workbench,
+            weekStart: '2026-06-15',
+            weekEnd: '2026-06-21',
+            selectedDate: '2026-06-18',
+            selectedStage: 'demand',
+            serviceDates: [{
+              ...serviceDate,
+              serviceDate: '2026-06-18',
+              currentStage: 'demand',
+              purchaseRequestId: null,
+              purchaseRequestCode: null,
+              purchaseRequestStatus: null,
+              orderCount: 0,
+              receivingLineCount: 0,
+              fullyReceivedLineCount: 0,
+              approvedDemands: [{
+                materialRequestId: 'mr-create-1',
+                requestCode: 'MR-DAV-20260618-FULLDAY',
+                serviceDate: '2026-06-18',
+                scope: 'FULLDAY',
+                status: 'APPROVED',
+                shortageLineCount: 1,
+                currentStage: 'demand',
+                purchaseRequestId: null,
+                purchaseRequestCode: null,
+                purchaseRequestStatus: null,
+              }],
+              purchaseLines: [],
+            }],
+          },
+        }),
+      });
+    });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await login(page);
-    await page.goto(ROUTES.PURCHASING);
+    await page.goto(`${ROUTES.PURCHASING}?week=2026-06-15&date=2026-06-18&stage=demand`);
 
-    await page.getByRole('button', { name: 'Tạo đề xuất mua' }).click();
-    const dialog = page.getByRole('dialog', { name: 'Tạo đề xuất mua từ nhu cầu thiếu' });
+    await page.getByLabel('Nhu cầu nguyên liệu đã duyệt').selectOption('mr-create-1');
+    await page.locator('#purchase-decision-panel').getByRole('button', { name: 'Tạo đề xuất mua', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Tạo đề xuất mua' });
     await expect(dialog).toBeVisible();
-    await dialog.getByRole('combobox', { name: 'Chứng từ nhu cầu nguyên liệu' }).click();
-    await page.getByRole('option', { name: /MR-DAV-20260618-FULLDAY/ }).click();
-    await dialog.getByRole('button', { name: 'Tạo đề xuất' }).click();
-    await expect(page.getByRole('status')).toContainText('PR-20260618-FULLDAY');
-    await expect(page.getByRole('tab', { name: 'Giá và nhà cung cấp' })).toHaveAttribute('aria-selected', 'true');
+    await dialog.getByRole('button', { name: 'Tạo đề xuất mua' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'PR-20260618-FULLDAY' })).toBeVisible();
   });
 
   test('approval inbox executes approve decision with reason', async ({ page }) => {
@@ -1396,10 +1474,10 @@ test.describe('route smoke', () => {
 
     await expect(page.getByText('PR-20260615-FULLDAY').first()).toBeVisible();
     await page.getByRole('button', { name: 'Duyệt' }).first().click();
-    await expect(page.getByRole('heading', { name: 'Xác nhận duyệt chứng từ' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Duyệt chứng từ?' })).toBeVisible();
     await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý mua');
-    await page.getByRole('button', { name: 'Duyệt' }).last().click();
-    await expect(page.getByRole('status')).toContainText('Đã duyệt chứng từ');
+    await page.getByRole('dialog', { name: 'Duyệt chứng từ?' }).getByRole('button', { name: 'Duyệt chứng từ' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Đã duyệt chứng từ' })).toBeVisible();
   });
 
   test('approval inbox loads the next server cursor page', async ({ page }) => {
@@ -1428,8 +1506,8 @@ test.describe('route smoke', () => {
       await page.goto(ROUTES.APPROVALS);
       await page.getByRole('button', { name: 'Duyệt' }).first().click();
       await page.getByLabel('Ghi chú duyệt (tùy chọn)').fill('Đồng ý trên thiết bị');
-      await page.getByRole('button', { name: 'Duyệt' }).last().click();
-      await expect(page.getByRole('status')).toContainText('Đã duyệt chứng từ');
+      await page.getByRole('dialog', { name: 'Duyệt chứng từ?' }).getByRole('button', { name: 'Duyệt chứng từ' }).click();
+      await expect(page.getByRole('status').filter({ hasText: 'Đã duyệt chứng từ' })).toBeVisible();
       await expectNoPageOverflow(page);
 
       await page.goto(ROUTES.WAREHOUSE);
@@ -1453,4 +1531,73 @@ test.describe('route smoke', () => {
       await expectNoPageOverflow(page);
     });
   }
+});
+
+test.describe('Phase 09 preserved-route seam', () => {
+  test('preserves four routes, six stages, and purchasing deep-link state', async ({ page }) => {
+    await page.route('**/*', async (route) => {
+      if (!new URL(route.request().url()).pathname.startsWith('/api/')) {
+        await route.continue();
+        return;
+      }
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'OK', data: [] }),
+      });
+    });
+    await stubPhase09Api(page);
+    await page.route('**/api/auth/profile', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          message: 'OK',
+          data: {
+            userId: 'phase09-admin',
+            username: 'admin',
+            fullName: 'Phase 09 Admin',
+            roleCode: 'ADMIN',
+            roleName: 'Admin',
+            isAdminFullAccess: true,
+            permissions: ['*'],
+          },
+        }),
+      });
+    });
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem('token', 'dev-login-fallback-token-admin');
+      window.localStorage.setItem('user', JSON.stringify({
+        id: 'phase09-admin',
+        username: 'admin',
+        fullName: 'Phase 09 Admin',
+        role: 'admin',
+        roleCode: 'ADMIN',
+        roleName: 'Admin',
+        isAdminFullAccess: true,
+        permissions: ['*'],
+      }));
+    });
+    await page.goto(ROUTES.DASHBOARD);
+    await expect(page.locator('.ipc-app-shell')).toBeVisible();
+
+    for (const route of [ROUTES.WEEKLY_MENU, ROUTES.APPROVALS]) {
+      await page.goto(route);
+      await expect(page).toHaveURL(route);
+      await expect(page.locator('.ipc-app-shell')).toBeVisible();
+    }
+
+    const purchasingRoute = `${ROUTES.PURCHASING}?week=${PHASE09_WEEK}&date=${PHASE09_DATE}&stage=receiving`;
+    await page.goto(purchasingRoute);
+    await expect(page).toHaveURL(new RegExp(`week=${PHASE09_WEEK}.*date=${PHASE09_DATE}.*stage=receiving`));
+    const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
+    for (const label of PHASE09_STAGE_LABELS) {
+      await expect(guide.getByRole('button', { name: new RegExp(label) })).toBeVisible();
+    }
+
+    await page.goto(`${ROUTES.WAREHOUSE}?week=${PHASE09_WEEK}&purchaseRequestId=pr-phase09`);
+    await expect(page).toHaveURL(new RegExp(`${ROUTES.WAREHOUSE}\\?`));
+    await expect(page.getByRole('region', { name: 'Danh sách đơn mua và tiến độ nhập kho' })).toBeVisible();
+  });
 });

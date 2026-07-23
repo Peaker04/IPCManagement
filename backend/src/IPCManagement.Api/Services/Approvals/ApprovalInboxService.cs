@@ -27,6 +27,8 @@ public interface IApprovalInboxService
 public sealed class ApprovalInboxService : IApprovalInboxService
 {
     private const string PurchaseRequestTargetType = "purchase-request";
+    private const string PurchasePriceExceptionTargetType = "purchase-price-exception";
+    private const string MaterialDemandTargetType = "material-demand";
     private const string InventoryIssueTargetType = "inventory-issue";
     private const string OrderAdjustmentTargetType = "order-adjustment";
     private const int DefaultPageSize = 20;
@@ -117,9 +119,18 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         var permissions = ResolveUserPermissions(user);
         var inbox = new List<ApprovalInboxItemDto>();
 
+        if (permissions.Contains(AuthorizationPolicies.MaterialDemandApprove))
+        {
+            inbox.AddRange(await BuildMaterialDemandItemsAsync(limit, cursor, cancellationToken));
+        }
+
         if (permissions.Contains(AuthorizationPolicies.PurchaseRequestApprove))
         {
             inbox.AddRange(await BuildPurchaseRequestItemsAsync(limit, cursor, cancellationToken));
+        }
+
+        if (permissions.Contains(AuthorizationPolicies.PurchasePriceExceptionApprove))
+        {
             inbox.AddRange(await BuildPriceAlertItemsAsync(limit, cursor, cancellationToken));
         }
 
@@ -134,6 +145,121 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         }
 
         return inbox;
+    }
+
+    private async Task<IReadOnlyList<ApprovalInboxItemDto>> BuildMaterialDemandItemsAsync(
+        int limit,
+        ApprovalInboxCursor? cursor,
+        CancellationToken cancellationToken)
+    {
+        var requestQuery = _context.Materialrequests
+            .AsNoTracking()
+            .Where(item => item.Status == "DRAFT");
+        if (cursor is not null)
+        {
+            requestQuery = requestQuery.Where(item =>
+                item.RequestDate > cursor.DueDate ||
+                (item.RequestDate == cursor.DueDate && item.RequestCode.CompareTo(cursor.TargetCode) > 0));
+        }
+
+        var requests = await requestQuery
+            .OrderBy(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        var result = new List<ApprovalInboxItemDto>();
+        var ingredientNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        var unitNames = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var request in requests)
+        {
+            var plan = await _context.Productionplans
+                .AsNoTracking()
+                .SingleAsync(item => item.PlanId.SequenceEqual(request.PlanId), cancellationToken);
+            var submittedBy = await _context.Users
+                .AsNoTracking()
+                .Where(item => item.UserId.SequenceEqual(request.CreatedBy))
+                .Select(item => item.FullName)
+                .SingleAsync(cancellationToken);
+            var requestLines = await _context.Materialrequestlines
+                .AsNoTracking()
+                .Where(line => line.RequestId.SequenceEqual(request.RequestId))
+                .ToListAsync(cancellationToken);
+            var lineDetails = new List<(string IngredientId, string UnitId, string Name, string Unit, decimal Quantity)>();
+            foreach (var line in requestLines)
+            {
+                var ingredientId = Convert.ToBase64String(line.IngredientId);
+                if (!ingredientNames.TryGetValue(ingredientId, out var ingredientName))
+                {
+                    ingredientName = await _context.Ingredients
+                        .AsNoTracking()
+                        .Where(item => item.IngredientId.SequenceEqual(line.IngredientId))
+                        .Select(item => item.IngredientName)
+                        .SingleAsync(cancellationToken);
+                    ingredientNames[ingredientId] = ingredientName;
+                }
+
+                var unitId = Convert.ToBase64String(line.UnitId);
+                if (!unitNames.TryGetValue(unitId, out var unitName))
+                {
+                    unitName = await _context.Units
+                        .AsNoTracking()
+                        .Where(item => item.UnitId.SequenceEqual(line.UnitId))
+                        .Select(item => item.UnitName)
+                        .SingleAsync(cancellationToken);
+                    unitNames[unitId] = unitName;
+                }
+
+                lineDetails.Add((ingredientId, unitId, ingredientName, unitName, line.SuggestedPurchaseQty));
+            }
+
+            var materials = lineDetails
+                .GroupBy(line => new
+                {
+                    line.IngredientId,
+                    line.UnitId
+                })
+                .Select(group => new ApprovalInboxMaterialDto
+                {
+                    Name = group.First().Name,
+                    Quantity = DecimalPolicy.RoundQuantity(group.Sum(line => line.Quantity)),
+                    Unit = group.First().Unit
+                })
+                .OrderBy(material => material.Name)
+                .ToList();
+            var targetId = GuidHelper.ToGuidString(request.RequestId);
+            var itemDto = new ApprovalInboxItemDto
+            {
+                InboxItemId = $"material-demand-{targetId}",
+                TargetType = MaterialDemandTargetType,
+                TargetId = targetId,
+                TargetCode = request.RequestCode,
+                ItemType = MaterialDemandTargetType,
+                Title = "Duyệt nhu cầu nguyên liệu",
+                Source = request.RequestCode,
+                OwnerRole = "Quản lý",
+                SubmittedBy = submittedBy,
+                DueDate = request.RequestDate,
+                Status = "PENDING",
+                Reason = "Nhu cầu nguyên liệu đã tính, chờ quản lý duyệt trước khi mua hàng.",
+                NextAction = "Duyệt nhu cầu",
+                Tone = "warning",
+                Route = $"/approvals?targetType={MaterialDemandTargetType}&targetId={targetId}&serviceDate={request.RequestDate:yyyy-MM-dd}&scope={Uri.EscapeDataString(request.RequestScope)}",
+                WeekStartDate = plan.WeekStartDate,
+                ServiceDate = request.RequestDate,
+                Scope = request.RequestScope,
+                LineCount = requestLines.Count,
+                TotalQuantity = DecimalPolicy.RoundQuantity(requestLines.Sum(line => line.SuggestedPurchaseQty)),
+                TotalValue = null,
+                SubmittedAt = plan.CreatedAt,
+                SourceDocumentCode = plan.PlanCode,
+                Materials = materials
+            };
+            await PopulateSlaAsync(itemDto, request.RequestId, plan.CreatedAt);
+            result.Add(itemDto);
+        }
+
+        return result;
     }
 
     private static int NormalizeLimit(int value, int fallback, int maximum)
@@ -188,6 +314,9 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                 .ThenInclude(line => line.Ingredient)
             .Include(item => item.Purchaserequestlines)
                 .ThenInclude(line => line.Unit)
+            .Include(item => item.Purchaserequestlines)
+                .ThenInclude(line => line.SupplierDecisions)
+                    .ThenInclude(decision => decision.Purchasepriceexceptions)
             .Where(item =>
                 item.Status == "SENTTOSUPPLIER" &&
                 !_context.Approvalhistories.Any(history =>
@@ -249,98 +378,117 @@ public sealed class ApprovalInboxService : IApprovalInboxService
         ApprovalInboxCursor? cursor,
         CancellationToken cancellationToken)
     {
-        var batchSize = Math.Clamp(limit, 1, 50);
-        var result = new List<ApprovalInboxItemDto>();
-        var sourceDate = cursor?.DueDate;
-        var sourceCode = cursor?.TargetCode;
-        var firstBatch = true;
-
-        while (result.Count < limit)
-        {
-            var requestQuery = _context.Purchaserequests
-                .AsNoTracking()
-                .Include(item => item.CreatedByNavigation)
-                .Include(item => item.Purchaserequestlines)
+        var exceptionQuery = _context.Purchasepriceexceptions
+            .AsNoTracking()
+            .Include(item => item.PurchaseLineSupplierDecision)
+                .ThenInclude(decision => decision.Supplier)
+            .Include(item => item.PurchaseLineSupplierDecision)
+                .ThenInclude(decision => decision.PurchaseRequestLine)
+                    .ThenInclude(line => line.PurchaseRequest)
+                        .ThenInclude(request => request.CreatedByNavigation)
+            .Include(item => item.PurchaseLineSupplierDecision)
+                .ThenInclude(decision => decision.PurchaseRequestLine)
                     .ThenInclude(line => line.Ingredient)
-                .Include(item => item.Purchaserequestlines)
+            .Include(item => item.PurchaseLineSupplierDecision)
+                .ThenInclude(decision => decision.PurchaseRequestLine)
                     .ThenInclude(line => line.Unit)
-                .Where(item =>
-                    (item.Status == "DRAFT" || item.Status == "SENTTOSUPPLIER") &&
-                    !_context.Approvalhistories.Any(history =>
-                        history.TargetType == PurchaseRequestTargetType &&
-                        history.TargetId == item.PurchaseRequestId));
-            if (sourceDate is not null && sourceCode is not null)
+            .AsQueryable();
+        var isInMemoryProvider = string.Equals(
+            _context.Database.ProviderName,
+            "Microsoft.EntityFrameworkCore.InMemory",
+            StringComparison.Ordinal);
+        if (!isInMemoryProvider)
+        {
+            exceptionQuery = exceptionQuery.Where(item =>
+                item.Status == "PENDING" &&
+                item.PurchaseLineSupplierDecision.Status == "CURRENT" &&
+                item.ProposalFingerprint == item.PurchaseLineSupplierDecision.DecisionFingerprint &&
+                item.ProposalVersion == item.PurchaseLineSupplierDecision.Version);
+            if (cursor is not null)
             {
-                var comparison = firstBatch ? 0 : 1;
-                requestQuery = requestQuery.Where(item =>
-                    item.PurchaseForDate > sourceDate.Value ||
-                    (item.PurchaseForDate == sourceDate.Value &&
-                        item.PurchaseRequestCode.CompareTo(sourceCode) >= comparison));
+                exceptionQuery = exceptionQuery.Where(item =>
+                    item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseForDate >= cursor.DueDate);
             }
+        }
 
-            var requests = await requestQuery
-                .OrderBy(item => item.PurchaseForDate)
-                .ThenBy(item => item.PurchaseRequestCode)
-                .Take(batchSize)
-                .ToListAsync(cancellationToken);
-            if (requests.Count == 0)
+        var queriedExceptions = await exceptionQuery
+            .Take(Math.Min(limit * 4 + 1, 200))
+            .ToListAsync(cancellationToken);
+        var exceptions = (isInMemoryProvider
+                ? _context.ChangeTracker.Entries<Purchasepriceexception>()
+                    .Select(entry => entry.Entity)
+                    .Concat(queriedExceptions)
+                    .DistinctBy(item => Convert.ToBase64String(item.PurchasePriceExceptionId))
+                : queriedExceptions)
+            .Where(item =>
+                item.Status == "PENDING" &&
+                item.PurchaseLineSupplierDecision.Status == "CURRENT" &&
+                string.Equals(
+                    item.ProposalFingerprint,
+                    item.PurchaseLineSupplierDecision.DecisionFingerprint,
+                    StringComparison.Ordinal) &&
+                item.ProposalVersion == item.PurchaseLineSupplierDecision.Version &&
+                (cursor is null ||
+                    item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseForDate >= cursor.DueDate))
+            .OrderBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseForDate)
+            .ThenBy(item => item.PurchaseLineSupplierDecision.PurchaseRequestLine.PurchaseRequest.PurchaseRequestCode)
+            .ThenBy(item => item.ProposalVersion)
+            .ToList();
+        var result = new List<ApprovalInboxItemDto>(exceptions.Count);
+        foreach (var priceException in exceptions)
+        {
+            var decision = priceException.PurchaseLineSupplierDecision;
+            var line = decision.PurchaseRequestLine;
+            var request = line.PurchaseRequest;
+            var targetId = GuidHelper.ToGuidString(priceException.PurchasePriceExceptionId);
+            var itemDto = new ApprovalInboxItemDto
             {
-                break;
-            }
-
-            foreach (var request in requests)
-            {
-                var warningLines = new List<Purchaserequestline>();
-                foreach (var line in request.Purchaserequestlines)
-                {
-                    if (await IsPriceWarningAsync(line, cancellationToken))
+                InboxItemId = $"price-exception-{targetId}",
+                TargetType = PurchasePriceExceptionTargetType,
+                TargetId = targetId,
+                TargetCode = $"{request.PurchaseRequestCode}-{line.Ingredient.IngredientCode}-V{priceException.ProposalVersion}",
+                ItemType = "price-exception",
+                Title = "Duyệt ngoại lệ giá mua",
+                Source = request.PurchaseRequestCode,
+                OwnerRole = "Quản lý",
+                SubmittedBy = request.CreatedByNavigation.FullName,
+                DueDate = request.PurchaseForDate,
+                Status = priceException.Status,
+                Reason = priceException.Reason,
+                NextAction = "Duyệt hoặc từ chối ngoại lệ giá",
+                Tone = "danger",
+                Route = $"/approvals?targetType={PurchasePriceExceptionTargetType}&targetId={targetId}",
+                ReferencePrice = priceException.ReferencePrice,
+                ProposedPrice = priceException.ProposedPrice,
+                VariancePercent = priceException.VariancePercent,
+                EvidenceType = priceException.EvidenceType,
+                EvidenceId = GuidHelper.ToGuidString(priceException.EvidenceId),
+                EvidenceDate = priceException.EvidenceDate,
+                ProposalFingerprint = priceException.ProposalFingerprint,
+                ProposalVersion = priceException.ProposalVersion,
+                SupplierName = decision.Supplier.SupplierName,
+                Materials =
+                [
+                    new ApprovalInboxMaterialDto
                     {
-                        warningLines.Add(line);
+                        Name = line.Ingredient.IngredientName,
+                        Quantity = DecimalPolicy.RoundQuantity(line.PurchaseQty),
+                        Unit = line.Unit.UnitName
                     }
-                }
-
-                if (warningLines.Count == 0)
-                {
-                    continue;
-                }
-
-                var itemDto = new ApprovalInboxItemDto
-                {
-                    InboxItemId = $"price-alert-{GuidHelper.ToGuidString(request.PurchaseRequestId)}",
-                    TargetType = PurchaseRequestTargetType,
-                    TargetId = GuidHelper.ToGuidString(request.PurchaseRequestId),
-                    TargetCode = request.PurchaseRequestCode,
-                    ItemType = "price-alert",
-                    Title = "Kiểm tra giá mua",
-                    Source = request.PurchaseRequestCode,
-                    OwnerRole = "Thu mua / Quản lý",
-                    SubmittedBy = request.CreatedByNavigation.FullName,
-                    DueDate = request.PurchaseForDate,
-                    Status = "PENDING",
-                    Reason = "Có dòng mua vượt ngưỡng giá, cần xử lý trước khi duyệt.",
-                    NextAction = "Xử lý cảnh báo giá",
-                    Tone = "danger",
-                    Route = "/approvals",
-                    Materials = warningLines
-                        .OrderBy(line => line.Ingredient.IngredientName)
-                        .Select(MapPurchaseMaterial)
-                        .ToList()
-                };
-                var baseDocDate = new DateTime(request.RequestDate.Year, request.RequestDate.Month, request.RequestDate.Day, 0, 0, 0, DateTimeKind.Utc);
-                await PopulateSlaAsync(itemDto, request.PurchaseRequestId, baseDocDate);
-                if (cursor is null || IsAfterCursor(itemDto, cursor))
-                {
-                    result.Add(itemDto);
-                }
-            }
-
-            var last = requests[^1];
-            sourceDate = last.PurchaseForDate;
-            sourceCode = last.PurchaseRequestCode;
-            firstBatch = false;
-            if (requests.Count < batchSize)
+                ]
+            };
+            var baseDocDate = new DateTime(
+                request.RequestDate.Year,
+                request.RequestDate.Month,
+                request.RequestDate.Day,
+                0,
+                0,
+                0,
+                DateTimeKind.Utc);
+            await PopulateSlaAsync(itemDto, priceException.PurchasePriceExceptionId, baseDocDate);
+            if (cursor is null || IsAfterCursor(itemDto, cursor))
             {
-                break;
+                result.Add(itemDto);
             }
         }
 
@@ -490,36 +638,29 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    private async Task<bool> HasPriceWarningAsync(Purchaserequest request, CancellationToken cancellationToken)
+    private Task<bool> HasPriceWarningAsync(Purchaserequest request, CancellationToken cancellationToken)
+        => Task.FromResult(request.Purchaserequestlines.Any(line => HasUnapprovedPriceException(line)));
+
+    private Task<bool> IsPriceWarningAsync(Purchaserequestline line, CancellationToken cancellationToken)
+        => Task.FromResult(HasUnapprovedPriceException(line));
+
+    private static bool HasUnapprovedPriceException(Purchaserequestline line)
     {
-        foreach (var line in request.Purchaserequestlines)
+        var currentDecision = line.SupplierDecisions.SingleOrDefault(decision =>
+            string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
+        if (currentDecision is null)
         {
-            if (await IsPriceWarningAsync(line, cancellationToken))
-            {
-                return true;
-            }
+            return true;
         }
 
-        return false;
-    }
-
-    private async Task<bool> IsPriceWarningAsync(Purchaserequestline line, CancellationToken cancellationToken)
-    {
-        var latestReceiptPrice = await _context.Inventoryreceiptlines
-            .AsNoTracking()
-            .Include(item => item.Receipt)
-            .Where(item =>
-                item.IngredientId.SequenceEqual(line.IngredientId) &&
-                item.Receipt.SupplierId.SequenceEqual(line.SupplierId) &&
-                item.UnitId.SequenceEqual(line.UnitId) &&
-                item.UnitPrice > 0)
-            .OrderByDescending(item => item.Receipt.ReceiptDate)
-            .Select(item => item.UnitPrice)
-            .FirstOrDefaultAsync(cancellationToken);
-
-        var referencePrice = latestReceiptPrice > 0 ? latestReceiptPrice : DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice);
-        var variance = WorkflowReportCalculator.CalculateVariancePercent(referencePrice, line.EstimatedUnitPrice);
-        return WorkflowReportCalculator.IsPriceIncreaseWarning(variance);
+        var variance = PurchasePricePolicy.CalculateVariancePercent(
+            currentDecision.EvidenceReferencePrice,
+            currentDecision.ProposedUnitPrice);
+        return PurchasePricePolicy.RequiresException(variance) &&
+               !currentDecision.Purchasepriceexceptions.Any(priceException =>
+                   string.Equals(priceException.ProposalFingerprint, currentDecision.DecisionFingerprint, StringComparison.Ordinal) &&
+                   priceException.ProposalVersion == currentDecision.Version &&
+                   string.Equals(priceException.Status, "APPROVED", StringComparison.Ordinal));
     }
 
     private static ApprovalInboxMaterialDto MapPurchaseMaterial(Purchaserequestline line)

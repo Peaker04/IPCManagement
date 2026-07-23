@@ -118,6 +118,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseCatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseCatalogRoles));
+    options.AddPolicy(AuthorizationPolicies.WarehousePurchaseReceive, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehousePurchaseReceiveRoles));
 });
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()

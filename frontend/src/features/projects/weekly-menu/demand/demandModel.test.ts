@@ -1,7 +1,15 @@
 import { describe, expect, it } from 'vitest'
 import type { DemandLine } from '@/features/workflow'
 import type { QuickServingRow } from '../schedule/types'
-import { aggregateWeekStaleness, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
+import {
+  aggregateWeekStaleness,
+  buildDemandApprovalHref,
+  getDemandApprovalPresentation,
+  getDemandDayIndex,
+  getDemandInventoryStatus,
+  getPendingQuickServingRows,
+  getWeekStalenessState,
+} from './demandModel'
 
 describe('material demand model', () => {
   it('uses server totals when summarizing a paged inventory result', () => {
@@ -78,5 +86,44 @@ describe('material demand model', () => {
 
     expect(pending).toHaveLength(1)
     expect(pending[0].nextServings).toBe(125)
+  })
+
+  it.each([
+    ['DRAFT', 'Chờ duyệt', 'warning', 'Mở hàng đợi duyệt'],
+    ['MANAGERAPPROVED', 'Đã duyệt', 'success', 'Mở thu mua'],
+    ['CANCELLED', 'Từ chối', 'danger', 'Tính lại nhu cầu'],
+  ] as const)('maps server demand status %s to operational approval copy', (status, label, tone, actionLabel) => {
+    const presentation = getDemandApprovalPresentation([{
+      materialRequestId: 'demand-42',
+      materialRequestStatus: status,
+      sourceDocumentCode: 'MR-20260720-FULLDAY',
+      serviceDate: '2026-07-20',
+    } as DemandLine], '2026-07-20', status === 'CANCELLED' ? 'Thiếu căn cứ mua hàng.' : undefined)
+
+    expect(presentation).toMatchObject({
+      targetId: 'demand-42',
+      documentCode: 'MR-20260720-FULLDAY',
+      label,
+      tone,
+      actionLabel,
+    })
+    expect(presentation.reason).toBe(status === 'CANCELLED' ? 'Thiếu căn cứ mua hàng.' : undefined)
+  })
+
+  it('shows not-created state without inventing a target', () => {
+    expect(getDemandApprovalPresentation([], '2026-07-20')).toEqual({
+      status: 'not-created',
+      label: 'Chưa tạo',
+      tone: 'neutral',
+      actionLabel: 'Tạo nhu cầu từ KHSX',
+    })
+  })
+
+  it('preserves Monday week, service date, FULLDAY scope, and target ID in the approval link', () => {
+    expect(buildDemandApprovalHref({
+      week: '2026-07-20',
+      serviceDate: '2026-07-22',
+      targetId: 'demand/42',
+    })).toBe('/approvals?target=material-demand&week=2026-07-20&date=2026-07-22&scope=FULLDAY&id=demand%2F42')
   })
 })
