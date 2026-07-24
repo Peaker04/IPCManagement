@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Services.SampleData;
 
 internal static class PurchaseHistoryPolicyVersion
 {
-    public const string Current = "purchase-history-normalization/2026-07-22/v3";
+    public const string Current = "purchase-history-normalization/2026-07-23/v8";
 }
 
 internal sealed class PurchaseHistoryNormalizationPolicy
@@ -24,6 +24,7 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             ["g"] = "G",
             ["bich"] = "BICH",
             ["bịch"] = "BICH",
+            ["bành"] = "BICH",
             ["cái"] = "CAI",
             ["cai"] = "CAI",
             ["chai"] = "CHAI",
@@ -68,7 +69,8 @@ internal sealed class PurchaseHistoryNormalizationPolicy
             ["bình"] = "BINH",
             ["chiếc"] = "CHIEC",
             ["con"] = "CON",
-            ["bì"] = "BI"
+            ["bì"] = "BI",
+            ["vit"] = "VIT"
         };
 
     private static readonly IReadOnlyDictionary<string, string> IngredientAliases =
@@ -76,7 +78,19 @@ internal sealed class PurchaseHistoryNormalizationPolicy
         {
             ["Cảithiaf"] = "Cải thìa",
             ["Nấm bào ngừ"] = "Nấm bào ngư",
-            ["Bì ngòi xanh"] = "Bí ngòi xanh"
+            ["Bì ngòi xanh"] = "Bí ngòi xanh",
+            ["dđu đủ"] = "Đu đủ",
+            ["Đường cắt trắng"] = "Đường cát trắng",
+            ["Đù gà chay"] = "Đùi gà chay",
+            ["Heo mỡ có da"] = "Mỡ heo có da",
+            ["Căn cuộn chay"] = "Căn cuộn",
+            ["Dẻ sườn bò"] = "Thịt dẻ sườn bò",
+            ["Thịt bò dẻ sườn"] = "Thịt dẻ sườn bò",
+            ["Thăn bò"] = "Thịt thăn bò",
+            ["Bông lí"] = "Bông thiên lý",
+            ["Đùi má"] = "Má đùi gà",
+            ["Heo đùi mông ( đặc tề sẵn)"] = "Heo đùi mông đặc (tề sẵn)",
+            ["Bông cải xanh"] = "Súp lơ xanh"
         };
 
     private static readonly HashSet<string> AmbiguousUnits =
@@ -343,9 +357,15 @@ internal sealed class PurchaseHistoryNormalizationPolicy
     }
 
     private static bool LooksLikeEmbeddedSupplier(string value)
-        => value.Contains(" - ", StringComparison.Ordinal) ||
-           value.Contains(" ncc ", StringComparison.OrdinalIgnoreCase) ||
-           value.Contains("nhà cung cấp", StringComparison.OrdinalIgnoreCase);
+    {
+        var hasDashSeparator = value.Contains(" - ", StringComparison.Ordinal);
+        var isNumericRange = hasDashSeparator &&
+                             Regex.IsMatch(value, @"\d\s*-\s*\d", RegexOptions.CultureInvariant);
+
+        return (hasDashSeparator && !isNumericRange) ||
+               value.Contains(" ncc ", StringComparison.OrdinalIgnoreCase) ||
+               value.Contains("nhà cung cấp", StringComparison.OrdinalIgnoreCase);
+    }
 }
 
 internal sealed record PurchaseHistoryFieldResult<T>(

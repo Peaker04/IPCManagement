@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sketch 002 — Range Selection Interaction</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { padding-top: 49px; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-sm); }
+    button, input, select { min-height: 32px; font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, td:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .variant-nav { position: fixed; inset: 0 0 auto; z-index: 100; min-height: 49px; display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); }
+    .variant-nav strong { margin-right: 10px; font-size: 13px; }
+    .variant-tab { border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); padding: 0 12px; transition: .15s ease; }
+    .variant-tab:hover { background: var(--color-surface-subtle); color: var(--color-text); }
+    .variant-tab.active { border-color: #b8d7f5; background: var(--color-primary-soft); color: var(--color-primary); font-weight: 700; }
+    .shellbar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--color-shell); color: white; }
+    .shellbar strong { font-size: 16px; }
+    .shellbar span { margin-left: 12px; color: #d5e0ea; font-size: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-primary); padding: 0 12px; font-weight: 600; transition: .15s ease; }
+    .btn:hover { background: var(--color-primary-soft); }
+    .btn.primary { background: var(--color-primary); color: white; }
+    .btn.primary:hover { background: var(--color-primary-hover); }
+    .btn.ghost { border-color: var(--color-border); color: var(--color-text); }
+    .btn:disabled { cursor: not-allowed; opacity: .45; }
+    .actions { display: flex; gap: 8px; }
+    .context { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 64px; padding: 10px 24px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+    .context h1 { margin: 0 0 4px; font-size: 18px; }
+    .context p { margin: 0; color: var(--color-text-muted); }
+    .studio { display: grid; grid-template-columns: 230px minmax(690px,1fr) 340px; min-height: calc(100vh - 161px); }
+    .left, .right { background: var(--color-surface); }
+    .left { border-right: 1px solid var(--color-border); }
+    .right { border-left: 1px solid var(--color-border); }
+    .center { min-width: 0; padding: 12px; }
+    .section { padding: 12px; border-bottom: 1px solid var(--color-border); }
+    .section h2 { margin: 0 0 10px; color: var(--color-text-muted); font-size: 11px; letter-spacing: .04em; text-transform: uppercase; }
+    .nav-item { width: 100%; min-height: 42px; display: grid; gap: 2px; border: 0; border-left: 3px solid transparent; background: transparent; padding: 7px 10px; color: var(--color-text); text-align: left; }
+    .nav-item:hover { background: var(--color-surface-subtle); }
+    .nav-item.active { border-left-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+    .nav-item small { color: var(--color-text-muted); }
+    .panel { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .panel-head { min-height: 46px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+    .panel-head h2 { margin: 0; color: var(--color-text); font-size: 14px; text-transform: none; letter-spacing: 0; }
+    .status { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; border-radius: 99px; background: var(--color-primary-soft); color: var(--color-primary); padding: 0 9px; font-size: 12px; font-weight: 700; }
+    .status.success { background: var(--color-success-soft); color: var(--color-success); }
+    .field { display: grid; gap: 4px; margin-bottom: 10px; }
+    .field label { color: var(--color-text-muted); font-size: 12px; font-weight: 600; }
+    .control { width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: white; color: var(--color-text); padding: 0 9px; }
+    .control:hover { border-color: var(--color-primary); }
+    .helper { color: var(--color-text-muted); font-size: 12px; line-height: 1.5; }
+    .message { border-left: 4px solid var(--color-primary); background: #f5faff; padding: 9px 10px; line-height: 1.45; }
+    .message.warning { border-color: var(--color-warning); background: var(--color-warning-soft); }
+    .role-list { display: grid; gap: 6px; }
+    .role { display: grid; grid-template-columns: 12px 1fr auto; align-items: center; gap: 8px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 7px 8px; }
+    .role-dot { width: 10px; height: 10px; border-radius: 2px; background: var(--role-color, var(--color-primary)); }
+    .role code { color: var(--color-text-muted); font-family: var(--font-mono); font-size: 11px; }
+    .metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; }
+    .metric { border: 1px solid var(--color-border); background: var(--color-surface-subtle); padding: 8px; }
+    .metric span { display: block; color: var(--color-text-muted); font-size: 11px; }
+    .metric strong { display: block; margin-top: 3px; font-size: 17px; }
+    .grid-wrap { position: relative; overflow: auto; max-height: 610px; background: #eef1f4; user-select: none; }
+    table.sheet { width: 100%; min-width: 780px; border-collapse: separate; border-spacing: 0; table-layout: fixed; background: white; font-size: 12px; }
+    .sheet th, .sheet td { height: 32px; border-right: 1px solid #dfe3e8; border-bottom: 1px solid #dfe3e8; padding: 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sheet thead th { position: sticky; top: 0; z-index: 3; background: #edf0f2; color: var(--color-text-muted); text-align: center; }
+    .sheet .rownum { position: sticky; left: 0; z-index: 2; width: 42px; background: #edf0f2; color: var(--color-text-muted); text-align: center; }
+    .sheet thead .rownum { z-index: 4; }
+    .sheet td { cursor: cell; }
+    .sheet td:hover { background: #eef7ff; }
+    .sheet td.selected { background: #d9ecff; box-shadow: inset 0 0 0 1px var(--color-primary); }
+    .sheet td.anchor { background: #b9ddff; box-shadow: inset 0 0 0 2px var(--color-primary); }
+    .sheet td.role-header { background: #efe3ff; box-shadow: inset 0 0 0 1px #925ace; }
+    .sheet td.role-label { background: #fff1c7; box-shadow: inset 0 0 0 1px #c77d00; }
+    .sheet td.role-day { background: #d8f3e3; box-shadow: inset 0 0 0 1px #18834b; }
+    .section-row td:not(.rownum) { background: #e9eef3; font-weight: 700; text-align: center; }
+    .selection-bar { display: none; position: sticky; bottom: 8px; z-index: 8; width: fit-content; margin: -48px auto 8px; border: 1px solid #7eb6ea; border-radius: var(--radius-md); background: white; box-shadow: var(--shadow-lg); padding: 7px; }
+    .selection-bar.show { display: flex; gap: 6px; }
+    .selection-summary { display: flex; align-items: center; padding: 0 8px; color: var(--color-text-muted); font-family: var(--font-mono); font-size: 12px; }
+    .corner-progress { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 8px; margin-bottom: 10px; }
+    .corner-card { border: 1px solid var(--color-border); background: var(--color-surface-subtle); padding: 9px; }
+    .corner-card.active { border-color: var(--color-primary); background: var(--color-primary-soft); }
+    .corner-card span { display: block; color: var(--color-text-muted); font-size: 11px; }
+    .corner-card strong { display: block; margin-top: 3px; font-family: var(--font-mono); }
+    .role-toolbar { display: flex; flex-wrap: wrap; gap: 6px; border-top: 1px solid var(--color-border); background: var(--color-surface); padding: 9px; }
+    .role-button { border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: white; color: var(--color-text); padding: 0 9px; }
+    .role-button:hover, .role-button.active { border-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+    .a1-composer { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+    .a1-large { min-height: 42px; font: 600 16px var(--font-mono); }
+    .keyboard-hints { display: grid; gap: 5px; }
+    .keyboard-hints div { display: flex; justify-content: space-between; gap: 8px; }
+    kbd { border: 1px solid var(--color-border); border-bottom-width: 2px; border-radius: 3px; background: var(--color-surface-subtle); padding: 1px 5px; font: 11px var(--font-mono); }
+    .toast { position: fixed; right: 20px; bottom: 68px; z-index: 300; transform: translateY(16px); opacity: 0; border-radius: var(--radius-md); background: var(--color-shell); color: white; box-shadow: var(--shadow-lg); padding: 11px 15px; pointer-events: none; transition: .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    #sketch-tools { position: fixed; right: 12px; bottom: 8px; z-index: 9999; display: flex; gap: 5px; border-radius: 8px; background: rgba(0,0,0,.78); color: white; padding: 6px 8px; opacity: .42; transition: opacity .2s; font: 12px system-ui; }
+    #sketch-tools:hover { opacity: 1; }
+    #sketch-tools button { min-height: 26px; border: 1px solid #777; border-radius: 4px; background: #242424; color: white; padding: 0 7px; }
+    #sketch-frame { margin: 0 auto; transition: max-width .2s; }
+    .mobile { display: none; margin: 12px; border: 1px solid var(--color-border); background: white; padding: 16px; }
+    @media (max-width: 950px) { .desktop { display: none; } .mobile { display: block; } .variant-nav strong { display: none; } .variant-nav { overflow-x: auto; } }
+    @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <nav class="variant-nav" aria-label="Biến thể sketch"><strong>Sketch 002 · Chọn vùng</strong><button class="variant-tab active" data-variant="a">A: Drag + Context Bar</button><button class="variant-tab" data-variant="b">B: Two Corners</button><button class="variant-tab" data-variant="c">C: Accessible Hybrid</button><button class="variant-tab" data-variant="d">D: Hybrid + Context Bar ★ Selected</button></nav>
+  <main id="sketch-frame">
+    <section id="variant-a" class="variant">
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio</span></div><div class="actions"><button class="btn" data-action="validate">Kiểm tra</button><button class="btn primary" data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Kéo chọn vùng bảng</h1><p>Giữ chuột từ ô đầu tiên, kéo đến ô cuối cùng, sau đó gán vai trò cho vùng.</p></div><span class="status range-status">C7:I15</span></div>
+        <div class="studio">
+          <aside class="left"><div class="section"><h2>Template</h2><button class="nav-item active"><strong>ANV 25k</strong><small>weekly-menu-template-ANV...</small></button><button class="nav-item"><strong>ANV 30k</strong><small>Menu dùng chung</small></button></div><div class="section"><h2>Vùng đã gán</h2><div class="role-list"><div class="role"><i class="role-dot" style="--role-color:#925ace"></i><span>Header ngày</span><code>C7:I7</code></div><div class="role"><i class="role-dot" style="--role-color:#c77d00"></i><span>Nhãn món</span><code>C8:C31</code></div><div class="role"><i class="role-dot" style="--role-color:#18834b"></i><span>Dữ liệu ngày</span><code>D8:I31</code></div></div></div></aside>
+          <section class="center"><div class="panel"><div class="panel-head"><h2>ANV 25k · Kéo trên lưới để thay đổi vùng</h2><button class="btn" data-action="auto">Tự nhận diện</button></div><div class="grid-host" data-mode="drag"></div><div class="selection-bar show"><span class="selection-summary">C7:I15</span><button class="btn ghost" data-role="table">Bảng menu</button><button class="btn ghost" data-role="header">Header</button><button class="btn ghost" data-role="ignore">Bỏ qua</button><button class="btn primary" data-action="apply-role">Gán vùng</button></div></div></section>
+          <aside class="right"><div class="section"><h2>Vùng đang chọn</h2><div class="field"><label>Địa chỉ A1</label><input class="control a1-sync" value="C7:I15"></div><div class="field"><label>Vai trò</label><select class="control"><option>Bảng thực đơn chính</option><option>Header ngày</option><option>Bỏ qua</option></select></div><div class="message">Kéo lại bất kỳ lúc nào. Vùng mới chỉ thay thế sau khi bạn bấm <strong>Gán vùng</strong>.</div></div><div class="section"><h2>Kết quả tức thời</h2><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong>24</strong></div><div class="metric"><span>Lỗi</span><strong>0</strong></div></div></div></aside>
+        </div>
+      </div><div class="mobile"><h2>Chọn vùng cần desktop</h2><p>Trên màn hình hẹp, dùng địa chỉ A1 hoặc chỉ xem tóm tắt mapping.</p></div>
+    </section>
+
+    <section id="variant-b" class="variant" hidden>
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio</span></div><div class="actions"><button class="btn" data-action="undo">Làm lại</button><button class="btn primary" data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Chọn hai góc của bảng</h1><p>Bước 1 chọn ô trên-trái; bước 2 chọn ô dưới-phải. Hệ thống tạo vùng hình chữ nhật.</p></div><span class="status corner-status">Chọn ô bắt đầu</span></div>
+        <div class="studio">
+          <aside class="left"><div class="section"><h2>Tiến trình</h2><div class="corner-progress"><div class="corner-card active" data-corner-card="start"><span>Góc bắt đầu</span><strong class="corner-start">—</strong></div><span>→</span><div class="corner-card" data-corner-card="end"><span>Góc kết thúc</span><strong class="corner-end">—</strong></div></div><button class="btn ghost" style="width:100%" data-action="undo">Xóa lựa chọn</button></div><div class="section"><h2>Hướng dẫn</h2><div class="message warning">Cách này chậm hơn kéo chuột nhưng giảm rủi ro chọn nhầm trên bảng lớn.</div></div></aside>
+          <section class="center"><div class="panel"><div class="panel-head"><h2>ANV 25k · Chọn hai ô góc</h2><span class="status range-status">Chưa có vùng</span></div><div class="grid-host" data-mode="corners"></div><div class="role-toolbar"><strong style="align-self:center;margin-right:4px">Gán vai trò:</strong><button class="role-button active">Bảng menu</button><button class="role-button">Header ngày</button><button class="role-button">Cột nhãn món</button><button class="role-button">Bỏ qua</button><button class="btn primary" data-action="apply-role">Xác nhận vùng</button></div></div></section>
+          <aside class="right"><div class="section"><h2>Vùng kết quả</h2><div class="field"><label>Địa chỉ A1</label><input class="control a1-sync" value="" placeholder="Chọn hai góc trên lưới"></div><p class="helper">Bạn vẫn có thể nhập trực tiếp, ví dụ <code>C7:I31</code>.</p></div><div class="section"><h2>Preview</h2><div class="metrics"><div class="metric"><span>Ngày</span><strong class="preview-days">—</strong></div><div class="metric"><span>Món</span><strong class="preview-items">—</strong></div><div class="metric"><span>Lỗi</span><strong>—</strong></div></div></div></aside>
+        </div>
+      </div><div class="mobile"><h2>Nhập địa chỉ A1</h2><p>Trên thiết bị hẹp, nhập hai ô góc thay cho thao tác trên lưới.</p></div>
+    </section>
+
+    <section id="variant-c" class="variant" hidden>
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio</span></div><div class="actions"><button class="btn" data-action="validate">Kiểm tra</button><button class="btn primary" data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Chọn vùng bằng lưới hoặc địa chỉ A1</h1><p>Hai cách nhập luôn đồng bộ; phím tắt và focus bàn phím là tính năng chính.</p></div><span class="status success">C7:I15 · Hợp lệ</span></div>
+        <div class="studio">
+          <aside class="left"><div class="section"><h2>Các vùng của template</h2><button class="nav-item active" data-region="C7:I15"><strong>Bảng menu chính</strong><small>C7:I15</small></button><button class="nav-item" data-region="D7:I7"><strong>Header ngày</strong><small>D7:I7</small></button><button class="nav-item" data-region="C8:C15"><strong>Nhãn món</strong><small>C8:C15</small></button><button class="nav-item" data-action="add-region"><strong>+ Thêm vùng</strong><small>Chọn trên lưới hoặc nhập A1</small></button></div><div class="section"><h2>Phím tắt</h2><div class="keyboard-hints"><div><span>Mở rộng chọn</span><kbd>Shift + Arrow</kbd></div><div><span>Gán vùng</span><kbd>Ctrl + Enter</kbd></div><div><span>Hủy chọn</span><kbd>Esc</kbd></div></div></div></aside>
+          <section class="center"><div class="panel"><div class="panel-head"><h2>ANV 25k · Click, kéo hoặc dùng bàn phím</h2><button class="btn" data-action="auto">Tự nhận diện</button></div><div class="grid-host" data-mode="hybrid"></div></div></section>
+          <aside class="right"><div class="section"><h2>Vùng đang chỉnh</h2><div class="a1-composer"><input class="control a1-large a1-sync" value="C7:I15" aria-label="Địa chỉ vùng A1"><button class="btn primary" data-action="go-a1">Áp dụng</button></div><p class="helper">Ví dụ: <code>C7:I31</code>. Nhập địa chỉ rồi nhấn Enter hoặc Áp dụng.</p><div class="field" style="margin-top:12px"><label>Vai trò vùng</label><select class="control"><option>Bảng thực đơn chính</option><option>Header ngày</option><option>Cột nhãn món</option><option>Bỏ qua</option></select></div><button class="btn" style="width:100%" data-action="apply-role">Gán vai trò cho C7:I15</button></div><div class="section"><h2>Kiểm tra tức thời</h2><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong>24</strong></div><div class="metric"><span>Lỗi</span><strong>0</strong></div></div><div class="message" style="margin-top:10px" role="status">Vùng hợp lệ. Tên món và sáu cột ngày đã được nhận diện.</div></div></aside>
+        </div>
+      </div><div class="mobile"><h2>Nhập địa chỉ A1</h2><p>Biến thể hybrid cho phép nhập A1 đầy đủ trên màn hình hẹp, còn lưới trở thành preview read-only.</p></div>
+    </section>
+
+    <section id="variant-d" class="variant" hidden>
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio</span></div><div class="actions"><button class="btn" data-action="validate">Kiểm tra</button><button class="btn primary" data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Chọn nhanh, gán ngay, chỉnh chính xác</h1><p>Kéo trên lưới để chọn nhanh; toolbar nổi gán vai trò; địa chỉ A1 và bàn phím luôn sẵn sàng.</p></div><span class="status success range-status">C7:I15 · Hợp lệ</span></div>
+        <div class="studio">
+          <aside class="left"><div class="section"><h2>Các vùng của template</h2><button class="nav-item active" data-region="C7:I15"><strong>Bảng menu chính</strong><small>C7:I15 · 6 ngày · 24 món</small></button><button class="nav-item" data-region="D7:I7"><strong>Header ngày</strong><small>D7:I7</small></button><button class="nav-item" data-region="C8:C15"><strong>Nhãn món</strong><small>C8:C15</small></button><button class="nav-item" data-action="add-region"><strong>+ Thêm vùng</strong><small>Kéo trên lưới hoặc nhập A1</small></button></div><div class="section"><h2>Phím tắt</h2><div class="keyboard-hints"><div><span>Mở rộng chọn</span><kbd>Shift + Arrow</kbd></div><div><span>Gán vai trò</span><kbd>Ctrl + Enter</kbd></div><div><span>Hủy chọn</span><kbd>Esc</kbd></div></div></div></aside>
+          <section class="center"><div class="panel"><div class="panel-head"><h2>ANV 25k · Kéo, click hoặc dùng bàn phím</h2><div class="actions"><span class="status range-status">C7:I15</span><button class="btn" data-action="auto">Tự nhận diện</button></div></div><div class="grid-host" data-mode="hybrid"></div><div class="selection-bar show"><span class="selection-summary">C7:I15</span><button class="role-button active" data-role="table">Bảng menu</button><button class="role-button" data-role="header">Header ngày</button><button class="role-button" data-role="label">Nhãn món</button><button class="role-button" data-role="ignore">Bỏ qua</button><button class="btn primary" data-action="apply-role">Gán vùng</button></div></div></section>
+          <aside class="right"><div class="section"><h2>Vùng đang chỉnh</h2><div class="a1-composer"><input class="control a1-large a1-sync" value="C7:I15" aria-label="Địa chỉ vùng A1"><button class="btn primary" data-action="go-a1">Áp dụng</button></div><p class="helper">Nhập địa chỉ như <code>C7:I31</code> để hiệu chỉnh vùng đã kéo.</p><div class="field" style="margin-top:12px"><label>Vai trò vùng</label><select class="control role-select"><option>Bảng thực đơn chính</option><option>Header ngày</option><option>Cột nhãn món</option><option>Bỏ qua</option></select></div><button class="btn" style="width:100%" data-action="apply-role">Cập nhật thuộc tính chi tiết</button></div><div class="section"><h2>Kiểm tra tức thời</h2><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong>24</strong></div><div class="metric"><span>Lỗi</span><strong>0</strong></div></div><div class="message" style="margin-top:10px" role="status">Vùng hợp lệ. Thay đổi chỉ cập nhật template ANV sau khi bấm <strong>Lưu phiên bản</strong>.</div></div></aside>
+        </div>
+      </div><div class="mobile"><h2>Nhập địa chỉ A1</h2><p>Trên màn hình hẹp, danh sách vùng và A1 vẫn chỉnh được; lưới chuyển sang preview read-only.</p></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="sketch-tools"><button data-width="375px">Phone</button><button data-width="768px">Tablet</button><button data-width="1280px">Desktop</button><button data-width="100%">Full</button></div>
+  <script>
+    const letters = ['C','D','E','F','G','H','I'];
+    const days = ['NHÓM MÓN','THỨ HAI 20/07','THỨ BA 21/07','THỨ TƯ 22/07','THỨ NĂM 23/07','THỨ SÁU 24/07','THỨ BẢY 25/07'];
+    const menu = [
+      ['MENU MẶN - CA SÁNG','','','','','',''],
+      ['Món mặn 1','Cá kho tộ','Gà xào sả ớt','Thịt kho trứng','Cá chiên sốt','Bò xào hành cần','Cá kho tiêu'],
+      ['Món mặn 2','Trứng chiên','Cá rim','Gà kho gừng','Thịt rang','Cá kho tiêu','Gà chiên'],
+      ['Món rau','Rau muống xào','Cải thìa xào','Giá hẹ xào','Bí xanh xào','Su su xào','Cải ngồng'],
+      ['Món canh','Canh bí đao','Canh cải','Canh chua','Canh rau ngót','Canh bí đỏ','Canh mướp'],
+      ['MENU CHAY','','','','','',''],
+      ['Món chính','Đậu hũ sốt cà','Nấm kho tiêu','Cải kho chay','Đậu hũ kho nấm','Rau củ xào','Nấm xào'],
+      ['Canh','Canh rau ngót','Canh bí xanh','Canh cải','Canh rong biển','Canh chua chay','Canh nấm']
+    ];
+    const colIndex = letter => letters.indexOf(letter.toUpperCase());
+    const cellRef = (row,col) => `${letters[col]}${row}`;
+    function parseRef(ref) { const m=/^([C-I])(\d{1,2})$/i.exec(ref.trim()); return m ? { col:colIndex(m[1]), row:Number(m[2]) } : null; }
+    function parseRange(value) { const p=value.split(':'); const a=parseRef(p[0]||''), b=parseRef(p[1]||p[0]||''); return a&&b ? { start:a,end:b } : null; }
+    function normalize(sel) { return { r1:Math.min(sel.start.row,sel.end.row), r2:Math.max(sel.start.row,sel.end.row), c1:Math.min(sel.start.col,sel.end.col), c2:Math.max(sel.start.col,sel.end.col) }; }
+    function rangeText(sel) { const n=normalize(sel); return `${cellRef(n.r1,n.c1)}:${cellRef(n.r2,n.c2)}`; }
+    function gridMarkup() {
+      let html=`<div class="grid-wrap"><table class="sheet"><thead><tr><th class="rownum"></th>${letters.map(l=>`<th>${l}</th>`).join('')}</tr></thead><tbody>`;
+      html+=`<tr><th class="rownum">4</th><td colspan="7" style="text-align:center;font-weight:700">THỰC ĐƠN AMANN · TUẦN 20/07/2026</td></tr>`;
+      html+=`<tr><th class="rownum">7</th>${days.map((v,c)=>`<td tabindex="0" data-row="7" data-col="${c}">${v}</td>`).join('')}</tr>`;
+      menu.forEach((row,i)=>{const r=8+i, section=row[0].startsWith('MENU');html+=`<tr class="${section?'section-row':''}"><th class="rownum">${r}</th>${row.map((v,c)=>`<td tabindex="0" data-row="${r}" data-col="${c}">${v}</td>`).join('')}</tr>`});
+      return html+'</tbody></table></div>';
+    }
+    document.querySelectorAll('.grid-host').forEach(host=>host.innerHTML=gridMarkup());
+    const states = new WeakMap();
+    document.querySelectorAll('.grid-host').forEach(host=>{
+      const mode=host.dataset.mode;
+      const state={ start:{row:7,col:0}, end:{row:15,col:6}, dragging:false, cornerStep:0 };
+      if(mode==='corners'){state.start=null;state.end=null;}
+      states.set(host,state);
+      if(mode!=='corners') paint(host,state);
+      host.addEventListener('pointerdown',e=>{const td=e.target.closest('td[data-row]');if(!td)return;const p={row:Number(td.dataset.row),col:Number(td.dataset.col)};if(mode==='corners'){selectCorner(host,state,p);return;}state.start=p;state.end=p;state.dragging=true;paint(host,state);});
+      host.addEventListener('pointerover',e=>{const td=e.target.closest('td[data-row]');if(!td||!state.dragging)return;state.end={row:Number(td.dataset.row),col:Number(td.dataset.col)};paint(host,state);});
+      host.addEventListener('pointerup',()=>{if(state.dragging){state.dragging=false;sync(host,state);toast(`Đã chọn ${rangeText(state)}.`);}});
+      host.addEventListener('keydown',e=>{const td=e.target.closest('td[data-row]');if(!td)return;const arrows={ArrowUp:[-1,0],ArrowDown:[1,0],ArrowLeft:[0,-1],ArrowRight:[0,1]};if(!arrows[e.key])return;e.preventDefault();const [dr,dc]=arrows[e.key];const next=host.querySelector(`td[data-row="${Number(td.dataset.row)+dr}"][data-col="${Number(td.dataset.col)+dc}"]`);if(next){next.focus();if(e.shiftKey){state.end={row:Number(next.dataset.row),col:Number(next.dataset.col)};paint(host,state);sync(host,state);}}});
+    });
+    document.addEventListener('pointerup',()=>document.querySelectorAll('.grid-host').forEach(h=>{const s=states.get(h);if(s)s.dragging=false;}));
+    function paint(host,state){host.querySelectorAll('td[data-row]').forEach(td=>td.classList.remove('selected','anchor'));if(!state.start||!state.end)return;const n=normalize(state);host.querySelectorAll('td[data-row]').forEach(td=>{const r=Number(td.dataset.row),c=Number(td.dataset.col);if(r>=n.r1&&r<=n.r2&&c>=n.c1&&c<=n.c2)td.classList.add('selected');});host.querySelector(`td[data-row="${state.start.row}"][data-col="${state.start.col}"]`)?.classList.add('anchor');host.querySelector(`td[data-row="${state.end.row}"][data-col="${state.end.col}"]`)?.classList.add('anchor');}
+    function sync(host,state){if(!state.start||!state.end)return;const variant=host.closest('.variant'), text=rangeText(state);variant.querySelectorAll('.a1-sync').forEach(i=>i.value=text);variant.querySelectorAll('.range-status,.selection-summary').forEach(x=>x.textContent=text);}
+    function selectCorner(host,state,p){if(state.cornerStep===0||state.cornerStep===2){state.start=p;state.end=p;state.cornerStep=1;}else{state.end=p;state.cornerStep=2;}paint(host,state);const variant=host.closest('.variant');variant.querySelector('.corner-start').textContent=cellRef(state.start.row,state.start.col);variant.querySelector('.corner-end').textContent=state.cornerStep===2?cellRef(state.end.row,state.end.col):'—';variant.querySelectorAll('[data-corner-card]').forEach(x=>x.classList.toggle('active',(state.cornerStep===1&&x.dataset.cornerCard==='end')||(state.cornerStep!==1&&x.dataset.cornerCard==='start')));variant.querySelector('.corner-status').textContent=state.cornerStep===1?'Chọn ô kết thúc':rangeText(state);if(state.cornerStep===2){sync(host,state);variant.querySelector('.preview-days').textContent='6';variant.querySelector('.preview-items').textContent='24';toast(`Đã tạo vùng ${rangeText(state)}.`);}}
+    function applyA1(input){const variant=input.closest('.variant'),host=variant.querySelector('.grid-host'),state=states.get(host),parsed=parseRange(input.value);if(!parsed){input.style.borderColor='var(--color-danger)';toast('Địa chỉ không hợp lệ. Ví dụ: C7:I31.');return;}input.style.borderColor='';state.start=parsed.start;state.end=parsed.end;state.cornerStep=2;paint(host,state);sync(host,state);toast(`Đã áp dụng ${rangeText(state)}.`);}
+    document.querySelectorAll('.a1-sync').forEach(input=>{input.addEventListener('keydown',e=>{if(e.key==='Enter')applyA1(input)});input.addEventListener('blur',()=>{if(input.value.trim())applyA1(input)});});
+    document.querySelectorAll('.variant-tab').forEach(tab=>tab.addEventListener('click',()=>showVariant(tab.dataset.variant,tab)));
+    function showVariant(id,tab){document.querySelectorAll('.variant').forEach(v=>v.hidden=v.id!==`variant-${id}`);document.querySelectorAll('.variant-tab').forEach(t=>t.classList.toggle('active',t===tab));}
+    const requested=new URLSearchParams(location.search).get('variant');if(['a','b','c','d'].includes(requested)){const tab=document.querySelector(`[data-variant="${requested}"]`);showVariant(requested,tab);}
+    let timer;function toast(text){const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>el.classList.remove('show'),2200);}
+    document.addEventListener('click',e=>{
+      const role=e.target.closest('[data-role]');if(role){role.parentElement.querySelectorAll('[data-role]').forEach(x=>x.classList.remove('active'));role.classList.add('active');}
+      const nav=e.target.closest('.nav-item[data-region]');if(nav){nav.parentElement.querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active'));nav.classList.add('active');const input=nav.closest('.variant').querySelector('.a1-sync');input.value=nav.dataset.region;applyA1(input);}
+      const action=e.target.closest('[data-action]')?.dataset.action;if(!action)return;
+      if(action==='save'){e.target.disabled=true;const old=e.target.textContent;e.target.textContent='Đang lưu...';setTimeout(()=>{e.target.disabled=false;e.target.textContent=old;toast('Đã lưu template ANV v1.');},750);}
+      if(action==='validate')toast('Template hợp lệ: 6 ngày, 24 món, 0 lỗi.');
+      if(action==='apply-role')toast('Đã gán vai trò cho vùng đang chọn.');
+      if(action==='auto'){const variant=e.target.closest('.variant'),input=variant.querySelector('.a1-sync');input.value='C7:I15';applyA1(input);}
+      if(action==='undo'){const variant=e.target.closest('.variant'),host=variant.querySelector('.grid-host'),state=states.get(host);state.start=null;state.end=null;state.cornerStep=0;paint(host,state);variant.querySelectorAll('.a1-sync').forEach(i=>i.value='');variant.querySelector('.corner-start').textContent='—';variant.querySelector('.corner-end').textContent='—';variant.querySelector('.corner-status').textContent='Chọn ô bắt đầu';toast('Đã xóa lựa chọn.');}
+      if(action==='go-a1')applyA1(e.target.closest('.section').querySelector('.a1-sync'));
+      if(action==='add-region')toast('Chọn một vùng trên lưới hoặc nhập địa chỉ A1.');
+    });
+    document.querySelectorAll('#sketch-tools [data-width]').forEach(button=>button.addEventListener('click',()=>{document.getElementById('sketch-frame').style.maxWidth=button.dataset.width;toast(`Viewport: ${button.textContent}`);}));
+  </script>
+</body>
+</html>

@@ -367,6 +367,43 @@ public class SupplierDecisionWorkflowTests
     }
 
     [Fact]
+    public async Task Workbench_treats_reopened_empty_draft_as_demand_to_allow_regeneration()
+    {
+        await using var context = CreateContext();
+        var demand = SeedDemand(
+            context,
+            "MANAGERAPPROVED",
+            new DateOnly(2026, 7, 20),
+            "FULLDAY",
+            "MR-REOPENED");
+        context.Purchaserequests.Add(new Purchaserequest
+        {
+            PurchaseRequestId = GuidHelper.NewId(),
+            PurchaseRequestCode = "PR-20260720-FULLDAY",
+            RequestDate = demand.RequestDate,
+            PurchaseForDate = demand.RequestDate,
+            Status = "DRAFT",
+            CreatedBy = UserIdBytes
+        });
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).GetWorkbenchWeekAsync(new PurchaseWorkbenchQueryDto
+        {
+            Week = "2026-07-20",
+            Date = "2026-07-20",
+            Stage = "demand"
+        });
+
+        var selected = result.ServiceDates.Should().ContainSingle().Subject;
+        selected.CurrentStage.Should().Be("demand");
+        selected.PurchaseLines.Should().BeEmpty();
+        selected.ApprovedDemands.Should().ContainSingle()
+            .Which.MaterialRequestId.Should().Be(GuidHelper.ToGuidString(demand.RequestId));
+        result.StageCounts.Demand.Should().Be(1);
+        result.StageCounts.SupplierPrice.Should().Be(0);
+    }
+
+    [Fact]
     public async Task Workbench_counts_each_authoritative_stage_once()
     {
         await using var context = CreateContext();

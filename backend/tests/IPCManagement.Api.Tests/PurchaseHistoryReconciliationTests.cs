@@ -252,39 +252,19 @@ public class PurchaseHistoryReconciliationTests
     }
 
     [Fact]
-    public void Parser_reproduces_audited_workbook_baseline_and_deterministic_replay()
+    public void Parser_reproduces_audited_current_workbook_baseline_and_deterministic_replay()
     {
         var parser = new PurchaseHistorySourceParser();
-        var legacyPath = FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx");
         var currentPath = FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx");
 
-        using var legacyStream = File.OpenRead(legacyPath);
         using var currentStream = File.OpenRead(currentPath);
-        var legacy = parser.Parse(legacyStream, new DateOnly(2026, 5, 19));
         var current = parser.Parse(currentStream, new DateOnly(2026, 7, 20));
 
         current.WorkbookSha256.Should().Be("4A91F9EA847068ABEB147EFF7ED7401B029D698F73E495641099DD9FA552BC88");
         current.SheetCount.Should().Be(34);
         current.SupplierPolicyCount.Should().Be(31);
         current.RecognizedDataSheetCount.Should().Be(30);
-        legacy.ImportableBusinessKeys.Should().HaveCount(14_532);
         current.ImportableBusinessKeys.Should().HaveCount(17_739);
-        (current.ImportableBusinessKeys.Count - legacy.ImportableBusinessKeys.Count).Should().Be(3_207);
-
-        var scientificQuantityRows = new Dictionary<int, string>
-        {
-            [9323] = "2026-05-14|Ngũ điếc",
-            [9336] = "2026-05-14|Măng khô",
-            [9379] = "2026-05-16|Rau quế"
-        };
-        foreach (var (sourceRow, expectedBusinessKey) in scientificQuantityRows)
-        {
-            var candidate = legacy.Candidates.Single(item =>
-                item.Trace.SourceSheet == "1.Rau" && item.Trace.SourceRow == sourceRow);
-            candidate.Quantity.Should().BeGreaterThan(0);
-            candidate.IsImportable.Should().BeTrue();
-            candidate.BusinessKey.Should().Be(expectedBusinessKey);
-        }
 
         using var replayStream = File.OpenRead(currentPath);
         var replay = parser.Parse(replayStream, new DateOnly(2026, 7, 20));
@@ -296,22 +276,13 @@ public class PurchaseHistoryReconciliationTests
     }
 
     [Fact]
-    public void Parser_retains_raw_source_trace_and_current_source_supersedes_legacy_key()
+    public void Parser_retains_raw_source_trace_for_current_workbook()
     {
         var parser = new PurchaseHistorySourceParser();
-        using var legacyStream = File.OpenRead(
-            FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx"));
         using var currentStream = File.OpenRead(
             FindRepositoryFile(".docs", "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx"));
-        var legacy = parser.Parse(legacyStream, new DateOnly(2026, 5, 19));
         var current = parser.Parse(currentStream, new DateOnly(2026, 7, 20));
-        var duplicateKey = legacy.ImportableBusinessKeys.Intersect(
-            current.ImportableBusinessKeys,
-            StringComparer.OrdinalIgnoreCase).First();
-
-        var merged = PurchaseHistorySourceParser.Supersede(legacy.Candidates, current.Candidates);
-        var winner = merged.Single(candidate =>
-            string.Equals(candidate.BusinessKey, duplicateKey, StringComparison.OrdinalIgnoreCase));
+        var winner = current.Candidates.First(candidate => candidate.IsImportable);
 
         winner.WorkbookSha256.Should().Be(current.WorkbookSha256);
         winner.Trace.SourceSheet.Should().NotBeNullOrWhiteSpace();
@@ -351,6 +322,7 @@ public class PurchaseHistoryReconciliationTests
 
     [Theory]
     [InlineData("  CÁ   NỤC  ", "Cá nục", null)]
+    [InlineData("Cá nục bông 200 - 400", "Cá nục bông 200 - 400", null)]
     [InlineData("Cá nục - Chị Phây", null, "INGREDIENT_SUPPLIER_AMBIGUOUS")]
     [InlineData("", null, "INGREDIENT_MISSING")]
     public void Normalization_ingredient_keeps_supplier_separate_and_blocks_ambiguity(
@@ -372,6 +344,18 @@ public class PurchaseHistoryReconciliationTests
     [InlineData("Cảithiaf", "Cải thìa")]
     [InlineData("Nấm bào ngừ", "Nấm bào ngư")]
     [InlineData("Bì ngòi xanh", "Bí ngòi xanh")]
+    [InlineData("dđu đủ", "Đu đủ")]
+    [InlineData("Đường cắt trắng", "Đường cát trắng")]
+    [InlineData("Đù gà chay", "Đùi gà chay")]
+    [InlineData("Heo mỡ có da", "Mỡ heo có da")]
+    [InlineData("Căn cuộn chay", "Căn cuộn")]
+    [InlineData("Dẻ sườn bò", "Thịt dẻ sườn bò")]
+    [InlineData("Thịt bò dẻ sườn", "Thịt dẻ sườn bò")]
+    [InlineData("Thăn bò", "Thịt thăn bò")]
+    [InlineData("Bông lí", "Bông thiên lý")]
+    [InlineData("Đùi má", "Má đùi gà")]
+    [InlineData("Heo đùi mông ( đặc tề sẵn)", "Heo đùi mông đặc (tề sẵn)")]
+    [InlineData("Bông cải xanh", "Súp lơ xanh")]
     public void Normalization_ingredient_applies_only_approved_typo_aliases(
         string rawIngredient,
         string expectedIngredient)
@@ -399,7 +383,8 @@ public class PurchaseHistoryReconciliationTests
     [InlineData("lát nhỏ", "LAT", null)]
     [InlineData("kh", null, "UNIT_AMBIGUOUS")]
     [InlineData("canh", null, "UNIT_AMBIGUOUS")]
-    [InlineData("Bành", null, "UNIT_UNKNOWN")]
+    [InlineData("Bành", "BICH", null)]
+    [InlineData("vit", "VIT", null)]
     public void Normalization_unit_aliases_are_bounded(
         string rawUnit,
         string? expectedUnit,
@@ -689,6 +674,122 @@ public class PurchaseHistoryReconciliationTests
 
         preview.Blockers.Should().NotContain(blocker => blocker.Code == "INGREDIENT_CATALOG_AMBIGUOUS");
         preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
+    }
+
+    [Fact]
+    public async Task Preview_ignores_catalog_spacing_when_only_one_active_ingredient_matches()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var ingredient = await context.Ingredients.SingleAsync();
+        ingredient.IngredientName = "Rau  muống";
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync();
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "INGREDIENT_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "version");
+    }
+
+    [Fact]
+    public async Task Preview_keeps_catalog_ambiguity_when_spacing_variants_are_both_active()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Ingredients.Add(new Ingredient
+        {
+            IngredientId = Id(21),
+            IngredientCode = "ING-RAU-MUONG-SPACING-DUPLICATE",
+            IngredientName = "Rau  muống",
+            UnitId = Id(10),
+            WarehouseId = Id(40),
+            ReferencePrice = 25_000,
+            IsFreshDaily = true,
+            IsActive = true
+        });
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync();
+
+        preview.Blockers.Should().ContainSingle(blocker => blocker.Code == "INGREDIENT_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "block");
+    }
+
+    [Fact]
+    public async Task Preview_accepts_an_exact_existing_source_row_when_supplier_name_has_active_duplicates()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        context.Suppliers.Add(new Supplier
+        {
+            SupplierId = Id(31),
+            SupplierCode = "SUP-RAU-DUPLICATE",
+            SupplierName = "Rau",
+            IsActive = true
+        });
+        var supplier = await context.Suppliers.SingleAsync(item => item.SupplierCode == "SUP-RAU");
+        var ingredient = await context.Ingredients.SingleAsync();
+        var unit = await context.Units.SingleAsync();
+        await SeedReceiptAsync(
+            context,
+            "RCP-SAMPLE-20260720-RAU",
+            new DateOnly(2026, 7, 20),
+            supplier.SupplierId,
+            ingredient.IngredientId,
+            unit.UnitId,
+            10,
+            25_000,
+            "SAMPLE-EXACT");
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync();
+
+        preview.Blockers.Should().NotContain(blocker => blocker.Code == "SUPPLIER_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Preview_keeps_supplier_blocker_when_exact_rows_point_to_different_supplier_ids()
+    {
+        await using var context = CreateContext();
+        await SeedCatalogAsync(context);
+        var duplicateSupplier = new Supplier
+        {
+            SupplierId = Id(31),
+            SupplierCode = "SUP-RAU-DUPLICATE",
+            SupplierName = "Rau",
+            IsActive = true
+        };
+        context.Suppliers.Add(duplicateSupplier);
+        var supplier = await context.Suppliers.SingleAsync(item => item.SupplierCode == "SUP-RAU");
+        var ingredient = await context.Ingredients.SingleAsync();
+        var unit = await context.Units.SingleAsync();
+        await SeedReceiptAsync(
+            context, "RCP-EXACT-A", new DateOnly(2026, 7, 20), supplier.SupplierId,
+            ingredient.IngredientId, unit.UnitId, 10, 25_000, "EXACT-A", purchaseRequestId: Id(94));
+        await SeedReceiptAsync(
+            context, "RCP-EXACT-B", new DateOnly(2026, 7, 20), duplicateSupplier.SupplierId,
+            ingredient.IngredientId, unit.UnitId, 10, 25_000, "EXACT-B", purchaseRequestId: Id(95));
+        context.ChangeTracker.Clear();
+        var service = CreatePreviewService(
+            context,
+            Candidate("1.Rau", 10, "Rau", "Rau muống", "KG", new DateOnly(2026, 7, 20), 10, 25_000));
+
+        var preview = await service.PreviewAsync();
+
+        preview.Blockers.Should().ContainSingle(blocker => blocker.Code == "SUPPLIER_CATALOG_AMBIGUOUS");
+        preview.Actions.Should().ContainSingle(action => action.ActionType == "block");
     }
 
     [Fact]

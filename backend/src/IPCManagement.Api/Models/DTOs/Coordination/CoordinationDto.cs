@@ -34,6 +34,10 @@ public class CoordinationDishDto
     public string DishId { get; set; } = string.Empty;
     public string DishCode { get; set; } = string.Empty;
     public string DishName { get; set; } = string.Empty;
+    public string? DishSlot { get; set; }
+    public string? DishGroup { get; set; }
+    public string? DishType { get; set; }
+    public int DisplayOrder { get; set; }
 }
 
 public class CoordinationOrdersQueryDto

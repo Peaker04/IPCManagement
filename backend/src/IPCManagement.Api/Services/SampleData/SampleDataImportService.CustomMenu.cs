@@ -17,8 +17,8 @@ public partial class SampleDataImportService
 
     private static readonly (string Slot, string[] Keywords)[] WeeklyMenuSlotRules =
     [
-        ("main", ["MON MAN CHINH", "MON CHAY CHINH", "MON CHINH"]),
-        ("sub1", ["PHU 1"]),
+        ("main", ["MON MAN 1", "MON MAN CHINH", "MON CHAY CHINH", "MON CHINH"]),
+        ("sub1", ["MON MAN 2", "PHU 1"]),
         ("sub2", ["PHU 2"]),
         ("sub1", ["PHU"]),
         ("rau", ["RAU"]),
@@ -189,7 +189,23 @@ public partial class SampleDataImportService
             }
         }
 
-        return (WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode), customerCode);
+        var content = string.Equals(customerCode, "ANV", StringComparison.OrdinalIgnoreCase)
+            ? ReadEmbeddedAnvWeeklyMenuTemplate()
+            : WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode);
+
+        return (content, customerCode);
+    }
+
+    private static byte[] ReadEmbeddedAnvWeeklyMenuTemplate()
+    {
+        const string resourceName =
+            "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx";
+        using var resourceStream = typeof(SampleDataImportService).Assembly
+            .GetManifestResourceStream(resourceName)
+            ?? throw new InvalidOperationException("Không tìm thấy template thực đơn ANV mặc định trong ứng dụng.");
+        using var output = new MemoryStream();
+        resourceStream.CopyTo(output);
+        return output.ToArray();
     }
 
     public async Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
@@ -1135,6 +1151,11 @@ public partial class SampleDataImportService
                 continue;
             }
 
+            if (IsHorizontallyMergedLabelRow(row, labelColumn))
+            {
+                continue;
+            }
+
             foreach (var dayColumn in dayColumns)
             {
                 var dishName = NormalizeDishCell(GetColumnValue(row.Cells, dayColumn.Column));
@@ -1172,6 +1193,13 @@ public partial class SampleDataImportService
             }
         }
     }
+
+    private static bool IsHorizontallyMergedLabelRow(
+        XlsxWorkbookReader.XlsxRowData row,
+        string labelColumn)
+        => row.MergeInfo.TryGetValue(labelColumn, out var mergeInfo) &&
+           mergeInfo.IsStart &&
+           mergeInfo.ColumnSpan > 1;
 
     private static int ResolveMergedRowSpan(XlsxWorkbookReader.XlsxRowData row, string column)
         => row.MergeInfo.TryGetValue(column, out var mergeInfo) && mergeInfo.ColumnSpan == 1 && mergeInfo.IsStart

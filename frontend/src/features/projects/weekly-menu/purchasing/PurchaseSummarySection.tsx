@@ -1,6 +1,6 @@
-import { ShoppingCart } from 'lucide-react'
+import { CheckCircle2, ShoppingCart } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { ContextStrip, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport, Toolbar } from '@/components/common'
+import { ContextStrip, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters'
 import { formatMaterialDishSource, formatQuantityVariance } from '../model/formatters'
 import { PURCHASE_SUMMARY_PAGE_SIZE } from './purchaseSummaryModel'
@@ -13,19 +13,17 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
   const { actions, presentation } = workflow
   return (
     <SectionPanel
-      title="Bảng Tính Định Lượng Tổng Hợp & Đề Xuất Mua Hàng"
+      title="Tổng hợp nhu cầu mua"
+      headingLevel={2}
       icon={<ShoppingCart size={18} color="var(--ipc-slate-600)" />}
-      badge={<Toolbar>
-        <div className="text-sm font-medium text-slate-600">Tổng chi phí tối ưu: <span className="text-lg font-bold text-green-800">{formatCurrency(presentation.totalCost)}</span></div>
-        <button type="button" onClick={actions.exportWarehouseReport} className="ipc-button ipc-button-success ipc-button-bounded">Xuất Báo Cáo Gửi Kho</button>
-      </Toolbar>}
     >
-      <div className="mb-4">
+      <div className="mb-3">
         <ContextStrip items={[
           { label: 'Khách hàng', value: presentation.customerLabel, tone: 'neutral' },
-          { label: 'Tuần', value: presentation.weekLabel, tone: presentation.weekLabel === 'Chưa có menu' ? 'neutral' : 'info' },
-          { label: 'Nguyên liệu', value: (presentation.usesDemand ? presentation.totalItems : presentation.materialCount).toString(), tone: 'info' },
-          { label: 'Thiếu sau kiểm tồn', value: presentation.usesDemand ? presentation.shortageCount.toString() : '-', tone: presentation.shortageCount > 0 ? 'danger' : presentation.usesDemand ? 'success' : 'neutral' },
+          { label: 'Tuần', value: presentation.weekLabel, tone: 'neutral' },
+          { label: 'Nguyên liệu', value: (presentation.usesDemand ? presentation.totalItems : presentation.materialCount).toString(), tone: 'neutral' },
+          { label: 'Cần xử lý', value: presentation.usesDemand ? `${presentation.shortageCount} thiếu` : 'Chưa kiểm tồn', tone: presentation.shortageCount > 0 ? 'danger' : 'neutral' },
+          { label: 'Giá trị định lượng', value: formatCurrency(presentation.totalCost), tone: 'info' },
         ]} />
       </div>
       {!presentation.usesDemand && <InlineAlert title="Chưa có số thiếu/đủ sau kiểm tồn" variant="warning" className="mb-3">Bảng dưới đây mới là định lượng nguyên liệu theo món. Bấm Tạo nhu cầu từ KHSX ở tab KHSX và nhu cầu để hệ thống kiểm tồn kho và trả ra Cần, Tồn khả dụng, Thiếu/Đủ.</InlineAlert>}
@@ -33,7 +31,7 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
         <table className={cn('ipc-data-table ipc-cost-table table-fixed w-full', presentation.usesDemand && 'ipc-status-action-table')}>
           <thead>{presentation.usesDemand ? <tr>
             <th style={{ width: '15%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguyên liệu</th>
-            <th style={{ width: '25%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Nguồn</th>
+            <th style={{ width: '25%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left whitespace-nowrap`}>Món ăn</th>
             <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Cần</th>
             <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Tồn khả dụng</th>
             <th style={{ width: '12%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 whitespace-nowrap`}>Chênh lệch</th>
@@ -56,7 +54,10 @@ const PurchaseSummarySection = ({ workflow }: { workflow: PurchaseSummaryWorkflo
                 <td className={`${tableCellClass} text-left font-bold`}>{line.material}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{line.source}</td>
                 <td className={tableCellClass}>{formatQuantityWithUnit(line.required, line.unit)}</td><td className={tableCellClass}>{formatQuantityWithUnit(available, line.unit)}</td>
                 <td className={`${tableCellClass} font-bold ${variance < 0 ? 'text-red-700' : variance > 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{formatQuantityVariance(variance, line.unit)}</td>
-                <td className="ipc-badge-cell"><StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">{line.status}</StatusBadge></td><td className={`${tableCellClass} text-left`}>{line.nextAction}</td>
+                <td className="ipc-badge-cell">{line.tone === 'success'
+                  ? <span className="ipc-inline-status"><CheckCircle2 size={15} aria-hidden="true" />Đủ</span>
+                  : <StatusBadge variant={line.tone} className="ipc-table-badge ipc-table-badge--status">{line.status}</StatusBadge>}
+                </td><td className={`${tableCellClass} text-left ${line.tone === 'success' ? 'text-slate-600' : 'font-semibold text-slate-800'}`}>{line.nextAction}</td>
               </tr>
             })}
             {presentation.materialRows.map(([name, data]) => <tr key={name} className="table-row">

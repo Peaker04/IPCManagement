@@ -47,6 +47,8 @@ public class ProductionPlanRepository : IProductionPlanRepository
 
     public async Task<IReadOnlyList<Productionplan>> GetFilteredAsync(
         DateOnly? serviceDate,
+        DateOnly? dateFrom,
+        DateOnly? dateTo,
         byte[]? customerId,
         CancellationToken cancellationToken = default)
     {
@@ -62,6 +64,18 @@ public class ProductionPlanRepository : IProductionPlanRepository
         if (serviceDate.HasValue)
         {
             query = query.Where(plan => plan.PlanDate == serviceDate.Value);
+        }
+        else
+        {
+            if (dateFrom.HasValue)
+            {
+                query = query.Where(plan => plan.PlanDate >= dateFrom.Value);
+            }
+
+            if (dateTo.HasValue)
+            {
+                query = query.Where(plan => plan.PlanDate <= dateTo.Value);
+            }
         }
 
         if (customerId is not null)

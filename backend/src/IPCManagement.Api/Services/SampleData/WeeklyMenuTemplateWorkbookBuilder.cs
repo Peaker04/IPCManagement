@@ -22,8 +22,7 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private sealed record CustomerTemplateProfile(
         string CustomerCode,
         string Title,
-        IReadOnlyList<string> SavorySlots,
-        IReadOnlyList<string> VegetarianSlots);
+        IReadOnlyList<string> Slots);
 
     public static byte[] Build(DateOnly weekStartDate, string? customerCode)
     {
@@ -74,16 +73,13 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     private static CustomerTemplateProfile ResolveProfile(string? customerCode)
     {
         var normalized = NormalizeCustomerCode(customerCode);
-        var davSavorySlots = new[] { "Món mặn chính", "Phụ 1", "Phụ 2", "Rau", "Canh", "Trái cây" };
-        var davVegetarianSlots = new[] { "Món chay chính", "Phụ 1", "Phụ 2", "Rau", "Canh", "Trái cây" };
-        var anvSavorySlots = new[] { "Món mặn chính", "Phụ", "Rau", "Canh", "Trái cây", "Sữa chua" };
-        var anvVegetarianSlots = new[] { "Món chay chính", "Phụ", "Rau", "Canh", "Trái cây", "Sữa chua" };
+        var slots = new[] { "Món mặn 1", "Món mặn 2", "Rau", "Canh", "Trái cây" };
 
         return normalized switch
         {
-            "ANV" => new CustomerTemplateProfile("ANV", "THỰC ĐƠN AMANN", anvSavorySlots, anvVegetarianSlots),
-            "DAV" => new CustomerTemplateProfile("DAV", "THỰC ĐƠN DAV", davSavorySlots, davVegetarianSlots),
-            _ => new CustomerTemplateProfile(normalized, $"THỰC ĐƠN {normalized}", davSavorySlots, davVegetarianSlots)
+            "ANV" => new CustomerTemplateProfile("ANV", "THỰC ĐƠN AMANN", slots),
+            "DAV" => new CustomerTemplateProfile("DAV", "THỰC ĐƠN DAV", slots),
+            _ => new CustomerTemplateProfile(normalized, $"THỰC ĐƠN {normalized}", slots)
         };
     }
 
@@ -194,9 +190,10 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
     {
         var builder = new StringBuilder();
         var mergedRanges = new List<string> { "C2:I3", "C4:I4" };
+        var lastRow = 8 + (4 * (profile.Slots.Count + 1));
         builder.AppendLine("""<?xml version="1.0" encoding="UTF-8"?>""");
         builder.AppendLine("""<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">""");
-        builder.AppendLine("""  <dimension ref="A1:I35"/>""");
+        builder.AppendLine(CultureInfo.InvariantCulture, $"  <dimension ref=\"A1:I{lastRow}\"/>");
         builder.AppendLine("""
           <sheetViews>
             <sheetView workbookViewId="0" zoomScale="55" zoomScaleNormal="55">
@@ -224,10 +221,13 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         AddDateRow(builder, 7, weekStartDate);
 
         var rowNumber = 8;
-        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU MẶN - CA SÁNG", profile.SavorySlots);
-        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU CHAY- CA SÁNG", profile.VegetarianSlots);
-        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU MẶN - CA CHIỀU", profile.SavorySlots);
-        _ = AddMenuSection(builder, mergedRanges, rowNumber, "MENU CHAY- CA CHIỀU", profile.VegetarianSlots);
+        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU MẶN - CA SÁNG", profile.Slots);
+        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU CHAY- CA SÁNG", profile.Slots);
+        AddSpacerRow(builder, rowNumber);
+        rowNumber++;
+
+        rowNumber = AddMenuSection(builder, mergedRanges, rowNumber, "MENU MẶN - CA CHIỀU", profile.Slots);
+        _ = AddMenuSection(builder, mergedRanges, rowNumber, "MENU CHAY- CA CHIỀU", profile.Slots);
 
         builder.AppendLine("  </sheetData>");
         builder.AppendLine(CultureInfo.InvariantCulture, $"  <mergeCells count=\"{mergedRanges.Count}\">");
@@ -253,12 +253,24 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         var rowNumber = startRow + 1;
         foreach (var slot in slots)
         {
-            AddMenuSlotRow(builder, rowNumber, slot);
+            if (string.Equals(slot, "Trái cây", StringComparison.OrdinalIgnoreCase))
+            {
+                AddMergedMenuSlotRow(builder, rowNumber, slot);
+                mergedRanges.Add($"C{rowNumber}:I{rowNumber}");
+            }
+            else
+            {
+                AddMenuSlotRow(builder, rowNumber, slot);
+            }
+
             rowNumber++;
         }
 
         return rowNumber;
     }
+
+    private static void AddSpacerRow(StringBuilder builder, int rowNumber)
+        => builder.AppendLine(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\" ht=\"19.5\" customHeight=\"1\"/>");
 
     private static void AddDayNameRow(StringBuilder builder, int rowNumber)
     {
@@ -299,6 +311,18 @@ internal static class WeeklyMenuTemplateWorkbookBuilder
         for (var column = 4; column <= 9; column++)
         {
             AddCell(builder, ColumnIndexToLetter(column), rowNumber, string.Empty, 6);
+        }
+
+        builder.AppendLine("</row>");
+    }
+
+    private static void AddMergedMenuSlotRow(StringBuilder builder, int rowNumber, string slotLabel)
+    {
+        builder.Append(CultureInfo.InvariantCulture, $"    <row r=\"{rowNumber}\" ht=\"24.75\" customHeight=\"1\">");
+        AddCell(builder, "C", rowNumber, slotLabel, 7);
+        for (var column = 4; column <= 9; column++)
+        {
+            AddCell(builder, ColumnIndexToLetter(column), rowNumber, string.Empty, 7);
         }
 
         builder.AppendLine("</row>");

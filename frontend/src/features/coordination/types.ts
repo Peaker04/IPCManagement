@@ -28,6 +28,10 @@ export interface MenuDish {
   dishId: string
   dishCode: string
   dishName: string
+  dishSlot?: string | null
+  dishGroup?: string | null
+  dishType?: string | null
+  displayOrder?: number
 }
 
 export interface OrderRow {
@@ -281,6 +285,22 @@ export interface SignoffOrderResult {
   oldStatus: string
   newStatus: string
   signedOffAt: string
+}
+
+export interface CoordinationScopeActionRequest {
+  dayOfWeek: string
+  shift: ShiftType
+  note?: string
+}
+
+export interface CoordinationScopeActionResult {
+  success: boolean
+  serviceDate: string
+  shiftName: ApiShiftName
+  affectedPlanCount: number
+  oldStatuses: string[]
+  newStatus: string
+  changedAt: string
 }
 
 export interface ProductionPlanLineDto {

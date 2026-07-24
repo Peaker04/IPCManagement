@@ -1,4 +1,4 @@
-import { Scale } from 'lucide-react'
+import { Scale, Utensils } from 'lucide-react'
 import { ContextStrip, InlineAlert, SectionPanel, TableViewport } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
 import type { DishMaterialsWorkflow } from './useDishMaterials'
@@ -13,39 +13,53 @@ const DishMaterialsSection = ({ workflow }: { workflow: DishMaterialsWorkflow })
     {foodCostPercent > 85 && <InlineAlert title="Cảnh báo: Tỷ lệ giá vốn (Food Cost %) vượt ngưỡng quy định!" variant="danger" className="mb-4">
       Tỉ lệ giá vốn hiện tại đạt <b>{foodCostPercent.toFixed(1)}%</b>, vượt ngưỡng an toàn tối đa (85%). Kiểm tra lại BOM theo tier, giá nguyên liệu hoặc đơn giá bán suất ăn của ca này.
     </InlineAlert>}
-    <SectionPanel
-      title="Nguyên liệu món phân tích"
-      icon={<Scale size={18} color="var(--ipc-slate-600)" />}
-      badge={<div className="flex items-center gap-2">
-        <span className="text-sm font-medium text-slate-600 whitespace-nowrap">Món phân tích:</span>
-        <select value={analyzedDish?.id ?? ''} onChange={(event) => actions.selectDish(event.target.value)} className="ipc-select w-full text-sm sm:w-72" disabled={presentation.isCatalogEmpty}>
-          <optgroup label="Ca Sáng">{presentation.dishesByShift.morning.map((dish, index) => <option key={`morning-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
-          <optgroup label="Ca Chiều">{presentation.dishesByShift.afternoon.map((dish, index) => <option key={`afternoon-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
-          {presentation.isCatalogEmpty && <option value="">Chưa có catalog</option>}
-        </select>
-      </div>}
-    >
-      <div className="mb-6 mt-4"><ContextStrip items={[
+    <SectionPanel title="Phân tích nguyên liệu món" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
+      <div className="flex flex-col gap-3">
+      <section className="ipc-fiori-command" aria-label="Món đang phân tích">
+        <div className="ipc-fiori-object">
+          <Utensils size={18} aria-hidden="true" />
+          <div>
+            <span>Món phân tích</span>
+            <strong>{analyzedDish?.name ?? 'Chưa chọn món'}</strong>
+            <small>Áp dụng BOM ngày {new Date(`${presentation.serviceDate}T00:00:00`).toLocaleDateString('vi-VN')} · {ingredients.length} nguyên liệu</small>
+          </div>
+        </div>
+        <label className="ipc-fiori-field is-wide">
+          <span>Chọn món</span>
+          <select value={analyzedDish?.id ?? ''} onChange={(event) => actions.selectDish(event.target.value)} className="ipc-select" disabled={presentation.isCatalogEmpty}>
+            <optgroup label="Ca Sáng">{presentation.dishesByShift.morning.map((dish, index) => <option key={`morning-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
+            <optgroup label="Ca Chiều">{presentation.dishesByShift.afternoon.map((dish, index) => <option key={`afternoon-${dish.id}-${index}`} value={dish.id}>{dish.name}{presentation.weeklyPlanCatalogDishIds.has(dish.id) ? ' - trong KH tuần' : ''}</option>)}</optgroup>
+            {presentation.isCatalogEmpty && <option value="">Chưa có catalog</option>}
+          </select>
+        </label>
+      </section>
+      <ContextStrip items={[
         { label: 'Nguồn tính', value: presentation.sourceLabel, tone: 'neutral' },
-        { label: 'Món trong kế hoạch', value: analyzedDish?.name ?? 'Chưa chọn', tone: analyzedDish ? 'info' : 'neutral' },
         { label: 'Đơn giá bán/suất', value: formatCurrency(presentation.menuPrice), tone: 'neutral' },
-        { label: 'Giá vốn nguyên liệu / khay', value: formatCurrency(Math.round(totalTrayCost)), tone: 'info' },
-        { label: 'Tỷ lệ giá vốn (Food Cost %)', value: `${foodCostPercent.toFixed(1)}%`, tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'success' },
-        { label: 'Lợi nhuận gộp / khay (Dự kiến)', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'success' : 'danger' },
-      ]} /></div>
+        { label: 'Giá vốn / khay', value: formatCurrency(Math.round(totalTrayCost)), tone: 'info' },
+        { label: 'Tỷ lệ giá vốn (Food Cost %)', value: `${foodCostPercent.toFixed(1)}%`, tone: foodCostPercent > 85 ? 'danger' : foodCostPercent > 70 ? 'warning' : 'neutral' },
+        { label: 'Lợi nhuận gộp dự kiến', value: formatCurrency(Math.round(grossProfit)), tone: grossProfit >= 0 ? 'neutral' : 'danger' },
+      ]} />
       <TableViewport caption="Giá vốn nguyên liệu cho một khay" size="weekly" className="ipc-cost-table-shell" ariaLabel="Bảng giá vốn nguyên liệu một khay">
-        <table className="ipc-data-table ipc-cost-table">
-          <thead><tr>{['Nguyên liệu', 'ĐV', 'LT / suất', 'TT / suất', 'Món trong kế hoạch', 'Đơn giá', 'Thành tiền / khay'].map((label) => <th key={label} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 ${label === 'Nguyên liệu' || label === 'Món trong kế hoạch' ? 'text-left' : ''}`}>{label}</th>)}</tr></thead>
+        <table className="ipc-data-table ipc-cost-table table-fixed w-full">
+          <thead><tr>
+            <th style={{ width: '28%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100 text-left`}>Nguyên liệu</th>
+            <th style={{ width: '16%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn vị</th>
+            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Định lượng / suất</th>
+            <th style={{ width: '18%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Đơn giá</th>
+            <th style={{ width: '20%' }} className={`${tableHeadClass} sticky top-0 z-10 bg-slate-100`}>Thành tiền / khay</th>
+          </tr></thead>
           <tbody>
-            {ingredients.map((ingredient) => <tr key={ingredient.name} className="table-row">
-              <td className={`${tableCellClass} text-left font-bold`}>{ingredient.name}</td><td className={tableCellClass}>{ingredient.unit}</td><td className={tableCellClass}>{ingredient.theoryQty.toFixed(3)}</td>
-              <td className={`${tableCellClass} font-bold text-blue-600`}>{ingredient.actualQty.toFixed(3)}</td><td className={`${tableCellClass} text-left font-medium text-slate-800`}>{analyzedDish?.name ?? 'Chưa chọn'}</td>
+            {ingredients.map((ingredient) => <tr key={ingredient.key} className="table-row">
+              <td className={`${tableCellClass} text-left font-bold`}>{ingredient.name}</td><td className={tableCellClass}>{ingredient.unit}</td>
+              <td className={`${tableCellClass} font-semibold text-[var(--ipc-primary-600)]`}>{ingredient.actualQty.toFixed(3)}</td>
               <td className={tableCellClass}>{formatCurrency(ingredient.supplierPrice)}</td><td className={`${tableCellClass} font-bold text-slate-950`}>{formatCurrency(Math.round(ingredient.cost))}</td>
             </tr>)}
-            {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={7}>Chưa có nguyên liệu cho món đang chọn.</td></tr>}
+            {ingredients.length === 0 && <tr><td className="p-4 text-center text-sm text-slate-500" colSpan={5}>Chưa có BOM phù hợp khách hàng, định mức và ngày áp dụng cho món đang chọn.</td></tr>}
           </tbody>
         </table>
       </TableViewport>
+      </div>
     </SectionPanel>
   </>
 }

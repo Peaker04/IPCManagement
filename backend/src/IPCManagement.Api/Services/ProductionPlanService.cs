@@ -44,18 +44,17 @@ public class ProductionPlanService : IProductionPlanService
 
     public async Task<IReadOnlyList<ProductionPlanDto>> GetFilteredAsync(
         string? serviceDate,
+        string? dateFrom,
+        string? dateTo,
         string? customerId,
         CancellationToken cancellationToken = default)
     {
-        DateOnly? parsedDate = null;
-        if (!string.IsNullOrWhiteSpace(serviceDate))
+        var parsedDate = ParseOptionalDate(serviceDate, "Ngày phục vụ");
+        var parsedDateFrom = ParseOptionalDate(dateFrom, "Ngày bắt đầu");
+        var parsedDateTo = ParseOptionalDate(dateTo, "Ngày kết thúc");
+        if (parsedDateFrom.HasValue && parsedDateTo.HasValue && parsedDateFrom > parsedDateTo)
         {
-            if (!DateOnly.TryParse(serviceDate, out var date))
-            {
-                throw new ArgumentException("Ngày phục vụ không hợp lệ.");
-            }
-
-            parsedDate = date;
+            throw new ArgumentException("Khoảng ngày kế hoạch sản xuất không hợp lệ.");
         }
 
         byte[]? customerIdBytes = null;
@@ -65,8 +64,15 @@ public class ProductionPlanService : IProductionPlanService
                 ?? throw new ArgumentException("CustomerId không hợp lệ.");
         }
 
-        var plans = await _productionPlanRepository.GetFilteredAsync(parsedDate, customerIdBytes, cancellationToken);
+        var plans = await _productionPlanRepository.GetFilteredAsync(parsedDate, parsedDateFrom, parsedDateTo, customerIdBytes, cancellationToken);
         return plans.Select(plan => MapPlan(plan, includeLines: true)).ToList();
+    }
+
+    private static DateOnly? ParseOptionalDate(string? value, string label)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        if (DateOnly.TryParse(value, out var parsed)) return parsed;
+        throw new ArgumentException($"{label} không hợp lệ.");
     }
 
     public async Task<DailyProductionPlanDto> GetDailyAsync(

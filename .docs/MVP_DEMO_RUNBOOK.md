@@ -12,10 +12,9 @@ Use this compact data path for the Iter1 demo flow.
 
 ## Source Files
 
-- Weekly menu: `.docs/THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx`
-- BOM and ingredient catalog: `.docs/IPC. Định lượng 22.xlsx`
-- Meal quantities: `.docs/Đơn đặt hàng T5.2025.xlsx`
-- Inventory and stock history: `.docs/IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx`
+- BOM and ingredient catalog: `.docs/IPC. Định lượng 07.2026.xlsx` (three audited tiers: 25k/30k/34k)
+- Inventory and stock-history reconciliation: `.docs/IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx`
+- Weekly menus and meal quantities must be imported through their current user-facing workflows; the legacy forced-25k sample import is retired.
 
 ## Demo Anchors
 
@@ -49,7 +48,7 @@ powershell -ExecutionPolicy Bypass -File scripts/MVP_DEMO_SEED_RESET.ps1 -BaseUr
 
 Use `-DryRun` to validate the sample files without writing or generating demand.
 
-The script imports the sample data idempotently, generates material demand, generates purchase requests when shortages exist, and prints the data-quality summary at the end.
+The legacy all-in-one sample import is retired. Use the canonical BOM import and purchase-history reconciliation previews independently before generating demand.
 
 
 ---
@@ -83,7 +82,7 @@ Latest verified evidence: `.artifacts/release-gates/20260707-123452/quality-gate
    - Go to Weekly Menu.
    - Choose customer `DAV`.
    - Set week start to `2026-06-15`.
-   - Preview `.docs/THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx`.
+   - Preview a current customer weekly-menu workbook through the Weekly Menu workflow.
    - Confirm that preview shows valid rows and skipped rows.
    - Save import and reload the committed menu.
 

@@ -321,11 +321,17 @@ async function collectLayoutIssues(page: Page, routeName: string, viewportName: 
         const lines = (element.innerText || '').split('\n').map((line) => line.trim()).filter(Boolean);
         const characterCount = text.replace(/\s+/g, '').length;
         const verticalLetters = lines.length >= Math.min(2, characterCount) && lines.every((line) => line.length <= 2);
-        const clipped = element.scrollWidth > element.clientWidth + 2;
+        const style = window.getComputedStyle(element);
+        const clippedHorizontally = element.scrollWidth > element.clientWidth + 2;
+        const clippedVertically = element.scrollHeight > element.clientHeight + 2;
         const isTableAction = Boolean(element.closest('td'));
 
-        if (isTableAction && (verticalLetters || clipped || rect.width < 64)) {
+        if (style.overflowWrap === 'anywhere' || style.wordBreak === 'break-all') {
+          addIssue(element, 'control uses unsafe arbitrary word breaking');
+        } else if (isTableAction && (verticalLetters || clippedHorizontally || clippedVertically || rect.width < 64)) {
           addIssue(element, 'table action control wraps or is too narrow');
+        } else if (clippedHorizontally || clippedVertically) {
+          addIssue(element, 'control label is clipped');
         } else if (verticalLetters && rect.width < 80) {
           addIssue(element, 'control label wraps into vertical fragments');
         }
@@ -397,6 +403,145 @@ test.describe('ui audit', () => {
   }
 });
 
+test.describe('shared tabs Material and Fiori contract', () => {
+  for (const viewport of [
+    { name: 's-390', width: 390, height: 844, minimumHeight: 44 },
+    { name: 'm-768', width: 768, height: 1024, minimumHeight: 36 },
+    { name: 'l-1280', width: 1280, height: 900, minimumHeight: 36 },
+    { name: 'xl-1440', width: 1440, height: 900, minimumHeight: 36 },
+  ] as const) {
+    test(`keeps labels stable and single-line at ${viewport.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await stubAuditApi(page);
+      await login(page);
+
+      const issues: AuditIssue[] = [];
+      for (const route of protectedRoutes) {
+        await navigateInApp(page, route.path);
+        await stabilize(page);
+        issues.push(...await page.locator('[role="tablist"]').evaluateAll(
+          (tabLists, context) => tabLists.flatMap((tabList, listIndex) => {
+            const list = tabList as HTMLElement;
+            const listStyle = window.getComputedStyle(list);
+            const listRect = list.getBoundingClientRect();
+            if (listRect.width === 0 || listRect.height === 0) return [];
+
+            const findings: AuditIssue[] = [];
+            const addFinding = (element: HTMLElement, reason: string) => {
+              const rect = element.getBoundingClientRect();
+              findings.push({
+                route: context.route,
+                viewport: context.viewport,
+                selector: `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}`,
+                text: (element.innerText || element.textContent || '').replace(/\s+/g, ' ').trim(),
+                reason,
+                width: Math.round(rect.width),
+                height: Math.round(rect.height),
+              });
+            };
+
+            if (listStyle.flexWrap !== 'nowrap') {
+              addFinding(list, `tablist ${listIndex + 1} allows wrapped rows`);
+            }
+            if (!['auto', 'scroll'].includes(listStyle.overflowX)) {
+              addFinding(list, `tablist ${listIndex + 1} has no intentional horizontal overflow`);
+            }
+            if (Number.parseFloat(listStyle.paddingLeft) > 0 || Number.parseFloat(listStyle.paddingRight) > 0) {
+              addFinding(list, `tablist ${listIndex + 1} leaves an inset around the active indicator`);
+            }
+            if (listStyle.scrollbarWidth !== 'none') {
+              addFinding(list, `tablist ${listIndex + 1} exposes a horizontal scrollbar`);
+            }
+
+            const borderHeight = Number.parseFloat(listStyle.borderTopWidth) + Number.parseFloat(listStyle.borderBottomWidth);
+            if (list.offsetHeight - list.clientHeight - borderHeight > 1) {
+              addFinding(list, `tablist ${listIndex + 1} reserves visible scrollbar height`);
+            }
+
+            list.querySelectorAll<HTMLElement>('[role="tab"]').forEach((tab) => {
+              const style = window.getComputedStyle(tab);
+              const rect = tab.getBoundingClientRect();
+              if (style.whiteSpace !== 'nowrap') addFinding(tab, 'tab label can wrap');
+              if (rect.height + 1 < context.minimumHeight) addFinding(tab, `tab target is below ${context.minimumHeight}px`);
+              if (tab.scrollWidth > tab.clientWidth + 1 || tab.scrollHeight > tab.clientHeight + 1) {
+                addFinding(tab, 'tab label is clipped');
+              }
+              if (tab.getAttribute('aria-selected') === 'true' && style.animationName !== 'none') {
+                addFinding(tab, `active tab flashes through animation ${style.animationName}`);
+              }
+              if (style.transitionProperty !== 'none') addFinding(tab, 'tab active state is animated and can flash');
+            });
+
+            return findings;
+          }),
+          { route: route.name, viewport: viewport.name, minimumHeight: viewport.minimumHeight },
+        ));
+      }
+
+      await expectNoAuditIssues(`tabs-${viewport.name}`, issues);
+
+      await navigateInApp(page, ROUTES.APPROVALS);
+      await stabilize(page);
+      const approvalTabs = page.getByRole('tablist', { name: 'Chọn góc nhìn duyệt vận hành' });
+      await approvalTabs.scrollIntoViewIfNeeded();
+      const initialMetrics = await approvalTabs.evaluate((list) => {
+        const listRect = list.getBoundingClientRect();
+        const style = window.getComputedStyle(list);
+        const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')];
+        const firstRect = tabs[0].getBoundingClientRect();
+        const lastRect = tabs.at(-1)!.getBoundingClientRect();
+        return {
+          widths: tabs.map((tab) => tab.getBoundingClientRect().width),
+          leftInset: firstRect.left - listRect.left - Number.parseFloat(style.borderLeftWidth),
+          rightInset: listRect.right - Number.parseFloat(style.borderRightWidth) - lastRect.right,
+        };
+      });
+      expect(Math.abs(initialMetrics.leftInset)).toBeLessThanOrEqual(1);
+      expect(Math.abs(initialMetrics.rightInset)).toBeLessThanOrEqual(1);
+
+      for (const tab of await approvalTabs.getByRole('tab').all()) {
+        const scrollY = await page.evaluate(() => window.scrollY);
+        await tab.click();
+        await expect(tab).toHaveAttribute('aria-selected', 'true');
+        await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+        const currentMetrics = await approvalTabs.evaluate((list) => ({
+          scrollY: window.scrollY,
+          widths: [...list.querySelectorAll<HTMLElement>('[role="tab"]')].map((item) => item.getBoundingClientRect().width),
+        }));
+        expect(Math.abs(currentMetrics.scrollY - scrollY)).toBeLessThanOrEqual(1);
+        currentMetrics.widths.forEach((width, index) => {
+          expect(Math.abs(width - initialMetrics.widths[index])).toBeLessThanOrEqual(0.5);
+        });
+      }
+
+      await navigateInApp(page, `${ROUTES.ADMIN_DATA}?view=bom-import`);
+      await stabilize(page);
+      const bomTabs = page.getByRole('tablist', { name: 'Chọn dữ liệu BOM hiển thị' });
+      await expect(bomTabs).toBeVisible();
+      const bomMetrics = await bomTabs.evaluate((list) => {
+        const listRect = list.getBoundingClientRect();
+        const tabs = [...list.querySelectorAll<HTMLElement>('[role="tab"]')];
+        return {
+          overflow: list.scrollWidth - list.clientWidth,
+          listLeft: listRect.left,
+          listRight: listRect.right,
+          tabs: tabs.map((tab) => {
+            const rect = tab.getBoundingClientRect();
+            return { text: tab.textContent?.trim(), left: rect.left, right: rect.right, width: rect.width };
+          }),
+        };
+      });
+      expect(bomMetrics.overflow).toBeLessThanOrEqual(1);
+      expect(bomMetrics.tabs).toHaveLength(2);
+      expect(bomMetrics.tabs[0].text).toBe('BOM hiện tại');
+      expect(bomMetrics.tabs[1].text).toBe('Bản xem trước');
+      expect(bomMetrics.tabs[0].left).toBeGreaterThanOrEqual(bomMetrics.listLeft);
+      expect(bomMetrics.tabs[1].right).toBeLessThanOrEqual(bomMetrics.listRight);
+      expect(Math.abs(bomMetrics.tabs[0].right - bomMetrics.tabs[1].left)).toBeLessThanOrEqual(1);
+    });
+  }
+});
+
 test.describe('Phase 09 accessibility and responsive seam', () => {
   for (const viewport of [
     { name: '1365x900', width: 1365, height: 900 },
@@ -415,6 +560,14 @@ test.describe('Phase 09 accessibility and responsive seam', () => {
       for (const label of PHASE09_STAGE_LABELS) {
         await expect(guide.getByRole('button', { name: new RegExp(label) })).toBeVisible();
       }
+      const stageLabelHeights = await guide.locator('[data-stage-label]').evaluateAll((labels) => labels.map((label) => {
+        const style = window.getComputedStyle(label);
+        const lineHeight = Number.parseFloat(style.lineHeight);
+        return { height: label.getBoundingClientRect().height, lineHeight };
+      }));
+      stageLabelHeights.forEach(({ height, lineHeight }) => {
+        expect(height).toBeLessThanOrEqual(lineHeight * 2 + 1);
+      });
 
       const stageButton = guide.getByRole('button', { name: new RegExp(PHASE09_STAGE_LABELS[0]) });
       await stageButton.focus();

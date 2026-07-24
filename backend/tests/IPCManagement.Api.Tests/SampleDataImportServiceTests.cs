@@ -152,34 +152,19 @@ public class SampleDataImportServiceTests
 
         await service.ImportAsync(request);
 
-        var dish = await context.Dishes
-            .Include(item => item.Menuitems)
-            .FirstAsync(item => item.Menuitems.Count > 0);
-        var ingredient = await context.Ingredients
-            .Include(item => item.Inventoryreceiptlines)
-            .FirstAsync(item => item.Inventoryreceiptlines.Count > 0);
+        var bom = await context.Dishboms.OrderBy(item => item.BomId).FirstAsync();
+        var dish = await context.Dishes.SingleAsync(item => item.DishId == bom.DishId);
+        var ingredient = await context.Ingredients.SingleAsync(item => item.IngredientId == bom.IngredientId);
         var originalDishName = dish.DishName;
         var originalIngredientName = ingredient.IngredientName;
         var dishId = dish.DishId.ToArray();
         var ingredientId = ingredient.IngredientId.ToArray();
         var dishCode = dish.DishCode;
         var ingredientCode = ingredient.IngredientCode;
-        var menuItemId = dish.Menuitems.First().MenuItemId.ToArray();
-        var bomId = GuidHelper.NewId();
+        var bomId = bom.BomId.ToArray();
 
         dish.DishName = "Tên món đã sửa thủ công";
         ingredient.IngredientName = "Tên nguyên liệu đã sửa thủ công";
-        context.Dishboms.Add(new Dishbom
-        {
-            BomId = bomId,
-            DishId = dishId,
-            IngredientId = ingredientId,
-            UnitId = ingredient.UnitId,
-            GrossQtyPerServing = 1,
-            WasteRatePercent = 0,
-            BomStatus = "PUBLISHED",
-            EffectiveFrom = new DateOnly(2026, 1, 1)
-        });
         await context.SaveChangesAsync();
         context.ChangeTracker.Clear();
 
@@ -194,10 +179,40 @@ public class SampleDataImportServiceTests
         persistedIngredient.IngredientName.Should().Be(originalIngredientName);
         (await context.Dishes.CountAsync(item => item.DishCode == dishCode)).Should().Be(1);
         (await context.Ingredients.CountAsync(item => item.IngredientCode == ingredientCode)).Should().Be(1);
-        (await context.Menuitems.SingleAsync(item => item.MenuItemId == menuItemId)).DishId.Should().Equal(dishId);
         var persistedBom = await context.Dishboms.SingleAsync(item => item.BomId == bomId);
         persistedBom.DishId.Should().Equal(dishId);
         persistedBom.IngredientId.Should().Equal(ingredientId);
+    }
+
+    [Fact]
+    public void EnsureIngredient_ForBomImport_Should_NotOverwriteWarehouseUnit()
+    {
+        var kgUnit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
+        var fruitUnit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "QUA", UnitName = "Quả" };
+        var warehouse = new Warehouse { WarehouseId = GuidHelper.NewId(), WarehouseCode = "WH", WarehouseName = "Kho" };
+        var ingredient = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = InvokePrivateStatic<string>("StableCode", "ING", "Chuối"),
+            IngredientName = "Chuối",
+            UnitId = kgUnit.UnitId,
+            WarehouseId = warehouse.WarehouseId,
+            IsActive = true
+        };
+        var ingredients = new List<Ingredient> { ingredient };
+        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var service = new SampleDataImportService(null!, null!);
+        var method = typeof(SampleDataImportService).GetMethod(
+            "EnsureIngredient",
+            BindingFlags.NonPublic | BindingFlags.Instance);
+
+        var result = (Ingredient)method!.Invoke(
+            service,
+            ["Chuối", fruitUnit, warehouse, 1500m, ingredients, true, counts, false])!;
+
+        result.UnitId.Should().Equal(kgUnit.UnitId);
+        result.UnitId.Should().NotEqual(fruitUnit.UnitId);
+        result.ReferencePrice.Should().Be(1500m);
     }
 
     [Fact]
@@ -634,33 +649,9 @@ public class SampleDataImportServiceTests
 
         try
         {
-            CreateWorkbook(
-                Path.Combine(sourceDirectory, "THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx"),
-                [
-                    ("MENU",
-                    [
-                        ["", "", "THỰC ĐƠN DRAXLMAIER"],
-                        [],
-                        [],
-                        [],
-                        ["", "", "", "15/06/2026"],
-                        [],
-                        [],
-                        ["", "", "MENU MẶN - CA SÁNG"],
-                        ["", "", "Món mặn chính", "Cá kho tộ"]
-                    ])
-                ]);
-
-            CreateWorkbook(
-                Path.Combine(sourceDirectory, "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx"),
-                [
-                    ("SUMMARY", []),
-                    ("NCC TEST",
-                    [
-                        ["Ngày Giao hàng", "Tên hàng", "Đơn vị tính", "Số lượng", "Đơn giá"],
-                        ["19/05/2026", "Khoai tây", "Kg", "2", "15000"]
-                    ])
-                ]);
+            File.Copy(
+                Path.Combine(AppContext.BaseDirectory, "Fixtures", "IPC. Định lượng 07.2026.xlsx"),
+                Path.Combine(sourceDirectory, "IPC. Định lượng 07.2026.xlsx"));
 
             return new SampleImportFixture(sourceDirectory);
         }

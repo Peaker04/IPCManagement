@@ -61,7 +61,7 @@ export function PurchaseServiceDateWorkbench({
       description="Chọn đúng một ngày trong tuần. Mọi dòng bên dưới thuộc phạm vi Cả ngày (FULLDAY)."
       className="min-w-0 overflow-hidden"
     >
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-3" aria-label="Các ngày cần xử lý">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3" aria-label="Các ngày cần xử lý">
         {serviceDates.map((serviceDate) => {
           const active = serviceDate.serviceDate === selectedDate;
           return (
@@ -107,7 +107,7 @@ export function PurchaseServiceDateWorkbench({
           caption="Bảng có cuộn ngang cục bộ và giữ chiều cao ổn định."
           className="h-[400px] max-h-[400px] xl:h-[480px] xl:max-h-[480px]"
         >
-          <table className="ipc-data-table min-w-[900px]">
+          <table className="ipc-data-table min-w-[900px] table-fixed">
             <thead>
               <tr>
                 <th>Nguyên liệu</th>

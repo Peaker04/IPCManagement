@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS `__EFMigrationsHistory` (
 INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VALUES
   ('20260605013906_AddCurrentStockTable', '9.0.16'),
   ('20260605020053_AddRefreshTokenTable', '9.0.16'),
-  ('20260621180049_AddConcurrencyToCurrentStock', '9.0.16'),
-  ('20260626043000_SeedTemporaryBomData', '9.0.16');
+  ('20260621180049_AddConcurrencyToCurrentStock', '9.0.16');
 
 -- Một số máy local từng có 3 migration tách nhỏ này. Code hiện tại đã thay bằng
 -- migration hợp nhất 20260630031911_AddCustomerContractsAndMenuVersions.

@@ -2,6 +2,8 @@ import { apiSlice } from '../../api/apiSlice'
 import type { ApiResponse } from '../../types/api'
 import type {
   ApiShiftName,
+  CoordinationScopeActionRequest,
+  CoordinationScopeActionResult,
   CreateCustomerContractRequest,
   CustomerContractDto,
   MealQuantityPlanDto,
@@ -393,10 +395,26 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination'],
     }),
+    signoffCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
+      query: ({ dayOfWeek, shift, note }) => ({
+        url: '/coordination/orders/signoff',
+        method: 'POST',
+        body: { dayOfWeek, shiftName: toApiShiftName(shift), note },
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
     unlockCoordinationOrders: builder.mutation<ApiResponse<LockOrderPlanResult>, { id: string }>({
       query: ({ id }) => ({
         url: `/coordination/orders/${id}/unlock`,
         method: 'POST',
+      }),
+      invalidatesTags: ['Coordination'],
+    }),
+    unlockCoordinationScope: builder.mutation<ApiResponse<CoordinationScopeActionResult>, CoordinationScopeActionRequest>({
+      query: ({ dayOfWeek, shift, note }) => ({
+        url: '/coordination/orders/unlock',
+        method: 'POST',
+        body: { dayOfWeek, shiftName: toApiShiftName(shift), note },
       }),
       invalidatesTags: ['Coordination'],
     }),
@@ -477,7 +495,7 @@ export const coordinationApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['Coordination', 'DishCatalog'],
     }),
-    getProductionPlans: builder.query<ApiResponse<ProductionPlanDto[]>, { serviceDate?: string; customerId?: string }>({
+    getProductionPlans: builder.query<ApiResponse<ProductionPlanDto[]>, { serviceDate?: string; dateFrom?: string; dateTo?: string; customerId?: string }>({
       query: (params) => ({
         url: '/production-plans/filter',
         params,
@@ -495,6 +513,7 @@ export const {
   useUpdateCustomerContractMutation,
   useGetCommittedWeeklyMenuQuery,
   useGetMenuSchedulesQuery,
+  useLazyGetMenuSchedulesQuery,
   useUpdateMenuScheduleRulesMutation,
   useUpdateMenuScheduleVersionMutation,
   useRollbackMenuVersionMutation,
@@ -506,6 +525,8 @@ export const {
   useUpdateForecastServingsMutation,
   useUpsertQuickServingsMutation,
   useSignoffCoordinationOrderMutation,
+  useSignoffCoordinationScopeMutation,
+  useUnlockCoordinationScopeMutation,
   useExportCoordinationOrdersMutation,
   usePreviewWeeklyMenuImportMutation,
   useDownloadWeeklyMenuTemplateMutation,

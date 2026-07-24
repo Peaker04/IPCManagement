@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
+import type { StatusTone } from '@/lib/statusPresentation';
 
 interface StatusBadgeProps {
   children: ReactNode;
-  variant?: 'neutral' | 'success' | 'warning' | 'danger';
+  variant?: StatusTone;
   className?: string;
 }
 
 const badgeClasses = {
   neutral: 'is-neutral',
+  info: 'is-info',
   success: 'is-success',
   warning: 'is-warning',
   danger: 'is-danger',
@@ -16,6 +18,7 @@ const badgeClasses = {
 
 const dotClasses = {
   neutral: 'is-neutral',
+  info: 'is-info',
   success: 'is-success',
   warning: 'is-warning',
   danger: 'is-danger',

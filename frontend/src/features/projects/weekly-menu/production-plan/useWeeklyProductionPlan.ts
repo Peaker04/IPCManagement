@@ -9,13 +9,7 @@ import {
 import { parseDisplayDateToIso } from '../model/formatters'
 import type { WeeklyMenuScope } from '../schedule/types'
 
-const useProductionPlanDay = (customerId: string, serviceDate?: string) =>
-  useGetProductionPlansQuery(
-    { customerId, serviceDate },
-    { skip: !customerId || !serviceDate },
-  )
-
-export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
+export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) {
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
   const [navigation, setNavigation] = useState({
     scopeKey,
@@ -28,23 +22,12 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
     () => scope.displayDays.map((day) => parseDisplayDateToIso(day.date)).filter((date): date is string => Boolean(date)),
     [scope.displayDays],
   )
-  const day0 = useProductionPlanDay(scope.customerId, weekDates[0])
-  const day1 = useProductionPlanDay(scope.customerId, weekDates[1])
-  const day2 = useProductionPlanDay(scope.customerId, weekDates[2])
-  const day3 = useProductionPlanDay(scope.customerId, weekDates[3])
-  const day4 = useProductionPlanDay(scope.customerId, weekDates[4])
-  const day5 = useProductionPlanDay(scope.customerId, weekDates[5])
-  const weekPlans = useMemo(
-    () => [
-      ...(day0.currentData?.data ?? []),
-      ...(day1.currentData?.data ?? []),
-      ...(day2.currentData?.data ?? []),
-      ...(day3.currentData?.data ?? []),
-      ...(day4.currentData?.data ?? []),
-      ...(day5.currentData?.data ?? []),
-    ],
-    [day0.currentData, day1.currentData, day2.currentData, day3.currentData, day4.currentData, day5.currentData],
-  )
+  const weekQuery = useGetProductionPlansQuery({
+    customerId: scope.customerId,
+    dateFrom: weekDates[0],
+    dateTo: weekDates[weekDates.length - 1],
+  }, { skip: !enabled || !scope.customerId || weekDates.length === 0 })
+  const weekPlans = useMemo(() => weekQuery.currentData?.data ?? [], [weekQuery.currentData])
   const selectedServiceDate = selectedDayKey
     ? parseDisplayDateToIso(scope.displayDays.find((day) => day.key === selectedDayKey)?.date)
     : undefined
@@ -66,7 +49,7 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope) {
   return {
     scope,
     state: { selectedDayKey, selectedServiceDate, pageIndex: safePageIndex },
-    status: { isLoading: !selectedServiceDate && [day0, day1, day2, day3, day4, day5].some((query) => query.isFetching) },
+    status: { isLoading: !selectedServiceDate && weekQuery.isFetching },
     actions: {
       selectDay,
       setPage: (page: number) => setNavigation({

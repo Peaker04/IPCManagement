@@ -39,4 +39,66 @@ describe('PaginationBar', () => {
     expect(onPageChange).toHaveBeenNthCalledWith(1, 1);
     expect(onPageChange).toHaveBeenNthCalledWith(2, 3);
   });
+
+  it('supports contextual range copy, page-size selection, and direct page jump', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    const onPageSizeChange = vi.fn();
+
+    render(
+      <PaginationBar
+        page={2}
+        pageSize={20}
+        totalItems={205}
+        itemLabel="nguyên liệu"
+        pageSizeOptions={[20, 50, 100]}
+        onPageSizeChange={onPageSizeChange}
+        onPageChange={onPageChange}
+      />,
+    );
+
+    expect(screen.getByText('Đang xem 21–40 trên tổng 205 nguyên liệu')).toBeInTheDocument();
+    await user.selectOptions(screen.getByRole('combobox', { name: 'Số dòng mỗi trang' }), '50');
+    expect(onPageSizeChange).toHaveBeenCalledWith(50);
+
+    await user.clear(screen.getByRole('spinbutton', { name: 'Đi đến trang' }));
+    await user.type(screen.getByRole('spinbutton', { name: 'Đi đến trang' }), '9');
+    await user.click(screen.getByRole('button', { name: 'Đi đến trang đã nhập' }));
+    expect(onPageChange).toHaveBeenCalledWith(9);
+  });
+
+  it('locks navigation and exposes busy feedback while a page is loading', () => {
+    render(
+      <PaginationBar
+        page={2}
+        pageSize={20}
+        totalItems={205}
+        isPending
+        onPageChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('navigation', { name: 'Phân trang danh sách' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.getByText('Đang tải trang 2')).toBeInTheDocument();
+    expect(screen.getByLabelText(/Trang trước/)).toBeDisabled();
+    expect(screen.getByLabelText(/Trang sau/)).toBeDisabled();
+    expect(screen.getByRole('button', { name: /Đi đến trang/ })).toBeDisabled();
+  });
+
+  it('recovers focus to the available direction at a pagination boundary', async () => {
+    const user = userEvent.setup();
+    const onPageChange = vi.fn();
+    const { rerender } = render(
+      <PaginationBar page={2} pageSize={20} totalItems={45} onPageChange={onPageChange} />,
+    );
+
+    await user.click(screen.getByLabelText('Trang sau, trang 3 trong 3'));
+    rerender(<PaginationBar page={3} pageSize={20} totalItems={45} onPageChange={onPageChange} />);
+
+    expect(screen.getByLabelText('Trang trước, trang 2 trong 3')).toHaveFocus();
+
+    await user.click(screen.getByLabelText('Trang trước, trang 2 trong 3'));
+    rerender(<PaginationBar page={1} pageSize={20} totalItems={45} onPageChange={onPageChange} />);
+    expect(screen.getByLabelText('Trang sau, trang 2 trong 3')).toHaveFocus();
+  });
 });

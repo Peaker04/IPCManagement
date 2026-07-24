@@ -15,6 +15,26 @@ public class SignoffOrderResultDto
     public DateTime SignedOffAt { get; set; }
 }
 
+public class CoordinationScopeActionRequestDto
+{
+    public string? ServiceDate { get; set; }
+    public string? DayOfWeek { get; set; }
+    public string? ShiftName { get; set; }
+    public string? Shift { get; set; }
+    public string? Note { get; set; }
+}
+
+public class CoordinationScopeActionResultDto
+{
+    public bool Success { get; set; }
+    public string ServiceDate { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public int AffectedPlanCount { get; set; }
+    public IReadOnlyList<string> OldStatuses { get; set; } = [];
+    public string NewStatus { get; set; } = string.Empty;
+    public DateTime ChangedAt { get; set; }
+}
+
 public static class OrderStatus
 {
     public const string Draft = "DRAFT";

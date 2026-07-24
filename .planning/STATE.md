@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.1
 milestone_name: milestone
 status: executing
-stopped_at: Completed 09-14-PLAN.md with operator-accepted disposable evidence; 09-05 residual checkpoint preserved
-last_updated: "2026-07-23T00:57:19.966Z"
-last_activity: 2026-07-23 — Plan 09-14 accepted after two restored Shipyard rounds; no real apply
+stopped_at: MySQL temp/uploads and .NET caches moved to D with restart verification; next reconcile BOM and unit conversion issues
+last_updated: "2026-07-23T14:21:30+07:00"
+last_activity: 2026-07-23 — Remediated C-drive pressure and verified MySQL/API after two restarts
 progress:
   total_phases: 7
   completed_phases: 1
@@ -207,11 +207,11 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 
 ## Session
 
-**Stopped at:** Completed 09-14-PLAN.md; 09-05 residual checkpoint preserved
-**Resume file:** .planning/phases/09-supplier-canonical-refresh-and-purchasing-workflow-alignment/09-05-PLAN.md
+**Stopped at:** Created ingredient-specific unit review queue; 44 proposals await evidence/approval and none affect calculations
+**Resume file:** .planning/debug/admin-data-quality-issues.md
 
 ---
-*Last updated: 2026-07-23 — completed Phase 09 Plan 14 disposable UAT evidence checkpoint*
+*Last updated: 2026-07-23 — completed full legacy-data cleanup, dashboard scoping, and end-to-end verification*
 
 ## Performance Metrics
 
@@ -309,10 +309,16 @@ See: `.planning/PROJECT.md` (updated 2026-06-13)
 - [Phase 09]: Receipt evidence requirements are projected by the server from ingredient policy; the client never infers them. — Keeps receipt validation authoritative and auditable.
 - [Phase 09]: Actual receipt mutation is Warehouse-only; Purchasing keeps read-only handoff and progress. — Preserves role ownership while exposing operational status upstream.
 - [Phase 09]: Receipt retries retain one idempotency key and all operator-entered evidence. — Makes 4xx and conflict recovery safe without duplicate receipts or re-entry.
+- [Phase 09]: Treat old unreferenced BOM and historical receipt conversion gaps as legacy warnings; only current/future active production dependencies are blockers.
+- [Phase 09]: Reconcile legacy current-stock snapshots through audited ledger-only opening balances; never directly rewrite currentQty.
+- [Phase 09]: Do not normalize nonzero stock units without canonical conversion factors; cleanup limits apply after eligibility filtering.
+- [Phase 09]: Admin red KPIs represent current operational work only: exclude cancelled or fully purchase-covered shortages, scope price warnings by operational date, and count active errors separately from legacy warnings/resolved evidence.
+- [Phase 09]: Remove legacy invalid-unit receipt evidence and its orphan movements transactionally; rebuild missing current stock only when every surviving movement already uses the ingredient canonical unit.
+- [Phase 09]: Never use global package-to-weight factors. Persist unit normalization per ingredient with source/catalog units, evidence, confidence, and explicit approval before the engine may consume it.
 
 ## Current Position
 
 Phase: 9 of 9 — Supplier canonical refresh and purchasing workflow alignment
 Plan: 13 of 14 completed; 09-05 accepted-apply proof remains deferred
 Status: Plan 09-14 disposable evidence accepted; Phase 09 remains partial until SUP-04 is resolved
-Last activity: 2026-07-23 — Plan 09-14 completed with REAL_APPLY_NOT_EXECUTED
+Last activity: 2026-07-23 — 44 unit normalization reviews persisted (4 confirmed, 1 high, 1 medium, 38 blocked); no automatic conversion applied

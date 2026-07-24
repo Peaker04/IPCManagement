@@ -12,7 +12,7 @@ import {
   Utensils,
   Warehouse,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
@@ -119,14 +119,30 @@ const priceSubViewTabs: Array<{ id: PriceSubView; label: string }> = [
 ];
 
 const validReportViews: ReportView[] = ['price', 'demand', 'purchase', 'stock', 'movement', 'kitchen', 'usage', 'audit', 'data-quality'];
+const standardPageSizeOptions = [8, 20, 50] as const;
+const pricePageSizeOptions = [6, 20, 50] as const;
+
+const readPositiveInteger = (value: string | null, fallback: number) => {
+  const parsed = Number.parseInt(value ?? '', 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+};
+
+const readPageSize = (value: string | null, fallback: number, options: readonly number[]) => {
+  const parsed = readPositiveInteger(value, fallback);
+  return options.includes(parsed) ? parsed : fallback;
+};
 
 const ReportsPage = () => {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const initialView = searchParams.get('view');
+  const initialPage = readPositiveInteger(searchParams.get('page'), 1);
   const [activeView, setActiveView] = useState<ReportView>(
     validReportViews.includes(initialView as ReportView) ? (initialView as ReportView) : 'price'
   );
-  const [priceSubView, setPriceSubView] = useState<PriceSubView>('lines');
+  const initialPriceSubView = searchParams.get('subview');
+  const [priceSubView, setPriceSubView] = useState<PriceSubView>(
+    priceSubViewTabs.some((tab) => tab.id === initialPriceSubView) ? initialPriceSubView as PriceSubView : 'lines',
+  );
   const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -134,23 +150,58 @@ const ReportsPage = () => {
   const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc');
   const [movementCursors, setMovementCursors] = useState<ReportCursor[]>([]);
   const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
-  const pricePageSize = 6;
-  const [pricePage, setPricePage] = useState(1);
-  const priceAggregatePageSize = 8;
-  const [supplierPage, setSupplierPage] = useState(1);
-  const [periodPage, setPeriodPage] = useState(1);
-  const [dishGroupPage, setDishGroupPage] = useState(1);
+  const [pricePageSize, setPricePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 6, pricePageSizeOptions));
+  const [pricePage, setPricePage] = useState(initialPage);
+  const [priceAggregatePageSize, setPriceAggregatePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
+  const [supplierPage, setSupplierPage] = useState(initialPage);
+  const [periodPage, setPeriodPage] = useState(initialPage);
+  const [dishGroupPage, setDishGroupPage] = useState(initialPage);
   const reportPageSize = 20;
-  const stockPageSize = 8;
-  const [stockPage, setStockPage] = useState(1);
-  const demandPageSize = 8;
-  const [demandPage, setDemandPage] = useState(1);
-  const purchasePageSize = 8;
-  const [purchasePage, setPurchasePage] = useState(1);
-  const operationalPageSize = 8;
-  const [kitchenPage, setKitchenPage] = useState(1);
-  const [usagePage, setUsagePage] = useState(1);
-  const [dataQualityPage, setDataQualityPage] = useState(1);
+  const [stockPageSize, setStockPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
+  const [stockPage, setStockPage] = useState(initialPage);
+  const [demandPageSize, setDemandPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
+  const [demandPage, setDemandPage] = useState(initialPage);
+  const [purchasePageSize, setPurchasePageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
+  const [purchasePage, setPurchasePage] = useState(initialPage);
+  const [operationalPageSize, setOperationalPageSize] = useState(() => readPageSize(searchParams.get('pageSize'), 8, standardPageSizeOptions));
+  const [kitchenPage, setKitchenPage] = useState(initialPage);
+  const [usagePage, setUsagePage] = useState(initialPage);
+  const [dataQualityPage, setDataQualityPage] = useState(initialPage);
+
+  const updateSearchState = (updates: Record<string, string | undefined>) => {
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === undefined) next.delete(key);
+        else next.set(key, value);
+      });
+      return next;
+    }, { replace: true });
+  };
+
+  const setNumberedPage = (setter: Dispatch<SetStateAction<number>>, nextPage: number) => {
+    setter(nextPage);
+    updateSearchState({
+      view: activeView,
+      subview: activeView === 'price' ? priceSubView : undefined,
+      page: String(nextPage),
+    });
+  };
+
+  const setNumberedPageSize = (
+    pageSetter: Dispatch<SetStateAction<number>>,
+    pageSizeSetter: Dispatch<SetStateAction<number>>,
+    nextPageSize: number,
+  ) => {
+    pageSizeSetter(nextPageSize);
+    pageSetter(1);
+    updateSearchState({
+      view: activeView,
+      subview: activeView === 'price' ? priceSubView : undefined,
+      page: '1',
+      pageSize: String(nextPageSize),
+    });
+  };
 
   const resetCursorPages = () => {
     setMovementCursors([]);
@@ -169,6 +220,11 @@ const ReportsPage = () => {
     setUsagePage(1);
     setDataQualityPage(1);
     resetCursorPages();
+  };
+
+  const resetReportPagesAndUrl = () => {
+    resetReportPages();
+    updateSearchState({ page: '1' });
   };
 
   const reportQuery: WorkflowReportQuery = {
@@ -434,6 +490,7 @@ const ReportsPage = () => {
 
   return (
     <OperationalFrame
+      className="ipc-reports-page"
       eyebrow="Dữ liệu vận hành"
       title="Phân tích và thống kê vận hành"
       command={
@@ -463,7 +520,7 @@ const ReportsPage = () => {
               value={dateFrom}
               onChange={(event) => {
                 setDateFrom(event.target.value);
-                resetReportPages();
+                resetReportPagesAndUrl();
               }}
             />
           </FieldRow>
@@ -475,12 +532,12 @@ const ReportsPage = () => {
               value={dateTo}
               onChange={(event) => {
                 setDateTo(event.target.value);
-                resetReportPages();
+                resetReportPagesAndUrl();
               }}
             />
           </FieldRow>
           <FieldRow label="Ca" htmlFor="report-shift">
-            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPages(); }}>
+            <select id="report-shift" className="ipc-select" value={shiftName} onChange={(event) => { setShiftName(event.target.value); resetReportPagesAndUrl(); }}>
               <option value="">Tất cả</option>
               <option value="MORNING">Ca sáng</option>
               <option value="AFTERNOON">Ca chiều</option>
@@ -521,14 +578,24 @@ const ReportsPage = () => {
         ariaLabel="Chọn loại báo cáo vận hành"
         tabs={reportTabs}
         activeTab={`reports-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('reports-', '') as ReportView)}
+        onTabChange={(id) => {
+          const nextView = id.replace('reports-', '') as ReportView;
+          setActiveView(nextView);
+          resetReportPages();
+          updateSearchState({
+            view: nextView,
+            subview: nextView === 'price' ? priceSubView : undefined,
+            page: undefined,
+            pageSize: undefined,
+          });
+        }}
       />
 
-      {activeReportState.isFetching && (
-        <InlineAlert title="Đang tải dữ liệu báo cáo" variant="info">
-          Hệ thống đang lấy dữ liệu báo cáo quy trình cho tab đang mở.
-        </InlineAlert>
-      )}
+      {activeReportState.isFetching ? (
+        <div role="status" aria-live="polite" className="sr-only">
+          Đang tải dữ liệu báo cáo cho trang đang xem.
+        </div>
+      ) : null}
 
       {activeReportState.isError && (
         <InlineAlert title="Không tải được dữ liệu báo cáo" variant="danger">
@@ -542,6 +609,7 @@ const ReportsPage = () => {
             title="Hàng đợi cảnh báo giá"
             items={warningQueue}
             empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
+            className="h-[145px] overflow-y-auto"
           />
 
           <ViewSwitcher
@@ -549,7 +617,12 @@ const ReportsPage = () => {
             ariaLabel="Chọn cách phân tích biến động giá"
             tabs={priceSubViewTabs.map((tab) => ({ id: `price-sub-${tab.id}`, label: tab.label }))}
             activeTab={`price-sub-${priceSubView}`}
-            onTabChange={(id) => setPriceSubView(id.replace('price-sub-', '') as PriceSubView)}
+            onTabChange={(id) => {
+              const nextSubView = id.replace('price-sub-', '') as PriceSubView;
+              setPriceSubView(nextSubView);
+              resetReportPages();
+              updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
+            }}
           />
 
           {priceSubView === 'supplier' && (
@@ -596,7 +669,16 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={priceVarianceBySupplierResult.data?.pageNumber ?? supplierPage} pageSize={priceVarianceBySupplierResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceBySupplierResult.data?.totalCount ?? 0} onPageChange={setSupplierPage} />
+              <PaginationBar
+                page={priceVarianceBySupplierResult.data?.pageNumber ?? supplierPage}
+                pageSize={priceVarianceBySupplierResult.data?.pageSize ?? priceAggregatePageSize}
+                totalItems={priceVarianceBySupplierResult.data?.totalCount ?? 0}
+                itemLabel="nhà cung cấp"
+                isPending={priceVarianceBySupplierResult.isFetching}
+                pageSizeOptions={standardPageSizeOptions}
+                onPageSizeChange={(nextSize) => setNumberedPageSize(setSupplierPage, setPriceAggregatePageSize, nextSize)}
+                onPageChange={(nextPage) => setNumberedPage(setSupplierPage, nextPage)}
+              />
             </SectionPanel>
           )}
 
@@ -640,7 +722,16 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={priceVarianceByPeriodResult.data?.pageNumber ?? periodPage} pageSize={priceVarianceByPeriodResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByPeriodResult.data?.totalCount ?? 0} onPageChange={setPeriodPage} />
+              <PaginationBar
+                page={priceVarianceByPeriodResult.data?.pageNumber ?? periodPage}
+                pageSize={priceVarianceByPeriodResult.data?.pageSize ?? priceAggregatePageSize}
+                totalItems={priceVarianceByPeriodResult.data?.totalCount ?? 0}
+                itemLabel="kỳ báo cáo"
+                isPending={priceVarianceByPeriodResult.isFetching}
+                pageSizeOptions={standardPageSizeOptions}
+                onPageSizeChange={(nextSize) => setNumberedPageSize(setPeriodPage, setPriceAggregatePageSize, nextSize)}
+                onPageChange={(nextPage) => setNumberedPage(setPeriodPage, nextPage)}
+              />
             </SectionPanel>
           )}
 
@@ -676,7 +767,16 @@ const ReportsPage = () => {
                   </tbody>
                 </table>
               </TableViewport>
-              <PaginationBar page={priceVarianceByDishGroupResult.data?.pageNumber ?? dishGroupPage} pageSize={priceVarianceByDishGroupResult.data?.pageSize ?? priceAggregatePageSize} totalItems={priceVarianceByDishGroupResult.data?.totalCount ?? 0} onPageChange={setDishGroupPage} />
+              <PaginationBar
+                page={priceVarianceByDishGroupResult.data?.pageNumber ?? dishGroupPage}
+                pageSize={priceVarianceByDishGroupResult.data?.pageSize ?? priceAggregatePageSize}
+                totalItems={priceVarianceByDishGroupResult.data?.totalCount ?? 0}
+                itemLabel="nhóm món"
+                isPending={priceVarianceByDishGroupResult.isFetching}
+                pageSizeOptions={standardPageSizeOptions}
+                onPageSizeChange={(nextSize) => setNumberedPageSize(setDishGroupPage, setPriceAggregatePageSize, nextSize)}
+                onPageChange={(nextPage) => setNumberedPage(setDishGroupPage, nextPage)}
+              />
             </SectionPanel>
           )}
 
@@ -741,7 +841,11 @@ const ReportsPage = () => {
               page={priceVarianceResult.data?.pageNumber ?? pricePage}
               pageSize={priceVarianceResult.data?.pageSize ?? pricePageSize}
               totalItems={priceVarianceResult.data?.totalCount ?? 0}
-              onPageChange={setPricePage}
+              itemLabel="dòng giá"
+              isPending={priceVarianceResult.isFetching}
+              pageSizeOptions={pricePageSizeOptions}
+              onPageSizeChange={(nextSize) => setNumberedPageSize(setPricePage, setPricePageSize, nextSize)}
+              onPageChange={(nextPage) => setNumberedPage(setPricePage, nextPage)}
             />
           </SectionPanel>
           )}
@@ -806,7 +910,11 @@ const ReportsPage = () => {
             page={ingredientDemandResult.data?.pageNumber ?? demandPage}
             pageSize={ingredientDemandResult.data?.pageSize ?? demandPageSize}
             totalItems={ingredientDemandResult.data?.totalCount ?? 0}
-            onPageChange={setDemandPage}
+            itemLabel="nguyên liệu"
+            isPending={ingredientDemandResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setDemandPage, setDemandPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setDemandPage, nextPage)}
           />
         </SectionPanel>
       )}
@@ -875,7 +983,11 @@ const ReportsPage = () => {
             page={purchasePlanResult.data?.pageNumber ?? purchasePage}
             pageSize={purchasePlanResult.data?.pageSize ?? purchasePageSize}
             totalItems={purchasePlanResult.data?.totalCount ?? 0}
-            onPageChange={setPurchasePage}
+            itemLabel="kế hoạch"
+            isPending={purchasePlanResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setPurchasePage, setPurchasePageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setPurchasePage, nextPage)}
           />
 
         </SectionPanel>
@@ -911,19 +1023,27 @@ const ReportsPage = () => {
             page={currentStockResult.data?.pageNumber ?? stockPage}
             pageSize={currentStockResult.data?.pageSize ?? stockPageSize}
             totalItems={currentStockResult.data?.totalCount ?? 0}
-            onPageChange={setStockPage}
+            itemLabel="nguyên liệu"
+            isPending={currentStockResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setStockPage, setStockPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setStockPage, nextPage)}
           />
         </SectionPanel>
       )}
 
       {activeView === 'movement' && (
         <SectionPanel title="Lịch sử nhập, xuất, trả và điều chỉnh kho" icon={<ArrowLeftRight size={18} />}>
-          <StockMovementTable movements={stockMovementRows} pageSize={reportPageSize} />
-          <CursorPaginationBar
-            page={movementCursors.length + 1}
-            hasNext={stockMovementResult.data?.hasNext ?? false}
-            onPrevious={() => setMovementCursors((current) => current.slice(0, -1))}
-            onNext={openNextMovementPage}
+          <StockMovementTable
+            movements={stockMovementRows}
+            cursorPagination={{
+              page: movementCursors.length + 1,
+              hasNext: stockMovementResult.data?.hasNext ?? false,
+              isPending: stockMovementResult.isFetching,
+              onPrevious: () => setMovementCursors((current) => current.slice(0, -1)),
+              onNext: openNextMovementPage,
+              ariaLabel: 'Phân trang lịch sử nhập xuất kho',
+            }}
           />
         </SectionPanel>
       )}
@@ -958,7 +1078,16 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={kitchenIssueResult.data?.pageNumber ?? kitchenPage} pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize} totalItems={kitchenIssueResult.data?.totalCount ?? 0} onPageChange={setKitchenPage} />
+          <PaginationBar
+            page={kitchenIssueResult.data?.pageNumber ?? kitchenPage}
+            pageSize={kitchenIssueResult.data?.pageSize ?? operationalPageSize}
+            totalItems={kitchenIssueResult.data?.totalCount ?? 0}
+            itemLabel="phiếu xuất"
+            isPending={kitchenIssueResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setKitchenPage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setKitchenPage, nextPage)}
+          />
         </SectionPanel>
       )}
 
@@ -992,7 +1121,16 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={usageResult.data?.pageNumber ?? usagePage} pageSize={usageResult.data?.pageSize ?? operationalPageSize} totalItems={usageResult.data?.totalCount ?? 0} onPageChange={setUsagePage} />
+          <PaginationBar
+            page={usageResult.data?.pageNumber ?? usagePage}
+            pageSize={usageResult.data?.pageSize ?? operationalPageSize}
+            totalItems={usageResult.data?.totalCount ?? 0}
+            itemLabel="dòng sử dụng"
+            isPending={usageResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setUsagePage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setUsagePage, nextPage)}
+          />
         </SectionPanel>
       )}
 
@@ -1029,6 +1167,7 @@ const ReportsPage = () => {
           <CursorPaginationBar
             page={auditCursors.length + 1}
             hasNext={auditResult.data?.hasNext ?? false}
+            isPending={auditResult.isFetching}
             onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
             onNext={openNextAuditPage}
           />
@@ -1102,7 +1241,16 @@ const ReportsPage = () => {
               </tbody>
             </table>
           </TableViewport>
-          <PaginationBar page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage} pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize} totalItems={dataQualityResult.data?.page.totalCount ?? 0} onPageChange={setDataQualityPage} />
+          <PaginationBar
+            page={dataQualityResult.data?.page.pageNumber ?? dataQualityPage}
+            pageSize={dataQualityResult.data?.page.pageSize ?? operationalPageSize}
+            totalItems={dataQualityResult.data?.page.totalCount ?? 0}
+            itemLabel="vấn đề dữ liệu"
+            isPending={dataQualityResult.isFetching}
+            pageSizeOptions={standardPageSizeOptions}
+            onPageSizeChange={(nextSize) => setNumberedPageSize(setDataQualityPage, setOperationalPageSize, nextSize)}
+            onPageChange={(nextPage) => setNumberedPage(setDataQualityPage, nextPage)}
+          />
         </SectionPanel>
       )}
     </OperationalFrame>

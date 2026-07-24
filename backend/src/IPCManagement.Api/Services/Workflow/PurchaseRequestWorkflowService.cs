@@ -1161,7 +1161,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         IReadOnlyCollection<Purchaserequestline> lines,
         IReadOnlyCollection<Purchaseorder> orders)
     {
-        if (request is null)
+        if (request is null || lines.Count == 0)
         {
             return "demand";
         }

@@ -173,6 +173,10 @@ const baseQueryWithAuthHandling: BaseQueryFn<
 export const apiSlice = createApi({
   reducerPath: 'api',
   baseQuery: baseQueryWithAuthHandling,
+  // Keep recently visited screens warm long enough for normal back-and-forth
+  // navigation. Mutations still invalidate the tags below immediately.
+  keepUnusedDataFor: 5 * 60,
+  refetchOnMountOrArgChange: false,
   tagTypes: ['User', 'Employee', 'Project', 'Coordination', 'WorkflowReports', 'DishCatalog', 'Customers', 'Ingredients', 'MaterialDemandStaleness', 'SupplierQuotations', 'PurchaseOrders'],
   endpoints: () => ({}),
 });

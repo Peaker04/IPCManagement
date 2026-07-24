@@ -31,5 +31,10 @@
     <InternalsVisibleTo Include="IPCManagement.Api.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\Templates\weekly-menu-template-ANV-default.xlsx"
+                      LogicalName="IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx" />
+  </ItemGroup>
+
 </Project>
 

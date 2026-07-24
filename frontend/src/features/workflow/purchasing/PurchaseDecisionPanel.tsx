@@ -270,6 +270,12 @@ export function PurchaseDecisionPanel({
     );
   }
 
+  const canSubmitPurchaseRequest = Boolean(serviceDate.purchaseRequestId) &&
+    serviceDate.purchaseRequestStatus?.toUpperCase() === 'DRAFT' &&
+    serviceDate.shortageLineCount > 0 &&
+    serviceDate.supplierReadyLineCount >= serviceDate.shortageLineCount &&
+    serviceDate.blockingExceptionCount === 0;
+
   return (
     <SectionPanel
       title="Quyết định thu mua"
@@ -305,37 +311,51 @@ export function PurchaseDecisionPanel({
         ) : null}
 
         {selectedStage === 'supplier-price' ? (
-          selectedLine ? (
-            <div className="space-y-4">
-              <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2 text-[14px]">
-                <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
-                <p className="mt-1 text-[12px] text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
-              </div>
-              {isEvidenceLoading ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : (
-                <SupplierEvidenceList candidates={evidence?.candidates ?? []} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
-              )}
-              {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
-              {selectedEvidence ? (
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <label className="space-y-2 text-[14px] font-semibold text-slate-900">
-                    <span>Giá đề xuất</span>
-                    <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
-                  </label>
-                  <label className="space-y-2 text-[14px] font-semibold text-slate-900">
-                    <span>Ngày giao</span>
-                    <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
-                  </label>
+          <div className="space-y-4">
+            {selectedLine ? (
+              <div className="space-y-4">
+                <div className="rounded-[3px] border border-slate-300 bg-slate-50 px-3 py-2 text-[14px]">
+                  <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
+                  <p className="mt-1 text-[12px] text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
                 </div>
-              ) : null}
-              <Button
-                className="min-h-11 sm:min-h-9"
-                disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || Boolean(evidence?.blocker)}
-                onClick={() => setConfirmation({ type: 'supplier' })}
-              >
-                Xác nhận nhà cung cấp
-              </Button>
-            </div>
-          ) : <p className="text-[14px] text-slate-600">Chọn một dòng nguyên liệu trong bảng để xem bằng chứng.</p>
+                {isEvidenceLoading ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : (
+                  <SupplierEvidenceList candidates={evidence?.candidates ?? []} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
+                )}
+                {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
+                {selectedEvidence ? (
+                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <label className="space-y-2 text-[14px] font-semibold text-slate-900">
+                      <span>Giá đề xuất</span>
+                      <Input type="number" min="0.01" step="0.01" value={proposedUnitPrice} onChange={(event) => setProposedUnitPrice(event.target.value)} />
+                    </label>
+                    <label className="space-y-2 text-[14px] font-semibold text-slate-900">
+                      <span>Ngày giao</span>
+                      <Input type="date" value={proposedDeliveryDate} onChange={(event) => setProposedDeliveryDate(event.target.value)} />
+                    </label>
+                  </div>
+                ) : null}
+                <Button
+                  className="min-h-11 sm:min-h-9"
+                  disabled={!selectedEvidence || Number(proposedUnitPrice) <= 0 || !proposedDeliveryDate || Boolean(evidence?.blocker)}
+                  onClick={() => setConfirmation({ type: 'supplier' })}
+                >
+                  Xác nhận nhà cung cấp
+                </Button>
+              </div>
+            ) : <p className="text-[14px] text-slate-600">Chọn một dòng nguyên liệu trong bảng để xem bằng chứng.</p>}
+
+            {canSubmitPurchaseRequest ? (
+              <div className="rounded-[3px] border border-emerald-300 bg-emerald-50 px-3 py-3">
+                <p className="text-[14px] font-semibold text-emerald-950">Đã đủ nhà cung cấp, giá và ngày giao cho mọi dòng.</p>
+                <Button
+                  className="mt-3 min-h-11 sm:min-h-9"
+                  onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}
+                >
+                  Gửi đề xuất mua
+                </Button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {selectedStage === 'exception' ? (

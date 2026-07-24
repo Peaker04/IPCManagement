@@ -47,6 +47,7 @@ public class CoordinationServiceTests
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(secondDishId),
+                        DishSlot = "savory-canh",
                         DisplayOrder = 2,
                         Dish = new Dish
                         {
@@ -59,6 +60,7 @@ public class CoordinationServiceTests
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(firstDishId),
+                        DishSlot = "savory-main",
                         DisplayOrder = 1,
                         Dish = new Dish
                         {
@@ -99,5 +101,7 @@ public class CoordinationServiceTests
             firstDishId.ToString(),
             secondDishId.ToString());
         result.Dishes.Select(dish => dish.DishName).Should().Equal("Cơm gà", "Canh rau");
+        result.Dishes.Select(dish => dish.DishSlot).Should().Equal("savory-main", "savory-canh");
+        result.Dishes.Select(dish => dish.DisplayOrder).Should().Equal(1, 2);
     }
 }

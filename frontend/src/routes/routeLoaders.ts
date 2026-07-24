@@ -1,0 +1,68 @@
+import { lazy, type ComponentType } from 'react';
+import { ROUTES } from './routeConfig';
+
+type PageModule = { default: ComponentType };
+
+function createPreloadableRoute(importer: () => Promise<PageModule>) {
+  let modulePromise: Promise<PageModule> | undefined;
+  const load = () => {
+    modulePromise ??= importer().catch((error) => {
+      modulePromise = undefined;
+      throw error;
+    });
+    return modulePromise;
+  };
+
+  return {
+    Component: lazy(load),
+    preload: () => load().then(() => undefined, () => undefined),
+  };
+}
+
+const dashboardRoute = createPreloadableRoute(() => import('../features/dashboard/pages/DashboardPage'));
+const weeklyMenuRoute = createPreloadableRoute(() => import('../features/projects/pages/WeeklyMenuPage'));
+const reportsRoute = createPreloadableRoute(() => import('../features/reports/pages/ReportsPage'));
+const coordinationRoute = createPreloadableRoute(() => import('../features/coordination/pages/CoordinationPage'));
+const chefDashboardRoute = createPreloadableRoute(() => import('../features/chef/pages/ChefDashboardPage'));
+const approvalRoute = createPreloadableRoute(() => import('../features/workflow/pages/ApprovalPage'));
+const purchasingRoute = createPreloadableRoute(() => import('../features/workflow/pages/PurchasingPage'));
+const warehouseRoute = createPreloadableRoute(() => import('../features/workflow/pages/WarehousePage'));
+const adminDataRoute = createPreloadableRoute(() => import('../features/workflow/pages/AdminDataPage'));
+const approvalRulesRoute = createPreloadableRoute(() => import('../features/workflow/pages/ApprovalRulesPage'));
+
+export const DashboardPage = dashboardRoute.Component;
+export const WeeklyMenuPage = weeklyMenuRoute.Component;
+export const ReportsPage = reportsRoute.Component;
+export const CoordinationPage = coordinationRoute.Component;
+export const ChefDashboardPage = chefDashboardRoute.Component;
+export const ApprovalPage = approvalRoute.Component;
+export const PurchasingPage = purchasingRoute.Component;
+export const WarehousePage = warehouseRoute.Component;
+export const AdminDataPage = adminDataRoute.Component;
+export const ApprovalRulesPage = approvalRulesRoute.Component;
+
+const routePreloaders: Partial<Record<string, () => Promise<void>>> = {
+  [ROUTES.DASHBOARD]: dashboardRoute.preload,
+  [ROUTES.WEEKLY_MENU]: weeklyMenuRoute.preload,
+  [ROUTES.REPORTS]: reportsRoute.preload,
+  [ROUTES.MEAL_ORDERS]: coordinationRoute.preload,
+  [ROUTES.CHEF_DASHBOARD]: chefDashboardRoute.preload,
+  [ROUTES.APPROVALS]: approvalRoute.preload,
+  [ROUTES.PURCHASING]: purchasingRoute.preload,
+  [ROUTES.WAREHOUSE]: warehouseRoute.preload,
+  [ROUTES.ADMIN_DATA]: adminDataRoute.preload,
+  [ROUTES.APPROVAL_RULES]: approvalRulesRoute.preload,
+};
+
+export function preloadRoute(path: string): Promise<void> {
+  return routePreloaders[path]?.() ?? Promise.resolve();
+}
+
+export async function preloadRouteData(path: string): Promise<void> {
+  try {
+    const { prefetchRouteData } = await import('./routeDataPreloaders');
+    await prefetchRouteData(path);
+  } catch {
+    // Intent prefetch is best-effort; normal route queries remain the fallback.
+  }
+}

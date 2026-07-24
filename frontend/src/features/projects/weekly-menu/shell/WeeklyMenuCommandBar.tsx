@@ -64,18 +64,15 @@ export const WeeklyMenuPricingContext = ({
   menuPrice: number
   menuPriceSource: string
 }) => (
-  <div className="mt-3 grid gap-3 rounded-md border border-slate-200 bg-slate-50/70 p-3 shadow-sm lg:grid-cols-3">
-    <FieldRow label="Mức định lượng cố định" className="[&_.ipc-field-label]:min-h-[18px]">
-      <div className="ipc-input flex h-10 items-center justify-between bg-white text-sm font-semibold text-blue-700">
-        <span>{formatBomTierLabel(menuPrice)}</span>
-        <StatusBadge variant="success">Đang dùng</StatusBadge>
-      </div>
-    </FieldRow>
-    <FieldRow label="Nguồn định mức" className="[&_.ipc-field-label]:min-h-[18px]">
-      <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-slate-800">{menuPriceSource}</div>
-    </FieldRow>
-    <FieldRow label="Tỷ lệ định lượng" className="[&_.ipc-field-label]:min-h-[18px]">
-      <div className="ipc-input flex h-10 items-center bg-white text-sm font-semibold text-emerald-700">Theo mức giá cố định, 100%</div>
-    </FieldRow>
-  </div>
+  <section className="ipc-weekly-pricing-context" aria-label="Cấu hình định lượng đang áp dụng">
+    <div className="ipc-weekly-pricing-primary">
+      <span>Định mức đang áp dụng</span>
+      <strong>{formatBomTierLabel(menuPrice)}</strong>
+      <StatusBadge variant="success">Đang dùng</StatusBadge>
+    </div>
+    <dl className="ipc-weekly-pricing-meta">
+      <div><dt>Nguồn</dt><dd>{menuPriceSource}</dd></div>
+      <div><dt>Tỷ lệ</dt><dd>100% theo mức giá cố định</dd></div>
+    </dl>
+  </section>
 )

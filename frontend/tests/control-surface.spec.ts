@@ -1,5 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { ROUTES } from '../src/routes/routeConfig';
+import { phase09PurchaseOrdersPage, phase09Workbench } from './phase9-test-fixture';
 
 const protectedRoutes = [
   { path: ROUTES.DASHBOARD, heading: 'Bàn điều hành hôm nay' },
@@ -64,6 +65,13 @@ async function stubOperationalApis(page: Page) {
   }));
   await page.route('**/api/workflow-reports/**', async (route) => fulfillJson(route, []));
   await page.route('**/api/purchase-requests**', async (route) => fulfillJson(route, []));
+  await page.route('**/api/purchase-workflow/workbench**', async (route) => fulfillJson(route, phase09Workbench));
+  await page.route('**/api/purchase-orders/page**', async (route) => fulfillJson(route, phase09PurchaseOrdersPage));
+  await page.route('**/api/warehouses/selector**', async (route) => fulfillJson(route, [{
+    warehouseId: 'warehouse-main',
+    warehouseCode: 'MAIN',
+    warehouseName: 'Kho chính',
+  }]));
   await page.route('**/api/dishes/catalog**', async (route) => fulfillJson(route, []));
   await page.route('**/api/suppliers**', async (route) => fulfillJson(route, []));
   await page.route('**/api/supplier-quotations/**', async (route) => fulfillJson(route, {
@@ -102,6 +110,71 @@ async function stubOperationalApis(page: Page) {
   await page.route('**/api/coordination/weekly-menu**', async (route) => {
     const pathname = new URL(route.request().url()).pathname;
     await fulfillJson(route, pathname.endsWith('/import-history') ? [] : null);
+  });
+}
+
+async function stubWeeklyMenuGroupedPlan(page: Page) {
+  const committedRows = [
+    { serviceDate: '2026-07-06', dayKey: 't2', sourceRowNumber: 1, sourceColumn: 'B', sourceSection: 'Mặn', sourceShift: 'Ca sáng', dbShiftName: 'MORNING', variant: 'savory', slot: 'main', slotLabel: 'Món chính', dishName: 'Cơm sườn', rowSpan: 1, isMergedContinuation: false, existingDish: true },
+    { serviceDate: '2026-07-07', dayKey: 't3', sourceRowNumber: 2, sourceColumn: 'C', sourceSection: 'Mặn', sourceShift: 'Ca sáng', dbShiftName: 'MORNING', variant: 'savory', slot: 'main', slotLabel: 'Món chính', dishName: 'Bún bò', rowSpan: 1, isMergedContinuation: false, existingDish: true },
+  ];
+
+  await page.route('**/api/coordination/weekly-menu**', async (route) => {
+    const pathname = new URL(route.request().url()).pathname;
+    if (pathname.endsWith('/import-history')) {
+      await fulfillJson(route, []);
+      return;
+    }
+
+    await fulfillJson(route, {
+      committed: true,
+      fileName: 'weekly-menu.xlsx',
+      customerId: 'customer-dav',
+      customerCode: 'DAV',
+      customerName: 'Draxlmaier',
+      weekStartDate: '2026-07-06',
+      weekEndDate: '2026-07-11',
+      detectedLayout: { sheetName: 'Menu', labelColumn: 'A', dayColumns: [], sections: [], rowsScanned: 2, rowsImported: 2, rowsSkipped: 0 },
+      warnings: [],
+      validation: { isValid: true, hasCriticalErrors: false, errorCount: 0, warningCount: 0, issues: [] },
+      rows: committedRows,
+      previewDiff: { addedSlots: 0, changedSlots: 0, removedSlots: 0, unchangedSlots: 2, rows: [] },
+      importedWeeklyMenu: {},
+    });
+  });
+
+  await page.route('**/api/production-plans/filter**', async (route) => {
+    const serviceDate = new URL(route.request().url()).searchParams.get('serviceDate');
+    const lineCount = serviceDate === '2026-07-06' ? 1 : serviceDate === '2026-07-07' ? 6 : 0;
+    if (lineCount === 0) {
+      await fulfillJson(route, []);
+      return;
+    }
+
+    await fulfillJson(route, [{
+      planId: `plan-${serviceDate}`,
+      planCode: serviceDate === '2026-07-06' ? 'KHSX-NHOM-01' : 'KHSX-NHOM-02',
+      planDate: serviceDate,
+      customerId: 'customer-dav',
+      customerCode: 'DAV',
+      customerName: 'Draxlmaier',
+      status: 'DRAFT',
+      lines: Array.from({ length: lineCount }, (_, index) => ({
+        planLineId: `line-${serviceDate}-${index + 1}`,
+        dishName: `Món kiểm thử ${index + 1}`,
+        shiftName: index % 2 === 0 ? 'MORNING' : 'AFTERNOON',
+        totalServings: 100 + index,
+      })),
+    }]);
+  });
+
+  await page.route('**/api/material-demand/staleness**', async (route) => {
+    await fulfillJson(route, {
+      hasExistingPlan: false,
+      isStale: false,
+      lastGeneratedAt: null,
+      reasons: [],
+    });
   });
 }
 
@@ -409,62 +482,51 @@ test.describe('operational control surface', () => {
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('purchasing actions use equal-width mobile controls without overflow', async ({ page }) => {
+  test('purchasing actions remain reachable on mobile without overflow', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ROUTES.PURCHASING);
 
     const actionGroup = page.locator('.ipc-purchasing-actions');
     await expect(actionGroup).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Tạo đề xuất mua' })).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Chuyển sang nhập kho' })).toBeVisible();
-    const widths = await actionGroup.locator(':scope > *').evaluateAll((elements) =>
-      elements.map((element) => Math.round(element.getBoundingClientRect().width)),
+    for (const name of ['Tuần trước', 'Tuần hiện tại', 'Tuần sau', 'Mở màn hình nhập kho']) {
+      await expect(actionGroup.getByRole('button', { name })).toBeVisible();
+    }
+    const controlHeights = await actionGroup.getByRole('button').evaluateAll((elements) =>
+      elements.map((element) => Math.round(element.getBoundingClientRect().height)),
     );
-    expect(widths.length).toBe(3);
-    expect(Math.max(...widths) - Math.min(...widths)).toBeLessThanOrEqual(1);
+    expect(controlHeights.every((height) => height >= 44)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
-  test('purchasing quotation form stacks fields on mobile without overflow', async ({ page }) => {
-    await page.route('**/api/ingredients**', async (route) =>
-      fulfillJson(route, {
-        items: [{ ingredientId: 'ingredient-mobile', ingredientName: 'Sườn heo', isActive: true }],
-        totalCount: 1,
-        pageNumber: 1,
-        pageSize: 500,
-        totalPages: 1,
-        hasPrev: false,
-        hasNext: false,
-      }),
-    );
+  test('purchasing six-stage guide keeps labels readable on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ROUTES.PURCHASING);
-    await page.getByRole('tab', { name: 'Báo giá nhà cung cấp' }).click();
-    await page.locator('.ipc-quotation-ingredient').selectOption('ingredient-mobile');
 
-    const formGrid = page.locator('.ipc-quotation-form-grid');
-    await expect(formGrid).toBeVisible();
-    const positions = await formGrid.locator(':scope > *').evaluateAll((elements) =>
+    const guide = page.getByRole('navigation', { name: 'Sáu giai đoạn thu mua' });
+    await expect(guide).toBeVisible();
+    await expect(guide.getByRole('button')).toHaveCount(6);
+    const labels = await guide.locator('[data-stage-label]').evaluateAll((elements) =>
       elements.map((element) => {
-        const rect = element.getBoundingClientRect();
-        return { left: Math.round(rect.left), width: Math.round(rect.width) };
+        const style = window.getComputedStyle(element);
+        return {
+          height: element.getBoundingClientRect().height,
+          lineHeight: Number.parseFloat(style.lineHeight),
+          clipped: element.scrollWidth > element.clientWidth + 1,
+        };
       }),
     );
-    expect(positions).toHaveLength(5);
-    expect(new Set(positions.map((position) => position.left)).size).toBe(1);
-    expect(positions.every((position) => position.width > 280)).toBe(true);
+    expect(labels.every(({ height, lineHeight, clipped }) => height <= lineHeight * 2 + 1 && !clipped)).toBe(true);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
 
   test('purchasing wide tables scroll inside their viewport on mobile', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(ROUTES.PURCHASING);
-    await page.getByRole('tab', { name: 'Giá và nhà cung cấp' }).click();
 
-    const tableViewport = page.locator('.ipc-table-container').first();
+    const tableViewport = page.getByRole('region', { name: 'Dòng nguyên liệu của ngày phục vụ đang chọn' });
     const table = tableViewport.locator('table').first();
     await expect(tableViewport).toBeVisible();
-    await expect(table).toHaveCSS('min-width', '720px');
+    await expect(table).toHaveCSS('min-width', '900px');
     const geometry = await tableViewport.evaluate((element) => ({
       clientWidth: element.clientWidth,
       scrollWidth: element.scrollWidth,
@@ -504,6 +566,42 @@ test.describe('operational control surface', () => {
     expect(geometry.scrollWidth).toBeGreaterThan(geometry.clientWidth);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(1);
   });
+
+  for (const viewport of [
+    { name: 'L-1280', width: 1280, height: 900, expectedTableHeight: 520 },
+    { name: 'S-390', width: 390, height: 844, expectedTableHeight: 440 },
+  ]) {
+    test(`weekly menu grouped stepper keeps focus and table height at ${viewport.name}`, async ({ page }) => {
+      await stubWeeklyMenuGroupedPlan(page);
+      await page.evaluate(() => {
+        window.localStorage.setItem('ipc.weeklyMenu.lastCustomerId', 'customer-dav');
+        window.localStorage.setItem('ipc.weeklyMenu.lastWeekStartDate', '2026-07-06');
+      });
+      await page.getByRole('navigation', { name: 'Điều hướng chính' }).getByRole('link', { name: 'Thực đơn tuần' }).click();
+      await page.setViewportSize(viewport);
+      await page.getByRole('tab', { name: 'Kế hoạch sản xuất' }).click();
+
+      const panel = page.locator('#production-plan-panel');
+      const groupedStepper = panel.getByRole('navigation', { name: 'Điều hướng kế hoạch sản xuất' });
+      const tableViewport = panel.locator('.ipc-production-plan-table');
+      await expect(groupedStepper.getByText('Nhóm 1/2')).toBeVisible();
+      await expect(panel.getByText('KHSX-NHOM-01')).toBeVisible();
+      await expect(tableViewport).toHaveCSS('height', `${viewport.expectedTableHeight}px`);
+      const firstHeight = await tableViewport.evaluate((element) => element.getBoundingClientRect().height);
+
+      await groupedStepper.getByRole('button', { name: /Trang sau/ }).press('Enter');
+      await expect(groupedStepper.getByText('Nhóm 2/2')).toBeVisible();
+      await expect(panel.getByText('KHSX-NHOM-02')).toBeVisible();
+      await expect(groupedStepper.getByRole('button', { name: /Trang trước/ })).toBeFocused();
+      const secondHeight = await tableViewport.evaluate((element) => element.getBoundingClientRect().height);
+
+      expect(Math.abs(secondHeight - firstHeight)).toBeLessThanOrEqual(1);
+      await panel.screenshot({
+        path: `../.planning/ui-reviews/pagination/after-improvements/weekly-menu-grouped-${viewport.name.toLowerCase()}.png`,
+        animations: 'disabled',
+      });
+    });
+  }
 
   test('admin data keeps import actions semantic and removes inactive command chrome', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
@@ -557,14 +655,14 @@ test.describe('operational control surface', () => {
     await stubMealOrderDraftShift(page);
     await page.goto(ROUTES.MEAL_ORDERS);
 
-    const lockButton = page.getByRole('button', { name: 'Chốt đơn ca này' });
+    const lockButton = page.getByRole('button', { name: 'Chốt đơn cả ngày' });
     await expect(lockButton).toBeEnabled();
     await lockButton.click();
 
-    const confirmDialog = page.getByRole('dialog', { name: 'Chốt đơn ca này?' });
+    const confirmDialog = page.getByRole('dialog', { name: 'Chốt đơn cả ngày?' });
     await expect(confirmDialog).toBeVisible();
     await expect(confirmDialog.getByRole('button', { name: 'Hủy' })).toBeVisible();
-    await expect(confirmDialog.getByRole('button', { name: 'Chốt đơn ca' })).toBeVisible();
+    await expect(confirmDialog.getByRole('button', { name: 'Chốt cả ngày' })).toBeVisible();
 
     const isInsideToolbar = await confirmDialog.evaluate((element) =>
       Boolean(element.closest('.ipc-order-action-toolbar')),
@@ -578,9 +676,36 @@ test.describe('operational control surface', () => {
     expect(box!.y).toBeGreaterThanOrEqual(24);
     expect(box!.y + box!.height).toBeLessThanOrEqual(viewport!.height - 24);
 
-    await confirmDialog.getByRole('button', { name: 'Chốt đơn ca' }).click();
+    const lockRequestPromise = page.waitForRequest((request) =>
+      request.method() === 'POST' && request.url().includes('/api/coordination/orders/lock'),
+    );
+    await confirmDialog.getByRole('button', { name: 'Chốt cả ngày' }).click();
+    const lockRequest = await lockRequestPromise;
+    expect(lockRequest.postDataJSON()).toMatchObject({ scope: 'FULLDAY' });
     await expect(confirmDialog.getByRole('alert')).toContainText('Backend từ chối chốt ca do thiếu số suất thực tế.');
     await expect(confirmDialog).toBeVisible();
+  });
+
+  test('draft plans stay unlocked after cutoff until the user confirms FULLDAY lock', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-07-11T10:15:00+07:00') });
+    await stubMealOrderDraftShift(page);
+    await page.goto(ROUTES.MEAL_ORDERS);
+
+    await expect(page.getByText('Cần chốt thủ công', { exact: true })).toBeVisible();
+    await expect(page.getByText('Dữ liệu đang ở trạng thái nháp', { exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Chốt đơn cả ngày' })).toBeEnabled();
+    await expect(page.getByText('Ca này đã khóa', { exact: true })).toBeHidden();
+  });
+
+  test('empty shifts never expose lock, signoff, export, or adjustment actions after cutoff', async ({ page }) => {
+    await page.clock.install({ time: new Date('2026-07-11T10:15:00+07:00') });
+    await page.goto(ROUTES.MEAL_ORDERS);
+
+    await expect(page.getByText('Chưa có kế hoạch suất ăn', { exact: true })).toBeVisible();
+    for (const name of ['Chốt đơn cả ngày', 'Hoàn tất ca', 'Xuất báo cáo']) {
+      await expect(page.getByRole('button', { name })).toHaveCount(0);
+    }
+    await expect(page.getByRole('button', { name: 'Yêu cầu điều chỉnh' })).toHaveCount(0);
   });
 
   test('approval decision modal is addressable by role and name', async ({ page }) => {
@@ -588,10 +713,10 @@ test.describe('operational control surface', () => {
     await page.goto(ROUTES.APPROVALS);
 
     await page.getByRole('button', { name: 'Duyệt' }).first().click();
-    const approvalDialog = page.getByRole('dialog', { name: 'Xác nhận duyệt chứng từ' });
+    const approvalDialog = page.getByRole('dialog', { name: 'Duyệt chứng từ?' });
     await expect(approvalDialog).toBeVisible();
     await expect(approvalDialog.getByLabel('Ghi chú duyệt (tùy chọn)')).toBeVisible();
-    await approvalDialog.getByRole('button', { name: 'Hủy' }).click();
+    await approvalDialog.getByRole('button', { name: 'Giữ chứng từ' }).click();
     await expect(approvalDialog).toBeHidden();
   });
 });

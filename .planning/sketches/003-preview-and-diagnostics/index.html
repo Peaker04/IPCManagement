@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sketch 003 — Preview and Diagnostics</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { padding-top: 49px; background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-sm); }
+    button, input, select { min-height: 32px; font: inherit; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .variant-nav { position: fixed; inset: 0 0 auto; z-index: 100; min-height: 49px; display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); }
+    .variant-nav strong { margin-right: 10px; font-size: 13px; }
+    .variant-tab { border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); padding: 0 12px; transition: .15s ease; }
+    .variant-tab:hover { background: var(--color-surface-subtle); color: var(--color-text); }
+    .variant-tab.active { border-color: #b8d7f5; background: var(--color-primary-soft); color: var(--color-primary); font-weight: 700; }
+    .shellbar { height: 48px; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: var(--color-shell); color: white; }
+    .shellbar strong { font-size: 16px; }
+    .shellbar span { margin-left: 12px; color: #d5e0ea; font-size: 12px; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-primary); padding: 0 12px; font-weight: 600; transition: .15s ease; }
+    .btn:hover { background: var(--color-primary-soft); }
+    .btn.primary { background: var(--color-primary); color: white; }
+    .btn.primary:hover { background: var(--color-primary-hover); }
+    .btn.ghost { border-color: var(--color-border); color: var(--color-text); }
+    .btn.danger { border-color: var(--color-danger); color: var(--color-danger); }
+    .btn:disabled { cursor: not-allowed; opacity: .45; }
+    .actions { display: flex; gap: 8px; }
+    .context { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 68px; padding: 10px 24px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+    .context h1 { margin: 0 0 4px; font-size: 18px; }
+    .context p { margin: 0; color: var(--color-text-muted); }
+    .state-switch { display: flex; gap: 2px; border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 2px; background: var(--color-surface-subtle); }
+    .state-switch button { border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); padding: 0 9px; }
+    .state-switch button.active { background: white; color: var(--color-primary); box-shadow: var(--shadow-sm); font-weight: 700; }
+    .banner { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; margin: 12px 24px 0; border: 1px solid #8fb9e3; border-left: 4px solid var(--color-primary); background: #f5faff; padding: 10px 12px; }
+    .banner.warning { border-color: #efc15c; border-left-color: var(--color-warning); background: var(--color-warning-soft); }
+    .banner.error { border-color: #f0abab; border-left-color: var(--color-danger); background: var(--color-danger-soft); }
+    .banner.success { border-color: #82c99f; border-left-color: var(--color-success); background: var(--color-success-soft); }
+    .banner strong { display: block; margin-bottom: 3px; }
+    .banner p { margin: 0; color: var(--color-text-muted); line-height: 1.45; }
+    .panel { border: 1px solid var(--color-border); border-radius: var(--radius-md); background: var(--color-surface); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .panel-head { min-height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+    .panel-head h2 { margin: 0; font-size: 14px; }
+    .status { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; border-radius: 99px; background: var(--color-primary-soft); color: var(--color-primary); padding: 0 9px; font-size: 12px; font-weight: 700; }
+    .status::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+    .status.success { background: var(--color-success-soft); color: var(--color-success); }
+    .status.warning { background: var(--color-warning-soft); color: var(--color-warning); }
+    .status.error { background: var(--color-danger-soft); color: var(--color-danger); }
+    .metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 7px; }
+    .metric { border: 1px solid var(--color-border); background: var(--color-surface-subtle); padding: 8px; }
+    .metric span { display: block; color: var(--color-text-muted); font-size: 11px; }
+    .metric strong { display: block; margin-top: 3px; font-size: 17px; }
+    .source-layout { display: grid; grid-template-columns: minmax(720px,1fr) 360px; gap: 12px; padding: 12px 24px 78px; }
+    .grid-wrap { overflow: auto; max-height: 545px; background: #eef1f4; }
+    table.sheet { width: 100%; min-width: 790px; border-collapse: separate; border-spacing: 0; table-layout: fixed; background: white; font-size: 12px; }
+    .sheet th, .sheet td { position: relative; height: 32px; border-right: 1px solid #dfe3e8; border-bottom: 1px solid #dfe3e8; padding: 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sheet thead th { position: sticky; top: 0; z-index: 3; background: #edf0f2; color: var(--color-text-muted); text-align: center; }
+    .sheet .rownum { position: sticky; left: 0; z-index: 2; width: 42px; background: #edf0f2; color: var(--color-text-muted); text-align: center; }
+    .sheet thead .rownum { z-index: 4; }
+    .sheet td.selected { background: #e2f0ff; box-shadow: inset 0 0 0 1px var(--color-primary); }
+    .sheet td.warn-cell { background: #fff2c8; box-shadow: inset 0 0 0 2px var(--color-warning); }
+    .sheet td.error-cell { background: #ffe0e0; box-shadow: inset 0 0 0 2px var(--color-danger); }
+    .sheet td.focus-cell { animation: pulse 1s ease 2; }
+    .cell-marker { position: absolute; top: 1px; right: 2px; width: 8px; height: 8px; border-radius: 50%; background: var(--color-danger); }
+    .section-row td:not(.rownum) { background: #e9eef3; font-weight: 700; text-align: center; }
+    @keyframes pulse { 50% { box-shadow: inset 0 0 0 3px var(--color-primary); } }
+    .side-stack { display: grid; align-content: start; gap: 12px; }
+    .panel-body { padding: 12px; }
+    .issue-list { display: grid; gap: 8px; }
+    .issue { width: 100%; display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; border: 1px solid var(--color-border); border-left: 4px solid var(--issue, var(--color-warning)); border-radius: var(--radius-sm); background: white; padding: 9px; color: var(--color-text); text-align: left; }
+    .issue:hover { background: var(--color-surface-subtle); }
+    .issue-index { display: grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: color-mix(in srgb, var(--issue) 12%, white); color: var(--issue); font-weight: 700; }
+    .issue strong { display: block; margin-bottom: 3px; }
+    .issue p { margin: 0; color: var(--color-text-muted); font-size: 12px; line-height: 1.4; }
+    .issue code { align-self: start; color: var(--issue); font: 600 11px var(--font-mono); }
+    .canonical { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .canonical th, .canonical td { border-bottom: 1px solid var(--color-border); padding: 8px 9px; text-align: left; vertical-align: top; }
+    .canonical th { background: var(--color-surface-subtle); color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; }
+    .canonical td:first-child { font-weight: 700; }
+    .canonical tr.issue-row { background: var(--color-danger-soft); }
+    .canonical tr.warning-row { background: var(--color-warning-soft); }
+    .compare-layout { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 24px 230px; }
+    .compare-layout .grid-wrap { max-height: 500px; }
+    .drawer { position: fixed; inset: auto 24px 0; z-index: 50; max-height: 220px; border: 1px solid var(--color-border); border-bottom: 0; border-radius: var(--radius-md) var(--radius-md) 0 0; background: white; box-shadow: 0 -5px 18px rgba(34,53,72,.15); transition: transform .2s ease; }
+    .drawer.collapsed { transform: translateY(calc(100% - 44px)); }
+    .drawer-body { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; padding: 10px 12px; }
+    .review-layout { display: grid; grid-template-columns: minmax(700px,1fr) 380px; gap: 12px; padding: 12px 24px 78px; }
+    .day-group { border-bottom: 1px solid var(--color-border); }
+    .day-head { display: flex; align-items: center; justify-content: space-between; padding: 9px 12px; background: var(--color-surface-subtle); }
+    .day-head h3 { margin: 0; font-size: 13px; }
+    .menu-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; padding: 10px 12px 12px; }
+    .menu-card { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 8px; }
+    .menu-card strong { display: block; margin-bottom: 4px; font-size: 12px; }
+    .menu-card span { color: var(--color-text-muted); }
+    .evidence { margin-top: 8px; border: 1px solid var(--color-border); background: var(--color-surface-subtle); padding: 9px; font: 12px var(--font-mono); }
+    .footerbar { position: fixed; inset: auto 0 0; z-index: 60; min-height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 24px; border-top: 1px solid var(--color-border); background: rgba(255,255,255,.96); box-shadow: 0 -3px 12px rgba(34,53,72,.08); }
+    .toast { position: fixed; right: 20px; bottom: 70px; z-index: 300; transform: translateY(16px); opacity: 0; border-radius: var(--radius-md); background: var(--color-shell); color: white; box-shadow: var(--shadow-lg); padding: 11px 15px; pointer-events: none; transition: .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    #sketch-tools { position: fixed; right: 12px; bottom: 8px; z-index: 9999; display: flex; gap: 5px; border-radius: 8px; background: rgba(0,0,0,.78); color: white; padding: 6px 8px; opacity: .42; transition: opacity .2s; font: 12px system-ui; }
+    #sketch-tools:hover { opacity: 1; }
+    #sketch-tools button { min-height: 26px; border: 1px solid #777; border-radius: 4px; background: #242424; color: white; padding: 0 7px; }
+    #sketch-frame { margin: 0 auto; transition: max-width .2s; }
+    .mobile { display: none; margin: 12px; border: 1px solid var(--color-border); background: white; padding: 16px; }
+    @media (max-width: 950px) { .desktop { display: none; } .mobile { display: block; } .variant-nav strong { display: none; } .variant-nav { overflow-x: auto; } }
+    @media (prefers-reduced-motion: reduce) { * { transition-duration: .01ms !important; animation: none !important; } }
+  </style>
+</head>
+<body data-state="error">
+  <nav class="variant-nav" aria-label="Biến thể sketch"><strong>Sketch 003 · Preview & lỗi</strong><button class="variant-tab active" data-variant="a">A: Source First ★ Selected</button><button class="variant-tab" data-variant="b">B: Compare Split</button><button class="variant-tab" data-variant="c">C: Review Queue</button></nav>
+  <main id="sketch-frame">
+    <section id="variant-a" class="variant">
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio · ANV 25k</span></div><div class="actions"><button class="btn" data-action="back-map">Sửa mapping</button><button class="btn primary save-button" disabled data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Kiểm tra trực tiếp trên workbook</h1><p>Ô có vấn đề được đánh dấu; chọn một lỗi để nhảy tới ô và xem cách khắc phục.</p></div><div class="state-switch"><button data-state="valid">Hợp lệ</button><button data-state="warning">Cảnh báo</button><button class="active" data-state="error">Có lỗi</button></div></div>
+        <div class="banner error state-banner"><div><strong>Chưa thể lưu template</strong><p>Phát hiện 2 lỗi cần sửa và 1 cảnh báo trong vùng C7:I15.</p></div><span class="status error state-status">2 lỗi · 1 cảnh báo</span></div>
+        <div class="source-layout"><section class="panel"><div class="panel-head"><h2>Workbook nguồn · weekly-menu-template-ANV-2026-07-20 (4).xlsx</h2><span class="status">C7:I15</span></div><div class="grid-host"></div></section><aside class="side-stack"><section class="panel"><div class="panel-head"><h2>Tổng quan</h2></div><div class="panel-body"><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món đọc</span><strong class="item-count">22</strong></div><div class="metric"><span>Lỗi</span><strong class="error-count" style="color:var(--color-danger)">2</strong></div><div class="metric"><span>Cảnh báo</span><strong class="warning-count" style="color:var(--color-warning)">1</strong></div></div></div></section><section class="panel"><div class="panel-head"><h2>Vấn đề cần xử lý</h2><button class="btn ghost" data-action="fix-all">Tự sửa có thể</button></div><div class="panel-body issue-list dynamic-issues"></div></section><section class="panel"><div class="panel-head"><h2>Preview nhanh</h2><button class="btn ghost" data-action="open-preview">Mở toàn bộ</button></div><div class="panel-body"><table class="canonical compact-preview"></table></div></section></aside></div>
+        <footer class="footerbar"><div><strong>ANV · Template v1 draft</strong><span style="color:var(--color-text-muted)"> · Preview chỉ đọc, chưa ghi database</span></div><div class="actions"><button class="btn ghost" data-action="back-map">Quay lại mapping</button><button class="btn primary save-button" disabled data-action="save">Lưu template</button></div></footer>
+      </div><div class="mobile"><h2>Xem danh sách lỗi</h2><p>Trên màn hình hẹp, hiển thị diagnostics dạng danh sách; lưới Excel chỉ mở khi chọn một ô nguồn.</p></div>
+    </section>
+
+    <section id="variant-b" class="variant" hidden>
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio · So sánh</span></div><div class="actions"><button class="btn" data-action="back-map">Sửa mapping</button><button class="btn primary save-button" disabled data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>So sánh nguồn và menu chuẩn hóa</h1><p>Mỗi dòng preview giữ liên kết với ô nguồn; danh sách lỗi nằm trong drawer phía dưới.</p></div><div class="state-switch"><button data-state="valid">Hợp lệ</button><button data-state="warning">Cảnh báo</button><button class="active" data-state="error">Có lỗi</button></div></div>
+        <div class="banner error state-banner"><div><strong>Kết quả chưa hợp lệ</strong><p>22/24 món đã chuẩn hóa. Hai dòng bị giữ lại trong danh sách lỗi và không được lưu.</p></div><span class="status error state-status">2 lỗi · 1 cảnh báo</span></div>
+        <div class="compare-layout"><section class="panel"><div class="panel-head"><h2>Excel nguồn</h2><span class="status">ANV 25k · C7:I15</span></div><div class="grid-host"></div></section><section class="panel"><div class="panel-head"><h2>Menu chuẩn hóa</h2><div class="actions"><span class="status warning state-status">22/24 món</span><button class="btn ghost" data-action="filter-issues">Chỉ xem lỗi</button></div></div><div style="max-height:545px;overflow:auto"><table class="canonical full-preview"></table></div></section></div>
+        <aside class="drawer"><div class="panel-head"><h2>Diagnostics · <span class="drawer-count">3 vấn đề</span></h2><button class="btn ghost" data-action="toggle-drawer">Thu gọn</button></div><div class="drawer-body dynamic-issues"></div></aside>
+      </div><div class="mobile"><h2>So sánh theo từng dòng</h2><p>Trên màn hình hẹp, source và preview chuyển thành hai tab thay vì hiển thị song song.</p></div>
+    </section>
+
+    <section id="variant-c" class="variant" hidden>
+      <div class="desktop">
+        <header class="shellbar"><div><strong>IPC Management</strong><span>Template Studio · Review</span></div><div class="actions"><button class="btn" data-action="back-map">Sửa mapping</button><button class="btn primary save-button" disabled data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context"><div><h1>Duyệt menu chuẩn hóa</h1><p>Tập trung vào kết quả sẽ được lưu; chọn diagnostics để mở bằng chứng từ Excel.</p></div><div class="state-switch"><button data-state="valid">Hợp lệ</button><button data-state="warning">Cảnh báo</button><button class="active" data-state="error">Có lỗi</button></div></div>
+        <div class="banner error state-banner"><div><strong>2 món chưa thể đưa vào menu</strong><p>Menu preview vẫn hiển thị 22 món hợp lệ. Template chỉ lưu được khi diagnostics không còn blocker.</p></div><span class="status error state-status">Cần sửa</span></div>
+        <div class="review-layout"><section class="panel"><div class="panel-head"><h2>Menu ANV 25k · Tuần 20/07/2026</h2><div class="actions"><span class="status warning state-status">22/24 món</span><button class="btn ghost" data-action="expand-all">Mở tất cả</button></div></div><div class="menu-groups"></div></section><aside class="side-stack"><section class="panel"><div class="panel-head"><h2>Tổng quan</h2></div><div class="panel-body metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong class="item-count">22</strong></div><div class="metric"><span>Lỗi</span><strong class="error-count" style="color:var(--color-danger)">2</strong></div><div class="metric"><span>Cảnh báo</span><strong class="warning-count" style="color:var(--color-warning)">1</strong></div></div></section><section class="panel"><div class="panel-head"><h2>Hàng đợi cần xử lý</h2></div><div class="panel-body issue-list dynamic-issues"></div></section><section class="panel evidence-panel"><div class="panel-head"><h2>Bằng chứng nguồn</h2><button class="btn ghost" data-action="open-source">Mở workbook</button></div><div class="panel-body"><p class="helper">Chọn một diagnostics để xem giá trị gốc.</p><div class="evidence">Sheet: ANV 25k<br>Ô: C12<br>Giá trị: ""</div></div></section></aside></div>
+        <footer class="footerbar"><div><strong>Preview read-only</strong><span style="color:var(--color-text-muted)"> · 22 món hợp lệ, 2 dòng bị block</span></div><div class="actions"><button class="btn ghost" data-action="export">Xuất diagnostics</button><button class="btn primary save-button" disabled data-action="save">Lưu template</button></div></footer>
+      </div><div class="mobile"><h2>Duyệt menu và diagnostics</h2><p>Review Queue phù hợp nhất cho màn hình hẹp: menu và diagnostics xếp dọc, workbook chỉ mở theo nhu cầu.</p></div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="sketch-tools"><button data-width="375px">Phone</button><button data-width="768px">Tablet</button><button data-width="1280px">Desktop</button><button data-width="100%">Full</button></div>
+  <script>
+    const letters=['C','D','E','F','G','H','I'];
+    const days=['NHÓM MÓN','THỨ HAI 20/07','THỨ BA 21/07','THỨ TƯ 22/07','THỨ NĂM 23/07','THỨ SÁU 24/07','THỨ BẢY 25/07'];
+    const menu=[['MENU MẶN - CA SÁNG','','','','','',''],['Món mặn 1','Cá kho tộ','Gà xào sả ớt','Thịt kho trứng','Cá chiên sốt','Bò xào hành cần','Cá kho tiêu'],['Món mặn 2','Trứng chiên','Cá rim','Gà kho gừng','Thịt rang','Cá kho tiêu','Gà chiên'],['Món rau','Rau muống xào','','Giá hẹ xào','Bí xanh xào','Su su xào','Cải ngồng'],['Món canh','Canh bí đao','Canh cải','Canh chua','Canh rau ngót','Canh bí đỏ','Canh mướp'],['MENU CHAY','','','','','',''],['Ghi chú','Không hành','','','','',''],['Canh','Canh rau ngót','Canh bí xanh','Canh cải','Canh rong biển','Canh chua chay','Canh nấm']];
+    function gridMarkup(){let h=`<div class="grid-wrap"><table class="sheet"><thead><tr><th class="rownum"></th>${letters.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody><tr><th class="rownum">4</th><td colspan="7" style="text-align:center;font-weight:700">THỰC ĐƠN AMANN · TUẦN 20/07/2026</td></tr><tr><th class="rownum">7</th>${days.map(x=>`<td class="selected">${x}</td>`).join('')}</tr>`;menu.forEach((row,i)=>{const r=8+i,section=row[0].startsWith('MENU');h+=`<tr class="${section?'section-row':''}"><th class="rownum">${r}</th>${row.map((v,c)=>{const ref=`${letters[c]}${r}`;const issue=ref==='E11'?'warn-cell':ref==='C14'?'error-cell':ref==='D14'?'error-cell':'';return `<td tabindex="0" data-ref="${ref}" class="selected ${issue}">${v}${issue?'<i class="cell-marker"></i>':''}</td>`}).join('')}</tr>`});return h+'</tbody></table></div>';}
+    document.querySelectorAll('.grid-host').forEach(x=>x.innerHTML=gridMarkup());
+    const validIssues=[];
+    const warningIssues=[{level:'warning',ref:'E11',title:'Món trống trong ngày',message:'Thứ Ba thiếu món rau; cho phép lưu nếu đây là chủ ý.'}];
+    const errorIssues=[{level:'error',ref:'C14',title:'Dòng không phải món ăn',message:'"Ghi chú" đang nằm trong vùng menu. Gán dòng này là Bỏ qua.'},{level:'error',ref:'D14',title:'Giá trị ghi chú bị đọc như món',message:'"Không hành" cần được loại khỏi danh sách món.'},{level:'warning',ref:'E11',title:'Món trống trong ngày',message:'Thứ Ba thiếu món rau; xác nhận nếu đây là chủ ý.'}];
+    const previewRows=[['Thứ Hai','Món mặn 1','Cá kho tộ','D9'],['Thứ Hai','Món rau','Rau muống xào','D11'],['Thứ Ba','Món mặn 1','Gà xào sả ớt','E9'],['Thứ Ba','Món rau','Thiếu dữ liệu','E11'],['Thứ Tư','Món canh','Canh chua','F12'],['Thứ Năm','Món mặn 2','Thịt rang','G10']];
+    function issueMarkup(issue,i){const color=issue.level==='error'?'var(--color-danger)':'var(--color-warning)';return `<button class="issue" data-ref="${issue.ref}" style="--issue:${color}"><span class="issue-index">${i+1}</span><span><strong>${issue.title}</strong><p>${issue.message}</p></span><code>${issue.ref}</code></button>`;}
+    function tableMarkup(compact=false){const rows=(compact?previewRows.slice(0,3):previewRows).map(r=>`<tr class="${r[3]==='E11'?'warning-row':''}" data-ref="${r[3]}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><button class="btn ghost" data-ref="${r[3]}">${r[3]}</button></td></tr>`).join('');return `<thead><tr><th>Ngày</th><th>Nhóm</th><th>Món chuẩn hóa</th><th>Nguồn</th></tr></thead><tbody>${rows}</tbody>`;}
+    document.querySelectorAll('.compact-preview').forEach(x=>x.innerHTML=tableMarkup(true));document.querySelectorAll('.full-preview').forEach(x=>x.innerHTML=tableMarkup(false));
+    document.querySelectorAll('.menu-groups').forEach(host=>{host.innerHTML=['Thứ Hai · 20/07','Thứ Ba · 21/07','Thứ Tư · 22/07'].map((day,i)=>`<section class="day-group"><div class="day-head"><h3>${day}</h3><span class="status ${i===1?'warning':'success'}">${i===1?'3 món · thiếu 1':'4 món'}</span></div><div class="menu-cards"><div class="menu-card"><strong>Món mặn 1</strong><span>${['Cá kho tộ','Gà xào sả ớt','Thịt kho trứng'][i]}</span></div><div class="menu-card"><strong>Món rau</strong><span>${i===1?'Thiếu dữ liệu':['Rau muống xào','Giá hẹ xào'][i]||'Giá hẹ xào'}</span></div><div class="menu-card"><strong>Món canh</strong><span>${['Canh bí đao','Canh cải','Canh chua'][i]}</span></div><div class="menu-card"><strong>Món chay</strong><span>${['Đậu hũ sốt cà','Nấm kho tiêu','Cải kho chay'][i]}</span></div></div></section>`).join('');});
+    function applyState(state){document.body.dataset.state=state;const issues=state==='valid'?validIssues:state==='warning'?warningIssues:errorIssues;document.querySelectorAll('.state-switch button').forEach(b=>b.classList.toggle('active',b.dataset.state===state));document.querySelectorAll('.dynamic-issues').forEach(host=>host.innerHTML=issues.length?issues.map(issueMarkup).join(''):'<div class="banner success" style="margin:0"><div><strong>Không có vấn đề</strong><p>Template sẵn sàng để lưu.</p></div></div>');document.querySelectorAll('.save-button').forEach(b=>b.disabled=state==='error');document.querySelectorAll('.item-count').forEach(x=>x.textContent=state==='error'?'22':'24');document.querySelectorAll('.error-count').forEach(x=>x.textContent=state==='error'?'2':'0');document.querySelectorAll('.warning-count').forEach(x=>x.textContent=state==='valid'?'0':'1');document.querySelectorAll('.drawer-count').forEach(x=>x.textContent=`${issues.length} vấn đề`);document.querySelectorAll('.state-banner').forEach(b=>{b.className=`banner state-banner ${state==='valid'?'success':state}`;const title=b.querySelector('strong'),p=b.querySelector('p');title.textContent=state==='valid'?'Template hợp lệ':state==='warning'?'Template có 1 cảnh báo':'Chưa thể lưu template';p.textContent=state==='valid'?'6 ngày và 24 món đã được chuẩn hóa.':state==='warning'?'Một ô trống cần xác nhận; bạn vẫn có thể lưu.':'Phát hiện 2 lỗi cần sửa và 1 cảnh báo trong vùng C7:I15.';});document.querySelectorAll('.state-status').forEach(s=>{s.className=`status state-status ${state==='valid'?'success':state}`;s.textContent=state==='valid'?'Sẵn sàng lưu':state==='warning'?'1 cảnh báo':'2 lỗi · 1 cảnh báo';});}
+    applyState('error');
+    function focusRef(ref){document.querySelectorAll('.focus-cell').forEach(x=>x.classList.remove('focus-cell'));const visible=[...document.querySelectorAll(`.variant:not([hidden]) [data-ref="${ref}"]`)];const cell=visible.find(x=>x.matches('td'));if(cell){cell.classList.add('focus-cell');cell.scrollIntoView({behavior:'smooth',block:'center',inline:'center'});}document.querySelectorAll('.evidence').forEach(x=>x.innerHTML=`Sheet: ANV 25k<br>Ô: ${ref}<br>Giá trị: ${ref==='C14'?'"Ghi chú"':ref==='D14'?'"Không hành"':'""'}`);toast(`Đã mở bằng chứng tại ô ${ref}.`);}
+    document.querySelectorAll('.variant-tab').forEach(tab=>tab.addEventListener('click',()=>showVariant(tab.dataset.variant,tab)));function showVariant(id,tab){document.querySelectorAll('.variant').forEach(v=>v.hidden=v.id!==`variant-${id}`);document.querySelectorAll('.variant-tab').forEach(t=>t.classList.toggle('active',t===tab));}
+    const requested=new URLSearchParams(location.search).get('variant');if(['a','b','c'].includes(requested)){const tab=document.querySelector(`[data-variant="${requested}"]`);showVariant(requested,tab);}
+    let timer;function toast(text){const el=document.getElementById('toast');el.textContent=text;el.classList.add('show');clearTimeout(timer);timer=setTimeout(()=>el.classList.remove('show'),2200);}
+    document.addEventListener('click',e=>{const state=e.target.closest('[data-state]')?.dataset.state;if(state){applyState(state);toast(`Đã chuyển sang trạng thái ${e.target.textContent}.`);return;}const ref=e.target.closest('[data-ref]')?.dataset.ref;if(ref){focusRef(ref);return;}const action=e.target.closest('[data-action]')?.dataset.action;if(!action)return;if(action==='save'){e.target.disabled=true;const old=e.target.textContent;e.target.textContent='Đang lưu...';setTimeout(()=>{e.target.disabled=false;e.target.textContent=old;toast('Đã lưu template ANV v1.');},750);}if(action==='back-map')toast('Quay lại bước ánh xạ vùng, giữ nguyên preview hiện tại.');if(action==='fix-all'){applyState('warning');toast('Đã gán dòng 14 là Bỏ qua. Còn 1 cảnh báo.');}if(action==='open-preview')toast('Mở preview menu đầy đủ.');if(action==='toggle-drawer'){const drawer=e.target.closest('.drawer');drawer.classList.toggle('collapsed');e.target.textContent=drawer.classList.contains('collapsed')?'Mở rộng':'Thu gọn';}if(action==='filter-issues'){document.querySelectorAll('.full-preview tr:not(.warning-row)').forEach(r=>{if(r.parentElement.tagName==='TBODY')r.hidden=!r.hidden});}if(action==='expand-all')toast('Đã mở tất cả các ngày.');if(action==='open-source')toast('Mở workbook và focus ô nguồn đang chọn.');if(action==='export')toast('Đã chuẩn bị danh sách diagnostics để tải xuống.');});
+    document.querySelectorAll('#sketch-tools [data-width]').forEach(button=>button.addEventListener('click',()=>{document.getElementById('sketch-frame').style.maxWidth=button.dataset.width;toast(`Viewport: ${button.textContent}`);}));
+  </script>
+</body>
+</html>

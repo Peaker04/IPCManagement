@@ -318,13 +318,75 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> LockOrderPlan([FromBody] LockOrderPlanRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.LockOrderPlanAsync(request, userId);
+        LockOrderPlanResultDto? result;
+        try
+        {
+            result = await _coordinationService.LockOrderPlanAsync(request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy kế hoạch suất ăn để chốt."));
         }
 
         return Ok(ApiResponse<LockOrderPlanResultDto>.SuccessResult(result, "Chốt đơn thành công."));
+    }
+
+    [HttpPost("orders/signoff")]
+    [ProducesResponseType(typeof(ApiResponse<CoordinationScopeActionResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> SignoffOrderScope([FromBody] CoordinationScopeActionRequestDto request)
+    {
+        var userId = _currentUserService.GetUserId(User);
+        try
+        {
+            var result = await _coordinationService.SignoffOrderScopeAsync(request, userId);
+            return result is null
+                ? NotFound(ApiResponse.FailResult("Không tìm thấy kế hoạch suất ăn cho ca đã chọn."))
+                : Ok(ApiResponse<CoordinationScopeActionResultDto>.SuccessResult(result, "Hoàn tất ca thành công."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPost("orders/unlock")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [ProducesResponseType(typeof(ApiResponse<CoordinationScopeActionResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlockOrderPlanScope([FromBody] CoordinationScopeActionRequestDto request)
+    {
+        var userId = _currentUserService.GetUserId(User);
+        try
+        {
+            var result = await _coordinationService.UnlockOrderPlanScopeAsync(request, userId);
+            return result is null
+                ? NotFound(ApiResponse.FailResult("Không tìm thấy kế hoạch suất ăn cho ca đã chọn."))
+                : Ok(ApiResponse<CoordinationScopeActionResultDto>.SuccessResult(result, "Mở khóa ca thành công."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPost("weekly-menu/import")]

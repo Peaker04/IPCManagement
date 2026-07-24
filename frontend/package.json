@@ -13,9 +13,10 @@
     "test:coverage": "vitest run --coverage",
     "test:controls": "playwright test tests/control-surface.spec.ts",
     "test:ui-audit": "playwright test tests/ui-audit.spec.ts",
+    "test:performance": "playwright test tests/navigation-performance.spec.ts tests/cache-navigation.spec.ts",
     "test:smoke": "playwright test tests/route-smoke.spec.ts",
-    "test:visual": "playwright test tests/visual-routes.spec.ts",
-    "test:visual:update": "playwright test tests/visual-routes.spec.ts --update-snapshots"
+    "test:visual": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts",
+    "test:visual:update": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts --update-snapshots"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",

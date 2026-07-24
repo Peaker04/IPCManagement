@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sketch 001 — Fiori Mapping Layout</title>
+  <link rel="stylesheet" href="../themes/default.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body { background: var(--color-bg); color: var(--color-text); font-family: var(--font-sans); font-size: var(--text-sm); padding-top: 49px; }
+    button, input, select { font: inherit; }
+    button, select, input { min-height: 32px; }
+    button { cursor: pointer; }
+    button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 2px; }
+    .variant-nav { position: fixed; inset: 0 0 auto; z-index: 100; min-height: 49px; display: flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); box-shadow: var(--shadow-sm); }
+    .variant-nav strong { margin-right: 10px; font-size: 13px; }
+    .variant-tab { border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--color-text-muted); padding: 0 12px; transition: background .15s ease, color .15s ease, border-color .15s ease; }
+    .variant-tab:hover { background: var(--color-surface-subtle); color: var(--color-text); }
+    .variant-tab.active { border-color: #b8d7f5; background: var(--color-primary-soft); color: var(--color-primary); font-weight: 700; }
+    .variant { min-height: calc(100vh - 49px); }
+    .shell { min-height: 100%; background: var(--color-bg); }
+    .shellbar { height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 0 24px; background: var(--color-shell); color: white; }
+    .shellbar-title { display: flex; align-items: baseline; gap: 12px; }
+    .shellbar-title strong { font-size: 16px; }
+    .shellbar-title span, .shell-user { color: #d5e0ea; font-size: 12px; }
+    .page-title { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 72px; padding: 12px 24px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+    .page-title h1 { margin: 0 0 4px; font-size: 20px; font-weight: 600; }
+    .page-title p { margin: 0; color: var(--color-text-muted); }
+    .context-row { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; padding: 12px 24px; background: var(--color-surface); border-bottom: 1px solid var(--color-border); }
+    .field { display: grid; gap: 4px; min-width: 150px; }
+    .field.grow { flex: 1; min-width: 230px; }
+    .field label { color: var(--color-text-muted); font-size: 12px; font-weight: 600; }
+    .control { width: 100%; border: 1px solid var(--color-border-strong); border-radius: var(--radius-sm); background: var(--color-surface); color: var(--color-text); padding: 0 9px; transition: border .15s ease, box-shadow .15s ease; }
+    .control:hover { border-color: var(--color-primary); }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid var(--color-primary); border-radius: var(--radius-sm); padding: 0 13px; background: var(--color-surface); color: var(--color-primary); font-weight: 600; transition: background .15s ease, color .15s ease, opacity .15s ease; }
+    .btn:hover { background: var(--color-primary-soft); }
+    .btn.primary { background: var(--color-primary); color: white; }
+    .btn.primary:hover { background: var(--color-primary-hover); }
+    .btn.ghost { border-color: var(--color-border); color: var(--color-text); }
+    .btn.ghost:hover { background: var(--color-surface-subtle); }
+    .btn:disabled { cursor: not-allowed; opacity: .45; }
+    .status { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; border-radius: var(--radius-full); padding: 0 9px; background: var(--color-surface-subtle); color: var(--color-text-muted); font-size: 12px; font-weight: 700; }
+    .status::before { width: 7px; height: 7px; border-radius: 50%; background: currentColor; content: ""; }
+    .status.success { background: var(--color-success-soft); color: var(--color-success); }
+    .status.warning { background: var(--color-warning-soft); color: var(--color-warning); }
+    .panel { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-md); box-shadow: var(--shadow-sm); overflow: hidden; }
+    .panel-head { min-height: 42px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 12px; border-bottom: 1px solid var(--color-border); }
+    .panel-head h2, .panel-head h3 { margin: 0; font-size: 14px; }
+    .panel-body { padding: 12px; }
+    .message-strip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 12px 24px 0; border: 1px solid #8fb9e3; border-left: 4px solid var(--color-primary); background: #f5faff; padding: 9px 12px; }
+    .message-strip strong { margin-right: 6px; }
+    .workbench { display: grid; grid-template-columns: minmax(650px, 1.72fr) minmax(340px, .9fr); gap: 12px; padding: 12px 24px 80px; }
+    .stack { display: grid; align-content: start; gap: 12px; }
+    .mapping-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .mapping-grid .wide { grid-column: 1 / -1; }
+    .helper { color: var(--color-text-muted); font-size: 12px; line-height: 1.45; }
+    .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .metric { border: 1px solid var(--color-border); border-radius: var(--radius-sm); padding: 10px; background: var(--color-surface-subtle); }
+    .metric span { display: block; color: var(--color-text-muted); font-size: 11px; }
+    .metric strong { display: block; margin-top: 4px; font-size: 18px; }
+    .footerbar { position: fixed; inset: auto 0 0; z-index: 50; display: flex; justify-content: space-between; align-items: center; gap: 12px; min-height: 56px; padding: 10px 24px; background: rgba(255,255,255,.96); border-top: 1px solid var(--color-border); box-shadow: 0 -3px 12px rgba(34,53,72,.08); backdrop-filter: blur(8px); }
+    .actions { display: flex; gap: 8px; }
+    .excel-wrap { overflow: auto; max-height: 520px; background: #eef1f4; }
+    table.excel { width: 100%; min-width: 760px; border-collapse: separate; border-spacing: 0; table-layout: fixed; background: white; font-size: 12px; }
+    .excel th, .excel td { height: 32px; border-right: 1px solid #dfe3e8; border-bottom: 1px solid #dfe3e8; padding: 4px 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .excel thead th { position: sticky; top: 0; z-index: 3; background: #edf0f2; color: var(--color-text-muted); text-align: center; font-weight: 600; }
+    .excel .row-number { position: sticky; left: 0; z-index: 2; width: 42px; background: #edf0f2; color: var(--color-text-muted); text-align: center; font-weight: 600; }
+    .excel thead .row-number { z-index: 4; }
+    .excel td.selected { background: #d9ecff; box-shadow: inset 0 0 0 1px var(--color-primary); }
+    .excel td.role-label { background: #fff8e1; font-weight: 700; }
+    .excel tr.section-row td:not(.row-number) { background: #e9eef3; color: #334b62; font-weight: 700; text-align: center; }
+    .excel td:hover { background: #eef7ff; }
+    .sheet-tabs { display: flex; gap: 1px; padding: 6px 8px 0; background: #e8ebee; border-top: 1px solid var(--color-border); }
+    .sheet-tab { min-height: 28px; border: 1px solid var(--color-border); border-bottom: 0; background: #f5f6f7; color: var(--color-text-muted); padding: 0 12px; }
+    .sheet-tab.active { background: white; color: var(--color-primary); font-weight: 700; }
+    .wizard-wrap { padding: 16px 24px 84px; }
+    .wizard-steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 2px; margin-bottom: 14px; }
+    .wizard-step { position: relative; border-bottom: 3px solid var(--color-border); padding: 8px 10px 10px; background: var(--color-surface); color: var(--color-text-muted); text-align: left; }
+    .wizard-step.active { border-color: var(--color-primary); color: var(--color-primary); font-weight: 700; }
+    .wizard-step.complete { border-color: var(--color-success); color: var(--color-success); }
+    .wizard-stage { display: grid; gap: 12px; }
+    .wizard-stage[hidden] { display: none; }
+    .wizard-grid { display: grid; grid-template-columns: minmax(0,1fr) 300px; gap: 12px; }
+    .summary-list { display: grid; gap: 8px; }
+    .summary-row { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--color-border); padding: 8px 0; }
+    .studio { display: grid; grid-template-columns: 250px minmax(620px,1fr) 330px; min-height: calc(100vh - 169px); }
+    .studio-nav, .studio-inspector { background: var(--color-surface); }
+    .studio-nav { border-right: 1px solid var(--color-border); }
+    .studio-inspector { border-left: 1px solid var(--color-border); }
+    .studio-center { min-width: 0; padding: 12px; }
+    .nav-section { padding: 12px; border-bottom: 1px solid var(--color-border); }
+    .nav-section h3 { margin: 0 0 8px; color: var(--color-text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; }
+    .nav-item { width: 100%; min-height: 38px; display: grid; gap: 2px; border: 0; border-left: 3px solid transparent; background: transparent; color: var(--color-text); padding: 6px 10px; text-align: left; }
+    .nav-item:hover { background: var(--color-surface-subtle); }
+    .nav-item.active { border-left-color: var(--color-primary); background: var(--color-primary-soft); color: var(--color-primary); }
+    .nav-item small { color: var(--color-text-muted); }
+    .inspector-section { padding: 12px; border-bottom: 1px solid var(--color-border); }
+    .inspector-section h3 { margin: 0 0 10px; font-size: 13px; }
+    .mini-preview { display: grid; gap: 6px; }
+    .mini-row { display: grid; grid-template-columns: 80px 1fr; gap: 8px; padding: 6px; background: var(--color-surface-subtle); }
+    .mini-row strong { color: var(--color-text-muted); font-size: 11px; }
+    .toast { position: fixed; right: 20px; bottom: 72px; z-index: 200; max-width: 380px; transform: translateY(20px); opacity: 0; pointer-events: none; border-radius: var(--radius-md); background: var(--color-shell); color: white; box-shadow: var(--shadow-lg); padding: 12px 16px; transition: transform .2s ease, opacity .2s ease; }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    #sketch-tools { position: fixed; right: 12px; bottom: 8px; z-index: 9999; display: flex; align-items: center; gap: 5px; border-radius: 8px; background: rgba(0,0,0,.78); color: white; padding: 6px 8px; opacity: .42; transition: opacity .2s ease; font: 12px system-ui; }
+    #sketch-tools:hover { opacity: 1; }
+    #sketch-tools button, #sketch-tools select { min-height: 26px; border: 1px solid #777; border-radius: 4px; background: #242424; color: white; padding: 0 7px; }
+    #sketch-frame { margin: 0 auto; transition: max-width .2s ease; }
+    .annotate *:hover { outline: 1px dashed #d20ac7; }
+    .annotation-tip { position: fixed; z-index: 99999; display: none; background: #111; color: white; padding: 4px 7px; border-radius: 4px; pointer-events: none; font: 11px monospace; }
+    .mobile-fallback { display: none; margin: 12px; border: 1px solid var(--color-border); background: var(--color-surface); padding: 16px; }
+    @media (max-width: 900px) {
+      .desktop-only { display: none !important; }
+      .mobile-fallback { display: block; }
+      .variant-nav strong { display: none; }
+      .variant-nav { overflow-x: auto; }
+      .page-title, .context-row { padding-left: 12px; padding-right: 12px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body>
+  <nav class="variant-nav" aria-label="Biến thể sketch">
+    <strong>Sketch 001 · Bố cục</strong>
+    <button class="variant-tab active" data-variant="a">A: Split Workbench</button>
+    <button class="variant-tab" data-variant="b">B: Guided Wizard</button>
+    <button class="variant-tab" data-variant="c">C: Template Studio ★ Selected</button>
+  </nav>
+
+  <main id="sketch-frame">
+    <section id="variant-a" class="variant">
+      <div class="shell desktop-only">
+        <header class="shellbar"><div class="shellbar-title"><strong>IPC Management</strong><span>Quản lý thực đơn tuần</span></div><div class="shell-user">Nguyễn Văn Admin</div></header>
+        <div class="page-title"><div><h1>Thiết lập template thực đơn</h1><p>Ánh xạ bố cục Excel và menu mặc định cho từng khách hàng.</p></div><span class="status warning">Chưa lưu</span></div>
+        <div class="context-row">
+          <div class="field"><label for="customer-a">Khách hàng</label><select id="customer-a" class="control"><option>ANV — AMANN</option><option>DAV — Draxlmaier</option></select></div>
+          <div class="field grow"><label for="file-a">Workbook mẫu</label><input id="file-a" class="control" value="weekly-menu-template-ANV-2026-07-20 (4).xlsx"></div>
+          <button class="btn ghost" data-action="detect">Tự nhận diện</button>
+          <button class="btn" data-action="reset">Dùng mẫu ANV</button>
+        </div>
+        <div class="message-strip"><div><strong>Template mặc định ANV</strong>Khách hàng này chưa có bản ghi đè. Thay đổi chỉ được lưu khi bấm “Lưu template”.</div><button class="btn ghost" data-action="dismiss">Ẩn</button></div>
+        <div class="workbench">
+          <section class="panel"><div class="panel-head"><h2>Xem trước workbook · ANV 25k</h2><span class="status success">6 ngày đã nhận diện</span></div><div class="excel-host" data-grid="a"></div></section>
+          <aside class="stack">
+            <section class="panel"><div class="panel-head"><h2>Cấu hình vùng bảng</h2><button class="btn ghost" data-action="collapse">Thu gọn</button></div><div class="panel-body collapsible"><div class="mapping-grid">
+              <div class="field wide"><label>Vùng dữ liệu</label><input class="control range-input" value="C7:I31"></div>
+              <div class="field"><label>Dòng tiêu đề</label><input class="control" value="7"></div><div class="field"><label>Dòng bắt đầu món</label><input class="control" value="8"></div>
+              <div class="field"><label>Cột nhãn món</label><select class="control"><option>C</option><option>B</option></select></div><div class="field"><label>Cột ngày</label><input class="control" value="D:I"></div>
+              <div class="field wide"><label>Kết thúc khi</label><select class="control"><option>Gặp 2 dòng trống liên tiếp</option><option>Hết vùng đã chọn</option></select></div>
+            </div><p class="helper">Kéo trên lưới hoặc nhập địa chỉ A1. Nhấn Shift khi chọn để mở rộng vùng.</p></div></section>
+            <section class="panel"><div class="panel-head"><h2>Preview chuẩn hóa</h2><button class="btn ghost" data-action="test">Kiểm tra</button></div><div class="panel-body"><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong>24</strong></div><div class="metric"><span>Lỗi</span><strong class="error-count">0</strong></div></div><div class="mini-preview" style="margin-top:10px"><div class="mini-row"><strong>Thứ Hai</strong><span>Cá kho tộ · Canh bí đao</span></div><div class="mini-row"><strong>Thứ Ba</strong><span>Gà xào sả ớt · Canh cải</span></div></div></div></section>
+          </aside>
+        </div>
+        <footer class="footerbar"><div><strong>ANV · Template khách hàng v1</strong><span class="helper"> · Kế thừa template ANV</span></div><div class="actions"><button class="btn ghost" data-action="cancel">Hủy</button><button class="btn" data-action="test">Kiểm tra template</button><button class="btn primary" data-action="save">Lưu template</button></div></footer>
+      </div>
+      <div class="mobile-fallback"><h2>Chỉnh sửa template trên desktop</h2><p>Lưới Excel cần không gian màn hình rộng. Trên thiết bị hẹp, bạn vẫn có thể xem tóm tắt mapping và trạng thái template.</p></div>
+    </section>
+
+    <section id="variant-b" class="variant" hidden>
+      <div class="shell desktop-only">
+        <header class="shellbar"><div class="shellbar-title"><strong>IPC Management</strong><span>Template thực đơn</span></div><div class="shell-user">Trợ giúp</div></header>
+        <div class="page-title"><div><h1>Tạo template cho ANV — AMANN</h1><p>Hoàn thành từng bước; dữ liệu chỉ được lưu sau khi xác nhận.</p></div><span class="status">Bản nháp</span></div>
+        <div class="wizard-wrap">
+          <nav class="wizard-steps" aria-label="Các bước"><button class="wizard-step active" data-step="1">1. Chọn file</button><button class="wizard-step" data-step="2">2. Chọn vùng</button><button class="wizard-step" data-step="3">3. Gán cột</button><button class="wizard-step" data-step="4">4. Xác nhận</button></nav>
+          <section class="wizard-stage" data-stage="1"><div class="panel"><div class="panel-head"><h2>Chọn workbook đại diện</h2></div><div class="panel-body mapping-grid"><div class="field"><label>Khách hàng</label><select class="control"><option>ANV — AMANN</option><option>DAV — Draxlmaier</option></select></div><div class="field"><label>Sheet</label><select class="control"><option>ANV 25k</option><option>ANV 30k</option><option>ANV 34k</option></select></div><div class="field wide"><label>File</label><input class="control" value="weekly-menu-template-ANV-2026-07-20 (4).xlsx"></div></div></div><div class="actions" style="justify-content:flex-end"><button class="btn primary" data-next="2">Tiếp theo: Chọn vùng</button></div></section>
+          <section class="wizard-stage" data-stage="2" hidden><div class="wizard-grid"><section class="panel"><div class="panel-head"><h2>Quét chọn bảng thực đơn</h2><span class="status success">C7:I31</span></div><div class="excel-host" data-grid="b"></div></section><aside class="panel"><div class="panel-head"><h2>Vùng đã chọn</h2></div><div class="panel-body stack"><div class="field"><label>Địa chỉ A1</label><input class="control range-input" value="C7:I31"></div><p class="helper">Bao gồm dòng tiêu đề, các dòng món và sáu cột ngày.</p><button class="btn" data-action="detect">Tự nhận diện lại</button></div></aside></div><div class="actions" style="justify-content:space-between"><button class="btn ghost" data-next="1">Quay lại</button><button class="btn primary" data-next="3">Tiếp theo: Gán cột</button></div></section>
+          <section class="wizard-stage" data-stage="3" hidden><div class="panel"><div class="panel-head"><h2>Gán ý nghĩa cho cột</h2><span class="status success">7/7 đã gán</span></div><div class="panel-body"><div class="mapping-grid"><div class="field"><label>Cột C</label><select class="control"><option>Tên/nhóm món</option></select></div><div class="field"><label>Cột D</label><select class="control"><option>Thứ Hai</option></select></div><div class="field"><label>Cột E</label><select class="control"><option>Thứ Ba</option></select></div><div class="field"><label>Cột F</label><select class="control"><option>Thứ Tư</option></select></div><div class="field"><label>Cột G</label><select class="control"><option>Thứ Năm</option></select></div><div class="field"><label>Cột H</label><select class="control"><option>Thứ Sáu</option></select></div><div class="field"><label>Cột I</label><select class="control"><option>Thứ Bảy</option></select></div></div></div></div><div class="actions" style="justify-content:space-between"><button class="btn ghost" data-next="2">Quay lại</button><button class="btn primary" data-next="4">Tiếp theo: Xác nhận</button></div></section>
+          <section class="wizard-stage" data-stage="4" hidden><div class="wizard-grid"><section class="panel"><div class="panel-head"><h2>Tóm tắt template</h2></div><div class="panel-body summary-list"><div class="summary-row"><span>Khách hàng</span><strong>ANV — AMANN</strong></div><div class="summary-row"><span>Workbook</span><strong>weekly-menu-template-ANV-2026-07-20 (4).xlsx</strong></div><div class="summary-row"><span>Vùng dữ liệu</span><strong>C7:I31</strong></div><div class="summary-row"><span>Kết quả</span><strong style="color:var(--color-success)">6 ngày · 24 món · 0 lỗi</strong></div></div></section><aside class="panel"><div class="panel-head"><h2>Menu mặc định</h2></div><div class="panel-body mini-preview"><div class="mini-row"><strong>Thứ Hai</strong><span>Cá kho tộ</span></div><div class="mini-row"><strong>Thứ Ba</strong><span>Gà xào sả ớt</span></div><div class="mini-row"><strong>Thứ Tư</strong><span>Thịt kho trứng</span></div></div></aside></div><div class="actions" style="justify-content:space-between"><button class="btn ghost" data-next="3">Quay lại</button><button class="btn primary" data-action="save">Lưu template cho ANV</button></div></section>
+        </div>
+      </div>
+      <div class="mobile-fallback"><h2>Xem tóm tắt template</h2><p>Wizard có thể hiển thị tóm tắt trên màn hình hẹp, nhưng chọn vùng Excel cần desktop hoặc tablet ngang.</p></div>
+    </section>
+
+    <section id="variant-c" class="variant" hidden>
+      <div class="shell desktop-only">
+        <header class="shellbar"><div class="shellbar-title"><strong>IPC Management</strong><span>Template Studio</span></div><div class="actions"><button class="btn" data-action="test">Kiểm tra</button><button class="btn primary" data-action="save">Lưu phiên bản</button></div></header>
+        <div class="context-row"><div class="field grow"><label>Tìm khách hàng hoặc template</label><input class="control" placeholder="Nhập ANV, DAV..."></div><span class="status warning">ANV v1 · Bản nháp</span></div>
+        <div class="studio">
+          <aside class="studio-nav"><div class="nav-section"><h3>Khách hàng</h3><button class="nav-item active" data-action="nav"><strong>ANV — AMANN</strong><small>Ghi đè · v1 draft</small></button><button class="nav-item" data-action="nav"><strong>DAV — Draxlmaier</strong><small>Kế thừa mẫu ANV</small></button></div><div class="nav-section"><h3>Template</h3><button class="nav-item active" data-action="nav"><strong>ANV 25k</strong><small>C7:I31 · 24 món</small></button><button class="nav-item" data-action="nav"><strong>ANV 30k</strong><small>Menu dùng chung</small></button><button class="nav-item" data-action="nav"><strong>ANV 34k</strong><small>Menu dùng chung</small></button><button class="nav-item" data-action="add-template"><strong>+ Thêm template</strong></button></div></aside>
+          <section class="studio-center"><div class="panel"><div class="panel-head"><h2>weekly-menu-template-ANV-2026-07-20 (4).xlsx</h2><div class="actions"><button class="btn ghost" data-action="detect">Tự nhận diện</button><button class="btn ghost" data-action="reset">Hoàn tác</button></div></div><div class="excel-host" data-grid="c"></div></div></section>
+          <aside class="studio-inspector"><div class="inspector-section"><h3>Thuộc tính vùng</h3><div class="stack"><div class="field"><label>Vùng bảng</label><input class="control range-input" value="C7:I31"></div><div class="field"><label>Loại vùng</label><select class="control"><option>Bảng thực đơn chính</option><option>Metadata tuần</option></select></div><div class="field"><label>Quy tắc dòng</label><select class="control"><option>Tự nhận diện nhóm món</option><option>Một món mỗi dòng</option></select></div></div></div><div class="inspector-section"><h3>Preview tức thời</h3><div class="metrics"><div class="metric"><span>Ngày</span><strong>6</strong></div><div class="metric"><span>Món</span><strong>24</strong></div><div class="metric"><span>Lỗi</span><strong>0</strong></div></div></div><div class="inspector-section"><h3>Phiên bản</h3><div class="summary-list"><div class="summary-row"><span>Nguồn</span><strong>ANV default</strong></div><div class="summary-row"><span>Người sửa</span><strong>Nguyễn Văn Admin</strong></div><div class="summary-row"><span>Trạng thái</span><strong style="color:var(--color-warning)">Chưa lưu</strong></div></div></div></aside>
+        </div>
+      </div>
+      <div class="mobile-fallback"><h2>Template Studio cần màn hình rộng</h2><p>Trên thiết bị hẹp, hiển thị danh sách template và preview read-only thay cho ba cột chỉnh sửa.</p></div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="annotation-tip" class="annotation-tip"></div>
+  <div id="sketch-tools">
+    <label>Theme <select id="theme-switcher"><option value="default">Fiori compact</option></select></label>
+    <button data-width="375px">Phone</button><button data-width="768px">Tablet</button><button data-width="1280px">Desktop</button><button data-width="100%">Full</button><button id="annotation-toggle">Annotate</button>
+  </div>
+
+  <script>
+    const days = ['THỨ HAI 20/07', 'THỨ BA 21/07', 'THỨ TƯ 22/07', 'THỨ NĂM 23/07', 'THỨ SÁU 24/07', 'THỨ BẢY 25/07'];
+    const menuRows = [
+      ['MENU MẶN - CA SÁNG', '', '', '', '', ''],
+      ['Món mặn 1', 'Cá kho tộ', 'Gà xào sả ớt', 'Thịt kho trứng', 'Cá chiên sốt', 'Bò xào hành cần'],
+      ['Món mặn 2', 'Trứng chiên', 'Cá rim', 'Gà kho gừng', 'Thịt rang', 'Cá kho tiêu'],
+      ['Món rau', 'Rau muống xào', 'Cải thìa xào', 'Giá hẹ xào', 'Bí xanh xào', 'Su su xào'],
+      ['Món canh', 'Canh bí đao', 'Canh cải', 'Canh chua', 'Canh rau ngót', 'Canh bí đỏ'],
+      ['MENU CHAY', '', '', '', '', ''],
+      ['Món chính', 'Đậu hũ sốt cà', 'Nấm kho tiêu', 'Cải kho chay', 'Đậu hũ kho nấm', 'Rau củ xào'],
+      ['Canh', 'Canh rau ngót', 'Canh bí xanh', 'Canh cải', 'Canh rong biển', 'Canh chua chay']
+    ];
+    function createGrid(host) {
+      const letters = ['C','D','E','F','G','H','I'];
+      const rows = [];
+      rows.push(`<div class="excel-wrap"><table class="excel"><thead><tr><th class="row-number"></th>${letters.map(x=>`<th>${x}</th>`).join('')}</tr></thead><tbody>`);
+      rows.push(`<tr><th class="row-number">4</th><td colspan="7" style="text-align:center;font-weight:700">THỰC ĐƠN AMANN · TUẦN 20/07/2026</td></tr>`);
+      rows.push(`<tr><th class="row-number">7</th><td class="selected role-label">NHÓM MÓN</td>${days.map(x=>`<td class="selected" title="${x}">${x}</td>`).join('')}</tr>`);
+      menuRows.forEach((row, index) => {
+        const n = 8 + index;
+        const section = row[0].startsWith('MENU');
+        rows.push(`<tr class="${section?'section-row':''}"><th class="row-number">${n}</th><td class="selected ${section?'':'role-label'}">${row[0]}</td>${row.slice(1).map(x=>`<td class="selected" tabindex="0">${x}</td>`).join('')}</tr>`);
+      });
+      rows.push(`</tbody></table></div><div class="sheet-tabs"><button class="sheet-tab active">ANV 25k</button><button class="sheet-tab">ANV 30k</button><button class="sheet-tab">ANV 34k</button></div>`);
+      host.innerHTML = rows.join('');
+    }
+    document.querySelectorAll('.excel-host').forEach(createGrid);
+
+    function showVariant(id, trigger) {
+      document.querySelectorAll('.variant').forEach(v => { v.hidden = v.id !== `variant-${id}`; });
+      document.querySelectorAll('.variant-tab').forEach(t => t.classList.toggle('active', t === trigger));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+    document.querySelectorAll('.variant-tab').forEach(tab => tab.addEventListener('click', () => showVariant(tab.dataset.variant, tab)));
+    const requestedVariant = new URLSearchParams(location.search).get('variant');
+    if (['a', 'b', 'c'].includes(requestedVariant)) {
+      const requestedTab = document.querySelector(`[data-variant="${requestedVariant}"]`);
+      showVariant(requestedVariant, requestedTab);
+    }
+
+    let toastTimer;
+    function toast(message) {
+      const el = document.getElementById('toast');
+      el.textContent = message; el.classList.add('show');
+      clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
+    }
+    document.addEventListener('click', event => {
+      const cell = event.target.closest('.excel td');
+      if (cell && !cell.closest('tr.section-row')) { cell.classList.toggle('selected'); toast('Vùng chọn đã được cập nhật.'); }
+      const sheet = event.target.closest('.sheet-tab');
+      if (sheet) { sheet.parentElement.querySelectorAll('.sheet-tab').forEach(x=>x.classList.remove('active')); sheet.classList.add('active'); toast(`Đã chuyển sang sheet ${sheet.textContent}.`); }
+      const action = event.target.closest('[data-action]')?.dataset.action;
+      if (!action) return;
+      if (action === 'detect') { document.querySelectorAll('.range-input').forEach(i=>i.value='C7:I31'); toast('Đã nhận diện vùng C7:I31, 6 ngày và 24 món.'); }
+      if (action === 'reset') toast('Đã khôi phục cấu hình từ template ANV mặc định.');
+      if (action === 'dismiss') event.target.closest('.message-strip')?.remove();
+      if (action === 'collapse') { const body=event.target.closest('.panel').querySelector('.collapsible'); body.hidden=!body.hidden; event.target.textContent=body.hidden?'Mở rộng':'Thu gọn'; }
+      if (action === 'test') { event.target.disabled=true; const old=event.target.textContent; event.target.textContent='Đang kiểm tra...'; setTimeout(()=>{event.target.disabled=false;event.target.textContent=old;toast('Template hợp lệ: 6 ngày, 24 món, 0 lỗi.');},650); }
+      if (action === 'save') { event.target.disabled=true; const old=event.target.textContent; event.target.textContent='Đang lưu...'; setTimeout(()=>{event.target.disabled=false;event.target.textContent=old;toast('Đã lưu template ANV phiên bản v1.');},850); }
+      if (action === 'cancel') toast('Bản nháp vẫn được giữ trong phiên sketch.');
+      if (action === 'nav') { event.target.closest('.nav-section').querySelectorAll('.nav-item').forEach(x=>x.classList.remove('active')); event.target.closest('.nav-item').classList.add('active'); }
+      if (action === 'add-template') toast('Mở quy trình tạo template mới cho khách hàng.');
+    });
+    document.querySelectorAll('[data-next]').forEach(button => button.addEventListener('click', () => {
+      const target = button.dataset.next;
+      document.querySelectorAll('#variant-b .wizard-stage').forEach(stage => stage.hidden = stage.dataset.stage !== target);
+      document.querySelectorAll('#variant-b .wizard-step').forEach(step => { const n=Number(step.dataset.step), t=Number(target); step.classList.toggle('active',n===t); step.classList.toggle('complete',n<t); });
+    }));
+    document.querySelectorAll('#variant-b .wizard-step').forEach(step => step.addEventListener('click', () => document.querySelector(`#variant-b [data-next="${step.dataset.step}"]`)?.click() || (()=>{document.querySelectorAll('#variant-b .wizard-stage').forEach(stage=>stage.hidden=stage.dataset.stage!==step.dataset.step);document.querySelectorAll('#variant-b .wizard-step').forEach(x=>x.classList.toggle('active',x===step));})()));
+    document.querySelectorAll('.control').forEach(input => input.addEventListener('blur', () => { if (!input.value?.trim()) { input.style.borderColor='var(--color-danger)'; toast('Trường này không được để trống.'); } else input.style.borderColor=''; }));
+    document.querySelectorAll('#sketch-tools [data-width]').forEach(button => button.addEventListener('click', () => { document.getElementById('sketch-frame').style.maxWidth=button.dataset.width; toast(`Viewport: ${button.textContent}`); }));
+    const annotationTip = document.getElementById('annotation-tip');
+    document.getElementById('annotation-toggle').addEventListener('click', () => { document.body.classList.toggle('annotate'); toast(document.body.classList.contains('annotate')?'Annotation mode bật.':'Annotation mode tắt.'); });
+    document.addEventListener('mousemove', event => { if (!document.body.classList.contains('annotate')) { annotationTip.style.display='none'; return; } const s=getComputedStyle(event.target); annotationTip.textContent=`${event.target.tagName.toLowerCase()} · ${s.fontSize} · p:${s.padding}`; annotationTip.style.display='block'; annotationTip.style.left=`${event.clientX+12}px`; annotationTip.style.top=`${event.clientY+12}px`; });
+  </script>
+</body>
+</html>

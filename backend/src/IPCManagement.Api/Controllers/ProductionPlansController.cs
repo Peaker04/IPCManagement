@@ -38,10 +38,12 @@ public class ProductionPlansController : ControllerBase
     [HttpGet("filter")]
     public async Task<IActionResult> GetFiltered(
         [FromQuery] string? serviceDate,
+        [FromQuery] string? dateFrom,
+        [FromQuery] string? dateTo,
         [FromQuery] string? customerId,
         CancellationToken cancellationToken)
     {
-        var result = await _productionPlanService.GetFilteredAsync(serviceDate, customerId, cancellationToken);
+        var result = await _productionPlanService.GetFilteredAsync(serviceDate, dateFrom, dateTo, customerId, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<ProductionPlanDto>>.SuccessResult(result));
     }
 

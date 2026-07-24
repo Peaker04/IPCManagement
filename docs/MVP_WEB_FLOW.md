@@ -15,10 +15,10 @@ Kiểm tra:
 
 - API: `http://localhost:5262/swagger`
 - Web: `http://localhost:5173`
-- Nếu database chưa có dữ liệu demo, chạy:
+- Nếu database chưa có dữ liệu demo, xem procedure seed/reset trong:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/MVP_DEMO_SEED_RESET.ps1 -BaseUrl http://localhost:5262
+.docs/MVP_DEMO_RUNBOOK.md
 ```
 
 Demo chuẩn dùng `admin / admin`, khách hàng `DAV`, tuần bắt đầu `2026-06-15`, ngày kiểm tra mẫu `2026-06-18`.
@@ -35,10 +35,12 @@ Demo chuẩn dùng `admin / admin`, khách hàng `DAV`, tuần bắt đầu `202
 1. Vào `Thực đơn tuần`.
 2. Chọn khách hàng `DAV` và tuần bắt đầu `15/06/2026`.
 3. Bấm thao tác nhập thực đơn.
-4. Ở bước `Chọn file`, chọn `.docs/THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx`.
+4. Ở bước `Chọn file`, chọn workbook fixture tương ứng, ví dụ `.docs/weekly-menu-template-DAV-2026-07-20.xlsx`.
 5. Bấm thêm file, sau đó chuyển sang `Kiểm tra`.
 6. Chỉ lưu khi không còn lỗi chặn; cảnh báo phải đọc trước khi quyết định.
 7. Bấm `Lưu thực đơn`, rồi tải lại trang để kiểm tra menu đã commit.
+
+Với khách hàng `ANV`, thao tác tải template trả về workbook ANV mặc định đã được nhúng trong backend; máy chạy không cần truy cập file hay đường dẫn trên máy phát triển. Sheet `ANV 25k` được điền sẵn menu mặn ca sáng và ca chiều cho sáu ngày bằng các món có BOM 25k đúng nhóm và định lượng dương; hai sheet `ANV 30k`, `ANV 34k` và các vùng menu chay vẫn để trống. Màn hình Fiori để cấu hình template theo từng khách hàng chưa được triển khai trong bản tạm này.
 
 Kết quả cần thấy: các ngày/ca/menu được hiển thị trong bảng KHSX; lỗi tên món, ngày, dòng trùng hoặc BOM phải được hiển thị bằng tiếng Việt.
 
