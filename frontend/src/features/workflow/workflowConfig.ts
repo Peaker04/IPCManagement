@@ -1,5 +1,8 @@
 import { ROUTES } from '@/routes/routeConfig';
+import type { StatusPresentation } from '@/lib/statusPresentation';
 import type { WorkflowLane, WorkflowLaneId, WorkflowTone } from './types';
+
+type WorkflowStatusPresentation = Omit<StatusPresentation, 'tone'> & { tone: WorkflowTone };
 
 const laneBase: Array<Pick<WorkflowLane, 'id' | 'label' | 'owner' | 'stage' | 'route' | 'nextAction'>> = [
   {
@@ -89,60 +92,54 @@ export const routeByLaneId: Record<WorkflowLaneId, string> = Object.fromEntries(
   workflowLaneDefinitions.map((lane) => [lane.id, lane.route]),
 ) as Record<WorkflowLaneId, string>;
 
-export const toneFromStatus = (status?: string): WorkflowTone => {
-  const normalized = (status ?? '').toLowerCase();
+const normalizeStatusCode = (status: string) => status.toUpperCase().replace(/[\s_-]/g, '');
 
-  if (normalized.includes('thiếu') || normalized.includes('vượt') || normalized.includes('không đủ')) {
-    return 'danger';
-  }
+const workflowStatusPresentations: Readonly<Record<string, WorkflowStatusPresentation>> = {
+  APPROVED: { label: 'Đã phê duyệt', tone: 'success' },
+  CANCELLED: { label: 'Đã hủy', tone: 'danger' },
+  COMPLETED: { label: 'Hoàn tất', tone: 'success' },
+  CONFIRMED: { label: 'Đã xác nhận', tone: 'success' },
+  CREATED: { label: 'Mới tạo', tone: 'neutral' },
+  DRAFT: { label: 'Bản nháp', tone: 'neutral' },
+  EXPORTED: { label: 'Đã xuất kho', tone: 'success' },
+  ERROR: { label: 'Có lỗi', tone: 'danger' },
+  MANAGERAPPROVED: { label: 'Quản lí đã duyệt', tone: 'success' },
+  ORDERED: { label: 'Đã đặt hàng', tone: 'success' },
+  PARTIALRECEIVED: { label: 'Đã nhận một phần', tone: 'warning' },
+  PARTIALLYRECEIVED: { label: 'Đã nhận một phần', tone: 'warning' },
+  PENDING: { label: 'Đang chờ xử lý', tone: 'warning' },
+  OPEN: { label: 'Đang mở', tone: 'warning' },
+  RECEIVED: { label: 'Đã nhận đủ', tone: 'success' },
+  REJECTED: { label: 'Bị từ chối', tone: 'danger' },
+  REOPENED: { label: 'Đã mở lại', tone: 'warning' },
+  RESOLVED: { label: 'Đã xử lý', tone: 'success' },
+  ROLLEDBACK: { label: 'Đã hoàn tác', tone: 'warning' },
+  PUBLISHED: { label: 'Đã phát hành', tone: 'success' },
+  SENTTOKITCHEN: { label: 'Đã gửi bếp', tone: 'success' },
+  SENTTOSUPPLIER: { label: 'Đã gửi nhà cung cấp', tone: 'success' },
+  SENTTOWAREHOUSE: { label: 'Đã gửi kho', tone: 'success' },
+  SUBMITTED: { label: 'Chờ phê duyệt', tone: 'warning' },
+  WARNING: { label: 'Có cảnh báo', tone: 'warning' },
+};
 
-  if (
-    normalized.includes('chờ') ||
-    normalized.includes('cần') ||
-    normalized.includes('mới') ||
-    normalized.includes('theo dõi')
-  ) {
-    return 'warning';
-  }
-
-  if (normalized.includes('đã') || normalized.includes('hoàn tất') || normalized.includes('đủ')) {
-    return 'success';
-  }
-
+const toneFromFallbackText = (status: string): WorkflowTone => {
+  const normalized = status.toLocaleLowerCase('vi-VN');
+  if (['thiếu', 'vượt', 'không đủ', 'lỗi', 'tắc', 'từ chối', 'hủy'].some((token) => normalized.includes(token))) return 'danger';
+  if (['chờ', 'cần', 'mới', 'theo dõi', 'dự thảo', 'một phần', 'mở lại'].some((token) => normalized.includes(token))) return 'warning';
+  if (['đã', 'hoàn tất', 'đủ', 'ổn định', 'hợp lệ', 'hoạt động'].some((token) => normalized.includes(token))) return 'success';
   return 'neutral';
 };
 
-const workflowStatusLabels: Record<string, string> = {
-  APPROVED: 'Đã phê duyệt',
-  CANCELLED: 'Đã hủy',
-  COMPLETED: 'Hoàn tất',
-  CONFIRMED: 'Đã xác nhận',
-  CREATED: 'Mới tạo',
-  DRAFT: 'Bản nháp',
-  EXPORTED: 'Đã xuất kho',
-  ERROR: 'Có lỗi',
-  MANAGERAPPROVED: 'Quản lí đã duyệt',
-  ORDERED: 'Đã đặt hàng',
-  PARTIALRECEIVED: 'Đã nhận một phần',
-  PENDING: 'Đang chờ xử lý',
-  OPEN: 'Đang mở',
-  RECEIVED: 'Đã nhận đủ',
-  REJECTED: 'Bị từ chối',
-  REOPENED: 'Đã mở lại',
-  RESOLVED: 'Đã xử lý',
-  SENTTOKITCHEN: 'Đã gửi bếp',
-  SENTTOSUPPLIER: 'Đã gửi nhà cung cấp',
-  SENTTOWAREHOUSE: 'Đã gửi kho',
-  PARTIALLY_RECEIVED: 'Đã nhận một phần',
-  SUBMITTED: 'Chờ phê duyệt',
-  WARNING: 'Có cảnh báo',
+export const getWorkflowStatusPresentation = (status?: string): WorkflowStatusPresentation => {
+  const value = status?.trim();
+  if (!value) return { label: 'Chưa cập nhật', tone: 'neutral' };
+  return workflowStatusPresentations[normalizeStatusCode(value)] ?? { label: value, tone: toneFromFallbackText(value) };
 };
 
-export const formatWorkflowStatus = (status?: string) => {
-  const value = status?.trim();
-  if (!value) return 'Chưa cập nhật';
+export const toneFromStatus = (status?: string): WorkflowTone => getWorkflowStatusPresentation(status).tone;
 
-  return workflowStatusLabels[value.toUpperCase()] ?? value;
+export const formatWorkflowStatus = (status?: string) => {
+  return getWorkflowStatusPresentation(status).label;
 };
 
 export const ownerToLaneId = (owner?: string): WorkflowLaneId => {

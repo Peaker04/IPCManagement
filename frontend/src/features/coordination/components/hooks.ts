@@ -5,7 +5,7 @@ import { LOCK_TIME } from '@/lib/constants'
 
 export function useCountdown() {
   const [timeRemaining, setTimeRemaining] = useState<string>('--:--:--')
-  const [isLocked, setIsLocked] = useState(false)
+  const [isPastCutoff, setIsPastCutoff] = useState(false)
 
   useEffect(() => {
     const updateCountdown = () => {
@@ -21,10 +21,10 @@ export function useCountdown() {
       )
 
       if (now >= lockTime) {
-        setIsLocked(true)
-        setTimeRemaining('LOCKED')
+        setIsPastCutoff(true)
+        setTimeRemaining('00:00:00')
       } else {
-        setIsLocked(false)
+        setIsPastCutoff(false)
         const diff = lockTime.getTime() - now.getTime()
         const hours = Math.floor(diff / (1000 * 60 * 60))
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
@@ -42,5 +42,5 @@ export function useCountdown() {
     return () => clearInterval(interval)
   }, [])
 
-  return { timeRemaining, isLocked }
+  return { timeRemaining, isPastCutoff }
 }

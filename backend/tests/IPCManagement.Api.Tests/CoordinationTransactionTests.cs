@@ -248,6 +248,162 @@ public class CoordinationTransactionTests
     }
 
     [Fact]
+    public async Task LockOrderPlanAsync_Should_Not_DowngradeCompletedPlan()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+
+        await using (var arrangeContext = new IpcManagementContext(options))
+        {
+            var plan = await arrangeContext.Mealquantityplans.SingleAsync();
+            plan.Status = OrderStatus.Completed;
+            plan.CompletedAt = DateTime.UtcNow;
+            await arrangeContext.SaveChangesAsync();
+        }
+
+        var service = new CoordinationService(
+            new IpcManagementContext(options),
+            Substitute.For<IMaterialDemandService>());
+        var act = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                Scope = "MORNING",
+                ShiftName = "MORNING",
+                Lines =
+                [
+                    new LockOrderPlanLineDto
+                    {
+                        QuantityPlanLineId = GuidHelper.ToGuidString(fixture.LineId),
+                        FinalServings = 140
+                    }
+                ]
+            },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo.*");
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var persistedPlan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        persistedPlan.Status.Should().Be(OrderStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    public async Task LockOrderPlanAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var result = await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.LockedLineCount.Should().Be(1);
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Confirmed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task LockOrderPlanAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var act = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(sourceStatus);
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_FullDay_Should_LockBothShiftsAndUseRequestedOrForecastServings()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var morning = SeedAdjustServingsFixture(options, false, suffix: "101", shiftName: "MORNING");
+        SeedAdjustServingsFixture(options, false, suffix: "102", shiftName: "AFTERNOON", planStatus: OrderStatus.Forecasted);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var result = await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                Scope = "FULLDAY",
+                Lines =
+                [
+                    new LockOrderPlanLineDto
+                    {
+                        QuantityPlanLineId = GuidHelper.ToGuidString(morning.LineId),
+                        FinalServings = 140
+                    }
+                ]
+            },
+            morning.UserId);
+
+        result.Should().NotBeNull();
+        result!.LockedLineCount.Should().Be(2);
+        result.LockedShiftNames.Should().BeEquivalentTo(["MORNING", "AFTERNOON"]);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().Select(plan => plan.Status).ToListAsync())
+            .Should().OnlyContain(status => status == OrderStatus.Confirmed);
+        var lines = await verifyContext.Mealquantityplanlines.AsNoTracking().OrderBy(line => line.ShiftName).ToListAsync();
+        lines.Single(line => line.ShiftName == "MORNING").FinalServings.Should().Be(140);
+        lines.Single(line => line.ShiftName == "AFTERNOON").FinalServings.Should().Be(100);
+    }
+
+    [Fact]
+    public async Task LockOrderPlanAsync_Should_HandleMissingUserInvalidShiftAndMissingPlans()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        (await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            null)).Should().BeNull();
+
+        var invalidShift = async () => await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "MORNING", ShiftName = "INVALID" },
+            Guid.NewGuid().ToString());
+        await invalidShift.Should().ThrowAsync<ArgumentException>();
+
+        (await service.LockOrderPlanAsync(
+            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            Guid.NewGuid().ToString())).Should().BeNull();
+    }
+
+    [Fact]
     public async Task AdjustOrderAfterLockAsync_Should_BlockDuplicatePendingAdjustment()
     {
         using var connection = new SqliteConnection("Data Source=:memory:");
@@ -484,6 +640,306 @@ public class CoordinationTransactionTests
         audit.Reason.Should().Be("Chốt số suất trước khi tạo demand");
     }
 
+    [Fact]
+    public async Task SignoffOrderScopeAsync_Should_CompleteSelectedShiftInOneTransaction()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var service = new CoordinationService(
+            new IpcManagementContext(options),
+            Substitute.For<IMaterialDemandService>());
+
+        var result = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING",
+                Note = "Hoàn tất ca kiểm thử"
+            },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.AffectedPlanCount.Should().Be(1);
+        result.ShiftName.Should().Be("MORNING");
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Completed);
+        (await verifyContext.Auditlogs.AsNoTracking().SingleAsync()).Reason
+            .Should().Be("Hoàn tất ca kiểm thử");
+    }
+
+    [Fact]
+    public async Task UnlockOrderPlanScopeAsync_Should_UnlockSelectedShiftInOneTransaction()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
+        var service = new CoordinationService(
+            new IpcManagementContext(options),
+            Substitute.For<IMaterialDemandService>());
+
+        var result = await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequestDto
+            {
+                ServiceDate = "2026-06-15",
+                ShiftName = "MORNING",
+                Note = "Mở khóa ca kiểm thử"
+            },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.AffectedPlanCount.Should().Be(1);
+        result.NewStatus.Should().Be(OrderStatus.Draft);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var plan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        plan.Status.Should().Be(OrderStatus.Draft);
+        plan.ConfirmedAt.Should().BeNull();
+        (await verifyContext.Auditlogs.AsNoTracking().SingleAsync()).NewValue
+            .Should().Be(OrderStatus.Draft);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    public async Task SignoffOrderScopeAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var result = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatuses.Should().ContainSingle().Which.Should().Be(sourceStatus);
+        result.NewStatus.Should().Be(OrderStatus.Completed);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task SignoffOrderScopeAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var act = async () => await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Confirmed)]
+    [InlineData(OrderStatus.Adjusted)]
+    public async Task UnlockOrderPlanScopeAsync_Should_AllowEveryLegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var result = await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        result.Should().NotBeNull();
+        result!.OldStatuses.Should().ContainSingle().Which.Should().Be(sourceStatus);
+        result.NewStatus.Should().Be(OrderStatus.Draft);
+    }
+
+    [Theory]
+    [InlineData(OrderStatus.Draft)]
+    [InlineData(OrderStatus.Forecasted)]
+    [InlineData(OrderStatus.Completed)]
+    [InlineData(OrderStatus.Archived)]
+    [InlineData(OrderStatus.Cancelled)]
+    public async Task UnlockOrderPlanScopeAsync_Should_RejectEveryIllegalSourceStatus(string sourceStatus)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var act = async () => await service.UnlockOrderPlanScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_UpdateAllPlansInSelectedShiftAndLeaveOtherShiftUntouched()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var morning = SeedAdjustServingsFixture(options, false, suffix: "201", planStatus: OrderStatus.Confirmed);
+        SeedAdjustServingsFixture(options, false, suffix: "202", planStatus: OrderStatus.Adjusted);
+        SeedAdjustServingsFixture(options, false, suffix: "203", shiftName: "AFTERNOON", planStatus: OrderStatus.Confirmed);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var signoff = await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            morning.UserId);
+
+        signoff.Should().NotBeNull();
+        signoff!.AffectedPlanCount.Should().Be(2);
+        signoff.OldStatuses.Should().BeEquivalentTo([OrderStatus.Confirmed, OrderStatus.Adjusted]);
+
+        await using var verifyContext = new IpcManagementContext(options);
+        var plans = await verifyContext.Mealquantityplans
+            .AsNoTracking()
+            .Include(plan => plan.Mealquantityplanlines)
+            .ToListAsync();
+        plans.Where(plan => plan.Mealquantityplanlines.Single().ShiftName == "MORNING")
+            .Should().OnlyContain(plan => plan.Status == OrderStatus.Completed);
+        plans.Single(plan => plan.Mealquantityplanlines.Single().ShiftName == "AFTERNOON").Status
+            .Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_BlockMixedStatusesAtomically()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var first = SeedAdjustServingsFixture(options, false, suffix: "301", planStatus: OrderStatus.Confirmed);
+        SeedAdjustServingsFixture(options, false, suffix: "302", planStatus: OrderStatus.Draft);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+
+        var act = async () => await service.SignoffOrderScopeAsync(
+            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            first.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>();
+        await using var verifyContext = new IpcManagementContext(options);
+        (await verifyContext.Mealquantityplans.AsNoTracking().Select(plan => plan.Status).ToListAsync())
+            .Should().BeEquivalentTo([OrderStatus.Confirmed, OrderStatus.Draft]);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task ScopeActions_Should_HandleMissingUserInvalidShiftAndMissingPlans()
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+
+        (await service.SignoffOrderScopeAsync(request, null)).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(request, null)).Should().BeNull();
+        (await service.SignoffOrderScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
+        var fallbackShiftRequest = new CoordinationScopeActionRequestDto
+        {
+            ServiceDate = "2026-06-15",
+            Shift = "Ca Sáng"
+        };
+        (await service.SignoffOrderScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
+        (await service.UnlockOrderPlanScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
+
+        var invalidRequest = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "INVALID" };
+        Func<Task> invalidSignoff = async () =>
+            await service.SignoffOrderScopeAsync(invalidRequest, Guid.NewGuid().ToString());
+        Func<Task> invalidUnlock = async () =>
+            await service.UnlockOrderPlanScopeAsync(invalidRequest, Guid.NewGuid().ToString());
+        await invalidSignoff.Should().ThrowAsync<ArgumentException>();
+        await invalidUnlock.Should().ThrowAsync<ArgumentException>();
+    }
+
+    [Theory]
+    [InlineData("signoff")]
+    [InlineData("unlock")]
+    public async Task ScopeActions_Should_RollBackPlanAndAudit_WhenSaveFails(string action)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var seedOptions = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(seedOptions, true);
+        var failingOptions = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
+        var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
+        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+
+        Func<Task> act = action == "signoff"
+            ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
+            : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Simulated audit log failure");
+
+        await using var verifyContext = new IpcManagementContext(seedOptions);
+        var plan = await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync();
+        plan.Status.Should().Be(OrderStatus.Confirmed);
+        plan.ConfirmedAt.Should().NotBeNull();
+        plan.CompletedAt.Should().BeNull();
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
+    [Theory]
+    [InlineData("signoff")]
+    [InlineData("unlock")]
+    public async Task ScopeActions_Should_ReturnBusinessConflict_WhenConcurrencyCheckFails(string action)
+    {
+        using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var seedOptions = BuildOptions(connection);
+        await CreateMinimalSchemaAsync(connection);
+        var fixture = SeedAdjustServingsFixture(seedOptions, true);
+        var failingOptions = BuildOptions(connection, new ThrowConcurrencyOnPlanSaveChangesInterceptor());
+        var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
+        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+        Func<Task> act = action == "signoff"
+            ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
+            : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
+
+        await using var verifyContext = new IpcManagementContext(seedOptions);
+        (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
+            .Should().Be(OrderStatus.Confirmed);
+        (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
+    }
+
     private static DbContextOptions<IpcManagementContext> BuildOptions(
         SqliteConnection connection,
         IInterceptor? interceptor = null)
@@ -501,9 +957,14 @@ public class CoordinationTransactionTests
 
     private static AdjustFixture SeedAdjustServingsFixture(
         DbContextOptions<IpcManagementContext> options,
-        bool confirmedPlan)
+        bool confirmedPlan,
+        string suffix = "001",
+        string shiftName = "MORNING",
+        string? planStatus = null)
     {
         using var context = new IpcManagementContext(options);
+
+        var resolvedStatus = planStatus ?? (confirmedPlan ? OrderStatus.Confirmed : OrderStatus.Draft);
 
         var customerId = GuidHelper.ToBytes(Guid.NewGuid());
         var menuId = GuidHelper.ToBytes(Guid.NewGuid());
@@ -516,7 +977,7 @@ public class CoordinationTransactionTests
         var customer = new Customer
         {
             CustomerId = customerId,
-            CustomerCode = "CUS-001",
+            CustomerCode = $"CUS-{suffix}",
             CustomerName = "Customer Test",
             IsActive = true
         };
@@ -524,7 +985,7 @@ public class CoordinationTransactionTests
         var menu = new Menu
         {
             MenuId = menuId,
-            MenuCode = "MENU-001",
+            MenuCode = $"MENU-{suffix}",
             MenuName = "Menu Test",
             IsActive = true
         };
@@ -532,7 +993,7 @@ public class CoordinationTransactionTests
         var dish = new Dish
         {
             DishId = dishId,
-            DishCode = "DISH-001",
+            DishCode = $"DISH-{suffix}",
             DishName = "Dish Test",
             IsActive = true
         };
@@ -554,7 +1015,7 @@ public class CoordinationTransactionTests
             MenuId = menuId,
             ServiceDate = new DateOnly(2026, 6, 15),
             WeekStartDate = new DateOnly(2026, 6, 15),
-            ShiftName = "MORNING",
+            ShiftName = shiftName,
             MenuPrice = 35000,
             BomRatePercent = 100,
             Status = "ACTIVE",
@@ -565,11 +1026,13 @@ public class CoordinationTransactionTests
         var plan = new Mealquantityplan
         {
             QuantityPlanId = planId,
-            PlanCode = "PLAN-001",
+            PlanCode = $"PLAN-{suffix}",
             ServiceDate = new DateOnly(2026, 6, 15),
-            Status = confirmedPlan ? "CONFIRMED" : "DRAFT",
+            Status = resolvedStatus,
             ConfirmationTime = new TimeOnly(8, 0),
-            ConfirmedAt = confirmedPlan ? DateTime.UtcNow : null
+            ConfirmedAt = OrderStatus.IsLocked(resolvedStatus) || resolvedStatus is OrderStatus.Completed or OrderStatus.Archived
+                ? DateTime.UtcNow
+                : null
         };
 
         var line = new Mealquantityplanline
@@ -579,7 +1042,7 @@ public class CoordinationTransactionTests
             MenuScheduleId = scheduleId,
             CustomerId = customerId,
             MenuId = menuId,
-            ShiftName = "MORNING",
+            ShiftName = shiftName,
             ForecastServings = 100,
             ConfirmedServings = 100,
             AdjustedServings = 0,
@@ -691,6 +1154,23 @@ public class CoordinationTransactionTests
             {
                 throw new InvalidOperationException("Simulated lock failure");
             }
+        }
+    }
+
+    private sealed class ThrowConcurrencyOnPlanSaveChangesInterceptor : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context?.ChangeTracker.Entries<Mealquantityplan>()
+                    .Any(entry => entry.State == EntityState.Modified) == true)
+            {
+                throw new DbUpdateConcurrencyException("Simulated concurrency conflict");
+            }
+
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
         }
     }
 

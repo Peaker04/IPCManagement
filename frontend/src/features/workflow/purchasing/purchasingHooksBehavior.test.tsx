@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PurchaseRequestResult, PurchaseWorkbenchServiceDate } from '../workflowApi'
 
@@ -232,6 +232,43 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
     expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
+  })
+
+  it('exposes purchase request submission when every supplier decision is ready', async () => {
+    const unwrap = vi.fn().mockResolvedValue({})
+    mocks.submitRequest.mockReturnValue({ unwrap })
+    const serviceDate: PurchaseWorkbenchServiceDate = {
+      serviceDate: '2026-07-20',
+      scope: 'FULLDAY',
+      currentStage: 'supplier-price',
+      approvedDemandCount: 1,
+      shortageLineCount: 1,
+      supplierReadyLineCount: 1,
+      blockingExceptionCount: 0,
+      purchaseRequestId: 'request-ready',
+      purchaseRequestCode: 'PR-READY',
+      purchaseRequestStatus: 'DRAFT',
+      orderCount: 0,
+      receivingLineCount: 0,
+      fullyReceivedLineCount: 0,
+      approvedDemands: [],
+      purchaseLines: [],
+    }
+
+    render(
+      <PurchaseDecisionPanel
+        week="2026-07-20"
+        selectedStage="supplier-price"
+        serviceDate={serviceDate}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi đề xuất mua' }))
+    const dialog = screen.getByRole('dialog', { name: 'Gửi đề xuất mua' })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Gửi đề xuất mua' }))
+
+    await waitFor(() => expect(mocks.submitRequest).toHaveBeenCalledWith('request-ready'))
+    expect(unwrap).toHaveBeenCalled()
   })
 
   it('keeps receipt evidence and idempotency key stable after a conflict', async () => {

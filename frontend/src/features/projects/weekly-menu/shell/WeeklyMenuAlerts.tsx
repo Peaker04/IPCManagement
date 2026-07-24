@@ -39,19 +39,14 @@ export function WeeklyMenuAlerts({
           {purchaseFeedback.message}
         </InlineAlert>
       )}
-      {isCatalogLoading && (
-        <InlineAlert title="Đang tải danh mục món ăn" variant="info">
-          Hệ thống đang lấy danh sách món và định lượng BOM.
-        </InlineAlert>
+      {(isCatalogLoading || (isCommittedMenuFetching && hasSelectedCustomer)) && (
+        <span className="sr-only" role="status">
+          Đang đồng bộ danh mục món, thực đơn khách hàng và định lượng BOM.
+        </span>
       )}
       {isCatalogError && (
         <InlineAlert title="Chưa tải được danh mục món ăn" variant="warning">
           Kiểm tra kết nối hệ thống hoặc quyền xem danh mục trước khi phân tích giá vốn.
-        </InlineAlert>
-      )}
-      {isCommittedMenuFetching && hasSelectedCustomer && (
-        <InlineAlert title="Đang tải thực đơn khách hàng" variant="info">
-          Hệ thống đang lấy menu, KHSX và giá vốn theo khách hàng đang chọn.
         </InlineAlert>
       )}
       {isCatalogEmpty && (

@@ -1,6 +1,7 @@
 import type { DemandLine, MaterialDemandStaleness, WorkflowDocument } from '@/features/workflow'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
+import { formatMaterialDishSource } from '../model/formatters'
 
 export type DemandApprovalPresentation = {
   status: 'not-created' | 'pending' | 'approved' | 'rejected'
@@ -11,6 +12,20 @@ export type DemandApprovalPresentation = {
   documentCode?: string
   reason?: string
 }
+
+export const getDemandActionPresentation = (
+  approvalStatus: DemandApprovalPresentation['status'],
+  isStale = false,
+) => ({
+  primaryAction: approvalStatus === 'approved'
+    ? 'purchasing' as const
+    : approvalStatus === 'pending'
+      ? 'approval' as const
+      : 'generate' as const,
+  showGenerate: approvalStatus === 'not-created' || approvalStatus === 'rejected' || (approvalStatus === 'approved' && isStale),
+  generateIsSecondary: approvalStatus === 'approved' && isStale,
+  requiresRegenerateConfirmation: approvalStatus === 'approved',
+})
 
 export const getDemandApprovalPresentation = (
   lines: DemandLine[],
@@ -98,6 +113,54 @@ export const getDemandInventoryStatus = (lines: DemandLine[], totalCount?: numbe
     tone: (lines.length === 0 ? 'neutral' : warningCount > 0 ? 'warning' : shortages > 0 ? 'danger' : 'success') as DemandLine['tone'],
     label: lines.length === 0 ? 'Chưa kiểm tồn' : warningCount > 0 ? 'Cần tính lại' : shortages > 0 ? 'Thiếu nguyên liệu' : 'Đủ nguyên liệu',
   }
+}
+
+export const isDemandLineException = (line: DemandLine) =>
+  line.tone === 'warning' || Math.max(line.required - (line.available - line.reserved), 0) > 0
+
+export const partitionDemandLines = (lines: DemandLine[]) => ({
+  exceptionLines: lines.filter(isDemandLineException),
+  sufficientLines: lines.filter((line) => !isDemandLineException(line)),
+})
+
+const demandDishSourceKey = (line: DemandLine) =>
+  `${line.ingredientId ?? line.material.trim().toLocaleLowerCase('vi-VN')}__${line.unit.trim().toLocaleLowerCase('vi-VN')}`
+
+export const attachDemandDishSources = (
+  aggregateLines: DemandLine[],
+  detailLines: DemandLine[],
+  serviceDate: string,
+) => {
+  const sourcesByMaterial = new Map<string, Set<string>>()
+
+  detailLines.filter((line) => line.serviceDate === serviceDate).forEach((line) => {
+    const key = demandDishSourceKey(line)
+    const sources = sourcesByMaterial.get(key) ?? new Set<string>()
+    if (line.source) sources.add(line.source)
+    sourcesByMaterial.set(key, sources)
+  })
+
+  return aggregateLines.map((line) => ({
+    ...line,
+    source: formatMaterialDishSource(Array.from(sourcesByMaterial.get(demandDishSourceKey(line)) ?? [])),
+  }))
+}
+
+const demandDocumentDateTokens = (serviceDate: string) => {
+  const [year, month, day] = serviceDate.split('-')
+  if (!year || !month || !day) return []
+  return [serviceDate, `${year}${month}${day}`, `${day}/${month}/${year}`]
+}
+
+export const isDemandDocumentForDate = (document: WorkflowDocument, serviceDate: string) => {
+  const searchableText = [
+    document.id,
+    document.title,
+    document.summary,
+    ...document.lines.flatMap((line) => [line.label, line.value]),
+  ].join(' ').toLocaleLowerCase('vi-VN')
+
+  return demandDocumentDateTokens(serviceDate).some((token) => searchableText.includes(token.toLocaleLowerCase('vi-VN')))
 }
 
 export const aggregateWeekStaleness = (

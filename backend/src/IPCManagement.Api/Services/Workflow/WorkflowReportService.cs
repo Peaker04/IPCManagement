@@ -15,6 +15,8 @@ public class WorkflowReportService : IWorkflowReportService
     private const string DataQualityIssueEntityName = "DataQualityIssue";
     private const string DataQualityRemediationFieldName = "Remediation";
     private const string DataQualityCleanupFieldName = "Cleanup";
+    private const decimal StockLedgerMatchTolerance = 0.000010m;
+    private const string LegacyLedgerBaselineRefTable = "LEGACY_CURRENTSTOCK_BASELINE";
 
     private readonly IpcManagementContext _context;
     private const string PublishedBomStatus = "PUBLISHED";
@@ -268,7 +270,7 @@ public class WorkflowReportService : IWorkflowReportService
                 CurrentQty = currentQty,
                 LedgerQty = ledgerQty,
                 DifferenceQty = difference,
-                IsMatched = DecimalPolicy.RoundQuantity(difference) == 0,
+                IsMatched = Math.Abs(difference) <= StockLedgerMatchTolerance,
                 LastMovementAt = latestMovement?.MovementDate
             });
         }
@@ -616,7 +618,14 @@ public class WorkflowReportService : IWorkflowReportService
         }
 
         var totalCount = await lines.CountAsync();
-        var shortageCount = await lines.CountAsync(item => item.SuggestedPurchaseQty > 0);
+        var shortageCount = await lines.CountAsync(item =>
+            item.Request.Status != "CANCELLED" &&
+            item.SuggestedPurchaseQty > 0 &&
+            (item.Purchaserequestlines
+                 .Where(purchaseLine =>
+                     purchaseLine.PurchaseRequest.Status != "CANCELLED" &&
+                     purchaseLine.PurchaseRequest.Status != "REJECTED")
+                 .Sum(purchaseLine => (decimal?)purchaseLine.PurchaseQty) ?? 0m) < item.SuggestedPurchaseQty);
         var items = await lines
             .OrderByDescending(item => item.Request.RequestDate)
             .ThenBy(item => item.Ingredient.IngredientName)
@@ -2045,6 +2054,16 @@ public class WorkflowReportService : IWorkflowReportService
         var limit = NormalizeLimit(query.Limit);
         var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom) ?? DateOnly.FromDateTime(DateTime.Today);
         var issues = new List<DataQualityIssueDto>();
+        var operationalDishKeys = (await _context.Productionplanlines
+                .AsNoTracking()
+                .Where(line =>
+                    line.Plan.PlanDate >= serviceDate &&
+                    (line.Plan.Status == "CREATED" || line.Plan.Status == "SENTTOKITCHEN"))
+                .Select(line => line.DishId)
+                .Distinct()
+                .ToListAsync())
+            .Select(Convert.ToBase64String)
+            .ToHashSet(StringComparer.Ordinal);
 
         var missingBomDishes = await _context.Dishes
             .AsNoTracking()
@@ -2058,16 +2077,24 @@ public class WorkflowReportService : IWorkflowReportService
             .Take(limit)
             .ToListAsync();
 
-        issues.AddRange(missingBomDishes.Select(dish => BuildDataQualityIssue(
-            "missing_bom",
-            "error",
+        issues.AddRange(missingBomDishes.Select(dish =>
+        {
+            var isOperational = operationalDishKeys.Contains(Convert.ToBase64String(dish.DishId));
+            return BuildDataQualityIssue(
+            isOperational ? "missing_bom" : "legacy_missing_bom",
+            isOperational ? "error" : "warning",
             nameof(Dish),
             GuidHelper.ToGuidString(dish.DishId),
             dish.DishCode,
             dish.DishName,
-            "Món đang hoạt động nhưng chưa có dòng BOM/định lượng hiệu lực.",
-            "Mở Quản trị dữ liệu > BOM theo đơn giá để tải mẫu Excel và import BOM đúng tier.",
-            BuildMissingBomRemediationRoute(dish.DishId, serviceDate, query))));
+            isOperational
+                ? "Món đang được dùng trong KHSX hiện tại/tương lai nhưng chưa có BOM hiệu lực."
+                : "Món catalog cũ chưa có BOM hiệu lực và không được KHSX hiện tại/tương lai tham chiếu.",
+            isOperational
+                ? "Import BOM đúng tier trước khi tiếp tục KHSX."
+                : "Bổ sung BOM trước khi dùng lại món; không chặn luồng hiện tại.",
+            BuildMissingBomRemediationRoute(dish.DishId, serviceDate, query));
+        }));
 
         var invalidUnitIngredients = await _context.Ingredients
             .AsNoTracking()
@@ -2180,7 +2207,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(receiptUnitLines
             .Where(line => !CanConvertUnits(line.Unit, line.Ingredient.Unit))
             .Select(line => BuildDataQualityIssue(
-                "missing_conversion",
+                line.Receipt.ReceiptDate < serviceDate ? "legacy_missing_conversion" : "missing_conversion",
                 "warning",
                 nameof(Inventoryreceiptline),
                 GuidHelper.ToGuidString(line.ReceiptLineId),
@@ -2279,6 +2306,8 @@ public class WorkflowReportService : IWorkflowReportService
             .AsNoTracking()
             .Include(plan => plan.Customer)
             .Where(plan =>
+                plan.PlanDate >= serviceDate &&
+                (plan.Status == "CREATED" || plan.Status == "SENTTOKITCHEN") &&
                 plan.CustomerId != null &&
                 !_context.Customercontracts.Any(contract =>
                     contract.CustomerId == plan.CustomerId &&
@@ -2431,7 +2460,39 @@ public class WorkflowReportService : IWorkflowReportService
             "Kiểm tra lại workflow kho và demand đã sinh.",
             "/warehouse")));
 
+        var unitNormalizationReviews = await _context.Unitnormalizationreviews
+            .AsNoTracking()
+            .Include(review => review.Ingredient)
+            .Include(review => review.SourceUnit)
+            .Include(review => review.CatalogUnit)
+            .Include(review => review.RecommendedUnit)
+            .Where(review => review.Status == "NEEDS_CONFIRMATION")
+            .OrderBy(review => review.Ingredient.IngredientCode)
+            .Take(limit)
+            .ToListAsync();
+
+        issues.AddRange(unitNormalizationReviews.Select(review =>
+        {
+            var factor = review.ProposedSourceToCatalogFactor is null
+                ? "chưa đủ bằng chứng để đề xuất hệ số"
+                : $"hệ số đề xuất {review.ProposedSourceToCatalogFactor:0.######} " +
+                  $"{review.CatalogUnit.UnitCode}/{review.SourceUnit.UnitCode}";
+            var recommendedUnit = review.RecommendedUnit?.UnitCode ?? review.CatalogUnit.UnitCode;
+            return BuildDataQualityIssue(
+                "unit_normalization_review",
+                "warning",
+                nameof(Unitnormalizationreview),
+                GuidHelper.ToGuidString(review.ReviewId),
+                review.Ingredient.IngredientCode,
+                $"{review.SourceUnit.UnitCode} → {recommendedUnit}",
+                $"Cần duyệt quy cách theo từng nguyên liệu: {factor}. " +
+                $"Confidence={review.Confidence}. Evidence: {review.EvidenceNote}",
+                "Kiểm tra nhãn quy cách/nhà cung cấp và chỉ approve khi hệ số source-to-catalog được xác nhận; review này chưa được engine sử dụng.",
+                "/admin-data?view=cleanup");
+        }));
+
         var sortedIssues = issues
+            .DistinctBy(issue => issue.IssueId, StringComparer.OrdinalIgnoreCase)
             .OrderBy(issue => issue.PriorityRank)
             .ThenBy(issue => issue.Severity == "error" ? 0 : 1)
             .ThenBy(issue => issue.Category)
@@ -2445,11 +2506,11 @@ public class WorkflowReportService : IWorkflowReportService
         {
             GeneratedAt = DateTime.UtcNow,
             TotalIssues = sortedIssues.Count,
-            ErrorCount = sortedIssues.Count(issue => issue.Severity == "error"),
-            WarningCount = sortedIssues.Count(issue => issue.Severity == "warning"),
+            ErrorCount = sortedIssues.Count(issue => issue.Severity == "error" && issue.RemediationStatus != "resolved"),
+            WarningCount = sortedIssues.Count(issue => issue.Severity == "warning" && issue.RemediationStatus != "resolved"),
             ResolvedIssueCount = sortedIssues.Count(issue => issue.RemediationStatus == "resolved"),
             ReopenedIssueCount = sortedIssues.Count(issue => issue.RemediationStatus == "reopened"),
-            UrgentIssueCount = sortedIssues.Count(issue => issue.PriorityRank <= 2),
+            UrgentIssueCount = sortedIssues.Count(issue => issue.PriorityRank <= 2 && issue.RemediationStatus != "resolved"),
             MissingBomCount = sortedIssues.Count(issue => issue.Category == "missing_bom"),
             InvalidUnitCount = sortedIssues.Count(issue => issue.Category is "invalid_unit" or "inactive_bom_ingredient"),
             MissingConversionCount = sortedIssues.Count(issue => issue.Category == "missing_conversion"),
@@ -2588,6 +2649,129 @@ public class WorkflowReportService : IWorkflowReportService
                     Reason = note is null ? reason : $"{reason} Note: {note}"
                 });
                 result.AuditLogCount++;
+            }
+        }
+
+        if (categories.Contains("inventory_ledger_baseline"))
+        {
+            var stocks = await _context.Currentstocks
+                .Include(stock => stock.Warehouse)
+                .Include(stock => stock.Ingredient)
+                .OrderBy(stock => stock.Warehouse.WarehouseCode)
+                .ThenBy(stock => stock.Ingredient.IngredientCode)
+                .ToListAsync();
+            var movements = await _context.Stockmovements
+                .AsNoTracking()
+                .ToListAsync();
+            var movementsByKey = movements
+                .GroupBy(movement => BuildStockLedgerKey(movement.WarehouseId, movement.IngredientId))
+                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+
+            var baselineActionCount = 0;
+            foreach (var stock in stocks)
+            {
+                if (baselineActionCount >= limit)
+                {
+                    break;
+                }
+
+                var key = BuildStockLedgerKey(stock.WarehouseId, stock.IngredientId);
+                var stockMovements = movementsByKey.GetValueOrDefault(key) ?? [];
+                if (stockMovements.Any(movement =>
+                        string.Equals(movement.RefTable, LegacyLedgerBaselineRefTable, StringComparison.OrdinalIgnoreCase)))
+                {
+                    continue;
+                }
+
+                var latestMovementAt = stockMovements.Count == 0
+                    ? (DateTime?)null
+                    : stockMovements.Max(movement => movement.MovementDate);
+                if (latestMovementAt > stock.LastUpdated)
+                {
+                    continue;
+                }
+
+                var ledgerQty = DecimalPolicy.RoundQuantity(
+                    stockMovements.Sum(movement => movement.QuantityIn - movement.QuantityOut));
+                var currentQty = DecimalPolicy.RoundQuantity(stock.CurrentQty);
+                var difference = DecimalPolicy.RoundQuantity(currentQty - ledgerQty);
+                if (Math.Abs(difference) <= StockLedgerMatchTolerance)
+                {
+                    continue;
+                }
+
+                var entityCode = $"{stock.Warehouse.WarehouseCode}/{stock.Ingredient.IngredientCode}";
+                var reason =
+                    $"Bổ sung opening balance ledger cho snapshot tồn cũ: ledger={ledgerQty:0.######}, current={currentQty:0.######}.";
+                AddAction(
+                    "inventory_ledger_baseline",
+                    nameof(Currentstock),
+                    stock.IngredientId,
+                    entityCode,
+                    "ledger_baseline_added",
+                    reason,
+                    $"difference={difference:0.######}");
+                baselineActionCount++;
+
+                if (!request.DryRun)
+                {
+                    _context.Stockmovements.Add(new Stockmovement
+                    {
+                        MovementId = GuidHelper.NewId(),
+                        MovementDate = stock.LastUpdated,
+                        WarehouseId = stock.WarehouseId,
+                        IngredientId = stock.IngredientId,
+                        UnitId = stock.UnitId,
+                        MovementType = "ADJUSTMENT",
+                        RefTable = LegacyLedgerBaselineRefTable,
+                        RefId = stock.IngredientId,
+                        QuantityIn = difference > 0 ? difference : 0,
+                        QuantityOut = difference < 0 ? Math.Abs(difference) : 0,
+                        BeforeQty = ledgerQty,
+                        AfterQty = currentQty,
+                        Reason = reason,
+                        Note = note,
+                        PerformedBy = actorId
+                    });
+                }
+            }
+        }
+
+        if (categories.Contains("zero_stock_unit"))
+        {
+            var zeroStocks = await _context.Currentstocks
+                .Include(stock => stock.Warehouse)
+                .Include(stock => stock.Unit)
+                .Include(stock => stock.Ingredient)
+                    .ThenInclude(ingredient => ingredient.Unit)
+                .Where(stock => stock.CurrentQty == 0)
+                .OrderBy(stock => stock.Warehouse.WarehouseCode)
+                .ThenBy(stock => stock.Ingredient.IngredientCode)
+                .ToListAsync();
+
+            foreach (var stock in zeroStocks.Where(stock =>
+                         !stock.UnitId.SequenceEqual(stock.Ingredient.UnitId) &&
+                         !CanConvertUnits(stock.Unit, stock.Ingredient.Unit))
+                     .Take(limit))
+            {
+                var oldUnitCode = stock.Unit.UnitCode;
+                var targetUnitCode = stock.Ingredient.Unit.UnitCode;
+                var reason =
+                    $"Chuẩn hóa unit cho tồn bằng 0 từ '{oldUnitCode}' sang unit nguyên liệu '{targetUnitCode}'; không cần hệ số quy đổi.";
+                AddAction(
+                    "zero_stock_unit",
+                    nameof(Currentstock),
+                    stock.IngredientId,
+                    $"{stock.Warehouse.WarehouseCode}/{stock.Ingredient.IngredientCode}",
+                    "unit_normalized",
+                    reason,
+                    oldUnitCode);
+
+                if (!request.DryRun)
+                {
+                    stock.UnitId = stock.Ingredient.UnitId;
+                    stock.LastUpdated = now;
+                }
             }
         }
 
@@ -3284,12 +3468,18 @@ public class WorkflowReportService : IWorkflowReportService
         }
 
         var unsupported = normalized
-            .Where(category => category is not ("orphan_document" or "stale_demand" or "stale_purchase_request"))
+            .Where(category => category is not (
+                "orphan_document" or
+                "stale_demand" or
+                "stale_purchase_request" or
+                "inventory_ledger_baseline" or
+                "zero_stock_unit"))
             .OrderBy(category => category)
             .ToList();
         if (unsupported.Count > 0)
         {
-            throw new ArgumentException($"Data-quality cleanup chỉ hỗ trợ orphan_document, stale_demand, stale_purchase_request. Không hỗ trợ: {string.Join(", ", unsupported)}.");
+            throw new ArgumentException(
+                $"Data-quality cleanup chỉ hỗ trợ orphan_document, stale_demand, stale_purchase_request, inventory_ledger_baseline, zero_stock_unit. Không hỗ trợ: {string.Join(", ", unsupported)}.");
         }
 
         return normalized;
@@ -3335,8 +3525,8 @@ public class WorkflowReportService : IWorkflowReportService
     private static string ResolveDataQualityOwner(string category, string route)
         => category switch
         {
-            "missing_bom" or "inactive_bom_ingredient" => "Kitchen Admin",
-            "invalid_unit" or "missing_conversion" => "Admin dữ liệu",
+            "missing_bom" or "legacy_missing_bom" or "inactive_bom_ingredient" => "Kitchen Admin",
+            "invalid_unit" or "missing_conversion" or "legacy_missing_conversion" => "Admin dữ liệu",
             "missing_contract" => "Quản lý vận hành",
             "missing_supplier" or "stale_purchase_request" => "Thu mua",
             "stale_demand" => "Điều phối",

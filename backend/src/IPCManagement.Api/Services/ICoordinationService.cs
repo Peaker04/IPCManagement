@@ -22,6 +22,8 @@ public interface ICoordinationService
     Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(string quantityPlanId, string? userId);
     Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(AdjustOrderAfterLockRequestDto request, string? userId);
     Task<SignoffOrderResultDto?> SignoffOrderAsync(string quantityPlanId, SignoffOrderRequestDto request, string? userId);
+    Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(CoordinationScopeActionRequestDto request, string? userId);
+    Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(CoordinationScopeActionRequestDto request, string? userId);
     Task<AdjustServingsResultDto?> UpdateForecastServingsAsync(string orderId, UpdateForecastServingsRequestDto request, string? userId);
     Task<AdjustServingsResultDto?> AdjustServingsAsync(string orderId, AdjustServingsRequestDto request, string? userId);
     Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request);

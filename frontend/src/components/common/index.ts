@@ -33,5 +33,6 @@ export { ConfirmDialog } from './ConfirmDialog';
 export type { ToastItem, ToastOptions, ToastVariant } from './toast-context';
 export type { ViewTab } from './ViewSwitcher';
 export type { ContextStripItem } from './ContextStrip';
+export type { StatusPresentation, StatusTone } from '@/lib/statusPresentation';
 export type { ExceptionLaneItem } from './ExceptionLane';
 export type { WorkQueueItem } from './WorkQueue';

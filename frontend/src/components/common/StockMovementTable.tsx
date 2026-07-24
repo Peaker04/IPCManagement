@@ -19,6 +19,8 @@ interface StockMovementTableProps {
     hasNext: boolean;
     onPrevious: () => void;
     onNext: () => void;
+    isPending?: boolean;
+    ariaLabel?: string;
   };
 }
 
@@ -77,6 +79,7 @@ function shortenDocumentNo(docNo: string): string {
 export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
   const { toast } = useToast();
   const pagination = useLocalPagination(movements, pageSize);
+  const visibleMovements = cursorPagination ? movements : pagination.rows;
 
   const handleCopyDocumentNo = async (docNo: string) => {
     try {
@@ -107,7 +110,7 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
             </tr>
           </thead>
           <tbody>
-            {pagination.rows.map((movement) => (
+            {visibleMovements.map((movement) => (
               <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
                 <td className="font-mono text-[13px] font-semibold text-slate-700 text-left">
                   <div className="flex items-center gap-1.5 justify-start">
@@ -158,7 +161,8 @@ export function StockMovementTable({ movements, pageSize = 8, className, cursorP
           hasNext={cursorPagination.hasNext}
           onPrevious={cursorPagination.onPrevious}
           onNext={cursorPagination.onNext}
-          ariaLabel="Phân trang biến động kho"
+          isPending={cursorPagination.isPending}
+          ariaLabel={cursorPagination.ariaLabel ?? 'Phân trang biến động kho'}
         />
       ) : (
         <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />

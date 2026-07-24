@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { ContextStrip, OperationalFrame, ViewSwitcher } from '@/components/common';
+import { OperationalFrame, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
 import {
@@ -40,7 +40,9 @@ import { useDishMaterials } from '../weekly-menu/dish-materials/useDishMaterials
 import { buildWeeklyPlanRows } from '../weekly-menu/cost/weeklyPlanRowsModel';
 import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/shell/WeeklyMenuCommandBar';
 import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
+import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
+import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 
 const WeeklyMenuPage = () => {
   const dispatch = useAppDispatch();
@@ -120,6 +122,8 @@ const WeeklyMenuPage = () => {
   );
   const todayIso = toLocalIsoDate(new Date());
   const activeServiceDay = displayDays.find((day) => parseDisplayDateToIso(day.date) === todayIso);
+  const analysisServiceDate = parseDisplayDateToIso(activeServiceDay?.date ?? displayDays[0]?.date ?? '')
+    ?? displayedWeekStartDate;
   const activeServiceLabel = activeServiceDay
     ? `${activeServiceDay.label} - ${activeServiceDay.date}`
     : `Ngoài tuần menu (${formatImportDate(todayIso)})`;
@@ -218,7 +222,7 @@ const WeeklyMenuPage = () => {
     onMenuFeedback: setMenuFeedback,
     onQuickServingFeedback: setScheduleFeedback,
   });
-  const productionPlanWorkflow = useWeeklyProductionPlan(weeklyScheduleScope);
+  const productionPlanWorkflow = useWeeklyProductionPlan(weeklyScheduleScope, Boolean(committedMenu?.weekStartDate));
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
@@ -240,7 +244,10 @@ const WeeklyMenuPage = () => {
   const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
   const invalidBomTierCount = invalidScheduleMenuPrices.length;
   const quickServingRows = scheduleWorkflow.presentation.buildQuickServingRows(weeklyPlanRows);
-  const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName);
+  const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName, {
+    customerId: effectiveMenuCustomerId,
+    priceTier: menuPrice,
+  });
 
   const demandWorkflow = useMaterialDemand({
     scope: weeklyScheduleScope,
@@ -256,13 +263,16 @@ const WeeklyMenuPage = () => {
   });
   const demandLines = demandWorkflow.presentation.demandLines;
   const aggregatedDemandLines = demandWorkflow.presentation.aggregatedDemandLines;
-  const workflowStepItems: Array<{ label: string; value: string; tone: 'success' | 'warning' | 'danger' | 'info' | 'neutral' }> = [
-    { label: 'Menu', value: weeklyPlanRows.length.toString(), tone: weeklyPlanRows.length ? 'success' : 'neutral' },
-    { label: 'Số lượng khách', value: weeklyRowsMissingOperationalServings.length ? `${weeklyRowsMissingOperationalServings.length} thiếu` : 'Đủ', tone: weeklyRowsMissingOperationalServings.length ? 'warning' : 'success' },
-    { label: 'Định lượng', value: weeklyRowsMissingBom.length ? `${weeklyRowsMissingBom.length} thiếu BOM` : 'Đủ BOM', tone: weeklyRowsMissingBom.length ? 'danger' : 'success' },
-    { label: 'Đề xuất mua', value: demandLines.length ? `${aggregatedDemandLines.length} dòng` : 'Chờ tính nhu cầu', tone: demandLines.length ? 'info' : 'neutral' },
-    { label: 'Tồn kho/cảnh báo', value: invalidBomTierCount ? `${invalidBomTierCount} đơn giá sai` : 'Hợp lệ', tone: invalidBomTierCount ? 'danger' : 'success' },
-  ];
+  const readiness = buildWeeklyMenuReadiness({
+    hasSelectedCustomer: Boolean(effectiveMenuCustomerId),
+    isSyncing: isCatalogLoading || isCommittedMenuFetching,
+    hasCatalogIssue: isCatalogError || isCatalogEmpty,
+    menuCount: weeklyPlanRows.length,
+    missingServingCount: weeklyRowsMissingOperationalServings.length,
+    missingBomCount: weeklyRowsMissingBom.length,
+    invalidBomTierCount,
+    demandMaterialCount: demandLines.length ? aggregatedDemandLines.length : 0,
+  });
   const readOnlyScopeKey = `${weeklyScheduleScope.customerId}:${weeklyScheduleScope.weekStartDate}`;
   const sourceLabel = selectedCustomer?.customerCode ?? committedMenu?.customerCode ?? 'Chưa chọn';
   const menuCostWorkflow = useMenuCost({
@@ -279,7 +289,14 @@ const WeeklyMenuPage = () => {
     aggregatedDemandLines,
   });
   const dishMaterialsWorkflow = useDishMaterials({
-    scopeKey: readOnlyScopeKey, sourceLabel, menuPrice, catalogDishes, weeklyRowsWithBom, dishesById,
+    scopeKey: readOnlyScopeKey,
+    sourceLabel,
+    menuPrice,
+    customerId: effectiveMenuCustomerId,
+    serviceDate: analysisServiceDate,
+    catalogDishes,
+    weeklyRowsWithBom,
+    dishesById,
   });
   return (
 
@@ -324,7 +341,7 @@ const WeeklyMenuPage = () => {
         activeTab={activeView}
         onTabChange={(tabId) => setActiveView(tabId as WeeklyMenuView)}
       />
-      <ContextStrip items={workflowStepItems} />
+      <WeeklyMenuReadiness readiness={readiness} />
       <WeeklyMenuAlerts
         invalidBomTierCount={invalidBomTierCount}
         menuFeedback={menuFeedback}

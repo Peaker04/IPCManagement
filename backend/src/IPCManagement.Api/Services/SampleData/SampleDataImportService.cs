@@ -96,15 +96,6 @@ public partial class SampleDataImportService : ISampleDataImportService
         await ImportBomDataAsync(sourceDirectory, request, result, servingHints, cancellationToken);
         await SaveCheckpointAsync(request.DryRun, cancellationToken);
 
-        await ImportWeeklyMenuAsync(sourceDirectory, request, result, servingHints, cancellationToken);
-        await SaveCheckpointAsync(request.DryRun, cancellationToken);
-
-        await ImportQuantityPlansAsync(sourceDirectory, request, result, servingHints, cancellationToken);
-        await SaveCheckpointAsync(request.DryRun, cancellationToken);
-
-        await ImportPurchaseHistoryAsync(sourceDirectory, request, result, cancellationToken);
-        await SaveCheckpointAsync(request.DryRun, cancellationToken);
-
         return result;
     }
 
@@ -187,6 +178,9 @@ public partial class SampleDataImportService : ISampleDataImportService
 
             var unit = ResolvePresetBomUnit(ingredientName, kgUnit, presetUnits);
 
+            // The tiered BOM workbook describes a recipe unit, not the storage unit of
+            // historical receipts/stock. Preserve an existing warehouse unit here;
+            // cross-unit conversion requires ingredient-specific provenance and review.
             var ingredient = EnsureIngredient(
                 ingredientName,
                 unit,
@@ -195,7 +189,7 @@ public partial class SampleDataImportService : ISampleDataImportService
                 existingIngredients,
                 request.DryRun,
                 result.Counts,
-                updateUnit: true);
+                updateUnit: false);
 
             var dish = EnsureDish(
                 dishName,
@@ -216,307 +210,6 @@ public partial class SampleDataImportService : ISampleDataImportService
                 result.Counts);
 
             fileResult.RowsImported++;
-        }
-    }
-
-    private async Task ImportWeeklyMenuAsync(
-        DirectoryInfo sourceDirectory,
-        SampleDataImportRequestDto request,
-        SampleDataImportResultDto result,
-        Dictionary<string, List<int>> servingHints,
-        CancellationToken cancellationToken)
-    {
-        var menuFile = sourceDirectory.GetFiles("THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx").FirstOrDefault();
-        if (menuFile is null)
-        {
-            AddMissingFile(result, "THỰC ĐƠN DRAXLMAIER TỪ NGÀY 15.06 - 20.06.xlsx", "Weekly menu");
-            return;
-        }
-
-        var rows = _reader.ReadRows(menuFile.FullName, "MENU", request.MaxRows);
-        var fileResult = AddFileResult(result, menuFile.FullName, "Menus/MenuItems/MenuSchedules", request.DryRun, rows.Count);
-
-        var customer = await EnsureCustomerAsync(
-            SampleCustomerCode,
-            SampleCustomerName,
-            "Imported from weekly menu sample workbook",
-            request.DryRun,
-            result.Counts,
-            cancellationToken);
-        var weekStart = ExtractMenuWeekStart(rows) ?? ExtractFirstDateFromMenuRows(rows) ?? new DateOnly(2026, 6, 15);
-        var weekEnd = weekStart.AddDays(MenuDayColumns.Length - 1);
-        var datesByColumn = MenuDayColumns
-            .Select((column, index) => new { column, date = weekStart.AddDays(index) })
-            .ToDictionary(item => item.column, item => item.date);
-
-        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
-        var existingMenus = await _context.Menus.ToListAsync(cancellationToken);
-        var existingMenuItems = await _context.Menuitems.ToListAsync(cancellationToken);
-        var existingSchedules = await _context.Menuschedules.ToListAsync(cancellationToken);
-        var displayOrderByMenu = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
-        var missingContractWarnings = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-        string? shiftName = null;
-        string? menuVariant = null;
-        foreach (var row in rows)
-        {
-            var label = GetColumn(row, "C");
-            if (TryParseMenuSection(label, out var sectionVariant, out var sectionShift))
-            {
-                menuVariant = sectionVariant;
-                shiftName = sectionShift;
-                continue;
-            }
-
-            if (shiftName is null || menuVariant is null || string.IsNullOrWhiteSpace(label))
-            {
-                continue;
-            }
-
-            foreach (var (column, serviceDate) in datesByColumn)
-            {
-                var dishName = GetColumn(row, column);
-                if (string.IsNullOrWhiteSpace(dishName))
-                {
-                    continue;
-                }
-
-                var menu = EnsureMenu(
-                    serviceDate,
-                    shiftName,
-                    customer,
-                    weekStart,
-                    weekEnd,
-                    existingMenus,
-                    request.DryRun,
-                    result.Counts);
-
-                var dish = EnsureDish(
-                    dishName,
-                    menuVariant,
-                    label,
-                    existingDishes,
-                    request.DryRun,
-                    result.Counts);
-
-                var menuKey = Convert.ToBase64String(menu.MenuId);
-                var displayOrder = displayOrderByMenu.TryGetValue(menuKey, out var currentOrder)
-                    ? currentOrder + 1
-                    : existingMenuItems.Count(item => item.MenuId.SequenceEqual(menu.MenuId)) + 1;
-                displayOrderByMenu[menuKey] = displayOrder;
-
-                EnsureMenuItem(
-                    menu,
-                    dish,
-                    $"{menuVariant} - {label}",
-                    displayOrder,
-                    existingMenuItems,
-                    request.DryRun,
-                    result.Counts);
-
-                var contractPolicy = ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
-                if (contractPolicy.UsedFallback)
-                {
-                    var warning = MissingCustomerContractWarning(customer, serviceDate, shiftName);
-                    if (missingContractWarnings.Add(warning))
-                    {
-                        AddWarning(result, warning);
-                    }
-                }
-
-                EnsureMenuSchedule(
-                    customer,
-                    menu,
-                    serviceDate,
-                    weekStart,
-                    shiftName,
-                    existingSchedules,
-                    request.DryRun,
-                    result.Counts,
-                    contractPolicy);
-
-                AddServingHint(servingHints, dishName, 0);
-                fileResult.RowsImported++;
-            }
-        }
-    }
-
-    private async Task ImportQuantityPlansAsync(
-        DirectoryInfo sourceDirectory,
-        SampleDataImportRequestDto request,
-        SampleDataImportResultDto result,
-        Dictionary<string, List<int>> servingHints,
-        CancellationToken cancellationToken)
-    {
-        var orderFile = sourceDirectory.GetFiles("Đơn đặt hàng T5.2025.xlsx").FirstOrDefault();
-        if (orderFile is null)
-        {
-            AddMissingFile(result, "Đơn đặt hàng T5.2025.xlsx", "Quantity plans");
-            return;
-        }
-
-        var fileResult = AddFileResult(result, orderFile.FullName, "QuantityImport/MealQuantityPlans", request.DryRun, 0);
-        var shiftFallbacks = ReadOrderWorkbookShiftFallbacks(orderFile.FullName, request.MaxRows, fileResult, result);
-        var batch = await EnsureQuantityImportBatchAsync(request.DryRun, result.Counts, cancellationToken);
-        var schedules = await _context.Menuschedules
-            .Include(schedule => schedule.Menu)
-                .ThenInclude(menu => menu.Menuitems)
-                    .ThenInclude(item => item.Dish)
-            .Include(schedule => schedule.Customer)
-            .Where(schedule => schedule.Customer.CustomerCode == SampleCustomerCode)
-            .ToListAsync(cancellationToken);
-        var plans = await _context.Mealquantityplans.ToListAsync(cancellationToken);
-        var planLines = await _context.Mealquantityplanlines.ToListAsync(cancellationToken);
-
-        foreach (var schedule in schedules.OrderBy(item => item.ServiceDate).ThenBy(item => item.ShiftName))
-        {
-            var plan = EnsureMealQuantityPlan(
-                schedule.ServiceDate,
-                batch,
-                plans,
-                request.DryRun,
-                result.Counts);
-            var servings = EstimateServings(schedule, servingHints, shiftFallbacks);
-
-            EnsureMealQuantityPlanLine(
-                plan,
-                schedule,
-                servings,
-                planLines,
-                request.DryRun,
-                result.Counts);
-
-            fileResult.RowsImported++;
-        }
-    }
-
-    private async Task ImportPurchaseHistoryAsync(
-        DirectoryInfo sourceDirectory,
-        SampleDataImportRequestDto request,
-        SampleDataImportResultDto result,
-        CancellationToken cancellationToken)
-    {
-        var purchaseFile = sourceDirectory.GetFiles("IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx").FirstOrDefault();
-        if (purchaseFile is null)
-        {
-            AddMissingFile(result, "IPC. Theo dõi đặt hàng ngày 19.5.2026.xlsx", "Purchase/receipt history");
-            return;
-        }
-
-        var fileResult = AddFileResult(result, purchaseFile.FullName, "Suppliers/InventoryReceipts/StockMovements", request.DryRun, 0);
-        var warehouse = await EnsureWarehouseAsync(request.DryRun, result.Counts, cancellationToken);
-        var sampleUser = await EnsureSampleUserAsync(request.DryRun, result.Counts, cancellationToken);
-        var supplierPolicies = await ImportSupplierPoliciesAsync(purchaseFile.FullName, request, result, cancellationToken);
-        var sheetNames = _reader.GetSheetNames(purchaseFile.FullName)
-            .Where(name => !string.Equals(name, "NGUỒN", StringComparison.OrdinalIgnoreCase))
-            .Where(name => !string.Equals(name, "SUMMARY", StringComparison.OrdinalIgnoreCase))
-            .ToList();
-
-        var suppliers = await _context.Suppliers.ToListAsync(cancellationToken);
-        var ingredients = await _context.Ingredients.ToListAsync(cancellationToken);
-        var units = await _context.Units.ToListAsync(cancellationToken);
-        var receipts = await _context.Inventoryreceipts.ToListAsync(cancellationToken);
-        var receiptLines = await _context.Inventoryreceiptlines.ToListAsync(cancellationToken);
-        var stockMovements = await _context.Stockmovements.ToListAsync(cancellationToken);
-        var currentStocks = await _context.Currentstocks.ToListAsync(cancellationToken);
-
-        foreach (var sheetName in sheetNames)
-        {
-            IReadOnlyList<IReadOnlyDictionary<string, string>> rows;
-            try
-            {
-                rows = _reader.ReadTable(purchaseFile.FullName, sheetName, PurchaseRequiredHeaders, request.MaxRows);
-            }
-            catch (InvalidOperationException)
-            {
-                continue;
-            }
-
-            fileResult.RowsScanned += rows.Count;
-            var supplierName = ResolveSupplierName(sheetName, supplierPolicies);
-            var supplier = EnsureSupplier(
-                supplierName,
-                suppliers,
-                request.DryRun,
-                result.Counts);
-            if (supplier is null)
-            {
-                fileResult.RowsSkipped += rows.Count;
-                continue;
-            }
-
-            ApplySupplierPolicy(supplier, supplierPolicies.GetValueOrDefault(NormalizeSheetKey(sheetName)));
-
-            foreach (var row in rows)
-            {
-                var deliveryDate = ParseDate(Get(row, "Ngày Giao hàng"));
-                var itemName = Get(row, "Tên hàng");
-                var quantity = ParseDecimal(Get(row, "Số lượng"));
-                var unitPrice = ParseDecimal(Get(row, "Đơn giá"));
-                if (deliveryDate is null || string.IsNullOrWhiteSpace(itemName) || quantity <= 0 || unitPrice <= 0)
-                {
-                    fileResult.RowsSkipped++;
-                    continue;
-                }
-
-                var unit = EnsureUnit(
-                    NormalizeUnitCode(Get(row, "Đơn vị tính")),
-                    NormalizeUnitName(Get(row, "Đơn vị tính")),
-                    units,
-                    request.DryRun,
-                    result.Counts);
-                var ingredient = EnsureIngredient(
-                    itemName,
-                    unit,
-                    warehouse,
-                    unitPrice,
-                    ingredients,
-                    request.DryRun,
-                    result.Counts);
-                var receipt = EnsureReceipt(
-                    supplier,
-                    warehouse,
-                    sampleUser,
-                    deliveryDate.Value,
-                    receipts,
-                    request.DryRun,
-                    result.Counts);
-                var line = EnsureReceiptLine(
-                    receipt,
-                    ingredient,
-                    unit,
-                    quantity,
-                    unitPrice,
-                    sheetName,
-                    deliveryDate.Value,
-                    receiptLines,
-                    request.DryRun,
-                    result.Counts,
-                    out var quantityDelta);
-
-                EnsureStockMovement(
-                    warehouse,
-                    ingredient,
-                    unit,
-                    sampleUser,
-                    line,
-                    deliveryDate.Value,
-                    quantity,
-                    stockMovements,
-                    request.DryRun,
-                    result.Counts);
-                EnsureCurrentStock(
-                    warehouse,
-                    ingredient,
-                    unit,
-                    quantityDelta,
-                    currentStocks,
-                    request.DryRun,
-                    result.Counts);
-
-                ValidateAmount(row, quantity, unitPrice, result, itemName, deliveryDate.Value);
-                fileResult.RowsImported++;
-            }
         }
     }
 
@@ -1357,7 +1050,7 @@ public partial class SampleDataImportService : ISampleDataImportService
                 AddWarning(
                     result,
                     $"{first.SheetName}: gộp {rows.Count} dòng '{Get(first.Row, "Món")}/{Get(first.Row, "Nguyên liệu chính")}' " +
-                    $"theo bình quân gia quyền thành {weightedQuantity:0.######} kg/suất.");
+                    $"theo bình quân gia quyền thành {weightedQuantity:0.######} đơn vị BOM/suất.");
                 return new PresetBomSourceRow(first.SheetName, first.PriceTier, mergedRow);
             })
             .ToList();

@@ -1116,6 +1116,19 @@ public class CoordinationService : ICoordinationService
             return null;
         }
 
+        var plans = lines
+            .Select(line => line.QuantityPlan)
+            .DistinctBy(plan => Convert.ToBase64String(plan.QuantityPlanId))
+            .ToList();
+        var invalidPlan = plans.FirstOrDefault(plan =>
+            !OrderStatus.CanTransition(plan.Status, OrderStatus.Confirmed));
+        if (invalidPlan is not null)
+        {
+            throw new InvalidOperationException(
+                $"Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo. " +
+                $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
+        }
+
         await using var transaction = await _context.Database.BeginTransactionAsync();
 
         try
@@ -1129,10 +1142,14 @@ public class CoordinationService : ICoordinationService
                 line.ConfirmedServings = finalServings;
                 line.AdjustedServings = 0;
                 line.FinalServings = finalServings;
-                line.QuantityPlan.Status = OrderStatus.Confirmed;
-                line.QuantityPlan.ConfirmedAt = lockedAt;
-                line.QuantityPlan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
-                line.QuantityPlan.ConfirmedBy = userIdBytes;
+            }
+
+            foreach (var plan in plans)
+            {
+                plan.Status = OrderStatus.Confirmed;
+                plan.ConfirmedAt = lockedAt;
+                plan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
+                plan.ConfirmedBy = userIdBytes;
             }
 
             await _context.SaveChangesAsync();
@@ -1424,6 +1441,102 @@ public class CoordinationService : ICoordinationService
         };
     }
 
+    public async Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(
+        CoordinationScopeActionRequestDto request,
+        string? userId)
+    {
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null)
+        {
+            return null;
+        }
+
+        var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        var shiftName = NormalizeShiftName(request.ShiftName ?? request.Shift);
+        if (shiftName is null)
+        {
+            throw new ArgumentException("Ca phục vụ không hợp lệ.");
+        }
+
+        var plans = await _context.Mealquantityplans
+            .Include(plan => plan.Mealquantityplanlines)
+            .Where(plan =>
+                plan.ServiceDate == serviceDate &&
+                plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName))
+            .ToListAsync();
+        if (plans.Count == 0)
+        {
+            return null;
+        }
+
+        var invalidPlan = plans.FirstOrDefault(plan =>
+            !OrderStatus.CanTransition(plan.Status, OrderStatus.Completed));
+        if (invalidPlan is not null)
+        {
+            throw new InvalidOperationException(
+                $"Chỉ có thể hoàn tất ca khi tất cả kế hoạch đã được chốt. " +
+                $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
+        }
+
+        var oldStatuses = plans
+            .Select(plan => OrderStatus.Normalize(plan.Status))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(status => status)
+            .ToList();
+        var changedAt = DateTime.UtcNow;
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var plan in plans)
+            {
+                var oldStatus = OrderStatus.Normalize(plan.Status);
+                plan.Status = OrderStatus.Completed;
+                plan.CompletedAt = changedAt;
+                plan.CompletedBy = userIdBytes;
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = changedAt,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "Coordination",
+                    EntityName = nameof(Mealquantityplan),
+                    EntityId = plan.QuantityPlanId,
+                    FieldName = nameof(Mealquantityplan.Status),
+                    OldValue = oldStatus,
+                    NewValue = OrderStatus.Completed,
+                    Reason = string.IsNullOrWhiteSpace(request.Note)
+                        ? $"Hoàn tất ca {shiftName}"
+                        : request.Note.Trim()
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync();
+            throw new InvalidOperationException(
+                "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        return new CoordinationScopeActionResultDto
+        {
+            Success = true,
+            ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
+            ShiftName = shiftName,
+            AffectedPlanCount = plans.Count,
+            OldStatuses = oldStatuses,
+            NewStatus = OrderStatus.Completed,
+            ChangedAt = changedAt
+        };
+    }
+
     public async Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(
         string quantityPlanId,
         string? userId)
@@ -1494,6 +1607,108 @@ public class CoordinationService : ICoordinationService
                 .OrderBy(shift => shift)
                 .ToList(),
             LockedLineCount = plan.Mealquantityplanlines.Count
+        };
+    }
+
+    public async Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(
+        CoordinationScopeActionRequestDto request,
+        string? userId)
+    {
+        var userIdBytes = GuidHelper.ParseGuidString(userId);
+        if (userIdBytes is null)
+        {
+            return null;
+        }
+
+        var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
+        var shiftName = NormalizeShiftName(request.ShiftName ?? request.Shift);
+        if (shiftName is null)
+        {
+            throw new ArgumentException("Ca phục vụ không hợp lệ.");
+        }
+
+        var plans = await _context.Mealquantityplans
+            .Include(plan => plan.Mealquantityplanlines)
+            .Where(plan =>
+                plan.ServiceDate == serviceDate &&
+                plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName))
+            .ToListAsync();
+        if (plans.Count == 0)
+        {
+            return null;
+        }
+
+        var invalidPlan = plans.FirstOrDefault(plan =>
+        {
+            var status = OrderStatus.Normalize(plan.Status);
+            return status != OrderStatus.Confirmed && status != OrderStatus.Adjusted;
+        });
+        if (invalidPlan is not null)
+        {
+            throw new InvalidOperationException(
+                $"Chỉ có thể mở khóa khi tất cả kế hoạch trong ca đang được chốt. " +
+                $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
+        }
+
+        var oldStatuses = plans
+            .Select(plan => OrderStatus.Normalize(plan.Status))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(status => status)
+            .ToList();
+        var changedAt = DateTime.UtcNow;
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            foreach (var plan in plans)
+            {
+                var oldStatus = OrderStatus.Normalize(plan.Status);
+                plan.Status = OrderStatus.Draft;
+                plan.ConfirmedAt = null;
+                plan.ConfirmedBy = null;
+                plan.ConfirmationTime = new TimeOnly(8, 30);
+                plan.CompletedAt = null;
+                plan.CompletedBy = null;
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = changedAt,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "Coordination",
+                    EntityName = nameof(Mealquantityplan),
+                    EntityId = plan.QuantityPlanId,
+                    FieldName = nameof(Mealquantityplan.Status),
+                    OldValue = oldStatus,
+                    NewValue = OrderStatus.Draft,
+                    Reason = string.IsNullOrWhiteSpace(request.Note)
+                        ? $"Mở khóa ca {shiftName}"
+                        : request.Note.Trim()
+                });
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync();
+            throw new InvalidOperationException(
+                "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+
+        return new CoordinationScopeActionResultDto
+        {
+            Success = true,
+            ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
+            ShiftName = shiftName,
+            AffectedPlanCount = plans.Count,
+            OldStatuses = oldStatuses,
+            NewStatus = OrderStatus.Draft,
+            ChangedAt = changedAt
         };
     }
 
@@ -2378,7 +2593,11 @@ public class CoordinationService : ICoordinationService
                 {
                     DishId = GuidHelper.ToGuidString(item.DishId),
                     DishCode = item.Dish.DishCode,
-                    DishName = item.Dish.DishName
+                    DishName = item.Dish.DishName,
+                    DishSlot = item.DishSlot,
+                    DishGroup = item.Dish.DishGroup,
+                    DishType = item.Dish.DishType,
+                    DisplayOrder = item.DisplayOrder
                 })
                 .ToList(),
             DishId = line.Menu.Menuitems
