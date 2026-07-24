@@ -8,6 +8,7 @@ import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 interface DemandSummaryProps {
   lines: DemandLine[];
   className?: string;
+  sourceLabel?: string;
 }
 
 const formatVariance = (value: number, unit: string) => {
@@ -44,7 +45,7 @@ const shortenNextAction = (action: string) => {
   return action.length > 24 ? `${action.slice(0, 21).trim()}...` : action;
 };
 
-export function DemandSummary({ lines, className }: DemandSummaryProps) {
+export function DemandSummary({ lines, className, sourceLabel = 'Nguồn' }: DemandSummaryProps) {
   if (!lines.length) {
     return <div className={cn('ipc-demand-summary is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
@@ -56,7 +57,7 @@ export function DemandSummary({ lines, className }: DemandSummaryProps) {
           <thead>
             <tr>
               <th style={{ width: '18%' }} className="whitespace-nowrap text-left">Nguyên liệu</th>
-              <th style={{ width: '22%' }} className="whitespace-nowrap text-left">Nguồn</th>
+              <th style={{ width: '22%' }} className="whitespace-nowrap text-left">{sourceLabel}</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Cần</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Khả dụng</th>
               <th style={{ width: '12%' }} className="whitespace-nowrap text-right">Chênh lệch</th>

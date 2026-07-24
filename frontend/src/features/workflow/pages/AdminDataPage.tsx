@@ -203,6 +203,7 @@ const isAdminView = (value: string | null): value is AdminView =>
 
 export default function AdminDataPage() {
   const { toast } = useToast();
+  const operationalDate = getTodayInputValue();
   const currentUser = useAppSelector(selectCurrentUser);
   const [searchParams] = useSearchParams();
   const bomTemplateDishId = searchParams.get('dishId')?.trim() || undefined;
@@ -334,7 +335,7 @@ export default function AdminDataPage() {
       toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
     }
   };
-  const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8 });
+  const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8, serviceDate: operationalDate });
   const { data: operationalKpis } = useGetOperationalKpisQuery();
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const stockMovementCursor = stockMovementCursors.at(-1);
@@ -345,10 +346,21 @@ export default function AdminDataPage() {
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'inventory' });
-  const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({ pageNumber: 1, pageSize: 8 });
+  const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({
+    pageNumber: 1,
+    pageSize: 8,
+    dateFrom: operationalDate,
+    dateTo: operationalDate,
+  });
   const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
   const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
-  const { data: priceVariancePage } = useGetPriceVariancePageQuery({ pageNumber: priceWarningPage, pageSize: 8, warningOnly: true });
+  const { data: priceVariancePage } = useGetPriceVariancePageQuery({
+    pageNumber: priceWarningPage,
+    pageSize: 8,
+    warningOnly: true,
+    dateFrom: operationalDate,
+    dateTo: operationalDate,
+  });
   const { roleInboxItems } = useWorkflowOverview();
   const employeeQuery = useMemo(
     () => ({
@@ -379,6 +391,7 @@ export default function AdminDataPage() {
   const totalReturnedQty = operationalKpis?.totalKitchenReturnedQty ?? 0;
   const dataQualityIssues = dataQualityReport?.page.items ?? [];
   const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
+  const currentBomPagination = usePaginatedRows(currentBomRows, 8);
   const bomPreviewPagination = usePaginatedRows(bomImportPreview?.rows ?? [], 20);
   const isSavingContract = createCustomerContractState.isLoading || updateCustomerContractState.isLoading || updateMenuScheduleRulesState.isLoading || updateMenuScheduleVersionState.isLoading;
   const employeeRoles = rolesResponse?.data ?? [];
@@ -877,8 +890,8 @@ export default function AdminDataPage() {
         <ContextStrip
           items={[
             { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-            { label: 'Dữ liệu lỗi', value: `${dataQualityReport?.totalIssues ?? 0} mục`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
-            { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'danger' : 'success' },
+            { label: 'Dữ liệu lỗi', value: `${dataQualityErrorCount} mục`, tone: dataQualityErrorCount ? 'danger' : 'success' },
+            { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'warning' : 'success' },
             { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
             { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
             ...(canManageEmployees ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
@@ -898,7 +911,7 @@ export default function AdminDataPage() {
         <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
-              <div className="grid gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
+              <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
                 <FieldRow label="Đơn giá BOM">
                   <div className="grid grid-cols-3 gap-2">
                     {[25000, 30000, 34000].map((tier) => (
@@ -1039,26 +1052,16 @@ export default function AdminDataPage() {
                 />
 
                 <div className="flex flex-col gap-2 rounded-md border border-slate-200 bg-white p-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex gap-1" role="tablist" aria-label="Chọn dữ liệu BOM hiển thị">
-                    <button
-                      className={`ipc-button ${bomPanelMode === 'current' ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={bomPanelMode === 'current'}
-                      onClick={() => setBomPanelMode('current')}
-                    >
-                      BOM hiện tại
-                    </button>
-                    <button
-                      className={`ipc-button ${bomPanelMode === 'preview' ? 'ipc-button-primary' : 'ipc-button-ghost'}`}
-                      type="button"
-                      role="tab"
-                      aria-selected={bomPanelMode === 'preview'}
-                      onClick={() => setBomPanelMode('preview')}
-                    >
-                      Bản xem trước
-                    </button>
-                  </div>
+                  <ViewSwitcher
+                    compact
+                    ariaLabel="Chọn dữ liệu BOM hiển thị"
+                    tabs={[
+                      { id: 'bom-current', label: 'BOM hiện tại' },
+                      { id: 'bom-preview', label: 'Bản xem trước' },
+                    ]}
+                    activeTab={`bom-${bomPanelMode}`}
+                    onTabChange={(id) => setBomPanelMode(id === 'bom-preview' ? 'preview' : 'current')}
+                  />
                   {bomPanelMode === 'current' && (
                     <div className="flex min-w-0 flex-1 gap-2 sm:max-w-xl sm:justify-end">
                       <label className="relative min-w-0 flex-1 sm:max-w-xs">
@@ -1080,8 +1083,9 @@ export default function AdminDataPage() {
                 </div>
 
                 {bomPanelMode === 'current' ? (
-                  <DataTableShell className="max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
-                    <table className="ipc-data-table min-w-[1038px] table-fixed">
+                  <div id="bom-current-panel" role="tabpanel" aria-labelledby="bom-current-tab" className="min-w-0">
+                    <DataTableShell className="h-[520px] max-h-[520px]" ariaLabel="BOM hiện tại theo đơn giá">
+                      <table className="ipc-data-table min-w-[1038px] table-fixed">
                       <colgroup>
                         <col className="w-[215px]" />
                         <col className="w-[190px]" />
@@ -1105,7 +1109,7 @@ export default function AdminDataPage() {
                         </tr>
                       </thead>
                       <tbody>
-                        {currentBomRows.map(({ dish, line }) => (
+                        {currentBomPagination.rows.map(({ dish, line }) => (
                           <tr key={line.bomId}>
                             <td>
                               <div className="font-semibold text-slate-900">{dish.name}</div>
@@ -1144,10 +1148,17 @@ export default function AdminDataPage() {
                           <tr><td colSpan={8} className="py-8 text-center text-slate-500">Đang tải BOM hiện tại...</td></tr>
                         )}
                       </tbody>
-                    </table>
-                  </DataTableShell>
+                      </table>
+                    </DataTableShell>
+                    <PaginationBar
+                      page={currentBomPagination.page}
+                      pageSize={currentBomPagination.pageSize}
+                      totalItems={currentBomPagination.totalItems}
+                      onPageChange={currentBomPagination.setPage}
+                    />
+                  </div>
                 ) : (
-                  <>
+                  <div id="bom-preview-panel" role="tabpanel" aria-labelledby="bom-preview-tab" className="min-w-0">
                     <PaginatedTableFrame ariaLabel="Bản xem trước dữ liệu định lượng theo đơn giá">
                     <table className="ipc-data-table">
                       <thead>
@@ -1180,7 +1191,7 @@ export default function AdminDataPage() {
                     </table>
                      </PaginatedTableFrame>
                     <PaginationBar page={bomPreviewPagination.page} pageSize={bomPreviewPagination.pageSize} totalItems={bomPreviewPagination.totalItems} onPageChange={bomPreviewPagination.setPage} />
-                  </>
+                  </div>
                 )}
               </div>
             </div>
@@ -1490,13 +1501,13 @@ export default function AdminDataPage() {
           <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
             <ContextStrip
               items={[
-                { label: 'Tổng lỗi', value: `${dataQualityReport?.totalIssues ?? 0}`, tone: dataQualityErrorCount ? 'danger' : dataQualityReport?.totalIssues ? 'warning' : 'success' },
+                { label: 'Tổng lỗi', value: `${dataQualityErrorCount}`, tone: dataQualityErrorCount ? 'danger' : 'success' },
                 { label: 'Thiếu BOM', value: `${dataQualityReport?.missingBomCount ?? 0}`, tone: (dataQualityReport?.missingBomCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Unit/quy đổi', value: `${(dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)}`, tone: ((dataQualityReport?.invalidUnitCount ?? 0) + (dataQualityReport?.missingConversionCount ?? 0)) ? 'danger' : 'success' },
                 { label: 'Tồn âm', value: `${dataQualityReport?.negativeStockCount ?? 0}`, tone: (dataQualityReport?.negativeStockCount ?? 0) ? 'danger' : 'success' },
                 { label: 'Phiếu orphan', value: `${dataQualityReport?.orphanDocumentCount ?? 0}`, tone: (dataQualityReport?.orphanDocumentCount ?? 0) ? 'warning' : 'success' },
                 { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' : 'success' },
-                { label: 'Resolved còn lỗi', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: (dataQualityReport?.resolvedIssueCount ?? 0) ? 'warning' : 'success' },
+                { label: 'Đã xử lý', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: 'success' },
               ]}
             />
 
@@ -1527,8 +1538,8 @@ export default function AdminDataPage() {
                     <tr key={`${issue.id}-${index}`}>
                       <td className="font-semibold">{issue.category}</td>
                       <td>
-                        <StatusBadge variant={issue.severity === 'error' ? 'danger' : 'warning'}>
-                          {issue.severity === 'error' ? 'Lỗi' : 'Cảnh báo'}
+                        <StatusBadge variant={issue.remediationStatus === 'resolved' ? 'success' : issue.severity === 'error' ? 'danger' : 'warning'}>
+                          {issue.remediationStatus === 'resolved' ? 'Đã xử lý' : issue.severity === 'error' ? 'Lỗi' : 'Cảnh báo'}
                         </StatusBadge>
                       </td>
                       <td>
@@ -1536,8 +1547,8 @@ export default function AdminDataPage() {
                         <div className="text-xs text-slate-500">Priority {issue.priorityRank}</div>
                       </td>
                       <td>
-                        <StatusBadge variant={issue.remediationStatus === 'resolved' ? 'warning' : issue.remediationStatus === 'reopened' ? 'danger' : 'neutral'}>
-                          {issue.remediationStatus === 'resolved' ? 'Resolved còn lỗi' : issue.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
+                        <StatusBadge variant={issue.remediationStatus === 'resolved' ? 'success' : issue.remediationStatus === 'reopened' ? 'danger' : 'neutral'}>
+                          {issue.remediationStatus === 'resolved' ? 'Đã xử lý' : issue.remediationStatus === 'reopened' ? 'Reopened' : 'Open'}
                         </StatusBadge>
                         {issue.remediationAt && (
                           <div className="text-xs text-slate-500">
@@ -1595,18 +1606,21 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'inventory' && (
         <SectionPanel title="Điều chỉnh tồn và thông báo">
           <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
-          <StockMovementTable movements={adjustmentMovements} pageSize={8} />
-          <CursorPaginationBar
-            page={stockMovementCursors.length + 1}
-            hasNext={stockMovementResult.data?.hasNext ?? false}
-            onPrevious={() => setStockMovementCursors((current) => current.slice(0, -1))}
-            onNext={() => {
-              const nextCursorDate = stockMovementResult.data?.nextCursorDate;
-              if (nextCursorDate) {
-                setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementResult.data?.nextCursorId }]);
-              }
+          <StockMovementTable
+            movements={adjustmentMovements}
+            cursorPagination={{
+              page: stockMovementCursors.length + 1,
+              hasNext: stockMovementResult.data?.hasNext ?? false,
+              isPending: stockMovementResult.isFetching,
+              onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
+              onNext: () => {
+                const nextCursorDate = stockMovementResult.data?.nextCursorDate;
+                if (nextCursorDate) {
+                  setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementResult.data?.nextCursorId }]);
+                }
+              },
+              ariaLabel: 'Phân trang lịch sử điều chỉnh tồn',
             }}
-            ariaLabel="Phân trang lịch sử điều chỉnh tồn"
           />
           <div className="mt-4">
             <RoleInbox

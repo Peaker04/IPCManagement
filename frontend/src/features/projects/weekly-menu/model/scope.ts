@@ -1,5 +1,5 @@
 import type { DemandLine } from '@/features/workflow'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish, CatalogIngredient } from '../../dishCatalogApi'
 import type { WeeklyMenuState } from '../../../coordination/types'
 import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix'
@@ -118,14 +118,48 @@ export const matchesCategory = (dish: CatalogDish, category: 'savory' | 'vegetar
   return category === 'vegetarian' ? isVegetarian : !isVegetarian
 }
 
+export type BomResolutionContext = {
+  customerId?: string
+  priceTier?: number
+  serviceDate?: string
+}
+
+const isBomLineEffective = (ingredient: CatalogIngredient, context: BomResolutionContext) => {
+  if (ingredient.bomStatus.trim().toUpperCase() !== 'PUBLISHED') return false
+  if (context.priceTier !== undefined && ingredient.priceTierAmount !== context.priceTier) return false
+  if (!context.serviceDate) return true
+  const serviceDate = context.serviceDate.split('T')[0]
+  const effectiveFrom = ingredient.effectiveFrom.split('T')[0]
+  const effectiveTo = ingredient.effectiveTo?.split('T')[0]
+  return effectiveFrom <= serviceDate && (!effectiveTo || effectiveTo >= serviceDate)
+}
+
+export const resolveDishIngredients = (
+  dish: CatalogDish | undefined,
+  context?: BomResolutionContext,
+) => {
+  if (!dish) return []
+  if (!context) return dish.ingredients
+
+  const effectiveLines = dish.ingredients.filter((ingredient) => isBomLineEffective(ingredient, context))
+  const customerLines = context.customerId
+    ? effectiveLines.filter((ingredient) => ingredient.customerId === context.customerId)
+    : []
+
+  return customerLines.length > 0
+    ? customerLines
+    : effectiveLines.filter((ingredient) => !ingredient.customerId)
+}
+
 const addDishToMaterialSummary = (
   summary: MaterialSummaryAccumulator,
   dish: CatalogDish,
   dishName: string,
   portions: number,
   quantityFactor: number,
+  bomContext?: BomResolutionContext,
 ) => {
-  dish.ingredients.forEach((ingredient) => {
+  resolveDishIngredients(dish, bomContext).forEach((ingredient) => {
     const identityKey = `${ingredient.ingredientId}|${ingredient.unitId}`
     summary[identityKey] ??= {
       ingredientId: ingredient.ingredientId,
@@ -161,12 +195,16 @@ export const buildPlanRowsMaterialSummary = (
   rows: WeeklyPlanRow[],
   dishesById: Map<string, CatalogDish>,
   dishesByName: Map<string, CatalogDish>,
+  bomContext?: Omit<BomResolutionContext, 'serviceDate'>,
 ) => {
   const summary: MaterialSummaryAccumulator = {}
   rows.forEach((row) => {
     const dish = (row.dishId ? dishesById.get(row.dishId) : undefined)
       ?? dishesByName.get(normalizeDishMatchKey(row.dishName))
-    if (dish) addDishToMaterialSummary(summary, dish, row.dishName, row.portions, row.quantityFactor)
+    if (dish) {
+      const rowBomContext = bomContext ? { ...bomContext, serviceDate: row.serviceDate } : undefined
+      addDishToMaterialSummary(summary, dish, row.dishName, row.portions, row.quantityFactor, rowBomContext)
+    }
   })
   return finalizeMaterialSummary(summary)
 }

@@ -46,6 +46,15 @@ SELECT target.receiptId,
 FROM conversion_receipt_line_targets target
 GROUP BY target.receiptId;
 
+DROP TEMPORARY TABLE IF EXISTS invalid_future_receipt_line_targets;
+CREATE TEMPORARY TABLE invalid_future_receipt_line_targets AS
+SELECT line.receiptLineId, line.receiptId
+FROM inventoryreceiptlines line
+JOIN inventoryreceipts receipt ON receipt.receiptId = line.receiptId
+WHERE receipt.receiptDate > CURRENT_DATE()
+  AND receipt.receiptCode LIKE 'RCP-SAMPLE-%'
+  AND line.purchaseRequestLineId IS NULL;
+
 SELECT COUNT(*) AS stockRowsToRemove FROM conversion_stock_targets;
 SELECT COUNT(*) AS receiptLinesToRemove FROM conversion_receipt_line_targets;
 SELECT COUNT(DISTINCT receiptId) AS affectedReceipts FROM conversion_receipt_line_targets;
@@ -73,12 +82,19 @@ FROM (
 SELECT COUNT(*) AS receiptLinesLinkedToPurchaseRequests
 FROM conversion_receipt_line_targets
 WHERE purchaseRequestLineId IS NOT NULL;
+SELECT COUNT(*) AS invalidFutureReceiptLinesToRemove
+FROM invalid_future_receipt_line_targets;
 SELECT COUNT(*) AS stockMovementsToRemove
 FROM stockmovements movement
 JOIN conversion_stock_targets target
   ON target.warehouseId = movement.warehouseId
  AND target.ingredientId = movement.ingredientId
  AND target.unitId = movement.unitId;
+SELECT COUNT(*) AS receiptLinkedStockMovementsToRemove
+FROM stockmovements movement
+JOIN conversion_receipt_line_targets target
+  ON target.receiptLineId = movement.refId
+WHERE LOWER(movement.refTable) = 'inventoryreceiptlines';
 SELECT COUNT(*) AS stockLotsToRemove
 FROM currentstocklots lot
 JOIN conversion_stock_targets target
@@ -92,10 +108,29 @@ JOIN conversion_stock_targets target
  AND target.ingredientId = snapshot.ingredientId
  AND target.unitId = snapshot.unitId;
 
+DELETE movement
+FROM stockmovements movement
+JOIN conversion_receipt_line_targets target
+  ON target.receiptLineId = movement.refId
+WHERE LOWER(movement.refTable) = 'inventoryreceiptlines';
+SELECT ROW_COUNT() AS receiptLinkedStockMovementsRemoved;
+
+DELETE movement
+FROM stockmovements movement
+JOIN invalid_future_receipt_line_targets target
+  ON target.receiptLineId = movement.refId
+WHERE LOWER(movement.refTable) = 'inventoryreceiptlines';
+SELECT ROW_COUNT() AS invalidFutureReceiptStockMovementsRemoved;
+
 DELETE line
 FROM inventoryreceiptlines line
 JOIN conversion_receipt_line_targets target ON target.receiptLineId = line.receiptLineId;
 SELECT ROW_COUNT() AS receiptLinesRemoved;
+
+DELETE line
+FROM inventoryreceiptlines line
+JOIN invalid_future_receipt_line_targets target ON target.receiptLineId = line.receiptLineId;
+SELECT ROW_COUNT() AS invalidFutureReceiptLinesRemoved;
 
 DELETE receipt
 FROM inventoryreceipts receipt
@@ -105,6 +140,15 @@ WHERE NOT EXISTS (
   SELECT 1 FROM inventoryreceiptlines remaining WHERE remaining.receiptId = receipt.receiptId
 );
 SELECT ROW_COUNT() AS emptyReceiptsRemoved;
+
+DELETE receipt
+FROM inventoryreceipts receipt
+WHERE receipt.receiptDate > CURRENT_DATE()
+  AND receipt.receiptCode LIKE 'RCP-SAMPLE-%'
+  AND NOT EXISTS (
+    SELECT 1 FROM inventoryreceiptlines remaining WHERE remaining.receiptId = receipt.receiptId
+  );
+SELECT ROW_COUNT() AS emptyInvalidFutureReceiptsRemoved;
 
 UPDATE purchaseorderlines orderLine
 JOIN (
@@ -174,6 +218,36 @@ JOIN conversion_stock_targets target
  AND target.ingredientId = stock.ingredientId
  AND target.unitId = stock.unitId;
 SELECT ROW_COUNT() AS stockRowsRemoved;
+
+-- A receipt-line delete may leave ledger rows behind because this legacy schema
+-- intentionally has no FK from stockmovements.refId to inventoryreceiptlines.
+DELETE movement
+FROM stockmovements movement
+LEFT JOIN inventoryreceiptlines line ON line.receiptLineId = movement.refId
+WHERE LOWER(movement.refTable) = 'inventoryreceiptlines'
+  AND movement.refId IS NOT NULL
+  AND line.receiptLineId IS NULL;
+SELECT ROW_COUNT() AS orphanReceiptStockMovementsRemoved;
+
+-- Rebuild a canonical current-stock row only when every surviving movement is
+-- already in the ingredient unit. This preserves valid ledger evidence without
+-- guessing any package conversion rate.
+INSERT INTO currentstock(warehouseId, ingredientId, unitId, currentQty, lastUpdated)
+SELECT movement.warehouseId,
+       movement.ingredientId,
+       ingredient.unitId,
+       SUM(movement.quantityIn - movement.quantityOut),
+       MAX(movement.movementDate)
+FROM stockmovements movement
+JOIN ingredients ingredient ON ingredient.ingredientId = movement.ingredientId
+LEFT JOIN currentstock stock
+  ON stock.warehouseId = movement.warehouseId
+ AND stock.ingredientId = movement.ingredientId
+WHERE stock.ingredientId IS NULL
+GROUP BY movement.warehouseId, movement.ingredientId, ingredient.unitId
+HAVING SUM(movement.unitId <> ingredient.unitId) = 0
+   AND SUM(movement.quantityIn - movement.quantityOut) > 0.000010;
+SELECT ROW_COUNT() AS canonicalCurrentStockRowsRebuilt;
 
 SELECT COUNT(*) AS remainingInvalidStockRows
 FROM currentstock stock

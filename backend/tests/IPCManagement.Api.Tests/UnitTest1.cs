@@ -30,7 +30,6 @@ public class UnitTest1
             "20260605013906_AddCurrentStockTable",
             "20260605020053_AddRefreshTokenTable",
             "20260621180049_AddConcurrencyToCurrentStock",
-            "20260626043000_SeedTemporaryBomData",
             "20260630031911_AddCustomerContractsAndMenuVersions",
             "20260630062000_AddPortionRules",
             "20260630065000_AddPortionRuleTraceToDemandLines",

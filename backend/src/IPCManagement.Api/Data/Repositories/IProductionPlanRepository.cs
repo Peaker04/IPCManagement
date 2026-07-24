@@ -6,5 +6,5 @@ public interface IProductionPlanRepository
 {
     Task<(IEnumerable<Productionplan> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
     Task<Productionplan?> GetByIdWithLinesAsync(byte[] id);
-    Task<IReadOnlyList<Productionplan>> GetFilteredAsync(DateOnly? serviceDate, byte[]? customerId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<Productionplan>> GetFilteredAsync(DateOnly? serviceDate, DateOnly? dateFrom, DateOnly? dateTo, byte[]? customerId, CancellationToken cancellationToken = default);
 }

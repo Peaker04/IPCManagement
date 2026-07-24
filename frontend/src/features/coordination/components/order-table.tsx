@@ -1,21 +1,78 @@
 'use client'
 
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '../coordinationApi'
 import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/components/common'
-import { formatCurrency } from '@/lib/formatters'
 import { useLocalPagination } from '@/lib/useLocalPagination'
-import { ClipboardList } from 'lucide-react'
+import { ClipboardList, Eye } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+
+type DishDetailDialogComponent = typeof import('./dish-detail-dialog')['DishDetailDialog']
+
+let cachedDishDetailDialog: DishDetailDialogComponent | null = null
+let pendingDishDetailDialog: Promise<DishDetailDialogComponent> | null = null
+
+const loadDishDetailDialog = () => {
+  if (cachedDishDetailDialog) return Promise.resolve(cachedDishDetailDialog)
+  if (!pendingDishDetailDialog) {
+    pendingDishDetailDialog = import('./dish-detail-dialog')
+      .then((module) => {
+        cachedDishDetailDialog = module.DishDetailDialog
+        return module.DishDetailDialog
+      })
+      .catch((error: unknown) => {
+        pendingDishDetailDialog = null
+        throw error
+      })
+  }
+  return pendingDishDetailDialog
+}
+
+const preloadDishDetailDialog = () => {
+  void loadDishDetailDialog().catch(() => undefined)
+}
+
+function DishDetailLoadingOverlay({ customerName, onClose }: { customerName: string; onClose: () => void }) {
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
+    <>
+      <div
+        aria-hidden="true"
+        className="fixed inset-0 z-[1000] bg-slate-900/45 backdrop-blur-[1px]"
+        onClick={onClose}
+      />
+      <div className="fixed inset-0 z-[1001] flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Chi tiết thực đơn"
+          className="flex w-full max-w-sm items-center gap-3 rounded-md border border-slate-200 bg-white p-4 shadow-xl"
+        >
+          <span className="size-5 shrink-0 animate-spin rounded-full border-2 border-blue-200 border-t-blue-700" aria-hidden="true" />
+          <div role="status" aria-live="polite">
+            <p className="text-sm font-semibold text-slate-800">Đang mở chi tiết thực đơn</p>
+            <p className="mt-0.5 text-xs text-slate-500">{customerName}</p>
+          </div>
+        </div>
+      </div>
+    </>,
+    document.body,
+  )
+}
 
 interface OrderTableProps {
   orders: OrderRow[]
-  isLocked: boolean
+  canEditForecast: boolean
+  canRequestAdjustment: boolean
+  useFinalServings: boolean
 }
 
-export function OrderTable({ orders, isLocked }: OrderTableProps) {
+export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useFinalServings }: OrderTableProps) {
   const dispatch = useAppDispatch()
   const [adjustCoordinationOrder] = useAdjustCoordinationOrderMutation()
   const [updateForecastServings] = useUpdateForecastServingsMutation()
@@ -23,8 +80,31 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const [pendingForecastOrderIds, setPendingForecastOrderIds] = useState<Record<string, boolean>>({})
   const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
+  const [dishDialogLoadError, setDishDialogLoadError] = useState<string | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+  const [LoadedDishDetailDialog, setLoadedDishDetailDialog] = useState<DishDetailDialogComponent | null>(
+    () => cachedDishDetailDialog,
+  )
   const pageSize = 12
   const { page, rows: pageOrders, totalItems, setPage } = useLocalPagination(orders, pageSize)
+  const selectedOrder = selectedOrderId ? orders.find((order) => order.id === selectedOrderId) : undefined
+
+  const openDishDetailDialog = (order: OrderRow) => {
+    setDishDialogLoadError(null)
+    setSelectedOrderId(order.id)
+
+    if (cachedDishDetailDialog) {
+      setLoadedDishDetailDialog(() => cachedDishDetailDialog)
+      return
+    }
+
+    void loadDishDetailDialog()
+      .then((component) => setLoadedDishDetailDialog(() => component))
+      .catch(() => {
+        setSelectedOrderId(null)
+        setDishDialogLoadError('Không tải được cửa sổ chi tiết thực đơn. Vui lòng thử lại.')
+      })
+  }
 
   const handleOrderChange = (payload: OrderUpdatePayload) => {
     dispatch(updateOrder(payload))
@@ -40,7 +120,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
   }
 
   const handleForecastQuantitySave = async (order: OrderRow, value: number) => {
-    if (isLocked || pendingForecastOrderIds[order.id]) return
+    if (!canEditForecast || pendingForecastOrderIds[order.id]) return
 
     const previousValue = forecastRollbackValues[order.id] ?? order.forecastQuantity
     if (value === previousValue) {
@@ -132,81 +212,93 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
           </InlineAlert>
         </div>
       )}
+      {dishDialogLoadError && (
+        <div className="border-b border-slate-200">
+          <InlineAlert title="Không mở được chi tiết" variant="danger">
+            {dishDialogLoadError}
+          </InlineAlert>
+        </div>
+      )}
       <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
-              <th className="whitespace-nowrap border-r border-slate-200 text-left w-[180px]">
+              <th className="w-[120px] whitespace-nowrap border-r border-slate-200 text-left">
                 Khách Hàng
               </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-left">
-                Loại Suất / Menu
+              <th className="w-[210px] whitespace-nowrap border-r border-slate-200 text-left">
+                Thực Đơn
               </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-left">
+              <th className="w-[260px] whitespace-nowrap border-r border-slate-200 text-left">
                 Món Ăn
               </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-center w-[100px]">
+              <th className="w-[90px] whitespace-nowrap border-r border-slate-200 text-center">
                 Dự Kiến
               </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-center w-[100px]">
+              <th className="w-[90px] whitespace-nowrap border-r border-slate-200 text-center">
                 Thực Tế
               </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-center w-[80px]">
+              <th className="w-[100px] whitespace-nowrap text-center">
                 Chênh Lệch
-              </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-right w-[110px]">
-                Đơn Giá
-              </th>
-              <th className="whitespace-nowrap border-r border-slate-200 text-center w-[80px]">
-                % Định Mức
-              </th>
-              <th className="whitespace-nowrap text-left">
-                Ghi Chú
               </th>
             </tr>
           </thead>
           <tbody>
             {pageOrders.map((order, idx) => {
-              const finalQuantity = isLocked ? order.actualQuantity : order.forecastQuantity
+              const finalQuantity = useFinalServings ? order.actualQuantity : order.forecastQuantity
               const variance = finalQuantity - order.forecastQuantity
+              const uniqueDishes = Array.from(
+                new Map((order.dishes ?? []).map((dish) => [dish.dishId, dish])).values(),
+              )
+              const leadDish = uniqueDishes.find((dish) => dish.dishSlot?.toLowerCase().endsWith('-main')) ?? uniqueDishes[0]
 
               return (
             <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
-              {/* Khách Hàng (gộp Mã KH + Tên) */}
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
                 <div className="font-mono text-xs text-slate-400 mt-0.5">{order.customerCode}</div>
               </td>
 
-              {/* Loại Suất */}
               <td className="border-r border-slate-200 text-slate-600">
                 <div className="font-medium text-slate-800">{order.menuName || order.mealType}</div>
-                {order.menuCode && <div className="mt-0.5 font-mono text-xs text-slate-500">{order.menuCode}</div>}
               </td>
 
-              {/* Món Ăn */}
-              <td className="min-w-[140px] border-r border-slate-200">
-                <div className="flex flex-col gap-1 text-slate-800">
-                  {order.dishes && order.dishes.length > 0 ? (
-                    order.dishes.map((dish) => (
-                      <div key={dish.dishId} className="leading-5">
-                        <span className="font-medium">{dish.dishName}</span>
-                        {dish.dishCode && <span className="ml-2 font-mono text-xs text-slate-500">{dish.dishCode}</span>}
-                      </div>
-                    ))
+              <td className="min-w-[240px] border-r border-slate-200">
+                <div className="flex items-center justify-between gap-3 text-slate-800">
+                  <div className="min-w-0 truncate whitespace-nowrap leading-5">
+                  {uniqueDishes.length > 0 ? (
+                    <>
+                      {leadDish?.dishSlot?.toLowerCase().endsWith('-main') && <span className="mr-1.5 text-xs font-semibold text-blue-700">Món chính</span>}
+                      <span className="font-medium">{leadDish?.dishName}</span>
+                      {uniqueDishes.length > 1 && <span className="text-slate-500"> · +{uniqueDishes.length - 1} món</span>}
+                    </>
                   ) : (
                     <span className="text-slate-500">Chưa có món</span>
                   )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onPointerEnter={preloadDishDetailDialog}
+                    onFocus={preloadDishDetailDialog}
+                    onClick={() => openDishDetailDialog(order)}
+                    className="h-8 shrink-0 gap-1.5 px-2 text-blue-700 hover:bg-blue-50 hover:text-blue-800"
+                    aria-label={`Xem chi tiết thực đơn của ${order.customerName}`}
+                  >
+                    <Eye className="size-3.5" aria-hidden="true" />
+                    Chi tiết
+                  </Button>
                 </div>
               </td>
 
-              {/* Suất Dự Kiến (Editable) */}
               <td className="border-r border-slate-200 text-center">
                 <input
+                  aria-label={`Suất dự kiến của ${order.customerName}`}
                   type="number"
                   min="0"
                   max="9999"
-                  disabled={isLocked || pendingForecastOrderIds[order.id]}
+                  disabled={!canEditForecast || pendingForecastOrderIds[order.id]}
                   value={order.forecastQuantity}
                   onFocus={() => rememberForecastValue(order)}
                   onBlur={(e) =>
@@ -220,34 +312,33 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                     })
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
-                    isLocked
-                      ? 'border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed'
+                    !canEditForecast
+                      ? 'cursor-default border-transparent bg-transparent text-slate-700'
                       : 'border-blue-300 bg-blue-50 text-blue-800 hover:bg-blue-100'
                   } ${pendingForecastOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
                 />
               </td>
 
-              {/* Suất Chốt Thực Tế */}
               <td className="border-r border-slate-200 text-center">
                 <input
+                  aria-label={`Suất thực tế của ${order.customerName}`}
                   type="number"
                   min="0"
                   max="9999"
-                  disabled={!isLocked || pendingOrderIds[order.id]}
+                  disabled={!canRequestAdjustment || pendingOrderIds[order.id]}
                   value={order.actualQuantity}
                   onChange={(e) =>
                     handleActualQuantityChange(order, parseServingInput(e.target.value))
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
-                    isLocked
+                    canRequestAdjustment
                       ? 'border-teal-300 bg-teal-50 text-teal-800 hover:bg-teal-100'
-                      : 'border-slate-200 bg-slate-100 text-slate-500'
+                      : 'cursor-default border-transparent bg-transparent text-slate-700'
                   } ${pendingOrderIds[order.id] ? 'cursor-wait opacity-70' : ''}`}
                 />
               </td>
 
-              {/* Chênh lệch */}
-              <td className="border-r border-slate-200 text-center">
+              <td className="text-center">
                 <span
                   className={`inline-flex items-center gap-0.5 min-w-12 justify-center rounded-md border px-1.5 py-1 text-[12px] font-bold ${
                     variance === 0
@@ -272,46 +363,6 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   )}
                 </span>
               </td>
-
-              {/* Đơn Giá */}
-              <td className="border-r border-slate-200 text-right text-slate-600 tabular-nums">
-                {formatCurrency(order.unitPrice)}
-              </td>
-
-              {/* % Định Mức */}
-              <td className="border-r border-slate-200 text-center">
-                <span
-                  className={`inline-block rounded-md border px-1.5 py-1 font-semibold text-[12px] ${
-                    order.appliedRate >= 100
-                      ? 'border-teal-200 bg-teal-50 text-teal-800'
-                      : 'border-amber-200 bg-amber-50 text-amber-800'
-                  }`}
-                >
-                  {order.appliedRate}%
-                </span>
-              </td>
-
-              {/* Ghi Chú */}
-              <td className="text-slate-600">
-                <input
-                  type="text"
-                  disabled={isLocked}
-                  value={order.specialNotes || ''}
-                  onChange={(e) =>
-                    handleOrderChange({
-                      id: order.id,
-                      field: 'specialNotes',
-                      value: e.target.value,
-                    })
-                  }
-                  placeholder="-"
-                  className={`min-h-9 w-full min-w-[120px] rounded-md border px-2 py-1.5 text-left transition-colors bg-transparent ${
-                    isLocked
-                      ? 'border-transparent text-slate-500 cursor-not-allowed bg-transparent'
-                      : 'border-slate-200 text-slate-700 hover:border-slate-300 focus:border-blue-500'
-                  }`}
-                />
-              </td>
             </tr>
               )
             })}
@@ -319,6 +370,11 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
         </table>
       </TableViewport>
       <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
+      {selectedOrder && (LoadedDishDetailDialog ? (
+        <LoadedDishDetailDialog order={selectedOrder} onClose={() => setSelectedOrderId(null)} />
+      ) : (
+        <DishDetailLoadingOverlay customerName={selectedOrder.customerName} onClose={() => setSelectedOrderId(null)} />
+      ))}
     </div>
   )
 }

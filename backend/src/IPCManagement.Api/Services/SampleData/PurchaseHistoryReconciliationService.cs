@@ -16,7 +16,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     private const string SourceFileName = "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx";
     private const string AuditedSourceSha256 = "4A91F9EA847068ABEB147EFF7ED7401B029D698F73E495641099DD9FA552BC88";
     private const int AuditedCurrentUniqueBusinessKeyCount = 17_739;
-    private const int AuditedDeltaCount = 3_207;
+    private const int AuditedDeltaCount = 0;
     private static readonly DateOnly AuditedAsOfDate = new(2026, 7, 20);
 
     private readonly IpcManagementContext _context;
@@ -129,7 +129,6 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             .Where(action => action.ActionType != "delete" && action.TargetId != string.Empty)
             .Select(action => new ResolvedTarget(action.TargetId, action.BusinessKey))
             .ToListAsync(cancellationToken);
-
         var databaseFingerprint = BindDatabaseFingerprint(
             _databaseIdentityFactory(),
             BuildDatabaseEvidence(
@@ -184,28 +183,18 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         {
             cancellationToken.ThrowIfCancellationRequested();
             var normalization = candidate.Normalization!;
-            var catalogBlocker = ValidateCatalog(candidate, normalization, suppliers, ingredients, units);
-            if (catalogBlocker is not null)
-            {
-                blockers.Add(catalogBlocker);
-                actions.Add(BuildAction(
-                    "block",
-                    candidate.SourceKey,
-                    candidate.BusinessKey,
-                    string.Empty,
-                    catalogBlocker.Code,
-                    "none",
-                    CandidateEvidence(candidate)));
-                continue;
-            }
-
             var existing = linesByBusinessKey.GetValueOrDefault(candidate.BusinessKey!) ?? [];
             foreach (var line in existing)
             {
                 processedLineIds.Add(line.Line.Id);
             }
 
-            var exact = existing.FirstOrDefault(line => Matches(line, candidate));
+            var exactMatches = existing.Where(line => Matches(line, candidate)).ToList();
+            var exactIdentityCount = exactMatches
+                .Select(line => $"{line.Supplier!.Id}|{line.Ingredient.Id}|{line.Unit.Id}")
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Count();
+            var exact = exactIdentityCount == 1 ? exactMatches[0] : null;
             if (exact is not null)
             {
                 foreach (var duplicate in existing.Where(line => line.Line.Id != exact.Line.Id))
@@ -225,6 +214,21 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                             ? "DEPENDENCY_FREE_SAMPLE_DUPLICATE"
                             : "REFERENCED_DUPLICATE_REMAP_REQUIRED"));
                 }
+                continue;
+            }
+
+            var catalogBlocker = ValidateCatalog(candidate, normalization, suppliers, ingredients, units);
+            if (catalogBlocker is not null)
+            {
+                blockers.Add(catalogBlocker);
+                actions.Add(BuildAction(
+                    "block",
+                    candidate.SourceKey,
+                    candidate.BusinessKey,
+                    string.Empty,
+                    catalogBlocker.Code,
+                    "none",
+                    CandidateEvidence(candidate)));
                 continue;
             }
 
@@ -881,9 +885,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             return CreateBlocker("SUPPLIER_CATALOG_AMBIGUOUS", "Nhà cung cấp", normalization.SupplierName ?? string.Empty, candidate.Trace);
         }
 
+        var ingredientCatalogKey = NormalizeIngredientCatalogKey(normalization.IngredientName);
         if (ingredients.Count(item =>
                 item.IsActive != false &&
-                string.Equals(item.Name, normalization.IngredientName, StringComparison.OrdinalIgnoreCase)) != 1)
+                string.Equals(
+                    NormalizeIngredientCatalogKey(item.Name),
+                    ingredientCatalogKey,
+                    StringComparison.OrdinalIgnoreCase)) != 1)
         {
             return CreateBlocker("INGREDIENT_CATALOG_AMBIGUOUS", "Tên hàng", normalization.IngredientName ?? string.Empty, candidate.Trace);
         }
@@ -895,6 +903,9 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
 
         return null;
     }
+
+    private static string NormalizeIngredientCatalogKey(string? value)
+        => Regex.Replace(value?.Trim() ?? string.Empty, @"\s+", string.Empty);
 
     private static PurchaseHistoryBlockerDto CreateBlocker(
         string code,

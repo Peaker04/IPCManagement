@@ -1,14 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, Edit, FileDown, Lock, Unlock } from 'lucide-react'
+import { AlertTriangle, CheckCircle, FileDown, Lock, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
-import { useAppDispatch, useIsLocked, useOrders, useCurrentShift, useAppSelector } from '@/app/hooks'
-import { addAuditLog, markOrdersLocked, unlockOrderPlan } from '../coordinationSlice'
-import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationOrderMutation } from '../coordinationApi'
+import { useAppDispatch, useOrders, useCurrentShift, useAppSelector } from '@/app/hooks'
+import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
+import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationScopeMutation, useUnlockCoordinationScopeMutation } from '../coordinationApi'
 import { toDisplayShift } from '../types'
 import { ActionGuard } from '@/routes/ActionGuard'
 
@@ -104,9 +103,8 @@ const getActionErrorMessage = (error: unknown, fallback: string) => {
   return fallback
 }
 
-export function ActionToolbar({ status }: { status?: string }) {
+export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans: boolean }) {
   const dispatch = useAppDispatch()
-  const isLocked = useIsLocked()
   const allOrders = useOrders()
   const currentShift = useCurrentShift()
   const currentDayOfWeek = useAppSelector((state) => state.coordination.currentDayOfWeek)
@@ -114,12 +112,10 @@ export function ActionToolbar({ status }: { status?: string }) {
   const authToken = useAppSelector((state) => state.auth.token)
   const [lockCoordinationOrders, { isLoading: isLocking }] = useLockCoordinationOrdersMutation()
   const [exportCoordinationOrders, { isLoading: isExporting }] = useExportCoordinationOrdersMutation()
-  const [signoffCoordinationOrder, { isLoading: isSigningOff }] = useSignoffCoordinationOrderMutation()
-  const [isUnlocking, setIsUnlocking] = useState(false)
+  const [signoffCoordinationScope, { isLoading: isSigningOff }] = useSignoffCoordinationScopeMutation()
+  const [unlockCoordinationScope, { isLoading: isUnlocking }] = useUnlockCoordinationScopeMutation()
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
   const [confirmationError, setConfirmationError] = useState<ActionErrorFeedback | null>(null)
-  const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false)
-  const [editReason, setEditReason] = useState('')
   const [feedback, setFeedback] = useState<{
     title: string
     message: string
@@ -132,10 +128,17 @@ export function ActionToolbar({ status }: { status?: string }) {
   )
 
   const normalizedStatus = (status ?? '').toUpperCase()
-  const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED'
-  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'ADJUSTED' || normalizedStatus === 'LOCKED' || isLocked
-  const currentPlanId = orders.find((order) => order.quantityPlanId)?.quantityPlanId
+  const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED' || normalizedStatus === 'CANCELLED'
+  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'ADJUSTED'
+  const isMixed = normalizedStatus === 'MIXED'
+  const isSyncing = normalizedStatus === 'SYNCING'
+  const hasActionableData = hasPlans && orders.length > 0
   const isBusy = isLocking || isExporting || isSigningOff || isUnlocking
+  const canLock = hasActionableData && !isConfirmed && !isTerminal && !isMixed && !isSyncing
+  const canSignoff = hasActionableData && isConfirmed && !isTerminal && !isMixed && !isSyncing
+  const canUnlock = canSignoff
+  const canExport = canSignoff
+  const hasStateActions = canLock || canSignoff || canUnlock || canExport
 
   const closeConfirmationDialog = () => {
     if (!isBusy) {
@@ -175,8 +178,8 @@ export function ActionToolbar({ status }: { status?: string }) {
         shifts: lockedShifts,
       }))
       setFeedback({
-        title: 'Đã ghi nhận chốt đơn ca',
-        message: `Backend đã khóa ${response.data.lockedLineCount} dòng kế hoạch cho ca hiện tại.`,
+        title: 'Đã ghi nhận chốt đơn cả ngày',
+        message: `Backend đã khóa ${response.data.lockedLineCount} dòng kế hoạch thuộc ${response.data.lockedShiftNames.length} ca.`,
         variant: 'info',
       })
       setConfirmationAction(null)
@@ -186,36 +189,6 @@ export function ActionToolbar({ status }: { status?: string }) {
         message: getActionErrorMessage(error, 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca.'),
       })
     }
-  }
-
-  const handleRequestEdit = () => {
-    setEditReason('')
-    setIsReasonDialogOpen(true)
-  }
-
-  const submitEditRequest = () => {
-    const reason = editReason.trim()
-    if (!reason) return
-
-    dispatch(
-      addAuditLog({
-        id: Date.now().toString(),
-        timestamp: new Date().toISOString(),
-        actor: currentUserName,
-        fieldAffected: 'Order Lock Status',
-        oldValue: 'Locked',
-        newValue: 'Pending Review',
-        reason,
-        orderId: 'BATCH',
-        shiftType: currentShift,
-      }),
-    )
-    setIsReasonDialogOpen(false)
-    setFeedback({
-      title: 'Đã gửi yêu cầu điều chỉnh',
-      message: `Lý do "${reason}" đã được ghi vào nhật ký ca ${currentShift}.`,
-      variant: 'warning',
-    })
   }
 
   const handleExportExcel = async () => {
@@ -249,7 +222,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         addAuditLog({
           id: Date.now().toString(),
           timestamp: new Date().toISOString(),
-          actor: 'Manager',
+          actor: currentUserName,
           fieldAffected: 'Report Export',
           oldValue: 'None',
           newValue: 'Excel File Generated',
@@ -278,7 +251,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   }
 
   const handleSignoff = async () => {
-    if (!currentPlanId) {
+    if (!hasPlans) {
       setFeedback({
         title: 'Chưa hoàn tất được ca',
         message: 'Không tìm thấy mã kế hoạch suất ăn cho ca hiện tại.',
@@ -288,9 +261,10 @@ export function ActionToolbar({ status }: { status?: string }) {
     }
 
     try {
-      const response = await signoffCoordinationOrder({
-        id: currentPlanId,
-        body: { note: `Hoàn tất ca ${currentShift}` },
+      const response = await signoffCoordinationScope({
+        dayOfWeek: currentDayOfWeek,
+        shift: currentShift,
+        note: `Hoàn tất ca ${currentShift}`,
       }).unwrap()
 
       if (!response.success || !response.data) {
@@ -300,7 +274,7 @@ export function ActionToolbar({ status }: { status?: string }) {
       setConfirmationAction(null)
       setFeedback({
         title: 'Đã hoàn tất ca',
-        message: `Kế hoạch ngày ${response.data.serviceDate} đã chuyển từ ${response.data.oldStatus} sang ${response.data.newStatus}.`,
+        message: `${response.data.affectedPlanCount} kế hoạch ngày ${response.data.serviceDate} đã chuyển sang ${response.data.newStatus}.`,
         variant: 'info',
       })
     } catch (error) {
@@ -312,7 +286,7 @@ export function ActionToolbar({ status }: { status?: string }) {
   }
 
   const handleUnlock = async () => {
-    if (!currentPlanId) {
+    if (!hasPlans) {
       setFeedback({
         title: 'Chưa mở khóa được ca',
         message: 'Không tìm thấy mã kế hoạch suất ăn cho ca hiện tại.',
@@ -321,19 +295,20 @@ export function ActionToolbar({ status }: { status?: string }) {
       return
     }
 
-    setIsUnlocking(true)
     try {
-      await dispatch(
-        unlockOrderPlan({
-          id: currentPlanId,
-          dayOfWeek: currentDayOfWeek,
-          shift: currentShift,
-        })
-      ).unwrap()
+      const response = await unlockCoordinationScope({
+        dayOfWeek: currentDayOfWeek,
+        shift: currentShift,
+        note: `Mở khóa ca ${currentShift}`,
+      }).unwrap()
+
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Không mở khóa được ca.')
+      }
 
       setFeedback({
         title: 'Đã mở khóa ca',
-        message: 'Kế hoạch ca đã được mở khóa về trạng thái nháp (Draft) thành công.',
+        message: `${response.data.affectedPlanCount} kế hoạch ca đã được mở khóa về trạng thái nháp.`,
         variant: 'info',
       })
       setConfirmationAction(null)
@@ -342,17 +317,15 @@ export function ActionToolbar({ status }: { status?: string }) {
         title: 'Chưa mở khóa được ca',
         message: getActionErrorMessage(error, 'Vui lòng thử lại sau.'),
       })
-    } finally {
-      setIsUnlocking(false)
     }
   }
 
   const confirmDialogCopy = (() => {
     if (confirmationAction === 'lock') {
       return {
-        title: 'Chốt đơn ca này?',
-        description: 'Sau khi chốt, số suất của ca hiện tại sẽ được ghi nhận vào backend và chuyển sang trạng thái đã khóa.',
-        action: 'Chốt đơn ca',
+        title: 'Chốt đơn cả ngày?',
+        description: 'Hệ thống sẽ chốt tất cả ca trong ngày đã chọn. Việc xem và điều chỉnh món vẫn theo ca đang hiển thị.',
+        action: 'Chốt cả ngày',
       }
     }
 
@@ -388,33 +361,28 @@ export function ActionToolbar({ status }: { status?: string }) {
   }
 
   return (
-    <div className="ipc-order-action-toolbar sticky bottom-0 border-t border-slate-200 bg-slate-50/95 backdrop-blur-sm px-5 py-4 z-10 shadow-[0_-4px_12px_rgba(15,23,42,0.03)]">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-slate-600">
-          Trạng thái ca:{' '}
-          <span className={`font-semibold ${isTerminal ? 'text-emerald-700' : isConfirmed ? 'text-teal-700' : 'text-amber-700'}`}>
-            {isTerminal ? 'Đã hoàn tất' : normalizedStatus === 'ADJUSTED' ? 'Đã khóa, có điều chỉnh' : isConfirmed ? 'Đã khóa' : normalizedStatus === 'SYNCING' ? 'Đang đồng bộ...' : 'Chưa chốt'}
-          </span>
-        </p>
-
-        <div className="ipc-order-action-buttons flex flex-wrap items-center gap-2">
-          <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
+    <>
+      {(hasStateActions || feedback) && (
+        <div className="ipc-order-action-toolbar border-b border-slate-200 bg-white px-4 py-2.5">
+          {hasStateActions && (
+            <div className="ipc-order-action-buttons flex flex-wrap items-center justify-end gap-2" aria-label="Thao tác điều phối">
+          {canLock && <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
               onClick={() => openConfirmationDialog('lock')}
-              disabled={isConfirmed || isTerminal || isLocking || orders.length === 0}
+              disabled={isLocking}
               variant="default"
               size="sm"
               className="gap-1.5 font-semibold whitespace-nowrap"
             >
               <Lock className="size-3.5" />
-              {isLocking ? 'Đang chốt...' : 'Chốt đơn ca này'}
+              {isLocking ? 'Đang chốt...' : 'Chốt đơn cả ngày'}
             </Button>
-          </ActionGuard>
+          </ActionGuard>}
 
-          <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
+          {canSignoff && <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
               onClick={() => openConfirmationDialog('signoff')}
-              disabled={!isConfirmed || isTerminal || isSigningOff || !currentPlanId}
+              disabled={isSigningOff}
               variant="outline"
               size="sm"
               className="gap-1.5 font-semibold whitespace-nowrap"
@@ -422,12 +390,12 @@ export function ActionToolbar({ status }: { status?: string }) {
               <CheckCircle className="size-3.5" />
               {isSigningOff ? 'Đang hoàn tất...' : 'Hoàn tất ca'}
             </Button>
-          </ActionGuard>
+          </ActionGuard>}
 
-          <ActionGuard allowedRoles={['quanly']}>
+          {canUnlock && <ActionGuard allowedRoles={['quanly']}>
             <Button
               onClick={() => openConfirmationDialog('unlock')}
-              disabled={!isConfirmed || isTerminal || isUnlocking || !currentPlanId}
+              disabled={isUnlocking}
               variant="outline"
               size="sm"
               className="gap-1.5 font-semibold whitespace-nowrap text-red-700 border-red-200 hover:bg-red-50 hover:text-red-800 disabled:text-slate-400 disabled:border-slate-200"
@@ -435,12 +403,12 @@ export function ActionToolbar({ status }: { status?: string }) {
               <Unlock className="size-3.5" />
               {isUnlocking ? 'Đang mở khóa...' : 'Mở khóa ca'}
             </Button>
-          </ActionGuard>
+          </ActionGuard>}
 
-          <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
+          {canExport && <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
               onClick={() => openConfirmationDialog('export')}
-              disabled={!isConfirmed || isExporting}
+              disabled={isExporting}
               variant="outline"
               size="sm"
               className="gap-1.5 font-semibold whitespace-nowrap"
@@ -448,57 +416,19 @@ export function ActionToolbar({ status }: { status?: string }) {
               <FileDown className="size-3.5" />
               {isExporting ? 'Đang xuất...' : 'Xuất báo cáo'}
             </Button>
-          </ActionGuard>
+          </ActionGuard>}
 
-          <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
-            <Button
-              onClick={handleRequestEdit}
-              disabled={!isConfirmed || isTerminal}
-              variant="outline"
-              size="sm"
-              className="gap-1.5 font-semibold whitespace-nowrap text-amber-700 border-amber-200 hover:bg-amber-50 hover:text-amber-800 disabled:text-slate-400 disabled:border-slate-200"
-            >
-              <Edit className="size-3.5" />
-              Yêu cầu điều chỉnh
-            </Button>
-          </ActionGuard>
-        </div>
-      </div>
+            </div>
+          )}
       {feedback && (
-        <div className="mt-3">
+        <div className={hasStateActions ? 'mt-2.5' : ''}>
           <InlineAlert title={feedback.title} variant={feedback.variant}>
             {feedback.message}
           </InlineAlert>
         </div>
       )}
-      <Dialog open={isReasonDialogOpen} onOpenChange={setIsReasonDialogOpen}>
-        <DialogContent aria-label="Yêu cầu điều chỉnh sau chốt" className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Yêu cầu điều chỉnh sau chốt</DialogTitle>
-            <DialogDescription>
-              Ghi rõ lý do để quản lí vận hành xét duyệt trước khi mở lại dữ liệu ca.
-            </DialogDescription>
-          </DialogHeader>
-          <label htmlFor="edit-request-reason" className="text-sm font-semibold text-slate-700">
-            Lý do điều chỉnh
-          </label>
-          <Textarea
-            id="edit-request-reason"
-            value={editReason}
-            onChange={(event) => setEditReason(event.target.value)}
-            placeholder="Ví dụ: Khách hàng báo tăng suất sau giờ chốt..."
-            className="min-h-24 resize-none"
-          />
-          <DialogFooter className="gap-2">
-            <Button type="button" variant="outline" onClick={() => setIsReasonDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button type="button" onClick={submitEditRequest} disabled={!editReason.trim()}>
-              Gửi yêu cầu
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        </div>
+      )}
       <Dialog open={confirmationAction !== null} onOpenChange={closeConfirmationDialog}>
         <DialogContent aria-label={confirmDialogCopy.title} className="max-w-md">
           <DialogHeader>
@@ -533,6 +463,6 @@ export function ActionToolbar({ status }: { status?: string }) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }

@@ -14,7 +14,7 @@ import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '../schedule/types'
-import { buildDemandApprovalHref, buildDemandDayPages, buildKhsxDraftDocument, getDemandApprovalPresentation, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState } from './demandModel'
+import { attachDemandDishSources, buildDemandApprovalHref, buildDemandDayPages, buildKhsxDraftDocument, getDemandApprovalPresentation, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState, isDemandDocumentForDate, partitionDemandLines } from './demandModel'
 
 type Options = {
   scope: WeeklyMenuScope
@@ -96,7 +96,7 @@ export function useMaterialDemand({
     dateFrom: activeDate || undefined,
     dateTo: activeDate || undefined,
     pageNumber: aggregatePageNumber,
-    pageSize: 20,
+    pageSize: 100,
   }, { skip: !scope.customerId || !activeDate })
   const activeDemand = demandLines.find((line) => line.serviceDate === activeDate && line.materialRequestId)
   const { currentData: approvalHistoryResponse } = useGetApprovalHistoryQuery({
@@ -114,13 +114,19 @@ export function useMaterialDemand({
       targetId: demandApprovalStatus.targetId,
     })
     : undefined
-  const aggregateLines = aggregatePage?.items ?? []
+  const aggregateLines = useMemo(
+    () => attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate),
+    [activeDate, aggregatePage?.items, demandLines],
+  )
   const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
+  const inventoryGroups = partitionDemandLines(aggregateLines)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
   const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines])
-  const draftDocument = buildKhsxDraftDocument({ activeDay, allRows: weeklyPlanRows, customerCode, customerLabel, hasDemand: demandLines.length > 0 })
+  const draftDocument = buildKhsxDraftDocument({ activeDay, allRows: weeklyPlanRows, customerCode, customerLabel, hasDemand: Boolean(activeDemand) })
   const backendDocuments = workflowDocuments.filter((document) => ['KHSX', 'Đơn mua', 'Phiếu xuất'].includes(document.type))
-  const documents = draftDocument ? [draftDocument, ...backendDocuments] : backendDocuments
+  const activeDateDocuments = backendDocuments.filter((document) => isDemandDocumentForDate(document, activeDate))
+  const documents = draftDocument ? [draftDocument, ...activeDateDocuments] : activeDateDocuments
+  const weeklyDocuments = draftDocument ? [draftDocument, ...backendDocuments] : backendDocuments
 
   const selectDay = (dayKey: string | null) => {
     setNavigation({ scopeKey, selectedDayKey: dayKey, aggregatePageNumber: 1 })
@@ -219,7 +225,7 @@ export function useMaterialDemand({
       sourceMenuValue, materialSummaryCount, weeklyPlanRows, missingBomRows: weeklyPlanRows.filter((row) => !row.hasCatalogBom),
       importDefaultRows: weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default'),
       demandLines, aggregatedDemandLines, staleness, dayPages, dayIndex, activeDay, activeDate,
-      activeRows: activeDay?.rows ?? [], activeQuickServingRows, aggregatePage, aggregateLines, inventoryStatus, documents,
+      activeRows: activeDay?.rows ?? [], activeQuickServingRows, aggregatePage, aggregateLines, inventoryStatus, inventoryGroups, documents, weeklyDocuments,
       demandApprovalStatus,
       approvalHref,
     },

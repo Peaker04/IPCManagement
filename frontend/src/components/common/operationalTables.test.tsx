@@ -100,6 +100,14 @@ describe('DemandSummary', () => {
     expect(screen.getByText('Nguyên liệu 9')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Trang sau/i })).not.toBeInTheDocument();
   });
+
+  it('supports a page-specific source column label without changing the default', () => {
+    const { rerender } = render(<DemandSummary lines={demandLines} sourceLabel="Món ăn" />);
+    expect(screen.getByRole('columnheader', { name: 'Món ăn' })).toBeInTheDocument();
+
+    rerender(<DemandSummary lines={demandLines} />);
+    expect(screen.getByRole('columnheader', { name: 'Nguồn' })).toBeInTheDocument();
+  });
 });
 
 describe('RoleInbox', () => {
@@ -274,11 +282,28 @@ describe('StockMovementTable', () => {
       </ToastProvider>,
     );
 
-    expect(screen.getByText('Trang 2, tải theo cursor')).toBeInTheDocument();
+    expect(screen.getByText('Dữ liệu tiếp nối')).toBeInTheDocument();
+    expect(screen.getByText('Trang 2')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Trang sau/i })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Trang sau/i }));
     await userEvent.click(screen.getByRole('button', { name: /Trang trước/i }));
     expect(onNext).toHaveBeenCalledOnce();
     expect(onPrevious).toHaveBeenCalledOnce();
+  });
+
+  it('does not locally slice a server cursor page', () => {
+    render(
+      <ToastProvider>
+        <StockMovementTable
+          movements={movements}
+          pageSize={1}
+          cursorPagination={{ page: 1, hasNext: false, onNext: vi.fn(), onPrevious: vi.fn() }}
+        />
+      </ToastProvider>,
+    );
+
+    expect(screen.getByText('Gạo tẻ')).toBeInTheDocument();
+    expect(screen.getByText('Thịt gà')).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Phân trang biến động kho' })).toHaveLength(1);
   });
 });

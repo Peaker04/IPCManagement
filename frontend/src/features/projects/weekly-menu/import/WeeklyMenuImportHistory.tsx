@@ -1,4 +1,5 @@
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { getWorkflowStatusPresentation } from '@/features/workflow/workflowConfig'
 import { formatImportDate } from '../model/formatters'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 
@@ -17,12 +18,13 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
           <tbody>
             {history.map((item) => {
               const label = `${item.customerCode} - tuần ${formatImportDate(item.weekStartDate)} (v${item.versionNo})`
+              const statusPresentation = getWorkflowStatusPresentation(item.status)
               return (
                 <tr key={item.menuVersionId}>
                   <td>{item.customerCode} - {item.customerName}</td>
                   <td>{formatImportDate(item.weekStartDate)}</td>
                   <td className="text-center">v{item.versionNo}</td>
-                  <td className="text-center"><StatusBadge variant={item.status === 'DRAFT' ? 'success' : item.status === 'ROLLED_BACK' ? 'danger' : 'neutral'}>{item.status}</StatusBadge></td>
+                  <td className="text-center"><StatusBadge variant={statusPresentation.tone}>{statusPresentation.label}</StatusBadge></td>
                   <td className="text-center text-xs">
                     {item.successRowCount} thành công{item.errorRowCount > 0 ? ` / ${item.errorRowCount} lỗi` : ''}{item.warningRowCount > 0 ? ` / ${item.warningRowCount} cảnh báo` : ''}
                   </td>

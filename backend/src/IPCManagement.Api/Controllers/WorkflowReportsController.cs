@@ -1,3 +1,4 @@
+using System.Text.Json;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Workflow;
@@ -6,6 +7,7 @@ using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace IPCManagement.Api.Controllers;
 
@@ -15,15 +17,22 @@ namespace IPCManagement.Api.Controllers;
 [EnableRateLimiting("api-general")]
 public class WorkflowReportsController : ControllerBase
 {
+    private static readonly TimeSpan AggregateCacheDuration = TimeSpan.FromSeconds(15);
+    private const string OperationalKpisCacheKey = "workflow-reports:operational-kpis";
+    private static long _dataQualityCacheVersion;
+
     private readonly IWorkflowReportService _workflowReportService;
     private readonly ICurrentUserService _currentUserService;
+    private readonly IMemoryCache _cache;
 
     public WorkflowReportsController(
         IWorkflowReportService workflowReportService,
-        ICurrentUserService currentUserService)
+        ICurrentUserService currentUserService,
+        IMemoryCache cache)
     {
         _workflowReportService = workflowReportService;
         _currentUserService = currentUserService;
+        _cache = cache;
     }
 
     [HttpGet("current-stock")]
@@ -162,8 +171,15 @@ public class WorkflowReportsController : ControllerBase
 
     [HttpGet("operational-kpis")]
     public async Task<IActionResult> GetOperationalKpis()
-        => Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(
-            await _workflowReportService.GetOperationalKpisAsync()));
+    {
+        var result = await _cache.GetOrCreateAsync(OperationalKpisCacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = AggregateCacheDuration;
+            return await _workflowReportService.GetOperationalKpisAsync();
+        });
+
+        return Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(result!));
+    }
 
     [HttpGet("issue-vs-return")]
     public async Task<IActionResult> GetIssueVsReturn([FromQuery] WorkflowReportQueryDto query)
@@ -210,8 +226,17 @@ public class WorkflowReportsController : ControllerBase
 
     [HttpGet("data-quality/page")]
     public async Task<IActionResult> GetDataQualityPage([FromQuery] DataQualityPageQueryDto query)
-        => Ok(ApiResponse<DataQualityPageDto>.SuccessResult(
-            await _workflowReportService.GetDataQualityPageAsync(query)));
+    {
+        var version = Volatile.Read(ref _dataQualityCacheVersion);
+        var cacheKey = $"workflow-reports:data-quality:{version}:{JsonSerializer.Serialize(query)}";
+        var result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = AggregateCacheDuration;
+            return await _workflowReportService.GetDataQualityPageAsync(query);
+        });
+
+        return Ok(ApiResponse<DataQualityPageDto>.SuccessResult(result!));
+    }
 
     [HttpPost("data-quality/issues/remediation")]
     public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)
@@ -225,6 +250,7 @@ public class WorkflowReportsController : ControllerBase
             }
 
             var result = await _workflowReportService.UpdateDataQualityIssueRemediationAsync(request, userId);
+            InvalidateAggregateCaches();
             return Ok(ApiResponse<DataQualityIssueRemediationDto>.SuccessResult(result, "Đã cập nhật trạng thái xử lý data-quality issue."));
         }
         catch (ArgumentException ex)
@@ -249,6 +275,10 @@ public class WorkflowReportsController : ControllerBase
             }
 
             var result = await _workflowReportService.CleanupDataQualityAsync(request, userId);
+            if (!result.DryRun)
+            {
+                InvalidateAggregateCaches();
+            }
             var message = result.DryRun
                 ? "Đã quét dữ liệu có thể dọn, chưa thay đổi dữ liệu."
                 : "Đã dọn dữ liệu mồ côi/stale theo chính sách data-quality.";
@@ -269,4 +299,10 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetOrderExport([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>.SuccessResult(
             await _workflowReportService.GetOrderExportAsync(query)));
+
+    private void InvalidateAggregateCaches()
+    {
+        _cache.Remove(OperationalKpisCacheKey);
+        Interlocked.Increment(ref _dataQualityCacheVersion);
+    }
 }

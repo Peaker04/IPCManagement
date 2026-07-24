@@ -121,6 +121,43 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GetIngredientDemandPageAsync_Should_CountOnlyUncoveredActiveShortages()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            demand.Should().NotBeNull();
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
+
+            var purchase = await CreatePurchaseRequestWorkflowService(context).GenerateFromDemandAsync(
+                new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
+                fixture.UserIdString);
+            purchase.Should().NotBeNull();
+            purchase!.Lines.Should().ContainSingle();
+        }
+
+        await using var reportContext = fixture.CreateContext();
+        var page = await new WorkflowReportService(reportContext).GetIngredientDemandPageAsync(
+            new IngredientDemandPageQueryDto
+            {
+                DateFrom = "2026-06-15",
+                DateTo = "2026-06-15",
+                PageNumber = 1,
+                PageSize = 20,
+            });
+
+        page.TotalCount.Should().Be(1);
+        page.Items.Should().ContainSingle();
+        page.Items[0].SuggestedPurchaseQty.Should().BeGreaterThan(0);
+        page.ShortageCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task GetMaterialRequestCandidatePageAsync_Should_PagePurchaseCandidatesBeyondOneHundredRequests()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1969,12 +2006,19 @@ public class WorkflowGenerationTests
             (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
                 .Should().Be(50m);
 
-            var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item => item.BusinessArea == "StockException");
-            audit.FieldName.Should().Be("StockShortage");
-            audit.NewValue.Should().Contain("missing=150");
+            await act.Should().ThrowAsync<StockShortageException>();
+
+            var audits = await context.Auditlogs.AsNoTracking()
+                .Where(item => item.BusinessArea == "StockException")
+                .ToListAsync();
+            audits.Should().HaveCount(2);
+            audits.Should().OnlyContain(audit =>
+                audit.FieldName == "StockShortage" &&
+                audit.NewValue != null &&
+                audit.NewValue.Contains("missing=150"));
 
             var report = await new WorkflowReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 100 });
-            report.Issues.Should().Contain(issue =>
+            report.Issues.Should().ContainSingle(issue =>
                 issue.Category == "stock_shortage" &&
                 issue.Message.Contains("Thiếu tồn kho Ingredient"));
         }
@@ -2785,14 +2829,14 @@ public class WorkflowGenerationTests
         report.TotalIssues.Should().BeGreaterThanOrEqualTo(5);
         report.ErrorCount.Should().BeGreaterThanOrEqualTo(3);
         report.WarningCount.Should().BeGreaterThanOrEqualTo(3);
-        report.MissingBomCount.Should().BeGreaterThanOrEqualTo(1);
+        report.MissingBomCount.Should().Be(0);
         report.InvalidUnitCount.Should().BeGreaterThanOrEqualTo(1);
         report.MissingConversionCount.Should().BeGreaterThanOrEqualTo(1);
         report.NegativeStockCount.Should().Be(1);
         report.OrphanDocumentCount.Should().BeGreaterThanOrEqualTo(3);
         report.UrgentIssueCount.Should().BeGreaterThanOrEqualTo(2);
         report.Issues.Select(issue => issue.Category).Should().Contain([
-            "missing_bom",
+            "legacy_missing_bom",
             "invalid_unit",
             "missing_conversion",
             "negative_stock",
@@ -2802,16 +2846,17 @@ public class WorkflowGenerationTests
             "stale_purchase_request",
             "orphan_document"
         ]);
-        var missingBomIssue = report.Issues.Single(issue => issue.Category == "missing_bom");
+        var missingBomIssue = report.Issues.Single(issue => issue.Category == "legacy_missing_bom");
         missingBomIssue.Route.Should().Contain("/admin-data?");
         missingBomIssue.Route.Should().Contain("view=adjustments");
         missingBomIssue.Route.Should().Contain("remediate=missing_bom");
         missingBomIssue.Route.Should().Contain("dishId=");
         missingBomIssue.Route.Should().Contain("serviceDate=2026-06-15");
         missingBomIssue.Owner.Should().Be("Kitchen Admin");
-        missingBomIssue.PriorityRank.Should().Be(2);
-        missingBomIssue.SlaHours.Should().Be(4);
-        missingBomIssue.SlaLabel.Should().Be("P2 / 4h");
+        missingBomIssue.Severity.Should().Be("warning");
+        missingBomIssue.PriorityRank.Should().Be(4);
+        missingBomIssue.SlaHours.Should().Be(48);
+        missingBomIssue.SlaLabel.Should().Be("P4 / 48h");
 
         var negativeStockIssue = report.Issues.Single(issue => issue.Category == "negative_stock");
         negativeStockIssue.Owner.Should().Be("Thủ kho");
@@ -2846,7 +2891,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var service = new WorkflowReportService(context);
         var initialReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
-        var missingBomIssue = initialReport.Issues.Single(issue => issue.Category == "missing_bom");
+        var missingBomIssue = initialReport.Issues.Single(issue => issue.Category == "legacy_missing_bom");
 
         await service.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequestDto
         {
@@ -3370,6 +3415,181 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task DataQualityReport_Should_ShowPendingUnitResearchAsWarning_NotActiveConversionError()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var sourceUnitId = GuidHelper.NewId();
+        context.Units.Add(new Unit
+        {
+            UnitId = sourceUnitId,
+            UnitCode = "RESEARCH_BOX",
+            UnitName = "Research box",
+            BaseUnitCode = "RESEARCH_BOX",
+            ConvertRateToBase = 1,
+        });
+        context.Unitnormalizationreviews.Add(new Unitnormalizationreview
+        {
+            ReviewId = GuidHelper.NewId(),
+            IngredientId = fixture.IngredientId,
+            SourceUnitId = sourceUnitId,
+            CatalogUnitId = fixture.UnitId,
+            RecommendedUnitId = fixture.UnitId,
+            ObservedStockQty = 5,
+            SourceReceiptCount = 3,
+            CatalogReceiptCount = 1,
+            BomLineCount = 1,
+            ProposedSourceToCatalogFactor = null,
+            Confidence = "BLOCKED",
+            Status = "NEEDS_CONFIRMATION",
+            EvidenceSource = "Regression evidence",
+            EvidenceNote = "Supplier package label is still required.",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+        });
+        await context.SaveChangesAsync();
+
+        var report = await new WorkflowReportService(context).GetDataQualityAsync(
+            new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 100 });
+
+        var reviewIssue = report.Issues.Should().ContainSingle(issue =>
+            issue.Category == "unit_normalization_review").Subject;
+        reviewIssue.Severity.Should().Be("warning");
+        reviewIssue.Message.Should().Contain("chưa đủ bằng chứng");
+        report.MissingConversionCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task DataQualityCleanup_Should_BaselineLegacyLedger_AndNormalizeZeroStockUnit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var importedAt = new DateTime(2026, 6, 18, 14, 29, 30, DateTimeKind.Utc);
+        var legacyUnitId = GuidHelper.NewId();
+        var decoyIngredientId = GuidHelper.NewId();
+        var zeroIngredientId = GuidHelper.NewId();
+        context.Units.Add(new Unit
+        {
+            UnitId = legacyUnitId,
+            UnitCode = "LEGACY_BOX",
+            UnitName = "Legacy box",
+            BaseUnitCode = "BOX",
+            ConvertRateToBase = 1
+        });
+        context.Ingredients.AddRange(
+            new Ingredient
+            {
+                IngredientId = decoyIngredientId,
+                IngredientCode = "AAA-NO-CLEANUP",
+                IngredientName = "No cleanup needed",
+                UnitId = fixture.UnitId,
+                WarehouseId = fixture.WarehouseId,
+                ReferencePrice = 0,
+                IsFreshDaily = false,
+                IsActive = true
+            },
+            new Ingredient
+            {
+                IngredientId = zeroIngredientId,
+                IngredientCode = "ING-ZERO-UNIT",
+                IngredientName = "Zero stock legacy unit",
+                UnitId = fixture.UnitId,
+                WarehouseId = fixture.WarehouseId,
+                ReferencePrice = 0,
+                IsFreshDaily = false,
+                IsActive = true
+            });
+        context.Currentstocks.AddRange(
+            new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = decoyIngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 1,
+                LastUpdated = importedAt,
+                RowVersion = importedAt
+            },
+            new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                CurrentQty = 8,
+                LastUpdated = importedAt,
+                RowVersion = importedAt
+            },
+            new Currentstock
+            {
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = zeroIngredientId,
+                UnitId = legacyUnitId,
+                CurrentQty = 1,
+                LastUpdated = importedAt,
+                RowVersion = importedAt
+            });
+        context.Stockmovements.Add(new Stockmovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = importedAt.AddDays(-1),
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            MovementType = "RECEIPT",
+            QuantityIn = 10,
+            QuantityOut = 0,
+            BeforeQty = 0,
+            AfterQty = 10,
+            PerformedBy = fixture.UserId,
+            Reason = "Legacy receipt"
+        });
+        await context.SaveChangesAsync();
+        var decoyStock = await context.Currentstocks.SingleAsync(stock => stock.IngredientId == decoyIngredientId);
+        decoyStock.CurrentQty = 0;
+        var zeroStock = await context.Currentstocks.SingleAsync(stock => stock.IngredientId == zeroIngredientId);
+        zeroStock.CurrentQty = 0;
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var request = new DataQualityCleanupRequestDto
+        {
+            DryRun = true,
+            Limit = 1,
+            Categories = ["inventory_ledger_baseline", "zero_stock_unit"],
+            Note = "legacy cleanup regression"
+        };
+        var dryRun = await service.CleanupDataQualityAsync(request, fixture.UserIdString);
+
+        dryRun.TotalActions.Should().Be(2);
+        dryRun.AuditLogCount.Should().Be(0);
+        dryRun.Actions.Select(action => action.Category).Should().BeEquivalentTo(
+            ["inventory_ledger_baseline", "zero_stock_unit"]);
+        (await context.Stockmovements.CountAsync()).Should().Be(1);
+        (await context.Currentstocks.SingleAsync(stock => stock.IngredientId == zeroIngredientId))
+            .UnitId.Should().Equal(legacyUnitId);
+
+        request.DryRun = false;
+        var applied = await service.CleanupDataQualityAsync(request, fixture.UserIdString);
+
+        applied.TotalActions.Should().Be(2);
+        applied.AuditLogCount.Should().Be(2);
+        var baseline = await context.Stockmovements.SingleAsync(movement =>
+            movement.RefTable == "LEGACY_CURRENTSTOCK_BASELINE");
+        baseline.QuantityIn.Should().Be(0);
+        baseline.QuantityOut.Should().Be(2);
+        baseline.BeforeQty.Should().Be(10);
+        baseline.AfterQty.Should().Be(8);
+        (await context.Currentstocks.SingleAsync(stock => stock.IngredientId == zeroIngredientId))
+            .UnitId.Should().Equal(fixture.UnitId);
+
+        var ledger = await service.GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 20 });
+        ledger.Single(row => row.IngredientId == fixture.IngredientIdString).IsMatched.Should().BeTrue();
+    }
+
+    [Fact]
     public async Task StockLedgerReconciliation_Should_ReportCurrentStockMismatch()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -3413,6 +3633,49 @@ public class WorkflowGenerationTests
         report.Issues.Should().Contain(issue =>
             issue.Category == "inventory_ledger_mismatch" &&
             issue.Message.Contains("Current stock 8"));
+    }
+
+    [Fact]
+    public async Task StockLedgerReconciliation_Should_IgnoreSubPrecisionImportNoise()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        context.Currentstocks.Add(new Currentstock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 752.271769m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
+        });
+        context.Stockmovements.Add(new Stockmovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = DateTime.UtcNow.AddMinutes(-5),
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            MovementType = "RECEIPT",
+            QuantityIn = 752.271768m,
+            QuantityOut = 0m,
+            PerformedBy = fixture.UserId,
+            Reason = "Imported ledger",
+            Note = "One quantity quantum must not become an operational mismatch"
+        });
+        await context.SaveChangesAsync();
+
+        var service = new WorkflowReportService(context);
+        var row = (await service.GetStockLedgerReconciliationAsync(
+            new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
+
+        row.DifferenceQty.Should().Be(0.000001m);
+        row.IsMatched.Should().BeTrue();
+
+        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+        report.Issues.Should().NotContain(issue => issue.Category == "inventory_ledger_mismatch");
     }
 
     [Fact]
@@ -6548,6 +6811,28 @@ public class WorkflowGenerationTests
                     rowVersion TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                     PRIMARY KEY (warehouseId, ingredientId)
                 );
+                CREATE TABLE unitnormalizationreviews (
+                    reviewId BLOB PRIMARY KEY,
+                    ingredientId BLOB NOT NULL,
+                    sourceUnitId BLOB NOT NULL,
+                    catalogUnitId BLOB NOT NULL,
+                    recommendedUnitId BLOB NULL,
+                    observedStockQty TEXT NULL,
+                    sourceReceiptCount INTEGER NOT NULL DEFAULT 0,
+                    catalogReceiptCount INTEGER NOT NULL DEFAULT 0,
+                    bomLineCount INTEGER NOT NULL DEFAULT 0,
+                    proposedSourceToCatalogFactor TEXT NULL,
+                    confidence TEXT NOT NULL DEFAULT 'BLOCKED',
+                    status TEXT NOT NULL DEFAULT 'NEEDS_CONFIRMATION',
+                    evidenceSource TEXT NOT NULL,
+                    evidenceNote TEXT NOT NULL,
+                    createdAt TEXT NOT NULL,
+                    updatedAt TEXT NOT NULL,
+                    reviewedAt TEXT NULL,
+                    reviewedBy BLOB NULL
+                );
+                CREATE UNIQUE INDEX uq_unitnormalizationreviews_pair
+                    ON unitnormalizationreviews (ingredientId, sourceUnitId, catalogUnitId);
                 CREATE TABLE currentstocklots (
                     lotStockId BLOB PRIMARY KEY,
                     warehouseId BLOB NOT NULL,

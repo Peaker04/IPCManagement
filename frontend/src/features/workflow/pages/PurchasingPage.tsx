@@ -90,15 +90,21 @@ export default function PurchasingPage() {
   const nextAction = resolveNextPurchasingAction(activeDate, { loadError: Boolean(error) });
 
   useEffect(() => {
+    if (!workbench && !error) return;
+
     const next = new URLSearchParams(searchParams);
     next.set('week', routeState.week);
-    if (routeState.date) next.set('date', routeState.date);
-    else next.delete('date');
-    next.set('stage', routeState.stage);
+    if (searchParams.has('date')) {
+      if (routeState.date) next.set('date', routeState.date);
+      else next.delete('date');
+    }
+    if (searchParams.has('stage')) {
+      next.set('stage', routeState.stage);
+    }
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams]);
+  }, [error, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench]);
 
   const replaceRouteContext = (nextContext: {
     week?: string;
@@ -144,12 +150,14 @@ export default function PurchasingPage() {
             {nextAction.label ? (
               <Button
                 variant={nextAction.kind === 'recovery' ? 'outline' : 'default'}
-                className="min-h-11 sm:min-h-9"
+                className="min-h-11 min-w-[10.25rem] sm:min-h-9"
                 onClick={focusDecisionPanel}
                 disabled={isFetching && nextAction.kind !== 'recovery'}
               >
                 {nextAction.label}
               </Button>
+            ) : isFetching && !workbench ? (
+              <span className="min-w-[10.25rem]" aria-hidden="true" />
             ) : null}
           </>}
         >
@@ -177,17 +185,21 @@ export default function PurchasingPage() {
           </StatusBadge>
         </div>
 
-        {isFetching ? <p role="status" className="text-[14px] text-slate-600">Đang tải quy trình thu mua trong tuần...</p> : null}
-        {error ? (
-          <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
-            <span role="alert">Không tải được quy trình thu mua. Kiểm tra kết nối và thử lại. Các lựa chọn chưa được lưu. {getPurchasingErrorMessage(error)}</span>
-          </InlineAlert>
-        ) : null}
-        {nextAction.message && !error ? (
-          <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
-            <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
-          </InlineAlert>
-        ) : null}
+        <div className="min-h-[68px]" aria-live="polite">
+          {error ? (
+            <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
+              <span role="alert">Không tải được quy trình thu mua. Kiểm tra kết nối và thử lại. Các lựa chọn chưa được lưu. {getPurchasingErrorMessage(error)}</span>
+            </InlineAlert>
+          ) : isFetching && !workbench ? (
+            <InlineAlert title="Đang tải quy trình thu mua" variant="info">
+              Hệ thống đang lấy dữ liệu tuần mua hàng. Nội dung sẽ được giữ ổn định trong lúc đồng bộ.
+            </InlineAlert>
+          ) : nextAction.message ? (
+            <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
+              <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
+            </InlineAlert>
+          ) : null}
+        </div>
 
         <PurchaseWorkflowGuide
           currentStage={activeDate?.currentStage}
