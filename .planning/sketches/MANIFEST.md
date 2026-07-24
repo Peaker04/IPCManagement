@@ -16,5 +16,5 @@ SAP Fiori-inspired compact desktop workbench for an unfamiliar but high-value ad
 | # | Name | Design Question | Winner | Tags |
 |---|------|-----------------|--------|------|
 | 001 | Fiori mapping layout | Which page structure best balances workbook context, mapping controls and preview? | C — Template Studio | layout, fiori, excel, desktop |
-| 002 | Range selection interaction | Which interaction makes mouse selection, A1 input and semantic role assignment easiest? | - | interaction, grid, accessibility |
+| 002 | Range selection interaction | Which interaction makes mouse selection, A1 input and semantic role assignment easiest? | D — Hybrid + Context Bar | interaction, grid, accessibility |
 | 003 | Preview and diagnostics | How should normalized menu results and cell-level errors be reviewed before save? | - | validation, preview, feedback |
