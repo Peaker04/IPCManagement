@@ -66,6 +66,14 @@
 
 - [x] **REFA-01**: Các route page vận hành giữ nguyên URL, permission, API payload và hành vi người dùng trong khi được tách theo vertical workflow; page shell không quá 400 dòng, component workflow không quá 500 dòng, custom hook không quá 300 dòng, trừ ngoại lệ có lý do và review chấp thuận.
 
+### Customer-specific weekly-menu templates
+
+- [ ] **MENU-01**: File `weekly-menu-template-ANV-2026-07-20 (4).xlsx` là template thực đơn mặc định toàn hệ thống và là fallback khi khách hàng chưa có cấu hình riêng.
+- [ ] **MENU-02**: Admin có thể tạo template theo khách hàng, ghi đè cả bố cục workbook và danh sách món mặc định mà không làm thay đổi template ANV gốc.
+- [ ] **MENU-03**: Màn hình SAP Fiori cho phép chọn sheet, quét chuột trên lưới để chọn vùng bảng, hoặc nhập địa chỉ A1; sau đó gán dòng header, cột tên món, các cột ngày và quy tắc bỏ qua dòng.
+- [ ] **MENU-04**: Admin xem được preview menu chuẩn hóa, số ngày, số món, warnings và lỗi theo ô trước khi lưu template cho khách hàng.
+- [ ] **MENU-05**: Việc lưu template có version, actor, thời điểm cập nhật và khả năng trở về template mặc định; upload và preview không tự ghi dữ liệu menu vào database.
+
 ### Supplier purchase-history reconciliation
 
 - [x] **SUP-01**: Hệ thống suy ra tập nhà cung cấp canonical từ chính sách `SUMMARY` đã audit và các sheet có dữ liệu được duyệt; loại header, pseudo-supplier và placeholder không có tham chiếu.
@@ -140,6 +148,11 @@
 | RETIRE-02 | 7 | Zero old consumers/references after cutover |
 | RETIRE-03 | 3 | Forward-migration-only policy |
 | REFA-01 | 8 | Route-preserving vertical decomposition, file-size gates and regression verification |
+| MENU-01 | TBD | System-wide ANV workbook baseline and fallback contract |
+| MENU-02 | TBD | Customer-specific workbook layout and default-menu override |
+| MENU-03 | TBD | Fiori range-selection and semantic mapping workbench |
+| MENU-04 | TBD | Canonical menu preview with cell-level diagnostics |
+| MENU-05 | TBD | Versioned, auditable template lifecycle and safe fallback |
 | SUP-01 | 9 | Canonical supplier derivation and exclusion policy |
 | SUP-02 | 9 | Deterministic workbook normalization with raw blockers |
 | SUP-03 | 9 | Read-only purchase-history preview manifest and drift gate |
@@ -154,11 +167,11 @@
 
 **Coverage:**
 
-- v1.1 requirements: 45 total
+- v1.1 requirements: 50 total
 - Mapped to phases: 45
-- Unmapped: 0
+- Unmapped: 5 (`MENU-01` đến `MENU-05`, chờ bổ sung phase triển khai)
 - Duplicate mappings: 0
 
 ---
 *Requirements defined: 2026-07-16*
-*Last updated: 2026-07-21 after adding supplier reconciliation and purchasing workflow alignment; coverage 45/45 with each requirement assigned to exactly one phase*
+*Last updated: 2026-07-24 after defining the customer-specific weekly-menu template workbench; 45/50 requirements are mapped and MENU-01–MENU-05 await phase assignment*
