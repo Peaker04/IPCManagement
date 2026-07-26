@@ -1,17 +1,39 @@
 param(
     [string]$BaseUrl = "http://localhost:5262",
-    [string]$Username = "admin",
-    [string]$Password = "admin",
+    [string]$Username = "",
+    [string]$Password = "",
     [string]$ServiceDate = "2026-06-18",
     [string]$CustomerCode = "ANV",
     [decimal]$PriceTierAmount = 25000,
-    [string]$WeeklyMenuTemplatePath = "C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx",
+    [string]$WeeklyMenuTemplatePath = "",
     [string]$OutputRoot = ".artifacts/e2e",
     [switch]$SkipSeedReset,
     [switch]$SkipWeeklyMenuImport
 )
 
 $ErrorActionPreference = "Stop"
+
+# Thông tin đăng nhập lấy từ tham số hoặc biến môi trường. Mật khẩu tài khoản demo đã xoay
+# ngày 26/07/2026 nên không được hardcode trong repo.
+if ([string]::IsNullOrWhiteSpace($Username)) {
+    $Username = if ($env:IPC_E2E_USERNAME) { $env:IPC_E2E_USERNAME } else { "admin" }
+}
+if ([string]::IsNullOrWhiteSpace($Password)) {
+    $Password = $env:IPC_E2E_PASSWORD
+}
+if ([string]::IsNullOrWhiteSpace($Password)) {
+    throw "Chua co mat khau E2E. Dat bien moi truong IPC_E2E_PASSWORD hoac truyen -Password. Mat khau tai khoan demo da duoc xoay ngay 26/07/2026 nen khong con la 'admin'."
+}
+
+# Template workbook: uu tien tham so -> bien moi truong -> ban mac dinh trong repo.
+# Ban happy-path baseline dang dung nam ngoai repo va KHAC ban trong repo; set IPC_E2E_TEMPLATE_PATH de tai lap dung baseline do.
+if ([string]::IsNullOrWhiteSpace($WeeklyMenuTemplatePath)) {
+    $WeeklyMenuTemplatePath = if ($env:IPC_E2E_TEMPLATE_PATH) {
+        $env:IPC_E2E_TEMPLATE_PATH
+    } else {
+        Join-Path $PSScriptRoot "..\backend\src\IPCManagement.Api\Resources\Templates\weekly-menu-template-ANV-default.xlsx"
+    }
+}
 
 function Write-E2ELog {
     param([string]$Message)

@@ -65,7 +65,9 @@ lerna-debug.log*
 ## Playwright artifacts
 frontend/test-results/
 frontend/playwright-report/
-backend/TestResults/
+# Khớp mọi cấp: `dotnet test` ghi ra backend/tests/<Project>/TestResults/,
+# còn npm run test:be:coverage ghi ra backend/TestResults/
+TestResults/
 frontend/coverage/
 
 # =============================================
@@ -89,11 +91,26 @@ Desktop.ini
 # Internal / AI tooling (not for repo)
 # =============================================
 .claude/
-.docs/
 .planning/
-docs/
 AGENTS.md
 CLAUDE.md
-Project_Tracking*.xlsx
 .vercel
-scripts/
+
+# Dữ liệu vận hành thật của khách hàng (workbook đặt hàng, định lượng) — không đưa lên repo
+.docs/
+Project_Tracking*.xlsx
+
+# P1.4: `docs/` và `scripts/` đã được gỡ khỏi danh sách ignore để tri thức vận hành
+# và bộ script E2E nằm trong git — trước đó `git ls-files docs/` chỉ ra 1 file, và
+# `shipyard/hooks/e2e.sh` phụ thuộc script không có trong repo nên lane E2E không
+# tái lập được trên máy khác. Không đưa credential/connection string thật vào 2 thư mục này.
+#
+# Mục `scripts/` cũ khớp MỌI thư mục tên `scripts` ở mọi cấp, nên nó vô tình che cả
+# `.codex/skills/*/scripts/`. Sau khi gỡ, chỉ còn rác build lộ ra — chặn đích danh bên dưới.
+
+## Rác build Python của skill tooling
+__pycache__/
+*.pyc
+
+## Artifact test của skill (sinh lại được, không commit)
+.codex/skills/**/scripts/tests/coverage-*.json
