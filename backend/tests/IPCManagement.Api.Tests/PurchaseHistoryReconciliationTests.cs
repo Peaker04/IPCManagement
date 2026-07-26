@@ -1525,25 +1525,25 @@ public class PurchaseHistoryReconciliationTests
     private static async Task BootstrapFreshInstallAsync(string database)
     {
         DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
-        const string duplicateApprovalHistoryIndex =
-            "CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);";
-        const string duplicateApproverIndex =
-            "CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);";
         var schema = await File.ReadAllTextAsync(
             FindRepositoryFile("backend", "database", "IPCmanagement.sql"));
-        schema.Should().Contain(duplicateApprovalHistoryIndex);
-        schema.Should().Contain(duplicateApproverIndex);
         schema.Should().NotContain("successRowCount");
         schema.Should().NotContain("errorRowCount");
         schema.Should().NotContain("warningRowCount");
-        schema = schema
-            .Replace(
-                "CREATE DATABASE IF NOT EXISTS ipcManagement",
-                $"CREATE DATABASE IF NOT EXISTS `{database}`",
-                StringComparison.Ordinal)
-            .Replace("USE ipcManagement;", $"USE `{database}`;", StringComparison.Ordinal)
-            .Replace(duplicateApprovalHistoryIndex, string.Empty, StringComparison.Ordinal)
-            .Replace(duplicateApproverIndex, string.Empty, StringComparison.Ordinal);
+
+        // Chốt an toàn: script cài mới không được tự chọn database. Trước 27/07/2026 nó
+        // hard-code `USE ipcManagement;` nên chạy với database đích nào cũng xoá sạch
+        // database chính. Giữ hai assertion này để lỗ hổng đó không quay lại.
+        schema.Should().NotContain("USE ipcManagement;");
+        schema.Should().NotContain("CREATE DATABASE IF NOT EXISTS ipcManagement");
+
+        // Hai index dưới đây từng được khai hai lần (KEY trong CREATE TABLE + CREATE INDEX
+        // rời), làm script chết với ERROR 1061 nên test cũ phải cắt bỏ chúng trước khi chạy.
+        // Bản khai rời đã bị xoá — pin lại để không ai thêm vào nữa, và script nay chạy nguyên vẹn.
+        schema.Should().NotContain(
+            "CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);");
+        schema.Should().NotContain(
+            "CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);");
 
         await ExecuteSqlScriptAsync(database, schema);
         await ExecuteSqlScriptAsync(

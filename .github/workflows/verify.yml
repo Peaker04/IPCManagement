@@ -119,6 +119,29 @@ jobs:
           --logger "trx;LogFileName=integration-tests.trx"
           --results-directory "${{ github.workspace }}/.artifacts/test-results"
 
+      # B13 — Replay migration THẬT trên MySQL.
+      # Bước "Generate MySQL schema script" ở trên sinh schema từ MODEL, nên 36 migration
+      # viết tay chưa từng được thực thi một lần nào trong CI. Bộ test replay đã có sẵn trong
+      # repo nhưng bị khoá sau IPC_RUN_MYSQL_MIGRATION_TESTS, và biến đó chưa bao giờ được set
+      # trong CI -> test im lặng return sớm. Hai test dưới đây dựng database trắng từ baseline
+      # backend/database/IPCmanagement.sql rồi replay toàn bộ migration còn lại; chúng tự tạo
+      # database dùng-một-lần nên chạy được trên runner sạch.
+      #
+      # Hai test Migration_upgrade_* còn lại CHƯA bật được: chúng đòi một lane đã seed sẵn ở
+      # trạng thái TRƯỚC migration, CI chưa dựng được fixture đó. Xem B13 trong
+      # docs/ARCHITECTURE-REDESIGN-2026-07-26.md.
+      - name: Replay migration trên MySQL thật (B13)
+        id: migration_replay
+        env:
+          IPC_RUN_MYSQL_MIGRATION_TESTS: "1"
+        run: >
+          dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+          --no-build
+          --filter "FullyQualifiedName~Migration_fresh_database_applies_reconciliation_schema|FullyQualifiedName~Migration_fresh_install_applies_decision_exception_and_legacy_marker_schema"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=migration-replay.trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results"
+
       - name: Báo cáo số integration test đã chạy
         if: always() && steps.integration.conclusion != 'skipped'
         run: |
