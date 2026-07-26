@@ -73,8 +73,10 @@ export function useMaterialDemand({
     dateFrom: reportDateFrom,
     dateTo: reportDateTo,
   }), [reportDateFrom, reportDateTo, scope.customerId])
-  const { currentData: demandLines = [] } = useGetIngredientDemandQuery(reportQuery, { skip: !enabled || !scope.customerId })
-  const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(reportQuery, { skip: !enabled || !scope.customerId })
+  const demandQuery = useGetIngredientDemandQuery(reportQuery, { skip: !enabled || !scope.customerId })
+  const documentsQuery = useGetWorkflowDocumentsQuery(reportQuery, { skip: !enabled || !scope.customerId })
+  const demandLines = useMemo(() => demandQuery.currentData ?? [], [demandQuery.currentData])
+  const workflowDocuments = useMemo(() => documentsQuery.currentData ?? [], [documentsQuery.currentData])
   const stalenessQuery = (serviceDate?: string) => ({
     serviceDate: serviceDate ?? '',
     customerId: scope.customerId,
@@ -100,13 +102,15 @@ export function useMaterialDemand({
   const activeDateIndex = serviceDates.indexOf(activeDate)
   const activeStaleness = activeDateIndex >= 0 ? stalenessResults[activeDateIndex]?.data?.data ?? undefined : undefined
   const regenerableServiceDates = serviceDates.filter((_, index) => stalenessResults[index]?.data?.data?.canRegenerate !== false)
-  const { currentData: aggregatePage, isFetching: isFetchingAggregate } = useGetIngredientDemandAggregatePageQuery({
+  const aggregateQuery = useGetIngredientDemandAggregatePageQuery({
     customerId: scope.customerId,
     dateFrom: activeDate || undefined,
     dateTo: activeDate || undefined,
     pageNumber: aggregatePageNumber,
     pageSize: 100,
   }, { skip: !enabled || !scope.customerId || !activeDate })
+  const aggregatePage = aggregateQuery.currentData
+  const isFetchingAggregate = aggregateQuery.isFetching
   const activeDemand = demandLines.find((line) => line.serviceDate === activeDate && line.materialRequestId)
     ?? (activeStaleness?.materialRequestId ? {
       materialRequestId: activeStaleness.materialRequestId,
@@ -114,7 +118,7 @@ export function useMaterialDemand({
       sourceDocumentCode: activeStaleness.requestCode ?? undefined,
       serviceDate: activeDate,
     } as DemandLine : undefined)
-  const { currentData: approvalHistoryResponse } = useGetApprovalHistoryQuery({
+  const { currentData: approvalHistoryResponse, isError: isApprovalHistoryError } = useGetApprovalHistoryQuery({
     documentType: 'material-demand',
     documentId: activeDemand?.materialRequestId ?? '',
   }, { skip: !enabled || !activeDemand?.materialRequestId })
@@ -142,6 +146,15 @@ export function useMaterialDemand({
   const activeDateDocuments = backendDocuments.filter((document) => isDemandDocumentForDate(document, activeDate))
   const documents = draftDocument ? [draftDocument, ...activeDateDocuments] : activeDateDocuments
   const weeklyDocuments = draftDocument ? [draftDocument, ...backendDocuments] : backendDocuments
+  // Nếu một trong ba nguồn nhu cầu lỗi thì danh sách rỗng KHÔNG có nghĩa là
+  // tuần này không cần mua gì; màn hình phải báo lỗi thay vì báo rỗng.
+  const isDemandError = demandQuery.isError || documentsQuery.isError || aggregateQuery.isError
+  const isDemandRetrying = demandQuery.isFetching || documentsQuery.isFetching || aggregateQuery.isFetching
+  const retryDemand = () => Promise.all([
+    demandQuery.refetch(),
+    documentsQuery.refetch(),
+    aggregateQuery.refetch(),
+  ])
 
   const selectDay = (dayKey: string | null) => {
     setNavigation({ scopeKey, selectedDayKey: dayKey, aggregatePageNumber: 1 })
@@ -231,12 +244,16 @@ export function useMaterialDemand({
       isGenerating,
       isSavingQuickServings,
       isFetchingAggregate,
+      isDemandError,
+      isDemandRetrying,
+      isApprovalHistoryError,
       stalenessState: weekStaleness.status,
       stalenessCompletedDateCount: weekStaleness.completedDateCount,
       stalenessExpectedDateCount: weekStaleness.expectedDateCount,
     },
     actions: {
       selectDay,
+      retryDemand,
       setAggregatePage: (page: number) => setNavigation({
         scopeKey,
         selectedDayKey,

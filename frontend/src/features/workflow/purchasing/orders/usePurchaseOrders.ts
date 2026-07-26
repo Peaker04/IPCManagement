@@ -24,15 +24,20 @@ export function usePurchaseOrders(enabled = true) {
   const [cancelTargetId, setCancelTargetId] = useState<string | null>(null);
   const [receiveQtyByLine, setReceiveQtyByLine] = useState<Record<string, string>>({});
   const [receiveWarehouseByOrder, setReceiveWarehouseByOrder] = useState<Record<string, string>>({});
-  const { data: response } = useGetPurchaseOrdersPageQuery(
+  const {
+    data: response,
+    isError: isOrderError,
+    isFetching: isFetchingOrders,
+    refetch: refetchOrders,
+  } = useGetPurchaseOrdersPageQuery(
     { pageNumber: page, pageSize: 6 },
     { skip: !enabled },
   );
-  const { data: requestResponse } = useGetPurchaseRequestsPageQuery(
+  const { data: requestResponse, isError: isApprovedRequestError } = useGetPurchaseRequestsPageQuery(
     { status: 'APPROVED', pageNumber: approvedRequestPage, pageSize: 8 },
     { skip: !enabled },
   );
-  const { data: warehouses = [] } = useGetWarehouseSelectorQuery(
+  const { data: warehouses = [], isError: isWarehouseError } = useGetWarehouseSelectorQuery(
     undefined,
     { skip: !enabled },
   );
@@ -101,6 +106,10 @@ export function usePurchaseOrders(enabled = true) {
   };
 
   return {
+    // Bảng đơn mua / đề xuất rỗng vì lỗi tải khác hẳn với "chưa có đơn mua nào".
+    isOrderError, isApprovedRequestError, isWarehouseError,
+    isRetryingOrders: isFetchingOrders,
+    retryOrders: () => refetchOrders(),
     page, setPage, response, orders, approvedRequests, isCreating, create,
     approvedRequestPage, setApprovedRequestPage, approvedRequestResponse: requestResponse,
     expandedOrderId, setExpandedOrderId,

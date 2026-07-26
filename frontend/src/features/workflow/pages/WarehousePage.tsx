@@ -7,6 +7,7 @@ import {
   ContextStrip,
   DemandSummary,
   DocumentRail,
+  EmptyState,
   InlineAlert,
   OperationalFrame,
   PaginationBar,
@@ -79,36 +80,55 @@ export default function WarehousePage() {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const { data: workflowDocuments = [], isError: isWorkflowDocumentError } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchaseOrderPageResponse, isFetching: isFetchingPurchaseOrders, isError: isPurchaseOrderError, refetch: refetchPurchaseOrders } = useGetPurchaseOrdersPageQuery({
     pageNumber: purchaseOrderPageNumber,
     pageSize: 8,
   });
-  const { data: receiptWarehouses = [] } = useGetWarehouseSelectorQuery();
-  const { data: supplementalRequests } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
-  const { data: demandPageResponse } = useGetIngredientDemandPageQuery({
+  const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
+  const { data: supplementalRequests, isError: isSupplementalRequestError } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
+  const {
+    data: demandPageResponse,
+    isError: isDemandPageError,
+    isFetching: isFetchingDemandPage,
+    refetch: refetchDemandPage,
+  } = useGetIngredientDemandPageQuery({
     pageNumber: demandPage,
     pageSize: 8,
   }, { skip: activeView !== 'demand' });
   const demandLines = demandPageResponse?.items ?? [];
-  const { data: issueCandidatePage, isFetching: isFetchingIssueCandidates } = useGetMaterialRequestCandidatePageQuery({
+  const {
+    data: issueCandidatePage,
+    isFetching: isFetchingIssueCandidates,
+    isError: isIssueCandidateError,
+  } = useGetMaterialRequestCandidatePageQuery({
     purpose: 'issue',
     pageNumber: issueCandidatePageNumber,
     pageSize: 8,
   });
   const stockMovementCursor = stockMovementCursors.at(-1);
-  const { data: stockMovementPage } = useGetStockMovementPageQuery({
+  const {
+    data: stockMovementPage,
+    isError: isStockMovementError,
+    isFetching: isFetchingStockMovement,
+    refetch: refetchStockMovement,
+  } = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'movement' });
-  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({
+  const {
+    data: currentStockPageResponse,
+    isError: isCurrentStockError,
+    isFetching: isFetchingCurrentStock,
+    refetch: refetchCurrentStock,
+  } = useGetCurrentStockPageQuery({
     pageNumber: currentStockPage,
     pageSize: 8,
   }, { skip: activeView !== 'movement' });
   const currentStockRows = currentStockPageResponse?.items ?? [];
-  const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
+  const { data: kitchenIssueRows = [], isError: isKitchenIssueError } = useGetKitchenIssuesQuery({ limit: 100 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview({ skip: activeView !== 'demand' });
   const warehouseDocuments = [
@@ -126,22 +146,34 @@ export default function WarehousePage() {
     canManageWarehouse: canReceivePurchases,
     isFetching: isFetchingIssueCandidates,
     candidateCount: issueCandidatePage?.totalCount,
+    isError: isIssueCandidateError,
   });
   const warehouseOptions = receiptWarehouses.map((warehouse) => ({
     id: warehouse.warehouseId,
     name: warehouse.warehouseName,
   }));
   const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
-  const { data: selectedDemandLines = [], isFetching: isFetchingSelectedDemand } = useGetIngredientDemandQuery(
+  const {
+    data: selectedDemandLines = [],
+    isFetching: isFetchingSelectedDemand,
+    isError: isSelectedDemandError,
+  } = useGetIngredientDemandQuery(
     selectedIssueCandidate
       ? { dateFrom: selectedIssueCandidate.requestDate, dateTo: selectedIssueCandidate.requestDate, limit: 100 }
       : undefined,
     { skip: !selectedIssueCandidate },
   );
-  const { data: selectedWarehouseStockRows = [], isFetching: isFetchingSelectedWarehouseStock } = useGetCurrentStockQuery(
+  const {
+    data: selectedWarehouseStockRows = [],
+    isFetching: isFetchingSelectedWarehouseStock,
+    isError: isSelectedWarehouseStockError,
+  } = useGetCurrentStockQuery(
     selectedWarehouseId ? { warehouseId: selectedWarehouseId, limit: -1 } : undefined,
     { skip: !selectedWarehouseId },
   );
+  // Nhu cầu hoặc tồn kho lỗi => phân bổ ra 0 dòng. Đó KHÔNG phải bằng chứng kho
+  // thiếu hàng, nên không được hiển thị như vậy và không được cho xác nhận xuất.
+  const isAllocationSourceError = isSelectedDemandError || isSelectedWarehouseStockError;
   const selectedWarehouseAllocation = selectedIssueCandidate
     ? buildWarehouseIssueAllocation(
         selectedIssueCandidate.materialRequestId,
@@ -274,11 +306,11 @@ export default function WarehousePage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Phiếu nhập', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: 'warning' },
-            { label: 'Phiếu xuất', value: `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: 'warning' },
-            { label: 'Dòng tồn kho', value: currentStockRows.length.toString(), tone: currentStockRows.length > 0 ? 'success' : 'warning' },
-            { label: 'Thiếu hàng', value: shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : shortageCount > 0 ? `${shortageCount} dòng thiếu` : 'Không có', tone: shortageCount > 0 ? 'danger' : 'success' },
-            { label: 'Bếp nhận', value: pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký', tone: pendingKitchenReceiptCount > 0 ? 'warning' : 'success' },
+            { label: 'Phiếu nhập', value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu nhập').length} chứng từ`, tone: isWorkflowDocumentError ? 'danger' : 'warning' },
+            { label: 'Phiếu xuất', value: isWorkflowDocumentError ? 'Chưa xác định' : `${warehouseDocuments.filter((document) => document.type === 'Phiếu xuất').length} phiếu`, tone: isWorkflowDocumentError ? 'danger' : 'warning' },
+            { label: 'Dòng tồn kho', value: isCurrentStockError ? 'Chưa xác định' : currentStockRows.length.toString(), tone: isCurrentStockError ? 'danger' : currentStockRows.length > 0 ? 'success' : 'warning' },
+            { label: 'Thiếu hàng', value: isDemandPageError ? 'Chưa xác định' : shortageLine ? `${shortageLine.material} ${formatQuantityWithUnit(Math.max(shortageLine.required - shortageLine.available, 0), shortageLine.unit)}` : shortageCount > 0 ? `${shortageCount} dòng thiếu` : 'Không có', tone: isDemandPageError || shortageCount > 0 ? 'danger' : 'success' },
+            { label: 'Bếp nhận', value: isKitchenIssueError ? 'Chưa xác định' : pendingKitchenReceiptCount > 0 ? `${pendingKitchenReceiptCount} dòng chờ ký` : 'Không còn chờ ký', tone: isKitchenIssueError ? 'danger' : pendingKitchenReceiptCount > 0 ? 'warning' : 'success' },
           ]}
         />
       }
@@ -291,6 +323,13 @@ export default function WarehousePage() {
         >
           Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
         </QueryErrorAlert>
+      )}
+      {(isWorkflowDocumentError || isSupplementalRequestError) && (
+        <InlineAlert title="Thiếu dữ liệu tham chiếu của kho" variant="danger">
+          <span role="alert">
+            Chưa tải được danh sách chứng từ kho hoặc yêu cầu cấp bổ sung. Danh sách phiếu hiển thị chưa đầy đủ và kho gợi ý sẵn khi ghi nhận nhập kho có thể sai; hãy tải lại trang trước khi đối chiếu chứng từ.
+          </span>
+        </InlineAlert>
       )}
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info">
@@ -334,8 +373,12 @@ export default function WarehousePage() {
                 }}
               />
               {issueCandidates.length === 0 && (
-                <p className="text-xs text-amber-700">
-                  {isFetchingIssueCandidates ? 'Đang tải nhu cầu nguyên liệu...' : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
+                <p className={isIssueCandidateError && !isFetchingIssueCandidates ? 'text-xs font-semibold text-red-700' : 'text-xs text-amber-700'} role={isIssueCandidateError && !isFetchingIssueCandidates ? 'alert' : undefined}>
+                  {isFetchingIssueCandidates
+                    ? 'Đang tải nhu cầu nguyên liệu...'
+                    : isIssueCandidateError
+                      ? 'Không tải được nhu cầu nguyên liệu. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì hết nhu cầu cần xuất.'
+                      : 'Chưa có nhu cầu nguyên liệu đủ điều kiện để xuất kho.'}
                 </p>
               )}
             </div>
@@ -349,21 +392,29 @@ export default function WarehousePage() {
                   {warehouseOptions.map((warehouse) => <SelectItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              {warehouseOptions.length === 0 && <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>}
+              {warehouseOptions.length === 0 && (
+                isWarehouseSelectorError
+                  ? <p className="text-xs font-semibold text-red-700" role="alert">Không tải được danh sách kho. Chưa thể kết luận là không có kho nào cấp được nguyên liệu.</p>
+                  : <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>
+              )}
               {selectedWarehouseId && (
                 <div
                   className={`rounded-sm border px-3 py-2 text-xs ${
-                    selectedWarehouseAllocation.lines.length > 0
-                      ? 'border-sky-200 bg-sky-50 text-slate-700'
-                      : 'border-amber-200 bg-amber-50 text-amber-800'
+                    isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock
+                      ? 'border-red-200 bg-red-50 font-semibold text-red-800'
+                      : selectedWarehouseAllocation.lines.length > 0
+                        ? 'border-sky-200 bg-sky-50 text-slate-700'
+                        : 'border-amber-200 bg-amber-50 text-amber-800'
                   }`}
-                  role="status"
+                  role={isAllocationSourceError && !isFetchingSelectedDemand && !isFetchingSelectedWarehouseStock ? 'alert' : 'status'}
                 >
                   {isFetchingSelectedDemand || isFetchingSelectedWarehouseStock
                     ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
-                    : selectedWarehouseAllocation.lines.length > 0
-                      ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
-                      : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
+                    : isAllocationSourceError
+                      ? 'Không đối chiếu được nhu cầu với tồn kho vì lỗi tải dữ liệu. Chưa thể kết luận kho này thiếu hàng; hãy tải lại trang trước khi xuất.'
+                      : selectedWarehouseAllocation.lines.length > 0
+                        ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
+                        : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
                 </div>
               )}
             </div>
@@ -373,7 +424,7 @@ export default function WarehousePage() {
             <Button
               type="button"
               onClick={() => void handleCreateInventoryIssue()}
-              disabled={!selectedMaterialRequestId || !selectedWarehouseId || isFetchingSelectedDemand || isFetchingSelectedWarehouseStock || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue}
+              disabled={!selectedMaterialRequestId || !selectedWarehouseId || isFetchingSelectedDemand || isFetchingSelectedWarehouseStock || isAllocationSourceError || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue}
             >
               {isCreatingIssue ? 'Đang tạo phiếu...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
             </Button>
@@ -566,6 +617,16 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
+                {isCurrentStockError && (
+                  <EmptyState
+                    variant="error"
+                    className="mb-3"
+                    title="Không tải được tồn kho hiện tại"
+                    description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì kho hết hàng. Hãy tải lại trước khi lập phiếu xuất hoặc kết luận thiếu hàng."
+                    onRetry={refetchCurrentStock}
+                    isRetrying={isFetchingCurrentStock}
+                  />
+                )}
                 <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
                   <table className="ipc-data-table">
                     <thead>
@@ -579,7 +640,9 @@ export default function WarehousePage() {
                     <tbody>
                       {currentStockRows.length === 0 ? (
                         <tr>
-                          <td colSpan={4} className="text-center text-slate-500">Chưa có dữ liệu tồn kho</td>
+                          <td colSpan={4} className={isCurrentStockError ? 'text-center font-semibold text-red-700' : 'text-center text-slate-500'}>
+                            {isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}
+                          </td>
                         </tr>
                       ) : currentStockRows.map((row) => (
                         <tr key={row.id}>
@@ -601,6 +664,16 @@ export default function WarehousePage() {
               </SectionPanel>
 
               <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
+                {isStockMovementError && (
+                  <EmptyState
+                    variant="error"
+                    className="mb-3"
+                    title="Không tải được sổ luân chuyển kho"
+                    description="Không có dòng luân chuyển nào hiển thị vì lỗi tải dữ liệu. Đừng coi đây là bằng chứng kho chưa phát sinh nhập, xuất hay trả hàng."
+                    onRetry={refetchStockMovement}
+                    isRetrying={isFetchingStockMovement}
+                  />
+                )}
                 <StockMovementTable
                   movements={stockMovementPage?.items ?? []}
                   cursorPagination={{
@@ -624,7 +697,15 @@ export default function WarehousePage() {
       {activeView === 'demand' && (
         <SectionPanel title="Nhu cầu xuất và thiếu hàng">
           <div id="warehouse-demand-panel" role="tabpanel" aria-labelledby="warehouse-demand-tab">
-          <DemandSummary lines={demandLines} />
+          {isDemandPageError ? (
+            <EmptyState
+              variant="error"
+              title="Không tải được nhu cầu xuất kho"
+              description="Chưa lấy được danh sách nhu cầu và thiếu hàng, nên không thể kết luận là không còn gì phải xuất. Hãy tải lại trước khi lập phiếu xuất."
+              onRetry={refetchDemandPage}
+              isRetrying={isFetchingDemandPage}
+            />
+          ) : <DemandSummary lines={demandLines} />}
           <PaginationBar
             page={demandPageResponse?.pageNumber ?? demandPage}
             pageSize={demandPageResponse?.pageSize ?? 8}
