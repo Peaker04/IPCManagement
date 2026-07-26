@@ -1,38 +1,100 @@
+using System.Net;
 using System.Text;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using IPCManagement.Api.HealthChecks;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
+using Serilog.Formatting.Compact;
 
 // ── Serilog bootstrap ───────────────────────────────────────────────────────
-Log.Logger = new LoggerConfiguration()
+// Log ghi ra JSON (CompactJsonFormatter) để máy parse được; console giữ dạng người đọc khi Development.
+var environmentName = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT");
+var isDevelopmentEnvironment = string.Equals(
+    environmentName, Environments.Development, StringComparison.OrdinalIgnoreCase);
+
+var loggerConfiguration = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
     .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3} cid:{CorrelationId}] {Message:lj}{NewLine}{Exception}")
-    .WriteTo.File(
-        path: "logs/ipc-.log",
+    // Ghi file chạy nền để I/O đĩa không chặn request thread.
+    .WriteTo.Async(sink => sink.File(
+        formatter: new CompactJsonFormatter(),
+        path: "logs/ipc-.jsonl",
         rollingInterval: RollingInterval.Day,
-        retainedFileCountLimit: 30,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3} cid:{CorrelationId}] {Message:lj}{NewLine}{Exception}")
-    .CreateLogger();
+        retainedFileCountLimit: 30));
+
+if (isDevelopmentEnvironment)
+{
+    loggerConfiguration.WriteTo.Console(outputTemplate:
+        "[{Timestamp:HH:mm:ss} {Level:u3} cid:{CorrelationId}] {Message:lj}{NewLine}{Exception}");
+}
+else
+{
+    loggerConfiguration.WriteTo.Console(new CompactJsonFormatter());
+}
+
+Log.Logger = loggerConfiguration.CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
+
+// ── Forwarded headers ───────────────────────────────────────────────────────
+// API chạy sau reverse proxy: không đọc X-Forwarded-For thì rate limiter phân partition theo IP
+// của proxy, nghĩa là toàn hệ thống dùng chung một hạn mức.
+var knownProxies = builder.Configuration.GetSection("ForwardedHeaders:KnownProxies").Get<string[]>()
+    ?? Array.Empty<string>();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+
+    // Mặc định ASP.NET Core chỉ tin proxy loopback; xóa allowlist để header từ proxy thật được đọc.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+
+    foreach (var proxy in knownProxies)
+    {
+        if (IPAddress.TryParse(proxy, out var proxyAddress))
+        {
+            options.KnownProxies.Add(proxyAddress);
+        }
+    }
+});
+
+if (knownProxies.Length == 0)
+{
+    Log.Warning("ForwardedHeaders:KnownProxies chưa cấu hình — API tin mọi X-Forwarded-For. "
+        + "Chỉ an toàn khi API luôn nằm sau reverse proxy tin cậy.");
+}
+
+// ── Cookie policy ───────────────────────────────────────────────────────────
+// Ngoài Development, cookie refresh-token bắt buộc có cờ Secure. Ép ở đây thay vì để controller
+// tự quyết theo Request.IsHttps, vì sau proxy TLS-terminating thì IsHttps có thể là false.
+builder.Services.Configure<CookiePolicyOptions>(options =>
+{
+    options.MinimumSameSitePolicy = SameSiteMode.Unspecified;   // giữ nguyên SameSite controller đặt
+    options.Secure = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+});
 
 DeploymentConfigurationValidator.Validate(builder.Configuration, builder.Environment);
 
@@ -135,13 +197,17 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendPolicy", policy =>
     {
+        // Trình duyệt chỉ đọc được header lạ khi nó nằm trong Access-Control-Expose-Headers;
+        // thiếu dòng này thì FE không lấy được mã tra cứu lỗi để hiển thị cho người dùng.
         if (builder.Environment.IsDevelopment())
         {
-            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()
+                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
         }
         else
         {
-            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+            policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod().AllowCredentials()
+                .WithExposedHeaders(CorrelationIdMiddleware.HeaderName);
         }
     });
 });
@@ -159,6 +225,21 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = ApiResponseModelStateFactory.CreateInvalidModelStateResponse;
 });
+
+// ── Health checks ───────────────────────────────────────────────────────────
+// /health/live  : chỉ khẳng định process còn sống, KHÔNG chạm DB (liveness probe).
+// /health/ready : mở kết nối MySQL thật (readiness probe + harness Shipyard).
+// Timeout 5s để MySQL chết không làm probe treo theo retry của EnableRetryOnFailure.
+builder.Services.AddHealthChecks()
+    .AddCheck(
+        "self",
+        () => HealthCheckResult.Healthy("API process đang chạy."),
+        tags: new[] { "live" })
+    .AddCheck<DatabaseHealthCheck>(
+        "database",
+        failureStatus: HealthStatus.Unhealthy,
+        tags: new[] { "ready" },
+        timeout: TimeSpan.FromSeconds(5));
 
 builder.Services.AddMemoryCache();
 builder.Services.AddResponseCompression(options =>
@@ -230,6 +311,20 @@ builder.Services.AddRateLimiter(opts =>
             QueueLimit = 10
         }));
 
+    // api-general làm GLOBAL limiter: mọi endpoint bị giới hạn mặc định (opt-out thay vì opt-in).
+    // Endpoint muốn thoát phải khai báo [DisableRateLimiting] — RateLimitingMiddleware bỏ qua
+    // cả global limiter khi thấy metadata đó. Endpoint đã gắn policy riêng (vd. auth-strict)
+    // vẫn giữ nguyên hạn mức chặt hơn vì phải qua cả hai limiter.
+    opts.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetSlidingWindowLimiter(GetRateLimitPartitionKey(context), _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = apiPermitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        }));
+
     // Trả về JSON khi bị từ chối
     opts.OnRejected = async (context, _) =>
     {
@@ -255,7 +350,41 @@ static string GetRateLimitPartitionKey(HttpContext context)
 
 var app = builder.Build();
 
+// PHẢI đứng đầu pipeline: mọi middleware phía sau (HttpsRedirection, rate limiter phân partition
+// theo IP, log request) đều cần RemoteIpAddress/Scheme đã được sửa lại theo header của proxy.
+app.UseForwardedHeaders();
+
+// ── Security headers ────────────────────────────────────────────────────────
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHsts();
+}
+
+app.Use(async (context, next) =>
+{
+    var headers = context.Response.Headers;
+    headers["X-Content-Type-Options"] = "nosniff";
+    headers["X-Frame-Options"] = "DENY";
+
+    // API chỉ trả JSON nên khóa CSP chặt nhất; riêng Swagger UI (chỉ có ở Development)
+    // cần script/style nội tuyến nên được miễn.
+    if (!context.Request.Path.StartsWithSegments("/swagger")
+        && !context.Request.Path.StartsWithSegments("/openapi"))
+    {
+        headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'; base-uri 'none'";
+    }
+
+    await next();
+});
+
+app.UseCookiePolicy();
+
 app.UseMiddleware<CorrelationIdMiddleware>();
+
+// Access log cho mọi request (trước đây không có bất kỳ access log nào).
+// Đặt ngoài ExceptionMiddleware để status code ghi nhận là status code cuối cùng trả về client.
+app.UseSerilogRequestLogging();
+
 app.UseExceptionMiddleware();
 
 if (app.Environment.IsDevelopment())
@@ -282,7 +411,47 @@ app.MapGet("/", () =>
     {
         message = "IPC Management API is running."
     });
-});
+}).DisableRateLimiting();
+
+// ── Health endpoints ────────────────────────────────────────────────────────
+// Probe phải luôn trả lời được kể cả khi hạn mức đã cạn → DisableRateLimiting.
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live"),
+    ResponseWriter = WriteHealthCheckResponseAsync
+}).DisableRateLimiting().AllowAnonymous();
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready"),
+    ResponseWriter = WriteHealthCheckResponseAsync
+}).DisableRateLimiting().AllowAnonymous();
+
+// Healthy/Degraded → 200, Unhealthy → 503 (mặc định của HealthCheckOptions.ResultStatusCodes).
+static Task WriteHealthCheckResponseAsync(HttpContext context, HealthReport report)
+{
+    context.Response.ContentType = "application/json";
+
+    var payload = new
+    {
+        status = report.Status.ToString(),
+        totalDurationMs = Math.Round(report.TotalDuration.TotalMilliseconds, 1),
+        checks = report.Entries.Select(entry => new
+        {
+            name = entry.Key,
+            status = entry.Value.Status.ToString(),
+            description = entry.Value.Description,
+            durationMs = Math.Round(entry.Value.Duration.TotalMilliseconds, 1)
+        })
+    };
+
+    return context.Response.WriteAsync(System.Text.Json.JsonSerializer.Serialize(
+        payload,
+        new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        }));
+}
 
 app.UseResponseCompression();
 app.UseHttpsRedirection();
@@ -307,6 +476,19 @@ app.Lifetime.ApplicationStarted.Register(() =>
     }
 });
 
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "IPC Management API dừng bất thường");
+    throw;
+}
+finally
+{
+    // Bắt buộc với WriteTo.Async: đẩy nốt log còn trong hàng đợi trước khi process thoát.
+    Log.CloseAndFlush();
+}
 
 public partial class Program;

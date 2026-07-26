@@ -20,11 +20,25 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
+        // Query dài nhất hiện tại là các báo cáo workflow; 30s đủ rộng mà vẫn chặn được
+        // câu lệnh treo giữ kết nối vô hạn.
+        var commandTimeoutSeconds = configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30;
+
         services.AddDbContext<IpcManagementContext>(options =>
             options.UseMySql(
                 connectionString,
                 ServerVersion.AutoDetect(connectionString),
-                mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
+                mySqlOptions => mySqlOptions
+                    .UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)
+                    // CHƯA bật EnableRetryOnFailure — xem P1.5b.
+                    // Retry khiến MỌI BeginTransaction thủ công ném InvalidOperationException
+                    // ("execution strategy does not support user-initiated transactions") nếu
+                    // không được bọc trong Database.CreateExecutionStrategy().ExecuteAsync(...).
+                    // Đo ngày 26/07/2026: 26 chỗ BeginTransactionAsync ở 15 file, 0 chỗ đã bọc —
+                    // trong đó UnitOfWork.BeginTransactionAsync là wrapper dùng chung cho 7 service.
+                    // Unit test mock IUnitOfWork nên vẫn xanh, lỗi chỉ lộ khi chạy thật.
+                    // Chỉ bật lại sau khi đã bọc đủ cả 26 chỗ trong một đợt riêng.
+                    .CommandTimeout(commandTimeoutSeconds)));
 
         // Configurations
         services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));

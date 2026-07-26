@@ -1236,9 +1236,15 @@ public class DishService : IDishService
             fileStream.Position = 0;
         }
 
-        using var buffer = new MemoryStream();
-        await fileStream.CopyToAsync(buffer, cancellationToken);
-        var bytes = buffer.ToArray();
+        // Trần cứng XlsxSecurityLimits.MaxUploadBytes (10 MB) — trùng mức [RequestSizeLimit]
+        // của hai endpoint bom-import. Trước đây CopyToAsync nạp trọn upload vào MemoryStream
+        // không giới hạn rồi ToArray() nhân đôi mức chiếm RAM; đó là DoS bộ nhớ trực tiếp.
+        // Hàng rào ở đây là lớp phòng thủ thứ hai: service vẫn an toàn khi được gọi từ nơi
+        // không đi qua pipeline HTTP (job nền, test).
+        var bytes = await XlsxSecurityLimits.ReadAllBytesWithinLimitAsync(
+            fileStream,
+            "File import BOM",
+            cancellationToken);
         if (bytes.Length == 0)
         {
             return [];

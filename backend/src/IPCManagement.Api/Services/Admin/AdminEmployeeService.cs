@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Admin;
 using IPCManagement.Api.Models.DTOs.Common;
@@ -89,24 +90,43 @@ public class AdminEmployeeService : IAdminEmployeeService
 
     public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto request)
     {
-        var roleId = await ResolveRoleIdAsync(request.RoleId);
-        await EnsureUsernameAvailableAsync(request.Username);
-
-        var user = new User
+        // ResolveRoleIdAsync gọi EnsureDefaultRolesAsync và hàm đó tự SaveChangesAsync. Trước đây đây là
+        // hai lần commit rời rạc: nếu insert user hỏng (trùng username, lỗi kết nối) thì 7 role mặc định
+        // vừa được chèn vẫn nằm lại vĩnh viễn. Gộp cả hai vào một transaction: hoặc có đủ role + user,
+        // hoặc không thay đổi gì.
+        byte[] createdUserId;
+        await using (var transaction = await _context.Database.BeginTransactionAsync())
         {
-            UserId = GuidHelper.NewId(),
-            FullName = request.FullName.Trim(),
-            Username = request.Username.Trim(),
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
-            RoleId = roleId,
-            IsActive = request.IsActive,
-            CreatedAt = DateTime.UtcNow
-        };
+            try
+            {
+                var roleId = await ResolveRoleIdAsync(request.RoleId);
+                await EnsureUsernameAvailableAsync(request.Username);
 
-        _context.Users.Add(user);
-        await _context.SaveChangesAsync();
+                var user = new User
+                {
+                    UserId = GuidHelper.NewId(),
+                    FullName = request.FullName.Trim(),
+                    Username = request.Username.Trim(),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                    RoleId = roleId,
+                    IsActive = request.IsActive,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-        var created = await LoadEmployeeEntityAsync(user.UserId)
+                _context.Users.Add(user);
+                await SaveChangesGuardingUsernameAsync();
+                await transaction.CommitAsync();
+
+                createdUserId = user.UserId;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        var created = await LoadEmployeeEntityAsync(createdUserId)
             ?? throw new InvalidOperationException("Không thể tải nhân viên vừa tạo.");
 
         return MapEmployee(created);
@@ -118,6 +138,40 @@ public class AdminEmployeeService : IAdminEmployeeService
         if (userId is null)
             return null;
 
+        // Giống CreateAsync: ResolveRoleIdAsync có thể commit role mặc định trước khi user + auditlog
+        // được ghi. Một transaction duy nhất cho cả hai lượt SaveChangesAsync.
+        byte[] updatedUserId;
+        await using (var transaction = await _context.Database.BeginTransactionAsync())
+        {
+            try
+            {
+                var updated = await ApplyEmployeeUpdateAsync(userId, request, changedByUserId);
+                if (updated is null)
+                {
+                    return null;
+                }
+
+                await transaction.CommitAsync();
+                updatedUserId = updated;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        var reloaded = await LoadEmployeeEntityAsync(updatedUserId)
+            ?? throw new InvalidOperationException("Không thể tải nhân viên vừa cập nhật.");
+
+        return MapEmployee(reloaded);
+    }
+
+    private async Task<byte[]?> ApplyEmployeeUpdateAsync(
+        byte[] userId,
+        UpdateEmployeeDto request,
+        string? changedByUserId)
+    {
         var user = await _context.Users.FirstOrDefaultAsync(item => item.UserId == userId);
         if (user is null)
             return null;
@@ -233,12 +287,9 @@ public class AdminEmployeeService : IAdminEmployeeService
             _context.Auditlogs.AddRange(audits);
         }
 
-        await _context.SaveChangesAsync();
+        await SaveChangesGuardingUsernameAsync();
 
-        var updated = await LoadEmployeeEntityAsync(user.UserId)
-            ?? throw new InvalidOperationException("Không thể tải nhân viên vừa cập nhật.");
-
-        return MapEmployee(updated);
+        return user.UserId;
     }
 
     public async Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request, string? changedByUserId)
@@ -337,7 +388,38 @@ public class AdminEmployeeService : IAdminEmployeeService
             return;
 
         if (currentUserId is null || !ownerId.SequenceEqual(currentUserId))
-            throw new InvalidOperationException("Tên đăng nhập đã tồn tại.");
+            throw new ResourceConflictException("Tên đăng nhập đã tồn tại.");
+    }
+
+    /// <summary>
+    /// Kiểm tra username ở trên là check-then-write nên hai request song song vẫn lọt được cả hai.
+    /// Chốt chặn thật nằm ở unique index `username` của bảng users; ở đây chỉ dịch lỗi khóa trùng
+    /// của database thành đúng ngữ nghĩa xung đột (409) thay vì để nó rơi thành lỗi hệ thống 500.
+    /// </summary>
+    private async Task SaveChangesGuardingUsernameAsync()
+    {
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            throw new ResourceConflictException("Tên đăng nhập đã tồn tại.", exception);
+        }
+    }
+
+    private static bool IsUniqueConstraintViolation(DbUpdateException exception)
+    {
+        for (var inner = exception.InnerException; inner is not null; inner = inner.InnerException)
+        {
+            if (inner.Message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase) ||
+                inner.Message.Contains("UNIQUE constraint failed", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private async Task<User?> LoadEmployeeEntityAsync(byte[] userId)
@@ -359,6 +441,24 @@ public class AdminEmployeeService : IAdminEmployeeService
         };
 
     public async Task<IReadOnlyDictionary<string, string>> SeedSampleUsersAsync()
+    {
+        // Cùng lỗi hai lần commit rời rạc như CreateAsync: EnsureDefaultRolesAsync tự lưu role trước,
+        // rồi mới tới lượt lưu 6 user mẫu. Bọc chung một transaction để seed là thao tác tất-cả-hoặc-không.
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            var credentials = await SeedSampleUsersCoreAsync();
+            await transaction.CommitAsync();
+            return credentials;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+
+    private async Task<IReadOnlyDictionary<string, string>> SeedSampleUsersCoreAsync()
     {
         await EnsureDefaultRolesAsync();
 

@@ -4,9 +4,15 @@ using System.Xml.Linq;
 
 namespace IPCManagement.Api.Services.SampleData;
 
+/// <summary>
+/// Đọc workbook XLSX cho luồng import thực đơn tuần / BOM.
+/// Toàn bộ hạn mức chống file độc hại (zip bomb, merged-cell bomb, XXE) và phần kiểm duyệt
+/// vùng gộp ô nằm ở <see cref="XlsxSecurityLimits"/> — dùng chung với
+/// <see cref="PurchaseHistorySourceParser"/> để không tồn tại hai bản vá song song lệch nhau.
+/// </summary>
 internal sealed class XlsxWorkbookReader
 {
-    private static readonly XNamespace SpreadsheetNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    private static readonly XNamespace SpreadsheetNs = XlsxSecurityLimits.SpreadsheetNs;
     private static readonly XNamespace RelationshipNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     private static readonly XNamespace PackageRelationshipNs = "http://schemas.openxmlformats.org/package/2006/relationships";
 
@@ -16,19 +22,11 @@ internal sealed class XlsxWorkbookReader
         IReadOnlyCollection<string> requiredHeaders,
         int? maxRows = null)
     {
-        using var archive = ZipFile.OpenRead(workbookPath);
+        using var archive = OpenWorkbook(workbookPath);
         var sharedStrings = ReadSharedStrings(archive);
-        var sheetPath = ResolveSheetPath(archive, sheetName);
-        var sheetEntry = archive.GetEntry(sheetPath)
-            ?? throw new InvalidOperationException($"Không tìm thấy sheet '{sheetName}' trong workbook.");
-
-        using var sheetStream = sheetEntry.Open();
-        var document = XDocument.Load(sheetStream);
-        var rawRows = document
-            .Descendants(SpreadsheetNs + "row")
-            .Select((row, index) => ReadRow(row, sharedStrings, index + 1))
-            .ToList();
-        ApplyMergedCellValues(rawRows, document);
+        var document = LoadSheetDocument(archive, sheetName);
+        var rawRows = ReadRawRows(document, sharedStrings);
+        ApplyMergedCellValues(rawRows, XlsxSecurityLimits.ReadMergeRanges(document, sheetName));
         var rows = rawRows
             .Select(row => row.Cells)
             .Where(row => row.Count > 0)
@@ -82,20 +80,13 @@ internal sealed class XlsxWorkbookReader
         string sheetName,
         int? maxRows = null)
     {
-        using var archive = ZipFile.OpenRead(workbookPath);
+        using var archive = OpenWorkbook(workbookPath);
         var sharedStrings = ReadSharedStrings(archive);
-        var sheetPath = ResolveSheetPath(archive, sheetName);
-        var sheetEntry = archive.GetEntry(sheetPath)
-            ?? throw new InvalidOperationException($"Không tìm thấy sheet '{sheetName}' trong workbook.");
-
-        using var sheetStream = sheetEntry.Open();
-        var document = XDocument.Load(sheetStream);
-        var rawRows = document
-            .Descendants(SpreadsheetNs + "row")
-            .Select((row, index) => ReadRow(row, sharedStrings, index + 1))
-            .ToList();
-        var mergeInfo = BuildMergedCellInfo(document);
-        ApplyMergedCellValues(rawRows, document);
+        var document = LoadSheetDocument(archive, sheetName);
+        var rawRows = ReadRawRows(document, sharedStrings);
+        var mergeRanges = XlsxSecurityLimits.ReadMergeRanges(document, sheetName);
+        var mergeInfoByRow = BuildMergedCellInfo(mergeRanges);
+        ApplyMergedCellValues(rawRows, mergeRanges);
         var rows = rawRows
             .Where(row => row.Cells.Count > 0);
 
@@ -108,26 +99,64 @@ internal sealed class XlsxWorkbookReader
             .Select(row => new XlsxRowData(
                 row.RowNumber,
                 row.Cells,
-                mergeInfo
-                    .Where(item => item.Key.Row == row.RowNumber)
-                    .ToDictionary(item => item.Key.Column, item => item.Value, StringComparer.OrdinalIgnoreCase)))
+                mergeInfoByRow.TryGetValue(row.RowNumber, out var mergeInfo)
+                    ? mergeInfo
+                    : EmptyMergeInfo))
             .ToList();
     }
 
     public IReadOnlyList<string> GetSheetNames(string workbookPath)
     {
-        using var archive = ZipFile.OpenRead(workbookPath);
-        var workbookEntry = archive.GetEntry("xl/workbook.xml")
-            ?? throw new InvalidOperationException("Workbook không có xl/workbook.xml.");
-
-        using var workbookStream = workbookEntry.Open();
-        var workbook = XDocument.Load(workbookStream);
-        return workbook
-            .Descendants(SpreadsheetNs + "sheet")
+        using var archive = OpenWorkbook(workbookPath);
+        var workbook = LoadPart(archive, "xl/workbook.xml", "Cấu trúc workbook (xl/workbook.xml)");
+        return ReadSheetElements(workbook)
             .Select(item => item.Attribute("name")?.Value)
             .Where(name => !string.IsNullOrWhiteSpace(name))
             .Select(name => name!)
             .ToList();
+    }
+
+    private static readonly IReadOnlyDictionary<string, XlsxMergedCellInfo> EmptyMergeInfo =
+        new Dictionary<string, XlsxMergedCellInfo>(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Mở gói xlsx và kiểm tra các chỉ số cấu trúc rẻ tiền (số entry, tổng dung lượng
+    /// giải nén khai báo) trước khi đụng tới bất kỳ XML nào.
+    /// </summary>
+    private static ZipArchive OpenWorkbook(string workbookPath)
+    {
+        // InvalidDataException (file không phải zip/xlsx) được giữ nguyên để
+        // SampleDataImportService.IsUnreadableWorkbookException tiếp tục quy nó về
+        // FILE_READ_ERROR thân thiện — đó là lỗi người dùng thường gặp, không phải tấn công.
+        var archive = ZipFile.OpenRead(workbookPath);
+
+        try
+        {
+            XlsxSecurityLimits.EnsurePackageWithinLimits(archive);
+            return archive;
+        }
+        catch
+        {
+            archive.Dispose();
+            throw;
+        }
+    }
+
+    private static XDocument LoadSheetDocument(ZipArchive archive, string sheetName)
+    {
+        var sheetPath = ResolveSheetPath(archive, sheetName);
+        var sheetEntry = archive.GetEntry(sheetPath)
+            ?? throw new InvalidOperationException($"Không tìm thấy sheet '{sheetName}' trong workbook.");
+
+        return XlsxSecurityLimits.LoadXmlPart(sheetEntry, $"Sheet '{sheetName}'");
+    }
+
+    private static XDocument LoadPart(ZipArchive archive, string entryPath, string label)
+    {
+        var entry = archive.GetEntry(entryPath)
+            ?? throw new InvalidOperationException($"Workbook không có {entryPath}.");
+
+        return XlsxSecurityLimits.LoadXmlPart(entry, label);
     }
 
     private static List<string> ReadSharedStrings(ZipArchive archive)
@@ -138,28 +167,34 @@ internal sealed class XlsxWorkbookReader
             return [];
         }
 
-        using var stream = entry.Open();
-        var document = XDocument.Load(stream);
-        return document
-            .Descendants(SpreadsheetNs + "si")
-            .Select(item => string.Concat(item.Descendants(SpreadsheetNs + "t").Select(text => text.Value)))
-            .ToList();
+        var document = XlsxSecurityLimits.LoadXmlPart(entry, "Bảng chuỗi dùng chung (xl/sharedStrings.xml)");
+        var values = new List<string>();
+        foreach (var item in document.Descendants(SpreadsheetNs + "si"))
+        {
+            XlsxSecurityLimits.EnsureSharedStringCountWithinLimit(values.Count);
+
+            var text = string.Concat(item.Descendants(SpreadsheetNs + "t").Select(node => node.Value));
+            XlsxSecurityLimits.EnsureCellTextWithinLimit(text);
+
+            values.Add(text);
+        }
+
+        return values;
+    }
+
+    private static List<XElement> ReadSheetElements(XDocument workbook)
+    {
+        var sheets = workbook.Descendants(SpreadsheetNs + "sheet").ToList();
+        XlsxSecurityLimits.EnsureSheetCountWithinLimit(sheets.Count);
+        return sheets;
     }
 
     private static string ResolveSheetPath(ZipArchive archive, string sheetName)
     {
-        var workbookEntry = archive.GetEntry("xl/workbook.xml")
-            ?? throw new InvalidOperationException("Workbook không có xl/workbook.xml.");
-        var relsEntry = archive.GetEntry("xl/_rels/workbook.xml.rels")
-            ?? throw new InvalidOperationException("Workbook không có xl/_rels/workbook.xml.rels.");
+        var workbook = LoadPart(archive, "xl/workbook.xml", "Cấu trúc workbook (xl/workbook.xml)");
+        var rels = LoadPart(archive, "xl/_rels/workbook.xml.rels", "Quan hệ workbook (xl/_rels/workbook.xml.rels)");
 
-        using var workbookStream = workbookEntry.Open();
-        using var relsStream = relsEntry.Open();
-        var workbook = XDocument.Load(workbookStream);
-        var rels = XDocument.Load(relsStream);
-
-        var sheet = workbook
-            .Descendants(SpreadsheetNs + "sheet")
+        var sheet = ReadSheetElements(workbook)
             .FirstOrDefault(item => string.Equals(
                 item.Attribute("name")?.Value,
                 sheetName,
@@ -182,10 +217,22 @@ internal sealed class XlsxWorkbookReader
             : $"xl/{normalized.TrimStart('/')}";
     }
 
+    private static List<RawXlsxRow> ReadRawRows(XDocument document, IReadOnlyList<string> sharedStrings)
+    {
+        var rows = new List<RawXlsxRow>();
+        foreach (var row in document.Descendants(SpreadsheetNs + "row"))
+        {
+            XlsxSecurityLimits.EnsureRowCountWithinLimit(rows.Count);
+            rows.Add(ReadRow(row, sharedStrings, rows.Count + 1));
+        }
+
+        return rows;
+    }
+
     private static RawXlsxRow ReadRow(XElement row, IReadOnlyList<string> sharedStrings, int fallbackRowNumber)
     {
         var cells = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        var rowNumber = ParseRowNumber(row.Attribute("r")?.Value, fallbackRowNumber);
+        var rowNumber = XlsxSecurityLimits.ParseRowNumber(row.Attribute("r")?.Value, fallbackRowNumber);
         foreach (var cell in row.Elements(SpreadsheetNs + "c"))
         {
             var reference = cell.Attribute("r")?.Value;
@@ -195,7 +242,7 @@ internal sealed class XlsxWorkbookReader
             }
 
             var column = new string(reference.TakeWhile(char.IsLetter).ToArray());
-            if (string.IsNullOrWhiteSpace(column))
+            if (string.IsNullOrWhiteSpace(column) || XlsxSecurityLimits.ColumnLetterToIndex(column) <= 0)
             {
                 continue;
             }
@@ -225,145 +272,48 @@ internal sealed class XlsxWorkbookReader
 
     private static void ApplyMergedCellValues(
         IReadOnlyList<RawXlsxRow> rows,
-        XDocument document)
+        IReadOnlyList<XlsxMergeRange> mergeRanges)
+        => XlsxSecurityLimits.ApplyMergedCellValues(
+            XlsxSecurityLimits.BuildRowIndex(rows.Select(row => (row.RowNumber, row.Cells))),
+            mergeRanges);
+
+    /// <summary>
+    /// Gom thông tin merge theo số dòng ngay từ đầu. Trước đây <c>ReadRowsWithMetadata</c>
+    /// lọc lại toàn bộ bảng merge cho từng dòng (O(dòng x ô-merge)); với file nhiều merge
+    /// hợp lệ thì đó cũng là một vector treo worker.
+    /// </summary>
+    private static Dictionary<int, IReadOnlyDictionary<string, XlsxMergedCellInfo>> BuildMergedCellInfo(
+        IReadOnlyList<XlsxMergeRange> mergeRanges)
     {
-        var rowsByNumber = rows.ToDictionary(row => row.RowNumber);
-        foreach (var mergeRange in document.Descendants(SpreadsheetNs + "mergeCell"))
+        var mergeInfoByRow = new Dictionary<int, IReadOnlyDictionary<string, XlsxMergedCellInfo>>();
+        foreach (var range in mergeRanges)
         {
-            var reference = mergeRange.Attribute("ref")?.Value;
-            if (!TryParseCellRange(reference, out var start, out var end))
-            {
-                continue;
-            }
+            var anchorColumn = XlsxSecurityLimits.ColumnIndexToLetter(range.FirstColumn);
+            var rowSpan = range.LastRow - range.FirstRow + 1;
+            var columnSpan = range.LastColumn - range.FirstColumn + 1;
 
-            if (!rowsByNumber.TryGetValue(start.Row, out var sourceRow) ||
-                !sourceRow.Cells.TryGetValue(start.Column, out var sourceValue) ||
-                string.IsNullOrWhiteSpace(sourceValue))
+            for (var rowNumber = range.FirstRow; rowNumber <= range.LastRow; rowNumber++)
             {
-                continue;
-            }
-
-            var startColumn = ColumnLetterToIndex(start.Column);
-            var endColumn = ColumnLetterToIndex(end.Column);
-            for (var rowNumber = start.Row; rowNumber <= end.Row; rowNumber++)
-            {
-                if (!rowsByNumber.TryGetValue(rowNumber, out var targetRow))
+                if (!mergeInfoByRow.TryGetValue(rowNumber, out var rowInfo))
                 {
-                    continue;
+                    rowInfo = new Dictionary<string, XlsxMergedCellInfo>(StringComparer.OrdinalIgnoreCase);
+                    mergeInfoByRow[rowNumber] = rowInfo;
                 }
 
-                for (var columnIndex = startColumn; columnIndex <= endColumn; columnIndex++)
+                var writable = (Dictionary<string, XlsxMergedCellInfo>)rowInfo;
+                for (var columnIndex = range.FirstColumn; columnIndex <= range.LastColumn; columnIndex++)
                 {
-                    var column = ColumnIndexToLetter(columnIndex);
-                    if (!targetRow.Cells.TryGetValue(column, out var currentValue) ||
-                        string.IsNullOrWhiteSpace(currentValue))
-                    {
-                        targetRow.Cells[column] = sourceValue;
-                    }
-                }
-            }
-        }
-    }
-
-    private static Dictionary<CellAddress, XlsxMergedCellInfo> BuildMergedCellInfo(XDocument document)
-    {
-        var mergeInfo = new Dictionary<CellAddress, XlsxMergedCellInfo>();
-        foreach (var mergeRange in document.Descendants(SpreadsheetNs + "mergeCell"))
-        {
-            var reference = mergeRange.Attribute("ref")?.Value;
-            if (!TryParseCellRange(reference, out var start, out var end))
-            {
-                continue;
-            }
-
-            var startColumn = ColumnLetterToIndex(start.Column);
-            var endColumn = ColumnLetterToIndex(end.Column);
-            var rowSpan = Math.Max(1, end.Row - start.Row + 1);
-            var columnSpan = Math.Max(1, endColumn - startColumn + 1);
-            for (var rowNumber = start.Row; rowNumber <= end.Row; rowNumber++)
-            {
-                for (var columnIndex = startColumn; columnIndex <= endColumn; columnIndex++)
-                {
-                    var column = ColumnIndexToLetter(columnIndex);
-                    mergeInfo[new CellAddress(column, rowNumber)] = new XlsxMergedCellInfo(
-                        start.Row,
-                        start.Column,
+                    writable[XlsxSecurityLimits.ColumnIndexToLetter(columnIndex)] = new XlsxMergedCellInfo(
+                        range.FirstRow,
+                        anchorColumn,
                         rowSpan,
                         columnSpan,
-                        rowNumber == start.Row && columnIndex == startColumn);
+                        rowNumber == range.FirstRow && columnIndex == range.FirstColumn);
                 }
             }
         }
 
-        return mergeInfo;
-    }
-
-    private static bool TryParseCellRange(
-        string? reference,
-        out CellAddress start,
-        out CellAddress end)
-    {
-        start = default;
-        end = default;
-        if (string.IsNullOrWhiteSpace(reference))
-        {
-            return false;
-        }
-
-        var parts = reference.Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        if (parts.Length == 1)
-        {
-            return TryParseCellAddress(parts[0], out start) && TryParseCellAddress(parts[0], out end);
-        }
-
-        return parts.Length == 2 &&
-               TryParseCellAddress(parts[0], out start) &&
-               TryParseCellAddress(parts[1], out end);
-    }
-
-    private static bool TryParseCellAddress(string reference, out CellAddress address)
-    {
-        address = default;
-        var column = new string(reference.TakeWhile(char.IsLetter).ToArray()).ToUpperInvariant();
-        var rowText = new string(reference.SkipWhile(char.IsLetter).TakeWhile(char.IsDigit).ToArray());
-        if (string.IsNullOrWhiteSpace(column) ||
-            !int.TryParse(rowText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var row) ||
-            row <= 0)
-        {
-            return false;
-        }
-
-        address = new CellAddress(column, row);
-        return true;
-    }
-
-    private static int ParseRowNumber(string? value, int fallbackRowNumber)
-        => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var rowNumber) && rowNumber > 0
-            ? rowNumber
-            : fallbackRowNumber;
-
-    private static int ColumnLetterToIndex(string column)
-    {
-        var result = 0;
-        foreach (var character in column.ToUpperInvariant())
-        {
-            result = (result * 26) + character - 'A' + 1;
-        }
-
-        return result;
-    }
-
-    private static string ColumnIndexToLetter(int column)
-    {
-        var result = string.Empty;
-        while (column > 0)
-        {
-            column--;
-            result = (char)('A' + column % 26) + result;
-            column /= 26;
-        }
-
-        return result;
+        return mergeInfoByRow;
     }
 
     private sealed record RawXlsxRow(int RowNumber, Dictionary<string, string> Cells);
@@ -379,6 +329,4 @@ internal sealed class XlsxWorkbookReader
         int RowSpan,
         int ColumnSpan,
         bool IsStart);
-
-    private readonly record struct CellAddress(string Column, int Row);
 }

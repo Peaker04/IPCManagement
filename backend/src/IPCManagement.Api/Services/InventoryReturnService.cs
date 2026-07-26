@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Models.DTOs.Common;
@@ -173,52 +174,74 @@ public class InventoryReturnService : IInventoryReturnService
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (bytes is null || userIdBytes is null || _context is null) return false;
 
-        var inventoryReturn = await _context.Inventoryreturns
-            .Include(r => r.Inventoryreturnlines)
-            .FirstOrDefaultAsync(r => r.ReturnId == bytes);
-
-        if (inventoryReturn is null) return false;
-
-        if (inventoryReturn.ReceivedAt.HasValue)
+        // Luồng này ghi vào 6 bảng (inventoryreturns, inventoryreturnlines, auditlogs, currentstock,
+        // currentstocklots, stockmovements). Không có transaction thì một lỗi giữa chừng để lại
+        // phiếu đã đánh dấu "đã nhận" nhưng tồn kho chưa cộng. Dùng đúng khuôn mẫu của CreateAsync
+        // trong chính file này. Đọc phiếu cũng nằm trong transaction để chốt chặn xác nhận hai lần.
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            throw new InvalidOperationException("Phiếu trả nguyên liệu này đã được xác nhận.");
-        }
+            var inventoryReturn = await _context.Inventoryreturns
+                .Include(r => r.Inventoryreturnlines)
+                .FirstOrDefaultAsync(r => r.ReturnId == bytes);
 
-        var confirmedAt = DateTime.UtcNow;
-        inventoryReturn.ReceivedBy = userIdBytes;
-        inventoryReturn.ReceivedAt = confirmedAt;
+            if (inventoryReturn is null) return false;
 
-        var auditLogReason = $"Thủ kho xác nhận phiếu trả {inventoryReturn.ReturnCode}.";
-        
-        if (dto.AdjustedLines != null && dto.AdjustedLines.Any())
-        {
-            foreach (var adjustedLine in dto.AdjustedLines)
+            if (inventoryReturn.ReceivedAt.HasValue)
             {
-                var lineBytes = GuidHelper.ParseGuidString(adjustedLine.ReturnLineId);
-                var line = inventoryReturn.Inventoryreturnlines.FirstOrDefault(l => lineBytes != null && l.ReturnLineId.SequenceEqual(lineBytes));
-                if (line != null && line.Quantity != adjustedLine.NewQuantity)
+                throw new ResourceConflictException("Phiếu trả nguyên liệu này đã được xác nhận.");
+            }
+
+            var confirmedAt = DateTime.UtcNow;
+            inventoryReturn.ReceivedBy = userIdBytes;
+            inventoryReturn.ReceivedAt = confirmedAt;
+
+            var auditLogReason = $"Thủ kho xác nhận phiếu trả {inventoryReturn.ReturnCode}.";
+
+            if (dto.AdjustedLines != null && dto.AdjustedLines.Any())
+            {
+                foreach (var adjustedLine in dto.AdjustedLines)
                 {
-                    _context.Auditlogs.Add(new Auditlog
+                    var lineBytes = GuidHelper.ParseGuidString(adjustedLine.ReturnLineId);
+                    var line = inventoryReturn.Inventoryreturnlines.FirstOrDefault(l => lineBytes != null && l.ReturnLineId.SequenceEqual(lineBytes));
+                    if (line != null && line.Quantity != adjustedLine.NewQuantity)
                     {
-                        AuditId = GuidHelper.NewId(),
-                        ChangedAt = confirmedAt,
-                        ChangedBy = userIdBytes,
-                        BusinessArea = "StorekeeperReturnReceipt",
-                        EntityName = nameof(Inventoryreturnline),
-                        EntityId = line.ReturnLineId,
-                        FieldName = "Quantity",
-                        OldValue = line.Quantity.ToString("0.######"),
-                        NewValue = adjustedLine.NewQuantity.ToString("0.######"),
-                        Reason = $"Thủ kho điều chỉnh số lượng thực nhận từ {line.Quantity} thành {adjustedLine.NewQuantity} cho phiếu trả {inventoryReturn.ReturnCode}."
-                    });
-                    line.Quantity = adjustedLine.NewQuantity;
+                        _context.Auditlogs.Add(new Auditlog
+                        {
+                            AuditId = GuidHelper.NewId(),
+                            ChangedAt = confirmedAt,
+                            ChangedBy = userIdBytes,
+                            BusinessArea = "StorekeeperReturnReceipt",
+                            EntityName = nameof(Inventoryreturnline),
+                            EntityId = line.ReturnLineId,
+                            FieldName = "Quantity",
+                            OldValue = line.Quantity.ToString("0.######"),
+                            NewValue = adjustedLine.NewQuantity.ToString("0.######"),
+                            Reason = $"Thủ kho điều chỉnh số lượng thực nhận từ {line.Quantity} thành {adjustedLine.NewQuantity} cho phiếu trả {inventoryReturn.ReturnCode}."
+                        });
+                        line.Quantity = adjustedLine.NewQuantity;
+                    }
                 }
             }
-        }
 
-        if (dto.HasDiscrepancy)
-        {
-            var note = dto.DiscrepancyNote?.Trim() ?? "";
+            if (dto.HasDiscrepancy)
+            {
+                var note = dto.DiscrepancyNote?.Trim() ?? "";
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = confirmedAt,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "StorekeeperReturnReceipt",
+                    EntityName = nameof(Inventoryreturn),
+                    EntityId = inventoryReturn.ReturnId,
+                    FieldName = "StorekeeperReceiptDiscrepancy",
+                    OldValue = "expected=kitchen_qty",
+                    NewValue = note,
+                    Reason = $"Thủ kho báo chênh lệch khi nhận phiếu trả {inventoryReturn.ReturnCode}: {note}"
+                });
+            }
+
             _context.Auditlogs.Add(new Auditlog
             {
                 AuditId = GuidHelper.NewId(),
@@ -227,55 +250,47 @@ public class InventoryReturnService : IInventoryReturnService
                 BusinessArea = "StorekeeperReturnReceipt",
                 EntityName = nameof(Inventoryreturn),
                 EntityId = inventoryReturn.ReturnId,
-                FieldName = "StorekeeperReceiptDiscrepancy",
-                OldValue = "expected=kitchen_qty",
-                NewValue = note,
-                Reason = $"Thủ kho báo chênh lệch khi nhận phiếu trả {inventoryReturn.ReturnCode}: {note}"
+                FieldName = "StorekeeperReceived",
+                OldValue = null,
+                NewValue = $"receivedAt={confirmedAt:O}",
+                Reason = auditLogReason
             });
-        }
 
-        _context.Auditlogs.Add(new Auditlog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = confirmedAt,
-            ChangedBy = userIdBytes,
-            BusinessArea = "StorekeeperReturnReceipt",
-            EntityName = nameof(Inventoryreturn),
-            EntityId = inventoryReturn.ReturnId,
-            FieldName = "StorekeeperReceived",
-            OldValue = null,
-            NewValue = $"receivedAt={confirmedAt:O}",
-            Reason = auditLogReason
-        });
-
-        if (inventoryReturn.ReturnType == ReturnTypeReturn)
-        {
-            foreach (var line in inventoryReturn.Inventoryreturnlines)
+            if (inventoryReturn.ReturnType == ReturnTypeReturn)
             {
-                await _stockLedgerService.AddStockAsync(
-                    inventoryReturn.WarehouseId,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.Quantity,
-                    "RETURN",
-                    "inventoryreturns",
-                    inventoryReturn.ReturnId,
-                    userIdBytes,
-                    "Trả nguyên liệu dư sau sản xuất",
-                    $"Phiếu trả {inventoryReturn.ReturnCode}");
+                foreach (var line in inventoryReturn.Inventoryreturnlines)
+                {
+                    await _stockLedgerService.AddStockAsync(
+                        inventoryReturn.WarehouseId,
+                        line.IngredientId,
+                        line.UnitId,
+                        line.Quantity,
+                        "RETURN",
+                        "inventoryreturns",
+                        inventoryReturn.ReturnId,
+                        userIdBytes,
+                        "Trả nguyên liệu dư sau sản xuất",
+                        $"Phiếu trả {inventoryReturn.ReturnCode}");
+                }
             }
-        }
-        else
-        {
-            var issue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId);
-            if (issue != null)
+            else
             {
-                AddWasteAudit(inventoryReturn, issue, userIdBytes);
+                var issue = await _issueRepository.GetByIdWithLinesAsync(inventoryReturn.IssueId);
+                if (issue != null)
+                {
+                    AddWasteAudit(inventoryReturn, issue, userIdBytes);
+                }
             }
-        }
 
-        await _context.SaveChangesAsync();
-        return true;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     private static void ValidateReturnQuantity(
