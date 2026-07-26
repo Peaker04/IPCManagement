@@ -80,13 +80,23 @@ export default function WarehousePage() {
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
-  const { data: workflowDocuments = [], isError: isWorkflowDocumentError } = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const {
+    data: workflowDocuments = [],
+    isError: isWorkflowDocumentError,
+    isFetching: isFetchingWorkflowDocuments,
+    refetch: refetchWorkflowDocuments,
+  } = useGetWorkflowDocumentsQuery({ limit: 20 });
   const { data: purchaseOrderPageResponse, isFetching: isFetchingPurchaseOrders, isError: isPurchaseOrderError, refetch: refetchPurchaseOrders } = useGetPurchaseOrdersPageQuery({
     pageNumber: purchaseOrderPageNumber,
     pageSize: 8,
   });
   const { data: receiptWarehouses = [], isError: isWarehouseSelectorError } = useGetWarehouseSelectorQuery();
-  const { data: supplementalRequests, isError: isSupplementalRequestError } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
+  const {
+    data: supplementalRequests,
+    isError: isSupplementalRequestError,
+    isFetching: isFetchingSupplementalRequests,
+    refetch: refetchSupplementalRequests,
+  } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
   const {
     data: demandPageResponse,
     isError: isDemandPageError,
@@ -325,11 +335,16 @@ export default function WarehousePage() {
         </QueryErrorAlert>
       )}
       {(isWorkflowDocumentError || isSupplementalRequestError) && (
-        <InlineAlert title="Thiếu dữ liệu tham chiếu của kho" variant="danger">
-          <span role="alert">
-            Chưa tải được danh sách chứng từ kho hoặc yêu cầu cấp bổ sung. Danh sách phiếu hiển thị chưa đầy đủ và kho gợi ý sẵn khi ghi nhận nhập kho có thể sai; hãy tải lại trang trước khi đối chiếu chứng từ.
-          </span>
-        </InlineAlert>
+        <QueryErrorAlert
+          title="Thiếu dữ liệu tham chiếu của kho"
+          isRetrying={isFetchingWorkflowDocuments || isFetchingSupplementalRequests}
+          onRetry={() => {
+            if (isWorkflowDocumentError) refetchWorkflowDocuments();
+            if (isSupplementalRequestError) refetchSupplementalRequests();
+          }}
+        >
+          Chưa tải được danh sách chứng từ kho hoặc yêu cầu cấp bổ sung. Danh sách phiếu hiển thị chưa đầy đủ và kho gợi ý sẵn khi ghi nhận nhập kho có thể sai; hãy tải lại trước khi đối chiếu chứng từ.
+        </QueryErrorAlert>
       )}
       {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
         <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info">

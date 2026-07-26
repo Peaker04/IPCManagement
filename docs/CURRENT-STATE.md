@@ -218,6 +218,41 @@ Quality gates ngày 26/07 sau P1: backend **626 pass / 0 fail / 1 skip** (baseli
 3. **`CurrentStockRepository` giữ `ExecuteUpdateAsync`.** Audit coi đây là đường vòng bỏ qua RowVersion. Kiểm trên DB thật: `rowVersion` là `timestamp(6) on update CURRENT_TIMESTAMP(6)` nên database vẫn đẩy token lên; điều kiện `currentQty >= quantity` trong `WHERE` là compare-and-set nguyên tử, mạnh hơn optimistic lock cho bài toán trừ kho. Lỗ hổng thật chỉ là bản sao cũ trong change-tracker, đã xử lý đúng chỗ đó.
 4. **Lỗ hổng XLSX rộng hơn audit mô tả**: cùng merged-cell bomb còn nguyên ở `PurchaseHistorySourceParser`. Đã trích `XlsxSecurityLimits` làm nguồn sự thật duy nhất (14 hằng số + helper), `XlsxWorkbookReader` giảm 712 → 332 dòng, toàn repo còn đúng **một** chỗ parse `<mergeCell>` và **một** `XDocument.Load`.
 
+## Ma trận test P1.9 trên browser thật — lane 1, ngày 26/07/2026
+
+Kịch bản `.artifacts/p19-error-matrix/p19-error-matrix.mjs` (viết theo pattern của
+`.artifacts/e2e-project-wide/all-tabs-audit.mjs`: login thật, seed `localStorage`
+customerId + weekStartDate, query param tuần `2026-07-20`, Chrome headed 1440×1000).
+Lỗi được dựng bằng `page.route` chặn đúng endpoint nghiệp vụ của từng tab.
+
+| Mục tiêu (trang · tab) | happy | negative 500 | permission 403 | đứt mạng | boundary rỗng | regression retry |
+|---|---|---|---|---|---|---|
+| Kế hoạch tuần · Nhu cầu | PASS | PASS 2 alert / 2 retry | PASS | PASS | PASS | PASS 2→0 |
+| Kế hoạch tuần · Kế hoạch sản xuất | PASS | PASS 1/1 | PASS | PASS | PASS | PASS 1→0 |
+| Kho · Luân chuyển | PASS | PASS 4/4 | PASS | PASS | PASS | PASS 4→0 |
+| Kho · Nhu cầu xuất | PASS | PASS 3/3 | PASS | PASS | PASS | PASS 3→0 |
+| Thu mua · Xử lý thu mua | PASS | PASS 2/1 | PASS | PASS | PASS | PASS 2→0 |
+| Bếp · Ca sản xuất | PASS | PASS 1/1 | PASS | PASS | PASS | PASS 1→0 |
+
+**36/36 PASS.** Tiêu chí từng ca: happy = API khỏe thì 0 alert; negative/403/đứt mạng = phải
+ra alert **và** có đường thoát; boundary = rỗng thật thì **không** được có nút thử lại
+(nút thử lại là tín hiệu của lỗi, không phải của rỗng); regression = bấm hết nút thử lại
+sau khi API hồi phục thì alert về 0 và không tràn ngang (`scrollWidth 1430 ≤ 1440`).
+
+Một lỗi thật do ma trận phát hiện, đã sửa trong cùng đợt: `WarehousePage.tsx` khối
+`isWorkflowDocumentError || isSupplementalRequestError` dùng `InlineAlert` + `<span role="alert">`
+thay vì `QueryErrorAlert`, nên báo lỗi mà **không có nút thoát** và **không tự tắt khi API hồi phục** —
+alert lì lại khiến thủ kho tưởng dữ liệu vẫn hỏng, trong khi chính khối ngay trên nó đã dùng đúng
+`QueryErrorAlert`. Sau khi sửa: Kho · Luân chuyển từ `4 alert / 3 retry` thành `4/4`, regression từ
+`4→1` thành `4→0`.
+
+Hai điều đã tự bác bỏ trong quá trình đo, ghi lại để phiên sau không kết luận vội:
+1. Lần chạy đầu ra 24 FAIL là **lỗi phép đo**, không phải lỗi app: `page.route('**/*')` chặn cả
+   module Vite dev nên trang trắng. Đã thêm chốt `rendered` (bodyText > 200, có tab, không ở /login)
+   để trang không render bị đánh dấu `INVALID` thay vì `FAIL`.
+2. Lọc endpoint bằng `url.includes('/api/')` là **sai**: Vite dev serve `/src/api/apiSlice.ts` cũng
+   khớp, nên script trả HTTP 500 cho chính bundle của app. Phải so khớp `pathname.startsWith('/api/')`.
+
 ## Phần còn hở, không được mô tả là đã hoàn tất
 
 Còn hở sau đợt P1 ngày 26/07/2026:
@@ -229,7 +264,7 @@ Còn hở sau đợt P1 ngày 26/07/2026:
 - **Luồng BOM import chưa có đường lỗi thân thiện**: file xlsx hỏng cho ra `InvalidDataException` → rơi vào nhánh mặc định → **HTTP 500**. Đường `FILE_READ_ERROR` hiện chỉ tồn tại ở luồng thực đơn tuần.
 - ~~Vercel Root Directory~~ **ĐÃ XÁC MINH 26/07/2026**: Root Directory là `./` (gốc repo) nên root `vercel.json` là file authoritative, `frontend/vercel.json` đã xóa là đúng. Hệ quả cần biết: rewrite SPA khai trong `frontend/vercel.json` **chưa từng có hiệu lực** — deep-link trước nay sống nhờ preset Vite mặc định, giờ mới được khai báo tường minh ở root cùng bộ security header. Lần deploy tới lên `main`/`dev` phải kiểm lại deep-link và header bằng `curl -I`.
 - **CodeQL sẽ fail nếu repo private mà chưa bật GitHub Advanced Security** (bước upload SARIF).
-- **Chưa có evidence browser cho P1.9**: 20 call-site nhóm 1 mới được phủ bằng unit test, **chưa mở Chrome thật** đối chiếu FE↔BE↔DB, và chưa đo lại p95. Bundle entry tăng `95.5 → 96.65 kB` gzip (+1,15 kB), `WeeklyMenuPage` `83.50 → 84.39 kB`.
+- ~~Chưa có evidence browser cho P1.9~~ **ĐÃ CHẠY 26/07/2026 trên lane 1**: ma trận 6 ca × 6 mục tiêu = **36/36 PASS**, evidence ở `.artifacts/p19-error-matrix/` (36 screenshot + `p19-matrix-results.json`). Chi tiết ở mục dưới. Vẫn **chưa đo lại p95** sau P1.9; bundle entry tăng `95.5 → 96.65 kB` gzip (+1,15 kB), `WeeklyMenuPage` `83.50 → 84.39 kB`.
 - **4 component thu mua là dead code**, không được mount ở đâu: `PurchaseDemandSection`, `PurchaseOrderSection`, `PurchaseSupplierSection`, `PurchaseHandoffSection` (và `SupplierLineItem`). Đã sửa cho đúng nhưng chưa xóa — chờ quyết định.
 
 - Commit import BOM đã có preview/disable theo lỗi nhưng chưa có confirm dialog riêng tóm tắt tier, customer, effective date và số dòng.
