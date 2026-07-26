@@ -2145,7 +2145,9 @@ public class CoordinationService : ICoordinationService
         Menuversion current,
         RollbackMenuVersionDto request)
     {
-        var requestedTargetId = GuidHelper.ParseGuidString(request.TargetMenuVersionId);
+        // Id phiên bản sai định dạng phải báo lỗi: rơi xuống nhánh dưới sẽ rollback về **phiên bản khác**
+        // với phiên bản người dùng chọn, kéo theo hủy nhu cầu và đơn mua của tuần đó.
+        var requestedTargetId = GuidHelper.ParseFilterIdOrThrow(request.TargetMenuVersionId, "phiên bản thực đơn đích");
         if (requestedTargetId is not null)
         {
             return versions.FirstOrDefault(version => version.MenuVersionId.SequenceEqual(requestedTargetId));

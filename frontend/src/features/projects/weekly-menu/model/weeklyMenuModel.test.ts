@@ -70,6 +70,16 @@ describe('weekly menu pure model', () => {
     expect(getQuickServingKey('2026-07-20', 'MORNING')).toBe('2026-07-20|MORNING')
   })
 
+  it('does not merge two materials whose names differ only by Vietnamese diacritics', () => {
+    const result = aggregateDemandLinesByMaterial([
+      demandLine({ id: 'a', material: 'Bò', required: 5, unit: 'kg' }),
+      demandLine({ id: 'b', material: 'Bơ', required: 3, unit: 'kg' }),
+    ])
+
+    expect(result).toHaveLength(2)
+    expect(result.map((line) => [line.material, line.required])).toEqual([['Bò', 5], ['Bơ', 3]])
+  })
+
   it('keeps same-name ingredients separate by stable identity in BOM and demand aggregation', () => {
     const dish = {
       id: 'dish-1',

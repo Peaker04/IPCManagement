@@ -6,8 +6,16 @@ export type EditableOrderField = 'forecastQuantity' | 'specialNotes'
 export const toApiShiftName = (shift: ShiftType): ApiShiftName =>
   shift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON'
 
-export const toDisplayShift = (shiftName: string): ShiftType =>
-  shiftName.toUpperCase() === 'MORNING' ? 'Ca Sáng' : 'Ca Chiều'
+/**
+ * Trả về `undefined` cho mã ca không nằm trong hai ca đang hỗ trợ. Nhánh mặc định "Ca Chiều"
+ * trước đây khiến mọi mã ca lạ (ví dụ ca 3 của khách mới) bị dồn im lặng vào ca chiều.
+ */
+export const toDisplayShift = (shiftName: string): ShiftType | undefined => {
+  const normalized = shiftName.trim().toUpperCase()
+  if (normalized === 'MORNING') return 'Ca Sáng'
+  if (normalized === 'AFTERNOON') return 'Ca Chiều'
+  return undefined
+}
 
 export type OrderUpdatePayload =
   | { id: string; field: 'forecastQuantity'; value: number }
@@ -104,7 +112,6 @@ export interface CoordinationState {
   currentShift: ShiftType
   currentDayOfWeek: string // 't2', 't3', etc.
   weeklyMenu: WeeklyMenuState
-  menuPrice: number
   lossRate: number
   isLocked: boolean
   lockedShifts: Record<string, boolean>

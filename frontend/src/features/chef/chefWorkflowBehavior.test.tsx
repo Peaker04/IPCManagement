@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/app/hooks', () => ({
   useAppSelector: (selector: (state: unknown) => unknown) => selector({
-    coordination: { orders: [], menuPrice: 35000, lossRate: 0 },
+    coordination: { orders: [], lossRate: 0 },
   }),
 }))
 
@@ -144,6 +144,7 @@ describe('chef workflow service-date behavior', () => {
       totalMeals: 0,
       activeDishes: [],
       receivedMaterials: [],
+      plannedMaterials: [],
     }
     const { result } = renderHook(() => useChefExceptions(scope, emptyPlan, [], vi.fn()))
     let supplementalResult = true
@@ -285,6 +286,7 @@ describe('chef workflow service-date behavior', () => {
         unitId: issueRow.unitId,
         isReceivedByKitchen: true,
       } as ChefMaterial],
+      plannedMaterials: [],
     }
     const { result } = renderHook(() => useChefExceptions(scope, productionPlan, [issueRow], vi.fn()))
 

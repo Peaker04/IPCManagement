@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { useGetStockMovementPageQuery } from '@/features/workflow';
+import { toNextReportCursor, useGetStockMovementPageQuery, type ReportCursor } from '@/features/workflow';
 
 export function usePurchaseHandoff(enabled = true) {
-  const [cursors, setCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [cursors, setCursors] = useState<ReportCursor[]>([]);
   const cursor = cursors.at(-1);
   const {
     data: response,
@@ -14,6 +14,7 @@ export function usePurchaseHandoff(enabled = true) {
       movementType: 'receipt',
       cursorDate: cursor?.cursorDate,
       cursorId: cursor?.cursorId,
+      cursorOffset: cursor?.cursorOffset,
       limit: 8,
       sortDirection: 'desc',
     },
@@ -22,8 +23,8 @@ export function usePurchaseHandoff(enabled = true) {
 
   const previous = () => setCursors((current) => current.slice(0, -1));
   const next = () => {
-    if (!response?.nextCursorDate) return;
-    setCursors((current) => [...current, { cursorDate: response.nextCursorDate!, cursorId: response.nextCursorId }]);
+    const nextCursor = toNextReportCursor(response);
+    if (nextCursor) setCursors((current) => [...current, nextCursor]);
   };
 
   return {

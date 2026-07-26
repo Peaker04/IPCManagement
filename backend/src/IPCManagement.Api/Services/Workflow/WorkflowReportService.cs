@@ -29,8 +29,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<CurrentStockSummaryDto>> GetCurrentStockAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
 
         var stocks = _context.Currentstocks
             .AsNoTracking()
@@ -69,8 +69,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<PagedResponseDto<CurrentStockSummaryDto>> GetCurrentStockPageAsync(CurrentStockPageQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
 
         var stocks = _context.Currentstocks
             .AsNoTracking()
@@ -129,11 +129,12 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<StockMovementViewDto>> GetStockMovementsAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var (dateFrom, dateToExclusive) = ResolveStockMovementWindow(query);
-        var cursorDate = ParseCursorDateTime(query.CursorDate);
         var ascending = IsAscending(query);
+        var cursorSkip = query.CursorOffset ?? 0;
+        var cursorDate = ResolveCursorBoundary(ParseCursorDateTime(query.CursorDate), query.CursorOffset, ascending);
 
         var movements = _context.Stockmovements
             .AsNoTracking()
@@ -174,6 +175,7 @@ public class WorkflowReportService : IWorkflowReportService
             : movements.OrderByDescending(item => item.MovementDate).ThenByDescending(item => item.MovementId);
 
         return await orderedMovements
+            .Skip(cursorDate is null ? 0 : cursorSkip)
             .Take(NormalizeLimit(query.Limit))
             .Select(item => new StockMovementViewDto
             {
@@ -202,7 +204,7 @@ public class WorkflowReportService : IWorkflowReportService
     {
         var limit = NormalizePageLimit(query.Limit);
         var rows = await GetStockMovementsAsync(CloneQuery(query, limit + 1));
-        return BuildCursorPage(rows, limit, row => row.MovementDate, row => row.MovementId);
+        return BuildCursorPage(rows, limit, row => row.MovementDate, row => row.MovementId, query);
     }
 
     public async Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query)
@@ -233,8 +235,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     private async Task<IReadOnlyList<StockLedgerSourceRow>> LoadStockLedgerRowsAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var stocksQuery = _context.Currentstocks
             .AsNoTracking()
             .TagWith("WorkflowReport.StockLedger.CurrentStock")
@@ -362,8 +364,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<StockSnapshotDto>> GetStockSnapshotsAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var periodMonth = ResolveSnapshotPeriodMonth(query);
 
         var snapshots = _context.Stocksnapshots
@@ -409,8 +411,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<StockSnapshotDto>> GenerateMonthlyStockSnapshotAsync(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var periodMonth = ResolveSnapshotPeriodMonth(query);
         var periodStart = periodMonth.ToDateTime(TimeOnly.MinValue);
         var periodEnd = periodMonth.AddMonths(1).ToDateTime(TimeOnly.MinValue);
@@ -575,7 +577,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<IngredientDemandReportDto>> GetIngredientDemandAsync(WorkflowReportQueryDto query)
     {
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -624,6 +626,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(item => new IngredientDemandReportDto
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                RequestLineId = GuidHelper.ToGuidString(item.RequestLineId),
                 MaterialRequestCode = item.Request.RequestCode,
                 RequestDate = item.Request.RequestDate,
                 Status = item.Request.Status,
@@ -652,7 +655,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IngredientDemandPageDto> GetIngredientDemandPageAsync(IngredientDemandPageQueryDto query)
     {
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -711,6 +714,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(item => new IngredientDemandReportDto
             {
                 MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                RequestLineId = GuidHelper.ToGuidString(item.RequestLineId),
                 MaterialRequestCode = item.Request.RequestCode,
                 RequestDate = item.Request.RequestDate,
                 Status = item.Request.Status,
@@ -748,7 +752,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IngredientDemandAggregatePageDto> GetIngredientDemandAggregatePageAsync(IngredientDemandAggregatePageQueryDto query)
     {
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -909,7 +913,7 @@ public class WorkflowReportService : IWorkflowReportService
     private async Task<IReadOnlyList<PurchasePlanReportDto>> BuildPurchasePlanRowsAsync(WorkflowReportQueryDto query, int? sourceLimit)
     {
         var groupBy = string.Equals(query.GroupBy, "week", StringComparison.OrdinalIgnoreCase) ? "week" : "day";
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom) ?? ParseDateOnly(query.ServiceDate);
@@ -1082,8 +1086,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PurchaseDemandReportDto>> GetPurchaseDemandAsync(WorkflowReportQueryDto query)
     {
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
-        var supplierId = GuidHelper.ParseGuidString(query.SupplierId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var supplierId = GuidHelper.ParseFilterIdOrThrow(query.SupplierId, "nhà cung cấp");
         var customerId = ParseCustomerId(query.CustomerId);
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
@@ -1303,9 +1307,11 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierAsync(WorkflowReportQueryDto query)
     {
-        // GroupBy dịch xuống SQL: database chỉ trả mỗi (nguyên liệu, NCC) một dòng aggregate
+        // GroupBy dịch xuống SQL: database chỉ trả mỗi (nguyên liệu, NCC, đơn vị) một dòng aggregate
         // thay vì tải toàn bộ receipt lines về RAM. Aggregate qua double vì SQLite (test)
-        // không hỗ trợ Avg/Min/Max trên decimal; sai số double << bước làm tròn RoundMoney.
+        // không hỗ trợ Avg/Min/Max/Sum trên decimal; sai số double << bước làm tròn RoundMoney.
+        // Đơn vị nằm trong khóa nhóm: thiếu nó thì dòng nhập theo kg và theo thùng của cùng một
+        // nguyên liệu bị bình quân chung, cảnh báo tăng giá sai cả dấu lẫn độ lớn.
         var grouped = await BuildFilteredReceiptLinesQuery(query)
             .GroupBy(item => new
             {
@@ -1313,7 +1319,9 @@ public class WorkflowReportService : IWorkflowReportService
                 item.Ingredient.IngredientName,
                 item.Ingredient.ReferencePrice,
                 item.Receipt.SupplierId,
-                SupplierName = item.Receipt.Supplier.SupplierName
+                SupplierName = item.Receipt.Supplier.SupplierName,
+                item.UnitId,
+                UnitName = item.Unit.UnitName
             })
             .Select(group => new
             {
@@ -1322,8 +1330,12 @@ public class WorkflowReportService : IWorkflowReportService
                 group.Key.ReferencePrice,
                 group.Key.SupplierId,
                 group.Key.SupplierName,
+                group.Key.UnitId,
+                group.Key.UnitName,
                 ReceiptCount = group.Count(),
-                AvgUnitPrice = group.Average(x => (double)x.UnitPrice),
+                TotalQuantity = group.Sum(x => (double)x.Quantity),
+                TotalAmount = group.Sum(x => (double)x.UnitPrice * (double)x.Quantity),
+                SimpleAvgUnitPrice = group.Average(x => (double)x.UnitPrice),
                 MinUnitPrice = group.Min(x => (double)x.UnitPrice),
                 MaxUnitPrice = group.Max(x => (double)x.UnitPrice)
             })
@@ -1332,7 +1344,7 @@ public class WorkflowReportService : IWorkflowReportService
         return grouped
             .Select(row =>
             {
-                var avgPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice);
+                var avgPrice = DecimalPolicy.RoundMoney((decimal)ResolveWeightedUnitPrice(row.TotalAmount, row.TotalQuantity, row.SimpleAvgUnitPrice));
                 var variance = WorkflowReportCalculator.CalculateVariancePercent(row.ReferencePrice, avgPrice);
 
                 return new PriceVarianceBySupplierDto
@@ -1341,6 +1353,8 @@ public class WorkflowReportService : IWorkflowReportService
                     IngredientName = row.IngredientName,
                     SupplierId = GuidHelper.ToGuidString(row.SupplierId),
                     SupplierName = row.SupplierName,
+                    UnitId = GuidHelper.ToGuidString(row.UnitId),
+                    UnitName = row.UnitName,
                     ReceiptCount = row.ReceiptCount,
                     AvgUnitPrice = avgPrice,
                     MinUnitPrice = DecimalPolicy.RoundMoney((decimal)row.MinUnitPrice),
@@ -1368,14 +1382,16 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PriceVarianceByPeriodDto>> GetPriceVarianceByPeriodAsync(WorkflowReportQueryDto query)
     {
-        // GroupBy (nguyên liệu, tháng) dịch xuống SQL; aggregate qua double vì SQLite (test)
-        // không hỗ trợ Avg trên decimal.
+        // GroupBy (nguyên liệu, đơn vị, tháng) dịch xuống SQL; aggregate qua double vì SQLite (test)
+        // không hỗ trợ Avg/Sum trên decimal. Đơn vị nằm trong khóa để không bình quân kg chung với thùng.
         var groupedRows = await BuildFilteredReceiptLinesQuery(query)
             .GroupBy(item => new
             {
                 item.IngredientId,
                 item.Ingredient.IngredientName,
                 item.Ingredient.ReferencePrice,
+                item.UnitId,
+                UnitName = item.Unit.UnitName,
                 item.Receipt.ReceiptDate.Year,
                 item.Receipt.ReceiptDate.Month
             })
@@ -1384,9 +1400,13 @@ public class WorkflowReportService : IWorkflowReportService
                 group.Key.IngredientId,
                 group.Key.IngredientName,
                 group.Key.ReferencePrice,
+                group.Key.UnitId,
+                group.Key.UnitName,
                 group.Key.Year,
                 group.Key.Month,
-                AvgUnitPrice = group.Average(x => (double)x.UnitPrice)
+                TotalQuantity = group.Sum(x => (double)x.Quantity),
+                TotalAmount = group.Sum(x => (double)x.UnitPrice * (double)x.Quantity),
+                SimpleAvgUnitPrice = group.Average(x => (double)x.UnitPrice)
             })
             .ToListAsync();
 
@@ -1396,14 +1416,18 @@ public class WorkflowReportService : IWorkflowReportService
                 row.IngredientId,
                 row.IngredientName,
                 row.ReferencePrice,
+                row.UnitId,
+                row.UnitName,
                 PeriodStart = new DateOnly(row.Year, row.Month, 1),
-                AvgUnitPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice)
+                AvgUnitPrice = DecimalPolicy.RoundMoney((decimal)ResolveWeightedUnitPrice(row.TotalAmount, row.TotalQuantity, row.SimpleAvgUnitPrice))
             })
             .ToList();
 
         var result = new List<PriceVarianceByPeriodDto>();
+        // Chuỗi "so với kỳ trước" phải nằm trong cùng một đơn vị, nếu không thì bước đổi đơn vị
+        // bị đọc thành một cú tăng/giảm giá.
         foreach (var ingredientGroup in byIngredientAndPeriod
-            .GroupBy(x => Convert.ToBase64String(x.IngredientId))
+            .GroupBy(x => $"{Convert.ToBase64String(x.IngredientId)}|{Convert.ToBase64String(x.UnitId)}")
             .OrderBy(g => g.First().IngredientName))
         {
             var periods = ingredientGroup.OrderBy(x => x.PeriodStart).ToList();
@@ -1419,6 +1443,8 @@ public class WorkflowReportService : IWorkflowReportService
                 {
                     IngredientId = GuidHelper.ToGuidString(current.IngredientId),
                     IngredientName = current.IngredientName,
+                    UnitId = GuidHelper.ToGuidString(current.UnitId),
+                    UnitName = current.UnitName,
                     PeriodLabel = current.PeriodStart.ToString("yyyy-MM"),
                     PeriodStart = current.PeriodStart,
                     AvgUnitPrice = current.AvgUnitPrice,
@@ -1448,7 +1474,10 @@ public class WorkflowReportService : IWorkflowReportService
         // Cả hai bước nặng đều aggregate ở database: (1) biến động giá theo nguyên liệu,
         // (2) trọng số BOM theo (nhóm món, nguyên liệu). Aggregate qua double vì SQLite (test)
         // không hỗ trợ Avg/Sum trên decimal.
+        // Trọng số BOM có độ hạt theo nguyên liệu, nên phép so giá ở đây cũng phải ở độ hạt đó —
+        // chỉ những dòng nhập theo **đơn vị chuẩn của nguyên liệu** mới so được với ReferencePrice.
         var ingredientRows = await BuildFilteredReceiptLinesQuery(query)
+            .Where(item => item.UnitId == item.Ingredient.UnitId)
             .GroupBy(item => new
             {
                 item.IngredientId,
@@ -1460,14 +1489,16 @@ public class WorkflowReportService : IWorkflowReportService
                 group.Key.IngredientId,
                 group.Key.IngredientName,
                 group.Key.ReferencePrice,
-                AvgUnitPrice = group.Average(x => (double)x.UnitPrice)
+                TotalQuantity = group.Sum(x => (double)x.Quantity),
+                TotalAmount = group.Sum(x => (double)x.UnitPrice * (double)x.Quantity),
+                SimpleAvgUnitPrice = group.Average(x => (double)x.UnitPrice)
             })
             .ToListAsync();
 
         var ingredientVariance = ingredientRows
             .Select(row =>
             {
-                var avgPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice);
+                var avgPrice = DecimalPolicy.RoundMoney((decimal)ResolveWeightedUnitPrice(row.TotalAmount, row.TotalQuantity, row.SimpleAvgUnitPrice));
                 var variance = WorkflowReportCalculator.CalculateVariancePercent(row.ReferencePrice, avgPrice);
 
                 return new
@@ -1587,8 +1618,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     private IQueryable<Inventoryreceiptline> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
     {
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
-        var supplierId = GuidHelper.ParseGuidString(query.SupplierId);
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var supplierId = GuidHelper.ParseFilterIdOrThrow(query.SupplierId, "nhà cung cấp");
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
 
@@ -1776,8 +1807,12 @@ public class WorkflowReportService : IWorkflowReportService
         var dateFrom = ParseDateTimeStart(query.DateFrom);
         var dateToExclusive = ParseDateTimeEndExclusive(query.DateTo);
         var limit = NormalizeLimit(query.Limit);
-        var cursorDate = ParseCursorDateTime(query.CursorDate);
         var ascending = IsAscending(query);
+        var cursorSkip = query.CursorOffset ?? 0;
+        var cursorDate = ResolveCursorBoundary(ParseCursorDateTime(query.CursorDate), query.CursorOffset, ascending);
+        // Nguồn nào cũng phải lấy dư đúng bằng số dòng sẽ bị bỏ qua: sau khi trộn 8 nguồn, `cursorSkip`
+        // dòng đầu tiên là phần đã trả ở trang trước, nên nếu chỉ lấy `limit` thì trang này bị hụt.
+        var sourceLimit = limit + cursorSkip;
 
         var changes = _context.Auditlogs
             .AsNoTracking()
@@ -1826,7 +1861,7 @@ public class WorkflowReportService : IWorkflowReportService
             : changes.OrderByDescending(item => item.ChangedAt).ThenByDescending(item => item.AuditId);
 
         var auditRows = await orderedChanges
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.AuditId),
@@ -1875,7 +1910,7 @@ public class WorkflowReportService : IWorkflowReportService
             : importBatches.OrderByDescending(item => item.ImportedAt).ThenByDescending(item => item.ImportBatchId);
 
         var importRows = await orderedImportBatches
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ImportBatchId),
@@ -1920,7 +1955,7 @@ public class WorkflowReportService : IWorkflowReportService
             : menuImports.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.MenuVersionId);
 
         var menuImportVersions = await orderedMenuImports
-            .Take(limit)
+            .Take(sourceLimit)
             .ToListAsync();
         var menuImportActorIds = menuImportVersions
             .Where(item => item.CreatedBy is not null)
@@ -1982,7 +2017,7 @@ public class WorkflowReportService : IWorkflowReportService
             : approvals.OrderByDescending(item => item.ActionAt).ThenByDescending(item => item.ApprovalHistoryId);
 
         var approvalRows = await orderedApprovals
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ApprovalHistoryId),
@@ -2027,7 +2062,7 @@ public class WorkflowReportService : IWorkflowReportService
             : receipts.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.ReceiptId);
 
         var receiptRows = await orderedReceipts
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.ReceiptId),
@@ -2072,7 +2107,7 @@ public class WorkflowReportService : IWorkflowReportService
             : issues.OrderByDescending(item => item.CreatedAt).ThenByDescending(item => item.IssueId);
 
         var issueRows = await orderedIssues
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.IssueId),
@@ -2116,7 +2151,7 @@ public class WorkflowReportService : IWorkflowReportService
             : quantityAdjustments.OrderByDescending(item => item.AdjustedAt).ThenByDescending(item => item.AdjustmentId);
 
         var quantityRows = await orderedQuantityAdjustments
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.AdjustmentId),
@@ -2164,7 +2199,7 @@ public class WorkflowReportService : IWorkflowReportService
             : bomAdjustments.OrderByDescending(item => item.AdjustedAt).ThenByDescending(item => item.BomAdjustmentId);
 
         var bomRows = await orderedBomAdjustments
-            .Take(limit)
+            .Take(sourceLimit)
             .Select(item => new AuditChangeReportDto
             {
                 AuditId = GuidHelper.ToGuidString(item.BomAdjustmentId),
@@ -2193,6 +2228,7 @@ public class WorkflowReportService : IWorkflowReportService
         return (ascending
                 ? rows.OrderBy(item => item.ChangedAt).ThenBy(item => item.AuditId)
                 : rows.OrderByDescending(item => item.ChangedAt).ThenByDescending(item => item.AuditId))
+            .Skip(cursorDate is null ? 0 : cursorSkip)
             .Take(limit)
             .ToList();
     }
@@ -2201,7 +2237,7 @@ public class WorkflowReportService : IWorkflowReportService
     {
         var limit = NormalizePageLimit(query.Limit);
         var rows = await GetAuditChangesAsync(CloneQuery(query, limit + 1));
-        return BuildCursorPage(rows, limit, row => row.ChangedAt, row => row.AuditId);
+        return BuildCursorPage(rows, limit, row => row.ChangedAt, row => row.AuditId, query);
     }
 
     public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
@@ -3323,8 +3359,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     private IQueryable<Inventoryissueline> QueryIssueLines(WorkflowReportQueryDto query)
     {
-        var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
-        var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
+        var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var shiftName = NormalizeShiftName(query.ShiftName);
         var dateFrom = ParseDateOnly(query.DateFrom);
         var dateTo = ParseDateOnly(query.DateTo);
@@ -3805,7 +3841,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     private static byte[]? ParseCustomerId(string? value)
-        => string.IsNullOrWhiteSpace(value) ? null : GuidHelper.ParseGuidString(value);
+        => GuidHelper.ParseFilterIdOrThrow(value, "khách hàng");
 
     private static DateTime? ParseDateTimeStart(string? value)
         => DateOnly.TryParse(value, out var date)
@@ -3821,6 +3857,26 @@ public class WorkflowReportService : IWorkflowReportService
         => DateTime.TryParse(value, out var dateTime)
             ? dateTime
             : ParseDateTimeStart(value);
+
+    /// <summary>
+    /// Mở biên con trỏ ra đúng một tick để phép so sánh chặt sẵn có bao luôn các dòng **trùng mốc thời gian**
+    /// với dòng cuối trang trước; số dòng đã tiêu thụ ở mốc đó được bỏ qua bằng <c>Skip(CursorOffset)</c>.
+    /// </summary>
+    /// <remarks>
+    /// Cột thời gian là <c>datetime</c> (đơn vị giây) nên một mốc thường chứa hàng chục dòng — nhiều hơn một
+    /// trang. So sánh chặt theo ngày làm trang sau nhảy qua toàn bộ phần còn lại của mốc đó.
+    /// Khóa phân trang đúng phải là cặp (thời gian, id), nhưng id là <c>binary(16)</c> nên LINQ không so sánh
+    /// thứ tự được; cặp (biên mở rộng, số dòng đã tiêu thụ) cho kết quả tương đương và dịch thẳng xuống SQL.
+    /// Client cũ không gửi <c>CursorOffset</c> thì giữ nguyên biên cũ.
+    /// </remarks>
+    private static DateTime? ResolveCursorBoundary(DateTime? cursorDate, int? cursorOffset, bool ascending)
+    {
+        if (cursorDate is null || cursorOffset is null) return cursorDate;
+
+        return ascending
+            ? cursorDate.Value > DateTime.MinValue ? cursorDate.Value.AddTicks(-1) : cursorDate
+            : cursorDate.Value < DateTime.MaxValue ? cursorDate.Value.AddTicks(1) : cursorDate;
+    }
 
     private static (DateTime DateFrom, DateTime DateToExclusive) ResolveStockMovementWindow(WorkflowReportQueryDto query)
     {
@@ -3888,6 +3944,14 @@ public class WorkflowReportService : IWorkflowReportService
         public bool HasLegacyBaseline { get; init; }
     }
 
+    /// <summary>
+    /// Giá bình quân của một nhóm nhập phải có trọng số theo sản lượng: trung bình cộng đơn giá coi
+    /// một lần nhập 1 kg ngang một lần nhập 500 kg nên biến động giá bị sai cả độ lớn lẫn dấu.
+    /// Khi tổng sản lượng bằng 0 (dữ liệu hỏng) mới lùi về trung bình cộng để không chia cho 0.
+    /// </summary>
+    private static double ResolveWeightedUnitPrice(double totalAmount, double totalQuantity, double simpleAverage)
+        => totalQuantity > 0 ? totalAmount / totalQuantity : simpleAverage;
+
     private static int NormalizeLimit(int limit)
         => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
 
@@ -3914,6 +3978,7 @@ public class WorkflowReportService : IWorkflowReportService
             Format = query.Format,
             CursorDate = query.CursorDate,
             CursorId = query.CursorId,
+            CursorOffset = query.CursorOffset,
             Limit = limit,
             SortDirection = query.SortDirection,
             Actor = query.Actor,
@@ -3928,11 +3993,25 @@ public class WorkflowReportService : IWorkflowReportService
         IReadOnlyList<T> rows,
         int limit,
         Func<T, DateTime> getCursorDate,
-        Func<T, string> getCursorId)
+        Func<T, string> getCursorId,
+        WorkflowReportQueryDto query)
     {
         var items = rows.Take(limit).ToList();
         var hasNext = rows.Count > limit;
         var cursorItem = hasNext ? items.LastOrDefault() : default;
+
+        // Số dòng đã tiêu thụ tại mốc thời gian của dòng cuối trang: cộng dồn với trang trước
+        // nếu trang này vẫn nằm trong cùng một mốc, ngược lại đếm lại từ đầu mốc mới.
+        var nextCursorOffset = 0;
+        if (cursorItem is not null)
+        {
+            var boundaryDate = getCursorDate(cursorItem);
+            nextCursorOffset = items.Count(item => getCursorDate(item) == boundaryDate);
+            if (ParseCursorDateTime(query.CursorDate) == boundaryDate)
+            {
+                nextCursorOffset += query.CursorOffset ?? 0;
+            }
+        }
 
         return new CursorPageDto<T>
         {
@@ -3940,7 +4019,8 @@ public class WorkflowReportService : IWorkflowReportService
             Limit = limit,
             HasNext = hasNext,
             NextCursorDate = cursorItem is null ? null : getCursorDate(cursorItem).ToString("O"),
-            NextCursorId = cursorItem is null ? null : getCursorId(cursorItem)
+            NextCursorId = cursorItem is null ? null : getCursorId(cursorItem),
+            NextCursorOffset = nextCursorOffset
         };
     }
 

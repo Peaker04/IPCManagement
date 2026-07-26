@@ -17,7 +17,6 @@ export function useChefProductionPlan(
   enabled = true,
 ) {
   const orders = useAppSelector((state) => state.coordination.orders)
-  const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
   const catalog = useGetDishesCatalogQuery(undefined, { skip: !enabled })
   const daily = useGetDailyProductionPlanQuery(
@@ -38,12 +37,11 @@ export function useChefProductionPlan(
     activeDay: scope.activeDay,
     activeShift: scope.activeShift,
     isLocked,
-    menuPrice,
     lossRate,
     serviceDate: scope.serviceDate,
     dailyPlanLines,
     dailyTotalServings: daily.data?.totalServings,
-  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, isLocked, menuPrice, lossRate, dailyPlanLines, daily.data?.totalServings])
+  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, isLocked, lossRate, dailyPlanLines, daily.data?.totalServings])
   const dailyPlanWarnings = daily.data?.warnings ?? []
   const isCatalogEmpty = !catalog.isLoading && !catalog.isError && (catalog.data?.length ?? 0) === 0
 

@@ -27,13 +27,10 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
                 .ThenInclude(line => line.Unit)
             .AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        var warehouseBytes = GuidHelper.ParseFilterIdOrThrow(request.WarehouseId, "kho");
+        if (warehouseBytes != null)
         {
-            var warehouseBytes = GuidHelper.ParseGuidString(request.WarehouseId);
-            if (warehouseBytes != null)
-            {
-                query = query.Where(r => r.WarehouseId == warehouseBytes);
-            }
+            query = query.Where(r => r.WarehouseId == warehouseBytes);
         }
 
         if (!string.IsNullOrWhiteSpace(request.ShiftName))
