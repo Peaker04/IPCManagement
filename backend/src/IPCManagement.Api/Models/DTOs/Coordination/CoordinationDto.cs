@@ -72,6 +72,15 @@ public class LockOrderPlanResultDto
     public int LockedLineCount { get; set; }
 }
 
+public class UpsertQuickServingsRequestDto
+{
+    public string CustomerId { get; set; } = string.Empty;
+    public string ServiceDate { get; set; } = string.Empty;
+    public string ShiftName { get; set; } = string.Empty;
+    public int Servings { get; set; }
+    public bool Complete { get; set; }
+}
+
 public class AdjustOrderAfterLockRequestDto
 {
     public string OrderId { get; set; } = string.Empty;
@@ -85,6 +94,13 @@ public class AdjustOrderAfterLockResultDto
 {
     public bool Success { get; set; }
     public DateTime Timestamp { get; set; }
+    public bool RequiresApproval { get; set; }
+    public string ApprovalStatus { get; set; } = string.Empty;
+    public string ApprovalTargetType { get; set; } = string.Empty;
+    public string ApprovalTargetId { get; set; } = string.Empty;
+    public int OldValue { get; set; }
+    public int NewValue { get; set; }
+    public string Reason { get; set; } = string.Empty;
 }
 
 public class ExportOrderReportRequestDto

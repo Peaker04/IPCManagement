@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/table'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Badge } from '@/components/ui/badge'
-import { DataTableShell, SectionPanel } from '@/components/common'
+import { SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Ingredient } from '@/lib/types'
 
@@ -33,23 +33,23 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
     <SectionPanel
       title="Checklist nhận nguyên liệu"
       badge={
-        <span className="text-[13px] text-slate-500 font-medium">
+        <span className="text-sm text-slate-500 font-medium">
           Ký nhận: {signedCount}/{materials.length} | Đã nhận: {receivedCount}/{materials.length}
         </span>
       }
       className="ipc-chef-checklist-panel"
     >
-        <DataTableShell ariaLabel="Checklist ký nhận nguyên liệu bếp" className="ipc-chef-checklist-shell">
+        <TableViewport ariaLabel="Checklist ký nhận nguyên liệu bếp" caption="Danh sách nguyên liệu cần ký nhận" className="ipc-chef-checklist-shell">
           <Table className="ipc-chef-checklist-table text-xs">
             <TableHeader>
               <TableRow className="border-slate-200 hover:bg-transparent">
                 <TableHead className="w-10 text-slate-600 font-semibold">
                   <span className="sr-only">Ký nhận</span>
                 </TableHead>
-                <TableHead className="text-slate-600 font-semibold">Nguyên Liệu</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Đơn Vị</TableHead>
-                <TableHead className="text-slate-600 font-semibold text-right">Số Lượng</TableHead>
-                <TableHead className="text-slate-600 font-semibold">Trạng Thái</TableHead>
+                <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                <TableHead className="text-slate-600 font-semibold text-right">Số lượng</TableHead>
+                <TableHead className="text-slate-600 font-semibold">Trạng thái</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -106,7 +106,7 @@ export function MaterialChecklist({ materials, onMaterialSignoff }: MaterialChec
               )}
             </TableBody>
           </Table>
-        </DataTableShell>
+        </TableViewport>
     </SectionPanel>
   )
 }

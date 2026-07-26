@@ -43,6 +43,8 @@ public partial class User
 
     public virtual ICollection<Purchaserequest> PurchaserequestCreatedByNavigations { get; set; } = new List<Purchaserequest>();
 
+    public virtual ICollection<Purchaseorder> Purchaseorders { get; set; } = new List<Purchaseorder>();
+
     public virtual ICollection<Quantityadjustment> Quantityadjustments { get; set; } = new List<Quantityadjustment>();
 
     public virtual ICollection<Quantityimportbatch> Quantityimportbatches { get; set; } = new List<Quantityimportbatch>();
@@ -52,5 +54,9 @@ public partial class User
     public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
 
     public virtual ICollection<Refreshtoken> Refreshtokens { get; set; } = new List<Refreshtoken>();
+
+    public virtual ICollection<Stocktake> StocktakesCreatedByNavigations { get; set; } = new List<Stocktake>();
+
+    public virtual ICollection<Stocktake> StocktakesApprovedByNavigations { get; set; } = new List<Stocktake>();
 }
 

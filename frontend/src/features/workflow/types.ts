@@ -52,7 +52,6 @@ export interface RoleInboxItem {
 
 export type WorkflowDocumentType =
   | 'KHSX'
-  | 'Danh sách mua thêm'
   | 'Đơn mua'
   | 'Phiếu nhập'
   | 'Phiếu xuất'
@@ -68,7 +67,6 @@ export interface WorkflowDocumentLine {
 
 export interface WorkflowDocument {
   id: string;
-  documentId?: string;
   type: WorkflowDocumentType;
   title: string;
   status: string;
@@ -79,10 +77,13 @@ export interface WorkflowDocument {
   tone: WorkflowTone;
 }
 
-export type ApprovalType = 'purchase' | 'issue' | 'adjustment';
+export type ApprovalType = 'purchase' | 'issue' | 'adjustment' | 'price-alert';
 
 export interface ApprovalRecord {
   id: string;
+  targetType?: string;
+  targetId?: string;
+  targetCode?: string;
   type: ApprovalType;
   title: string;
   source: string;
@@ -93,6 +94,26 @@ export interface ApprovalRecord {
   reason: string;
   nextAction: string;
   tone: WorkflowTone;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
+  route?: string;
+  weekStartDate?: string | null;
+  serviceDate?: string | null;
+  scope?: string | null;
+  lineCount?: number | null;
+  totalQuantity?: number | null;
+  totalValue?: number | null;
+  submittedAt?: string | null;
+  referencePrice?: number | null;
+  proposedPrice?: number | null;
+  variancePercent?: number | null;
+  evidenceType?: string | null;
+  evidenceId?: string | null;
+  evidenceDate?: string | null;
+  proposalFingerprint?: string | null;
+  proposalVersion?: number | null;
+  supplierName?: string | null;
+  sourceDocumentCode?: string | null;
   materials: Array<{
     name: string;
     quantity: number;
@@ -103,24 +124,37 @@ export interface ApprovalRecord {
 export interface DemandLine {
   id: string;
   materialRequestId?: string;
+  materialRequestStatus?: string;
+  purchaseRequestId?: string;
+  purchaseRequestLineId?: string;
+  supplierId?: string;
+  ingredientId?: string;
+  bomId?: string | null;
+  priceTierAmount?: number;
+  bomScope?: string;
+  estimatedUnitPrice?: number;
+  referenceUnitPrice?: number;
+  priceVariancePercent?: number;
+  isPriceWarning?: boolean;
+  expectedDeliveryDate?: string;
+  note?: string;
   sourceDocumentCode?: string;
+  serviceDate?: string;
   material: string;
   required: number;
   available: number;
   reserved: number;
   unit: string;
   source: string;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  bomRatePercent?: number;
+  yieldLossPercent?: number | null;
   status: string;
   nextAction: string;
   tone: WorkflowTone;
-  purchaseRequestId?: string;
-  purchaseRequestLineId?: string;
-  supplierId?: string;
-  estimatedUnitPrice?: number;
-  ingredientId?: string;
-  unitId?: string;
 }
-
 
 export type StockMovementType = 'receipt' | 'issue' | 'supplemental' | 'return' | 'adjustment';
 
@@ -130,6 +164,8 @@ export interface StockMovement {
   documentNo: string;
   material: string;
   quantity: number;
+  beforeQty?: number;
+  afterQty?: number;
   unit: string;
   owner: string;
   status: string;

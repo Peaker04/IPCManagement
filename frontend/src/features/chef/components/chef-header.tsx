@@ -31,7 +31,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       {/* Date Card */}
       <Card className="rounded-md border-slate-200 bg-white">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Ngày Làm Việc</p>
+          <p className="text-xs text-slate-500 tracking-wider mb-1">Ngày làm việc</p>
           <p className="text-lg font-semibold text-slate-900">{formatDate(productionPlan.date)}</p>
         </CardContent>
       </Card>
@@ -39,7 +39,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       {/* Shift Card */}
       <Card className="rounded-md border-slate-200 bg-white">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Ca Làm Việc</p>
+          <p className="text-xs text-slate-500 tracking-wider mb-1">Ca làm việc</p>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="rounded-md border-slate-200 bg-white text-slate-700">
               {productionPlan.shift}
@@ -51,7 +51,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       {/* Kitchen Assignment Card */}
       <Card className="rounded-md border-slate-200 bg-white md:col-span-2 lg:col-span-1">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Cụm Bếp</p>
+          <p className="text-xs text-slate-500 tracking-wider mb-1">Cụm bếp</p>
           <p className="text-sm font-semibold text-slate-900 leading-tight">
             {productionPlan.kitchenAssignment.kitchenName}
           </p>
@@ -62,7 +62,7 @@ export function ChefHeader({ productionPlan }: ChefHeaderProps) {
       {/* Total Meals Card */}
       <Card className="rounded-md border-slate-200 bg-white shadow-sm">
         <CardContent className="pt-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider mb-1">Tổng Suất Ăn</p>
+          <p className="text-xs text-slate-500 tracking-wider mb-1">Tổng suất ăn</p>
           <div className="flex items-baseline gap-1.5 mt-2">
             <span className="text-4xl font-black text-amber-600 tracking-tight leading-none">
               {productionPlan.totalMeals}

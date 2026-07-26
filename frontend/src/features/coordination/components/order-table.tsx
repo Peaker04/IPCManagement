@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import type { OrderRow, OrderUpdatePayload } from '../types'
 import { useAppDispatch } from '@/app/hooks'
 import { setOrderActualQuantity, updateOrder } from '../coordinationSlice'
 import { useAdjustCoordinationOrderMutation, useUpdateForecastServingsMutation } from '../coordinationApi'
-import { DataTableShell, EmptyState, InlineAlert, PaginationBar } from '@/components/common'
+import { EmptyState, InlineAlert, PaginationBar, TableViewport } from '@/components/common'
 import { formatCurrency } from '@/lib/formatters'
+import { useLocalPagination } from '@/lib/useLocalPagination'
 import { ClipboardList } from 'lucide-react'
 
 interface OrderTableProps {
@@ -18,22 +19,18 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
   const dispatch = useAppDispatch()
   const [adjustCoordinationOrder] = useAdjustCoordinationOrderMutation()
   const [updateForecastServings] = useUpdateForecastServingsMutation()
-  const [page, setPage] = useState(1)
   const [pendingOrderIds, setPendingOrderIds] = useState<Record<string, boolean>>({})
   const [pendingForecastOrderIds, setPendingForecastOrderIds] = useState<Record<string, boolean>>({})
   const [forecastRollbackValues, setForecastRollbackValues] = useState<Record<string, number>>({})
   const [optimisticError, setOptimisticError] = useState<string | null>(null)
   const pageSize = 12
-  const totalPages = Math.max(1, Math.ceil(orders.length / pageSize))
-  const safePage = Math.min(page, totalPages)
-  const pageOrders = useMemo(
-    () => orders.slice((safePage - 1) * pageSize, safePage * pageSize),
-    [orders, safePage],
-  )
+  const { page, rows: pageOrders, totalItems, setPage } = useLocalPagination(orders, pageSize)
 
   const handleOrderChange = (payload: OrderUpdatePayload) => {
     dispatch(updateOrder(payload))
   }
+
+  const parseServingInput = (value: string) => Math.max(0, parseInt(value, 10) || 0)
 
   const rememberForecastValue = (order: OrderRow) => {
     setForecastRollbackValues((current) => ({
@@ -121,7 +118,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
         icon={<ClipboardList className="size-10" />}
         title="Chưa có dữ liệu để hiển thị"
         description="Điều chỉnh ngày, ca hoặc điều phối đơn để xem dữ liệu phù hợp."
-        className="min-h-[360px] border-b border-slate-200"
+        className="ipc-coordination-empty-state min-h-0 border-b border-slate-200 py-10"
       />
     )
   }
@@ -135,7 +132,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
           </InlineAlert>
         </div>
       )}
-      <DataTableShell className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng">
+      <TableViewport className="ipc-coordination-table-shell" ariaLabel="Bảng điều phối đơn theo khách hàng" caption="Danh sách đơn theo khách hàng">
         <table className="ipc-data-table ipc-order-table">
           <thead>
             <tr>
@@ -174,7 +171,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
               const variance = finalQuantity - order.forecastQuantity
 
               return (
-            <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[#f8fafc]'}`}>
+            <tr key={order.id} className={`border-b border-slate-200/80 transition-colors hover:bg-blue-50/30 ${idx % 2 === 0 ? 'bg-white' : 'bg-[var(--ipc-slate-50)]'}`}>
               {/* Khách Hàng (gộp Mã KH + Tên) */}
               <td className="border-r border-slate-200">
                 <div className="font-medium text-slate-800 leading-5">{order.customerName}</div>
@@ -213,13 +210,13 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   value={order.forecastQuantity}
                   onFocus={() => rememberForecastValue(order)}
                   onBlur={(e) =>
-                    handleForecastQuantitySave(order, parseInt(e.target.value) || 0)
+                    handleForecastQuantitySave(order, parseServingInput(e.target.value))
                   }
                   onChange={(e) =>
                     handleOrderChange({
                       id: order.id,
                       field: 'forecastQuantity',
-                      value: parseInt(e.target.value) || 0,
+                      value: parseServingInput(e.target.value),
                     })
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
@@ -239,7 +236,7 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
                   disabled={!isLocked || pendingOrderIds[order.id]}
                   value={order.actualQuantity}
                   onChange={(e) =>
-                    handleActualQuantityChange(order, parseInt(e.target.value) || 0)
+                    handleActualQuantityChange(order, parseServingInput(e.target.value))
                   }
                   className={`min-h-9 w-16 rounded-md border px-2 py-1.5 text-center font-semibold transition-colors ${
                     isLocked
@@ -320,8 +317,8 @@ export function OrderTable({ orders, isLocked }: OrderTableProps) {
             })}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={orders.length} onPageChange={setPage} />
+      </TableViewport>
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   )
 }

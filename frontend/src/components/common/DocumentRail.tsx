@@ -1,9 +1,13 @@
-import { useState, type ReactNode } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { type ReactNode } from 'react';
+import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
+import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
 import type { WorkflowDocument } from '@/features/workflow';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { useToast } from './useToast';
 
 interface DocumentRailProps {
   documents: WorkflowDocument[];
@@ -20,33 +24,27 @@ const toneClasses = {
   danger: 'is-danger',
 };
 
-export function DocumentRail({ documents, title = 'Chứng từ workflow', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
-  const [page, setPage] = useState(1);
-  const [copiedDocumentId, setCopiedDocumentId] = useState<string | null>(null);
+export function DocumentRail({ documents, title = 'Chứng từ vận hành', actionForDocument, pageSize = 4, className }: DocumentRailProps) {
+  const { toast } = useToast();
+  const pagination = useLocalPagination(documents, pageSize);
 
   if (!documents.length) {
     return <div className={cn('ipc-document-rail is-empty', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(documents.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageDocuments = documents.slice((safePage - 1) * pageSize, safePage * pageSize);
   const handleCopyDocumentId = async (documentId: string) => {
     try {
       await navigator.clipboard.writeText(documentId);
-      setCopiedDocumentId(documentId);
-      window.setTimeout(() => {
-        setCopiedDocumentId((current) => (current === documentId ? null : current));
-      }, 1400);
+      toast({ title: 'Đã sao chép mã chứng từ', description: documentId, variant: 'success' });
     } catch {
-      setCopiedDocumentId(null);
+      toast({ title: 'Không thể sao chép mã chứng từ', description: 'Trình duyệt không cho phép truy cập clipboard.', variant: 'warning' });
     }
   };
 
   return (
-    <aside className={cn('ipc-document-rail', className)} aria-label="Danh sách chứng từ workflow">
+    <aside className={cn('ipc-document-rail', className)} aria-label="Danh sách chứng từ vận hành">
       {title && <h4>{title}</h4>}
-      {pageDocuments.map((document) => (
+      {pagination.rows.map((document) => (
         <article key={document.id} className={cn('ipc-document-card', toneClasses[document.tone])}>
           {/* Zone 1: Type + Title */}
           <div className="ipc-document-zone-identity">
@@ -56,7 +54,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
 
           {/* Zone 2: Status + Summary */}
           <div className="ipc-document-zone-status">
-            <StatusBadge variant={document.tone}>{document.status}</StatusBadge>
+            <StatusBadge variant={document.tone}>{formatWorkflowStatus(document.status)}</StatusBadge>
             <p>{document.summary}</p>
           </div>
 
@@ -75,7 +73,7 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
                   title="Sao chép mã chứng từ"
                   onClick={() => void handleCopyDocumentId(document.id)}
                 >
-                  {copiedDocumentId === document.id ? <Check size={14} /> : <Copy size={14} />}
+                  <Copy size={14} />
                 </button>
               </dd>
             </div>
@@ -93,16 +91,16 @@ export function DocumentRail({ documents, title = 'Chứng từ workflow', actio
             })}
           </dl>
 
-          {/* Zone 4: Owner */}
-          <div className="ipc-document-zone-owner">
-            <dt>Phụ trách</dt>
+          {/* Zone 4: Người phụ trách */}
+          <dl className="ipc-document-zone-owner" aria-label="Người phụ trách">
+            <dt>{uiCopy.workflow.owner}</dt>
             <dd>{document.owner}</dd>
-          </div>
+          </dl>
 
           {actionForDocument?.(document)}
         </article>
       ))}
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={documents.length} onPageChange={setPage} />
+      <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
     </aside>
   );
 }

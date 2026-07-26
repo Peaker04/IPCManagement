@@ -24,6 +24,53 @@ namespace IPCManagement.Api.Migrations
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
+                {
+                    b.Property<byte[]>("AssignmentId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("assignmentId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ApproverRole")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("approverRole");
+
+                    b.Property<byte[]>("ApproverUserId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("approverUserId")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasColumnName("isRequired");
+
+                    b.Property<byte[]>("RuleId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ruleId")
+                        .IsFixedLength();
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("int")
+                        .HasColumnName("sequence");
+
+                    b.HasKey("AssignmentId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("ApproverUserId");
+
+                    b.HasIndex("RuleId");
+
+                    b.ToTable("approvalassignments", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
                 {
                     b.Property<byte[]>("ApprovalHistoryId")
@@ -86,6 +133,58 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "TargetType", "TargetId", "ActionAt" }, "ixApprovalHistoriesTarget");
 
                     b.ToTable("approvalhistories", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
+                {
+                    b.Property<byte[]>("RuleId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ruleId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("DocumentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("documentType");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(true)
+                        .HasColumnName("isActive");
+
+                    b.Property<decimal?>("MaxAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("maxAmount");
+
+                    b.Property<decimal?>("MinAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("minAmount");
+
+                    b.Property<string>("RuleName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("varchar(200)")
+                        .HasColumnName("ruleName");
+
+                    b.Property<int?>("SlaHours")
+                        .HasColumnType("int")
+                        .HasColumnName("slaHours");
+
+                    b.HasKey("RuleId")
+                        .HasName("PRIMARY");
+
+                    b.ToTable("approvalrules", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
@@ -265,6 +364,77 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("currentstock", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.Property<byte[]>("LotStockId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("lotStockId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("CurrentQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("currentQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("LastUpdated")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("lastUpdated")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("LotStockId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId")
+                        .HasDatabaseName("ingredientId");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "ExpiredDate", "LotNumber" }, "ixCurrentStockLotsFefo");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "LotNumber", "ManufactureDate", "ExpiredDate" }, "ixCurrentStockLotsIdentity");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId")
+                        .HasDatabaseName("unitId");
+
+                    b.ToTable("currentstocklots", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
                     b.Property<byte[]>("CustomerId")
@@ -381,6 +551,52 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("customercontracts", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+                {
+                    b.Property<byte[]>("MappingId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("mappingId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<string>("LabelColumn")
+                        .HasMaxLength(10)
+                        .HasColumnType("varchar(10)")
+                        .HasColumnName("labelColumn");
+
+                    b.Property<string>("SheetNameHint")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sheetNameHint");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("MappingId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "CustomerId" }, "ixCustomerImportMappingsCustomer")
+                        .IsUnique();
+
+                    b.ToTable("customerimportmappings", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dish", b =>
                 {
                     b.Property<byte[]>("DishId")
@@ -434,6 +650,23 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("bomId")
                         .IsFixedLength();
 
+                    b.Property<string>("BomStatus")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("bomStatus")
+                        .HasDefaultValueSql("'PUBLISHED'")
+                        .UseCollation("utf8mb4_unicode_ci");
+
+                    MySqlPropertyBuilderExtensions.HasCharSet(b.Property<string>("BomStatus"), "utf8mb4");
+
+                    b.Property<byte[]>("CustomerId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
                     b.Property<byte[]>("DishId")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -461,6 +694,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
 
+                    b.Property<decimal>("PriceTierAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("priceTierAmount")
+                        .HasDefaultValueSql("'25000.00'");
+
                     b.Property<byte[]>("UnitId")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -476,11 +716,18 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("BomId")
                         .HasName("PRIMARY");
 
-                    b.HasIndex(new[] { "IngredientId" }, "ingredientId");
+                    b.HasIndex(new[] { "CustomerId" }, "customerId")
+                        .HasDatabaseName("customerId1");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId")
+                        .HasDatabaseName("ingredientId");
 
                     b.HasIndex(new[] { "DishId", "EffectiveFrom", "EffectiveTo" }, "ixDishBomDishEffective");
 
-                    b.HasIndex(new[] { "UnitId" }, "unitId");
+                    b.HasIndex(new[] { "DishId", "CustomerId", "PriceTierAmount", "EffectiveFrom", "EffectiveTo" }, "ixDishBomTierEffective");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId")
+                        .HasDatabaseName("unitId");
 
                     b.ToTable("dishbom", (string)null);
                 });
@@ -585,6 +832,10 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("materialRequestId")
                         .IsFixedLength();
+
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("receivedAt");
 
                     b.Property<byte[]>("ReceivedBy")
                         .HasMaxLength(16)
@@ -778,6 +1029,28 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("manufactureDate");
 
+                    b.Property<byte[]>("PackageBaseUnitIdSnapshot")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("packageBaseUnitIdSnapshot")
+                        .IsFixedLength();
+
+                    b.Property<string>("PackagePolicyVersionSnapshot")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("packagePolicyVersionSnapshot");
+
+                    b.Property<decimal?>("PackageQuantitySnapshot")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("packageQuantitySnapshot");
+
+                    b.Property<byte[]>("PurchaseRequestLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestLineId")
+                        .IsFixedLength();
+
                     b.Property<decimal>("Quantity")
                         .HasPrecision(18, 6)
                         .HasColumnType("decimal(18,6)")
@@ -805,14 +1078,23 @@ namespace IPCManagement.Api.Migrations
                     b.HasKey("ReceiptLineId")
                         .HasName("PRIMARY");
 
+                    b.HasIndex("PackageBaseUnitIdSnapshot");
+
                     b.HasIndex(new[] { "IngredientId", "ExpiredDate", "LotNumber" }, "ixInventoryReceiptLinesExpiry");
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId" }, "purchaseRequestLineId");
 
                     b.HasIndex(new[] { "ReceiptId" }, "receiptId");
 
                     b.HasIndex(new[] { "UnitId" }, "unitId")
                         .HasDatabaseName("unitId3");
 
-                    b.ToTable("inventoryreceiptlines", (string)null);
+                    b.ToTable("inventoryreceiptlines", null, t =>
+                        {
+                            t.HasCheckConstraint("ckInventoryReceiptLinesPackageQuantityPositive", "`packageQuantitySnapshot` IS NULL OR `packageQuantitySnapshot` > 0");
+
+                            t.HasCheckConstraint("ckInventoryReceiptLinesPackageSnapshotComplete", "(`packageQuantitySnapshot` IS NULL AND `packageBaseUnitIdSnapshot` IS NULL AND `packagePolicyVersionSnapshot` IS NULL) OR (`packageQuantitySnapshot` IS NOT NULL AND `packageBaseUnitIdSnapshot` IS NOT NULL AND `packagePolicyVersionSnapshot` IS NOT NULL)");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturn", b =>
@@ -847,6 +1129,16 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("text")
                         .HasColumnName("reason");
 
+                    b.Property<DateTime?>("ReceivedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("receivedAt");
+
+                    b.Property<byte[]>("ReceivedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("receivedBy")
+                        .IsFixedLength();
+
                     b.Property<string>("ReturnCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -856,6 +1148,14 @@ namespace IPCManagement.Api.Migrations
                     b.Property<DateOnly>("ReturnDate")
                         .HasColumnType("date")
                         .HasColumnName("returnDate");
+
+                    b.Property<string>("ReturnType")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("RETURN")
+                        .HasColumnName("returnType");
 
                     b.Property<string>("ShiftName")
                         .HasColumnType("enum('MORNING','AFTERNOON')")
@@ -870,6 +1170,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasKey("ReturnId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex("ReceivedBy");
 
                     b.HasIndex(new[] { "CreatedBy" }, "createdBy")
                         .HasDatabaseName("createdBy1");
@@ -1014,12 +1316,47 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("requestLineId")
                         .IsFixedLength();
 
+                    b.Property<decimal>("AppliedPortionRatePercent")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("appliedPortionRatePercent")
+                        .HasDefaultValueSql("'100.00'");
+
+                    b.Property<byte[]>("AppliedPortionRuleId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("appliedPortionRuleId")
+                        .IsFixedLength();
+
+                    b.Property<string>("AppliedPortionRuleSource")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("appliedPortionRuleSource")
+                        .HasDefaultValueSql("'CONTRACT_DEFAULT'");
+
+                    b.Property<byte[]>("BomId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("bomId")
+                        .IsFixedLength();
+
                     b.Property<decimal>("BomRatePercent")
                         .ValueGeneratedOnAdd()
                         .HasPrecision(5, 2)
                         .HasColumnType("decimal(5,2)")
                         .HasColumnName("bomRatePercent")
                         .HasDefaultValueSql("'100.00'");
+
+                    b.Property<string>("BomScope")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("bomScope")
+                        .HasDefaultValueSql("'global'");
 
                     b.Property<decimal>("CurrentStockQty")
                         .HasPrecision(18, 6)
@@ -1044,6 +1381,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("binary(16)")
                         .HasColumnName("planLineId")
                         .IsFixedLength();
+
+                    b.Property<decimal>("PriceTierAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("priceTierAmount")
+                        .HasDefaultValueSql("'25000.00'");
 
                     b.Property<byte[]>("RequestId")
                         .IsRequired()
@@ -1073,8 +1417,18 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("unitId")
                         .IsFixedLength();
 
+                    b.Property<decimal?>("YieldLossPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("yieldLossPercent");
+
                     b.HasKey("RequestLineId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "AppliedPortionRuleId" }, "appliedPortionRuleId");
+
+                    b.HasIndex(new[] { "BomId" }, "bomId")
+                        .HasDatabaseName("bomId1");
 
                     b.HasIndex(new[] { "IngredientId" }, "ingredientId")
                         .HasDatabaseName("ingredientId3");
@@ -1095,6 +1449,16 @@ namespace IPCManagement.Api.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("quantityPlanId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("completedAt");
+
+                    b.Property<byte[]>("CompletedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("completedBy")
                         .IsFixedLength();
 
                     b.Property<TimeOnly>("ConfirmationTime")
@@ -1129,6 +1493,13 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("varchar(50)")
                         .HasColumnName("planCode");
 
+                    b.Property<DateTime>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("timestamp(6)")
+                        .HasColumnName("rowVersion")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP(6)");
+
                     b.Property<DateOnly>("ServiceDate")
                         .HasColumnType("date")
                         .HasColumnName("serviceDate");
@@ -1136,12 +1507,14 @@ namespace IPCManagement.Api.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("enum('DRAFT','FORECASTED','CONFIRMED','ADJUSTED','CANCELLED')")
+                        .HasColumnType("enum('DRAFT','FORECASTED','CONFIRMED','ADJUSTED','COMPLETED','CANCELLED')")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
                     b.HasKey("QuantityPlanId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex("CompletedBy");
 
                     b.HasIndex(new[] { "ConfirmedBy" }, "confirmedBy");
 
@@ -1212,11 +1585,17 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("enum('MORNING','AFTERNOON')")
                         .HasColumnName("shiftName");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                     b.HasKey("QuantityPlanLineId")
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId1");
+                        .HasDatabaseName("customerId2");
 
                     b.HasIndex(new[] { "MenuId" }, "menuId");
 
@@ -1348,6 +1727,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("menuPrice");
 
+                    b.Property<byte[]>("MenuVersionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("menuVersionId")
+                        .IsFixedLength();
+
                     b.Property<DateOnly>("ServiceDate")
                         .HasColumnType("date")
                         .HasColumnName("serviceDate");
@@ -1371,6 +1756,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.HasKey("MenuScheduleId")
                         .HasName("PRIMARY");
+
+                    b.HasIndex("MenuVersionId");
 
                     b.HasIndex(new[] { "WeekStartDate", "ServiceDate", "ShiftName", "CustomerId" }, "ixMenuSchedulesWeek");
 
@@ -1410,6 +1797,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("customerId")
                         .IsFixedLength();
 
+                    b.Property<int>("ErrorRowCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("errorRowCount")
+                        .HasDefaultValueSql("'0'");
+
                     b.Property<DateTime?>("PublishedAt")
                         .HasColumnType("datetime")
                         .HasColumnName("publishedAt");
@@ -1443,6 +1836,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
+                    b.Property<int>("SuccessRowCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("successRowCount")
+                        .HasDefaultValueSql("'0'");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime")
@@ -1453,6 +1852,12 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("int")
                         .HasColumnName("versionNo");
 
+                    b.Property<int>("WarningRowCount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("warningRowCount")
+                        .HasDefaultValueSql("'0'");
+
                     b.Property<DateOnly>("WeekStartDate")
                         .HasColumnType("date")
                         .HasColumnName("weekStartDate");
@@ -1461,7 +1866,7 @@ namespace IPCManagement.Api.Migrations
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId2");
+                        .HasDatabaseName("customerId3");
 
                     b.HasIndex(new[] { "CustomerId", "WeekStartDate", "Status" }, "ixMenuVersionsCustomerWeekStatus");
 
@@ -1469,6 +1874,125 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("menuversions", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Portionrule", b =>
+                {
+                    b.Property<byte[]>("PortionRuleId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("portionRuleId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActiveWeekDays")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("activeWeekDays");
+
+                    b.Property<decimal?>("BomRatePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("bomRatePercent");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CustomerId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<string>("DishCategory")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("dishCategory");
+
+                    b.Property<byte[]>("DishId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("dishId")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveFrom");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveTo");
+
+                    b.Property<string>("MenuSectionName")
+                        .HasMaxLength(150)
+                        .HasColumnType("varchar(150)")
+                        .HasColumnName("menuSectionName");
+
+                    b.Property<string>("MenuVariant")
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("menuVariant");
+
+                    b.Property<decimal>("PortionRatePercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("portionRatePercent");
+
+                    b.Property<int>("Priority")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("priority")
+                        .HasDefaultValueSql("'0'");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("ShiftNames")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("shiftNames");
+
+                    b.Property<string>("SlotName")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("slotName");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("status")
+                        .HasDefaultValueSql("'ACTIVE'");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<decimal?>("YieldLossPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("decimal(5,2)")
+                        .HasColumnName("yieldLossPercent");
+
+                    b.HasKey("PortionRuleId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "CustomerId" }, "customerId")
+                        .HasDatabaseName("customerId4");
+
+                    b.HasIndex(new[] { "DishId" }, "dishId")
+                        .HasDatabaseName("dishId1");
+
+                    b.HasIndex(new[] { "CustomerId", "EffectiveFrom", "EffectiveTo", "Status" }, "ixPortionRulesCustomerEffective");
+
+                    b.ToTable("portionrules", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
@@ -1492,6 +2016,18 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("createdBy")
                         .IsFixedLength();
 
+                    b.Property<byte[]>("CustomerId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("customerId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("MenuVersionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("menuVersionId")
+                        .IsFixedLength();
+
                     b.Property<string>("PlanCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1502,6 +2038,16 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("date")
                         .HasColumnName("planDate");
 
+                    b.Property<DateTime?>("SentToKitchenAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("sentToKitchenAt");
+
+                    b.Property<byte[]>("SentToKitchenBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("sentToKitchenBy")
+                        .IsFixedLength();
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1509,15 +2055,32 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("status")
                         .HasDefaultValueSql("'CREATED'");
 
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateOnly?>("WeekStartDate")
+                        .HasColumnType("date")
+                        .HasColumnName("weekStartDate");
+
                     b.HasKey("PlanId")
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CreatedBy" }, "createdBy")
                         .HasDatabaseName("createdBy3");
 
+                    b.HasIndex(new[] { "CustomerId" }, "customerId")
+                        .HasDatabaseName("customerId5");
+
+                    b.HasIndex(new[] { "MenuVersionId" }, "menuVersionId");
+
                     b.HasIndex(new[] { "PlanCode" }, "planCode")
                         .IsUnique()
                         .HasDatabaseName("planCode1");
+
+                    b.HasIndex(new[] { "SentToKitchenBy" }, "sentToKitchenBy");
 
                     b.ToTable("productionplans", (string)null);
                 });
@@ -1578,10 +2141,10 @@ namespace IPCManagement.Api.Migrations
                         .HasName("PRIMARY");
 
                     b.HasIndex(new[] { "CustomerId" }, "customerId")
-                        .HasDatabaseName("customerId3");
+                        .HasDatabaseName("customerId6");
 
                     b.HasIndex(new[] { "DishId" }, "dishId")
-                        .HasDatabaseName("dishId1");
+                        .HasDatabaseName("dishId2");
 
                     b.HasIndex(new[] { "MenuId" }, "menuId")
                         .HasDatabaseName("menuId3");
@@ -1591,6 +2154,687 @@ namespace IPCManagement.Api.Migrations
                     b.HasIndex(new[] { "QuantityPlanLineId" }, "quantityPlanLineId");
 
                     b.ToTable("productionplanlines", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+                {
+                    b.Property<byte[]>("PurchaseHistoryReconciliationActionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationActionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("actionHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("char(32)")
+                        .HasColumnName("actionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ActionType")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("actionType");
+
+                    b.Property<string>("AfterEvidence")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("afterEvidence");
+
+                    b.Property<string>("AfterHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("afterHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("BeforeEvidence")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("beforeEvidence");
+
+                    b.Property<string>("BeforeHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("beforeHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("BusinessKey")
+                        .HasMaxLength(300)
+                        .HasColumnType("varchar(300)")
+                        .HasColumnName("businessKey");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("PurchaseHistoryReconciliationRunId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationRunId")
+                        .IsFixedLength();
+
+                    b.Property<string>("ReasonCode")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("reasonCode");
+
+                    b.Property<string>("SourceKey")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceKey");
+
+                    b.Property<int?>("SourceRow")
+                        .HasColumnType("int")
+                        .HasColumnName("sourceRow");
+
+                    b.Property<string>("SourceSheet")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("sourceSheet");
+
+                    b.Property<string>("TargetId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("varchar(64)")
+                        .HasColumnName("targetId");
+
+                    b.Property<string>("TargetType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("targetType");
+
+                    b.HasKey("PurchaseHistoryReconciliationActionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "ActionHash" }, "ixPurchaseHistoryReconciliationActionsHash");
+
+                    b.HasIndex(new[] { "PurchaseHistoryReconciliationRunId", "ActionId" }, "uqPurchaseHistoryReconciliationActionsRunAction")
+                        .IsUnique();
+
+                    b.ToTable("purchasehistoryreconciliationactions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationActionsDisposition", "`actionType` IN ('keep', 'version', 'deactivate', 'delete', 'block')");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationActionsSourceRow", "`sourceRow` IS NULL OR `sourceRow` > 0");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.Property<byte[]>("PurchaseHistoryReconciliationRunId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseHistoryReconciliationRunId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ActionCount")
+                        .HasColumnType("int")
+                        .HasColumnName("actionCount");
+
+                    b.Property<DateTime>("AppliedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("appliedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("AppliedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("appliedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("AsOfDate")
+                        .HasColumnType("date")
+                        .HasColumnName("asOfDate");
+
+                    b.Property<int>("AuditedDeltaCount")
+                        .HasColumnType("int")
+                        .HasColumnName("auditedDeltaCount");
+
+                    b.Property<string>("BackupIdentifier")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("backupIdentifier");
+
+                    b.Property<string>("BackupTargetFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("backupTargetFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("BlockCount")
+                        .HasColumnType("int")
+                        .HasColumnName("blockCount");
+
+                    b.Property<int>("BlockerCount")
+                        .HasColumnType("int")
+                        .HasColumnName("blockerCount");
+
+                    b.Property<int>("CandidateCount")
+                        .HasColumnType("int")
+                        .HasColumnName("candidateCount");
+
+                    b.Property<int>("CurrentUniqueBusinessKeyCount")
+                        .HasColumnType("int")
+                        .HasColumnName("currentUniqueBusinessKeyCount");
+
+                    b.Property<string>("DatabaseFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("databaseFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("DeactivateCount")
+                        .HasColumnType("int")
+                        .HasColumnName("deactivateCount");
+
+                    b.Property<int>("DeleteCount")
+                        .HasColumnType("int")
+                        .HasColumnName("deleteCount");
+
+                    b.Property<int>("KeepCount")
+                        .HasColumnType("int")
+                        .HasColumnName("keepCount");
+
+                    b.Property<string>("ManifestHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("manifestHash")
+                        .IsFixedLength();
+
+                    b.Property<string>("ManifestId")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("varchar(32)")
+                        .HasColumnName("manifestId");
+
+                    b.Property<string>("PolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("policyVersion");
+
+                    b.Property<string>("RestoreFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("restoreFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<bool>("RestoreVerified")
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("restoreVerified");
+
+                    b.Property<string>("SourceName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("sourceName");
+
+                    b.Property<string>("SourceSha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("sourceSha256")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("VersionCount")
+                        .HasColumnType("int")
+                        .HasColumnName("versionCount");
+
+                    b.HasKey("PurchaseHistoryReconciliationRunId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "AppliedBy", "AppliedAt" }, "ixPurchaseHistoryReconciliationRunsActor");
+
+                    b.HasIndex(new[] { "ManifestId" }, "ixPurchaseHistoryReconciliationRunsManifestId");
+
+                    b.HasIndex(new[] { "ManifestHash" }, "uqPurchaseHistoryReconciliationRunsManifestHash")
+                        .IsUnique();
+
+                    b.ToTable("purchasehistoryreconciliationruns", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsCounts", "`candidateCount` >= 0 AND `currentUniqueBusinessKeyCount` >= 0 AND `auditedDeltaCount` >= 0 AND `actionCount` >= 0 AND `blockerCount` >= 0 AND `keepCount` >= 0 AND `versionCount` >= 0 AND `deactivateCount` >= 0 AND `deleteCount` >= 0 AND `blockCount` >= 0 AND `actionCount` = (`keepCount` + `versionCount` + `deactivateCount` + `deleteCount` + `blockCount`) AND `blockerCount` = `blockCount`");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsRestoreVerified", "`restoreVerified` = 1");
+
+                            t.HasCheckConstraint("ckPurchaseHistoryReconciliationRunsStatus", "`status` IN ('APPLIED', 'NOOP')");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.Property<byte[]>("PurchaseLineSupplierDecisionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseLineSupplierDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ConcurrencyVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("concurrencyVersion");
+
+                    b.Property<DateTime>("ConfirmedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("confirmedAt");
+
+                    b.Property<byte[]>("ConfirmedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("confirmedBy")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("CurrentDecisionKey")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("currentDecisionKey")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("decisionFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("EvidenceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("evidenceDate");
+
+                    b.Property<byte[]>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("evidenceId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("EvidenceReferencePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("evidenceReferencePrice");
+
+                    b.Property<string>("EvidenceType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)")
+                        .HasColumnName("evidenceType");
+
+                    b.Property<DateOnly>("ProposedDeliveryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("proposedDeliveryDate");
+
+                    b.Property<decimal>("ProposedUnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("proposedUnitPrice");
+
+                    b.Property<byte[]>("PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestLineId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("CURRENT")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupersededByDecisionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supersededByDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("SupplierId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supplierId")
+                        .IsFixedLength();
+
+                    b.Property<int>("Version")
+                        .HasColumnType("int")
+                        .HasColumnName("version");
+
+                    b.HasKey("PurchaseLineSupplierDecisionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "ConfirmedBy" }, "ixPurchaseLineSupplierDecisionsConfirmer");
+
+                    b.HasIndex(new[] { "SupersededByDecisionId" }, "ixPurchaseLineSupplierDecisionsSupersededBy");
+
+                    b.HasIndex(new[] { "SupplierId" }, "ixPurchaseLineSupplierDecisionsSupplier");
+
+                    b.HasIndex(new[] { "CurrentDecisionKey" }, "uqPurchaseLineSupplierDecisionsCurrentKey")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId", "DecisionFingerprint" }, "uqPurchaseLineSupplierDecisionsLineFingerprint")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId", "Version" }, "uqPurchaseLineSupplierDecisionsLineVersion")
+                        .IsUnique();
+
+                    b.ToTable("purchaselinesupplierdecisions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsConfirmationComplete", "`confirmedBy` IS NOT NULL AND `confirmedAt` IS NOT NULL AND `version` > 0 AND `concurrencyVersion` > 0");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsCurrentKey", "(`status` = 'CURRENT' AND `currentDecisionKey` = `purchaseRequestLineId` AND `supersededByDecisionId` IS NULL) OR (`status` = 'SUPERSEDED' AND `currentDecisionKey` IS NULL AND `supersededByDecisionId` IS NOT NULL)");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsEvidenceComplete", "`evidenceType` IN ('EFFECTIVE_QUOTATION', 'LATEST_VALID_RECEIPT') AND `evidenceReferencePrice` > 0 AND `proposedUnitPrice` > 0");
+
+                            t.HasCheckConstraint("ckPurchaseLineSupplierDecisionsStatus", "`status` IN ('CURRENT', 'SUPERSEDED')");
+                        });
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.Property<byte[]>("PurchaseOrderId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<DateOnly>("OrderDate")
+                        .HasColumnType("date")
+                        .HasColumnName("orderDate");
+
+                    b.Property<string>("PurchaseOrderCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("purchaseOrderCode");
+
+                    b.Property<byte[]>("PurchaseRequestId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasDefaultValue("ORDERED")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupplierId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supplierId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("PurchaseOrderId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "PurchaseRequestId" }, "ixPurchaseOrdersRequest");
+
+                    b.HasIndex(new[] { "PurchaseRequestId", "SupplierId" }, "ixPurchaseOrdersRequestSupplier")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "SupplierId" }, "ixPurchaseOrdersSupplier");
+
+                    b.HasIndex(new[] { "PurchaseOrderCode" }, "purchaseOrderCode")
+                        .IsUnique();
+
+                    b.ToTable("purchaseorders", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+                {
+                    b.Property<byte[]>("PurchaseOrderLineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderLineId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("OrderedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("orderedQty");
+
+                    b.Property<byte[]>("PurchaseOrderId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseOrderId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseRequestLineId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("ReceivedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("receivedQty");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("unitPrice");
+
+                    b.HasKey("PurchaseOrderLineId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ixPurchaseOrderLinesIngredient");
+
+                    b.HasIndex(new[] { "PurchaseOrderId" }, "ixPurchaseOrderLinesOrder");
+
+                    b.HasIndex(new[] { "PurchaseRequestLineId" }, "ixPurchaseOrderLinesRequestLine")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "UnitId" }, "ixPurchaseOrderLinesUnit");
+
+                    b.ToTable("purchaseorderlines", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.Property<byte[]>("PurchasePriceExceptionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchasePriceExceptionId")
+                        .IsFixedLength();
+
+                    b.Property<int>("ConcurrencyVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1)
+                        .HasColumnName("concurrencyVersion");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("decidedAt");
+
+                    b.Property<byte[]>("DecidedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("decidedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("DecisionReason")
+                        .HasColumnType("text")
+                        .HasColumnName("decisionReason");
+
+                    b.Property<DateOnly>("EvidenceDate")
+                        .HasColumnType("date")
+                        .HasColumnName("evidenceDate");
+
+                    b.Property<byte[]>("EvidenceId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("evidenceId")
+                        .IsFixedLength();
+
+                    b.Property<string>("EvidenceType")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("varchar(40)")
+                        .HasColumnName("evidenceType");
+
+                    b.Property<string>("ProposalFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("char(64)")
+                        .HasColumnName("proposalFingerprint")
+                        .IsFixedLength();
+
+                    b.Property<int>("ProposalVersion")
+                        .HasColumnType("int")
+                        .HasColumnName("proposalVersion");
+
+                    b.Property<decimal>("ProposedPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("proposedPrice");
+
+                    b.Property<byte[]>("PurchaseLineSupplierDecisionId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("purchaseLineSupplierDecisionId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("reason");
+
+                    b.Property<decimal>("ReferencePrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("referencePrice");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("requestedAt");
+
+                    b.Property<byte[]>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestedBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasDefaultValue("PENDING")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("SupersededByExceptionId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supersededByExceptionId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("VariancePercent")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("decimal(9,4)")
+                        .HasColumnName("variancePercent");
+
+                    b.HasKey("PurchasePriceExceptionId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "DecidedBy" }, "ixPurchasePriceExceptionsDecider");
+
+                    b.HasIndex(new[] { "RequestedBy" }, "ixPurchasePriceExceptionsRequester");
+
+                    b.HasIndex(new[] { "SupersededByExceptionId" }, "ixPurchasePriceExceptionsSupersededBy");
+
+                    b.HasIndex(new[] { "PurchaseLineSupplierDecisionId", "ProposalFingerprint", "ProposalVersion" }, "uqPurchasePriceExceptionsProposal")
+                        .IsUnique();
+
+                    b.ToTable("purchasepriceexceptions", null, t =>
+                        {
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsDecisionComplete", "(`status` = 'PENDING' AND `decidedBy` IS NULL AND `decisionReason` IS NULL AND `decidedAt` IS NULL) OR (`status` IN ('APPROVED', 'REJECTED') AND `decidedBy` IS NOT NULL AND `decisionReason` IS NOT NULL AND `decidedAt` IS NOT NULL) OR `status` = 'SUPERSEDED'");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsStatus", "`status` IN ('PENDING', 'APPROVED', 'REJECTED', 'SUPERSEDED')");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsStrictVariance", "`referencePrice` > 0 AND `proposedPrice` > `referencePrice` AND `variancePercent` > 15");
+
+                            t.HasCheckConstraint("ckPurchasePriceExceptionsSupersession", "(`status` = 'SUPERSEDED' AND `supersededByExceptionId` IS NOT NULL) OR (`status` <> 'SUPERSEDED' AND `supersededByExceptionId` IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
@@ -1639,7 +2883,7 @@ namespace IPCManagement.Api.Migrations
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','PARTIALRECEIVED','RECEIVED','CANCELLED')")
+                        .HasColumnType("enum('DRAFT','SENTTOSUPPLIER','APPROVED','REJECTED','SENTTOWAREHOUSE','PARTIALRECEIVED','RECEIVED','CANCELLED')")
                         .HasColumnName("status")
                         .HasDefaultValueSql("'DRAFT'");
 
@@ -1678,6 +2922,10 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasColumnName("estimatedUnitPrice");
 
+                    b.Property<DateOnly?>("ExpectedDeliveryDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expectedDeliveryDate");
+
                     b.Property<byte[]>("IngredientId")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -1685,12 +2933,22 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
 
+                    b.Property<bool>("IsLegacySupplierSnapshot")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasDefaultValue(false)
+                        .HasColumnName("isLegacySupplierSnapshot");
+
                     b.Property<byte[]>("MaterialRequestLineId")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("materialRequestLineId")
                         .IsFixedLength();
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text")
+                        .HasColumnName("note");
 
                     b.Property<decimal>("PurchaseQty")
                         .HasPrecision(18, 6)
@@ -1710,7 +2968,6 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("requiredQty");
 
                     b.Property<byte[]>("SupplierId")
-                        .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("supplierId")
@@ -1960,12 +3217,35 @@ namespace IPCManagement.Api.Migrations
                         .HasColumnName("movementId")
                         .IsFixedLength();
 
+                    b.Property<decimal>("AfterQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("afterQty");
+
+                    b.Property<decimal>("BeforeQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("beforeQty");
+
+                    b.Property<DateOnly?>("ExpiredDate")
+                        .HasColumnType("date")
+                        .HasColumnName("expiredDate");
+
                     b.Property<byte[]>("IngredientId")
                         .IsRequired()
                         .HasMaxLength(16)
                         .HasColumnType("binary(16)")
                         .HasColumnName("ingredientId")
                         .IsFixedLength();
+
+                    b.Property<string>("LotNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("varchar(100)")
+                        .HasColumnName("lotNumber");
+
+                    b.Property<DateOnly?>("ManufactureDate")
+                        .HasColumnType("date")
+                        .HasColumnName("manufactureDate");
 
                     b.Property<DateTime>("MovementDate")
                         .ValueGeneratedOnAdd()
@@ -2050,6 +3330,316 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("stockmovements", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.Property<byte[]>("SnapshotId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("snapshotId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("ClosingQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("closingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("generatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("OpeningQty")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("openingQty")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<DateOnly>("PeriodMonth")
+                        .HasColumnType("date")
+                        .HasColumnName("periodMonth");
+
+                    b.Property<decimal>("QuantityIn")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityIn")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<decimal>("QuantityOut")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("quantityOut")
+                        .HasDefaultValueSql("0.000000");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("SnapshotId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ingredientId")
+                        .HasDatabaseName("ingredientId");
+
+                    b.HasIndex(new[] { "WarehouseId", "IngredientId", "UnitId", "PeriodMonth" }, "ixStockSnapshotsIdentity")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "PeriodMonth", "WarehouseId", "IngredientId" }, "ixStockSnapshotsPeriod");
+
+                    b.HasIndex(new[] { "UnitId" }, "unitId")
+                        .HasDatabaseName("unitId");
+
+                    b.ToTable("stocksnapshots", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktake", b =>
+                {
+                    b.Property<byte[]>("StocktakeId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("stocktakeId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("approvedAt");
+
+                    b.Property<byte[]>("ApprovedBy")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("approvedBy")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<byte[]>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("createdBy")
+                        .IsFixedLength();
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("notes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("StocktakeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("stocktakeCode");
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("StocktakeId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("ApprovedBy");
+
+                    b.HasIndex("CreatedBy");
+
+                    b.HasIndex(new[] { "StocktakeCode" }, "ixStocktakeCode")
+                        .IsUnique();
+
+                    b.HasIndex(new[] { "WarehouseId" }, "ixStocktakeWarehouse");
+
+                    b.ToTable("stocktakes", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktakeline", b =>
+                {
+                    b.Property<byte[]>("LineId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("lineId")
+                        .IsFixedLength();
+
+                    b.Property<decimal?>("ActualQty")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("actualQty");
+
+                    b.Property<decimal?>("DiscrepancyQty")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("discrepancyQty");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<byte[]>("StocktakeId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("stocktakeId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("SystemQty")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("systemQty");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.HasKey("LineId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ixStocktakelineIngredient");
+
+                    b.HasIndex(new[] { "StocktakeId" }, "ixStocktakelineStocktake");
+
+                    b.ToTable("stocktakelines", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+                {
+                    b.Property<byte[]>("RequestId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IssueId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("issueId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("IssueLineId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("issueLineId")
+                        .IsFixedLength();
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("varchar(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<string>("RequestCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("varchar(50)")
+                        .HasColumnName("requestCode");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("requestedAt");
+
+                    b.Property<byte[]>("RequestedBy")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("requestedBy")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("RequestedQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("requestedQty");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(24)
+                        .HasColumnType("varchar(24)")
+                        .HasColumnName("status");
+
+                    b.Property<byte[]>("UnitId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("unitId")
+                        .IsFixedLength();
+
+                    b.Property<byte[]>("WarehouseId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("warehouseId")
+                        .IsFixedLength();
+
+                    b.HasKey("RequestId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("IssueId");
+
+                    b.HasIndex("IssueLineId");
+
+                    b.HasIndex("RequestCode")
+                        .IsUnique();
+
+                    b.HasIndex("RequestedBy");
+
+                    b.HasIndex("UnitId");
+
+                    b.HasIndex("WarehouseId", "Status", "RequestedAt");
+
+                    b.ToTable("supplementalmaterialrequests", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplier", b =>
                 {
                     b.Property<byte[]>("SupplierId")
@@ -2106,6 +3696,74 @@ namespace IPCManagement.Api.Migrations
                         .IsUnique();
 
                     b.ToTable("suppliers", (string)null);
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplierquotation", b =>
+                {
+                    b.Property<byte[]>("QuotationId")
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("quotationId")
+                        .IsFixedLength();
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<DateOnly>("EffectiveFrom")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveFrom");
+
+                    b.Property<DateOnly?>("EffectiveTo")
+                        .HasColumnType("date")
+                        .HasColumnName("effectiveTo");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId")
+                        .IsFixedLength();
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("tinyint(1)")
+                        .HasColumnName("isActive")
+                        .HasDefaultValueSql("'1'");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(255)
+                        .HasColumnType("varchar(255)")
+                        .HasColumnName("note");
+
+                    b.Property<byte[]>("SupplierId")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("supplierId")
+                        .IsFixedLength();
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("unitPrice");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.HasKey("QuotationId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex(new[] { "IngredientId" }, "ixSupplierQuotationsIngredient");
+
+                    b.HasIndex(new[] { "SupplierId", "IngredientId", "EffectiveFrom" }, "ixSupplierQuotationsSupplierIngredientEffective");
+
+                    b.ToTable("supplierquotations", (string)null);
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unit", b =>
@@ -2245,6 +3903,26 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("warehouses", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ApproverUser")
+                        .WithMany()
+                        .HasForeignKey("ApproverUserId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("approvalassignments_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Approvalrule", "Rule")
+                        .WithMany("Approvalassignments")
+                        .HasForeignKey("RuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("approvalassignments_ibfk_1");
+
+                    b.Navigation("ApproverUser");
+
+                    b.Navigation("Rule");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ActionByNavigation")
@@ -2313,6 +3991,33 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Currentstocklots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("currentstocklots_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customercontract", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
@@ -2324,8 +4029,26 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Customerimportmappings")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("customerimportmappings_ibfk_1");
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
                 {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Dishboms")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("dishbom_ibfk_4");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Dish", "Dish")
                         .WithMany("Dishboms")
                         .HasForeignKey("DishId")
@@ -2343,6 +4066,8 @@ namespace IPCManagement.Api.Migrations
                         .HasForeignKey("UnitId")
                         .IsRequired()
                         .HasConstraintName("dishbom_ibfk_3");
+
+                    b.Navigation("Customer");
 
                     b.Navigation("Dish");
 
@@ -2473,6 +4198,17 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreceiptlines_ibfk_2");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "PackageBaseUnitSnapshot")
+                        .WithMany()
+                        .HasForeignKey("PackageBaseUnitIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("inventoryreceiptlines_ibfk_5");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                        .WithMany("Inventoryreceiptlines")
+                        .HasForeignKey("PurchaseRequestLineId")
+                        .HasConstraintName("inventoryreceiptlines_ibfk_4");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Inventoryreceipt", "Receipt")
                         .WithMany("Inventoryreceiptlines")
                         .HasForeignKey("ReceiptId")
@@ -2486,6 +4222,10 @@ namespace IPCManagement.Api.Migrations
                         .HasConstraintName("inventoryreceiptlines_ibfk_3");
 
                     b.Navigation("Ingredient");
+
+                    b.Navigation("PackageBaseUnitSnapshot");
+
+                    b.Navigation("PurchaseRequestLine");
 
                     b.Navigation("Receipt");
 
@@ -2506,6 +4246,11 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreturns_ibfk_2");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ReceivedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ReceivedBy")
+                        .HasConstraintName("inventoryreturns_ibfk_4");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
                         .WithMany("Inventoryreturns")
                         .HasForeignKey("WarehouseId")
@@ -2515,6 +4260,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("CreatedByNavigation");
 
                     b.Navigation("Issue");
+
+                    b.Navigation("ReceivedByNavigation");
 
                     b.Navigation("Warehouse");
                 });
@@ -2574,6 +4321,12 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequestline", b =>
                 {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Dishbom", "Bom")
+                        .WithMany()
+                        .HasForeignKey("BomId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("materialrequestlines_ibfk_5");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Materialrequestlines")
                         .HasForeignKey("IngredientId")
@@ -2598,6 +4351,8 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("materialrequestlines_ibfk_4");
 
+                    b.Navigation("Bom");
+
                     b.Navigation("Ingredient");
 
                     b.Navigation("PlanLine");
@@ -2609,6 +4364,11 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplan", b =>
                 {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "CompletedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("CompletedBy")
+                        .HasConstraintName("mealquantityplans_ibfk_3");
+
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ConfirmedByNavigation")
                         .WithMany("Mealquantityplans")
                         .HasForeignKey("ConfirmedBy")
@@ -2618,6 +4378,8 @@ namespace IPCManagement.Api.Migrations
                         .WithMany("Mealquantityplans")
                         .HasForeignKey("ImportBatchId")
                         .HasConstraintName("mealquantityplans_ibfk_1");
+
+                    b.Navigation("CompletedByNavigation");
 
                     b.Navigation("ConfirmedByNavigation");
 
@@ -2692,9 +4454,17 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("menuschedules_ibfk_2");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
+                        .WithMany("Menuschedules")
+                        .HasForeignKey("MenuVersionId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("menuschedules_ibfk_3");
+
                     b.Navigation("Customer");
 
                     b.Navigation("Menu");
+
+                    b.Navigation("MenuVersion");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
@@ -2708,6 +4478,24 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Portionrule", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany("Portionrules")
+                        .HasForeignKey("CustomerId")
+                        .IsRequired()
+                        .HasConstraintName("portionrules_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Dish", "Dish")
+                        .WithMany("Portionrules")
+                        .HasForeignKey("DishId")
+                        .HasConstraintName("portionrules_ibfk_2");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Dish");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
@@ -2716,7 +4504,28 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("productionplans_ibfk_1");
 
+                    b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .HasConstraintName("productionplans_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
+                        .WithMany()
+                        .HasForeignKey("MenuVersionId")
+                        .HasConstraintName("productionplans_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "SentToKitchenByNavigation")
+                        .WithMany()
+                        .HasForeignKey("SentToKitchenBy")
+                        .HasConstraintName("productionplans_ibfk_4");
+
                     b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("MenuVersion");
+
+                    b.Navigation("SentToKitchenByNavigation");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>
@@ -2762,6 +4571,167 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("QuantityPlanLine");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", "PurchaseHistoryReconciliationRun")
+                        .WithMany("Purchasehistoryreconciliationactions")
+                        .HasForeignKey("PurchaseHistoryReconciliationRunId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("purchasehistoryreconciliationactions_ibfk_1");
+
+                    b.Navigation("PurchaseHistoryReconciliationRun");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "AppliedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("AppliedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasehistoryreconciliationruns_ibfk_1");
+
+                    b.Navigation("AppliedByNavigation");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ConfirmedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("ConfirmedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                        .WithMany("SupplierDecisions")
+                        .HasForeignKey("PurchaseRequestLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "SupersededByDecision")
+                        .WithMany("SupersededDecisions")
+                        .HasForeignKey("SupersededByDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_4");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchaselinesupplierdecisions_ibfk_2");
+
+                    b.Navigation("ConfirmedByNavigation");
+
+                    b.Navigation("PurchaseRequestLine");
+
+                    b.Navigation("SupersededByDecision");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("CreatedBy")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequest", "PurchaseRequest")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("PurchaseRequestId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
+                        .WithMany("Purchaseorders")
+                        .HasForeignKey("SupplierId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorders_ibfk_2");
+
+                    b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("PurchaseRequest");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaseorder", "PurchaseOrder")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("PurchaseOrderId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                        .WithOne("Purchaseorderline")
+                        .HasForeignKey("IPCManagement.Api.Models.Entities.Purchaseorderline", "PurchaseRequestLineId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Purchaseorderlines")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("purchaseorderlines_ibfk_4");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("PurchaseOrder");
+
+                    b.Navigation("PurchaseRequestLine");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "DecidedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("DecidedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchasepriceexceptions_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "PurchaseLineSupplierDecision")
+                        .WithMany("Purchasepriceexceptions")
+                        .HasForeignKey("PurchaseLineSupplierDecisionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasepriceexceptions_ibfk_1");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "RequestedByNavigation")
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("purchasepriceexceptions_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasepriceexception", "SupersededByException")
+                        .WithMany("SupersededExceptions")
+                        .HasForeignKey("SupersededByExceptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("purchasepriceexceptions_ibfk_4");
+
+                    b.Navigation("DecidedByNavigation");
+
+                    b.Navigation("PurchaseLineSupplierDecision");
+
+                    b.Navigation("RequestedByNavigation");
+
+                    b.Navigation("SupersededByException");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ApprovedByNavigation")
@@ -2803,7 +4773,6 @@ namespace IPCManagement.Api.Migrations
                     b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
                         .WithMany("Purchaserequestlines")
                         .HasForeignKey("SupplierId")
-                        .IsRequired()
                         .HasConstraintName("purchaserequestlines_ibfk_4");
 
                     b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
@@ -2899,6 +4868,139 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("UnitId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_3");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Stocksnapshots")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired()
+                        .HasConstraintName("stocksnapshots_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Unit");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktake", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "ApprovedByNavigation")
+                        .WithMany("StocktakesApprovedByNavigations")
+                        .HasForeignKey("ApprovedBy");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
+                        .WithMany("StocktakesCreatedByNavigations")
+                        .HasForeignKey("CreatedBy")
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", "Warehouse")
+                        .WithMany("Stocktakes")
+                        .HasForeignKey("WarehouseId")
+                        .IsRequired();
+
+                    b.Navigation("ApprovedByNavigation");
+
+                    b.Navigation("CreatedByNavigation");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktakeline", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Stocktakelines")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Stocktake", "Stocktake")
+                        .WithMany("Stocktakelines")
+                        .HasForeignKey("StocktakeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Stocktake");
+
+                    b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", null)
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissue", null)
+                        .WithMany()
+                        .HasForeignKey("IssueId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissueline", null)
+                        .WithMany()
+                        .HasForeignKey("IssueLineId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", null)
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Warehouse", null)
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplierquotation", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany("Supplierquotations")
+                        .HasForeignKey("IngredientId")
+                        .IsRequired()
+                        .HasConstraintName("supplierquotations_ibfk_2");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Supplier", "Supplier")
+                        .WithMany("Supplierquotations")
+                        .HasForeignKey("SupplierId")
+                        .IsRequired()
+                        .HasConstraintName("supplierquotations_ibfk_1");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Role", "Role")
@@ -2910,15 +5012,26 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Role");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
+                {
+                    b.Navigation("Approvalassignments");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customer", b =>
                 {
                     b.Navigation("Customercontracts");
+
+                    b.Navigation("Customerimportmappings");
+
+                    b.Navigation("Dishboms");
 
                     b.Navigation("Mealquantityplanlines");
 
                     b.Navigation("Menuschedules");
 
                     b.Navigation("Menuversions");
+
+                    b.Navigation("Portionrules");
 
                     b.Navigation("Productionplanlines");
                 });
@@ -2928,6 +5041,8 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Dishboms");
 
                     b.Navigation("Menuitems");
+
+                    b.Navigation("Portionrules");
 
                     b.Navigation("Productionplanlines");
                 });
@@ -2939,6 +5054,8 @@ namespace IPCManagement.Api.Migrations
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Ingredient", b =>
                 {
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Currentstocks");
 
                     b.Navigation("Dishboms");
@@ -2951,9 +5068,17 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Materialrequestlines");
 
+                    b.Navigation("Purchaseorderlines");
+
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
+
+                    b.Navigation("Stocktakelines");
+
+                    b.Navigation("Supplierquotations");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissue", b =>
@@ -3013,6 +5138,11 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Mealquantityplanlines");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+                {
+                    b.Navigation("Menuschedules");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
                 {
                     b.Navigation("Materialrequests");
@@ -3025,11 +5155,44 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Materialrequestlines");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+                {
+                    b.Navigation("Purchasehistoryreconciliationactions");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+                {
+                    b.Navigation("Purchasepriceexceptions");
+
+                    b.Navigation("SupersededDecisions");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+                {
+                    b.Navigation("Purchaseorderlines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+                {
+                    b.Navigation("SupersededExceptions");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
                 {
                     b.Navigation("Inventoryreceipts");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("Purchaserequestlines");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequestline", b =>
+                {
+                    b.Navigation("Inventoryreceiptlines");
+
+                    b.Navigation("Purchaseorderline");
+
+                    b.Navigation("SupplierDecisions");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>
@@ -3042,15 +5205,26 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Users");
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktake", b =>
+                {
+                    b.Navigation("Stocktakelines");
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplier", b =>
                 {
                     b.Navigation("Inventoryreceipts");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("Purchaserequestlines");
+
+                    b.Navigation("Supplierquotations");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unit", b =>
                 {
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Currentstocks");
 
                     b.Navigation("Dishboms");
@@ -3065,9 +5239,13 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Materialrequestlines");
 
+                    b.Navigation("Purchaseorderlines");
+
                     b.Navigation("Purchaserequestlines");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>
@@ -3092,6 +5270,8 @@ namespace IPCManagement.Api.Migrations
 
                     b.Navigation("Productionplans");
 
+                    b.Navigation("Purchaseorders");
+
                     b.Navigation("PurchaserequestApprovedByNavigations");
 
                     b.Navigation("PurchaserequestCreatedByNavigations");
@@ -3103,10 +5283,16 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Refreshtokens");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("StocktakesApprovedByNavigations");
+
+                    b.Navigation("StocktakesCreatedByNavigations");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.Warehouse", b =>
                 {
+                    b.Navigation("Currentstocklots");
+
                     b.Navigation("Currentstocks");
 
                     b.Navigation("Ingredients");
@@ -3118,6 +5304,10 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Inventoryreturns");
 
                     b.Navigation("Stockmovements");
+
+                    b.Navigation("Stocksnapshots");
+
+                    b.Navigation("Stocktakes");
                 });
 #pragma warning restore 612, 618
         }

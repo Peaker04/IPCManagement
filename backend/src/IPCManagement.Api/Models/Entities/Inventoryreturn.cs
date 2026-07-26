@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 namespace IPCManagement.Api.Models.Entities;
@@ -13,6 +13,8 @@ public partial class Inventoryreturn
 
     public string? ShiftName { get; set; }
 
+    public string ReturnType { get; set; } = null!;
+
     public byte[] WarehouseId { get; set; } = null!;
 
     public byte[] IssueId { get; set; } = null!;
@@ -23,7 +25,13 @@ public partial class Inventoryreturn
 
     public DateTime CreatedAt { get; set; }
 
+    public byte[]? ReceivedBy { get; set; }
+
+    public DateTime? ReceivedAt { get; set; }
+
     public virtual User CreatedByNavigation { get; set; } = null!;
+
+    public virtual User? ReceivedByNavigation { get; set; }
 
     public virtual ICollection<Inventoryreturnline> Inventoryreturnlines { get; set; } = new List<Inventoryreturnline>();
 

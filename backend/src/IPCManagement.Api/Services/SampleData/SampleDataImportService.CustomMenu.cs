@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
+using System.Xml;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.DTOs.Coordination;
@@ -12,6 +13,7 @@ namespace IPCManagement.Api.Services.SampleData;
 public partial class SampleDataImportService
 {
     private static readonly string[] MenuDayKeys = ["t2", "t3", "t4", "t5", "t6", "t7", "cn"];
+    private static readonly decimal[] WeeklyMenuPriceTiers = [25000m, 30000m, 34000m];
 
     private static readonly (string Slot, string[] Keywords)[] WeeklyMenuSlotRules =
     [
@@ -21,7 +23,8 @@ public partial class SampleDataImportService
         ("sub1", ["PHU"]),
         ("rau", ["RAU"]),
         ("canh", ["CANH", "MON NUOC", "SUA CANH"]),
-        ("fruit", ["TRAI CAY", "TRANG MIENG", "SUA CHUA", "SUA"])
+        ("fruit", ["TRAI CAY"]),
+        ("dessert", ["SUA CHUA", "SUA", "TRANG MIENG"])
     ];
 
     public async Task<IReadOnlyList<CoordinationCustomerOptionDto>> GetActiveCustomersAsync(
@@ -109,6 +112,8 @@ public partial class SampleDataImportService
                 {
                     ServiceDate = item.ServiceDate,
                     DayKey = item.DayKey,
+                    SourceRowNumber = item.SourceRowNumber,
+                    SourceColumn = item.SourceColumn,
                     SourceSection = item.SectionLabel,
                     SourceShift = item.SourceShift,
                     DbShiftName = item.DbShiftName,
@@ -116,6 +121,8 @@ public partial class SampleDataImportService
                     Slot = item.Slot,
                     SlotLabel = item.SlotLabel,
                     DishName = item.DishName,
+                    RowSpan = item.RowSpan,
+                    IsMergedContinuation = item.IsMergedContinuation,
                     DishId = item.DishId,
                     ExistingDish = true
                 });
@@ -161,23 +168,78 @@ public partial class SampleDataImportService
         return result;
     }
 
+    public async Task<(byte[] Content, string CustomerCode)> BuildWeeklyMenuTemplateAsync(
+        string? customerId,
+        DateOnly? weekStartDate,
+        CancellationToken cancellationToken = default)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var resolvedWeekStart = weekStartDate ?? ResolveCurrentWeekStart();
+        var customerCode = "IPC";
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            var customerBytes = GuidHelper.ParseGuidString(customerId);
+            if (customerBytes is not null)
+            {
+                customerCode = await _context.Customers
+                    .AsNoTracking()
+                    .Where(customer => customer.CustomerId.SequenceEqual(customerBytes) && customer.IsActive != false)
+                    .Select(customer => customer.CustomerCode)
+                    .FirstOrDefaultAsync(cancellationToken) ?? customerCode;
+            }
+        }
+
+        return (WeeklyMenuTemplateWorkbookBuilder.Build(resolvedWeekStart, customerCode), customerCode);
+    }
+
     public async Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
         Stream fileStream,
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         CancellationToken cancellationToken = default)
     {
-        var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var customer = await TryResolveImportCustomerAsync(customerId, cancellationToken);
+        if (customer is null)
+        {
+            return BuildInvalidWeeklyMenuImportResult(
+                fileName,
+                customerId,
+                "UNKNOWN_CUSTOMER",
+                "Không tìm thấy khách hàng đang hoạt động để import thực đơn.",
+                "customerId");
+        }
+
+        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping, normalizedPriceTier);
             return await BuildWeeklyMenuImportResultAsync(
                 plan,
                 customer,
                 committed: false,
                 cancellationToken);
+        }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            return BuildInvalidWeeklyMenuImportResult(
+                fileName,
+                GuidHelper.ToGuidString(customer.CustomerId),
+                "FILE_READ_ERROR",
+                UnreadableWorkbookMessage,
+                "file");
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BuildInvalidWeeklyMenuImportResult(
+                fileName,
+                GuidHelper.ToGuidString(customer.CustomerId),
+                ResolveImportValidationCode(ex.Message),
+                ex.Message,
+                ResolveImportValidationField(ex.Message));
         }
         finally
         {
@@ -190,19 +252,39 @@ public partial class SampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
+        string? actorUserId = null,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var normalizedPriceTier = NormalizeWeeklyMenuPriceTier(priceTierAmount);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
         var tempFilePath = await SaveTempWorkbookAsync(fileStream, cancellationToken);
         try
         {
-            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate);
+            var plan = ParseWeeklyMenuWorkbook(tempFilePath, fileName, weekStartDate, mapping, normalizedPriceTier);
             plan.SourceChecksum = ComputeFileChecksum(tempFilePath);
+            var validationResult = await BuildWeeklyMenuImportResultAsync(
+                plan,
+                customer,
+                committed: false,
+                cancellationToken);
+            if (validationResult.Validation.HasCriticalErrors)
+            {
+                var firstIssue = validationResult.Validation.Issues.FirstOrDefault(item =>
+                    string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
+                throw new InvalidOperationException(firstIssue?.Message ?? "File import còn lỗi critical, không thể commit DB.");
+            }
+
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, cancellationToken);
+            var result = await CommitWeeklyMenuImportPlanAsync(plan, customer, normalizedPriceTier, actorUserId, cancellationToken);
             await _context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
             return result;
+        }
+        catch (Exception ex) when (IsUnreadableWorkbookException(ex))
+        {
+            throw new InvalidOperationException(UnreadableWorkbookMessage, ex);
         }
         finally
         {
@@ -228,12 +310,84 @@ public partial class SampleDataImportService
         return customer;
     }
 
+    private Task<Customerimportmapping?> FindCustomerImportMappingAsync(
+        byte[] customerId,
+        CancellationToken cancellationToken)
+        => _context.Customerimportmappings
+            .AsNoTracking()
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerId), cancellationToken);
+
+    public async Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
+        string customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await FindCustomerImportMappingAsync(customer.CustomerId, cancellationToken);
+        return mapping is null
+            ? null
+            : new CustomerImportMappingDto
+            {
+                CustomerId = customerId,
+                SheetNameHint = mapping.SheetNameHint,
+                LabelColumn = mapping.LabelColumn
+            };
+    }
+
+    public async Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
+        string customerId,
+        SaveCustomerImportMappingDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
+        var mapping = await _context.Customerimportmappings
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customer.CustomerId), cancellationToken);
+
+        var now = DateTime.UtcNow;
+        if (mapping is null)
+        {
+            mapping = new Customerimportmapping
+            {
+                MappingId = GuidHelper.NewId(),
+                CustomerId = customer.CustomerId,
+                CreatedAt = now
+            };
+            _context.Customerimportmappings.Add(mapping);
+        }
+
+        mapping.SheetNameHint = string.IsNullOrWhiteSpace(request.SheetNameHint) ? null : request.SheetNameHint.Trim();
+        mapping.LabelColumn = string.IsNullOrWhiteSpace(request.LabelColumn) ? null : request.LabelColumn.Trim().ToUpperInvariant();
+        mapping.UpdatedAt = now;
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new CustomerImportMappingDto
+        {
+            CustomerId = customerId,
+            SheetNameHint = mapping.SheetNameHint,
+            LabelColumn = mapping.LabelColumn
+        };
+    }
+
+    private async Task<Customer?> TryResolveImportCustomerAsync(string customerId, CancellationToken cancellationToken)
+    {
+        var customerBytes = GuidHelper.ParseGuidString(customerId);
+        if (customerBytes is null)
+        {
+            return null;
+        }
+
+        return await _context.Customers
+            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerBytes) && item.IsActive != false, cancellationToken);
+    }
+
     private async Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportPlanAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        decimal priceTierAmount,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
-        var version = await CreateMenuVersionHeaderAsync(plan, customer, cancellationToken);
+        var version = await CreateMenuVersionHeaderAsync(plan, customer, actorUserId, cancellationToken);
         var result = await BuildWeeklyMenuImportResultAsync(
             plan,
             customer,
@@ -241,7 +395,9 @@ public partial class SampleDataImportService
             cancellationToken);
         ApplyMenuVersion(result, version);
 
-        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
+        var existingDishes = await _context.Dishes
+            .Include(dish => dish.Dishboms)
+            .ToListAsync(cancellationToken);
         var existingMenus = await _context.Menus.ToListAsync(cancellationToken);
         var existingMenuItems = await _context.Menuitems.ToListAsync(cancellationToken);
         var existingSchedules = await _context.Menuschedules.ToListAsync(cancellationToken);
@@ -348,11 +504,10 @@ public partial class SampleDataImportService
                     result.Counts);
             }
 
-            var contractPolicy = ResolveCustomerContractPolicy(customer, group.Key.ServiceDate, group.Key.DbShiftName);
-            if (contractPolicy.UsedFallback)
-            {
-                result.Warnings.Add(MissingCustomerContractWarning(customer, group.Key.ServiceDate, group.Key.DbShiftName));
-            }
+            var contractPolicy = new CustomerContractPolicy(
+                DecimalPolicy.RoundMoney(priceTierAmount),
+                DecimalPolicy.RoundPercent(100),
+                UsedFallback: false);
 
             EnsureMenuSchedule(
                 customer,
@@ -363,11 +518,157 @@ public partial class SampleDataImportService
                 existingSchedules,
                 dryRun: false,
                 result.Counts,
-                contractPolicy);
+                contractPolicy,
+                version.MenuVersionId);
         }
+
+        var invalidatedCount = await InvalidateWorkflowDocumentsForMenuReimportAsync(
+            customer,
+            plan.WeekStartDate,
+            plan.WeekEndDate,
+            version,
+            actorUserId,
+            cancellationToken);
+        if (invalidatedCount > 0)
+        {
+            result.Warnings.Add(
+                $"Đã đánh dấu {invalidatedCount} demand/PR cũ là CANCELLED vì thực đơn tuần được import lại. Vui lòng tạo lại demand và danh sách mua thêm.");
+        }
+
+        version.SuccessRowCount = plan.Items.Count;
+        version.ErrorRowCount = plan.RowsSkipped;
+        version.WarningRowCount = result.Warnings.Count;
 
         ApplyCommittedDishIds(result, plan.Items);
         return result;
+    }
+
+    private static decimal NormalizeWeeklyMenuPriceTier(decimal? priceTierAmount)
+    {
+        if (priceTierAmount is null)
+        {
+            throw new InvalidOperationException("Vui lòng chọn định mức 25.000, 30.000 hoặc 34.000 trước khi import menu.");
+        }
+
+        var normalized = DecimalPolicy.RoundMoney(priceTierAmount.Value);
+        if (!Array.Exists(WeeklyMenuPriceTiers, tier => tier == normalized))
+        {
+            throw new InvalidOperationException("Định mức import menu chỉ được chọn 25.000, 30.000 hoặc 34.000.");
+        }
+
+        return normalized;
+    }
+
+    private static DateOnly ResolveCurrentWeekStart()
+    {
+        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var offset = ((int)today.DayOfWeek + 6) % 7;
+        return today.AddDays(-offset);
+    }
+
+    private async Task<int> InvalidateWorkflowDocumentsForMenuReimportAsync(
+        Customer customer,
+        DateOnly weekStartDate,
+        DateOnly weekEndDate,
+        Menuversion version,
+        string? actorUserId,
+        CancellationToken cancellationToken)
+    {
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
+        var changedAt = DateTime.UtcNow;
+        var reason = $"Menu re-import {version.SourceImportBatch} invalidated downstream demand/PR; regenerate required.";
+        var invalidatedCount = 0;
+
+        var materialRequests = await _context.Materialrequests
+            .Include(request => request.Plan)
+                .ThenInclude(plan => plan.Productionplanlines)
+            .Where(request =>
+                request.RequestDate >= weekStartDate &&
+                request.RequestDate <= weekEndDate &&
+                request.Status != "CANCELLED" &&
+                request.Plan.Productionplanlines.Any(line => line.CustomerId.SequenceEqual(customer.CustomerId)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var request in materialRequests)
+        {
+            var oldStatus = request.Status;
+            request.Status = "CANCELLED";
+            invalidatedCount++;
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = actorId,
+                BusinessArea = "Demand",
+                EntityName = nameof(Materialrequest),
+                EntityId = request.RequestId,
+                FieldName = "Status",
+                OldValue = oldStatus,
+                NewValue = "CANCELLED",
+                Reason = reason
+            });
+        }
+
+        var purchaseRequests = await _context.Purchaserequests
+            .Include(request => request.Purchaserequestlines)
+                .ThenInclude(line => line.MaterialRequestLine)
+                    .ThenInclude(line => line.PlanLine)
+            .Where(request =>
+                request.PurchaseForDate >= weekStartDate &&
+                request.PurchaseForDate <= weekEndDate &&
+                request.Status != "CANCELLED" &&
+                request.Purchaserequestlines.Any(line => line.MaterialRequestLine.PlanLine.CustomerId.SequenceEqual(customer.CustomerId)))
+            .ToListAsync(cancellationToken);
+
+        foreach (var request in purchaseRequests)
+        {
+            var oldStatus = request.Status;
+            request.Status = "CANCELLED";
+            invalidatedCount++;
+            _context.Auditlogs.Add(new Auditlog
+            {
+                AuditId = GuidHelper.NewId(),
+                ChangedAt = changedAt,
+                ChangedBy = actorId,
+                BusinessArea = "Purchase",
+                EntityName = nameof(Purchaserequest),
+                EntityId = request.PurchaseRequestId,
+                FieldName = "Status",
+                OldValue = oldStatus,
+                NewValue = "CANCELLED",
+                Reason = reason
+            });
+        }
+
+        return invalidatedCount;
+    }
+
+    private async Task<byte[]> ResolveAuditActorIdAsync(string? actorUserId, CancellationToken cancellationToken)
+    {
+        var requestedActorId = GuidHelper.ParseGuidString(actorUserId);
+        if (requestedActorId is not null)
+        {
+            var exists = await _context.Users
+                .AsNoTracking()
+                .AnyAsync(user => user.UserId.SequenceEqual(requestedActorId), cancellationToken);
+            if (exists)
+            {
+                return requestedActorId;
+            }
+        }
+
+        var actor = await _context.Users
+            .AsNoTracking()
+            .OrderByDescending(user => user.Role != null && EF.Functions.Like(user.Role.RoleName, "%admin%"))
+            .ThenBy(user => user.Username)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (actor is null)
+        {
+            throw new InvalidOperationException("Không tìm thấy user để ghi audit import thực đơn.");
+        }
+
+        return actor.UserId;
     }
 
     private async Task<WeeklyMenuImportResultDto> BuildWeeklyMenuImportResultAsync(
@@ -376,10 +677,12 @@ public partial class SampleDataImportService
         bool committed,
         CancellationToken cancellationToken)
     {
-        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
+        var existingDishes = await _context.Dishes
+            .Include(dish => dish.Dishboms)
+            .ToListAsync(cancellationToken);
         var existingByName = existingDishes
             .GroupBy(dish => NormalizeDishMatchKey(dish.DishName), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            .ToDictionary(group => group.Key, SelectPreferredImportedDish, StringComparer.OrdinalIgnoreCase);
 
         var result = new WeeklyMenuImportResultDto
         {
@@ -424,6 +727,8 @@ public partial class SampleDataImportService
             {
                 ServiceDate = parsedItem.ServiceDate,
                 DayKey = parsedItem.DayKey,
+                SourceRowNumber = parsedItem.SourceRowNumber,
+                SourceColumn = parsedItem.SourceColumn,
                 SourceSection = parsedItem.SectionLabel,
                 SourceShift = parsedItem.SourceShift,
                 DbShiftName = parsedItem.DbShiftName,
@@ -431,11 +736,14 @@ public partial class SampleDataImportService
                 Slot = parsedItem.Slot,
                 SlotLabel = parsedItem.SlotLabel,
                 DishName = parsedItem.DishName,
+                RowSpan = parsedItem.RowSpan,
+                IsMergedContinuation = parsedItem.IsMergedContinuation,
                 DishId = parsedItem.DishId,
                 ExistingDish = parsedItem.ExistingDish
             });
         }
 
+        result.Validation = BuildWeeklyMenuImportValidation(plan, result.Rows);
         BuildImportedWeeklyMenu(result, plan.Items);
         return result;
     }
@@ -443,24 +751,49 @@ public partial class SampleDataImportService
     private WeeklyMenuImportPlan ParseWeeklyMenuWorkbook(
         string workbookPath,
         string originalFileName,
-        DateOnly? weekStartFallback)
+        DateOnly? weekStartFallback,
+        Customerimportmapping? mapping = null,
+        decimal? priceTierAmount = null)
     {
         var sheetCandidates = _reader.GetSheetNames(workbookPath)
             .Select(sheetName =>
             {
-                var rows = _reader.ReadRows(workbookPath, sheetName, 240);
-                return new WeeklyMenuSheetCandidate(sheetName, rows, ScoreMenuSheet(sheetName, rows));
+                var rawRows = _reader.ReadRowsWithMetadata(workbookPath, sheetName, 240);
+                var rows = rawRows.Select(row => row.Cells).ToList();
+                return new WeeklyMenuSheetCandidate(sheetName, rawRows, rows, ScoreMenuSheet(sheetName, rows));
             })
-            .OrderByDescending(candidate => candidate.Score)
             .ToList();
 
-        var best = sheetCandidates.FirstOrDefault();
+        // Cấu hình mapping đã lưu cho khách hàng (nếu có) được ưu tiên trước khi dò tự động,
+        // để hỗ trợ nhiều mẫu file khác nhau theo từng khách hàng (FULL-001).
+        var sheetsMatchingHint = string.IsNullOrWhiteSpace(mapping?.SheetNameHint)
+            ? []
+            : sheetCandidates
+                .Where(candidate => candidate.SheetName.Contains(mapping.SheetNameHint, StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+        var sheetsMatchingPriceTier = priceTierAmount is null
+            ? []
+            : sheetCandidates
+                .Where(candidate => SheetNameMatchesPriceTier(candidate.SheetName, priceTierAmount.Value))
+                .ToList();
+        var candidatePool = sheetsMatchingPriceTier.Count > 0
+            ? sheetsMatchingPriceTier
+            : sheetsMatchingHint.Count > 0
+                ? sheetsMatchingHint
+                : sheetCandidates;
+
+        var best = candidatePool
+            .OrderByDescending(candidate => candidate.Score)
+            .FirstOrDefault();
         if (best is null || best.Score < 20)
         {
             throw new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.");
         }
 
-        var labelColumn = DetectLabelColumn(best.Rows);
+        var labelColumn = !string.IsNullOrWhiteSpace(mapping?.LabelColumn)
+            ? mapping.LabelColumn
+            : DetectLabelColumn(best.Rows);
         if (labelColumn is null)
         {
             throw new InvalidOperationException("Không xác định được cột nhãn món trong file thực đơn.");
@@ -482,15 +815,40 @@ public partial class SampleDataImportService
             resolvedWeekStart,
             weekEnd,
             best.Rows.Count,
-            dayColumns);
+            dayColumns,
+            weekStartFallback);
 
-        ParseMenuRows(best.Rows, labelColumn, dayColumns, plan);
+        ParseMenuRows(best.RawRows, labelColumn, dayColumns, plan);
         if (plan.Items.Count == 0)
         {
+            if (priceTierAmount is not null)
+            {
+                var fallbackPlan = ParseWeeklyMenuWorkbook(
+                    workbookPath,
+                    originalFileName,
+                    weekStartFallback,
+                    mapping,
+                    null);
+                fallbackPlan.Warnings.Add(
+                    $"Sheet {best.SheetName} chưa có món; dùng menu dùng chung từ sheet {fallbackPlan.SheetName} và áp dụng định lượng tier {priceTierAmount:0}.");
+                return fallbackPlan;
+            }
+
             throw new InvalidOperationException("File Excel không có dòng món ăn hợp lệ để import.");
         }
 
+        AddDuplicateImportWarnings(plan);
+
         return plan;
+    }
+
+    private static bool SheetNameMatchesPriceTier(string sheetName, decimal priceTierAmount)
+    {
+        var normalized = NormalizeText(sheetName);
+        var rounded = DecimalPolicy.RoundMoney(priceTierAmount);
+        var tierInThousands = rounded / 1000m;
+        return normalized.Contains(rounded.ToString("0", CultureInfo.InvariantCulture), StringComparison.OrdinalIgnoreCase) ||
+               normalized.Contains($"{tierInThousands:0}K", StringComparison.OrdinalIgnoreCase);
     }
 
     private static int ScoreMenuSheet(
@@ -594,7 +952,8 @@ public partial class SampleDataImportService
                         item.Key,
                         serviceDate,
                         ResolveDayKeyForColumn(rows, item.Key, index),
-                        FormatDayColumnLabel(item.Key, serviceDate));
+                        FormatDayColumnLabel(item.Key, serviceDate),
+                        datedRows.First().RowIndex + 1);
                 })
                 .ToList();
         }
@@ -624,7 +983,8 @@ public partial class SampleDataImportService
                 column,
                 start.Value.AddDays(index),
                 ResolveDayKeyForColumn(rows, column, index),
-                FormatDayColumnLabel(column, start.Value.AddDays(index))))
+                FormatDayColumnLabel(column, start.Value.AddDays(index)),
+                null))
             .ToList();
     }
 
@@ -729,7 +1089,7 @@ public partial class SampleDataImportService
     }
 
     private static void ParseMenuRows(
-        IReadOnlyList<IReadOnlyDictionary<string, string>> rows,
+        IReadOnlyList<XlsxWorkbookReader.XlsxRowData> rows,
         string labelColumn,
         IReadOnlyList<WeeklyMenuImportDayColumn> dayColumns,
         WeeklyMenuImportPlan plan)
@@ -739,7 +1099,7 @@ public partial class SampleDataImportService
 
         foreach (var row in rows)
         {
-            var label = GetColumnValue(row, labelColumn);
+            var label = GetColumnValue(row.Cells, labelColumn);
             if (string.IsNullOrWhiteSpace(label))
             {
                 plan.RowsSkipped++;
@@ -777,7 +1137,7 @@ public partial class SampleDataImportService
 
             foreach (var dayColumn in dayColumns)
             {
-                var dishName = NormalizeDishCell(GetColumnValue(row, dayColumn.Column));
+                var dishName = NormalizeDishCell(GetColumnValue(row.Cells, dayColumn.Column));
                 if (string.IsNullOrWhiteSpace(dishName))
                 {
                     continue;
@@ -794,6 +1154,8 @@ public partial class SampleDataImportService
                     SourceOrder = ++sourceOrder,
                     ServiceDate = dayColumn.ServiceDate,
                     DayKey = dayColumn.DayKey,
+                    SourceRowNumber = row.RowNumber,
+                    SourceColumn = dayColumn.Column,
                     SectionLabel = currentSection.SectionLabel,
                     SectionKey = currentSection.SectionKey,
                     SourceShift = currentSection.SourceShift,
@@ -803,11 +1165,24 @@ public partial class SampleDataImportService
                     VariantLabel = currentSection.VariantLabel,
                     Slot = slot,
                     SlotLabel = label.Trim(),
-                    DishName = dishName
+                    DishName = dishName,
+                    RowSpan = ResolveMergedRowSpan(row, dayColumn.Column),
+                    IsMergedContinuation = IsMergedContinuation(row, dayColumn.Column)
                 });
             }
         }
     }
+
+    private static int ResolveMergedRowSpan(XlsxWorkbookReader.XlsxRowData row, string column)
+        => row.MergeInfo.TryGetValue(column, out var mergeInfo) && mergeInfo.ColumnSpan == 1 && mergeInfo.IsStart
+            ? mergeInfo.RowSpan
+            : 1;
+
+    private static bool IsMergedContinuation(XlsxWorkbookReader.XlsxRowData row, string column)
+        => row.MergeInfo.TryGetValue(column, out var mergeInfo) &&
+           mergeInfo.ColumnSpan == 1 &&
+           !mergeInfo.IsStart &&
+           string.Equals(mergeInfo.StartColumn, column, StringComparison.OrdinalIgnoreCase);
 
     private static bool TryParseWeeklyMenuSection(string value, out WeeklyMenuSection section)
     {
@@ -1032,6 +1407,9 @@ public partial class SampleDataImportService
             case "fruit":
                 components.Fruit = dishName;
                 break;
+            case "dessert":
+                components.Dessert = dishName;
+                break;
         }
     }
 
@@ -1061,6 +1439,7 @@ public partial class SampleDataImportService
             "rau" => "Rau",
             "canh" => "Canh",
             "fruit" => "Trái cây",
+            "dessert" => "Sữa chua",
             _ => "Món chính"
         };
 
@@ -1097,9 +1476,14 @@ public partial class SampleDataImportService
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
+        var cleanDishName = NormalizeDishCell(dishName);
         var normalized = NormalizeDishMatchKey(dishName);
-        var existing = dishes.FirstOrDefault(item =>
-            string.Equals(NormalizeDishMatchKey(item.DishName), normalized, StringComparison.OrdinalIgnoreCase));
+        var existing = dishes
+            .Where(item => string.Equals(NormalizeDishMatchKey(item.DishName), normalized, StringComparison.OrdinalIgnoreCase))
+            .OrderByDescending(HasPublishedBom)
+            .ThenBy(item => HasPortionSuffix(item.DishName))
+            .ThenBy(item => item.DishName.Length)
+            .FirstOrDefault();
         if (existing is not null)
         {
             existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
@@ -1109,14 +1493,18 @@ public partial class SampleDataImportService
             return existing;
         }
 
-        return EnsureDish(dishName, dishGroup, dishType, dishes, dryRun, counts);
+        return EnsureDish(cleanDishName, dishGroup, dishType, dishes, dryRun, counts);
     }
 
     private static string GetColumnValue(IReadOnlyDictionary<string, string> row, string column)
         => row.TryGetValue(column, out var value) ? value.Trim() : string.Empty;
 
     private static string NormalizeDishCell(string value)
-        => Regex.Replace(value.Trim(), @"\s+", " ");
+    {
+        var normalized = Regex.Replace(value.Trim(), @"\s+", " ");
+        normalized = Regex.Replace(normalized, @"\b\d+\s*(g|gram)\b", " ", RegexOptions.IgnoreCase);
+        return Regex.Replace(normalized, @"\s+", " ").Trim();
+    }
 
     private static string NormalizeText(string? value)
         => Regex.Replace(RemoveDiacritics(value ?? string.Empty).Trim().ToUpperInvariant(), @"\s+", " ");
@@ -1132,6 +1520,19 @@ public partial class SampleDataImportService
         normalized = Regex.Replace(normalized, @"\s+", " ");
         return normalized.Trim();
     }
+
+    private static bool HasPortionSuffix(string? value)
+        => Regex.IsMatch(value ?? string.Empty, @"\b\d+\s*(g|gram)\b", RegexOptions.IgnoreCase);
+
+    private static Dish SelectPreferredImportedDish(IEnumerable<Dish> dishes)
+        => dishes
+            .OrderByDescending(HasPublishedBom)
+            .ThenBy(dish => HasPortionSuffix(dish.DishName))
+            .ThenBy(dish => dish.DishName.Length)
+            .First();
+
+    private static bool HasPublishedBom(Dish dish)
+        => dish.Dishboms.Any(bom => string.Equals(bom.BomStatus, "PUBLISHED", StringComparison.OrdinalIgnoreCase));
 
     private static bool IsHolidayCell(string value)
     {
@@ -1176,6 +1577,175 @@ public partial class SampleDataImportService
         {
             plan.Warnings.Add(warning);
         }
+    }
+
+    private static void AddDuplicateImportWarnings(WeeklyMenuImportPlan plan)
+    {
+        var duplicateGroups = plan.Items
+            .GroupBy(
+                item => WeeklyMenuSlotKey(item.ServiceDate, item.DbShiftName, item.VariantKey, item.Slot),
+                StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1);
+
+        foreach (var group in duplicateGroups)
+        {
+            var first = group.OrderBy(item => item.SourceOrder).First();
+            var locations = string.Join(
+                ", ",
+                group
+                    .OrderBy(item => item.SourceOrder)
+                    .Take(4)
+                    .Select(item => $"{item.SourceColumn}{item.SourceRowNumber}: {item.DishName}"));
+            var suffix = group.Count() > 4 ? ", ..." : string.Empty;
+
+            AddWarning(
+                plan,
+                $"File import có dòng trùng cho {first.ServiceDate:yyyy-MM-dd} {ToVietnameseShift(first.DbShiftName)} {first.VariantLabel} / {first.SlotLabel}: {group.Count()} dòng ({locations}{suffix}). Vui lòng xử lý trước khi lưu.");
+        }
+    }
+
+    private static WeeklyMenuImportValidationDto BuildWeeklyMenuImportValidation(
+        WeeklyMenuImportPlan plan,
+        IReadOnlyList<WeeklyMenuImportRowDto> rows)
+    {
+        var validation = new WeeklyMenuImportValidationDto();
+
+        if (plan.RequestedWeekStartDate.HasValue && plan.WeekStartDate != plan.RequestedWeekStartDate.Value)
+        {
+            var firstDayColumn = plan.DayColumns.OrderBy(item => ColumnLetterToIndex(item.Column)).FirstOrDefault();
+            AddValidationIssue(
+                validation,
+                "error",
+                "WEEK_START_MISMATCH",
+                $"Tuần trong file bắt đầu {plan.WeekStartDate:yyyy-MM-dd} khác tuần đã chọn {plan.RequestedWeekStartDate.Value:yyyy-MM-dd}.",
+                plan.SheetName,
+                firstDayColumn?.RowNumber,
+                firstDayColumn?.Column,
+                "weekStartDate");
+        }
+
+        var duplicateGroups = rows
+            .GroupBy(row => WeeklyMenuSlotKey(row.ServiceDate, row.DbShiftName, ResolveVariantKey(row.Variant), row.Slot), StringComparer.OrdinalIgnoreCase)
+            .Where(group => group.Count() > 1);
+        foreach (var group in duplicateGroups)
+        {
+            var first = group.OrderBy(row => row.SourceRowNumber).First();
+            var locations = string.Join(
+                ", ",
+                group
+                    .OrderBy(row => row.SourceRowNumber)
+                    .Take(4)
+                    .Select(row => $"{row.SourceColumn}{row.SourceRowNumber}: {row.DishName}"));
+            var suffix = group.Count() > 4 ? ", ..." : string.Empty;
+
+            AddValidationIssue(
+                validation,
+                "error",
+                "DUPLICATE_SLOT",
+                $"File import có dòng trùng cho {first.ServiceDate:yyyy-MM-dd} {ToVietnameseShift(first.DbShiftName)} {first.Variant} / {first.SlotLabel}: {group.Count()} dòng ({locations}{suffix}).",
+                plan.SheetName,
+                first.SourceRowNumber,
+                first.SourceColumn,
+                "duplicateRows");
+        }
+
+        foreach (var row in rows.Where(row => !row.ExistingDish))
+        {
+            AddValidationIssue(
+                validation,
+                "warning",
+                "UNKNOWN_DISH",
+                $"Món '{row.DishName}' chưa có trong catalog; hệ thống sẽ tạo món mới nếu commit.",
+                plan.SheetName,
+                row.SourceRowNumber,
+                row.SourceColumn,
+                "dishMapping");
+        }
+
+        FinalizeValidation(validation);
+        return validation;
+    }
+
+    private static WeeklyMenuImportResultDto BuildInvalidWeeklyMenuImportResult(
+        string fileName,
+        string customerId,
+        string code,
+        string message,
+        string field)
+    {
+        var validation = new WeeklyMenuImportValidationDto();
+        AddValidationIssue(validation, "error", code, message, null, null, null, field);
+        FinalizeValidation(validation);
+
+        return new WeeklyMenuImportResultDto
+        {
+            FileName = fileName,
+            CustomerId = customerId,
+            Validation = validation,
+            Warnings = [message]
+        };
+    }
+
+    private const string UnreadableWorkbookMessage =
+        "File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.";
+
+    private static bool IsUnreadableWorkbookException(Exception ex)
+        => ex is InvalidDataException or IOException or XmlException ||
+           ex is InvalidOperationException invalidOperation &&
+           invalidOperation.Message.StartsWith("Workbook không có", StringComparison.OrdinalIgnoreCase);
+
+    private static void AddValidationIssue(
+        WeeklyMenuImportValidationDto validation,
+        string severity,
+        string code,
+        string message,
+        string? sheetName,
+        int? rowNumber,
+        string? column,
+        string? field)
+    {
+        validation.Issues.Add(new WeeklyMenuImportValidationIssueDto
+        {
+            Severity = severity,
+            Code = code,
+            Message = message,
+            SheetName = sheetName,
+            RowNumber = rowNumber,
+            Column = column,
+            Cell = rowNumber.HasValue && !string.IsNullOrWhiteSpace(column) ? $"{column}{rowNumber.Value}" : null,
+            Field = field
+        });
+    }
+
+    private static void FinalizeValidation(WeeklyMenuImportValidationDto validation)
+    {
+        validation.ErrorCount = validation.Issues.Count(item =>
+            string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
+        validation.WarningCount = validation.Issues.Count(item =>
+            string.Equals(item.Severity, "warning", StringComparison.OrdinalIgnoreCase));
+        validation.HasCriticalErrors = validation.ErrorCount > 0;
+        validation.IsValid = !validation.HasCriticalErrors;
+    }
+
+    private static string ResolveVariantKey(string variant)
+        => string.Equals(variant, "Chay", StringComparison.OrdinalIgnoreCase) ? "vegetarian" : "savory";
+
+    private static string ResolveImportValidationCode(string message)
+    {
+        if (message.Contains("bảng thực đơn", StringComparison.OrdinalIgnoreCase)) return "TEMPLATE_NOT_FOUND";
+        if (message.Contains("cột nhãn", StringComparison.OrdinalIgnoreCase)) return "REQUIRED_LABEL_COLUMN_MISSING";
+        if (message.Contains("cột ngày", StringComparison.OrdinalIgnoreCase)) return "WEEK_COLUMNS_MISSING";
+        if (message.Contains("dòng món", StringComparison.OrdinalIgnoreCase)) return "NO_MENU_ROWS";
+        return "IMPORT_VALIDATION_ERROR";
+    }
+
+    private static string ResolveImportValidationField(string message)
+    {
+        if (message.Contains("bảng thực đơn", StringComparison.OrdinalIgnoreCase)) return "template";
+        if (message.Contains("cột nhãn", StringComparison.OrdinalIgnoreCase)) return "labelColumn";
+        if (message.Contains("cột ngày", StringComparison.OrdinalIgnoreCase)) return "weekStartDate";
+        if (message.Contains("dòng món", StringComparison.OrdinalIgnoreCase)) return "menuRows";
+        return "file";
     }
 
     private async Task<WeeklyMenuImportDiffDto> BuildWeeklyMenuImportDiffAsync(
@@ -1263,9 +1833,11 @@ public partial class SampleDataImportService
     private async Task<Menuversion> CreateMenuVersionHeaderAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
+        string? actorUserId,
         CancellationToken cancellationToken)
     {
         var changedAt = DateTime.UtcNow;
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
         var versions = await _context.Menuversions
             .Where(version => version.WeekStartDate == plan.WeekStartDate)
             .OrderByDescending(version => version.VersionNo)
@@ -1292,6 +1864,7 @@ public partial class SampleDataImportService
             SourceFileName = plan.FileName,
             SourceChecksum = plan.SourceChecksum,
             SourceImportBatch = importBatch,
+            CreatedBy = actorId,
             CreatedAt = changedAt,
             UpdatedAt = changedAt
         };
@@ -1312,6 +1885,161 @@ public partial class SampleDataImportService
             .ToListAsync(cancellationToken);
 
         return versions.FirstOrDefault(version => version.CustomerId.SequenceEqual(customerId));
+    }
+
+    public async Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+        string? customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Menuversions
+            .AsNoTracking()
+            .Include(version => version.Customer)
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(customerId))
+        {
+            var customerBytes = GuidHelper.ParseGuidString(customerId)
+                ?? throw new ArgumentException("Khách hàng không hợp lệ.");
+            query = query.Where(version => version.CustomerId.SequenceEqual(customerBytes));
+        }
+
+        var versions = await query
+            .OrderByDescending(version => version.CreatedAt)
+            .Take(100)
+            .ToListAsync(cancellationToken);
+
+        var userNamesById = await _context.Users
+            .AsNoTracking()
+            .ToDictionaryAsync(user => GuidHelper.ToGuidString(user.UserId), user => user.FullName, cancellationToken);
+
+        var items = new List<WeeklyMenuImportHistoryItemDto>();
+        foreach (var version in versions)
+        {
+            var (canRollback, reason) = await EvaluateRollbackEligibilityAsync(version, cancellationToken);
+            items.Add(new WeeklyMenuImportHistoryItemDto
+            {
+                MenuVersionId = GuidHelper.ToGuidString(version.MenuVersionId),
+                CustomerId = GuidHelper.ToGuidString(version.CustomerId),
+                CustomerCode = version.Customer.CustomerCode,
+                CustomerName = version.Customer.CustomerName,
+                WeekStartDate = version.WeekStartDate,
+                VersionNo = version.VersionNo,
+                Status = version.Status,
+                SourceFileName = version.SourceFileName,
+                CreatedByName = version.CreatedBy is null
+                    ? null
+                    : userNamesById.GetValueOrDefault(GuidHelper.ToGuidString(version.CreatedBy)),
+                CreatedAt = version.CreatedAt,
+                SuccessRowCount = version.SuccessRowCount,
+                ErrorRowCount = version.ErrorRowCount,
+                WarningRowCount = version.WarningRowCount,
+                CanRollback = canRollback,
+                CannotRollbackReason = reason
+            });
+        }
+
+        return items;
+    }
+
+    private async Task<(bool CanRollback, string? Reason)> EvaluateRollbackEligibilityAsync(
+        Menuversion version,
+        CancellationToken cancellationToken)
+    {
+        if (!string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
+        {
+            return (false, $"Phiên import đã ở trạng thái {version.Status}, không thể rollback.");
+        }
+
+        var schedules = await _context.Menuschedules
+            .AsNoTracking()
+            .Where(schedule => schedule.MenuVersionId != null && schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
+            .ToListAsync(cancellationToken);
+
+        if (schedules.Count == 0)
+        {
+            return (false, "Không tìm thấy lịch thực đơn nào thuộc phiên import này.");
+        }
+
+        var lockedSchedule = schedules.FirstOrDefault(schedule =>
+            !string.Equals(schedule.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
+        if (lockedSchedule is not null)
+        {
+            return (false, $"Lịch {lockedSchedule.ServiceDate:dd/MM/yyyy} đã ở trạng thái {lockedSchedule.Status}.");
+        }
+
+        var scheduleIds = schedules.Select(schedule => schedule.MenuScheduleId).ToList();
+        var hasQuantityLines = await _context.Mealquantityplanlines
+            .AsNoTracking()
+            .AnyAsync(line => scheduleIds.Any(id => line.MenuScheduleId.SequenceEqual(id)), cancellationToken);
+        if (hasQuantityLines)
+        {
+            return (false, "Đã có số suất liên kết với lịch thực đơn này.");
+        }
+
+        return (true, null);
+    }
+
+    public async Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
+        string menuVersionId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default)
+    {
+        var versionBytes = GuidHelper.ParseGuidString(menuVersionId)
+            ?? throw new ArgumentException("Phiên import không hợp lệ.");
+        var version = await _context.Menuversions
+            .FirstOrDefaultAsync(item => item.MenuVersionId.SequenceEqual(versionBytes), cancellationToken)
+            ?? throw new KeyNotFoundException("Không tìm thấy phiên import.");
+
+        var (canRollback, reason) = await EvaluateRollbackEligibilityAsync(version, cancellationToken);
+        if (!canRollback)
+        {
+            throw new InvalidOperationException(reason ?? "Không thể rollback phiên import này.");
+        }
+
+        var schedules = await _context.Menuschedules
+            .Where(schedule => schedule.MenuVersionId != null && schedule.MenuVersionId.SequenceEqual(version.MenuVersionId))
+            .ToListAsync(cancellationToken);
+        var menuIds = schedules.Select(schedule => schedule.MenuId).ToList();
+
+        var menuItems = await _context.Menuitems
+            .Where(item => menuIds.Any(id => item.MenuId.SequenceEqual(id)))
+            .ToListAsync(cancellationToken);
+        _context.Menuitems.RemoveRange(menuItems);
+
+        var scheduleCount = schedules.Count;
+        _context.Menuschedules.RemoveRange(schedules);
+
+        var menus = await _context.Menus
+            .Where(menu => menuIds.Any(id => menu.MenuId.SequenceEqual(id)))
+            .ToListAsync(cancellationToken);
+        _context.Menus.RemoveRange(menus);
+
+        var oldStatus = version.Status;
+        version.Status = "ROLLED_BACK";
+        version.UpdatedAt = DateTime.UtcNow;
+
+        var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
+        _context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = actorId,
+            BusinessArea = "Menu",
+            EntityName = nameof(Menuversion),
+            EntityId = version.MenuVersionId,
+            FieldName = "Status",
+            OldValue = oldStatus,
+            NewValue = "ROLLED_BACK",
+            Reason = $"Rollback lần import {version.SourceImportBatch} theo yêu cầu người dùng."
+        });
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        return new RollbackWeeklyMenuImportResultDto
+        {
+            MenuVersionId = menuVersionId,
+            MenuSchedulesRemoved = scheduleCount
+        };
     }
 
     private static void ApplyMenuVersion(WeeklyMenuImportResultDto result, Menuversion? version)
@@ -1350,6 +2078,7 @@ public partial class SampleDataImportService
 
     private sealed record WeeklyMenuSheetCandidate(
         string SheetName,
+        IReadOnlyList<XlsxWorkbookReader.XlsxRowData> RawRows,
         IReadOnlyList<IReadOnlyDictionary<string, string>> Rows,
         int Score);
 
@@ -1357,7 +2086,8 @@ public partial class SampleDataImportService
         string Column,
         DateOnly ServiceDate,
         string DayKey,
-        string Label);
+        string Label,
+        int? RowNumber);
 
     private sealed record WeeklyMenuSection(
         string SectionLabel,
@@ -1377,7 +2107,8 @@ public partial class SampleDataImportService
             DateOnly weekStartDate,
             DateOnly weekEndDate,
             int rowsScanned,
-            IReadOnlyList<WeeklyMenuImportDayColumn> dayColumns)
+            IReadOnlyList<WeeklyMenuImportDayColumn> dayColumns,
+            DateOnly? requestedWeekStartDate)
         {
             FileName = fileName;
             SheetName = sheetName;
@@ -1386,6 +2117,7 @@ public partial class SampleDataImportService
             WeekEndDate = weekEndDate;
             RowsScanned = rowsScanned;
             DayColumns = dayColumns;
+            RequestedWeekStartDate = requestedWeekStartDate;
         }
 
         public string FileName { get; }
@@ -1393,6 +2125,7 @@ public partial class SampleDataImportService
         public string LabelColumn { get; }
         public DateOnly WeekStartDate { get; }
         public DateOnly WeekEndDate { get; }
+        public DateOnly? RequestedWeekStartDate { get; }
         public int RowsScanned { get; }
         public int RowsSkipped { get; set; }
         public string? SourceChecksum { get; set; }
@@ -1451,6 +2184,7 @@ public partial class SampleDataImportService
                     ? "MORNING"
                     : "AFTERNOON";
 
+                // 2. Find menuschedule
                 var schedule = await _context.Menuschedules
                     .Include(s => s.Menu)
                         .ThenInclude(m => m.Menuitems)
@@ -1513,6 +2247,8 @@ public partial class SampleDataImportService
         public int SourceOrder { get; set; }
         public DateOnly ServiceDate { get; set; }
         public string DayKey { get; set; } = string.Empty;
+        public int SourceRowNumber { get; set; }
+        public string SourceColumn { get; set; } = string.Empty;
         public string SectionLabel { get; set; } = string.Empty;
         public string SectionKey { get; set; } = string.Empty;
         public string SourceShift { get; set; } = string.Empty;
@@ -1523,6 +2259,8 @@ public partial class SampleDataImportService
         public string Slot { get; set; } = string.Empty;
         public string SlotLabel { get; set; } = string.Empty;
         public string DishName { get; set; } = string.Empty;
+        public int RowSpan { get; set; } = 1;
+        public bool IsMergedContinuation { get; set; }
         public string? DishId { get; set; }
         public bool ExistingDish { get; set; }
     }

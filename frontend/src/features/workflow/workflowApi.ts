@@ -9,7 +9,6 @@ import {
 } from './workflowConfig';
 import type {
   ApprovalRecord,
-  ApprovalType,
   DemandLine,
   RoleInboxItem,
   StockMovement,
@@ -20,22 +19,390 @@ import type {
   WorkflowTone,
 } from './types';
 
-export interface SupplierDto {
-  supplierId: string;
-  supplierCode?: string;
-  supplierName?: string;
-}
-
 export interface WorkflowReportQuery {
-
   serviceDate?: string;
   dateFrom?: string;
   dateTo?: string;
+  customerId?: string;
   warehouseId?: string;
   ingredientId?: string;
   supplierId?: string;
   shiftName?: string;
+  cursorDate?: string;
+  cursorId?: string;
   limit?: number;
+  sortDirection?: 'asc' | 'desc';
+  actor?: string;
+  businessArea?: string;
+  entityName?: string;
+  fieldName?: string;
+  movementType?: string;
+  groupBy?: 'day' | 'week';
+  priceTier?: number;
+  warningOnly?: boolean;
+}
+
+export interface WorkflowReportPageQuery extends WorkflowReportQuery {
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface MaterialRequestCandidatePageQuery extends WorkflowReportPageQuery {
+  purpose: 'purchase' | 'issue';
+}
+
+export type CurrentStockPageQuery = WorkflowReportPageQuery;
+export type ReceiptPriceVariancePageQuery = WorkflowReportPageQuery;
+export type PriceVarianceAggregatePageQuery = WorkflowReportPageQuery;
+
+export interface PageNumberPage<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+export interface CursorPage<T> {
+  items: T[];
+  limit: number;
+  hasNext: boolean;
+  nextCursorDate?: string;
+  nextCursorId?: string;
+}
+
+export interface ApprovalInboxQuery {
+  limit?: number;
+  cursor?: string;
+}
+
+export interface ApprovalInboxPage {
+  items: ApprovalRecord[];
+  limit: number;
+  hasNext: boolean;
+  nextCursor?: string | null;
+}
+
+export interface PurchaseRequestQuery {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseRequestResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: Array<{
+    purchaseRequestLineId: string;
+    materialRequestLineId: string;
+    ingredientId: string;
+    ingredientName: string;
+    supplierId: string;
+    supplierName: string;
+    unitId: string;
+    unitName: string;
+    requiredQty: number;
+    currentStockQty: number;
+    purchaseQty: number;
+    estimatedUnitPrice: number;
+    expectedDeliveryDate?: string;
+    note?: string;
+  }>;
+}
+
+export interface PurchaseWorkbenchQuery {
+  week: string;
+  date?: string;
+  stage?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+export interface PurchaseWorkflowStageCounts {
+  demand: number;
+  supplierPrice: number;
+  exception: number;
+  submittedRequest: number;
+  approvedOrder: number;
+  receivingProgress: number;
+}
+
+export type SupplierEvidenceType = 'EffectiveQuotation' | 'LatestValidReceipt';
+
+export interface SupplierEvidenceCandidate {
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  evidenceDate: string;
+  supplierId: string;
+  supplierName: string;
+  ingredientId: string;
+  unitId: string;
+  unitName: string;
+  unitPrice: number;
+  effectiveFrom?: string | null;
+  effectiveTo?: string | null;
+}
+
+export interface SupplierEvidenceResult {
+  candidates: SupplierEvidenceCandidate[];
+  blocker?: string | null;
+  diagnostics: string[];
+}
+
+export interface PurchaseLineSupplierDecision {
+  purchaseLineSupplierDecisionId: string;
+  supplierId: string;
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  evidenceDate: string;
+  evidenceReferencePrice: number;
+  proposedUnitPrice: number;
+  proposedDeliveryDate: string;
+  confirmedBy: string;
+  confirmedAt: string;
+  decisionFingerprint: string;
+  version: number;
+  status: string;
+  supersededByDecisionId?: string | null;
+  concurrencyVersion: number;
+}
+
+export interface PurchaseRequestWorkflowLine {
+  purchaseRequestLineId: string;
+  materialRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  supplierId?: string | null;
+  supplierName?: string | null;
+  unitId: string;
+  unitName: string;
+  requiredQty: number;
+  currentStockQty: number;
+  purchaseQty: number;
+  estimatedUnitPrice: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
+  supplierDecisionStatus: string;
+  currentSupplierDecision?: PurchaseLineSupplierDecision | null;
+  supplierDecisionHistory: PurchaseLineSupplierDecision[];
+}
+
+export interface ApprovedDemandSummary {
+  materialRequestId: string;
+  requestCode: string;
+  serviceDate: string;
+  scope: string;
+  status: string;
+  shortageLineCount: number;
+  currentStage: string;
+  purchaseRequestId?: string | null;
+  purchaseRequestCode?: string | null;
+  purchaseRequestStatus?: string | null;
+}
+
+export interface PurchaseWorkbenchServiceDate {
+  serviceDate: string;
+  scope: string;
+  currentStage: string;
+  approvedDemandCount: number;
+  shortageLineCount: number;
+  supplierReadyLineCount: number;
+  blockingExceptionCount: number;
+  purchaseRequestId?: string | null;
+  purchaseRequestCode?: string | null;
+  purchaseRequestStatus?: string | null;
+  orderCount: number;
+  receivingLineCount: number;
+  fullyReceivedLineCount: number;
+  approvedDemands: ApprovedDemandSummary[];
+  purchaseLines: PurchaseRequestWorkflowLine[];
+}
+
+export interface PurchaseWorkbenchWeek {
+  weekStart: string;
+  weekEnd: string;
+  selectedDate?: string | null;
+  selectedStage?: string | null;
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+  stageCounts: PurchaseWorkflowStageCounts;
+  serviceDates: PurchaseWorkbenchServiceDate[];
+}
+
+export interface SupplierEvidenceQuery {
+  purchaseRequestId: string;
+  purchaseRequestLineId: string;
+}
+
+export interface ConfirmPurchaseLineSupplierData {
+  evidenceType: SupplierEvidenceType;
+  evidenceId: string;
+  supplierId: string;
+  proposedUnitPrice: number;
+  proposedDeliveryDate: string;
+  expectedDecisionVersion: number;
+  note?: string | null;
+}
+
+export interface ConfirmPurchaseLineSupplierRequest extends SupplierEvidenceQuery {
+  week: string;
+  data: ConfirmPurchaseLineSupplierData;
+}
+
+export interface ApprovalHistoryItem {
+  historyId: string;
+  targetType: string;
+  targetId: string;
+  decision: string;
+  oldStatus?: string;
+  newStatus?: string;
+  reason?: string;
+  actionBy: string;
+  actionByName: string;
+  actionAt: string;
+}
+
+export interface CreateInventoryReceiptFromPurchaseLineRequest {
+  purchaseRequestLineId: string;
+  unitId: string;
+  receivedQty: number;
+  unitPrice?: number;
+  lotNumber?: string;
+  manufactureDate?: string;
+  expiredDate?: string;
+}
+
+export interface CreateInventoryReceiptFromPurchaseRequest {
+  purchaseRequestId: string;
+  receiptDate: string;
+  supplierId: string;
+  warehouseId: string;
+  lines: CreateInventoryReceiptFromPurchaseLineRequest[];
+}
+
+export interface WarehouseDto {
+  warehouseId: string;
+  warehouseCode: string;
+  warehouseName: string;
+  warehouseType?: string | null;
+  note?: string | null;
+}
+
+export interface GeneratePurchaseRequestFromDemandRequest {
+  materialRequestId: string;
+}
+
+export interface PurchaseRequestWorkflowResult {
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  materialRequestId: string;
+  purchaseForDate: string;
+  shiftName?: string;
+  status: string;
+  lines: PurchaseRequestResult['lines'];
+}
+
+export interface InventoryReceiptCreatedResult {
+  receiptId: string;
+  receiptCode: string;
+}
+
+export interface CreateInventoryIssueLineRequest {
+  ingredientId: string;
+  requestedQty: number;
+  issuedQty: number;
+  unitId: string;
+}
+
+export interface CreateInventoryIssueRequest {
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  materialRequestId: string;
+  receivedBy?: string;
+  lines: CreateInventoryIssueLineRequest[];
+}
+
+export interface CreateSupplementalMaterialRequest {
+  issueId: string;
+  issueLineId: string;
+  requestedQty: number;
+  reason?: string;
+}
+
+export interface SupplementalMaterialRequestResult {
+  requestId: string;
+  requestCode: string;
+  issueId: string;
+  issueCode: string;
+  issueLineId: string;
+  warehouseId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  requestedQty: number;
+  reason?: string;
+  status: string;
+  requestedAt: string;
+}
+
+export interface InventoryIssueCreatedResult {
+  issueId: string;
+  issueCode: string;
+}
+
+export interface CreateInventoryReturnLineRequest {
+  ingredientId: string;
+  quantity: number;
+  unitId: string;
+}
+
+export interface CreateInventoryReturnRequest {
+  returnDate: string;
+  shiftName?: string;
+  returnType?: 'RETURN' | 'WASTE';
+  warehouseId: string;
+  issueId: string;
+  reason: string;
+  lines: CreateInventoryReturnLineRequest[];
+}
+
+export interface InventoryReturnCreatedResult {
+  returnId: string;
+  returnCode: string;
+}
+
+export interface ConfirmInventoryIssueReceiptRequest {
+  issueId: string;
+  hasDiscrepancy?: boolean;
+  discrepancyNote?: string;
+}
+
+export interface InventoryIssueResult {
+  issueId: string;
+  issueCode: string;
+  issueDate: string;
+  shiftName?: string;
+  warehouseId: string;
+  warehouseName?: string;
+  materialRequestId: string;
+  issuedBy: string;
+  issuedByName?: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  createdAt: string;
 }
 
 interface WorkflowDocumentDto {
@@ -62,32 +429,234 @@ interface IngredientDemandReportDto {
   ingredientName?: string;
   unitId: string;
   unitName?: string;
+  bomId?: string | null;
+  priceTierAmount?: number;
+  bomScope?: string;
   totalServings: number;
+  bomRatePercent?: number;
+  appliedPortionRuleId?: string | null;
+  appliedPortionRuleSource?: string;
+  appliedPortionRatePercent?: number;
+  yieldLossPercent?: number | null;
   totalRequiredQty: number;
   currentStockQty: number;
   suggestedPurchaseQty: number;
 }
 
-interface PurchaseDemandReportDto {
-  purchaseRequestLineId: string;
-  purchaseRequestId: string;
-  purchaseRequestCode: string;
-  purchaseForDate: string;
-  shiftName?: string;
+interface IngredientDemandPageResponseDto {
+  items: IngredientDemandReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
+export interface MaterialRequestCandidate {
+  materialRequestId: string;
+  materialRequestCode: string;
+  requestDate: string;
+  requestScope: string;
   status: string;
+  actionableLineCount: number;
+  actionableQuantity: number;
+  hasExistingPurchaseRequest: boolean;
+}
+
+interface IngredientDemandAggregateReportDto {
+  requestDate: string;
   ingredientId: string;
   ingredientName?: string;
-  supplierId: string;
-  supplierName?: string;
+  unitId: string;
+  unitName?: string;
+  totalRequiredQty: number;
+  currentStockQty: number;
+  suggestedPurchaseQty: number;
+  lineCount: number;
+  hasCancelledLine: boolean;
+}
+
+interface IngredientDemandAggregatePageResponseDto {
+  items: IngredientDemandAggregateReportDto[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  shortageCount: number;
+}
+
+export interface PurchasePlanRow {
+  periodKey: string;
+  groupBy: 'day' | 'week';
+  periodStart: string;
+  periodEnd: string;
+  ingredientId: string;
+  ingredientName?: string;
   unitId: string;
   unitName?: string;
   requiredQty: number;
   currentStockQty: number;
-  purchaseQty: number;
+  pendingReceiptQty: number;
+  shortageQty: number;
+  suggestedPurchaseQty: number;
   estimatedUnitPrice: number;
   estimatedAmount: number;
+  supplierId?: string | null;
+  supplierName?: string | null;
+  expectedDeliveryDate?: string | null;
+  warnings: string[];
 }
 
+interface PurchasePlanPageResponseDto {
+  items: PurchasePlanRow[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+  totalShortageQty: number;
+  totalEstimatedAmount: number;
+}
+
+export interface ProductionPlanLine {
+  planLineId: string;
+  dishId: string;
+  dishName?: string | null;
+  shiftName?: string | null;
+  totalServings: number;
+  priceTierAmount?: number | null;
+  bomScope?: string | null;
+  totalRequiredQty: number;
+  suggestedPurchaseQty: number;
+  hasKitchenIssue: boolean;
+  isReceivedByKitchen: boolean;
+}
+
+export interface ProductionPlan {
+  planId: string;
+  planCode: string;
+  planDate: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  status?: string | null;
+  sentToKitchenAt?: string | null;
+  sentToKitchenByName?: string | null;
+  lines: ProductionPlanLine[];
+}
+
+export interface DailyProductionPlan {
+  serviceDate: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  shiftName?: string | null;
+  totalPlans: number;
+  sentPlans: number;
+  totalDishes: number;
+  totalServings: number;
+  totalRequiredQty: number;
+  suggestedPurchaseQty: number;
+  warnings: string[];
+  plans: ProductionPlan[];
+}
+
+export interface SendDailyProductionPlanRequest {
+  serviceDate: string;
+  customerId?: string;
+  shiftName?: string;
+  reason?: string;
+}
+
+interface ApprovalInboxItemDto {
+  inboxItemId: string;
+  targetType: string;
+  targetId: string;
+  targetCode: string;
+  itemType: string;
+  title: string;
+  source: string;
+  ownerRole: string;
+  submittedBy: string;
+  dueDate?: string | null;
+  status: string;
+  reason: string;
+  nextAction: string;
+  tone: WorkflowTone;
+  route: string;
+  weekStartDate?: string | null;
+  serviceDate?: string | null;
+  scope?: string | null;
+  lineCount?: number | null;
+  totalQuantity?: number | null;
+  totalValue?: number | null;
+  submittedAt?: string | null;
+  slaDeadline?: string | null;
+  slaHours?: number | null;
+  referencePrice?: number | null;
+  proposedPrice?: number | null;
+  variancePercent?: number | null;
+  evidenceType?: string | null;
+  evidenceId?: string | null;
+  evidenceDate?: string | null;
+  proposalFingerprint?: string | null;
+  proposalVersion?: number | null;
+  supplierName?: string | null;
+  sourceDocumentCode?: string | null;
+  materials: Array<{
+    name: string;
+    quantity: number;
+    unit: string;
+  }>;
+}
+
+export interface ApprovalRuleDto {
+  ruleId?: string;
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  createdAt?: string;
+  approvalassignments?: ApprovalAssignmentDto[];
+}
+
+export interface ApprovalAssignmentDto {
+  assignmentId?: string;
+  ruleId?: string;
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+  approverUser?: {
+    userId: string;
+    fullName: string;
+    username: string;
+  } | null;
+}
+
+export interface ApprovalAssignmentRequestDto {
+  sequence: number;
+  approverRole: string;
+  approverUserId?: string | null;
+  isRequired: boolean;
+}
+
+export interface ApprovalRuleRequestDto {
+  ruleName: string;
+  documentType: string;
+  minAmount?: number | null;
+  maxAmount?: number | null;
+  slaHours?: number | null;
+  isActive: boolean;
+  assignments: ApprovalAssignmentRequestDto[];
+}
 
 interface StockMovementViewDto {
   movementId: string;
@@ -101,10 +670,164 @@ interface StockMovementViewDto {
   movementType: string;
   quantityIn: number;
   quantityOut: number;
+  beforeQty?: number;
+  afterQty?: number;
   refTable?: string;
   refId?: string;
   reason?: string;
   note?: string;
+}
+
+interface StockLedgerReconciliationDto {
+  warehouseId: string;
+  warehouseName?: string;
+  ingredientId: string;
+  ingredientName?: string;
+  unitId: string;
+  unitName?: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
+}
+
+export interface SupplierDto {
+  supplierId: string;
+  supplierCode: string;
+  supplierName: string;
+}
+
+export interface UpdatePurchaseRequestLineSupplierDto {
+  supplierId: string;
+  estimatedUnitPrice: number;
+  expectedDeliveryDate?: string | null;
+  note?: string | null;
+}
+
+export interface SupplierQuotationDto {
+  quotationId: string;
+  supplierId: string;
+  supplierName: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+  isBestPrice: boolean;
+}
+
+export interface CreateSupplierQuotationDto {
+  supplierId: string;
+  ingredientId: string;
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+}
+
+export interface UpdateSupplierQuotationDto {
+  unitPrice: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  note?: string | null;
+  isActive: boolean;
+}
+
+export interface PurchaseOrderLineDto {
+  purchaseOrderLineId: string;
+  purchaseRequestLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  unitId: string;
+  unitName: string;
+  orderedQty: number;
+  receivedQty: number;
+  unitPrice: number;
+  lotNumberRequired: boolean;
+  manufactureDateRequired: boolean;
+  expiryDateRequired: boolean;
+  blockerReason?: string | null;
+}
+
+export interface PurchaseOrderDto {
+  purchaseOrderId: string;
+  purchaseOrderCode: string;
+  purchaseRequestId: string;
+  purchaseRequestCode: string;
+  supplierId: string;
+  supplierName: string;
+  orderDate: string;
+  status: string;
+  lines: PurchaseOrderLineDto[];
+}
+
+export interface PurchaseReceiptEvidenceRequirements {
+  purchaseOrderLineId: string;
+  ingredientId: string;
+  ingredientName: string;
+  lotNumberRequired: boolean;
+  manufactureDateRequired: boolean;
+  expiryDateRequired: boolean;
+  blockerReason?: string | null;
+}
+
+export interface WarehousePurchaseReceiptLineRequest {
+  purchaseOrderLineId: string;
+  actualQuantity: number;
+  actualUnitId: string;
+  actualUnitPrice: number;
+  lotNumber?: string | null;
+  manufactureDate?: string | null;
+  expiryDate?: string | null;
+  packageQuantity?: number | null;
+  packageBaseUnitId?: string | null;
+  packagePolicyVersion?: string | null;
+}
+
+export interface WarehousePurchaseReceiptRequest {
+  purchaseOrderId: string;
+  idempotencyKey: string;
+  warehouseId: string;
+  receiptDate: string;
+  lines: WarehousePurchaseReceiptLineRequest[];
+}
+
+export interface WarehousePurchaseReceiptResult {
+  receiptId: string;
+  purchaseOrderId: string;
+  idempotencyKey: string;
+  purchaseOrderStatus: string;
+  evidenceRequirements: PurchaseReceiptEvidenceRequirements[];
+}
+
+export interface RecordWarehousePurchaseReceiptRequest {
+  week?: string;
+  data: WarehousePurchaseReceiptRequest;
+}
+
+interface ApprovalInboxPageDto {
+  items: ApprovalInboxItemDto[];
+  limit: number;
+  hasNext: boolean;
+  nextCursor?: string | null;
+}
+
+export interface PurchaseOrderPageResponse {
+  page: PageNumberPage<PurchaseOrderDto>;
+  orderCountByRequest: Record<string, number>;
+}
+
+export interface RecordPurchaseOrderReceiptLineDto {
+  purchaseOrderLineId: string;
+  receivedQty: number;
+}
+
+export interface RecordPurchaseOrderReceiptDto {
+  warehouseId: string;
+  lines: RecordPurchaseOrderReceiptLineDto[];
 }
 
 interface ReceiptPriceVarianceReportDto {
@@ -122,6 +845,61 @@ interface ReceiptPriceVarianceReportDto {
   referencePrice: number;
   variancePercent: number;
   isWarning: boolean;
+}
+
+export interface PriceVarianceBySupplierDto {
+  ingredientId: string;
+  ingredientName?: string;
+  supplierId: string;
+  supplierName?: string;
+  receiptCount: number;
+  avgUnitPrice: number;
+  minUnitPrice: number;
+  maxUnitPrice: number;
+  referencePrice: number;
+  variancePercent: number;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceByPeriodDto {
+  ingredientId: string;
+  ingredientName?: string;
+  periodLabel: string;
+  periodStart: string;
+  avgUnitPrice: number;
+  referencePrice: number;
+  variancePercentVsReference: number;
+  variancePercentVsPreviousPeriod?: number | null;
+  isWarning: boolean;
+}
+
+export interface PriceVarianceDishGroupIngredientDto {
+  ingredientName: string;
+  variancePercent: number;
+  weight: number;
+}
+
+export interface PriceVarianceByDishGroupDto {
+  dishGroup: string;
+  ingredientCount: number;
+  warningIngredientCount: number;
+  weightedAvgVariancePercent: number;
+  topIngredients: PriceVarianceDishGroupIngredientDto[];
+}
+
+export interface OperationalKpiSummaryDto {
+  shortageCount: number;
+  lowStockCount: number;
+  overduePurchaseRequestCount: number;
+  lateReceiptCount: number;
+  pendingKitchenConfirmationCount: number;
+  failedWorkflowCount: number;
+  criticalDataQualityCount: number;
+  overdueApprovalCount: number;
+  totalKitchenIssuedQty: number;
+  totalKitchenUsedQty: number;
+  totalKitchenReturnedQty: number;
+  generatedAt: string;
 }
 
 interface CurrentStockSummaryDto {
@@ -148,90 +926,12 @@ interface KitchenIssueReportDto {
   unitName?: string;
   requestedQty: number;
   issuedQty: number;
-}
-
-export interface WarehouseDto {
-  warehouseId: string;
-  warehouseCode: string;
-  warehouseName: string;
-  warehouseType?: string;
-  note?: string;
-}
-
-export interface PagedResponseDto<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  hasPrev: boolean;
-  hasNext: boolean;
-}
-
-export interface CreateInventoryReceiptLineDto {
-  ingredientId: string;
-  quantity: number;
-  unitId: string;
-  unitPrice: number;
-  lotNumber?: string;
-  manufactureDate?: string;
-  expiredDate?: string;
-}
-
-export interface CreateInventoryReceiptDto {
-  receiptDate: string;
-  supplierId: string;
-  warehouseId: string;
-  purchaseRequestId?: string;
-  lines: CreateInventoryReceiptLineDto[];
-}
-
-export interface InventoryReceiptCreatedDto {
-  receiptId: string;
-  receiptCode: string;
-}
-
-export interface CreateInventoryIssueLineDto {
-  ingredientId: string;
-  requestedQty: number;
-  issuedQty: number;
-  unitId: string;
-}
-
-export interface CreateInventoryIssueDto {
-  issueDate: string;
-  shiftName?: string;
-  warehouseId: string;
-  materialRequestId: string;
   receivedBy?: string;
-  lines: CreateInventoryIssueLineDto[];
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
-
-export interface InventoryIssueCreatedDto {
-  issueId: string;
-  issueCode: string;
-}
-
-export interface CreateInventoryReturnLineDto {
-  ingredientId: string;
-  quantity: number;
-  unitId: string;
-}
-
-export interface CreateInventoryReturnDto {
-  returnDate: string;
-  shiftName?: string;
-  warehouseId: string;
-  issueId: string;
-  reason?: string;
-  lines: CreateInventoryReturnLineDto[];
-}
-
-export interface InventoryReturnCreatedDto {
-  returnId: string;
-  returnCode: string;
-}
-
 
 interface IssueVsReturnUsageReportDto {
   issueId: string;
@@ -244,7 +944,9 @@ interface IssueVsReturnUsageReportDto {
   unitName?: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 interface AuditChangeReportDto {
@@ -265,6 +967,11 @@ interface DataQualityIssueDto {
   issueId: string;
   category: string;
   severity: 'error' | 'warning' | string;
+  owner?: string;
+  priorityRank?: number;
+  slaHours?: number;
+  slaDueAt?: string;
+  slaLabel?: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -272,6 +979,10 @@ interface DataQualityIssueDto {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus?: 'open' | 'resolved' | 'reopened' | string;
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 interface DataQualityReportDto {
@@ -279,11 +990,29 @@ interface DataQualityReportDto {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount?: number;
+  reopenedIssueCount?: number;
+  urgentIssueCount?: number;
   missingBomCount: number;
   invalidUnitCount: number;
+  missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueDto[];
+}
+
+interface PageNumberPageDto<T> {
+  items: T[];
+  totalCount: number;
+  pageNumber: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrev: boolean;
+  hasNext: boolean;
+}
+
+interface DataQualityPageDto extends DataQualityReportDto {
+  page: PageNumberPageDto<DataQualityIssueDto>;
 }
 
 interface MissingBomDishDto {
@@ -297,6 +1026,17 @@ interface MissingBomDishDto {
   menuName: string;
   shiftName: string;
   totalServings: number;
+  message: string;
+}
+
+interface MissingUnitConversionIssueDto {
+  issueId: string;
+  ingredientId: string;
+  ingredientName: string;
+  sourceUnitId: string;
+  sourceUnitName: string;
+  targetUnitId: string;
+  targetUnitName: string;
   message: string;
 }
 
@@ -319,17 +1059,36 @@ interface MaterialDemandResultDto {
     totalServings: number;
     grossQtyPerServing: number;
     bomRatePercent: number;
+    appliedPortionRuleId?: string | null;
+    appliedPortionRuleSource?: string;
+    appliedPortionRatePercent?: number;
+    yieldLossPercent?: number | null;
     totalRequiredQty: number;
     currentStockQty: number;
     suggestedPurchaseQty: number;
   }>;
   missingBomDishes: MissingBomDishDto[];
+  missingConversionIssues: MissingUnitConversionIssueDto[];
 }
 
 export interface GenerateMaterialDemandRequest {
   serviceDate: string;
+  customerId?: string;
   shiftName?: string;
   scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
+}
+
+export interface MaterialDemandStalenessQuery {
+  serviceDate: string;
+  customerId?: string;
+  scope?: 'FULLDAY' | 'MORNING' | 'AFTERNOON';
+}
+
+export interface MaterialDemandStaleness {
+  hasExistingPlan: boolean;
+  isStale: boolean;
+  lastGeneratedAt?: string | null;
+  reasons: string[];
 }
 
 interface PurchaseRequestWorkflowResultDto {
@@ -355,8 +1114,12 @@ interface PurchaseRequestWorkflowResultDto {
   }>;
 }
 
-export interface GeneratePurchaseRequestFromDemandRequest {
-  materialRequestId: string;
+export interface ApprovalDecisionRequest {
+  targetType: string;
+  targetId: string;
+  status: 'Approve' | 'Reject';
+  reason?: string | null;
+  week?: string;
 }
 
 export interface PriceVarianceRow {
@@ -374,6 +1137,7 @@ export interface AuditLogRow {
   id: string;
   timestamp: string;
   actor: string;
+  businessArea: string;
   fieldAffected: string;
   oldValue: string;
   newValue: string;
@@ -382,25 +1146,45 @@ export interface AuditLogRow {
 
 export interface CurrentStockRow {
   id: string;
+  warehouseId: string;
   warehouse: string;
   ingredient: string;
   unit: string;
   currentQty: number;
   lastUpdated: string;
-  ingredientId?: string;
-  unitId?: string;
+}
+
+export interface StockLedgerReconciliationRow {
+  id: string;
+  warehouse: string;
+  ingredient: string;
+  unit: string;
+  currentQty: number;
+  ledgerQty: number;
+  differenceQty: number;
+  isMatched: boolean;
+  lastMovementAt?: string;
 }
 
 export interface KitchenIssueRow {
   id: string;
+  issueId: string;
   issueCode: string;
   issueDate: string;
   shiftName?: string;
+  warehouseId: string;
   warehouse: string;
+  ingredientId: string;
   ingredient: string;
+  unitId: string;
   unit: string;
   requestedQty: number;
   issuedQty: number;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  isReceivedByKitchen: boolean;
+  receiptStatus: string;
 }
 
 export interface UsageReportRow {
@@ -412,13 +1196,20 @@ export interface UsageReportRow {
   unit: string;
   issuedQty: number;
   returnedQty: number;
+  wastedQty: number;
   usedQty: number;
+  varianceQty: number;
 }
 
 export interface DataQualityIssueRow {
   id: string;
   category: string;
   severity: 'error' | 'warning';
+  owner: string;
+  priorityRank: number;
+  slaHours: number;
+  slaDueAt?: string;
+  slaLabel: string;
   entityName: string;
   entityId?: string;
   entityCode: string;
@@ -426,6 +1217,10 @@ export interface DataQualityIssueRow {
   message: string;
   suggestedAction: string;
   route: string;
+  remediationStatus: 'open' | 'resolved' | 'reopened';
+  remediationAt?: string;
+  remediationByName?: string;
+  remediationNote?: string;
 }
 
 export interface DataQualityReport {
@@ -433,14 +1228,73 @@ export interface DataQualityReport {
   totalIssues: number;
   errorCount: number;
   warningCount: number;
+  resolvedIssueCount: number;
+  reopenedIssueCount: number;
+  urgentIssueCount: number;
   missingBomCount: number;
   invalidUnitCount: number;
+  missingConversionCount: number;
   negativeStockCount: number;
   orphanDocumentCount: number;
   issues: DataQualityIssueRow[];
 }
 
-const getData = <T>(response: ApiResponse<T[]>): T[] => response.data ?? [];
+export interface DataQualityPageReport extends DataQualityReport {
+  page: PageNumberPage<DataQualityIssueRow>;
+}
+
+export interface DataQualityIssueRemediationRequest {
+  issueId: string;
+  action: 'resolve' | 'reopen';
+  note?: string;
+}
+
+interface CursorPageDto<T> {
+  items?: T[];
+  limit: number;
+  hasNext: boolean;
+  nextCursorDate?: string;
+  nextCursorId?: string;
+}
+
+export interface DataQualityIssueRemediationResult {
+  issueId: string;
+  remediationStatus: 'resolved' | 'reopened';
+  remediationAt: string;
+  note?: string;
+}
+
+const getData = <T>(response: ApiResponse<T>): T => response.data as T;
+const emptyDailyProductionPlan = (): DailyProductionPlan => ({
+  serviceDate: '',
+  totalPlans: 0,
+  sentPlans: 0,
+  totalDishes: 0,
+  totalServings: 0,
+  totalRequiredQty: 0,
+  suggestedPurchaseQty: 0,
+  warnings: [],
+  plans: [],
+});
+
+const normalizeDailyProductionPlan = (response: ApiResponse<DailyProductionPlan> | DailyProductionPlan | unknown): DailyProductionPlan => {
+  const maybeData =
+    response && typeof response === 'object' && 'data' in response
+      ? (response as ApiResponse<DailyProductionPlan>).data
+      : response;
+
+  if (!maybeData || typeof maybeData !== 'object' || Array.isArray(maybeData)) {
+    return emptyDailyProductionPlan();
+  }
+
+  const plan = maybeData as Partial<DailyProductionPlan>;
+  return {
+    ...emptyDailyProductionPlan(),
+    ...plan,
+    warnings: Array.isArray(plan.warnings) ? plan.warnings : [],
+    plans: Array.isArray(plan.plans) ? plan.plans : [],
+  };
+};
 
 const queryWithLimit = (query?: WorkflowReportQuery) => ({
   limit: 100,
@@ -448,8 +1302,8 @@ const queryWithLimit = (query?: WorkflowReportQuery) => ({
 });
 
 const normalizeDocumentType = (type: string): WorkflowDocumentType => {
-  if (type.includes('mua')) return 'Danh sách mua thêm';
   if (type.includes('Đề nghị')) return 'Đơn mua';
+  if (type.includes('mua')) return 'Đơn mua';
   if (type.includes('nhập')) return 'Phiếu nhập';
   if (type.includes('xuất')) return 'Phiếu xuất';
   if (type.includes('hoàn')) return 'Phiếu trả';
@@ -465,7 +1319,6 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
   return {
     id: item.documentCode || item.documentId,
-    documentId: item.documentId,
     type,
     title: item.documentType,
     status: item.status,
@@ -482,76 +1335,94 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
 const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   const shortage = Math.max(item.suggestedPurchaseQty, 0);
-  const tone: WorkflowTone = shortage > 0 ? 'danger' : 'success';
+  const isCancelled = item.status?.toUpperCase() === 'CANCELLED';
+  const tone: WorkflowTone = isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success';
 
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
+    materialRequestStatus: item.status,
+    ingredientId: item.ingredientId,
+    bomId: item.bomId,
+    priceTierAmount: item.priceTierAmount,
+    bomScope: item.bomScope,
     sourceDocumentCode: item.materialRequestCode,
+    serviceDate: item.requestDate?.split('T')[0],
     material: item.ingredientName ?? item.ingredientId,
     required: item.totalRequiredQty,
     available: item.currentStockQty,
     reserved: 0,
     unit: item.unitName ?? '',
     source: item.dishName || item.customerName || item.materialRequestCode,
-    status: shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-    nextAction: shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    appliedPortionRuleId: item.appliedPortionRuleId,
+    appliedPortionRuleSource: item.appliedPortionRuleSource,
+    appliedPortionRatePercent: item.appliedPortionRatePercent,
+    bomRatePercent: item.bomRatePercent,
+    yieldLossPercent: item.yieldLossPercent,
+    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+    nextAction: isCancelled ? 'Import menu đã thay đổi, tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
     tone,
-    ingredientId: item.ingredientId,
-    unitId: item.unitId,
   };
 };
 
-const mapPurchaseDemandLine = (item: PurchaseDemandReportDto): DemandLine => {
-  const tone = item.purchaseQty > 0 ? toneFromStatus(item.status) : 'success';
+const mapDemandAggregateLine = (item: IngredientDemandAggregateReportDto): DemandLine => {
+  const shortage = Math.max(item.suggestedPurchaseQty, 0);
+  const serviceDate = item.requestDate?.split('T')[0];
+  const isCancelled = item.hasCancelledLine;
 
   return {
-    id: `${item.purchaseRequestId}-${item.ingredientId}`,
-    sourceDocumentCode: item.purchaseRequestCode,
+    id: `aggregate-${serviceDate}-${item.ingredientId}-${item.unitId}`,
+    ingredientId: item.ingredientId,
+    serviceDate,
     material: item.ingredientName ?? item.ingredientId,
-    required: item.requiredQty,
+    required: item.totalRequiredQty,
     available: item.currentStockQty,
-    reserved: Math.max(item.purchaseQty, 0),
+    reserved: 0,
     unit: item.unitName ?? '',
-    source: item.supplierName || item.purchaseRequestCode,
-    status: item.status,
-    nextAction: item.purchaseQty > 0 ? 'Chọn nhà cung cấp / đặt mua' : 'Không cần mua thêm',
-    tone,
-    purchaseRequestId: item.purchaseRequestId,
-    purchaseRequestLineId: item.purchaseRequestLineId,
-    supplierId: item.supplierId,
-    estimatedUnitPrice: item.estimatedUnitPrice,
-    ingredientId: item.ingredientId,
-    unitId: item.unitId,
+    source: `${item.lineCount} dòng nhu cầu trong ngày`,
+    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
+    nextAction: isCancelled ? 'Tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
+    tone: isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success',
   };
 };
 
-
-const mapApprovalRecord = (item: PurchaseDemandReportDto): ApprovalRecord => {
-  const type: ApprovalType = item.purchaseQty > 0 ? 'purchase' : 'issue';
-  const tone = toneFromStatus(item.status);
-
-  return {
-    id: item.purchaseRequestCode || item.purchaseRequestId,
-    type,
-    title: item.purchaseQty > 0 ? 'Duyệt danh sách mua thêm' : 'Duyệt nhu cầu xuất kho',
-    source: item.purchaseRequestCode,
-    owner: 'Quản lí vận hành',
-    submittedBy: 'KHSX',
-    deadline: item.shiftName ?? 'Trong ca',
-    status: item.status,
-    reason: item.purchaseQty > 0 ? 'Có thiếu hụt sau kiểm tồn kho.' : 'Tồn kho đã đủ để xuất.',
-    nextAction: item.purchaseQty > 0 ? 'Duyệt danh sách mua thêm' : 'Duyệt nhu cầu xuất',
-    tone,
-    materials: [
-      {
-        name: item.ingredientName ?? item.ingredientId,
-        quantity: item.purchaseQty || item.requiredQty,
-        unit: item.unitName ?? '',
-      },
-    ],
-  };
-};
+const mapApprovalInboxItem = (item: ApprovalInboxItemDto): ApprovalRecord => ({
+  id: item.inboxItemId || item.targetCode || item.targetId,
+  targetType: item.targetType,
+  targetId: item.targetId,
+  targetCode: item.targetCode,
+  type: item.itemType === 'price-alert' || item.itemType === 'price-exception' ? 'price-alert' : item.itemType === 'adjustment' ? 'adjustment' : item.itemType === 'issue' ? 'issue' : 'purchase',
+  title: item.title,
+  source: item.source || item.targetCode,
+  owner: item.ownerRole,
+  submittedBy: item.submittedBy,
+  deadline: item.dueDate ? new Date(item.dueDate).toLocaleDateString('vi-VN') : 'Trong ca',
+  status: item.status,
+  reason: item.reason,
+  nextAction: item.nextAction,
+  tone: item.tone ?? toneFromStatus(item.status),
+  slaDeadline: item.slaDeadline,
+  slaHours: item.slaHours,
+  route: item.route,
+  weekStartDate: item.weekStartDate,
+  serviceDate: item.serviceDate,
+  scope: item.scope,
+  lineCount: item.lineCount,
+  totalQuantity: item.totalQuantity,
+  totalValue: item.totalValue,
+  submittedAt: item.submittedAt,
+  referencePrice: item.referencePrice,
+  proposedPrice: item.proposedPrice,
+  variancePercent: item.variancePercent,
+  evidenceType: item.evidenceType,
+  evidenceId: item.evidenceId,
+  evidenceDate: item.evidenceDate,
+  proposalFingerprint: item.proposalFingerprint,
+  proposalVersion: item.proposalVersion,
+  supplierName: item.supplierName,
+  sourceDocumentCode: item.sourceDocumentCode,
+  materials: item.materials ?? [],
+});
 
 const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
   const movementType = item.movementType.toUpperCase();
@@ -572,6 +1443,8 @@ const mapStockMovement = (item: StockMovementViewDto): StockMovement => {
     documentNo: item.refTable ? `${item.refTable}${item.refId ? `-${item.refId.slice(0, 8)}` : ''}` : item.movementId.slice(0, 8),
     material: item.ingredientName ?? item.ingredientId,
     quantity,
+    beforeQty: item.beforeQty,
+    afterQty: item.afterQty,
     unit: item.unitName ?? '',
     owner: item.warehouseName ?? 'Kho',
     status: type === 'receipt' ? 'Đã nhập kho' : type === 'issue' ? 'Đã xuất kho' : type === 'return' ? 'Đã hoàn kho' : 'Đã điều chỉnh tồn',
@@ -593,25 +1466,45 @@ const mapPriceVariance = (item: ReceiptPriceVarianceReportDto): PriceVarianceRow
 
 const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
   ingredient: item.ingredientName ?? item.ingredientId,
   unit: item.unitName ?? '',
   currentQty: item.currentQty,
   lastUpdated: item.lastUpdated,
-  ingredientId: item.ingredientId,
-  unitId: item.unitId,
+});
+
+const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): StockLedgerReconciliationRow => ({
+  id: `${item.warehouseId}-${item.ingredientId}`,
+  warehouse: item.warehouseName ?? item.warehouseId,
+  ingredient: item.ingredientName ?? item.ingredientId,
+  unit: item.unitName ?? item.unitId,
+  currentQty: item.currentQty,
+  ledgerQty: item.ledgerQty,
+  differenceQty: item.differenceQty,
+  isMatched: item.isMatched,
+  lastMovementAt: item.lastMovementAt,
 });
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
   id: `${item.issueId}-${item.ingredientId}`,
+  issueId: item.issueId,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
+  warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
+  ingredientId: item.ingredientId,
   ingredient: item.ingredientName ?? item.ingredientId,
+  unitId: item.unitId,
   unit: item.unitName ?? '',
   requestedQty: item.requestedQty,
   issuedQty: item.issuedQty,
+  receivedBy: item.receivedBy,
+  receivedByName: item.receivedByName,
+  receivedAt: item.receivedAt,
+  isReceivedByKitchen: item.isReceivedByKitchen,
+  receiptStatus: item.receiptStatus,
 });
 
 const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
@@ -623,17 +1516,66 @@ const mapUsageReport = (item: IssueVsReturnUsageReportDto): UsageReportRow => ({
   unit: item.unitName ?? '',
   issuedQty: item.issuedQty,
   returnedQty: item.returnedQty,
+  wastedQty: item.wastedQty,
   usedQty: item.usedQty,
+  varianceQty: item.varianceQty,
 });
 
 const mapAuditChange = (item: AuditChangeReportDto): AuditLogRow => ({
   id: item.auditId,
   timestamp: item.changedAt,
   actor: item.changedByName || item.changedBy,
+  businessArea: item.businessArea,
   fieldAffected: [item.entityName, item.fieldName].filter(Boolean).join(' / '),
   oldValue: item.oldValue ?? '',
   newValue: item.newValue ?? '',
   reason: item.reason ?? item.businessArea,
+});
+
+const mapCursorPage = <TDto, TRow>(
+  page: CursorPageDto<TDto>,
+  mapRow: (item: TDto) => TRow,
+): CursorPage<TRow> => ({
+  items: (page.items ?? []).map(mapRow),
+  limit: page.limit,
+  hasNext: page.hasNext,
+  nextCursorDate: page.nextCursorDate,
+  nextCursorId: page.nextCursorId,
+});
+
+const mapPageNumberPage = <TDto, TRow>(
+  page: PageNumberPage<TDto>,
+  mapRow: (item: TDto) => TRow,
+): PageNumberPage<TRow> => ({
+  items: (page.items ?? []).map(mapRow),
+  totalCount: page.totalCount,
+  pageNumber: page.pageNumber,
+  pageSize: page.pageSize,
+  totalPages: page.totalPages,
+  hasPrev: page.hasPrev,
+  hasNext: page.hasNext,
+});
+
+const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssueRow => ({
+  id: issue.issueId,
+  category: issue.category,
+  severity: issue.severity === 'error' ? 'error' : 'warning',
+  owner: issue.owner || 'Quản lý vận hành',
+  priorityRank: issue.priorityRank ?? (issue.severity === 'error' ? 2 : 4),
+  slaHours: issue.slaHours ?? (issue.severity === 'error' ? 8 : 48),
+  slaDueAt: issue.slaDueAt,
+  slaLabel: issue.slaLabel ?? (issue.severity === 'error' ? 'P2 / 8h' : 'P4 / 48h'),
+  entityName: issue.entityName,
+  entityId: issue.entityId,
+  entityCode: issue.entityCode,
+  entityLabel: issue.entityLabel,
+  message: issue.message,
+  suggestedAction: issue.suggestedAction,
+  route: issue.route,
+  remediationStatus: issue.remediationStatus === 'resolved' ? 'resolved' : issue.remediationStatus === 'reopened' ? 'reopened' : 'open',
+  remediationAt: issue.remediationAt,
+  remediationByName: issue.remediationByName,
+  remediationNote: issue.remediationNote,
 });
 
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
@@ -641,22 +1583,15 @@ const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => 
   totalIssues: item.totalIssues,
   errorCount: item.errorCount,
   warningCount: item.warningCount,
+  resolvedIssueCount: item.resolvedIssueCount ?? 0,
+  reopenedIssueCount: item.reopenedIssueCount ?? 0,
+  urgentIssueCount: item.urgentIssueCount ?? 0,
   missingBomCount: item.missingBomCount,
   invalidUnitCount: item.invalidUnitCount,
+  missingConversionCount: item.missingConversionCount,
   negativeStockCount: item.negativeStockCount,
   orphanDocumentCount: item.orphanDocumentCount,
-  issues: (item.issues ?? []).map((issue) => ({
-    id: issue.issueId,
-    category: issue.category,
-    severity: issue.severity === 'error' ? 'error' : 'warning',
-    entityName: issue.entityName,
-    entityId: issue.entityId,
-    entityCode: issue.entityCode,
-    entityLabel: issue.entityLabel,
-    message: issue.message,
-    suggestedAction: issue.suggestedAction,
-    route: issue.route,
-  })),
+  issues: (item.issues ?? []).map(mapDataQualityIssue),
 });
 
 const buildRoleInbox = (
@@ -746,6 +1681,179 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<WorkflowDocumentDto[]>) => getData(response).map(mapDocument),
       providesTags: ['WorkflowReports'],
     }),
+    getSuppliers: builder.query<SupplierDto[], void>({
+      query: () => '/suppliers',
+      transformResponse: (response: ApiResponse<SupplierDto[]>) => getData(response),
+    }),
+    getWarehouses: builder.query<PageNumberPage<WarehouseDto>, { pageNumber?: number; pageSize?: number } | void>({
+      query: (query) => ({
+        url: '/warehouses',
+        params: { pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 100 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<WarehouseDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 100, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+    }),
+    getWarehouseSelector: builder.query<WarehouseDto[], void>({
+      query: () => '/warehouses/selector',
+      transformResponse: (response: ApiResponse<WarehouseDto[]>) => getData(response),
+    }),
+    getPurchaseWorkbench: builder.query<PurchaseWorkbenchWeek, PurchaseWorkbenchQuery>({
+      query: ({ week, date, stage, page = 1, pageSize = 8 }) => ({
+        url: '/purchase-workflow/workbench',
+        params: {
+          week,
+          ...(date ? { date } : {}),
+          ...(stage ? { stage } : {}),
+          page,
+          pageSize,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PurchaseWorkbenchWeek>) => getData(response),
+      providesTags: (_result, _error, { week }) => [
+        { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
+      ],
+    }),
+    getSupplierEvidence: builder.query<SupplierEvidenceResult, SupplierEvidenceQuery>({
+      query: ({ purchaseRequestId, purchaseRequestLineId }) =>
+        `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier-evidence`,
+      transformResponse: (response: ApiResponse<SupplierEvidenceResult>) => getData(response),
+      providesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId }) => [
+        {
+          type: 'WorkflowReports',
+          id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
+        },
+      ],
+    }),
+    confirmLineSupplier: builder.mutation<PurchaseLineSupplierDecision, ConfirmPurchaseLineSupplierRequest>({
+      query: ({ purchaseRequestId, purchaseRequestLineId, data }) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier-decision`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseLineSupplierDecision>) => getData(response),
+      invalidatesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId, week }) => [
+        {
+          type: 'WorkflowReports',
+          id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
+        },
+        { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+      ],
+    }),
+    recordWarehousePurchaseReceipt: builder.mutation<
+      WarehousePurchaseReceiptResult,
+      RecordWarehousePurchaseReceiptRequest
+    >({
+      query: ({ data }) => ({
+        url: `/warehouse/purchase-orders/${data.purchaseOrderId}/receipts`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
+      invalidatesTags: (_result, _error, { data, week }) => [
+        { type: 'PurchaseOrders', id: data.purchaseOrderId },
+        { type: 'WorkflowReports', id: `PurchaseReceipt:${data.purchaseOrderId}` },
+        ...(week
+          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
+          : []),
+      ],
+    }),
+    updatePurchaseRequestLineSupplier: builder.mutation<
+      ApiResponse<void>,
+      { purchaseRequestId: string; purchaseRequestLineId: string; data: UpdatePurchaseRequestLineSupplierDto }
+    >({
+      query: ({ purchaseRequestId, purchaseRequestLineId, data }) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier`,
+        method: 'PATCH',
+        body: data,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getSupplierQuotationsByIngredient: builder.query<SupplierQuotationDto[], string>({
+      query: (ingredientId) => `/supplier-quotations/ingredient/${ingredientId}`,
+      transformResponse: (response: ApiResponse<SupplierQuotationDto[]>) => getData(response),
+      providesTags: ['SupplierQuotations'],
+    }),
+    getSupplierQuotationsByIngredientPage: builder.query<PageNumberPage<SupplierQuotationDto>, { ingredientId: string; pageNumber?: number; pageSize?: number }>({
+      query: ({ ingredientId, pageNumber = 1, pageSize = 8 }) => ({
+        url: `/supplier-quotations/ingredient/${ingredientId}/page`,
+        params: { pageNumber, pageSize },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<SupplierQuotationDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['SupplierQuotations'],
+    }),
+    createSupplierQuotation: builder.mutation<SupplierQuotationDto, CreateSupplierQuotationDto>({
+      query: (body) => ({
+        url: '/supplier-quotations',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    updateSupplierQuotation: builder.mutation<SupplierQuotationDto, { quotationId: string; data: UpdateSupplierQuotationDto }>({
+      query: ({ quotationId, data }) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'PUT',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    deactivateSupplierQuotation: builder.mutation<ApiResponse<void>, string>({
+      query: (quotationId) => ({
+        url: `/supplier-quotations/${quotationId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['SupplierQuotations'],
+    }),
+    getPurchaseOrders: builder.query<PurchaseOrderDto[], { status?: string } | void>({
+      query: (query) => ({
+        url: '/purchase-orders',
+        params: query?.status ? { status: query.status } : undefined,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      providesTags: ['PurchaseOrders'],
+    }),
+    getPurchaseOrdersPage: builder.query<PurchaseOrderPageResponse, { status?: string; pageNumber?: number; pageSize?: number } | void>({
+      query: (query) => ({
+        url: '/purchase-orders/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 6 },
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderPageResponse>) => response.data ?? {
+        page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 6, totalPages: 0, hasPrev: false, hasNext: false },
+        orderCountByRequest: {},
+      },
+      providesTags: ['PurchaseOrders'],
+    }),
+    createPurchaseOrdersFromRequest: builder.mutation<PurchaseOrderDto[], string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-orders/from-request/${purchaseRequestId}`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+    }),
+    recordPurchaseOrderReceipt: builder.mutation<PurchaseOrderDto, { purchaseOrderId: string; data: RecordPurchaseOrderReceiptDto }>({
+      query: ({ purchaseOrderId, data }) => ({
+        url: `/purchase-orders/${purchaseOrderId}/receive`,
+        method: 'POST',
+        body: data,
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+    }),
+    cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
+      query: (purchaseOrderId) => ({
+        url: `/purchase-orders/${purchaseOrderId}/cancel`,
+        method: 'POST',
+      }),
+      transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
+      invalidatesTags: ['PurchaseOrders'],
+    }),
     getIngredientDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/ingredient-demand',
@@ -763,9 +1871,16 @@ export const workflowApi = apiSlice.injectEndpoints({
           ...body,
         },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: ['WorkflowReports', 'MaterialDemandStaleness'],
     }),
-    generatePurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, GeneratePurchaseRequestFromDemandRequest>({
+    getMaterialDemandStaleness: builder.query<ApiResponse<MaterialDemandStaleness>, MaterialDemandStalenessQuery>({
+      query: ({ serviceDate, customerId, scope }) => ({
+        url: '/material-demand/staleness',
+        params: { serviceDate, ...(customerId ? { customerId } : {}), ...(scope ? { scope } : {}) },
+      }),
+      providesTags: ['MaterialDemandStaleness'],
+    }),
+    createPurchaseRequestFromDemand: builder.mutation<ApiResponse<PurchaseRequestWorkflowResult>, GeneratePurchaseRequestFromDemandRequest>({
       query: (body) => ({
         url: '/purchase-workflow/from-demand',
         method: 'POST',
@@ -773,21 +1888,212 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
-    getPurchaseDemand: builder.query<DemandLine[], WorkflowReportQuery | void>({
+    submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
+      query: (purchaseRequestId) => ({
+        url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
+      query: (body) => ({
+        url: '/inventory-receipts/from-purchase',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
+      query: (body) => ({
+        url: '/inventory-issues',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({
+      query: (body) => ({
+        url: '/supplemental-material-requests',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
+      query: (body) => ({
+        url: '/inventory-returns',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
+      query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
+        url: `/inventory-issues/${issueId}/confirm-receipt`,
+        method: 'POST',
+        body: {
+          hasDiscrepancy,
+          discrepancyNote,
+        },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getPurchasePlan: builder.query<PurchasePlanRow[], WorkflowReportQuery | void>({
       query: (query) => ({
-        url: '/workflow-reports/purchase-demand',
+        url: '/workflow-reports/purchase-plan',
         params: queryWithLimit(query || undefined),
       }),
-      transformResponse: (response: ApiResponse<PurchaseDemandReportDto[]>) => getData(response).map(mapPurchaseDemandLine),
+      transformResponse: (response: ApiResponse<PurchasePlanRow[]>) => response.data ?? [],
       providesTags: ['WorkflowReports'],
     }),
-    getApprovalRecords: builder.query<ApprovalRecord[], WorkflowReportQuery | void>({
+    getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
-        url: '/workflow-reports/purchase-demand',
-        params: queryWithLimit(query || undefined),
+        url: '/workflow-reports/purchase-plan/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
       }),
-      transformResponse: (response: ApiResponse<PurchaseDemandReportDto[]>) => getData(response).map(mapApprovalRecord),
+      transformResponse: (response: ApiResponse<PurchasePlanPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          totalShortageQty: page?.totalShortageQty ?? 0,
+          totalEstimatedAmount: page?.totalEstimatedAmount ?? 0,
+        };
+      },
       providesTags: ['WorkflowReports'],
+    }),
+    getIngredientDemandPage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandPageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 8,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getMaterialRequestCandidatePage: builder.query<PageNumberPage<MaterialRequestCandidate>, MaterialRequestCandidatePageQuery>({
+      query: (query) => ({
+        url: '/workflow-reports/material-request-candidates/page',
+        params: {
+          ...query,
+          pageNumber: query.pageNumber ?? 1,
+          pageSize: query.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<MaterialRequestCandidate>>) => response.data ?? {
+        items: [],
+        totalCount: 0,
+        pageNumber: 1,
+        pageSize: 8,
+        totalPages: 0,
+        hasPrev: false,
+        hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/ingredient-demand/aggregate/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 20,
+        },
+      }),
+      transformResponse: (response: ApiResponse<IngredientDemandAggregatePageResponseDto>) => {
+        const page = response.data;
+        return {
+          items: page?.items?.map(mapDemandAggregateLine) ?? [],
+          totalCount: page?.totalCount ?? 0,
+          pageNumber: page?.pageNumber ?? 1,
+          pageSize: page?.pageSize ?? 20,
+          totalPages: page?.totalPages ?? 0,
+          hasPrev: page?.hasPrev ?? false,
+          hasNext: page?.hasNext ?? false,
+          shortageCount: page?.shortageCount ?? 0,
+        };
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/production-plans/daily',
+        params: query || undefined,
+      }),
+      transformResponse: normalizeDailyProductionPlan,
+      providesTags: ['WorkflowReports'],
+    }),
+    sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
+      query: (body) => ({
+        url: '/production-plans/daily/send-to-kitchen',
+        method: 'POST',
+        body,
+      }),
+      transformResponse: normalizeDailyProductionPlan,
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getApprovalRecords: builder.query<ApprovalInboxPage, ApprovalInboxQuery | void>({
+      query: (query) => ({
+        url: '/approvals/inbox',
+        params: {
+          limit: query?.limit ?? 20,
+          ...(query?.cursor ? { cursor: query.cursor } : {}),
+        },
+      }),
+      transformResponse: (response: ApiResponse<ApprovalInboxPageDto>): ApprovalInboxPage => {
+        const page = getData(response);
+        return {
+          items: (page.items ?? []).map(mapApprovalInboxItem),
+          limit: page.limit,
+          hasNext: page.hasNext,
+          nextCursor: page.nextCursor,
+        };
+      },
+      providesTags: (result) => [
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        ...(result?.items ?? []).map((item) => ({
+          type: 'WorkflowReports' as const,
+          id: `ApprovalTarget:${item.targetType}:${item.targetId}`,
+        })),
+      ],
+    }),
+    executeApprovalDecision: builder.mutation<ApiResponse<unknown>, ApprovalDecisionRequest>({
+      query: ({ targetType, targetId, status, reason }) => ({
+        url: `/approvals/${targetType}/${targetId}`,
+        method: 'POST',
+        body: { status: status === 'Approve' ? 0 : 1, reason },
+      }),
+      invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
+        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        { type: 'WorkflowReports', id: `ApprovalTarget:${targetType}:${targetId}` },
+        ...(week
+          ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
+          : []),
+      ],
     }),
     getStockMovements: builder.query<StockMovement[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -795,6 +2101,15 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<StockMovementViewDto[]>) => getData(response).map(mapStockMovement),
+      providesTags: ['WorkflowReports'],
+    }),
+    getStockMovementPage: builder.query<CursorPage<StockMovement>, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/stock-movements/page',
+        params: { ...queryWithLimit(query || undefined), limit: query?.limit ?? 20 },
+      }),
+      transformResponse: (response: ApiResponse<CursorPageDto<StockMovementViewDto>>) =>
+        mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false }, mapStockMovement),
       providesTags: ['WorkflowReports'],
     }),
     getPriceVariance: builder.query<PriceVarianceRow[], WorkflowReportQuery | void>({
@@ -805,12 +2120,79 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<ReceiptPriceVarianceReportDto[]>) => getData(response).map(mapPriceVariance),
       providesTags: ['WorkflowReports'],
     }),
+    getPriceVarianceBySupplier: builder.query<PriceVarianceBySupplierDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-supplier',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceBySupplierDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceBySupplierPage: builder.query<PageNumberPage<PriceVarianceBySupplierDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-supplier/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceBySupplierDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByPeriod: builder.query<PriceVarianceByPeriodDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-period',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByPeriodDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByPeriodPage: builder.query<PageNumberPage<PriceVarianceByPeriodDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-period/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByPeriodDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByDishGroup: builder.query<PriceVarianceByDishGroupDto[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-dish-group',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVarianceByDishGroupPage: builder.query<PageNumberPage<PriceVarianceByDishGroupDto>, PriceVarianceAggregatePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/price-variance/by-dish-group/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByDishGroupDto>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getOperationalKpis: builder.query<OperationalKpiSummaryDto, void>({
+      query: () => '/workflow-reports/operational-kpis',
+      transformResponse: (response: ApiResponse<OperationalKpiSummaryDto>) => response.data!,
+      providesTags: ['WorkflowReports'],
+    }),
     getCurrentStock: builder.query<CurrentStockRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/current-stock',
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
+      providesTags: ['WorkflowReports'],
+    }),
+    getStockLedgerReconciliation: builder.query<StockLedgerReconciliationRow[], WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/stock-ledger-reconciliation',
+        params: queryWithLimit(query || undefined),
+      }),
+      transformResponse: (response: ApiResponse<StockLedgerReconciliationDto[]>) => getData(response).map(mapStockLedgerReconciliation),
       providesTags: ['WorkflowReports'],
     }),
     getKitchenIssues: builder.query<KitchenIssueRow[], WorkflowReportQuery | void>({
@@ -821,6 +2203,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<KitchenIssueReportDto[]>) => getData(response).map(mapKitchenIssue),
       providesTags: ['WorkflowReports'],
     }),
+    getKitchenIssuesPage: builder.query<PageNumberPage<KitchenIssueRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/kitchen-issues/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<KitchenIssueReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapKitchenIssue),
+      providesTags: ['WorkflowReports'],
+    }),
     getIssueVsReturnUsage: builder.query<UsageReportRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/issue-vs-return',
@@ -829,12 +2220,72 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<IssueVsReturnUsageReportDto[]>) => getData(response).map(mapUsageReport),
       providesTags: ['WorkflowReports'],
     }),
+    getIssueVsReturnUsagePage: builder.query<PageNumberPage<UsageReportRow>, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/issue-vs-return/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<IssueVsReturnUsageReportDto>>) =>
+        mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapUsageReport),
+      providesTags: ['WorkflowReports'],
+    }),
     getAuditChanges: builder.query<AuditLogRow[], WorkflowReportQuery | void>({
       query: (query) => ({
         url: '/workflow-reports/audit-changes',
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPriceVariancePage: builder.query<PageNumberPage<PriceVarianceRow>, ReceiptPriceVariancePageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/receipt-price-variance/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 6,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<ReceiptPriceVarianceReportDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 6,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapPriceVariance),
+      providesTags: ['WorkflowReports'],
+    }),
+    getCurrentStockPage: builder.query<PageNumberPage<CurrentStockRow>, CurrentStockPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/current-stock/page',
+        params: {
+          ...query,
+          pageNumber: query?.pageNumber ?? 1,
+          pageSize: query?.pageSize ?? 8,
+        },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<CurrentStockSummaryDto>>) =>
+        mapPageNumberPage(response.data ?? {
+          items: [],
+          totalCount: 0,
+          pageNumber: 1,
+          pageSize: 8,
+          totalPages: 0,
+          hasPrev: false,
+          hasNext: false,
+        }, mapCurrentStock),
+      providesTags: ['WorkflowReports'],
+    }),
+    getAuditChangePage: builder.query<CursorPage<AuditLogRow>, WorkflowReportQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/audit-changes/page',
+        params: { ...queryWithLimit(query || undefined), limit: query?.limit ?? 20 },
+      }),
+      transformResponse: (response: ApiResponse<CursorPageDto<AuditChangeReportDto>>) =>
+        mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false }, mapAuditChange),
       providesTags: ['WorkflowReports'],
     }),
     getDataQuality: builder.query<DataQualityReport, WorkflowReportQuery | void>({
@@ -848,90 +2299,168 @@ export const workflowApi = apiSlice.injectEndpoints({
           totalIssues: 0,
           errorCount: 0,
           warningCount: 0,
+          resolvedIssueCount: 0,
+          reopenedIssueCount: 0,
+          urgentIssueCount: 0,
           missingBomCount: 0,
           invalidUnitCount: 0,
+          missingConversionCount: 0,
           negativeStockCount: 0,
           orphanDocumentCount: 0,
           issues: [],
         },
       providesTags: ['WorkflowReports'],
     }),
-    getSuppliers: builder.query<SupplierDto[], void>({
-      query: () => '/suppliers',
+    getDataQualityPage: builder.query<DataQualityPageReport, WorkflowReportPageQuery | void>({
+      query: (query) => ({
+        url: '/workflow-reports/data-quality/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<DataQualityPageDto>) => {
+        const report = response.data;
+        const emptyPage: PageNumberPage<DataQualityIssueRow> = {
+          items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+        };
+        if (!report) {
+          return { ...mapDataQualityReport({ generatedAt: '', totalIssues: 0, errorCount: 0, warningCount: 0, missingBomCount: 0, invalidUnitCount: 0, missingConversionCount: 0, negativeStockCount: 0, orphanDocumentCount: 0, issues: [] }), page: emptyPage };
+        }
+        return {
+          ...mapDataQualityReport(report),
+          page: mapPageNumberPage(report.page ?? emptyPage, mapDataQualityIssue),
+        };
+      },
+      providesTags: ['WorkflowReports'],
     }),
-    updateLineSupplier: builder.mutation<ApiResponse<void>, { requestId: string; lineId: string; body: { supplierId: string; estimatedUnitPrice: number } }>({
-      query: ({ requestId, lineId, body }) => ({
-        url: `/purchase-workflow/requests/${requestId}/lines/${lineId}/supplier`,
-        method: 'PATCH',
+    updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
+      query: (body) => ({
+        url: '/workflow-reports/data-quality/issues/remediation',
+        method: 'POST',
         body,
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
-    submitPurchaseRequest: builder.mutation<ApiResponse<void>, string>({
-      query: (requestId) => ({
-        url: `/purchase-workflow/requests/${requestId}/submit`,
+    getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests',
+        params: query || undefined,
+      }),
+      providesTags: ['WorkflowReports'],
+    }),
+    getPurchaseRequestsPage: builder.query<PageNumberPage<PurchaseRequestResult>, PurchaseRequestQuery | void>({
+      query: (query) => ({
+        url: '/purchase-requests/page',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<PurchaseRequestResult>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
+      query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
+      providesTags: ['WorkflowReports'],
+    }),
+    getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
+      query: () => '/approval-rules',
+      providesTags: ['WorkflowReports'],
+    }),
+    createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleRequestDto>({
+      query: (body) => ({
+        url: '/approval-rules',
         method: 'POST',
+        body,
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
-    getWarehouses: builder.query<ApiResponse<PagedResponseDto<WarehouseDto>>, { page?: number; limit?: number } | void>({
-      query: (params) => ({
-        url: '/Warehouses',
-        params: params || { page: 1, limit: 100 }
-      })
-    }),
-    createInventoryReceipt: builder.mutation<ApiResponse<InventoryReceiptCreatedDto>, CreateInventoryReceiptDto>({
-      query: (body) => ({
-        url: '/inventory-receipts',
-        method: 'POST',
-        body
+    updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, { id: string; body: ApprovalRuleRequestDto }>({
+      query: ({ id, body }) => ({
+        url: `/approval-rules/${id}`,
+        method: 'PUT',
+        body,
       }),
-      invalidatesTags: ['WorkflowReports']
+      invalidatesTags: ['WorkflowReports'],
     }),
-    createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedDto>, CreateInventoryIssueDto>({
-      query: (body) => ({
-        url: '/inventory-issues',
-        method: 'POST',
-        body
+    deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
+      query: (id) => ({
+        url: `/approval-rules/${id}`,
+        method: 'DELETE',
       }),
-      invalidatesTags: ['WorkflowReports']
-    }),
-    createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedDto>, CreateInventoryReturnDto>({
-      query: (body) => ({
-        url: '/inventory-returns',
-        method: 'POST',
-        body
-      }),
-      invalidatesTags: ['WorkflowReports']
+      invalidatesTags: ['WorkflowReports'],
     }),
   }),
   overrideExisting: false,
 });
 
-
 export const {
   useGetWorkflowDocumentsQuery,
   useGetIngredientDemandQuery,
+  useGetIngredientDemandPageQuery,
+  useGetMaterialRequestCandidatePageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGenerateMaterialDemandMutation,
-  useGeneratePurchaseRequestFromDemandMutation,
-  useGetPurchaseDemandQuery,
-  useGetApprovalRecordsQuery,
-  useGetStockMovementsQuery,
-  useGetPriceVarianceQuery,
-  useGetCurrentStockQuery,
-  useGetKitchenIssuesQuery,
-  useGetIssueVsReturnUsageQuery,
-  useGetAuditChangesQuery,
-  useGetDataQualityQuery,
-  useGetSuppliersQuery,
-  useUpdateLineSupplierMutation,
+  useGetMaterialDemandStalenessQuery,
+  useCreatePurchaseRequestFromDemandMutation,
   useSubmitPurchaseRequestMutation,
-  useGetWarehousesQuery,
-  useCreateInventoryReceiptMutation,
+  useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
+  useCreateSupplementalMaterialRequestMutation,
   useCreateInventoryReturnMutation,
+  useConfirmInventoryIssueReceiptMutation,
+  useGetPurchasePlanQuery,
+  useGetPurchasePlanPageQuery,
+  useGetDailyProductionPlanQuery,
+  useSendDailyProductionPlanToKitchenMutation,
+  useGetApprovalRecordsQuery,
+  useExecuteApprovalDecisionMutation,
+  useGetStockMovementsQuery,
+  useGetStockMovementPageQuery,
+  useGetPriceVarianceQuery,
+  useGetPriceVariancePageQuery,
+  useGetPriceVarianceBySupplierQuery,
+  useGetPriceVarianceBySupplierPageQuery,
+  useGetPriceVarianceByPeriodQuery,
+  useGetPriceVarianceByPeriodPageQuery,
+  useGetPriceVarianceByDishGroupQuery,
+  useGetPriceVarianceByDishGroupPageQuery,
+  useGetOperationalKpisQuery,
+  useGetCurrentStockQuery,
+  useGetCurrentStockPageQuery,
+  useGetStockLedgerReconciliationQuery,
+  useGetKitchenIssuesQuery,
+  useGetKitchenIssuesPageQuery,
+  useGetIssueVsReturnUsageQuery,
+  useGetIssueVsReturnUsagePageQuery,
+  useGetAuditChangesQuery,
+  useGetAuditChangePageQuery,
+  useGetSuppliersQuery,
+  useGetWarehousesQuery,
+  useGetWarehouseSelectorQuery,
+  useGetPurchaseWorkbenchQuery,
+  useGetSupplierEvidenceQuery,
+  useConfirmLineSupplierMutation,
+  useRecordWarehousePurchaseReceiptMutation,
+  useUpdatePurchaseRequestLineSupplierMutation,
+  useGetDataQualityQuery,
+  useGetDataQualityPageQuery,
+  useUpdateDataQualityIssueRemediationMutation,
+  useGetSupplierQuotationsByIngredientQuery,
+  useGetSupplierQuotationsByIngredientPageQuery,
+  useCreateSupplierQuotationMutation,
+  useUpdateSupplierQuotationMutation,
+  useDeactivateSupplierQuotationMutation,
+  useGetPurchaseOrdersQuery,
+  useGetPurchaseOrdersPageQuery,
+  useCreatePurchaseOrdersFromRequestMutation,
+  useRecordPurchaseOrderReceiptMutation,
+  useCancelPurchaseOrderMutation,
+  useGetPurchaseRequestsQuery,
+  useGetPurchaseRequestsPageQuery,
+  useGetApprovalHistoryQuery,
+  useGetApprovalRulesQuery,
+  useCreateApprovalRuleMutation,
+  useUpdateApprovalRuleMutation,
+  useDeleteApprovalRuleMutation,
 } = workflowApi;
-
 
 export function useWorkflowOverview() {
   const documentsResult = useGetWorkflowDocumentsQuery({ limit: 100 });

@@ -25,8 +25,15 @@ export default function CoordinationPage() {
   const shiftName = toApiShiftName(currentShift)
   const menusQuery = useGetMenuSchedulesQuery({ dayOfWeek: currentDayOfWeek, shiftName })
   const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, shiftName })
+  const backendStatus = plansQuery.data?.data?.[0]?.status
+  const normalizedBackendStatus = (backendStatus ?? '').toUpperCase()
   // Use countdown lock time if it reaches 8:30 AM, or if manually locked
-  const effectiveIsLocked = reduxLocked || countdownLocked
+  const effectiveIsLocked =
+    reduxLocked ||
+    countdownLocked ||
+    normalizedBackendStatus === 'CONFIRMED' ||
+    normalizedBackendStatus === 'ADJUSTED' ||
+    normalizedBackendStatus === 'COMPLETED'
 
   useEffect(() => {
     if (ordersQuery.data?.success && ordersQuery.data.data) {
@@ -55,9 +62,8 @@ export default function CoordinationPage() {
   const plannedDishLabel = backendMenuName || plannedMenuName || (plannedDishId ? 'Theo thực đơn đã nhập' : 'Chưa có dữ liệu')
   const loading = ordersQuery.isLoading || ordersQuery.isFetching || menusQuery.isLoading || plansQuery.isLoading
   const error = ordersQuery.isError
-    ? 'Không tải được danh sách suất ăn từ API điều phối.'
+    ? 'Không tải được danh sách suất ăn từ hệ thống điều phối.'
     : localError
-  const backendStatus = plansQuery.data?.data?.[0]?.status
   const orderStatus = loading ? 'syncing' : backendStatus || (effectiveIsLocked ? 'locked' : 'draft')
 
   return (
@@ -77,7 +83,7 @@ export default function CoordinationPage() {
       <SectionPanel
         tone="dark"
         padded={false}
-        className="operation-surface ipc-coordination-workbench flex min-h-[560px] flex-col overflow-hidden border-slate-200 bg-white shadow-sm"
+        className="operation-surface ipc-coordination-workbench flex min-h-0 flex-col overflow-hidden border-slate-200 bg-white shadow-sm md:min-h-[560px]"
       >
         {error && (
           <InlineAlert title="Không tải được dữ liệu điều phối" variant="warning">
@@ -86,7 +92,7 @@ export default function CoordinationPage() {
         )}
         {loading && (
           <InlineAlert title="Đang tải dữ liệu điều phối" variant="info">
-            Hệ thống đang lấy danh sách suất ăn từ backend.
+            Hệ thống đang lấy danh sách suất ăn mới nhất.
           </InlineAlert>
         )}
         <OrderStatusBanner status={orderStatus} />

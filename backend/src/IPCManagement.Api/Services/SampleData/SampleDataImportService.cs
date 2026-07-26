@@ -21,10 +21,37 @@ public partial class SampleDataImportService : ISampleDataImportService
     [
         "Món",
         "Nguyên liệu chính",
+        "Khối lượng ( kg)",
         "Giá nhập (kg)",
         "Số lượng suất ăn",
         "Định lượng (gram) / khay"
     ];
+
+    private static readonly IReadOnlyList<(string SheetName, decimal PriceTier)> PresetBomSheets =
+    [
+        ("định lượng suất 25k", 25000m),
+        ("định lượng suất 30k", 30000m),
+        ("định lượng suất 34k", 34000m)
+    ];
+
+    private static readonly IReadOnlyDictionary<string, (string Code, string Name)> PresetBomUnitByIngredient =
+        new Dictionary<string, (string Code, string Name)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Bánh mì"] = ("O", "Ổ"),
+            ["Chuối"] = ("QUA", "Quả"),
+            ["Chả cá"] = ("MIENG", "Miếng"),
+            ["Căn cuộn"] = ("CAY", "Cây"),
+            ["Sữa chua"] = ("HOP", "Hộp"),
+            ["Trứng cút"] = ("CAI", "Cái"),
+            ["Trứng cút lột sẵn"] = ("CAI", "Cái"),
+            ["trứng cút lọt sẵn"] = ("CAI", "Cái"),
+            ["Trứng gà"] = ("CAI", "Cái"),
+            ["Trứng gà (cái)"] = ("CAI", "Cái"),
+            ["Trứng gà trung"] = ("CAI", "Cái"),
+            ["Đậu khuôn"] = ("LAT", "Lát"),
+            ["Đậu khuôn chiên"] = ("LAT", "Lát"),
+            ["Đậu khuôn chiên lát nhỏ"] = ("LAT", "Lát")
+        };
 
     private static readonly string[] OrderRequiredHeaders =
     [
@@ -88,30 +115,57 @@ public partial class SampleDataImportService : ISampleDataImportService
         Dictionary<string, List<int>> servingHints,
         CancellationToken cancellationToken)
     {
-        var bomFile = sourceDirectory.GetFiles("IPC. Định lượng 22.xlsx").FirstOrDefault();
+        var bomFile = sourceDirectory.GetFiles("IPC. Định lượng 07.2026.xlsx").FirstOrDefault();
         if (bomFile is null)
         {
-            AddMissingFile(result, "IPC. Định lượng 22.xlsx", "BOM");
+            AddMissingFile(result, "IPC. Định lượng 07.2026.xlsx", "BOM tiers 25k/30k/34k");
             return;
         }
 
-        var rows = _reader.ReadTable(bomFile.FullName, "DATA", BomRequiredHeaders, request.MaxRows);
+        var sourceRows = PresetBomSheets
+            .SelectMany(sheet => _reader
+                .ReadTable(bomFile.FullName, sheet.SheetName, BomRequiredHeaders, request.MaxRows)
+                .Select(row => new PresetBomSourceRow(sheet.SheetName, sheet.PriceTier, row)))
+            .ToList();
+        var rows = ValidateAndDeduplicatePresetBomRows(sourceRows, result);
         var fileResult = AddFileResult(
             result,
             bomFile.FullName,
-            "Dishes/BOM/Ingredients/Suppliers",
+            "Dishes/BOM tiers 25k/30k/34k/Ingredients/Suppliers",
             request.DryRun,
-            rows.Count);
+            sourceRows.Count);
 
         var warehouse = await EnsureWarehouseAsync(request.DryRun, result.Counts, cancellationToken);
-        var kgUnit = await EnsureUnitAsync("KG", "Kilogram", request.DryRun, result.Counts, cancellationToken);
+        var existingUnits = await _context.Units.ToListAsync(cancellationToken);
+        var kgUnit = EnsureUnit("KG", "Kilogram", existingUnits, request.DryRun, result.Counts);
+        var presetUnits = PresetBomUnitByIngredient.Values
+            .Distinct()
+            .ToDictionary(
+                definition => definition.Code,
+                definition => EnsureUnit(definition.Code, definition.Name, existingUnits, request.DryRun, result.Counts),
+                StringComparer.OrdinalIgnoreCase);
         var existingSuppliers = await _context.Suppliers.ToListAsync(cancellationToken);
         var existingIngredients = await _context.Ingredients.ToListAsync(cancellationToken);
         var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
         var existingBomLines = await _context.Dishboms.ToListAsync(cancellationToken);
 
-        foreach (var row in rows)
+        if (request.ReplaceBomCatalog)
         {
+            result.Warnings.Add(
+                $"Thay catalog BOM: loại bỏ {existingBomLines.Count} dòng BOM cũ trước khi nạp ba tier cố định.");
+            if (!request.DryRun)
+            {
+                var existingAdjustments = await _context.Bomadjustments.ToListAsync(cancellationToken);
+                _context.Bomadjustments.RemoveRange(existingAdjustments);
+                _context.Dishboms.RemoveRange(existingBomLines);
+            }
+
+            existingBomLines.Clear();
+        }
+
+        foreach (var sourceRow in rows)
+        {
+            var row = sourceRow.Row;
             var dishName = Get(row, "Món");
             var ingredientName = Get(row, "Nguyên liệu chính");
             if (string.IsNullOrWhiteSpace(dishName) || string.IsNullOrWhiteSpace(ingredientName))
@@ -120,7 +174,7 @@ public partial class SampleDataImportService : ISampleDataImportService
                 continue;
             }
 
-            var grossQty = ParseGrossQtyPerServing(Get(row, "Định lượng (gram) / khay"));
+            var grossQty = ParsePresetGrossQtyPerServing(row);
             if (grossQty <= 0)
             {
                 fileResult.RowsSkipped++;
@@ -131,14 +185,17 @@ public partial class SampleDataImportService : ISampleDataImportService
             AddServingHint(servingHints, dishName, ParseInt(Get(row, "Số lượng suất ăn")));
             EnsureSupplier(Get(row, "Supplier"), existingSuppliers, request.DryRun, result.Counts);
 
+            var unit = ResolvePresetBomUnit(ingredientName, kgUnit, presetUnits);
+
             var ingredient = EnsureIngredient(
                 ingredientName,
-                kgUnit,
+                unit,
                 warehouse,
                 ParseDecimal(Get(row, "Giá nhập (kg)")),
                 existingIngredients,
                 request.DryRun,
-                result.Counts);
+                result.Counts,
+                updateUnit: true);
 
             var dish = EnsureDish(
                 dishName,
@@ -151,8 +208,9 @@ public partial class SampleDataImportService : ISampleDataImportService
             EnsureBomLine(
                 dish,
                 ingredient,
-                kgUnit,
+                unit,
                 grossQty,
+                sourceRow.PriceTier,
                 existingBomLines,
                 request.DryRun,
                 result.Counts);
@@ -839,14 +897,23 @@ public partial class SampleDataImportService : ISampleDataImportService
         decimal referencePrice,
         List<Ingredient> ingredients,
         bool dryRun,
-        SampleDataImportCountsDto counts)
+        SampleDataImportCountsDto counts,
+        bool updateUnit = false)
     {
         referencePrice = DecimalPolicy.RoundMoney(referencePrice);
         var normalized = NormalizeName(ingredientName);
+        var stableCode = StableCode("ING", ingredientName);
         var existing = ingredients.FirstOrDefault(item =>
-            string.Equals(NormalizeName(item.IngredientName), normalized, StringComparison.OrdinalIgnoreCase));
+            string.Equals(NormalizeName(item.IngredientName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.IngredientCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
+            existing.IngredientName = ingredientName.Trim();
+            if (updateUnit && !existing.UnitId.SequenceEqual(unit.UnitId))
+            {
+                existing.UnitId = unit.UnitId;
+            }
+
             if (referencePrice > 0 && existing.ReferencePrice != referencePrice)
             {
                 existing.ReferencePrice = referencePrice;
@@ -861,7 +928,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         var ingredient = new Ingredient
         {
             IngredientId = GuidHelper.NewId(),
-            IngredientCode = StableCode("ING", ingredientName),
+            IngredientCode = stableCode,
             IngredientName = ingredientName.Trim(),
             UnitId = unit.UnitId,
             WarehouseId = warehouse.WarehouseId,
@@ -879,6 +946,20 @@ public partial class SampleDataImportService : ISampleDataImportService
         return ingredient;
     }
 
+    private static Unit ResolvePresetBomUnit(
+        string ingredientName,
+        Unit kgUnit,
+        IReadOnlyDictionary<string, Unit> presetUnits)
+    {
+        var normalizedName = NormalizeName(ingredientName);
+        if (!PresetBomUnitByIngredient.TryGetValue(normalizedName, out var definition))
+        {
+            return kgUnit;
+        }
+
+        return presetUnits[definition.Code];
+    }
+
     private Dish EnsureDish(
         string dishName,
         string dishGroup,
@@ -888,10 +969,13 @@ public partial class SampleDataImportService : ISampleDataImportService
         SampleDataImportCountsDto counts)
     {
         var normalized = NormalizeName(dishName);
+        var stableCode = StableCode("DISH", dishName);
         var existing = dishes.FirstOrDefault(item =>
-            string.Equals(NormalizeName(item.DishName), normalized, StringComparison.OrdinalIgnoreCase));
+            string.Equals(NormalizeName(item.DishName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.DishCode, stableCode, StringComparison.OrdinalIgnoreCase));
         if (existing is not null)
         {
+            existing.DishName = dishName.Trim();
             existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
             existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
             existing.IsActive = true;
@@ -903,7 +987,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         var dish = new Dish
         {
             DishId = GuidHelper.NewId(),
-            DishCode = StableCode("DISH", dishName),
+            DishCode = stableCode,
             DishName = dishName.Trim(),
             DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? null : dishGroup.Trim(),
             DishType = string.IsNullOrWhiteSpace(dishType) ? null : dishType.Trim(),
@@ -1009,7 +1093,8 @@ public partial class SampleDataImportService : ISampleDataImportService
         List<Menuschedule> schedules,
         bool dryRun,
         SampleDataImportCountsDto counts,
-        CustomerContractPolicy? contractPolicy = null)
+        CustomerContractPolicy? contractPolicy = null,
+        byte[]? menuVersionId = null)
     {
         contractPolicy ??= ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
         var existing = schedules.FirstOrDefault(item =>
@@ -1023,6 +1108,7 @@ public partial class SampleDataImportService : ISampleDataImportService
             existing.MenuPrice = contractPolicy.MenuPrice;
             existing.BomRatePercent = contractPolicy.BomRatePercent;
             existing.Status = "DRAFT";
+            existing.MenuVersionId = menuVersionId;
             counts.MenuSchedulesUpdated++;
             return;
         }
@@ -1038,7 +1124,8 @@ public partial class SampleDataImportService : ISampleDataImportService
             ShiftName = shiftName,
             MenuPrice = contractPolicy.MenuPrice,
             BomRatePercent = contractPolicy.BomRatePercent,
-            Status = "DRAFT"
+            Status = "DRAFT",
+            MenuVersionId = menuVersionId
         };
 
         if (!dryRun)
@@ -1079,7 +1166,7 @@ public partial class SampleDataImportService : ISampleDataImportService
 
         return new CustomerContractPolicy(
             DecimalPolicy.RoundMoney(contract.DefaultMenuPrice),
-            DecimalPolicy.RoundPercent(contract.DefaultBomRatePercent),
+            DecimalPolicy.RoundPercent(100),
             UsedFallback: false);
     }
 
@@ -1191,6 +1278,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         Ingredient ingredient,
         Unit unit,
         decimal grossQty,
+        decimal priceTier,
         List<Dishbom> bomLines,
         bool dryRun,
         SampleDataImportCountsDto counts)
@@ -1199,7 +1287,9 @@ public partial class SampleDataImportService : ISampleDataImportService
         var existing = bomLines.FirstOrDefault(item =>
             item.EffectiveTo is null &&
             item.DishId.SequenceEqual(dish.DishId) &&
-            item.IngredientId.SequenceEqual(ingredient.IngredientId));
+            item.IngredientId.SequenceEqual(ingredient.IngredientId) &&
+            item.CustomerId is null &&
+            item.PriceTierAmount == priceTier);
 
         if (existing is not null)
         {
@@ -1216,8 +1306,11 @@ public partial class SampleDataImportService : ISampleDataImportService
             DishId = dish.DishId,
             IngredientId = ingredient.IngredientId,
             UnitId = unit.UnitId,
+            CustomerId = null,
+            PriceTierAmount = priceTier,
             GrossQtyPerServing = grossQty,
             WasteRatePercent = DecimalPolicy.RoundPercent(0),
+            BomStatus = "PUBLISHED",
             EffectiveFrom = new DateOnly(2026, 1, 1),
             EffectiveTo = null
         };
@@ -1229,6 +1322,76 @@ public partial class SampleDataImportService : ISampleDataImportService
 
         bomLines.Add(bom);
     }
+
+    private static IReadOnlyList<PresetBomSourceRow> ValidateAndDeduplicatePresetBomRows(
+        IReadOnlyList<PresetBomSourceRow> sourceRows,
+        SampleDataImportResultDto result)
+    {
+        var groups = sourceRows
+            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Món")))
+            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Nguyên liệu chính")))
+            .GroupBy(
+                item => $"{item.PriceTier:0}|{NormalizeName(Get(item.Row, "Món"))}|{NormalizeName(Get(item.Row, "Nguyên liệu chính"))}",
+                StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return groups
+            .Select(group =>
+            {
+                var rows = group.ToList();
+                var quantities = rows
+                    .Select(item => ParsePresetGrossQtyPerServing(item.Row))
+                    .Distinct()
+                    .ToList();
+                if (quantities.Count <= 1)
+                {
+                    return rows[0];
+                }
+
+                var weightedQuantity = CalculateWeightedGrossQty(rows.Select(item => item.Row).ToList());
+                var first = rows[0];
+                var mergedRow = new Dictionary<string, string>(first.Row, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Định lượng (gram) / khay"] = weightedQuantity.ToString("0.######", CultureInfo.InvariantCulture)
+                };
+                AddWarning(
+                    result,
+                    $"{first.SheetName}: gộp {rows.Count} dòng '{Get(first.Row, "Món")}/{Get(first.Row, "Nguyên liệu chính")}' " +
+                    $"theo bình quân gia quyền thành {weightedQuantity:0.######} kg/suất.");
+                return new PresetBomSourceRow(first.SheetName, first.PriceTier, mergedRow);
+            })
+            .ToList();
+    }
+
+    private static decimal CalculateWeightedGrossQty(
+        IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+    {
+        var weightedRows = rows
+            .Select(row => new
+            {
+                Quantity = ParsePresetGrossQtyPerServing(row),
+                Servings = ParseInt(Get(row, "Số lượng suất ăn"))
+            })
+            .Where(item => item.Quantity > 0)
+            .ToList();
+        var totalServings = weightedRows.Where(item => item.Servings > 0).Sum(item => item.Servings);
+        if (totalServings > 0)
+        {
+            var weightedTotal = weightedRows
+                .Where(item => item.Servings > 0)
+                .Sum(item => item.Quantity * item.Servings);
+            return DecimalPolicy.RoundQuantity(weightedTotal / totalServings);
+        }
+
+        return weightedRows.Count == 0
+            ? 0
+            : DecimalPolicy.RoundQuantity(weightedRows.Average(item => item.Quantity));
+    }
+
+    private sealed record PresetBomSourceRow(
+        string SheetName,
+        decimal PriceTier,
+        IReadOnlyDictionary<string, string> Row);
 
     private Inventoryreceipt EnsureReceipt(
         Supplier supplier,
@@ -1351,6 +1514,8 @@ public partial class SampleDataImportService : ISampleDataImportService
         {
             existing.QuantityIn = quantity;
             existing.QuantityOut = 0;
+            existing.BeforeQty = 0;
+            existing.AfterQty = quantity;
             existing.UnitId = unit.UnitId;
             existing.IngredientId = ingredient.IngredientId;
             counts.StockMovementsUpdated++;
@@ -1370,6 +1535,8 @@ public partial class SampleDataImportService : ISampleDataImportService
             RefId = receiptLine.ReceiptLineId,
             QuantityIn = quantity,
             QuantityOut = 0,
+            BeforeQty = 0,
+            AfterQty = quantity,
             Reason = "Import dữ liệu mẫu từ workbook theo dõi đặt hàng",
             Note = "Sample data import",
             PerformedBy = sampleUser.UserId
@@ -1649,13 +1816,46 @@ public partial class SampleDataImportService : ISampleDataImportService
 
     private static decimal ParseGrossQtyPerServing(string value)
     {
-        var parsed = ParseDecimal(value);
+        var parsed = ParsePresetDecimal(value);
         if (parsed <= 0)
         {
             return 0;
         }
 
         return DecimalPolicy.RoundQuantity(parsed > 5 ? parsed / 1000 : parsed);
+    }
+
+    private static decimal ParsePresetGrossQtyPerServing(IReadOnlyDictionary<string, string> row)
+    {
+        var workbookQuantity = ParseGrossQtyPerServing(Get(row, "Định lượng (gram) / khay"));
+        if (workbookQuantity > 0)
+        {
+            return workbookQuantity;
+        }
+
+        var totalWeight = ParsePresetDecimal(Get(row, "Khối lượng ( kg)"));
+        var servings = ParseInt(Get(row, "Số lượng suất ăn"));
+        return totalWeight > 0 && servings > 0
+            ? DecimalPolicy.RoundQuantity(totalWeight / servings)
+            : 0;
+    }
+
+    private static decimal ParsePresetDecimal(string value)
+    {
+        var parsed = ParseDecimal(value);
+        if (parsed != 0 || string.IsNullOrWhiteSpace(value))
+        {
+            return parsed;
+        }
+
+        var normalized = value.Trim().Replace(",", ".", StringComparison.Ordinal);
+        return decimal.TryParse(
+            normalized,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out var scientificValue)
+            ? scientificValue
+            : 0;
     }
 
     private static int ParseInt(string value)

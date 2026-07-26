@@ -1,410 +1,149 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { HeadChefDashboard } from '../components/head-chef-dashboard'
-import { AlertCircle, Calendar, ClipboardList, ShieldCheck, ShieldAlert } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, DocumentRail, EmptyState, InlineAlert, OperationalFrame, SectionPanel, SideRail, SplitWorkbench, StockMovementTable, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
-import { getTodayDayCode } from '@/lib/dateUtils'
-import { useGetDishesCatalogQuery } from '../../projects/dishCatalogApi'
-import { format } from 'date-fns'
 import type { ShiftType } from '../../coordination/types'
-import type { ExcessMaterial, SupplementalRequest } from '@/lib/types'
-import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery, useGetWarehousesQuery, useCreateInventoryReturnMutation, useGetIngredientDemandQuery } from '@/features/workflow'
-import { formatQuantityWithUnit } from '@/lib/formatters'
+import { getBangkokDayCode, resolveChefServiceDate } from '../chefServiceDate'
+import { useChefExceptions } from '../exceptions/useChefExceptions'
+import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
+import { useChefJournal } from '../journal/useChefJournal'
+import { ChefProductionSection } from '../production/ChefProductionSection'
+import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
+import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
+import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
 
 export default function ChefDashboardPage() {
-  const orders = useAppSelector((state) => state.coordination.orders)
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
-  const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
-  const lossRate = useAppSelector((state) => state.coordination.lossRate)
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 })
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 })
-  const { data: demandLines = [] } = useGetIngredientDemandQuery({ limit: 100 })
-
-  const uniqueIngredients = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; unitId: string; unitName: string }>();
-    demandLines.forEach(line => {
-      if (line.ingredientId) {
-        map.set(line.ingredientId, {
-          id: line.ingredientId,
-          name: line.material,
-          unitId: line.unitId || '',
-          unitName: line.unit,
-        });
-      }
-    });
-    return Array.from(map.values());
-  }, [demandLines]);
-  const {
-    data: catalogDishes = [],
-    isLoading: isCatalogLoading,
-    isError: isCatalogError,
-  } = useGetDishesCatalogQuery()
-
-  const [activeDay, setActiveDay] = useState<string>(getTodayDayCode())
+  const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
   const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
-  const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>(() => {
-    try {
-      const saved = localStorage.getItem('chef-signed-materials')
-      return saved ? JSON.parse(saved) : {}
-    } catch {
-      return {}
-    }
-  })
-  const [requests, setRequests] = useState<Array<SupplementalRequest & { day: string; shift: ShiftType }>>([])
-  const [returns, setReturns] = useState<Array<ExcessMaterial & { day: string; shift: ShiftType }>>([])
-  const [chefFeedback, setChefFeedback] = useState<{
-    title: string;
-    message: string;
-    variant: 'info' | 'warning' | 'danger';
-  } | null>(null)
-
-  const { data: warehousesResponse } = useGetWarehousesQuery()
-  const warehouses = warehousesResponse?.data?.items ?? []
-  const [createReturn] = useCreateInventoryReturnMutation()
-
+  const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
   const lockKey = `${activeDay}-${activeShift}`
-  const isLocked = !!lockedShifts[lockKey]
-  const isCatalogEmpty = !isCatalogLoading && !isCatalogError && catalogDishes.length === 0
-  const khsxDocuments = workflowDocuments.filter((document) => document.type === 'KHSX')
-  const activeKhsxDocument = khsxDocuments[0]
-  const returnDocuments = workflowDocuments.filter((document) => document.type === 'Phiếu trả')
-  const kitchenMovements = [
-    ...stockMovements.filter((movement) => movement.type === 'issue'),
-    ...stockMovements.filter((movement) => movement.type === 'supplemental'),
-    ...stockMovements.filter((movement) => movement.type === 'return'),
-  ]
-  const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes])
+  const serviceDate = resolveChefServiceDate(activeDay)
+  const scope = useMemo<ChefShiftScope>(() => ({
+    activeDay,
+    activeShift,
+    serviceDate,
+    apiShiftName: activeShift === 'Ca Sáng' ? 'MORNING' : 'AFTERNOON',
+    isLocked: Boolean(lockedShifts[lockKey]),
+  }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
-  // Filter orders for the selected day and shift
-  const dayShiftOrders = useMemo(() => {
-    return orders.filter((o) => o.dayOfWeek === activeDay && o.shift === activeShift)
-  }, [orders, activeDay, activeShift])
+  const receipts = useKitchenReceipts(scope, setFeedback)
+  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback)
+  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback)
+  const journal = useChefJournal()
+  const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
 
-  // Dynamically compute production plan
-  const productionPlan = useMemo(() => {
-    // 1. Sum portions of matching orders
-    const totalMeals = dayShiftOrders.reduce(
-      (sum, o) => sum + (isLocked ? o.actualQuantity : o.forecastQuantity),
-      0
+  const statusMessages = [
+    production.status.isCatalogLoading ? 'Đang tải danh mục món ăn và định lượng để lập danh sách nguyên liệu.' : null,
+    production.status.isCatalogError ? 'Chưa tải được danh mục món ăn; danh sách sẽ thiếu định lượng chính xác từ hệ thống.' : null,
+    production.status.isCatalogEmpty ? 'Danh mục món ăn đang trống nên danh sách nguyên liệu chưa thể sinh đầy đủ từ định lượng.' : null,
+    receipts.isLoading ? 'Đang tải phiếu xuất kho để bếp trưởng ký nhận nguyên liệu.' : null,
+    receipts.isError ? 'Chưa tải được phiếu xuất kho; danh sách tạm dùng dữ liệu dự kiến từ định lượng.' : null,
+    receipts.rows.length > 0
+      ? receipts.pendingCount > 0
+        ? `${receipts.pendingCount} dòng nguyên liệu trên trang ${receipts.page} đang chờ bếp trưởng ký nhận.`
+        : hasUnreviewedReceiptPages
+          ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
+          : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
+      : null,
+    production.status.isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
+    production.status.isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
+    ...production.dailyPlanWarnings,
+    receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
+    exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
+  ].filter((message): message is string => Boolean(message))
+  const statusVariant = production.status.isCatalogError || production.status.isCatalogEmpty || receipts.isError
+    || production.status.isDailyPlanError || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+
+  const signOffMaterial = async (materialId: string, signed: boolean) => {
+    await receipts.signOff(
+      production.productionPlan.receivedMaterials.find((material) => material.id === materialId),
+      signed,
     )
-
-    // 2. Group orders by dishId
-    const portionsByDishId: Record<string, number> = {}
-    dayShiftOrders.forEach((o) => {
-      const qty = isLocked ? o.actualQuantity : o.forecastQuantity
-      if (qty > 0) {
-        portionsByDishId[o.dishId] = (portionsByDishId[o.dishId] || 0) + qty
-      }
-    })
-
-    const activeDishes = Object.entries(portionsByDishId).map(([dishId, portions]) => {
-      const dish = dishesById.get(dishId)
-      const priceRatio = Math.max(0.1, Math.min(1.5, menuPrice / 35000))
-
-      const ingredients = dish
-        ? dish.ingredients.map((ing, idx) => {
-            const rawQty = ing.grossQtyPerServing * portions * priceRatio * (1 + lossRate / 100)
-            return {
-              ingredientId: ing.ingredientId || `${dishId}-${idx}`,
-              ingredientName: ing.name,
-              unit: ing.unit,
-              grossQty: parseFloat(rawQty.toFixed(2)),
-            }
-          })
-        : []
-
-      return {
-        id: dishId,
-        name: dish ? dish.name : 'Món ăn không rõ',
-        code: dish?.code ?? dishId.slice(0, 8).toUpperCase(),
-        ingredients,
-      }
-    })
-
-    // 3. Build received materials checklist
-    const materialTotals: Record<string, { qty: number; unit: string }> = {}
-    activeDishes.forEach((ad) => {
-      ad.ingredients.forEach((ing) => {
-        if (!materialTotals[ing.ingredientName]) {
-          materialTotals[ing.ingredientName] = { qty: 0, unit: ing.unit }
-        }
-        materialTotals[ing.ingredientName].qty += ing.grossQty
-      })
-    })
-
-    const receivedMaterials = Object.entries(materialTotals).map(([name, data], idx) => {
-      const signKey = `${activeDay}-${activeShift}-${name}`
-      const isSigned = !!signedMaterials[signKey]
-      return {
-        id: `mat-${idx}`,
-        name,
-        unit: data.unit,
-        quantity: parseFloat(data.qty.toFixed(2)),
-        status: (isLocked ? 'Đã nhận' : 'Chờ giao') as 'Chờ giao' | 'Đã nhận',
-        signed: isSigned,
-      }
-    })
-
-    return {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      shift: activeShift,
-      kitchenAssignment: {
-        kitchenName: 'Bếp Cảnh',
-        kitchenCode: 'KC01',
-        responsibleChefs: [
-          { name: 'Đặng Ánh Vàng', shortName: 'DAV' },
-          { name: 'Võ Công Việt', shortName: 'VCV' },
-        ],
-      },
-      totalMeals,
-      activeDishes,
-      receivedMaterials,
-    }
-  }, [dayShiftOrders, isLocked, menuPrice, lossRate, activeDay, activeShift, signedMaterials, dishesById])
-
-  const handleSupplementalRequest = (data: SupplementalRequest) => {
-    setRequests([...requests, { ...data, day: activeDay, shift: activeShift }])
-    setChefFeedback({
-      title: 'Đã ghi nhận yêu cầu bổ sung',
-      message: `${data.ingredientName}: ${formatQuantityWithUnit(data.requestedQty, data.unit)} đã được thêm vào nhật ký ca ${activeShift}.`,
-      variant: 'warning',
-    })
   }
-
-  const handleExcessMaterialReturn = async (data: ExcessMaterial) => {
-    const defaultWarehouseId = warehouses[0]?.warehouseId || '00000000-0000-0000-0000-000000000000';
-    const issueDocument = workflowDocuments.find((d) => d.type === 'Phiếu xuất');
-    const issueId = issueDocument?.documentId || '00000000-0000-0000-0000-000000000000';
-    const foundIngredient = uniqueIngredients.find(ing => ing.id === data.ingredientId);
-    const unitId = foundIngredient?.unitId || '00000000-0000-0000-0000-000000000000';
-
-    try {
-      await createReturn({
-        returnDate: new Date().toISOString().split('T')[0],
-        shiftName: activeShift,
-        warehouseId: defaultWarehouseId,
-        issueId: issueId,
-        reason: data.condition || 'Nguyên liệu thừa sau sản xuất',
-        lines: [
-          {
-            ingredientId: data.ingredientId,
-            quantity: Number(data.returnedQty),
-            unitId: unitId,
-          }
-        ]
-      }).unwrap();
-
-      setReturns([...returns, { ...data, day: activeDay, shift: activeShift }]);
-      setChefFeedback({
-        title: 'Đã tạo phiếu trả nguyên liệu dư',
-        message: `${data.ingredientName}: ${formatQuantityWithUnit(data.returnedQty, data.unit)} đã được lưu thành công trên hệ thống.`,
-        variant: 'info',
-      });
-    } catch (err) {
-      console.error(err);
-      const apiError = err as { data?: { message?: string } };
-      setChefFeedback({
-        title: 'Lỗi khi gửi trả nguyên liệu',
-        message: apiError.data?.message || 'Có lỗi xảy ra khi gọi API của hệ thống.',
-        variant: 'danger',
-      });
-    }
-  }
-
-  const handleMaterialSignoff = (materialId: string, signed: boolean) => {
-    const material = productionPlan.receivedMaterials.find((m) => m.id === materialId)
-    if (material) {
-      const signKey = `${activeDay}-${activeShift}-${material.name}`
-      setSignedMaterials((prev) => {
-        const next = {
-          ...prev,
-          [signKey]: signed,
-        };
-        try {
-          localStorage.setItem('chef-signed-materials', JSON.stringify(next));
-        } catch (e) {
-          console.error(e);
-        }
-        return next;
-      })
-    }
-  }
-
-  const activeRequests = requests.filter((req) => req.day === activeDay && req.shift === activeShift)
-  const activeReturns = returns.filter((ret) => ret.day === activeDay && ret.shift === activeShift)
-
-  const shiftControls = (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-      <div className="flex items-center gap-2 text-sm text-slate-600">
-        <Calendar className="size-4 text-blue-600" />
-        <span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span>
-      </div>
-      <div className="flex items-center gap-2">
-        <select
-          aria-label="Chọn ngày sản xuất"
-          value={activeDay}
-          onChange={(e) => setActiveDay(e.target.value)}
-          className="ipc-select bg-white text-sm font-semibold text-slate-700 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors"
-          style={{ width: '110px', minHeight: '32px', paddingTop: '4px', paddingBottom: '4px', paddingLeft: '8px', paddingRight: '8px' }}
-        >
-          {DAYS_OF_WEEK.map((day) => (
-            <option key={day.key} value={day.key}>
-              {day.label}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label="Chọn ca sản xuất"
-          value={activeShift}
-          onChange={(e) => setActiveShift(e.target.value as ShiftType)}
-          className="ipc-select bg-white text-sm font-semibold text-slate-700 border border-slate-300 rounded-md cursor-pointer hover:bg-slate-50 transition-colors"
-          style={{ width: '110px', minHeight: '32px', paddingTop: '4px', paddingBottom: '4px', paddingLeft: '8px', paddingRight: '8px' }}
-        >
-          {SHIFTS.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
-      </div>
-    </div>
-  )
-
-  const shiftAlert = isLocked ? (
-    <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">
-      Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo KHSX.
-    </InlineAlert>
-  ) : (
-    <InlineAlert title="Bản dự thảo từ điều phối" icon={<ShieldAlert className="size-4" />} variant="warning">
-      Chưa chốt ca. Bếp chỉ xem trước KHSX, chưa xác nhận nhận nguyên liệu.
-    </InlineAlert>
-  )
-
-  const shiftJournal = (
-    <SideRail
-      title="Nhật ký hoạt động ca"
-      description="Yêu cầu bổ sung và ghi nhận nguyên liệu thừa trong ngày, ca đang chọn."
-    >
-      {activeRequests.length === 0 && activeReturns.length === 0 ? (
-        <div className="rounded-md border border-dashed border-slate-300 bg-slate-50 p-3 text-sm text-slate-500">
-          Chưa có ngoại lệ nào được ghi nhận trong ca này.
-        </div>
-      ) : (
-        <>
-          {activeRequests.map((req, idx) => (
-            <div key={`req-${idx}`} className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700">
-              <div className="font-bold text-slate-900">Gửi yêu cầu bổ sung</div>
-              <div className="mt-1 text-slate-600">
-                {req.ingredientName}: {req.requestedQty} {req.unit}
-              </div>
-            </div>
-          ))}
-          {activeReturns.map((ret, idx) => (
-            <div key={`ret-${idx}`} className="rounded-md border border-slate-200 bg-white p-3 text-sm text-slate-700">
-              <div className="font-bold text-slate-900">Ghi nhận nguyên liệu thừa</div>
-              <div className="mt-1 text-slate-600">
-                {ret.ingredientName}: {ret.returnedQty} {ret.unit}
-              </div>
-            </div>
-          ))}
-        </>
-      )}
-    </SideRail>
-  )
 
   return (
     <OperationalFrame
-      command={
-        <CommandBar>
-          {shiftControls}
-        </CommandBar>
-      }
-      context={
+      command={<CommandBar><ShiftControls activeDay={activeDay} activeShift={activeShift} onDayChange={setActiveDay} onShiftChange={setActiveShift} /></CommandBar>}
+      context={(
         <>
-          <ContextStrip
-            items={[
-              { label: 'KHSX', value: activeKhsxDocument?.title ?? 'Chưa có KHSX', tone: activeKhsxDocument ? 'success' : 'warning' },
-              { label: 'Chứng từ bếp', value: `${khsxDocuments.length + returnDocuments.length} chứng từ`, tone: 'neutral' },
-              { label: 'Trạng thái nhận', value: isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: isLocked ? 'warning' : 'neutral' },
-              { label: 'Yêu cầu bổ sung', value: `${activeRequests.length} phiếu`, tone: 'warning' },
-            ]}
-          />
-          {shiftAlert}
-          {isCatalogLoading && (
-            <InlineAlert title="Đang tải catalog món ăn" variant="info">
-              Hệ thống đang lấy BOM và đơn vị tính từ API để lập checklist nguyên liệu cho bếp.
-            </InlineAlert>
-          )}
-          {isCatalogError && (
-            <InlineAlert title="Chưa tải được catalog món ăn" variant="warning">
-              Bếp trưởng cần catalog BOM từ API để xem định lượng nguyên liệu chính xác cho ca.
-            </InlineAlert>
-          )}
-          {isCatalogEmpty && (
-            <InlineAlert title="Catalog món ăn đang trống" variant="warning">
-              Chưa có món ăn hoạt động nào từ API, nên checklist nguyên liệu của ca chưa thể sinh từ BOM.
+          <ContextStrip items={[
+            { label: 'Kế hoạch hôm nay', value: production.dailyPlan ? `${production.dailyPlan.sentPlans}/${production.dailyPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: production.dailyPlan?.sentPlans ? 'success' : 'warning' },
+            { label: 'Phiếu trả', value: `${journal.returnDocuments.length} chứng từ`, tone: 'neutral' },
+            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : scope.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : scope.isLocked ? 'warning' : 'neutral' },
+          ]} />
+          <ShiftAlert isLocked={scope.isLocked} />
+          {statusMessages.length > 0 && (
+            <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
+              <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
             </InlineAlert>
           )}
         </>
-      }
-    >
-      {productionPlan.totalMeals === 0 ? (
-        <EmptyState
-          icon={<AlertCircle className="size-12 text-slate-400" />}
-          title="Không có suất ăn nào được lên lịch cho ca này."
-          description="Vui lòng điều phối suất dự kiến tại trang Điều phối trước."
-          className="text-slate-500"
-        />
-      ) : (
-        <div className="ipc-operational-view">
-          {chefFeedback && (
-            <InlineAlert title={chefFeedback.title} variant={chefFeedback.variant}>
-              {chefFeedback.message}
-            </InlineAlert>
-          )}
-          <ViewSwitcher
-            compact
-            ariaLabel="Chọn góc nhìn bếp trưởng"
-            tabs={[
-              { id: 'chef-production', label: 'Ca sản xuất' },
-              { id: 'chef-documents', label: 'Chứng từ bếp' },
-            ]}
-            activeTab={activeView === 'production' ? 'chef-production' : 'chef-documents'}
-            onTabChange={(id) => setActiveView(id === 'chef-production' ? 'production' : 'documents')}
-          />
-
-          {activeView === 'production' && (
-            <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
-              <SplitWorkbench detailLabel="Nhật ký ca" detail={shiftJournal} className="ipc-chef-split-workbench">
-                <HeadChefDashboard
-                  productionPlan={productionPlan}
-                  onSupplementalRequest={handleSupplementalRequest}
-                  onExcessMaterialReturn={handleExcessMaterialReturn}
-                  onMaterialSignoff={handleMaterialSignoff}
-                />
-              </SplitWorkbench>
-            </div>
-          )}
-
-          {activeView === 'documents' && (
-            <SectionPanel
-              title="KHSX, bàn giao và phiếu trả"
-              icon={<ClipboardList size={18} />}
-              className="ipc-chef-documents-panel"
-            >
-              <div id="chef-documents-panel" role="tabpanel" aria-labelledby="chef-documents-tab">
-              <div className="flex flex-col gap-3">
-                <StockMovementTable movements={kitchenMovements} />
-                <DocumentRail documents={[...khsxDocuments, ...returnDocuments]} title="KHSX và phiếu trả" />
-              </div>
-              </div>
-            </SectionPanel>
-          )}
-        </div>
       )}
+    >
+      <div className="ipc-operational-view">
+        {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
+        <ViewSwitcher
+          compact
+          ariaLabel="Chọn góc nhìn bếp trưởng"
+          tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }]}
+          activeTab={activeView === 'production' ? 'chef-production' : 'chef-documents'}
+          onTabChange={(id) => setActiveView(id === 'chef-production' ? 'production' : 'documents')}
+        />
+        {activeView === 'production' && (
+          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
+            <ChefProductionSection lines={production.dailyPlanLines} isSending={production.isSendingDailyPlan} onReceivePlan={production.receiveDailyPlan} />
+            <KitchenReceiptSection
+              productionPlan={production.productionPlan}
+              returns={exceptions.activeReturns}
+              isSubmittingSupplemental={exceptions.isSubmittingSupplemental}
+              onSupplementalRequest={exceptions.requestSupplemental}
+              onExcessMaterialReturn={exceptions.recordReturn}
+              onMaterialSignoff={signOffMaterial}
+              receiptPage={receipts.page}
+              receiptPageSize={receipts.pageSize}
+              receiptTotalCount={receipts.totalCount}
+              onReceiptPageChange={receipts.setPage}
+            />
+          </div>
+        )}
+        {activeView === 'documents' && <ChefDocumentsSection movements={journal.kitchenMovements} documents={journal.returnDocuments} />}
+      </div>
     </OperationalFrame>
   )
 }
 
+type ShiftControlsProps = {
+  activeDay: string
+  activeShift: ShiftType
+  onDayChange: (day: string) => void
+  onShiftChange: (shift: ShiftType) => void
+}
+
+function ShiftControls({ activeDay, activeShift, onDayChange, onShiftChange }: ShiftControlsProps) {
+  return (
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+      <div className="flex items-center gap-2 text-sm text-slate-600"><Calendar className="size-4 text-blue-600" /><span className="font-semibold text-slate-700">Lệnh sản xuất bếp nấu</span></div>
+      <div className="flex items-center gap-2">
+        <select aria-label="Chọn ngày sản xuất" value={activeDay} onChange={(event) => onDayChange(event.target.value)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          {DAYS_OF_WEEK.map((day) => <option key={day.key} value={day.key}>{day.label}</option>)}
+        </select>
+        <select aria-label="Chọn ca sản xuất" value={activeShift} onChange={(event) => onShiftChange(event.target.value as ShiftType)} className="ipc-select min-h-8 w-28 cursor-pointer rounded-md border border-slate-300 bg-white px-2 py-1 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50">
+          {SHIFTS.map((shift) => <option key={shift} value={shift}>{shift}</option>)}
+        </select>
+      </div>
+    </div>
+  )
+}
+
+function ShiftAlert({ isLocked }: { isLocked: boolean }) {
+  return isLocked ? (
+    <InlineAlert title="Lệnh sản xuất chính thức" icon={<ShieldCheck className="size-4" />} variant="info">Ca này đã chốt. Bếp nhận nguyên liệu, ký nhận và nấu theo kế hoạch sản xuất.</InlineAlert>
+  ) : (
+    <InlineAlert title="Bản dự thảo từ điều phối" icon={<ShieldAlert className="size-4" />} variant="warning">Chưa chốt ca. Bếp chỉ xem trước kế hoạch sản xuất, chưa xác nhận nhận nguyên liệu.</InlineAlert>
+  )
+}

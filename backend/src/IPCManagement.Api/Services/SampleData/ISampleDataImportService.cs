@@ -17,11 +17,17 @@ public interface ISampleDataImportService
         DateOnly? weekStartDate,
         CancellationToken cancellationToken = default);
 
+    Task<(byte[] Content, string CustomerCode)> BuildWeeklyMenuTemplateAsync(
+        string? customerId,
+        DateOnly? weekStartDate,
+        CancellationToken cancellationToken = default);
+
     Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
         Stream fileStream,
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
         CancellationToken cancellationToken = default);
 
     Task<WeeklyMenuImportResultDto> CommitWeeklyMenuImportAsync(
@@ -29,6 +35,26 @@ public interface ISampleDataImportService
         string fileName,
         string customerId,
         DateOnly? weekStartDate,
+        decimal? priceTierAmount,
+        string? actorUserId = null,
+        CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
+        string? customerId,
+        CancellationToken cancellationToken = default);
+
+    Task<RollbackWeeklyMenuImportResultDto> RollbackWeeklyMenuImportAsync(
+        string menuVersionId,
+        string? actorUserId,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
+        string customerId,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
+        string customerId,
+        SaveCustomerImportMappingDto request,
         CancellationToken cancellationToken = default);
 
     Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(

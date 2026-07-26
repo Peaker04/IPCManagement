@@ -1,9 +1,12 @@
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
-import { DataTableShell } from './DataTableShell';
 import { PaginationBar } from './PaginationBar';
+import { TableViewport } from './TableViewport';
 import { StatusBadge } from './StatusBadge';
 import type { RoleInboxItem } from '@/features/workflow';
+import { useLocalPagination } from '@/lib/useLocalPagination';
+import { uiCopy } from '@/lib/uiCopy';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
 
 interface RoleInboxProps {
   items: RoleInboxItem[];
@@ -29,33 +32,30 @@ export function RoleInbox({
   pageSize = 4,
   className,
 }: RoleInboxProps) {
-  const [page, setPage] = useState(1);
+  const { page, rows: pageItems, totalItems, setPage } = useLocalPagination(items, pageSize);
 
   if (!items.length) {
     return <div className={cn('ipc-role-inbox is-empty', className)}>{emptyText}</div>;
   }
 
   const hasActions = Boolean(actionForItem);
-  const totalPages = Math.max(1, Math.ceil(items.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageItems = items.slice((safePage - 1) * pageSize, safePage * pageSize);
 
   return (
     <div className={cn('ipc-role-inbox', className)}>
       {title && <h4>{title}</h4>}
-      <DataTableShell className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò">
+      <TableViewport className="ipc-logistics-table-shell" ariaLabel="Bảng hàng đợi theo vai trò" caption="Danh sách việc đang chờ theo vai trò">
         <table className="ipc-data-table ipc-logistics-table ipc-role-inbox-table">
           <thead>
             <tr>
               <th className="!text-left">Việc / chứng từ</th>
-              <th className="!text-left">Hạn xử lý</th>
-              <th className="!text-left">Phụ trách</th>
-              {hasActions ? <th className="!text-right">Thao tác</th> : null}
+              <th className="!text-left">{uiCopy.workflow.deadline}</th>
+              <th className="!text-left">{uiCopy.workflow.owner}</th>
+              {hasActions ? <th className="!text-right">{uiCopy.workflow.action}</th> : null}
             </tr>
           </thead>
           <tbody>
-            {pageItems.map((item) => (
-              <tr key={item.id} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
+            {pageItems.map((item, index) => (
+              <tr key={`${item.id}-${page}-${index}`} className={cn('ipc-logistics-row', toneClasses[item.tone])}>
                 <td className="!text-left">
                   <div className="ipc-work-cell">
                     <strong>{item.title}</strong>
@@ -70,13 +70,17 @@ export function RoleInbox({
                 <td className="!text-left">
                   <span className="ipc-muted-cell">{item.owner}</span>
                 </td>
-                {hasActions ? <td className="ipc-row-action-cell !text-right">{actionForItem?.(item)}</td> : null}
+                {hasActions ? (
+                  <td className="ipc-row-action-cell !text-right">
+                    {actionForItem?.({ ...item, nextAction: formatWorkflowStatus(item.nextAction) })}
+                  </td>
+                ) : null}
               </tr>
             ))}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={items.length} onPageChange={setPage} />
+      </TableViewport>
+      <PaginationBar page={page} pageSize={pageSize} totalItems={totalItems} onPageChange={setPage} />
     </div>
   );
 }

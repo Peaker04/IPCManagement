@@ -65,6 +65,8 @@ lerna-debug.log*
 ## Playwright artifacts
 frontend/test-results/
 frontend/playwright-report/
+backend/TestResults/
+frontend/coverage/
 
 # =============================================
 # IDE / Editor
@@ -87,10 +89,13 @@ Desktop.ini
 # Internal / AI tooling (not for repo)
 # =============================================
 .claude/
+.codex/skills/
 .docs/
 .planning/
 docs/
+shipyard/profiles/IPCManagement/
 AGENTS.md
 CLAUDE.md
 Project_Tracking*.xlsx
 .vercel
+scripts/

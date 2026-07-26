@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using System.Threading.RateLimiting;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -22,12 +23,12 @@ Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console(outputTemplate:
-        "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+        "[{Timestamp:HH:mm:ss} {Level:u3} cid:{CorrelationId}] {Message:lj}{NewLine}{Exception}")
     .WriteTo.File(
         path: "logs/ipc-.log",
         rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30,
-        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3} cid:{CorrelationId}] {Message:lj}{NewLine}{Exception}")
     .CreateLogger();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -102,6 +103,9 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
+    options.AddPolicy(AuthorizationPolicies.InventoryIssueAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(
+            AuthorizationPolicies.InventoryRoles.Concat(AuthorizationPolicies.ProductionRoles).ToArray()));
     options.AddPolicy(AuthorizationPolicies.ProductionAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.ProductionRoles));
     options.AddPolicy(AuthorizationPolicies.DemandGenerateAccess, policy =>
@@ -112,6 +116,10 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseRoles));
+    options.AddPolicy(AuthorizationPolicies.WarehouseCatalogAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehouseCatalogRoles));
+    options.AddPolicy(AuthorizationPolicies.WarehousePurchaseReceive, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.WarehousePurchaseReceiveRoles));
 });
 
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
@@ -190,23 +198,25 @@ builder.Services.AddSwaggerGen(options =>
 builder.Services.AddRateLimiter(opts =>
 {
     // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
-    opts.AddFixedWindowLimiter("auth-strict", o =>
-    {
-        o.PermitLimit         = 5;
-        o.Window              = TimeSpan.FromMinutes(1);
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit          = 0;          // không xếp hàng
-    });
+    opts.AddPolicy("auth-strict", context =>
+        RateLimitPartition.GetFixedWindowLimiter(GetRateLimitPartitionKey(context), _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5,
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0
+        }));
 
-    // Policy cho API nói chung: 100 lần / 1 phút theo IP
-    opts.AddSlidingWindowLimiter("api-general", o =>
-    {
-        o.PermitLimit         = 100;
-        o.Window              = TimeSpan.FromMinutes(1);
-        o.SegmentsPerWindow   = 6;
-        o.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        o.QueueLimit          = 10;
-    });
+    // Policy cho API nói chung: 100 lần / 1 phút theo user, fallback theo IP
+    opts.AddPolicy("api-general", context =>
+        RateLimitPartition.GetSlidingWindowLimiter(GetRateLimitPartitionKey(context), _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 100,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        }));
 
     // Trả về JSON khi bị từ chối
     opts.OnRejected = async (context, _) =>
@@ -219,8 +229,21 @@ builder.Services.AddRateLimiter(opts =>
     };
 });
 
+static string GetRateLimitPartitionKey(HttpContext context)
+{
+    var userId = context.User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (!string.IsNullOrWhiteSpace(userId))
+    {
+        return $"user:{userId}";
+    }
+
+    var remoteIp = context.Connection.RemoteIpAddress?.ToString();
+    return string.IsNullOrWhiteSpace(remoteIp) ? "anonymous" : $"ip:{remoteIp}";
+}
+
 var app = builder.Build();
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionMiddleware();
 
 if (app.Environment.IsDevelopment())
@@ -249,11 +272,11 @@ app.MapGet("/", () =>
     });
 });
 
-app.UseRateLimiter();
 app.UseResponseCompression();
 app.UseHttpsRedirection();
 app.UseCors("FrontendPolicy");
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 app.MapControllers();
 

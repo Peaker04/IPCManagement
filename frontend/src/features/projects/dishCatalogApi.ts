@@ -19,8 +19,15 @@ export interface DishCatalogBomLineDto {
   unitId: string;
   unitCode: string;
   unitName: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  priceTierAmount: number;
+  bomScope: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   effectiveFrom: string;
   effectiveTo?: string | null;
   referencePrice: number;
@@ -51,10 +58,16 @@ export interface CatalogIngredient {
   ingredientId: string;
   ingredientCode: string;
   unitId: string;
+  customerId?: string | null;
+  customerCode?: string | null;
+  priceTierAmount: number;
+  bomScope: string;
   name: string;
   unit: string;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus: string;
+  bomStatusLabel: string;
   referencePrice: number;
   effectiveFrom: string;
   effectiveTo?: string | null;
@@ -94,11 +107,68 @@ export interface UpsertDishBomLineRequest {
   bomId?: string;
   ingredientId: string;
   unitId?: string;
+  customerId?: string | null;
+  priceTierAmount?: number;
   grossQtyPerServing: number;
   wasteRatePercent: number;
+  bomStatus?: string;
   effectiveFrom?: string;
   effectiveTo?: string | null;
   reason?: string;
+}
+
+export interface BomImportPreviewRow {
+  rowNumber: number;
+  dishCode: string;
+  dishName: string;
+  ingredientCode: string;
+  ingredientName: string;
+  unitCode: string;
+  grossQtyPerServing: number;
+  wasteRatePercent: number;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+  status: 'valid' | 'warning' | 'error';
+  action: string;
+  errors: string[];
+  warnings: string[];
+}
+
+export interface BomImportPreview {
+  generatedAt: string;
+  priceTier: number;
+  customerId?: string | null;
+  bomScope: string;
+  totalRows: number;
+  validRows: number;
+  errorRows: number;
+  warningRows: number;
+  canCommit: boolean;
+  rows: BomImportPreviewRow[];
+  warnings: string[];
+}
+
+export interface BomImportCommitResult extends BomImportPreview {
+  createdRows: number;
+  updatedRows: number;
+  archivedRows: number;
+  auditBatchCode: string;
+}
+
+export interface BomImportFileRequest {
+  file: File;
+  priceTier: number;
+  customerId?: string;
+  effectiveFrom?: string;
+}
+
+export function buildBomImportFormData({ file, priceTier, customerId, effectiveFrom }: BomImportFileRequest): FormData {
+  const body = new FormData();
+  body.append('file', file);
+  body.append('priceTier', String(priceTier));
+  if (customerId?.trim()) body.append('customerId', customerId.trim());
+  if (effectiveFrom?.trim()) body.append('effectiveFrom', effectiveFrom.trim());
+  return body;
 }
 
 const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
@@ -114,10 +184,16 @@ const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
     ingredientId: line.ingredientId,
     ingredientCode: line.ingredientCode,
     unitId: line.unitId,
+    customerId: line.customerId,
+    customerCode: line.customerCode,
+    priceTierAmount: line.priceTierAmount,
+    bomScope: line.bomScope,
     name: line.ingredientName,
     unit: line.unitName || line.unitCode,
     grossQtyPerServing: line.grossQtyPerServing,
     wasteRatePercent: line.wasteRatePercent,
+    bomStatus: line.bomStatus,
+    bomStatusLabel: line.bomStatusLabel,
     referencePrice: line.referencePrice,
     effectiveFrom: line.effectiveFrom,
     effectiveTo: line.effectiveTo,
@@ -178,7 +254,7 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
     updateDishBomLine: builder.mutation<DishCatalogBomLineDto, UpsertDishBomLineRequest>({
       query: ({ dishId, bomId, ...body }) => ({
@@ -187,14 +263,38 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
     closeDishBomLine: builder.mutation<void, { dishId: string; bomId: string }>({
       query: ({ dishId, bomId }) => ({
         url: `/dishes/${dishId}/bom/${bomId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['DishCatalog'],
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+    }),
+    downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
+      query: ({ priceTier, customerId, dishId, templateType }) => ({
+        url: '/dishes/bom-template',
+        params: { priceTier, customerId, dishId, templateType },
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+    previewBomImport: builder.mutation<BomImportPreview, BomImportFileRequest>({
+      query: (request) => ({
+        url: '/dishes/bom-import/preview',
+        method: 'POST',
+        body: buildBomImportFormData(request),
+      }),
+      transformResponse: (response: ApiResponse<BomImportPreview>) => response.data!,
+    }),
+    commitBomImport: builder.mutation<BomImportCommitResult, BomImportFileRequest>({
+      query: (request) => ({
+        url: '/dishes/bom-import/commit',
+        method: 'POST',
+        body: buildBomImportFormData(request),
+      }),
+      transformResponse: (response: ApiResponse<BomImportCommitResult>) => response.data!,
+      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
     }),
   }),
   overrideExisting: false,
@@ -210,5 +310,8 @@ export const {
   useAddDishBomLineMutation,
   useUpdateDishBomLineMutation,
   useCloseDishBomLineMutation,
+  useDownloadBomTemplateMutation,
+  usePreviewBomImportMutation,
+  useCommitBomImportMutation,
   useGetDishCatalogQuery: useGetDishesCatalogQuery,
 } = dishCatalogApi;

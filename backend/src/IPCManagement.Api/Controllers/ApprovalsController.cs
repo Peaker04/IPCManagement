@@ -12,22 +12,50 @@ namespace IPCManagement.Api.Controllers;
 [Authorize]
 public class ApprovalsController : ControllerBase
 {
+    private readonly IApprovalInboxService _approvalInboxService;
     private readonly IApprovalWorkflowService _approvalWorkflowService;
     private readonly ICurrentUserService _currentUserService;
 
-    public ApprovalsController(IApprovalWorkflowService approvalWorkflowService, ICurrentUserService currentUserService)
+    public ApprovalsController(
+        IApprovalInboxService approvalInboxService,
+        IApprovalWorkflowService approvalWorkflowService,
+        ICurrentUserService currentUserService)
     {
+        _approvalInboxService = approvalInboxService;
         _approvalWorkflowService = approvalWorkflowService;
         _currentUserService = currentUserService;
     }
 
+    [HttpGet("inbox")]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalInboxPageDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetInbox([FromQuery] ApprovalInboxQueryDto query, CancellationToken cancellationToken)
+        => Ok(ApiResponse<ApprovalInboxPageDto>.SuccessResult(
+            await _approvalInboxService.GetPendingPageAsync(User, query, cancellationToken)));
+
     [HttpPost("{targetType}/{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Execute([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequestDto request)
     {
         var actorUserId = _currentUserService.GetUserId(User);
-        var result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId);
+        ApprovalResultDto? result;
+        try
+        {
+            result = await _approvalWorkflowService.ExecuteAsync(targetType, id, request, actorUserId, User);
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
 
         if (result is null)
         {

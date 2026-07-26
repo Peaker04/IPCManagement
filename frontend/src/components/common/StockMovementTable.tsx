@@ -1,16 +1,25 @@
-import { useState } from 'react';
-import { Check, Copy } from 'lucide-react';
+import { Copy } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PaginationBar } from './PaginationBar';
+import { CursorPaginationBar } from './CursorPaginationBar';
 import { StatusBadge } from './StatusBadge';
-import { DataTableShell } from './DataTableShell';
+import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
 import type { StockMovement } from '@/features/workflow';
+import { useLocalPagination } from '@/lib/useLocalPagination';
+import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { useToast } from './useToast';
 
 interface StockMovementTableProps {
   movements: StockMovement[];
   pageSize?: number;
   className?: string;
+  cursorPagination?: {
+    page: number;
+    hasNext: boolean;
+    onPrevious: () => void;
+    onNext: () => void;
+  };
 }
 
 const movementLabel = {
@@ -65,19 +74,16 @@ function shortenDocumentNo(docNo: string): string {
   return docNo;
 }
 
-export function StockMovementTable({ movements, pageSize = 8, className }: StockMovementTableProps) {
-  const [page, setPage] = useState(1);
-  const [copiedDocumentNo, setCopiedDocumentNo] = useState<string | null>(null);
+export function StockMovementTable({ movements, pageSize = 8, className, cursorPagination }: StockMovementTableProps) {
+  const { toast } = useToast();
+  const pagination = useLocalPagination(movements, pageSize);
 
   const handleCopyDocumentNo = async (docNo: string) => {
     try {
       await navigator.clipboard.writeText(docNo);
-      setCopiedDocumentNo(docNo);
-      window.setTimeout(() => {
-        setCopiedDocumentNo((current) => (current === docNo ? null : current));
-      }, 1400);
+      toast({ title: 'Đã sao chép mã chứng từ', description: docNo, variant: 'success' });
     } catch {
-      setCopiedDocumentNo(null);
+      toast({ title: 'Không thể sao chép mã chứng từ', description: 'Trình duyệt không cho phép truy cập clipboard.', variant: 'warning' });
     }
   };
 
@@ -85,14 +91,10 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
     return <div className={cn('ipc-stock-movement-table is-empty text-slate-500 text-center py-8 border border-dashed border-slate-200 bg-slate-50 rounded-sm', className)}>Chưa có dữ liệu để hiển thị</div>;
   }
 
-  const totalPages = Math.max(1, Math.ceil(movements.length / pageSize));
-  const safePage = Math.min(page, totalPages);
-  const pageMovements = movements.slice((safePage - 1) * pageSize, safePage * pageSize);
-
   return (
     <div className={cn('ipc-stock-movement-table', className)}>
-      <DataTableShell ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell">
-        <table className="ipc-data-table ipc-stock-table">
+      <TableViewport ariaLabel="Bảng biến động kho" className="ipc-stock-movement-shell" caption="Danh sách biến động kho">
+        <table className="ipc-data-table ipc-stock-table ipc-status-action-table">
           <thead>
             <tr>
               <th className="text-left">Chứng từ</th>
@@ -105,7 +107,7 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
             </tr>
           </thead>
           <tbody>
-            {pageMovements.map((movement) => (
+            {pagination.rows.map((movement) => (
               <tr key={movement.id} className="transition-colors hover:bg-slate-50/50">
                 <td className="font-mono text-[13px] font-semibold text-slate-700 text-left">
                   <div className="flex items-center gap-1.5 justify-start">
@@ -115,16 +117,11 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
                     <button
                       type="button"
                       className="ipc-document-copy-button flex-shrink-0"
-                      style={{ width: '22px', height: '22px' }}
                       aria-label={`Sao chép mã chứng từ ${movement.documentNo}`}
                       title="Sao chép mã chứng từ"
                       onClick={() => void handleCopyDocumentNo(movement.documentNo)}
                     >
-                      {copiedDocumentNo === movement.documentNo ? (
-                        <Check size={11} className="text-emerald-500" />
-                      ) : (
-                        <Copy size={11} />
-                      )}
+                      <Copy size={11} />
                     </button>
                   </div>
                 </td>
@@ -136,21 +133,36 @@ export function StockMovementTable({ movements, pageSize = 8, className }: Stock
                 </td>
                 <td className="font-medium text-slate-800">{movement.material}</td>
                 <td className="text-right font-mono font-bold text-slate-900">
-                  {formatQuantity(movement.quantity)} <span className="text-xs text-slate-400 font-sans font-normal">{formatUnit(movement.unit)}</span>
+                  <div>{formatQuantity(movement.quantity)} <span className="text-xs text-slate-400 font-sans font-normal">{formatUnit(movement.unit)}</span></div>
+                  {movement.beforeQty !== undefined && movement.afterQty !== undefined && (
+                    <div className="text-[11px] font-normal text-slate-500">
+                      {formatQuantity(movement.beforeQty)} -&gt; {formatQuantity(movement.afterQty)}
+                    </div>
+                  )}
                 </td>
                 <td>{movement.owner}</td>
                 <td className="ipc-badge-cell">
                   <StatusBadge variant={movement.tone} className="ipc-table-badge ipc-table-badge--status">
-                    {movement.status}
+                    {formatWorkflowStatus(movement.status)}
                   </StatusBadge>
                 </td>
-                <td className="text-slate-600 text-[13px]">{movement.nextAction}</td>
+                <td className="text-slate-600 text-[13px]">{formatWorkflowStatus(movement.nextAction)}</td>
               </tr>
             ))}
           </tbody>
         </table>
-      </DataTableShell>
-      <PaginationBar page={safePage} pageSize={pageSize} totalItems={movements.length} onPageChange={setPage} />
+      </TableViewport>
+      {cursorPagination ? (
+        <CursorPaginationBar
+          page={cursorPagination.page}
+          hasNext={cursorPagination.hasNext}
+          onPrevious={cursorPagination.onPrevious}
+          onNext={cursorPagination.onNext}
+          ariaLabel="Phân trang biến động kho"
+        />
+      ) : (
+        <PaginationBar page={pagination.page} pageSize={pageSize} totalItems={pagination.totalItems} onPageChange={pagination.setPage} />
+      )}
     </div>
   );
 }

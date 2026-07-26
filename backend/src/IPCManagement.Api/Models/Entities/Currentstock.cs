@@ -16,7 +16,7 @@ public partial class Currentstock
     public DateTime LastUpdated { get; set; }
 
     [Timestamp]
-    public byte[] RowVersion { get; set; } = [];
+    public DateTime RowVersion { get; set; }
 
     public virtual Ingredient Ingredient { get; set; } = null!;
 

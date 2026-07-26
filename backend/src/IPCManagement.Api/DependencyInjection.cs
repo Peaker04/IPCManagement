@@ -21,7 +21,10 @@ public static class DependencyInjection
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
         services.AddDbContext<IpcManagementContext>(options =>
-            options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+            options.UseMySql(
+                connectionString,
+                ServerVersion.AutoDetect(connectionString),
+                mySqlOptions => mySqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery)));
 
         // Configurations
         services.Configure<PaginationOptions>(configuration.GetSection(PaginationOptions.SectionName));
@@ -49,7 +52,11 @@ public static class DependencyInjection
         // Services
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminEmployeeService, AdminEmployeeService>();
+        services.AddScoped<IApprovalInboxService, ApprovalInboxService>();
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
+        services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();
+        services.AddScoped<IApprovalTargetHandler, MaterialDemandApprovalHandler>();
+        services.AddScoped<IApprovalTargetHandler, PurchasePriceExceptionApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, PurchaseRequestApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryReceiptApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
@@ -59,15 +66,22 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
         services.AddScoped<IInventoryIssueService, InventoryIssueService>();
+        services.AddScoped<ISupplementalMaterialRequestService, SupplementalMaterialRequestService>();
         services.AddScoped<IInventoryReturnService, InventoryReturnService>();
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICoordinationService, CoordinationService>();
         services.AddScoped<ISampleDataImportService, SampleDataImportService>();
+        services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
         services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
+        services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+        services.AddScoped<IPurchaseReceivingService, PurchaseReceivingService>();
         services.AddScoped<IWorkflowReportService, WorkflowReportService>();
         services.AddScoped<ISupplierService, SupplierService>();
+        services.AddScoped<ISupplierQuotationService, SupplierQuotationService>();
+        services.AddScoped<IStocktakeRepository, StocktakeRepository>();
+        services.AddScoped<IStocktakeService, StocktakeService>();
 
         return services;
     }

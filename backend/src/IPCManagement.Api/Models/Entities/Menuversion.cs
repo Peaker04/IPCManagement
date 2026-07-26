@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace IPCManagement.Api.Models.Entities;
 
@@ -30,5 +31,13 @@ public partial class Menuversion
 
     public DateTime UpdatedAt { get; set; }
 
+    public int SuccessRowCount { get; set; }
+
+    public int ErrorRowCount { get; set; }
+
+    public int WarningRowCount { get; set; }
+
     public virtual Customer Customer { get; set; } = null!;
+
+    public virtual ICollection<Menuschedule> Menuschedules { get; set; } = new List<Menuschedule>();
 }

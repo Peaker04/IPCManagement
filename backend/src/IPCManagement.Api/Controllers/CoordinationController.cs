@@ -1,3 +1,4 @@
+using System.Globalization;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.DTOs.SampleData;
@@ -107,6 +108,78 @@ public class CoordinationController : ControllerBase
         }
     }
 
+    [HttpGet("portion-rules")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PortionRuleDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetPortionRules([FromQuery] PortionRuleQueryDto query)
+    {
+        var result = await _coordinationService.GetPortionRulesAsync(query);
+        return Ok(ApiResponse<IReadOnlyList<PortionRuleDto>>.SuccessResult(result));
+    }
+
+    [HttpPost("portion-rules")]
+    [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> CreatePortionRule([FromBody] CreatePortionRuleDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.CreatePortionRuleAsync(request, userId);
+            return CreatedAtAction(
+                nameof(GetPortionRules),
+                ApiResponse<PortionRuleDto>.SuccessResult(result, "Đã tạo portion rule."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPut("portion-rules/{id}")]
+    [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpdatePortionRule(string id, [FromBody] UpdatePortionRuleDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpdatePortionRuleAsync(id, request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy portion rule."));
+            }
+
+            return Ok(ApiResponse<PortionRuleDto>.SuccessResult(result, "Đã cập nhật portion rule."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpPost("portion-rules/resolve")]
+    [ProducesResponseType(typeof(ApiResponse<ResolvedPortionRuleDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ResolvePortionRule([FromBody] ResolvePortionRuleDto request)
+    {
+        try
+        {
+            var result = await _coordinationService.ResolvePortionRuleAsync(request);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy khách hàng để resolve portion rule."));
+            }
+
+            return Ok(ApiResponse<ResolvedPortionRuleDto>.SuccessResult(result));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("weekly-menu")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto?>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
@@ -185,12 +258,58 @@ public class CoordinationController : ControllerBase
         }
     }
 
+    [HttpPost("menu-versions/rollback")]
+    [ProducesResponseType(typeof(ApiResponse<MenuVersionRollbackResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RollbackMenuVersion([FromBody] RollbackMenuVersionDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.RollbackMenuVersionAsync(request, userId);
+            return Ok(ApiResponse<MenuVersionRollbackResultDto>.SuccessResult(result, "Đã quay lại version thực đơn trước đó."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpGet("meal-quantity-plans")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMealQuantityPlans([FromQuery] MealQuantityPlanQueryDto query)
     {
         var result = await _coordinationService.GetMealQuantityPlansAsync(query);
         return Ok(ApiResponse<IReadOnlyList<MealQuantityPlanDto>>.SuccessResult(result));
+    }
+
+    [HttpPost("meal-quantity-plans/quick-servings")]
+    [ProducesResponseType(typeof(ApiResponse<MealQuantityPlanDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> UpsertQuickServings([FromBody] UpsertQuickServingsRequestDto request)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            var result = await _coordinationService.UpsertQuickServingsAsync(request, userId);
+            if (result is null)
+            {
+                return NotFound(ApiResponse.FailResult("Không tìm thấy lịch menu cho ngày/ca này để tạo kế hoạch suất."));
+            }
+
+            return Ok(ApiResponse<MealQuantityPlanDto>.SuccessResult(
+                result,
+                request.Complete ? "Đã hoàn tất số suất cho KHSX." : "Đã lưu số suất cho KHSX."));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPost("orders/lock")]
@@ -219,6 +338,22 @@ public class CoordinationController : ControllerBase
         return BadRequest(ApiResponse.FailResult("Vui lòng dùng luồng xem trước và xác nhận lưu thực đơn."));
     }
 
+    [HttpGet("weekly-menu/template")]
+    [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DownloadWeeklyMenuTemplate(
+        [FromQuery] string? customerId,
+        [FromQuery] string? weekStartDate,
+        CancellationToken cancellationToken)
+    {
+        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+        var template = await _sampleDataImportService.BuildWeeklyMenuTemplateAsync(customerId, parsedWeekStart, cancellationToken);
+        var fileDate = (parsedWeekStart ?? DateOnly.FromDateTime(DateTime.UtcNow)).ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+        return File(
+            template.Content,
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"weekly-menu-template-{template.CustomerCode}-{fileDate}.xlsx");
+    }
+
     [HttpPost("weekly-menu/import/preview")]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
@@ -227,6 +362,7 @@ public class CoordinationController : ControllerBase
         IFormFile file,
         [FromForm] string customerId,
         [FromForm] string? weekStartDate,
+        [FromForm] decimal? priceTierAmount,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -234,16 +370,28 @@ public class CoordinationController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Vui lòng tải lên file Excel hợp lệ."));
         }
 
-        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        using var stream = file.OpenReadStream();
-        var result = await _sampleDataImportService.PreviewWeeklyMenuImportAsync(
-            stream,
-            file.FileName,
-            customerId,
-            parsedWeekStart,
-            cancellationToken);
+        try
+        {
+            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            using var stream = file.OpenReadStream();
+            var result = await _sampleDataImportService.PreviewWeeklyMenuImportAsync(
+                stream,
+                file.FileName,
+                customerId,
+                parsedWeekStart,
+                priceTierAmount,
+                cancellationToken);
 
-        return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã phân tích file thực đơn. Vui lòng kiểm tra trước khi lưu."));
+            return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã phân tích file thực đơn. Vui lòng kiểm tra trước khi lưu."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
     }
 
     [HttpPost("weekly-menu/import/commit")]
@@ -254,6 +402,7 @@ public class CoordinationController : ControllerBase
         IFormFile file,
         [FromForm] string customerId,
         [FromForm] string? weekStartDate,
+        [FromForm] decimal? priceTierAmount,
         CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
@@ -261,16 +410,90 @@ public class CoordinationController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Vui lòng tải lên file Excel hợp lệ."));
         }
 
-        var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
-        using var stream = file.OpenReadStream();
-        var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
-            stream,
-            file.FileName,
-            customerId,
-            parsedWeekStart,
-            cancellationToken);
+        try
+        {
+            var parsedWeekStart = ParseOptionalWeekStartDate(weekStartDate);
+            var userId = _currentUserService.GetUserId(User);
+            using var stream = file.OpenReadStream();
+            var result = await _sampleDataImportService.CommitWeeklyMenuImportAsync(
+                stream,
+                file.FileName,
+                customerId,
+                parsedWeekStart,
+                priceTierAmount,
+                userId,
+                cancellationToken);
 
-        return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+            return Ok(ApiResponse<WeeklyMenuImportResultDto>.SuccessResult(result, "Đã lưu thực đơn tuần từ file Excel."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpGet("weekly-menu/import-history")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetWeeklyMenuImportHistory(
+        [FromQuery] string? customerId,
+        CancellationToken cancellationToken)
+    {
+        var history = await _sampleDataImportService.GetWeeklyMenuImportHistoryAsync(customerId, cancellationToken);
+        return Ok(ApiResponse<IReadOnlyList<WeeklyMenuImportHistoryItemDto>>.SuccessResult(history));
+    }
+
+    [HttpPost("weekly-menu/import/{menuVersionId}/rollback")]
+    [ProducesResponseType(typeof(ApiResponse<RollbackWeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> RollbackWeeklyMenuImport(
+        string menuVersionId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var result = await _sampleDataImportService.RollbackWeeklyMenuImportAsync(
+                menuVersionId,
+                _currentUserService.GetUserId(User),
+                cancellationToken);
+            return Ok(ApiResponse<RollbackWeeklyMenuImportResultDto>.SuccessResult(result, "Đã hủy phiên import thực đơn."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpGet("customers/{customerId}/import-mapping")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto?>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetCustomerImportMapping(
+        string customerId,
+        CancellationToken cancellationToken)
+    {
+        var mapping = await _sampleDataImportService.GetCustomerImportMappingAsync(customerId, cancellationToken);
+        return Ok(ApiResponse<CustomerImportMappingDto?>.SuccessResult(mapping));
+    }
+
+    [HttpPut("customers/{customerId}/import-mapping")]
+    [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> SaveCustomerImportMapping(
+        string customerId,
+        [FromBody] SaveCustomerImportMappingDto request,
+        CancellationToken cancellationToken)
+    {
+        var mapping = await _sampleDataImportService.SaveCustomerImportMappingAsync(customerId, request, cancellationToken);
+        return Ok(ApiResponse<CustomerImportMappingDto>.SuccessResult(mapping, "Đã lưu cấu hình mapping cho khách hàng."));
     }
 
     [HttpPut("weekly-menu/bulk-update")]
@@ -300,13 +523,26 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> AdjustOrderAfterLock([FromBody] AdjustOrderAfterLockRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.AdjustOrderAfterLockAsync(request, userId);
+        AdjustOrderAfterLockResultDto? result;
+        try
+        {
+            result = await _coordinationService.AdjustOrderAfterLockAsync(request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
         }
 
-        return Ok(ApiResponse<AdjustOrderAfterLockResultDto>.SuccessResult(result, "Điều chỉnh đơn thành công."));
+        return Ok(ApiResponse<AdjustOrderAfterLockResultDto>.SuccessResult(result, "Đã gửi yêu cầu duyệt điều chỉnh."));
     }
 
     [HttpPost("orders/{id}/signoff")]
@@ -335,13 +571,49 @@ public class CoordinationController : ControllerBase
         return Ok(ApiResponse<SignoffOrderResultDto>.SuccessResult(result, "Hoàn tất ca thành công."));
     }
 
+    [HttpPost("orders/{id}/unlock")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+    [ProducesResponseType(typeof(ApiResponse<LockOrderPlanResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UnlockOrderPlan(string id)
+    {
+        var userId = _currentUserService.GetUserId(User);
+
+        LockOrderPlanResultDto? result;
+        try
+        {
+            result = await _coordinationService.UnlockOrderPlanAsync(id, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
+        if (result is null)
+        {
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"));
+        }
+
+        return Ok(ApiResponse<LockOrderPlanResultDto>.SuccessResult(result, "Mở khóa kế hoạch thành công."));
+    }
+
     [HttpPatch("orders/{id}/servings")]
     [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AdjustServings([FromRoute] string id, [FromBody] AdjustServingsRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.AdjustServingsAsync(id, request, userId);
+        AdjustServingsResultDto? result;
+        try
+        {
+            result = await _coordinationService.AdjustServingsAsync(id, request, userId);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."));
@@ -357,7 +629,20 @@ public class CoordinationController : ControllerBase
     public async Task<IActionResult> UpdateForecastServings([FromRoute] string id, [FromBody] UpdateForecastServingsRequestDto request)
     {
         var userId = _currentUserService.GetUserId(User);
-        var result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        AdjustServingsResultDto? result;
+        try
+        {
+            result = await _coordinationService.UpdateForecastServingsAsync(id, request, userId);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
+
         if (result is null)
         {
             return NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để cập nhật."));

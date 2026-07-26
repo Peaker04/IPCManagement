@@ -1,0 +1,12 @@
+{
+  "snapshotPaths": [
+    "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1365x900-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-1280x900-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-768x1024-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/purchasing-phase09-390x844-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/warehouse-phase09-1365x900-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/warehouse-phase09-1280x900-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/warehouse-phase09-768x1024-chromium-win32.png",
+    "frontend/tests/visual-routes.spec.ts-snapshots/warehouse-phase09-390x844-chromium-win32.png"
+  ]
+}

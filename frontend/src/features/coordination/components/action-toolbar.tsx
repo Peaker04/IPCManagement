@@ -1,18 +1,23 @@
 'use client'
 
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, Edit, FileDown, Lock } from 'lucide-react'
+import { AlertTriangle, CheckCircle, Edit, FileDown, Lock, Unlock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { InlineAlert } from '@/components/common'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Textarea } from '@/components/ui/textarea'
 import { useAppDispatch, useIsLocked, useOrders, useCurrentShift, useAppSelector } from '@/app/hooks'
-import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
+import { addAuditLog, markOrdersLocked, unlockOrderPlan } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationOrderMutation } from '../coordinationApi'
 import { toDisplayShift } from '../types'
 import { ActionGuard } from '@/routes/ActionGuard'
 
-type ConfirmationAction = 'lock' | 'export' | 'signoff' | null
+type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
+
+type ActionErrorFeedback = {
+  title: string
+  message: string
+}
 
 interface OrderExportReportRow {
   quantityPlanLineId: string
@@ -42,7 +47,7 @@ const csvHeaders: Array<[keyof OrderExportReportRow, string]> = [
   ['confirmedServings', 'Suất đã chốt'],
   ['finalServings', 'Suất cuối'],
   ['menuPrice', 'Đơn giá thực đơn'],
-  ['bomRatePercent', 'Tỷ lệ BOM'],
+  ['bomRatePercent', 'BOM áp dụng (%)'],
 ]
 
 const escapeCsvValue = (value: unknown) => {
@@ -78,6 +83,27 @@ const downloadCsv = (csv: string, filename: string) => {
   URL.revokeObjectURL(url)
 }
 
+const getActionErrorMessage = (error: unknown, fallback: string) => {
+  if (error instanceof Error) return error.message
+  if (typeof error === 'string') return error
+  if (error && typeof error === 'object') {
+    const candidate = error as {
+      message?: unknown
+      error?: unknown
+      data?: {
+        message?: unknown
+        errors?: unknown
+      }
+    }
+
+    if (typeof candidate.data?.message === 'string') return candidate.data.message
+    if (typeof candidate.message === 'string') return candidate.message
+    if (typeof candidate.error === 'string') return candidate.error
+  }
+
+  return fallback
+}
+
 export function ActionToolbar({ status }: { status?: string }) {
   const dispatch = useAppDispatch()
   const isLocked = useIsLocked()
@@ -89,7 +115,9 @@ export function ActionToolbar({ status }: { status?: string }) {
   const [lockCoordinationOrders, { isLoading: isLocking }] = useLockCoordinationOrdersMutation()
   const [exportCoordinationOrders, { isLoading: isExporting }] = useExportCoordinationOrdersMutation()
   const [signoffCoordinationOrder, { isLoading: isSigningOff }] = useSignoffCoordinationOrderMutation()
+  const [isUnlocking, setIsUnlocking] = useState(false)
   const [confirmationAction, setConfirmationAction] = useState<ConfirmationAction>(null)
+  const [confirmationError, setConfirmationError] = useState<ActionErrorFeedback | null>(null)
   const [isReasonDialogOpen, setIsReasonDialogOpen] = useState(false)
   const [editReason, setEditReason] = useState('')
   const [feedback, setFeedback] = useState<{
@@ -105,14 +133,20 @@ export function ActionToolbar({ status }: { status?: string }) {
 
   const normalizedStatus = (status ?? '').toUpperCase()
   const isTerminal = normalizedStatus === 'COMPLETED' || normalizedStatus === 'ARCHIVED'
-  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'LOCKED' || isLocked
+  const isConfirmed = normalizedStatus === 'CONFIRMED' || normalizedStatus === 'ADJUSTED' || normalizedStatus === 'LOCKED' || isLocked
   const currentPlanId = orders.find((order) => order.quantityPlanId)?.quantityPlanId
-  const isBusy = isLocking || isExporting || isSigningOff
+  const isBusy = isLocking || isExporting || isSigningOff || isUnlocking
 
   const closeConfirmationDialog = () => {
     if (!isBusy) {
       setConfirmationAction(null)
+      setConfirmationError(null)
     }
+  }
+
+  const openConfirmationDialog = (action: Exclude<ConfirmationAction, null>) => {
+    setConfirmationError(null)
+    setConfirmationAction(action)
   }
 
   const handleLock = async () => {
@@ -147,10 +181,9 @@ export function ActionToolbar({ status }: { status?: string }) {
       })
       setConfirmationAction(null)
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa chốt được đơn ca',
-        message: error instanceof Error ? error.message : 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca.'),
       })
     }
   }
@@ -237,10 +270,9 @@ export function ActionToolbar({ status }: { status?: string }) {
         variant: 'info',
       })
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa xuất được báo cáo',
-        message: error instanceof Error ? error.message : 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca hiện tại.',
-        variant: 'danger',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau khi kiểm tra dữ liệu ca hiện tại.'),
       })
     }
   }
@@ -272,11 +304,46 @@ export function ActionToolbar({ status }: { status?: string }) {
         variant: 'info',
       })
     } catch (error) {
-      setFeedback({
+      setConfirmationError({
         title: 'Chưa hoàn tất được ca',
-        message: error instanceof Error ? error.message : 'Vui lòng kiểm tra trạng thái ca trước khi hoàn tất.',
+        message: getActionErrorMessage(error, 'Vui lòng kiểm tra trạng thái ca trước khi hoàn tất.'),
+      })
+    }
+  }
+
+  const handleUnlock = async () => {
+    if (!currentPlanId) {
+      setFeedback({
+        title: 'Chưa mở khóa được ca',
+        message: 'Không tìm thấy mã kế hoạch suất ăn cho ca hiện tại.',
         variant: 'danger',
       })
+      return
+    }
+
+    setIsUnlocking(true)
+    try {
+      await dispatch(
+        unlockOrderPlan({
+          id: currentPlanId,
+          dayOfWeek: currentDayOfWeek,
+          shift: currentShift,
+        })
+      ).unwrap()
+
+      setFeedback({
+        title: 'Đã mở khóa ca',
+        message: 'Kế hoạch ca đã được mở khóa về trạng thái nháp (Draft) thành công.',
+        variant: 'info',
+      })
+      setConfirmationAction(null)
+    } catch (error) {
+      setConfirmationError({
+        title: 'Chưa mở khóa được ca',
+        message: getActionErrorMessage(error, 'Vui lòng thử lại sau.'),
+      })
+    } finally {
+      setIsUnlocking(false)
     }
   }
 
@@ -297,16 +364,26 @@ export function ActionToolbar({ status }: { status?: string }) {
       }
     }
 
-    return {
-        title: 'Xuất báo cáo điều phối?',
-        description: 'Hệ thống sẽ lấy dữ liệu báo cáo ca hiện tại bằng quyền đăng nhập của bạn và tải xuống file CSV.',
-        action: 'Xuất báo cáo',
+    if (confirmationAction === 'unlock') {
+      return {
+        title: 'Mở khóa ca này?',
+        description: 'Sau khi mở khóa, trạng thái kế hoạch sẽ quay lại Draft, cho phép chỉnh sửa số suất ăn dự kiến.',
+        action: 'Mở khóa ca',
       }
+    }
+
+    return {
+      title: 'Xuất báo cáo điều phối?',
+      description: 'Hệ thống sẽ lấy dữ liệu báo cáo ca hiện tại bằng quyền đăng nhập của bạn và tải xuống file CSV.',
+      action: 'Xuất báo cáo',
+    }
   })()
 
   const handleConfirmedAction = () => {
+    setConfirmationError(null)
     if (confirmationAction === 'lock') return handleLock()
     if (confirmationAction === 'signoff') return handleSignoff()
+    if (confirmationAction === 'unlock') return handleUnlock()
     return handleExportExcel()
   }
 
@@ -316,14 +393,14 @@ export function ActionToolbar({ status }: { status?: string }) {
         <p className="text-sm text-slate-600">
           Trạng thái ca:{' '}
           <span className={`font-semibold ${isTerminal ? 'text-emerald-700' : isConfirmed ? 'text-teal-700' : 'text-amber-700'}`}>
-            {isTerminal ? 'Đã hoàn tất' : isConfirmed ? 'Đã khóa' : normalizedStatus === 'SYNCING' ? 'Đang đồng bộ...' : 'Chưa chốt'}
+            {isTerminal ? 'Đã hoàn tất' : normalizedStatus === 'ADJUSTED' ? 'Đã khóa, có điều chỉnh' : isConfirmed ? 'Đã khóa' : normalizedStatus === 'SYNCING' ? 'Đang đồng bộ...' : 'Chưa chốt'}
           </span>
         </p>
 
         <div className="ipc-order-action-buttons flex flex-wrap items-center gap-2">
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('lock')}
+              onClick={() => openConfirmationDialog('lock')}
               disabled={isConfirmed || isTerminal || isLocking || orders.length === 0}
               variant="default"
               size="sm"
@@ -336,7 +413,7 @@ export function ActionToolbar({ status }: { status?: string }) {
 
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('signoff')}
+              onClick={() => openConfirmationDialog('signoff')}
               disabled={!isConfirmed || isTerminal || isSigningOff || !currentPlanId}
               variant="outline"
               size="sm"
@@ -347,9 +424,22 @@ export function ActionToolbar({ status }: { status?: string }) {
             </Button>
           </ActionGuard>
 
+          <ActionGuard allowedRoles={['quanly']}>
+            <Button
+              onClick={() => openConfirmationDialog('unlock')}
+              disabled={!isConfirmed || isTerminal || isUnlocking || !currentPlanId}
+              variant="outline"
+              size="sm"
+              className="gap-1.5 font-semibold whitespace-nowrap text-red-700 border-red-200 hover:bg-red-50 hover:text-red-800 disabled:text-slate-400 disabled:border-slate-200"
+            >
+              <Unlock className="size-3.5" />
+              {isUnlocking ? 'Đang mở khóa...' : 'Mở khóa ca'}
+            </Button>
+          </ActionGuard>
+
           <ActionGuard allowedRoles={['quanly', 'dieuphoi']}>
             <Button
-              onClick={() => setConfirmationAction('export')}
+              onClick={() => openConfirmationDialog('export')}
               disabled={!isConfirmed || isExporting}
               variant="outline"
               size="sm"
@@ -382,7 +472,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         </div>
       )}
       <Dialog open={isReasonDialogOpen} onOpenChange={setIsReasonDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent aria-label="Yêu cầu điều chỉnh sau chốt" className="max-w-md">
           <DialogHeader>
             <DialogTitle>Yêu cầu điều chỉnh sau chốt</DialogTitle>
             <DialogDescription>
@@ -410,7 +500,7 @@ export function ActionToolbar({ status }: { status?: string }) {
         </DialogContent>
       </Dialog>
       <Dialog open={confirmationAction !== null} onOpenChange={closeConfirmationDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent aria-label={confirmDialogCopy.title} className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <AlertTriangle className="size-5 text-amber-600" />
@@ -422,6 +512,13 @@ export function ActionToolbar({ status }: { status?: string }) {
             <div className="font-semibold text-slate-800">Ca hiện tại: {currentShift}</div>
             <div>Số dòng đơn: {orders.length}</div>
           </div>
+          {confirmationError && (
+            <div role="alert">
+              <InlineAlert title={confirmationError.title} variant="danger">
+                {confirmationError.message}
+              </InlineAlert>
+            </div>
+          )}
           <DialogFooter className="gap-2">
             <Button type="button" variant="outline" onClick={closeConfirmationDialog} disabled={isBusy}>
               Hủy

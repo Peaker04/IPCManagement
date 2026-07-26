@@ -2,6 +2,7 @@ namespace IPCManagement.Api.Models.DTOs.Coordination;
 
 public class MealQuantityPlanQueryDto
 {
+    public string? CustomerId { get; set; }
     public string? ServiceDate { get; set; }
     public string? DayOfWeek { get; set; }
     public string? WeekStartDate { get; set; }

@@ -1,4 +1,4 @@
-﻿using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,6 +20,8 @@ public class ProductionPlanRepository : IProductionPlanRepository
     {
         var query = _context.Productionplans
             .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Include(plan => plan.MenuVersion)
             .Include(plan => plan.CreatedByNavigation)
             .OrderByDescending(plan => plan.PlanDate)
             .AsQueryable();
@@ -36,8 +38,39 @@ public class ProductionPlanRepository : IProductionPlanRepository
     public async Task<Productionplan?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Productionplans
             .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Include(plan => plan.MenuVersion)
             .Include(plan => plan.CreatedByNavigation)
             .Include(plan => plan.Productionplanlines)
                 .ThenInclude(line => line.Dish)
             .FirstOrDefaultAsync(plan => plan.PlanId == id);
+
+    public async Task<IReadOnlyList<Productionplan>> GetFilteredAsync(
+        DateOnly? serviceDate,
+        byte[]? customerId,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Productionplans
+            .AsNoTracking()
+            .Include(plan => plan.Customer)
+            .Include(plan => plan.MenuVersion)
+            .Include(plan => plan.CreatedByNavigation)
+            .Include(plan => plan.Productionplanlines)
+                .ThenInclude(line => line.Dish)
+            .AsQueryable();
+
+        if (serviceDate.HasValue)
+        {
+            query = query.Where(plan => plan.PlanDate == serviceDate.Value);
+        }
+
+        if (customerId is not null)
+        {
+            query = query.Where(plan => plan.CustomerId == customerId);
+        }
+
+        return await query
+            .OrderByDescending(plan => plan.PlanDate)
+            .ToListAsync(cancellationToken);
+    }
 }

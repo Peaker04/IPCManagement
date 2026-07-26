@@ -27,18 +27,18 @@ export const authApi = apiSlice.injectEndpoints({
         body,
       }),
     }),
-    logout: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest>({
+    logout: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest | void>({
       query: (body) => ({
         url: '/auth/logout',
         method: 'POST',
-        body,
+        body: body ?? {},
       }),
     }),
-    revokeToken: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest>({
+    revokeToken: builder.mutation<ApiResponse<undefined>, RevokeTokenRequest | void>({
       query: (body) => ({
         url: '/auth/revoke',
         method: 'POST',
-        body,
+        body: body ?? {},
       }),
     }),
   }),

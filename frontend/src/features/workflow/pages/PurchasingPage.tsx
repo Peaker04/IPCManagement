@@ -1,363 +1,223 @@
-import { useState } from 'react';
-import { PackageCheck, ShoppingCart } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, StatusBadge } from '@/components/common';
+import { Button } from '@/components/ui/button';
 import {
-  CommandBar,
-  ContextStrip,
-  DataTableShell,
-  DocumentRail,
-  ExceptionLane,
-  OperationalFrame,
-  RoleInbox,
-  SectionPanel,
-  SplitWorkbench,
-  StockMovementTable,
-  ViewSwitcher,
-  InlineAlert,
-} from '@/components/common';
-import { ROUTES } from '@/routes/routeConfig';
+  useGetPurchaseWorkbenchQuery,
+  type PurchaseWorkflowStageCounts,
+} from '../workflowApi';
+import { PurchaseDecisionPanel } from '../purchasing/PurchaseDecisionPanel';
+import { PurchaseServiceDateWorkbench } from '../purchasing/PurchaseServiceDateWorkbench';
+import { PurchaseWorkflowGuide } from '../purchasing/PurchaseWorkflowGuide';
 import {
-  useGetPriceVarianceQuery,
-  useGetPurchaseDemandQuery,
-  useGetStockMovementsQuery,
-  useGetWorkflowDocumentsQuery,
-  useWorkflowOverview,
-  useGetSuppliersQuery,
-  useUpdateLineSupplierMutation,
-  useSubmitPurchaseRequestMutation,
-} from '@/features/workflow';
-import type { DemandLine, SupplierDto } from '@/features/workflow';
+  getPurchasingErrorMessage,
+  isPurchasingStage,
+  resolveNextPurchasingAction,
+  resolvePurchasingRouteState,
+  type PurchasingStageId,
+} from '../purchasing/purchasingModel';
 
+const emptyStageCounts: PurchaseWorkflowStageCounts = {
+  demand: 0,
+  supplierPrice: 0,
+  exception: 0,
+  submittedRequest: 0,
+  approvedOrder: 0,
+  receivingProgress: 0,
+};
 
+const shiftIsoWeek = (week: string, days: number) => {
+  const date = new Date(`${week}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+};
 
+const formatWeekRange = (week: string) => {
+  const start = new Date(`${week}T00:00:00Z`);
+  const end = new Date(start);
+  end.setUTCDate(end.getUTCDate() + 6);
+  const formatter = new Intl.DateTimeFormat('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone: 'UTC',
+  });
+  return `${formatter.format(start)} - ${formatter.format(end)}`;
+};
 
 export default function PurchasingPage() {
-  const [activeView, setActiveView] = useState<'demand' | 'supplier' | 'handoff'>('demand');
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const { data: purchaseDemandLines = [] } = useGetPurchaseDemandQuery({ limit: 100 });
-  const { data: stockMovements = [] } = useGetStockMovementsQuery({ limit: 100 });
-  const { data: priceRows = [] } = useGetPriceVarianceQuery({ limit: 100 });
-  const { roleInboxItems, isLoading, isError } = useWorkflowOverview();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [page, setPage] = useState(1);
+  const [selectedLineId, setSelectedLineId] = useState<string>();
+  const requestedStage = searchParams.get('stage');
+  const initialRoute = resolvePurchasingRouteState(
+    {
+      week: searchParams.get('week'),
+      date: searchParams.get('date'),
+      stage: requestedStage,
+    },
+    [],
+  );
+  const rawDate = searchParams.get('date') ?? undefined;
+  const rawStage = isPurchasingStage(requestedStage) ? requestedStage : undefined;
+  const {
+    data: workbench,
+    isFetching,
+    error,
+    refetch,
+  } = useGetPurchaseWorkbenchQuery({
+    week: initialRoute.week,
+    date: rawDate,
+    stage: rawStage,
+    page,
+    pageSize: 8,
+  });
 
-  const { data: suppliers = [] } = useGetSuppliersQuery();
-  const [updateLineSupplier] = useUpdateLineSupplierMutation();
-  const [submitPurchaseRequest, { isLoading: isSubmitting }] = useSubmitPurchaseRequestMutation();
+  const routeState = useMemo(
+    () => resolvePurchasingRouteState(
+      {
+        week: searchParams.get('week'),
+        date: searchParams.get('date') ?? workbench?.selectedDate,
+        stage: searchParams.get('stage') ?? workbench?.selectedStage,
+      },
+      workbench?.serviceDates ?? [],
+    ),
+    [searchParams, workbench?.selectedDate, workbench?.selectedStage, workbench?.serviceDates],
+  );
+  const activeDate = workbench?.serviceDates.find((item) => item.serviceDate === routeState.date);
+  const selectedLine = activeDate?.purchaseLines.find((line) => line.purchaseRequestLineId === selectedLineId);
+  const nextAction = resolveNextPurchasingAction(activeDate, { loadError: Boolean(error) });
 
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  // Active lines to display (those that have shortage to buy)
-  const activePrLines = purchaseDemandLines.filter((line) => line.reserved > 0);
-
-  const firstPrLine = purchaseDemandLines.find((line) => line.purchaseRequestId);
-  const prId = firstPrLine?.purchaseRequestId;
-  const prCode = firstPrLine?.sourceDocumentCode;
-  const prStatus = firstPrLine?.status; // e.g. "DRAFT", "SENTTOSUPPLIER"
-
-  const handleSupplierChange = async (line: DemandLine, supplierId: string) => {
-    if (!line.purchaseRequestId || !line.purchaseRequestLineId) return;
-    try {
-      setFeedback(null);
-      await updateLineSupplier({
-        requestId: line.purchaseRequestId,
-        lineId: line.purchaseRequestLineId,
-        body: {
-          supplierId,
-          estimatedUnitPrice: line.estimatedUnitPrice ?? 0,
-        }
-      }).unwrap();
-    } catch (err) {
-      const apiError = err as { data?: { message?: string } };
-      setFeedback({
-        type: 'error',
-        message: apiError.data?.message || 'Không cập nhật được nhà cung cấp.'
-      });
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams);
+    next.set('week', routeState.week);
+    if (routeState.date) next.set('date', routeState.date);
+    else next.delete('date');
+    next.set('stage', routeState.stage);
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
     }
+  }, [routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams]);
+
+  const replaceRouteContext = (nextContext: {
+    week?: string;
+    date?: string;
+    stage?: PurchasingStageId;
+  }) => {
+    const next = new URLSearchParams(searchParams);
+    if (nextContext.week) next.set('week', nextContext.week);
+    if (nextContext.date) next.set('date', nextContext.date);
+    else if (nextContext.week) next.delete('date');
+    if (nextContext.stage) next.set('stage', nextContext.stage);
+    else if (nextContext.week) next.delete('stage');
+    setPage(1);
+    setSelectedLineId(undefined);
+    setSearchParams(next);
   };
 
-  const handlePriceChange = async (line: DemandLine, price: number) => {
-    if (!line.purchaseRequestId || !line.purchaseRequestLineId) return;
-    try {
-      setFeedback(null);
-      await updateLineSupplier({
-        requestId: line.purchaseRequestId,
-        lineId: line.purchaseRequestLineId,
-        body: {
-          supplierId: line.supplierId ?? '',
-          estimatedUnitPrice: price,
-        }
-      }).unwrap();
-    } catch (err) {
-      const apiError = err as { data?: { message?: string } };
-      setFeedback({
-        type: 'error',
-        message: apiError.data?.message || 'Không cập nhật được đơn giá.'
-      });
+  const moveWeek = (days: number) => replaceRouteContext({ week: shiftIsoWeek(routeState.week, days) });
+  const focusDecisionPanel = () => {
+    if (nextAction.kind === 'recovery') {
+      void refetch();
+      return;
     }
+    document.getElementById('purchase-decision-panel')?.focus();
   };
-
-  const handleSubmitPr = async () => {
-    if (!prId) return;
-    try {
-      setFeedback(null);
-      await submitPurchaseRequest(prId).unwrap();
-      setFeedback({
-        type: 'success',
-        message: 'Đã gửi duyệt đề xuất mua hàng thành công.'
-      });
-    } catch (err) {
-      const apiError = err as { data?: { message?: string } };
-      setFeedback({
-        type: 'error',
-        message: apiError.data?.message || 'Gửi duyệt thất bại. Vui lòng kiểm tra lại nhà cung cấp và đơn giá của các dòng.'
-      });
-    }
-  };
-
-
-  const purchasingDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua' || document.type === 'Danh sách mua thêm');
-  const purchaseInbox = roleInboxItems.filter((item) => item.laneId === 'purchasing');
-  const receiptMovements = stockMovements.filter((movement) => movement.type === 'receipt');
-  const warningPrice = priceRows.find((row) => row.warning);
-  const primaryPurchaseDemand = purchaseDemandLines.find((line) => line.tone === 'danger') ?? purchaseDemandLines[0];
-
-
-  const statusLabel = prStatus === 'DRAFT' ? 'Nháp' : prStatus === 'SENTTOSUPPLIER' ? 'Đã gửi duyệt' : prStatus ?? 'Chưa có';
 
   return (
     <OperationalFrame
       command={
         <CommandBar
-          actions={
-            <>
-              {prId && (
-                <button
-                  className="ipc-button ipc-button-primary"
-                  type="button"
-                  disabled={prStatus !== 'DRAFT' || isSubmitting || activePrLines.length === 0}
-                  onClick={() => void handleSubmitPr()}
-                >
-                  {isSubmitting ? 'Đang gửi...' : 'Gửi duyệt'}
-                </button>
-              )}
-              <Link className="ipc-button ipc-button-primary" to={ROUTES.WAREHOUSE}>
-                <PackageCheck size={16} />
-                Chuyển sang nhập kho
-              </Link>
-              <Link className="ipc-button ipc-button-ghost" to={ROUTES.APPROVALS}>
-                Quay lại duyệt
-              </Link>
-            </>
-          }
+          actionsClassName="ipc-purchasing-actions"
+          actions={<>
+            <Button variant="outline" size="icon" className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9" aria-label="Tuần trước" onClick={() => moveWeek(-7)}>
+              <ChevronLeft aria-hidden="true" />
+            </Button>
+            <Button variant="outline" className="min-h-11 sm:min-h-9" onClick={() => replaceRouteContext({ week: resolvePurchasingRouteState({}, []).week })}>
+              <RotateCcw aria-hidden="true" />
+              Tuần hiện tại
+            </Button>
+            <Button variant="outline" size="icon" className="min-h-11 min-w-11 sm:min-h-9 sm:min-w-9" aria-label="Tuần sau" onClick={() => moveWeek(7)}>
+              <ChevronRight aria-hidden="true" />
+            </Button>
+            {nextAction.label ? (
+              <Button
+                variant={nextAction.kind === 'recovery' ? 'outline' : 'default'}
+                className="min-h-11 sm:min-h-9"
+                onClick={focusDecisionPanel}
+                disabled={isFetching && nextAction.kind !== 'recovery'}
+              >
+                {nextAction.label}
+              </Button>
+            ) : null}
+          </>}
         >
-          <span className="ipc-command-meta">
-            <ShoppingCart size={16} />
-            Đề xuất mua: {prCode ?? 'Chưa có'} ({statusLabel})
-          </span>
-          <span className="ipc-command-meta">Ngưỡng cảnh báo: 15%</span>
+          <span className="ipc-command-meta"><ShoppingCart size={16} aria-hidden="true" />Tuần mua hàng: {formatWeekRange(routeState.week)}</span>
+          <span className="ipc-command-meta"><CalendarDays size={16} aria-hidden="true" />Cả ngày (FULLDAY)</span>
         </CommandBar>
       }
       context={
-        <ContextStrip
-          items={[
-            { label: 'Trạng thái mua', value: prStatus ? statusLabel : 'Chưa có đơn mua', tone: prStatus === 'DRAFT' ? 'warning' : prStatus === 'SENTTOSUPPLIER' ? 'success' : 'neutral' },
-            { label: 'Cảnh báo giá', value: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có', tone: warningPrice ? 'danger' : 'success' },
-            { label: 'Handoff kho', value: receiptMovements.length > 0 ? `${receiptMovements.length} phiếu nhập` : 'Chờ phiếu nhập', tone: receiptMovements.length > 0 ? 'success' : 'warning' },
-            { label: 'Nhà cung cấp đề xuất', value: warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có', tone: 'neutral' },
-          ]}
-        />
+        <ContextStrip items={[
+          { label: 'Ngày cần xử lý', value: workbench?.stageCounts.demand ?? 0, tone: (workbench?.stageCounts.demand ?? 0) > 0 ? 'warning' : 'neutral' },
+          { label: 'Nhu cầu chờ duyệt', value: activeDate && activeDate.approvedDemandCount === 0 ? 1 : 0, tone: activeDate && activeDate.approvedDemandCount === 0 ? 'warning' : 'success' },
+          { label: 'Ngoại lệ giá', value: activeDate?.blockingExceptionCount ?? 0, tone: (activeDate?.blockingExceptionCount ?? 0) > 0 ? 'danger' : 'success' },
+          { label: 'Đơn chờ nhập', value: activeDate ? Math.max(0, activeDate.receivingLineCount - activeDate.fullyReceivedLineCount) : 0, tone: activeDate && activeDate.receivingLineCount > activeDate.fullyReceivedLineCount ? 'warning' : 'success' },
+        ]} />
       }
     >
-      {isLoading && (
-        <InlineAlert title="Đang tải dữ liệu..." variant="info" className="mb-4">
-          Hệ thống đang tải dữ liệu nhu cầu mua và nhà cung cấp từ API.
-        </InlineAlert>
-      )}
-      {isError && (
-        <InlineAlert title="Lỗi tải dữ liệu" variant="warning" className="mb-4">
-          Không thể kết nối đến máy chủ để lấy thông tin đặt hàng. Vui lòng thử lại.
-        </InlineAlert>
-      )}
-
-      <ViewSwitcher
-        compact
-        ariaLabel="Chọn góc nhìn thu mua"
-        tabs={[
-          { id: 'purchasing-demand', label: 'Nhu cầu mua' },
-          { id: 'purchasing-supplier', label: 'Giá và NCC' },
-          { id: 'purchasing-handoff', label: 'Handoff kho' },
-        ]}
-        activeTab={`purchasing-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('purchasing-', '') as 'demand' | 'supplier' | 'handoff')}
-      />
-
-      {activeView === 'demand' && (
-        <div id="purchasing-demand-panel" role="tabpanel" aria-labelledby="purchasing-demand-tab">
-          <SplitWorkbench
-            detailLabel="Đơn mua"
-            detail={
-              <DocumentRail
-                documents={purchasingDocuments}
-                title={null}
-                actionForDocument={(document) => (
-                  <Link className="ipc-button ipc-button-ghost" to={document.route}>
-                    Xem đơn mua
-                  </Link>
-                )}
-              />
-            }
-          >
-            <SectionPanel title={`Nhu cầu mua thêm: ${prCode ?? 'Chưa có'}`} icon={<ShoppingCart size={18} />}>
-              {feedback && (
-                <div className={`p-3 rounded mb-4 text-sm ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'}`}>
-                  {feedback.message}
-                </div>
-              )}
-              
-              <div className="flex flex-col gap-4">
-                <DataTableShell ariaLabel="Bảng quản lý đề xuất mua hàng">
-                  <table className="ipc-data-table text-sm">
-                    <thead>
-                      <tr>
-                        <th>Nguyên liệu</th>
-                        <th>Nhu cầu</th>
-                        <th>Tồn kho</th>
-                        <th>Cần mua thêm</th>
-                        <th>Đơn vị</th>
-                        <th>Nhà cung cấp</th>
-                        <th>Đơn giá ước tính (đ)</th>
-                        <th>Thành tiền (đ)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {activePrLines.length === 0 ? (
-                        <tr>
-                          <td colSpan={8} className="text-center py-8 text-slate-500">
-                            Không có dòng thiếu nguyên liệu cần đặt mua cho tuần này.
-                          </td>
-                        </tr>
-                      ) : (
-                        activePrLines.map((line) => (
-                          <tr key={line.id}>
-                            <td className="font-semibold text-slate-900">{line.material}</td>
-                            <td className="text-right">{line.required.toLocaleString()}</td>
-                            <td className="text-right">{line.available.toLocaleString()}</td>
-                            <td className="text-right font-bold text-rose-600">{line.reserved.toLocaleString()}</td>
-                            <td>{line.unit}</td>
-                            <td>
-                              <select
-                                className="ipc-select min-w-[200px]"
-                                value={line.supplierId ?? ''}
-                                disabled={prStatus !== 'DRAFT'}
-                                onChange={(e) => void handleSupplierChange(line, e.target.value)}
-                              >
-                                <option value="" disabled>-- Chọn nhà cung cấp --</option>
-                                {suppliers.map((s: SupplierDto) => (
-                                  <option key={s.supplierId} value={s.supplierId}>
-                                    {s.supplierName} ({s.supplierCode})
-                                  </option>
-                                ))}
-                              </select>
-
-                            </td>
-                            <td>
-                              <input
-                                type="number"
-                                min="0"
-                                className="ipc-input w-28 text-right"
-                                defaultValue={line.estimatedUnitPrice ?? 0}
-                                disabled={prStatus !== 'DRAFT'}
-                                onBlur={(e) => {
-                                  const val = parseFloat(e.target.value);
-                                  if (!isNaN(val) && val !== line.estimatedUnitPrice) {
-                                    void handlePriceChange(line, val);
-                                  }
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    const val = parseFloat((e.target as HTMLInputElement).value);
-                                    if (!isNaN(val) && val !== line.estimatedUnitPrice) {
-                                      void handlePriceChange(line, val);
-                                    }
-                                  }
-                                }}
-                              />
-                            </td>
-                            <td className="text-right font-semibold">
-                              {(line.reserved * (line.estimatedUnitPrice ?? 0)).toLocaleString()} đ
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </DataTableShell>
-              </div>
-            </SectionPanel>
-          </SplitWorkbench>
+      <div className="min-w-0 space-y-4 overflow-x-clip">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[20px] font-semibold leading-[1.2] text-slate-950">Thu mua theo nhu cầu đã duyệt</h1>
+            <p className="mt-2 text-[14px] leading-[1.5] text-slate-600">Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.</p>
+          </div>
+          <StatusBadge variant={error ? 'danger' : isFetching ? 'warning' : 'success'}>
+            {error ? 'Lỗi tải dữ liệu' : isFetching ? 'Đang tải' : 'Đã đồng bộ'}
+          </StatusBadge>
         </div>
-      )}
 
-      {activeView === 'supplier' && (
-        <SectionPanel title="Nhà cung cấp, đơn mua và nhập giá">
-          <div id="purchasing-supplier-panel" role="tabpanel" aria-labelledby="purchasing-supplier-tab">
-            <div className="ipc-lane-summary-grid">
-              <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-                <span>Nhà cung cấp đề xuất</span>
-                <strong className="text-slate-900">{warningPrice?.supplier ?? primaryPurchaseDemand?.source ?? 'Chưa có dữ liệu'}</strong>
-                <p>Dữ liệu lấy từ danh sách mua và phiếu nhập backend.</p>
-              </div>
-              <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-                <span>Giá nhập hiện tại</span>
-                <strong className="text-slate-900">
-                  {warningPrice ? `${warningPrice.priceCurrent.toLocaleString()} đ/${warningPrice.unit} - +${warningPrice.change.toFixed(1)}%` : 'Không có cảnh báo'}
-                </strong>
-                <p>{warningPrice ? 'Vượt ngưỡng 15%, cần cảnh báo quản lí.' : 'Các dòng giá đang dưới ngưỡng cảnh báo.'}</p>
-              </div>
-              <div className="ipc-lane-summary-card cursor-pointer hover:shadow-md hover:border-slate-300 bg-white">
-                <span>Trạng thái đơn mua</span>
-                <strong className="text-slate-900">{prStatus ? statusLabel : 'Chưa có dữ liệu'}</strong>
-                <p>Sau khi đặt, chuyển chứng từ sang kho nhập.</p>
-              </div>
-            </div>
+        {isFetching ? <p role="status" className="text-[14px] text-slate-600">Đang tải quy trình thu mua trong tuần...</p> : null}
+        {error ? (
+          <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
+            <span role="alert">Không tải được quy trình thu mua. Kiểm tra kết nối và thử lại. Các lựa chọn chưa được lưu. {getPurchasingErrorMessage(error)}</span>
+          </InlineAlert>
+        ) : null}
+        {nextAction.message && !error ? (
+          <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
+            <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
+          </InlineAlert>
+        ) : null}
 
-            <div className="mt-4">
-              <RoleInbox
-                items={purchaseInbox}
-                title={null}
-                actionForItem={(item) => (
-                  <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                    {item.nextAction}
-                  </Link>
-                )}
-              />
-            </div>
-            <div className="mt-4">
-              <ExceptionLane
-                title="Biến động giá trên 15%"
-                items={[
-                  {
-                    title: warningPrice ? `${warningPrice.name} +${warningPrice.change.toFixed(1)}%` : 'Không có nguyên liệu vượt ngưỡng',
-                    description: warningPrice
-                      ? 'Giá mới cao hơn giá tham chiếu, cần gửi cảnh báo biến động giá.'
-                      : 'Chưa ghi nhận dòng giá vượt ngưỡng 15%.',
-                    action: 'Thu mua: Gửi cảnh báo biến động giá',
-                    tone: warningPrice ? 'danger' : 'info',
-                  },
-                ]}
-              />
-            </div>
-          </div>
-        </SectionPanel>
-      )}
+        <PurchaseWorkflowGuide
+          currentStage={activeDate?.currentStage}
+          selectedStage={routeState.stage}
+          stageCounts={workbench?.stageCounts ?? emptyStageCounts}
+          onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
+        />
 
-      {activeView === 'handoff' && (
-        <SectionPanel title="Handoff sang kho" icon={<PackageCheck size={18} />}>
-          <div id="purchasing-handoff-panel" role="tabpanel" aria-labelledby="purchasing-handoff-tab">
-            <StockMovementTable movements={receiptMovements} />
-          </div>
-        </SectionPanel>
-      )}
+        <PurchaseServiceDateWorkbench
+          serviceDates={workbench?.serviceDates ?? []}
+          selectedDate={routeState.date}
+          selectedLineId={selectedLineId}
+          page={workbench?.page ?? page}
+          pageSize={workbench?.pageSize ?? 8}
+          totalItems={workbench?.totalItems ?? 0}
+          isLoading={isFetching && !workbench}
+          errorMessage={error ? getPurchasingErrorMessage(error) : undefined}
+          onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
+          onLineChange={setSelectedLineId}
+          onPageChange={setPage}
+        >
+          <PurchaseDecisionPanel
+            key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
+            week={routeState.week}
+            selectedStage={routeState.stage}
+            serviceDate={activeDate}
+            selectedLine={selectedLine}
+          />
+        </PurchaseServiceDateWorkbench>
+      </div>
     </OperationalFrame>
   );
 }
-

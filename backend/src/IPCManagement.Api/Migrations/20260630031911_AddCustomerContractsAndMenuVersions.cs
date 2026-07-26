@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
@@ -11,16 +11,15 @@ namespace IPCManagement.Api.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            // migrationBuilder.RenameIndex(
-            //     name: "customerId1",
-            //     table: "productionplanlines",
-            //     newName: "customerId3");
+            migrationBuilder.RenameIndex(
+                name: "customerId1",
+                table: "productionplanlines",
+                newName: "customerId3");
 
-            // migrationBuilder.RenameIndex(
-            //     name: "customerId",
-            //     table: "mealquantityplanlines",
-            //     newName: "customerId1");
-
+            migrationBuilder.RenameIndex(
+                name: "customerId",
+                table: "mealquantityplanlines",
+                newName: "customerId1");
 
             migrationBuilder.AlterColumn<string>(
                 name: "status",
@@ -36,37 +35,6 @@ namespace IPCManagement.Api.Migrations
                 .Annotation("MySql:CharSet", "utf8mb4")
                 .OldAnnotation("MySql:CharSet", "utf8mb4")
                 .OldAnnotation("Relational:Collation", "utf8mb4_unicode_ci");
-
-            migrationBuilder.CreateTable(
-                name: "approvalhistories",
-                columns: table => new
-                {
-                    approvalHistoryId = table.Column<byte[]>(type: "binary(16)", fixedLength: true, maxLength: 16, nullable: false),
-                    targetType = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    targetId = table.Column<byte[]>(type: "binary(16)", fixedLength: true, maxLength: 16, nullable: false),
-                    decision = table.Column<string>(type: "varchar(20)", maxLength: 20, nullable: false, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    oldStatus = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    newStatus = table.Column<string>(type: "varchar(50)", maxLength: 50, nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    reason = table.Column<string>(type: "text", nullable: true, collation: "utf8mb4_unicode_ci")
-                        .Annotation("MySql:CharSet", "utf8mb4"),
-                    actionBy = table.Column<byte[]>(type: "binary(16)", fixedLength: true, maxLength: 16, nullable: false),
-                    actionAt = table.Column<DateTime>(type: "datetime", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PRIMARY", x => x.approvalHistoryId);
-                    table.ForeignKey(
-                        name: "approvalhistories_ibfk_1",
-                        column: x => x.actionBy,
-                        principalTable: "users",
-                        principalColumn: "userId");
-                })
-                .Annotation("MySql:CharSet", "utf8mb4")
-                .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
             migrationBuilder.CreateTable(
                 name: "customercontracts",
@@ -134,16 +102,6 @@ namespace IPCManagement.Api.Migrations
                 .Annotation("Relational:Collation", "utf8mb4_unicode_ci");
 
             migrationBuilder.CreateIndex(
-                name: "IX_approvalhistories_actionBy",
-                table: "approvalhistories",
-                column: "actionBy");
-
-            migrationBuilder.CreateIndex(
-                name: "ixApprovalHistoriesTarget",
-                table: "approvalhistories",
-                columns: new[] { "targetType", "targetId", "actionAt" });
-
-            migrationBuilder.CreateIndex(
                 name: "customerId",
                 table: "customercontracts",
                 column: "customerId");
@@ -174,24 +132,20 @@ namespace IPCManagement.Api.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "approvalhistories");
-
-            migrationBuilder.DropTable(
                 name: "customercontracts");
 
             migrationBuilder.DropTable(
                 name: "menuversions");
 
-            // migrationBuilder.RenameIndex(
-            //     name: "customerId3",
-            //     table: "productionplanlines",
-            //     newName: "customerId1");
+            migrationBuilder.RenameIndex(
+                name: "customerId3",
+                table: "productionplanlines",
+                newName: "customerId1");
 
-            // migrationBuilder.RenameIndex(
-            //     name: "customerId1",
-            //     table: "mealquantityplanlines",
-            //     newName: "customerId");
-
+            migrationBuilder.RenameIndex(
+                name: "customerId1",
+                table: "mealquantityplanlines",
+                newName: "customerId");
 
             migrationBuilder.AlterColumn<string>(
                 name: "status",

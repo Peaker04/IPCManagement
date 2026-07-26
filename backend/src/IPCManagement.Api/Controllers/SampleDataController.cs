@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Security;
@@ -15,13 +16,16 @@ namespace IPCManagement.Api.Controllers;
 public class SampleDataController : ControllerBase
 {
     private readonly ISampleDataImportService _sampleDataImportService;
+    private readonly IPurchaseHistoryReconciliationService _purchaseHistoryReconciliationService;
     private readonly IHostEnvironment _environment;
 
     public SampleDataController(
         ISampleDataImportService sampleDataImportService,
+        IPurchaseHistoryReconciliationService purchaseHistoryReconciliationService,
         IHostEnvironment environment)
     {
         _sampleDataImportService = sampleDataImportService;
+        _purchaseHistoryReconciliationService = purchaseHistoryReconciliationService;
         _environment = environment;
     }
 
@@ -46,5 +50,72 @@ public class SampleDataController : ControllerBase
             : "Import dữ liệu mẫu hoàn tất.";
 
         return Ok(ApiResponse<SampleDataImportResultDto>.SuccessResult(result, message));
+    }
+
+    /// <summary>Xem trước đối soát lịch sử mua hàng từ nguồn server. Chỉ bật trong Development.</summary>
+    [HttpPost("purchase-history/preview")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseHistoryPreviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> PreviewPurchaseHistory(
+        [FromBody] PurchaseHistoryPreviewRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        _ = request;
+        if (!_environment.IsDevelopment())
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse.FailResult("Đối soát lịch sử mua hàng chỉ được bật trong môi trường Development."));
+        }
+
+        var result = await _purchaseHistoryReconciliationService.PreviewAsync(cancellationToken);
+        result.PreviewedBy = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.Identity?.Name
+            ?? "authenticated-user";
+
+        return Ok(ApiResponse<PurchaseHistoryPreviewDto>.SuccessResult(
+            result,
+            "Xem trước đối soát lịch sử mua hàng hoàn tất."));
+    }
+
+    /// <summary>Áp dụng manifest đối soát đã chấp nhận. Chỉ bật trong Development.</summary>
+    [HttpPost("purchase-history/apply")]
+    [ProducesResponseType(typeof(ApiResponse<PurchaseHistoryApplyResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApplyPurchaseHistory(
+        [FromBody] PurchaseHistoryApplyRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!_environment.IsDevelopment())
+        {
+            return StatusCode(
+                StatusCodes.Status403Forbidden,
+                ApiResponse.FailResult("Áp dụng đối soát lịch sử mua hàng chỉ được bật trong môi trường Development."));
+        }
+
+        var actorId = GuidHelper.ParseGuidString(User.FindFirstValue(ClaimTypes.NameIdentifier));
+        if (actorId is null)
+        {
+            return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng thực hiện đối soát."));
+        }
+
+        try
+        {
+            var result = await _purchaseHistoryReconciliationService.ApplyAsync(
+                request,
+                actorId,
+                cancellationToken);
+            return Ok(ApiResponse<PurchaseHistoryApplyResultDto>.SuccessResult(
+                result,
+                result.NoOp
+                    ? "Manifest đối soát đã được áp dụng trước đó."
+                    : "Áp dụng đối soát lịch sử mua hàng hoàn tất."));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Conflict(ApiResponse.FailResult(ex.Message));
+        }
     }
 }

@@ -1,0 +1,261 @@
+.ipc-redesign-shell {
+  --ipc-redesign-surface: #ffffff;
+  --ipc-redesign-canvas: #f6f8fb;
+  --ipc-redesign-border: #d9e2ee;
+}
+
+.ipc-redesign-shell .ipc-sidebar {
+  background: var(--ipc-redesign-surface);
+  border-color: var(--ipc-redesign-border);
+  box-shadow: 1px 0 0 rgb(15 23 42 / 0.02);
+}
+
+.ipc-redesign-shell .ipc-brand {
+  min-height: 68px;
+  padding: 16px 16px 14px;
+  border-bottom: 1px solid var(--ipc-redesign-border);
+}
+
+.ipc-redesign-shell .ipc-brand-title {
+  letter-spacing: -0.01em;
+}
+
+.ipc-redesign-shell .ipc-brand-subtitle {
+  color: var(--ipc-slate-500);
+}
+
+.ipc-mobile-nav-toggle {
+  display: none;
+}
+
+/* Keep wide report tables readable on narrow screens; the viewport owns the scroll. */
+.ipc-redesign-shell .ipc-report-table-shell .ipc-data-table {
+  min-width: 720px;
+}
+
+/* Empty coordination panels should size to their message, not reserve the legacy table height. */
+.ipc-redesign-shell .ipc-coordination-empty-state {
+  min-height: 0;
+}
+
+/* Weekly menu matrices need a readable column width; the viewport owns mobile scrolling. */
+.ipc-redesign-shell .ipc-weekly-menu-shell > .ipc-schedule-table {
+  min-width: 980px;
+}
+
+.ipc-redesign-shell .ipc-material-demand-table {
+  min-width: 760px;
+}
+
+/* Operational tables keep their own horizontal scroll boundary on mobile. */
+.ipc-redesign-shell .ipc-table-container > .ipc-table,
+.ipc-redesign-shell .ipc-warehouse-table-shell > .ipc-data-table {
+  min-width: 720px;
+}
+
+.ipc-redesign-shell .ipc-nav {
+  gap: 4px;
+  padding: 14px 10px;
+}
+
+.ipc-redesign-shell .ipc-nav-link {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-weight: 500;
+}
+
+.ipc-redesign-shell .ipc-nav-link:hover {
+  background: #f5f8fc;
+  border-color: #e5ebf3;
+}
+
+.ipc-redesign-shell .ipc-nav-link.is-active {
+  background: var(--ipc-primary-soft);
+  border-color: #a9c8f6;
+  color: var(--ipc-primary);
+  font-weight: 600;
+}
+
+.ipc-redesign-shell .ipc-nav-link.is-active::before {
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+}
+
+.ipc-redesign-shell .ipc-sidebar-footer {
+  padding: 12px 10px;
+  border-top: 1px solid var(--ipc-redesign-border);
+  background: var(--ipc-redesign-surface);
+}
+
+.ipc-redesign-shell .ipc-user-card {
+  border-color: #b9cee9;
+  background: #fbfdff;
+}
+
+.ipc-redesign-shell .ipc-logout-button {
+  min-height: 38px;
+  border-color: #fecaca;
+  color: #c53030;
+  background: #fff;
+}
+
+.ipc-redesign-shell .ipc-logout-button:hover {
+  background: #fff7f7;
+}
+
+.ipc-redesign-shell .ipc-header {
+  background: var(--ipc-redesign-surface);
+  border-color: var(--ipc-redesign-border);
+}
+
+.ipc-redesign-shell .ipc-main {
+  background: var(--ipc-redesign-canvas);
+}
+
+@media (max-width: 1023px) {
+  .ipc-redesign-shell .ipc-sidebar {
+    width: 100%;
+  }
+
+  .ipc-redesign-shell .ipc-nav {
+    padding: 8px 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  .ipc-redesign-shell .ipc-brand {
+    min-height: 56px;
+    padding: 10px 12px;
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle {
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    margin-left: auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--ipc-redesign-border);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--ipc-slate-700);
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle:hover {
+    border-color: #a9c8f6;
+    background: var(--ipc-primary-soft);
+    color: var(--ipc-primary);
+  }
+
+  .ipc-redesign-shell .ipc-mobile-nav-toggle:focus-visible {
+    outline: 2px solid var(--ipc-focus-ring);
+    outline-offset: 2px;
+  }
+
+  .ipc-redesign-shell .ipc-sidebar:not(.is-mobile-open) .ipc-nav,
+  .ipc-redesign-shell .ipc-sidebar:not(.is-mobile-open) .ipc-sidebar-footer {
+    display: none;
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar > div {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar > div:last-child {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ipc-redesign-shell .ipc-material-demand-toolbar .ipc-button {
+    width: 100%;
+    max-width: none;
+  }
+}
+
+.ipc-table-viewport {
+  scrollbar-gutter: stable;
+  min-height: 96px;
+  max-height: 520px;
+  border: 1px solid var(--ipc-border, #e2e8f0);
+  border-radius: 0.375rem;
+  background: #fff;
+}
+
+.ipc-table-viewport > table {
+  min-width: 100%;
+}
+
+.ipc-warehouse-actions,
+.ipc-purchasing-actions,
+.ipc-approval-actions {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--ipc-space-2);
+}
+
+.ipc-warehouse-actions > div,
+.ipc-purchasing-actions > div,
+.ipc-approval-actions > div {
+  display: grid;
+  min-width: 0;
+  gap: var(--ipc-space-2);
+}
+
+.ipc-warehouse-actions > div:last-child,
+.ipc-purchasing-actions > div:last-child,
+.ipc-approval-actions > div {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.ipc-warehouse-actions .ipc-button,
+.ipc-warehouse-actions a,
+.ipc-purchasing-actions .ipc-button,
+.ipc-purchasing-actions a,
+.ipc-approval-actions .ipc-button,
+.ipc-approval-actions a {
+  width: 100%;
+  max-width: none;
+}
+
+@media (min-width: 768px) {
+  .ipc-warehouse-actions,
+  .ipc-purchasing-actions,
+  .ipc-approval-actions {
+    width: auto;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  .ipc-warehouse-actions > div,
+  .ipc-purchasing-actions > div,
+  .ipc-approval-actions > div {
+    display: flex;
+    align-items: center;
+  }
+
+  .ipc-warehouse-actions .ipc-button,
+  .ipc-warehouse-actions a,
+  .ipc-purchasing-actions .ipc-button,
+  .ipc-purchasing-actions a,
+  .ipc-approval-actions .ipc-button,
+  .ipc-approval-actions a {
+    width: auto;
+  }
+}
+
+.ipc-table-viewport thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--ipc-slate-50);
+}
+
+@media (max-width: 767px) {
+  .ipc-table-viewport {
+    max-height: 440px;
+  }
+}

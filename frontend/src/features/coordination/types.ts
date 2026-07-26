@@ -79,6 +79,7 @@ export interface MenuSlot {
     rau?: string
     canh?: string
     fruit?: string
+    dessert?: string
   }
 }
 
@@ -212,7 +213,28 @@ export interface UpdateMenuScheduleVersionRequest {
   reason?: string
 }
 
+export interface RollbackMenuVersionRequest {
+  customerId: string
+  weekStartDate: string
+  targetVersionNo?: number
+  targetMenuVersionId?: string
+  reason: string
+}
+
+export interface MenuVersionRollbackResult {
+  customerId: string
+  weekStartDate: string
+  activeMenuVersionId: string
+  activeVersionNo: number
+  rolledBackFromMenuVersionId: string
+  rolledBackFromVersionNo: number
+  cancelledDemandCount: number
+  cancelledPurchaseCount: number
+  reason: string
+}
+
 export interface MealQuantityPlanQuery {
+  customerId?: string
   serviceDate?: string
   dayOfWeek?: string
   weekStartDate?: string
@@ -242,7 +264,7 @@ export interface MealQuantityPlanDto {
   planCode: string
   serviceDate: string
   dayOfWeek: string
-  status: 'DRAFT' | 'CONFIRMED' | 'COMPLETED' | 'ARCHIVED' | string
+  status: 'DRAFT' | 'FORECASTED' | 'CONFIRMED' | 'ADJUSTED' | 'COMPLETED' | 'ARCHIVED' | string
   forecastReceivedAt?: string
   confirmedAt?: string
   lines: MealQuantityPlanLineDto[]
@@ -259,4 +281,30 @@ export interface SignoffOrderResult {
   oldStatus: string
   newStatus: string
   signedOffAt: string
+}
+
+export interface ProductionPlanLineDto {
+  planLineId: string
+  dishId: string
+  dishName?: string
+  shiftName?: string
+  totalServings: number
+}
+
+export interface ProductionPlanDto {
+  planId: string
+  planCode: string
+  planDate: string
+  customerId?: string
+  customerCode?: string
+  customerName?: string
+  weekStartDate?: string
+  menuVersionId?: string
+  menuVersionNo?: number
+  menuVersionStatus?: string
+  status: string
+  createdBy?: string
+  createdByName?: string
+  createdAt: string
+  lines: ProductionPlanLineDto[]
 }

@@ -8,4 +8,16 @@ public interface IMaterialDemandService
         GenerateMaterialDemandRequestDto request,
         string? userId,
         CancellationToken cancellationToken = default);
+
+    Task<MaterialDemandStalenessDto> GetStalenessAsync(
+        string serviceDate,
+        string? customerId,
+        string? scopeOrShift,
+        CancellationToken cancellationToken = default);
+
+    Task<MaterialDemandApprovalDto?> ApproveAsync(
+        string materialRequestId,
+        string? userId,
+        string? reason,
+        CancellationToken cancellationToken = default);
 }

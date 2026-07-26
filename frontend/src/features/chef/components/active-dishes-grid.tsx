@@ -10,7 +10,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Separator } from '@/components/ui/separator'
-import { DataTableShell, SectionPanel } from '@/components/common'
+import { SectionPanel, TableViewport } from '@/components/common'
 import { formatQuantity, formatUnit } from '@/lib/formatters'
 import type { Dish } from '@/lib/types'
 
@@ -68,17 +68,18 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                 {expandedDishId === dish.id && (
                   <>
                     <Separator className="bg-slate-200" />
-                    <DataTableShell
+                    <TableViewport
                       ariaLabel={`Định lượng nguyên liệu cho ${dish.name}`}
+                      caption={`Danh sách nguyên liệu cho ${dish.name}`}
                       className="ipc-chef-bom-shell"
                     >
                       <div id={`dish-bom-${dish.id}`} role="region" aria-label={`Định lượng ${dish.name}`}>
                       <Table className="ipc-chef-bom-table text-xs">
                         <TableHeader>
                           <TableRow className="border-slate-200 hover:bg-transparent">
-                            <TableHead className="text-slate-600 font-semibold">Nguyên Liệu</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Đơn Vị</TableHead>
-                            <TableHead className="text-slate-600 font-semibold text-right">Số Lượng Cần</TableHead>
+                            <TableHead className="text-slate-600 font-semibold">Nguyên liệu</TableHead>
+                            <TableHead className="text-slate-600 font-semibold text-right">Đơn vị</TableHead>
+                            <TableHead className="text-slate-600 font-semibold text-right">Số lượng cần</TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -100,7 +101,7 @@ export function ActiveDishesGrid({ dishes, expandedDishId, onDishExpand }: Activ
                         <p className="py-4 text-center text-xs text-slate-500">Không có thông tin nguyên liệu</p>
                       )}
                       </div>
-                    </DataTableShell>
+                    </TableViewport>
                   </>
                 )}
               </div>
