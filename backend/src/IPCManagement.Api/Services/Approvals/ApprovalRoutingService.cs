@@ -19,14 +19,28 @@ public class ApprovalRoutingService : IApprovalRoutingService
     }
 
     public async Task<Approvalrule?> GetMatchingRuleAsync(string documentType, decimal? amount)
+        => MatchRule(await GetActiveRulesAsync(documentType), amount);
+
+    public async Task<IReadOnlyList<Approvalrule>> GetActiveRulesAsync(string documentType)
     {
         var normalizedType = (documentType ?? string.Empty).Trim().ToLowerInvariant();
-        
-        // Fetch all active rules for the document type
-        var rules = await _context.Approvalrules
+
+        return await _context.Approvalrules
             .AsNoTracking()
             .Where(r => r.IsActive && r.DocumentType.ToLower() == normalizedType)
             .ToListAsync();
+    }
+
+    /// <summary>
+    /// Chọn rule khớp nhất từ danh sách đã tải — cho phép caller tải rule một lần
+    /// rồi match nhiều chứng từ mà không phát sinh truy vấn theo từng chứng từ.
+    /// </summary>
+    public static Approvalrule? MatchRule(IReadOnlyList<Approvalrule>? rules, decimal? amount)
+    {
+        if (rules is null || rules.Count == 0)
+        {
+            return null;
+        }
 
         if (amount.HasValue)
         {

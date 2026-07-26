@@ -7,6 +7,7 @@ public static class AuthorizationPolicies
     public const string CatalogReadAccess = "CatalogReadAccess";
     public const string CoordinationAccess = "CoordinationAccess";
     public const string InventoryAccess = "InventoryAccess";
+    public const string InventoryApproveAccess = "InventoryApproveAccess";
     public const string InventoryIssueAccess = "InventoryIssueAccess";
     public const string ProductionAccess = "ProductionAccess";
     public const string DemandGenerateAccess = "DemandGenerateAccess";
@@ -20,6 +21,16 @@ public static class AuthorizationPolicies
     public static readonly string[] AdminRoles =
     [
         "Admin", "ADMIN"
+    ];
+
+    /// <summary>
+    /// Duyệt kiểm kê kho: người tạo phiếu (thủ kho) không được tự duyệt, nhưng quản lý
+    /// phải duyệt được — nên hẹp hơn InventoryRoles và rộng hơn AdminRoles.
+    /// </summary>
+    public static readonly string[] InventoryApproveRoles =
+    [
+        "Admin", "ADMIN",
+        "Manager", "MANAGER", "Quản lý"
     ];
 
     public static readonly string[] CatalogRoles =

@@ -32,6 +32,18 @@ export function getBangkokDayCode(now = new Date()): string {
   return DAY_CODE_BY_UTC_DAY[getBangkokCalendarDate(now).getUTCDay()]
 }
 
+/** Ngày hôm nay theo giờ nghiệp vụ Việt Nam, dạng yyyy-MM-dd */
+export function getBangkokToday(now = new Date()): string {
+  return formatCalendarDate(getBangkokCalendarDate(now))
+}
+
+/** Cộng/trừ ngày trên lịch yyyy-MM-dd, không phụ thuộc múi giờ máy */
+export function addCalendarDays(isoDate: string, days: number): string {
+  const shifted = new Date(`${isoDate}T00:00:00Z`)
+  shifted.setUTCDate(shifted.getUTCDate() + days)
+  return formatCalendarDate(shifted)
+}
+
 export function resolveChefServiceDate(activeDay: string, now = new Date()): string {
   const targetWeekIndex = WEEK_INDEX_BY_DAY_CODE[activeDay]
   if (targetWeekIndex === undefined) throw new Error(`Unsupported chef weekday: ${activeDay}`)

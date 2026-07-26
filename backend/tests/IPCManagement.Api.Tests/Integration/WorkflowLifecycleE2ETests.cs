@@ -1,11 +1,15 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using IPCManagement.Api.Models.DTOs.Admin;
 using IPCManagement.Api.Models.DTOs.Auth;
-using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Services.Admin;
 using IPCManagement.Api.Tests.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace IPCManagement.Api.Tests.Integration;
 
@@ -14,37 +18,105 @@ public sealed class E2ECollection : ICollectionFixture<CustomWebApplicationFacto
 {
 }
 
-[Collection(nameof(E2ECollection))]
-public class WorkflowLifecycleE2ETests
+/// <summary>
+/// Fact dành cho integration test cần MySQL thật qua biến môi trường IPC_TEST_CONNECTION_STRING.
+/// Quy tắc:
+/// - Máy local thiếu biến  -> xUnit báo <c>Skipped</c> kèm lý do (nhìn thấy trong log), KHÔNG báo Passed.
+/// - CI thiếu biến         -> KHÔNG skip; test vẫn chạy và fail để CI không thể xanh giả.
+/// Skip được quyết định lúc discovery nên runner xUnit v2 (2.9.2) báo cáo đúng trạng thái Skipped.
+/// </summary>
+public sealed class RequiresMySqlFactAttribute : FactAttribute
 {
-    private readonly CustomWebApplicationFactory _factory;
+    public const string ConnectionStringVariable = "IPC_TEST_CONNECTION_STRING";
 
-    public WorkflowLifecycleE2ETests(CustomWebApplicationFactory factory)
+    public RequiresMySqlFactAttribute()
     {
-        _factory = factory;
-    }
-
-    [Fact]
-    public async Task Auth_Menu_Demand_Issue_Report_Lifecycle_Should_Run_EndToEnd()
-    {
-        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable("IPC_TEST_CONNECTION_STRING")))
+        if (HasConnectionString() || IsContinuousIntegration())
         {
             return;
         }
 
+        Skip = $"Bỏ qua integration test: chưa set {ConnectionStringVariable} tới database MySQL test. " +
+               "Trỏ biến này vào một database test riêng rồi chạy lại (CI luôn set sẵn biến này).";
+    }
+
+    public static bool HasConnectionString()
+        => !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(ConnectionStringVariable));
+
+    public static bool IsContinuousIntegration()
+    {
+        var value = Environment.GetEnvironmentVariable("CI");
+        return !string.IsNullOrWhiteSpace(value)
+            && !string.Equals(value, "false", StringComparison.OrdinalIgnoreCase)
+            && !string.Equals(value, "0", StringComparison.Ordinal);
+    }
+}
+
+[Collection(nameof(E2ECollection))]
+public class WorkflowLifecycleE2ETests
+{
+    private const string AdminRoleId = "00000000-0000-0000-0000-000000000001";
+    private const string AdminUsername = "admin";
+
+    private readonly CustomWebApplicationFactory _factory;
+    private readonly ITestOutputHelper _output;
+
+    public WorkflowLifecycleE2ETests(CustomWebApplicationFactory factory, ITestOutputHelper output)
+    {
+        _factory = factory;
+        _output = output;
+    }
+
+    [RequiresMySqlFact]
+    public async Task Auth_Menu_Demand_Issue_Report_Lifecycle_Should_Run_EndToEnd()
+    {
+        RequiresMySqlFactAttribute.HasConnectionString().Should().BeTrue(
+            "CI phải set {0} để integration test chạy thật trên MySQL thay vì pass giả",
+            RequiresMySqlFactAttribute.ConnectionStringVariable);
+
+        var (username, password) = await EnsureAdminCredentialAsync();
+        _output.WriteLine($"Integration test chạy thật trên MySQL với tài khoản '{username}'.");
+
         using var client = _factory.CreateClient();
         var state = new ScenarioState(client);
 
-        // Gọi endpoint để sinh dữ liệu mẫu (Seeded Users, Roles)
-        var seedResponse = await client.PostAsync("/api/admin/employees/seed", null);
-        seedResponse.EnsureSuccessStatusCode();
-
-        await state.LoginAsync("admin", "admin");
-        await state.LoadMenuAsync();
-        // Skip load demand vì serviceDate cụ thể cần dữ liệu DB thật, test kiểm tra login hoạt động tốt
-        
+        await state.LoginAsync(username, password);
         state.AccessToken.Should().NotBeNullOrWhiteSpace();
-        state.LastResponseStatusCode.Should().Be(System.Net.HttpStatusCode.OK);
+        state.RefreshToken.Should().NotBeNullOrWhiteSpace();
+
+        await state.LoadProductionPlansAsync();
+        state.LastResponseStatusCode.Should().Be(HttpStatusCode.OK);
+    }
+
+    /// <summary>
+    /// Tài khoản mẫu dùng mật khẩu ngẫu nhiên chỉ trả về một lần khi seed, nên test phải lấy
+    /// credential trực tiếp từ service thay vì hardcode admin/admin. Nếu database đã có sẵn tài
+    /// khoản mẫu từ lượt trước, tạo một tài khoản admin riêng cho lượt chạy này.
+    /// </summary>
+    private async Task<(string Username, string Password)> EnsureAdminCredentialAsync()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var employeeService = scope.ServiceProvider.GetRequiredService<IAdminEmployeeService>();
+
+        var seededCredentials = await employeeService.SeedSampleUsersAsync();
+        if (seededCredentials.TryGetValue(AdminUsername, out var seededPassword))
+        {
+            return (AdminUsername, seededPassword);
+        }
+
+        var username = $"ci-e2e-{Guid.NewGuid():N}"[..20];
+        var password = $"Ipc!{Guid.NewGuid():N}"[..24];
+
+        await employeeService.CreateAsync(new CreateEmployeeDto
+        {
+            FullName = "CI E2E Admin",
+            Username = username,
+            Password = password,
+            RoleId = AdminRoleId,
+            IsActive = true
+        });
+
+        return (username, password);
     }
 
     private sealed class ScenarioState
@@ -59,7 +131,7 @@ public class WorkflowLifecycleE2ETests
 
         public string AccessToken { get; private set; } = string.Empty;
         public string RefreshToken { get; private set; } = string.Empty;
-        public System.Net.HttpStatusCode LastResponseStatusCode { get; private set; }
+        public HttpStatusCode LastResponseStatusCode { get; private set; }
 
         public async Task LoginAsync(string username, string password)
         {
@@ -69,65 +141,29 @@ public class WorkflowLifecycleE2ETests
                 Password = password
             }, _jsonOptions);
 
-            response.EnsureSuccessStatusCode();
+            LastResponseStatusCode = response.StatusCode;
+            var body = await response.Content.ReadAsStringAsync();
+            response.StatusCode.Should().Be(HttpStatusCode.OK, "đăng nhập phải thành công, body: {0}", body);
 
-            var payload = await response.Content.ReadFromJsonAsync<ApiEnvelope<LoginResponseDto>>(_jsonOptions)
+            var payload = JsonSerializer.Deserialize<ApiEnvelope<LoginResponseDto>>(body, _jsonOptions)
                 ?? throw new InvalidOperationException("Login response is empty.");
 
             AccessToken = payload.Data.AccessToken;
             RefreshToken = payload.Data.RefreshToken;
 
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
-            LastResponseStatusCode = response.StatusCode;
         }
 
-        public async Task LoadMenuAsync()
+        public async Task LoadProductionPlansAsync()
         {
             var response = await _client.GetAsync("/api/production-plans?page=1&pageSize=10");
             LastResponseStatusCode = response.StatusCode;
-            response.EnsureSuccessStatusCode();
-        }
 
-        public async Task LoadDemandAsync()
-        {
-            var response = await _client.GetAsync("/api/coordination/orders?serviceDate=2026-06-15&shiftName=MORNING");
-            LastResponseStatusCode = response.StatusCode;
-            response.EnsureSuccessStatusCode();
-        }
-
-        public async Task CreateInventoryIssueAsync()
-        {
-            var response = await _client.PostAsJsonAsync("/api/inventory-issues", new CreateInventoryIssueDto
-            {
-                IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                ShiftName = "MORNING",
-                WarehouseId = Guid.NewGuid().ToString(),
-                MaterialRequestId = Guid.NewGuid().ToString(),
-                Lines =
-                [
-                    new CreateInventoryIssueLineDto
-                    {
-                        IngredientId = Guid.NewGuid().ToString(),
-                        RequestedQty = 1,
-                        IssuedQty = 1,
-                        UnitId = Guid.NewGuid().ToString()
-                    }
-                ]
-            }, _jsonOptions);
-
-            LastResponseStatusCode = response.StatusCode;
-        }
-
-        public async Task LoadReportAsync()
-        {
-            var response = await _client.PostAsJsonAsync("/api/coordination/orders/export", new
-            {
-                serviceDate = "2026-06-15",
-                shiftName = "MORNING",
-                format = "excel"
-            }, _jsonOptions);
-
-            LastResponseStatusCode = response.StatusCode;
+            var body = await response.Content.ReadAsStringAsync();
+            response.StatusCode.Should().Be(
+                HttpStatusCode.OK,
+                "tài khoản admin phải đọc được danh sách kế hoạch sản xuất, body: {0}",
+                body);
         }
     }
 

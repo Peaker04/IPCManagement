@@ -68,6 +68,7 @@ public class WorkflowReportsController : ControllerBase
             await _workflowReportService.GetStockSnapshotsAsync(query)));
 
     [HttpPost("stock-snapshots/generate")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GenerateStockSnapshots([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockSnapshotDto>>.SuccessResult(
             await _workflowReportService.GenerateMonthlyStockSnapshotAsync(query)));
@@ -112,51 +113,61 @@ public class WorkflowReportsController : ControllerBase
             await _workflowReportService.GetPurchaseDemandAsync(query)));
 
     [HttpGet("purchase-plan")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPurchasePlan([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>.SuccessResult(
             await _workflowReportService.GetPurchasePlanAsync(query)));
 
     [HttpGet("purchase-plan/page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPurchasePlanPage([FromQuery] PurchasePlanPageQueryDto query)
         => Ok(ApiResponse<PurchasePlanPageDto>.SuccessResult(
             await _workflowReportService.GetPurchasePlanPageAsync(query)));
 
     [HttpGet("receipt-price-variance")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     public async Task<IActionResult> GetReceiptPriceVariance([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVarianceAsync(query)));
 
     [HttpGet("receipt-price-variance/page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     public async Task<IActionResult> GetReceiptPriceVariancePage([FromQuery] ReceiptPriceVariancePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVariancePageAsync(query)));
 
     [HttpGet("price-variance/by-supplier")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceBySupplier([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceBySupplierAsync(query)));
 
     [HttpGet("price-variance/by-supplier/page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceBySupplierPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceBySupplierPageAsync(query)));
 
     [HttpGet("price-variance/by-period")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByPeriod([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByPeriodAsync(query)));
 
     [HttpGet("price-variance/by-period/page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByPeriodPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByPeriodPageAsync(query)));
 
     [HttpGet("price-variance/by-dish-group")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByDishGroup([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByDishGroupAsync(query)));
 
     [HttpGet("price-variance/by-dish-group/page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByDishGroupPage([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByDishGroupPageAsync(query)));
@@ -194,16 +205,19 @@ public class WorkflowReportsController : ControllerBase
             await _workflowReportService.GetIssueVsReturnPageAsync(query)));
 
     [HttpGet("audit-changes")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GetAuditChanges([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
 
     [HttpGet("audit-changes/page")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GetAuditChangePage([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<CursorPageDto<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangePageAsync(query)));
 
     [HttpGet("audit-changes/csv")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> ExportAuditChangesCsv([FromQuery] WorkflowReportQueryDto query)
     {
         query.Limit = 1000;
@@ -261,6 +275,7 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpPost("data-quality/issues/remediation")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> UpdateDataQualityIssueRemediation([FromBody] DataQualityIssueRemediationRequestDto request)
     {
         try
@@ -286,6 +301,7 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpPost("data-quality/cleanup")]
+    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> CleanupDataQuality([FromBody] DataQualityCleanupRequestDto request)
     {
         try

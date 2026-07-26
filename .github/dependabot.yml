@@ -1,0 +1,65 @@
+version: 2
+
+updates:
+  # GitHub Actions: giữ action trong workflow không bị bỏ quên (tag cũ hay bị archive).
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    labels:
+      - dependencies
+      - ci
+
+  # npm workspace gốc (bao gồm workspace frontend qua package-lock.json ở root).
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    commit-message:
+      prefix: chore
+      include: scope
+    labels:
+      - dependencies
+      - frontend
+    groups:
+      npm-minor-patch:
+        update-types:
+          - minor
+          - patch
+
+  # NuGet: liệt kê từng project vì solution dùng định dạng .slnx.
+  - package-ecosystem: nuget
+    directories:
+      - "/backend/src/IPCManagement.Api"
+      - "/backend/tests/IPCManagement.Api.Tests"
+      - "/backend/tests/IPCManagement.Application.Tests"
+      - "/backend/tools/IPCManagement.DatabaseTool"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "02:00"
+      timezone: Asia/Ho_Chi_Minh
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: chore
+      include: scope
+    labels:
+      - dependencies
+      - backend
+    groups:
+      nuget-minor-patch:
+        update-types:
+          - minor
+          - patch
