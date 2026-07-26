@@ -3,6 +3,7 @@ using IPCManagement.Api.Models.DTOs.Dish;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
+using IPCManagement.Api.Services.SampleData;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -89,10 +90,19 @@ public class DishesController : ControllerBase
     }
 
     /// <summary>Preview import BOM nhiều món trước khi commit.</summary>
+    /// <remarks>
+    /// Hạn mức tải lên dùng chung <see cref="XlsxSecurityLimits.MaxUploadBytes"/> (10 MB) —
+    /// cùng mức với 3 action upload thực đơn tuần ở <c>CoordinationController</c>.
+    /// Không có chặn này thì buffer trong <c>DishService.ReadBomImportSourceRowsAsync</c>
+    /// nạp trọn file vào RAM rồi nhân đôi bằng <c>ToArray()</c> → DoS bộ nhớ.
+    /// </remarks>
     [HttpPost("bom-import/preview")]
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(XlsxSecurityLimits.MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     public async Task<IActionResult> PreviewBomImport(
         [FromForm] BomImportPreviewRequestDto request,
         CancellationToken cancellationToken)
@@ -108,10 +118,14 @@ public class DishesController : ControllerBase
     }
 
     /// <summary>Commit import BOM sau khi preview không còn lỗi.</summary>
+    /// <remarks>Cùng hạn mức tải lên với action preview — xem <see cref="PreviewBomImport"/>.</remarks>
     [HttpPost("bom-import/commit")]
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(XlsxSecurityLimits.MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     public async Task<IActionResult> CommitBomImport(
         [FromForm] BomImportCommitRequestDto request,
         CancellationToken cancellationToken)

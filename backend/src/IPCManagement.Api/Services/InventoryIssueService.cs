@@ -4,6 +4,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -167,46 +168,36 @@ public class InventoryIssueService : IInventoryIssueService
             throw new ArgumentException("Vui lòng ghi rõ chênh lệch khi bếp nhận nguyên liệu.");
         }
 
-        var issue = await _context.Inventoryissues
-            .Include(item => item.Warehouse)
-            .Include(item => item.IssuedByNavigation)
-            .Include(item => item.ReceivedByNavigation)
-            .Include(item => item.Inventoryissuelines)
-                .ThenInclude(line => line.Ingredient)
-            .Include(item => item.Inventoryissuelines)
-                .ThenInclude(line => line.Unit)
-            .FirstOrDefaultAsync(item => item.IssueId == issueId);
-        if (issue is null)
+        // Luồng này ghi vào inventoryissues, auditlogs và supplementalmaterialrequests. Không có
+        // transaction thì phiếu có thể được đánh dấu "bếp đã nhận" trong khi nhu cầu bổ sung liên quan
+        // vẫn treo ở trạng thái cũ. Theo đúng khuôn mẫu transaction của CreateAsync trong cùng file.
+        // Đọc phiếu nằm trong transaction để chốt chặn hai request xác nhận song song.
+        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        try
         {
-            return null;
-        }
+            var issue = await _context.Inventoryissues
+                .Include(item => item.Warehouse)
+                .Include(item => item.IssuedByNavigation)
+                .Include(item => item.ReceivedByNavigation)
+                .Include(item => item.Inventoryissuelines)
+                    .ThenInclude(line => line.Ingredient)
+                .Include(item => item.Inventoryissuelines)
+                    .ThenInclude(line => line.Unit)
+                .FirstOrDefaultAsync(item => item.IssueId == issueId);
+            if (issue is null)
+            {
+                return null;
+            }
 
-        if (issue.ReceivedAt is not null)
-        {
-            throw new InvalidOperationException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
-        }
+            if (issue.ReceivedAt is not null)
+            {
+                throw new ResourceConflictException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
+            }
 
-        var confirmedAt = DateTime.UtcNow;
-        issue.ReceivedBy = userIdBytes;
-        issue.ReceivedAt = confirmedAt;
+            var confirmedAt = DateTime.UtcNow;
+            issue.ReceivedBy = userIdBytes;
+            issue.ReceivedAt = confirmedAt;
 
-        _context.Auditlogs.Add(new Auditlog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = confirmedAt,
-            ChangedBy = userIdBytes,
-            BusinessArea = "KitchenReceipt",
-            EntityName = nameof(Inventoryissue),
-            EntityId = issue.IssueId,
-            FieldName = "KitchenReceived",
-            OldValue = null,
-            NewValue = $"receivedAt={confirmedAt:O}",
-            Reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {issue.IssueCode}."
-        });
-
-        if (dto.HasDiscrepancy)
-        {
-            var note = dto.DiscrepancyNote!.Trim();
             _context.Auditlogs.Add(new Auditlog
             {
                 AuditId = GuidHelper.NewId(),
@@ -215,82 +206,106 @@ public class InventoryIssueService : IInventoryIssueService
                 BusinessArea = "KitchenReceipt",
                 EntityName = nameof(Inventoryissue),
                 EntityId = issue.IssueId,
-                FieldName = "KitchenReceiptDiscrepancy",
-                OldValue = "expected=issued_qty",
-                NewValue = note,
-                Reason = $"Bếp báo chênh lệch khi nhận phiếu xuất {issue.IssueCode}: {note}"
+                FieldName = "KitchenReceived",
+                OldValue = null,
+                NewValue = $"receivedAt={confirmedAt:O}",
+                Reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {issue.IssueCode}."
             });
-        }
 
-        var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
-        var supplementalLinks = await _context.Auditlogs
-            .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
-                item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
-                item.NewValue == issueIdText)
-            .ToListAsync();
-        foreach (var link in supplementalLinks)
-        {
-            var supplementalRequest = await _context.Supplementalmaterialrequests
-                .FirstOrDefaultAsync(item => item.RequestId == link.EntityId);
-            if (supplementalRequest is null)
+            if (dto.HasDiscrepancy)
             {
-                continue;
-            }
-
-            var fulfilledQty = await _context.Stockmovements
-                .Where(item => item.RefTable == "supplementalmaterialrequests" &&
-                    item.RefId == supplementalRequest.RequestId)
-                .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
-            var linkedIssueIds = await _context.Auditlogs
-                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
-                    item.EntityId == supplementalRequest.RequestId &&
-                    item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
-                .Select(item => item.NewValue)
-                .ToListAsync();
-            var parsedIssueIds = linkedIssueIds
-                .Select(GuidHelper.ParseGuidString)
-                .Where(item => item is not null)
-                .Select(item => item!)
-                .ToList();
-            var allLinkedIssuesReceived = parsedIssueIds.Count > 0;
-            foreach (var linkedIssueId in parsedIssueIds)
-            {
-                if (linkedIssueId.SequenceEqual(issue.IssueId))
-                {
-                    continue;
-                }
-
-                if (!await _context.Inventoryissues.AnyAsync(item =>
-                        item.IssueId == linkedIssueId && item.ReceivedAt != null))
-                {
-                    allLinkedIssuesReceived = false;
-                    break;
-                }
-            }
-
-            if (!DecimalPolicy.LessThanQuantity(fulfilledQty, supplementalRequest.RequestedQty) &&
-                allLinkedIssuesReceived)
-            {
-                var oldStatus = supplementalRequest.Status;
-                supplementalRequest.Status = "FULFILLED";
+                var note = dto.DiscrepancyNote!.Trim();
                 _context.Auditlogs.Add(new Auditlog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = confirmedAt,
                     ChangedBy = userIdBytes,
-                    BusinessArea = "SupplementalMaterial",
-                    EntityName = nameof(Supplementalmaterialrequest),
-                    EntityId = supplementalRequest.RequestId,
-                    FieldName = nameof(Supplementalmaterialrequest.Status),
-                    OldValue = oldStatus,
-                    NewValue = supplementalRequest.Status,
-                    Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
+                    BusinessArea = "KitchenReceipt",
+                    EntityName = nameof(Inventoryissue),
+                    EntityId = issue.IssueId,
+                    FieldName = "KitchenReceiptDiscrepancy",
+                    OldValue = "expected=issued_qty",
+                    NewValue = note,
+                    Reason = $"Bếp báo chênh lệch khi nhận phiếu xuất {issue.IssueCode}: {note}"
                 });
             }
-        }
 
-        await _context.SaveChangesAsync();
-        return InventoryMapper.MapIssue(issue, includeLines: true);
+            var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
+            var supplementalLinks = await _context.Auditlogs
+                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                    item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
+                    item.NewValue == issueIdText)
+                .ToListAsync();
+            foreach (var link in supplementalLinks)
+            {
+                var supplementalRequest = await _context.Supplementalmaterialrequests
+                    .FirstOrDefaultAsync(item => item.RequestId == link.EntityId);
+                if (supplementalRequest is null)
+                {
+                    continue;
+                }
+
+                var fulfilledQty = await _context.Stockmovements
+                    .Where(item => item.RefTable == "supplementalmaterialrequests" &&
+                        item.RefId == supplementalRequest.RequestId)
+                    .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
+                var linkedIssueIds = await _context.Auditlogs
+                    .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                        item.EntityId == supplementalRequest.RequestId &&
+                        item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
+                    .Select(item => item.NewValue)
+                    .ToListAsync();
+                var parsedIssueIds = linkedIssueIds
+                    .Select(GuidHelper.ParseGuidString)
+                    .Where(item => item is not null)
+                    .Select(item => item!)
+                    .ToList();
+                var allLinkedIssuesReceived = parsedIssueIds.Count > 0;
+                foreach (var linkedIssueId in parsedIssueIds)
+                {
+                    if (linkedIssueId.SequenceEqual(issue.IssueId))
+                    {
+                        continue;
+                    }
+
+                    if (!await _context.Inventoryissues.AnyAsync(item =>
+                            item.IssueId == linkedIssueId && item.ReceivedAt != null))
+                    {
+                        allLinkedIssuesReceived = false;
+                        break;
+                    }
+                }
+
+                if (!DecimalPolicy.LessThanQuantity(fulfilledQty, supplementalRequest.RequestedQty) &&
+                    allLinkedIssuesReceived)
+                {
+                    var oldStatus = supplementalRequest.Status;
+                    supplementalRequest.Status = "FULFILLED";
+                    _context.Auditlogs.Add(new Auditlog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = confirmedAt,
+                        ChangedBy = userIdBytes,
+                        BusinessArea = "SupplementalMaterial",
+                        EntityName = nameof(Supplementalmaterialrequest),
+                        EntityId = supplementalRequest.RequestId,
+                        FieldName = nameof(Supplementalmaterialrequest.Status),
+                        OldValue = oldStatus,
+                        NewValue = supplementalRequest.Status,
+                        Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
+                    });
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return InventoryMapper.MapIssue(issue, includeLines: true);
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
     }
 
     private async Task EnsureStockAvailableAsync(

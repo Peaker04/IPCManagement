@@ -1,6 +1,6 @@
 using System.Net;
 using System.Text.Json;
-using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Exceptions;
 using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Middlewares;
@@ -44,7 +44,21 @@ public class ExceptionMiddleware
 
         var (statusCode, message) = ex switch
         {
+            // ── Exception nghiệp vụ có phân loại rõ ràng ────────────────────────
+            BusinessRuleException     => (HttpStatusCode.BadRequest,           ex.Message),
+            ResourceNotFoundException => (HttpStatusCode.NotFound,             ex.Message),
+            ResourceConflictException => (HttpStatusCode.Conflict,             ex.Message),
+
+            // ── Exception hạ tầng / .NET ───────────────────────────────────────
+            // Kestrel ném BadHttpRequestException ngay trong lúc model-binding (vd. [RequestSizeLimit]
+            // chặn file quá cỡ → 413). Không có arm này thì rơi vào "_" và trả 500 sai bản chất.
+            Microsoft.AspNetCore.Http.BadHttpRequestException badRequest =>
+                ((HttpStatusCode)badRequest.StatusCode,
+                 badRequest.StatusCode == StatusCodes.Status413PayloadTooLarge
+                    ? "File tải lên vượt quá dung lượng cho phép (tối đa 10 MB)."
+                    : "Yêu cầu không hợp lệ."),
             DbUpdateConcurrencyException => (HttpStatusCode.Conflict,             "Dữ liệu đã bị thay đổi bởi người dùng khác. Vui lòng thử lại."),
+            // TODO P1.2b: sau khi service chuyển sang BusinessRuleException, chuyển dòng dưới về 500.
             InvalidOperationException => (HttpStatusCode.BadRequest,         ex.Message),
             ArgumentException         => (HttpStatusCode.UnprocessableEntity, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized,      "Không có quyền truy cập."),
@@ -53,13 +67,36 @@ public class ExceptionMiddleware
             _                         => (HttpStatusCode.InternalServerError, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
         };
 
+        // Còn ném InvalidOperationException cho lỗi nghiệp vụ nghĩa là chỗ đó chưa được phân loại.
+        // Log Warning để P1.2b biết chính xác endpoint/lớp nào cần đổi sang BusinessRuleException.
+        if (ex is InvalidOperationException)
+        {
+            _logger.LogWarning(
+                "Unclassified exception: {ExceptionType} tại {Method} {Path} (nguồn: {Source}). "
+                + "Cần đổi sang BusinessRuleException/ResourceNotFoundException/ResourceConflictException.",
+                ex.GetType().FullName,
+                context.Request.Method,
+                context.Request.Path.Value,
+                ex.TargetSite?.DeclaringType?.FullName ?? ex.Source ?? "unknown");
+        }
+
         context.Response.StatusCode = (int)statusCode;
 
-        var response = ApiResponse.FailResult(
+        // correlationId lấy từ CorrelationIdMiddleware (không tạo cơ chế thứ hai) để người dùng
+        // đọc được mã tra cứu ngay trên body lỗi, khớp với header X-Correlation-ID.
+        var correlationId = context.Items.TryGetValue(CorrelationIdMiddleware.ItemKey, out var value)
+            && value is string tracked && !string.IsNullOrWhiteSpace(tracked)
+                ? tracked
+                : context.TraceIdentifier;
+
+        var response = new
+        {
+            success = false,
             message,
             // Chỉ expose chi tiết lỗi ở môi trường development
-            _env.IsDevelopment() ? new { detail = ex.ToString() } : null
-        );
+            errors = _env.IsDevelopment() ? new { detail = ex.ToString() } : null,
+            correlationId
+        };
 
         var options  = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
         var json     = JsonSerializer.Serialize(response, options);

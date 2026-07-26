@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Approvals;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services.Approvals;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -14,7 +15,7 @@ namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/approval-rules")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.AdminAccess)]
 public class ApprovalRulesController : ControllerBase
 {
     private readonly IApprovalRoutingService _routingService;

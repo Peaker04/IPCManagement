@@ -916,18 +916,11 @@ public class WorkflowReportService : IWorkflowReportService
         var dateTo = ParseDateOnly(query.DateTo) ?? dateFrom;
         decimal? priceTier = query.PriceTier is null ? null : NormalizePriceTier(query.PriceTier.Value);
 
+        // Không Include entity graph: chỉ project các cột cần dùng và tính
+        // PendingReceiptQty bằng subquery ngay ở database. Aggregate qua double
+        // vì SQLite (test) không hỗ trợ Sum trên decimal.
         var linesQuery = _context.Materialrequestlines
             .AsNoTracking()
-            .Include(line => line.Request)
-            .Include(line => line.Ingredient)
-            .Include(line => line.Unit)
-            .Include(line => line.PlanLine)
-                .ThenInclude(line => line.Customer)
-            .Include(line => line.Purchaserequestlines)
-                .ThenInclude(line => line.PurchaseRequest)
-            .Include(line => line.Purchaserequestlines)
-                .ThenInclude(line => line.Inventoryreceiptlines)
-            .AsSplitQuery()
             .Where(line => line.Request.Status != "CANCELLED")
             .AsQueryable();
 
@@ -956,26 +949,45 @@ public class WorkflowReportService : IWorkflowReportService
             linesQuery = linesQuery.Where(line => line.PriceTierAmount == priceTier.Value);
         }
 
-        IQueryable<Materialrequestline> orderedLines = linesQuery
+        var projectedLines = linesQuery
             .OrderBy(line => line.Request.RequestDate)
-            .ThenBy(line => line.Ingredient.IngredientName);
+            .ThenBy(line => line.Ingredient.IngredientName)
+            .Select(line => new PurchasePlanLineRow
+            {
+                RequestDate = line.Request.RequestDate,
+                IngredientId = line.IngredientId,
+                IngredientName = line.Ingredient.IngredientName,
+                ReferencePrice = line.Ingredient.ReferencePrice,
+                UnitId = line.UnitId,
+                UnitName = line.Unit.UnitName,
+                TotalRequiredQty = line.TotalRequiredQty,
+                CurrentStockQty = line.CurrentStockQty,
+                SuggestedPurchaseQty = line.SuggestedPurchaseQty,
+                PendingReceiptQty = line.Purchaserequestlines
+                    .Where(purchaseLine => purchaseLine.PurchaseRequest != null && purchaseLine.PurchaseRequest.Status != "CANCELLED")
+                    .Sum(purchaseLine =>
+                        (double)purchaseLine.PurchaseQty - (purchaseLine.Inventoryreceiptlines.Sum(receipt => (double?)receipt.Quantity) ?? 0.0) > 0.0
+                            ? (double)purchaseLine.PurchaseQty - (purchaseLine.Inventoryreceiptlines.Sum(receipt => (double?)receipt.Quantity) ?? 0.0)
+                            : 0.0)
+            });
         if (sourceLimit is not null)
         {
-            orderedLines = orderedLines.Take(sourceLimit.Value);
+            projectedLines = projectedLines.Take(sourceLimit.Value);
         }
-        var lines = await orderedLines.ToListAsync();
+        var lines = await projectedLines.ToListAsync();
         if (lines.Count == 0)
         {
             return [];
         }
 
         var ingredientIds = lines.Select(line => line.IngredientId).Distinct(ByteArrayComparer.Instance).ToList();
+        var today = ServiceCalendar.Today();
         var quotations = await _context.Supplierquotations
             .AsNoTracking()
             .Include(item => item.Supplier)
             .Where(item => item.IsActive ?? true)
             .Where(item => ingredientIds.Contains(item.IngredientId))
-            .Where(item => item.EffectiveFrom <= DateOnly.FromDateTime(DateTime.Today) && (item.EffectiveTo == null || item.EffectiveTo >= DateOnly.FromDateTime(DateTime.Today)))
+            .Where(item => item.EffectiveFrom <= today && (item.EffectiveTo == null || item.EffectiveTo >= today))
             .OrderByDescending(item => item.EffectiveFrom)
             .ToListAsync();
         var quotationByIngredient = quotations
@@ -985,7 +997,7 @@ public class WorkflowReportService : IWorkflowReportService
         return lines
             .GroupBy(line =>
             {
-                var period = ResolvePurchasePlanPeriod(line.Request.RequestDate, groupBy);
+                var period = ResolvePurchasePlanPeriod(line.RequestDate, groupBy);
                 return new
                 {
                     PeriodStart = period.Start,
@@ -998,15 +1010,12 @@ public class WorkflowReportService : IWorkflowReportService
             {
                 var first = group.First();
                 var quotationByKey = quotationByIngredient.GetValueOrDefault(Convert.ToBase64String(first.IngredientId));
-                var pendingReceiptQty = group
-                    .SelectMany(line => line.Purchaserequestlines)
-                    .Where(line => line.PurchaseRequest is not null && line.PurchaseRequest.Status != "CANCELLED")
-                    .Sum(line => Math.Max(0m, line.PurchaseQty - line.Inventoryreceiptlines.Sum(receipt => receipt.Quantity)));
+                var pendingReceiptQty = group.Sum(line => (decimal)line.PendingReceiptQty);
                 var requiredQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.TotalRequiredQty));
                 var currentStockQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.CurrentStockQty));
                 var suggestedPurchaseQty = DecimalPolicy.RoundQuantity(group.Sum(line => line.SuggestedPurchaseQty));
                 var shortageQty = DecimalPolicy.RoundQuantity(Math.Max(0m, suggestedPurchaseQty - pendingReceiptQty));
-                var unitPrice = quotationByKey?.UnitPrice ?? first.Ingredient.ReferencePrice;
+                var unitPrice = quotationByKey?.UnitPrice ?? first.ReferencePrice;
                 var warnings = new List<string>();
                 if (suggestedPurchaseQty > 0 && quotationByKey is null)
                 {
@@ -1030,9 +1039,9 @@ public class WorkflowReportService : IWorkflowReportService
                     PeriodStart = group.Key.PeriodStart,
                     PeriodEnd = group.Key.PeriodEnd,
                     IngredientId = GuidHelper.ToGuidString(first.IngredientId),
-                    IngredientName = first.Ingredient.IngredientName,
+                    IngredientName = first.IngredientName,
                     UnitId = GuidHelper.ToGuidString(first.UnitId),
-                    UnitName = first.Unit.UnitName,
+                    UnitName = first.UnitName,
                     RequiredQty = requiredQty,
                     CurrentStockQty = currentStockQty,
                     PendingReceiptQty = DecimalPolicy.RoundQuantity(pendingReceiptQty),
@@ -1476,7 +1485,7 @@ public class WorkflowReportService : IWorkflowReportService
             return [];
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = ServiceCalendar.Today();
         var activeBomWeights = await _context.Dishboms
             .AsNoTracking()
             .Where(bom =>
@@ -1559,6 +1568,21 @@ public class WorkflowReportService : IWorkflowReportService
             rows.Count,
             query.PageNumber,
             query.PageSize);
+    }
+
+    // Dòng projection cho purchase plan: chỉ giữ scalar cần dùng, không kéo entity graph.
+    private sealed class PurchasePlanLineRow
+    {
+        public DateOnly RequestDate { get; init; }
+        public required byte[] IngredientId { get; init; }
+        public required string IngredientName { get; init; }
+        public decimal ReferencePrice { get; init; }
+        public required byte[] UnitId { get; init; }
+        public required string UnitName { get; init; }
+        public decimal TotalRequiredQty { get; init; }
+        public decimal CurrentStockQty { get; init; }
+        public decimal SuggestedPurchaseQty { get; init; }
+        public double PendingReceiptQty { get; init; }
     }
 
     private IQueryable<Inventoryreceiptline> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
@@ -2184,7 +2208,7 @@ public class WorkflowReportService : IWorkflowReportService
     {
         var requestedLimit = NormalizeLimit(query.Limit);
         var limit = requestedLimit + 1;
-        var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom) ?? DateOnly.FromDateTime(DateTime.Today);
+        var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom) ?? ServiceCalendar.Today();
         var issues = new List<DataQualityIssueDto>();
         var operationalDishKeys = (await _context.Productionplanlines
                 .AsNoTracking()
@@ -3154,7 +3178,7 @@ public class WorkflowReportService : IWorkflowReportService
     public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync(int? criticalDataQualityCount = null)
     {
         var now = DateTime.UtcNow;
-        var today = DateOnly.FromDateTime(now);
+        var today = ServiceCalendar.Today();
         var demandWindowStart = today.AddDays(-7);
         var lateReceiptCutoff = today.AddDays(-LateReceiptThresholdDays);
         var approvalCutoff = now.AddHours(-24);
@@ -3751,7 +3775,7 @@ public class WorkflowReportService : IWorkflowReportService
         var date = ParseDateOnly(query.ServiceDate)
             ?? ParseDateOnly(query.DateFrom)
             ?? ParseDateOnly(query.DateTo)
-            ?? DateOnly.FromDateTime(DateTime.Today);
+            ?? ServiceCalendar.Today();
         return new DateOnly(date.Year, date.Month, 1);
     }
 
@@ -3801,7 +3825,7 @@ public class WorkflowReportService : IWorkflowReportService
     private static (DateTime DateFrom, DateTime DateToExclusive) ResolveStockMovementWindow(WorkflowReportQueryDto query)
     {
         var dateToExclusive = ParseDateTimeEndExclusive(query.DateTo)
-            ?? DateOnly.FromDateTime(DateTime.UtcNow.Date).AddDays(1).ToDateTime(TimeOnly.MinValue);
+            ?? ServiceCalendar.Today().AddDays(1).ToDateTime(TimeOnly.MinValue);
         var dateFrom = ParseDateTimeStart(query.DateFrom)
             ?? DateOnly.FromDateTime(dateToExclusive).AddDays(-DefaultStockMovementWindowDays).ToDateTime(TimeOnly.MinValue);
 

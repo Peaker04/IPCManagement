@@ -4,7 +4,8 @@ namespace IPCManagement.Api.Helpers;
 
 public static class DeploymentConfigurationValidator
 {
-    private const string DevelopmentJwtSecret = "SJ0sKATrwiXa!8lfV7ygOW$bqYMLPRnE4xc2GIe@#t3uFDvm";
+    private const int MinimumSecretLength = 32;
+    private const int MinimumSecretDistinctCharacters = 12;
     private static readonly string[] PlaceholderFragments =
     [
         "CHANGE_ME",
@@ -47,10 +48,21 @@ public static class DeploymentConfigurationValidator
         }
 
         var secretKey = configuration[$"{JwtSettings.SectionName}:SecretKey"] ?? string.Empty;
-        if (secretKey == DevelopmentJwtSecret ||
-            ContainsPlaceholder(secretKey))
+        if (string.IsNullOrWhiteSpace(secretKey))
         {
-            errors.Add("JwtSettings:SecretKey must be replaced for non-development environments.");
+            errors.Add("JwtSettings:SecretKey is required.");
+        }
+        else if (ContainsPlaceholder(secretKey))
+        {
+            errors.Add("JwtSettings:SecretKey placeholders must be replaced.");
+        }
+        else if (secretKey.Length < MinimumSecretLength)
+        {
+            errors.Add($"JwtSettings:SecretKey must be at least {MinimumSecretLength} characters.");
+        }
+        else if (secretKey.Distinct().Count() < MinimumSecretDistinctCharacters)
+        {
+            errors.Add($"JwtSettings:SecretKey must contain at least {MinimumSecretDistinctCharacters} distinct characters.");
         }
 
         var allowedOrigins = configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];

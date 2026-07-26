@@ -2225,7 +2225,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       query: ({ targetType, targetId, status, reason }) => ({
         url: `/approvals/${targetType}/${targetId}`,
         method: 'POST',
-        body: { status: status === 'Approve' ? 0 : 1, reason },
+        body: { status, reason },
       }),
       invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
         'WorkflowReports',

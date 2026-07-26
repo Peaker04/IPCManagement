@@ -1,0 +1,258 @@
+# Backup & Restore database `ipcmanagement`
+
+Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ thuộc gì ngoài `mysqldump.exe` /
+`mysql.exe` có sẵn trong bộ cài MySQL Server.
+
+| File | Việc |
+|---|---|
+| `Backup-Database.ps1` | Dump → nén `.zip` → xoá bản cũ quá hạn |
+| `Restore-Database.ps1` | Giải nén → tạo DB đích → nạp dump, có guard chặn ghi đè DB thật |
+
+Lý do tồn tại: `stockmovements` là **sổ cái tồn kho không tái tạo được** từ bất kỳ nguồn nào khác.
+Mất bảng này là mất số liệu kho, không có cách dựng lại.
+
+---
+
+## 1. Chạy backup thủ công
+
+```powershell
+# Mật khẩu KHÔNG nằm trong script. Đưa qua biến môi trường (khuyến nghị) ...
+$env:MYSQL_PWD = '<mat-khau-mysql>'
+.\Backup-Database.ps1 -OutputDir 'D:\Backups\ipc' -RetentionDays 14
+
+# ... hoặc qua tham số
+.\Backup-Database.ps1 -Password '<mat-khau-mysql>' -OutputDir 'D:\Backups\ipc'
+```
+
+Tham số (đều có mặc định hợp lý cho máy dev):
+
+| Tham số | Mặc định | Ghi chú |
+|---|---|---|
+| `-Database` | `ipcmanagement` | |
+| `-OutputDir` | `%USERPROFILE%\ipc-backups` | Nằm ngoài repo, không lo lọt vào git |
+| `-RetentionDays` | `14` | Bắt buộc `>= 1` |
+| `-DbUser` | `root` | Production nên dùng user backup riêng, xem §6 |
+| `-Password` | `$env:MYSQL_PWD` | Thiếu → thoát mã 2 |
+| `-DbHost` / `-Port` | `localhost` / `3306` | |
+| `-MySqlBin` | `C:\Program Files\MySQL\MySQL Server 9.5\bin` | |
+
+Kết quả: `D:\Backups\ipc\ipcmanagement-yyyyMMdd-HHmmss.zip`
+
+Cờ dump đang dùng: `--single-transaction` (không khoá bảng InnoDB, app vẫn chạy bình thường trong
+lúc dump), `--routines --triggers --events` (mang theo cả object schema), `--set-gtid-purged=OFF`
+(xem §6).
+
+**Exit code:** `0` OK · `1` dump lỗi/không toàn vẹn (file dở dang đã bị xoá, **không** để lại file
+rỗng) · `2` sai cấu hình (thiếu mật khẩu, không thấy `mysqldump.exe`, retention < 1).
+
+Script chỉ báo thành công khi file dump có marker `-- Dump completed` ở cuối — đây là cách phát hiện
+dump bị cắt ngang giữa chừng mà `mysqldump` vẫn trả exit 0.
+
+---
+
+## 2. Đăng ký chạy tự động (Windows Task Scheduler)
+
+**Bước 1 — cấp mật khẩu cho tài khoản chạy task.** Task Scheduler không thấy biến môi trường của
+session hiện tại, phải ghi cố định:
+
+```powershell
+setx MYSQL_PWD "<mat-khau-mysql>"
+```
+
+(Biến này chỉ thuộc user hiện tại. Nếu task chạy dưới tài khoản khác thì phải `setx` trong session
+của tài khoản đó. Đánh đổi: bất kỳ tiến trình nào của user đó đều đọc được — chấp nhận được với máy
+dev, còn production xem §6.)
+
+**Bước 2 — tạo task.** Sửa lại đường dẫn repo cho đúng máy bạn:
+
+```cmd
+schtasks /Create /TN "IPC-DB-Backup" ^
+  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\IPCManagement\tools\db\Backup-Database.ps1\" -OutputDir \"D:\Backups\ipc\" -RetentionDays 14" ^
+  /SC DAILY /ST 01:00 /RL HIGHEST /F
+```
+
+Muốn 4 tiếng một lần (khuyến nghị, xem §4) thì đổi lịch:
+
+```cmd
+schtasks /Change /TN "IPC-DB-Backup" /SC HOURLY /MO 4 /ST 01:00
+```
+
+**Bước 3 — chạy thử và kiểm tra ngay, đừng đợi tới 01:00:**
+
+```cmd
+schtasks /Run   /TN "IPC-DB-Backup"
+schtasks /Query /TN "IPC-DB-Backup" /V /FO LIST
+```
+
+Trong output của `/Query`, `Last Result` phải là `0`. Sau đó mở `D:\Backups\ipc` xác nhận có file
+`.zip` mới, kích thước vài MB (không phải vài KB).
+
+Gỡ task: `schtasks /Delete /TN "IPC-DB-Backup" /F`
+
+---
+
+## 3. Quy trình restore khi có sự cố
+
+**Nguyên tắc: không bao giờ restore thẳng đè lên `ipcmanagement`.** Restore vào DB tạm, đối chiếu
+số dòng, rồi mới quyết định. Script tự chặn việc này — `-Database ipcmanagement` sẽ bị từ chối
+(exit 2) trừ khi truyền `-Force` tường minh.
+
+**B1. Dừng ứng dụng** (backend + worker) để không có ai ghi thêm vào DB hỏng.
+
+**B2. Chụp lại hiện trạng trước khi động vào gì cả** — kể cả DB đang hỏng cũng phải backup, vì nó có
+thể chứa dữ liệu mới hơn bản backup gần nhất:
+
+```powershell
+$env:MYSQL_PWD = '<mat-khau-mysql>'
+.\Backup-Database.ps1 -OutputDir 'D:\Backups\ipc-incident'
+```
+
+**B3. Restore vào DB tạm:**
+
+```powershell
+.\Restore-Database.ps1 -BackupPath 'D:\Backups\ipc\ipcmanagement-20260726-155820.zip' `
+                       -Database ipcmanagement_restore_test
+```
+
+**B4. Đối chiếu số dòng** giữa DB tạm và DB thật trước khi tin bản backup:
+
+```powershell
+$mysql = 'C:\Program Files\MySQL\MySQL Server 9.5\bin\mysql.exe'
+$q = "SELECT 'stockmovements' t, COUNT(*) n FROM stockmovements
+      UNION ALL SELECT 'inventoryreceiptlines', COUNT(*) FROM inventoryreceiptlines
+      UNION ALL SELECT 'inventoryreceipts',     COUNT(*) FROM inventoryreceipts
+      UNION ALL SELECT 'dishbom',               COUNT(*) FROM dishbom
+      UNION ALL SELECT 'materialrequestlines',  COUNT(*) FROM materialrequestlines
+      UNION ALL SELECT 'users',                 COUNT(*) FROM users;"
+& $mysql -u root ipcmanagement            -e $q
+& $mysql -u root ipcmanagement_restore_test -e $q
+```
+
+Chênh lệch chính là **lượng dữ liệu sẽ mất** nếu bạn đè bản backup lên. Nếu con số không chấp nhận
+được → dừng lại, cân nhắc PITR (§6) thay vì restore thẳng.
+
+**B5. Chỉ khi B4 đạt** mới ghi đè DB thật:
+
+```powershell
+.\Restore-Database.ps1 -BackupPath 'D:\Backups\ipc\ipcmanagement-20260726-155820.zip' `
+                       -Database ipcmanagement -Force
+```
+
+Lưu ý: dump **không** có `DROP DATABASE`, các bảng được `DROP TABLE` + tạo lại từng cái. Bảng nào
+sinh ra sau thời điểm dump (ví dụ do migration mới) sẽ **còn sót lại** trong DB. Muốn sạch tuyệt đối
+thì `DROP DATABASE ipcmanagement;` bằng tay trước khi chạy B5.
+
+**B6. Bật lại ứng dụng**, kiểm tra một màn hình đọc tồn kho thật, rồi mới mở cho người dùng.
+
+### Diễn tập định kỳ
+
+**Backup chưa từng restore thử thì chưa phải backup.** Chạy lại B3 + B4 vào một DB tạm mỗi tháng,
+xong thì dọn:
+
+```powershell
+& $mysql -u root -e "DROP DATABASE IF EXISTS ipcmanagement_restore_test;"
+```
+
+Diễn tập gần nhất: 2026-07-26 — dump 12.51 MB (1.0s) → zip 2.84 MB, restore 4.2s, **61/61 bảng và
+53.396 dòng khớp 100%**, fingerprint MD5 toàn bộ `movementId` của `stockmovements` trùng khớp.
+
+---
+
+## 4. RPO / RTO đề xuất
+
+**RPO (mất tối đa bao nhiêu dữ liệu) — đề xuất 4 giờ.**
+
+Lập luận: chi phí một lần backup gần như bằng không — đo thực tế **1.0 giây**, ra file **2.84 MB**.
+Chạy 6 lần/ngày tốn ~17 MB/ngày, giữ 14 ngày hết ~240 MB đĩa. Không có lý do kỹ thuật nào để chỉ
+chạy 1 lần/ngày.
+
+Còn cái giá của việc mất dữ liệu thì **không** đối xứng: `stockmovements` có cột `beforeQty` /
+`afterQty`, tức là một chuỗi số dư nối tiếp nhau. Nhập lại thủ công từ phiếu giấy không chỉ mất công
+mà còn dễ làm lệch chuỗi số dư — một phiếu nhập bị bỏ sót là toàn bộ tồn kho phía sau sai theo. Đây
+là điểm khác biệt so với dữ liệu master (nguyên liệu, món ăn) vốn gõ lại được. Vì vậy mức "mất 1
+ngày công nhập liệu là chấp nhận được" **không** áp dụng cho hệ này.
+
+RPO 24h (dump 1 lần/ngày) chỉ nên coi là sàn tối thiểu cho giai đoạn hiện tại.
+
+**RTO (bao lâu thì chạy lại được) — đề xuất 30 phút.**
+
+Thời gian máy móc đã đo: restore 4.2 giây. Toàn bộ phần còn lại là thao tác người:
+
+| Bước | Ước lượng |
+|---|---|
+| Phát hiện + xác nhận sự cố | 10 phút |
+| Dừng app, backup hiện trạng (B2) | 2 phút |
+| Restore vào DB tạm + đối chiếu (B3–B4) | 5 phút |
+| Ghi đè DB thật (B5) | 1 phút |
+| Kiểm tra app, mở lại cho người dùng | 10 phút |
+
+Ràng buộc để giữ được 30 phút: có người biết quy trình này, và §3 đã được diễn tập chứ không phải
+đọc lần đầu lúc đang cháy.
+
+---
+
+## 5. Những gì lưới này KHÔNG bảo vệ
+
+1. **Hỏng ổ đĩa.** Backup mặc định nằm cùng máy với DB. Ổ chết là mất cả hai. **Việc cần làm ngay:
+   copy thư mục backup sang chỗ khác** (ổ ngoài, OneDrive, S3). Không có bước này thì đây chưa phải
+   disaster recovery, chỉ là chống xoá nhầm.
+2. **Hỏng dữ liệu logic.** Nếu bug ứng dụng ghi sai số liệu, backup sẽ chép nguyên si cái sai.
+   Retention 14 ngày chính là cửa sổ để phát hiện — quá 14 ngày mới nhận ra thì không còn bản đúng.
+3. **Mất dữ liệu giữa hai lần dump.** Mặc định RPO = chu kỳ chạy task. Muốn nhỏ hơn phải dùng PITR
+   (§6).
+4. **Không có soft-delete.** Script chỉ khôi phục được toàn bộ DB về một mốc thời gian, không undo
+   được một thao tác xoá đơn lẻ. Soft-delete phải làm ở tầng ứng dụng — ngoài phạm vi thư mục này.
+5. **Không rollback được migration.** Cũng vậy: chỉ có "quay cả DB về mốc X", không có "gỡ migration
+   Y". Trước khi chạy migration trên DB thật, hãy chạy backup thủ công ngay trước đó.
+6. **Backup không mã hoá.** File `.zip` chứa toàn bộ dữ liệu, kể cả bảng `users`. Đừng để trong thư
+   mục chia sẻ hay repo git.
+7. **Không tự kiểm chứng.** Task Scheduler báo `Last Result = 0` chỉ nghĩa là dump chạy xong, không
+   nghĩa là restore được. Diễn tập hàng tháng (§3) là bước không bỏ được.
+
+---
+
+## 6. Ghi chú kỹ thuật
+
+**Binlog / point-in-time recovery.** Kiểm tra máy hiện tại (2026-07-26): `log_bin = 1`,
+`gtid_mode = ON`, `binlog_expire_logs_seconds = 2592000` (30 ngày) — **binlog đang bật sẵn**, tức là
+PITR về mặt kỹ thuật đã khả thi ngay, RPO có thể xuống mức phút thay vì giờ. Nhưng có hai lỗ hổng:
+
+- Binlog nằm cùng thư mục data (`D:\MySQL\MySQL Server 9.5\Data\`) → hỏng ổ là mất cả dump lẫn
+  binlog. **Phải copy binlog ra ngoài cùng với file backup** thì PITR mới có ý nghĩa.
+- Chưa có quy trình PITR nào được viết ra hay diễn tập.
+
+Sườn lệnh PITR sau khi đã restore bản dump gần nhất — áp dụng lại binlog từ thời điểm dump tới ngay
+trước thời điểm sự cố:
+
+```cmd
+mysqlbinlog --start-datetime="2026-07-26 01:00:00" --stop-datetime="2026-07-26 09:14:00" ^
+  "D:\MySQL\MySQL Server 9.5\Data\TUANKY-bin.000680" > D:\Backups\pitr.sql
+mysql -u root -p ipcmanagement < D:\Backups\pitr.sql
+```
+
+Nếu gặp máy mà binlog **chưa** bật, thêm vào `my.ini` mục `[mysqld]` rồi restart service MySQL
+(cần cửa sổ downtime — **không tự ý bật trên máy đang chạy**):
+
+```ini
+[mysqld]
+server_id                 = 1
+log_bin                   = mysql-bin
+binlog_expire_logs_seconds = 2592000
+```
+
+**Vì sao `--set-gtid-purged=OFF`.** Server đang bật GTID. Mặc định `mysqldump` nhét
+`SET @@GLOBAL.GTID_PURGED=...` vào đầu file, và câu lệnh đó **sẽ làm restore thất bại** trên server
+đã có GTID_EXECUTED khác rỗng — đúng trường hợp restore vào DB tạm trên chính máy này. Tắt đi thì
+dump không dùng để dựng replica được nữa, nhưng đổi lại restore standalone luôn chạy. Hệ này không
+có replication nên đánh đổi này là đúng.
+
+**User backup riêng cho production.** Đừng dùng `root` cho task chạy tự động:
+
+```sql
+CREATE USER 'ipc_backup'@'localhost' IDENTIFIED BY '<mat-khau-rieng>';
+GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER, PROCESS, RELOAD
+  ON *.* TO 'ipc_backup'@'localhost';
+```
+
+Rồi thêm `-DbUser ipc_backup` vào lệnh trong `schtasks`. User này không xoá được gì, nên kể cả lộ
+mật khẩu qua biến môi trường thì thiệt hại cũng giới hạn ở việc đọc dữ liệu.

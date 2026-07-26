@@ -1,4 +1,5 @@
 using FluentValidation;
+using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Inventory;
 
 namespace IPCManagement.Api.Models.Validators;
@@ -9,7 +10,7 @@ public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInvent
     {
         RuleFor(x => x.ReceiptDate)
             .NotEmpty().WithMessage("Ngày nhập kho không được để trống.")
-            .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
+            .LessThanOrEqualTo(ServiceCalendar.Today().AddDays(1))
             .WithMessage("Ngày nhập kho không được là ngày tương lai xa.");
 
         RuleFor(x => x.SupplierId)
@@ -164,7 +165,7 @@ public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<
 
         RuleFor(x => x.ReceiptDate)
             .NotEmpty().WithMessage("Ngày nhập kho không được để trống.")
-            .LessThanOrEqualTo(DateOnly.FromDateTime(DateTime.Today.AddDays(1)))
+            .LessThanOrEqualTo(ServiceCalendar.Today().AddDays(1))
             .WithMessage("Ngày nhập kho không được là ngày tương lai xa.");
 
         RuleFor(x => x.SupplierId)

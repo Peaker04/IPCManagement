@@ -263,7 +263,7 @@ public class ProductionPlanService : IProductionPlanService
     private static DateOnly ParseServiceDate(string? serviceDate)
         => DateOnly.TryParse(serviceDate, out var parsed)
             ? parsed
-            : DateOnly.FromDateTime(DateTime.Today);
+            : ServiceCalendar.Today();
 
     private static byte[]? ParseOptionalCustomerId(string? customerId)
         => string.IsNullOrWhiteSpace(customerId)

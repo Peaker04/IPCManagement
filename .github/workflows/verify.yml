@@ -4,9 +4,17 @@ on:
   pull_request:
   push:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     services:
       mysql:
         image: mysql:8.0
@@ -23,7 +31,13 @@ jobs:
 
     env:
       ASPNETCORE_ENVIRONMENT: Development
+      DOTNET_NOLOGO: "true"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "true"
       ConnectionStrings__DefaultConnection: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      # Bắt buộc phải set: nếu thiếu, integration test sẽ FAIL trong CI thay vì pass giả.
+      # Mật khẩu dưới đây chỉ tồn tại trong service container ephemeral của lượt chạy này.
+      IPC_TEST_CONNECTION_STRING: server=127.0.0.1;port=3306;database=ipcmanagement_ci;user=root;password=123456789;
+      TEST_RESULTS_DIR: ${{ github.workspace }}/.artifacts/test-results
       JwtSettings__SecretKey: CI_VERIFY_SECRET_KEY_1234567890_ABCDEF
       JwtSettings__Issuer: IPCManagementAPI
       JwtSettings__Audience: IPCManagementClient
@@ -39,6 +53,14 @@ jobs:
         with:
           dotnet-version: 9.0.x
 
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj', '**/*.slnx') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -50,9 +72,6 @@ jobs:
 
       - name: Build backend
         run: npm run build:be
-
-      - name: Test backend
-        run: npm run test:be
 
       - name: Install EF Core CLI
         run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.16
@@ -76,13 +95,100 @@ jobs:
             --output ./.artifacts/ipc-schema.sql \
             --no-build
 
-      - name: Smoke test generated MySQL schema
+      # Vừa smoke-test schema sinh ra, vừa dựng sẵn database cho integration test chạy thật ở bước sau.
+      - name: Apply MySQL schema (smoke test + database cho integration test)
         run: |
           mysql -h 127.0.0.1 -uroot -p123456789 -e "DROP DATABASE IF EXISTS ipcmanagement_ci; CREATE DATABASE ipcmanagement_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
           mysql -h 127.0.0.1 -uroot -p123456789 ipcmanagement_ci < ./.artifacts/ipc-schema.sql
+          mysql -h 127.0.0.1 -uroot -p123456789 -e "SELECT COUNT(*) AS created_tables FROM information_schema.tables WHERE table_schema = 'ipcmanagement_ci';"
+
+      - name: Test backend
+        run: >
+          npm run test:be --
+          --logger "trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results/backend"
+
+      # Chạy riêng nhóm integration để log CI hiện rõ số test đã CHẠY trên MySQL thật.
+      - name: Integration test trên MySQL thật
+        id: integration
+        run: >
+          dotnet test backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj
+          --no-build
+          --filter "FullyQualifiedName~IPCManagement.Api.Tests.Integration"
+          --logger "console;verbosity=normal"
+          --logger "trx;LogFileName=integration-tests.trx"
+          --results-directory "${{ github.workspace }}/.artifacts/test-results"
+
+      - name: Báo cáo số integration test đã chạy
+        if: always() && steps.integration.conclusion != 'skipped'
+        run: |
+          python3 - <<'PY'
+          import os
+          import sys
+          import xml.etree.ElementTree as ET
+
+          trx = os.path.join(os.environ["TEST_RESULTS_DIR"], "integration-tests.trx")
+          if not os.path.exists(trx):
+              print(f"LOI: khong tim thay {trx}. Integration test khong tao duoc ket qua.")
+              sys.exit(1)
+
+          namespace = "{http://microsoft.com/schemas/VisualStudio/TeamTest/2010}"
+          root = ET.parse(trx).getroot()
+
+          outcomes = {}
+          details = []
+          for result in root.iter(f"{namespace}UnitTestResult"):
+              outcome = result.get("outcome", "Unknown")
+              outcomes[outcome] = outcomes.get(outcome, 0) + 1
+              details.append(f"{outcome} - {result.get('testName')}")
+
+          passed = outcomes.get("Passed", 0)
+          failed = outcomes.get("Failed", 0)
+          not_executed = outcomes.get("NotExecuted", 0)
+          executed = passed + failed
+
+          lines = [
+              "### Integration test tren MySQL that",
+              "",
+              f"- Da CHAY: **{executed}** (Passed {passed} / Failed {failed})",
+              f"- Bi skip (NotExecuted): {not_executed}",
+              "",
+          ]
+          lines += [f"- {item}" for item in details]
+          report = "\n".join(lines)
+          print(report)
+
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          if summary_path:
+              with open(summary_path, "a", encoding="utf-8") as handle:
+                  handle.write(report + "\n")
+
+          if executed == 0:
+              print(
+                  "LOI: khong co integration test nao duoc thuc thi. "
+                  "Kiem tra IPC_TEST_CONNECTION_STRING va database ipcmanagement_ci."
+              )
+              sys.exit(1)
+          PY
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: .artifacts/test-results
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Lint frontend
         run: npm run lint:fe
+
+      # Vitest chạy một lượt cho toàn bộ src có thể vượt heap mặc định của Node,
+      # nên giới hạn worker và nới heap cho từng worker.
+      - name: Test frontend (unit)
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+        run: npm run test:unit -w frontend -- --maxWorkers=2
 
       - name: Build frontend
         run: npm run build:fe

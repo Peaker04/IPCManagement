@@ -1,6 +1,7 @@
 using System.Threading.Tasks;
 using IPCManagement.Api.Models.DTOs.Common;
 using IPCManagement.Api.Models.DTOs.Inventory;
+using IPCManagement.Api.Security;
 using IPCManagement.Api.Services;
 using IPCManagement.Api.Helpers;
 using Microsoft.AspNetCore.Authorization;
@@ -10,7 +11,7 @@ namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
 public class StocktakesController : ControllerBase
 {
     private readonly IStocktakeService _stocktakeService;
@@ -60,6 +61,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPost("{id}/approve")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
     public async Task<ActionResult<ApiResponse<StocktakeDto>>> Approve(string id)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
@@ -68,6 +70,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPost("{id}/reject")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
     public async Task<ActionResult<ApiResponse<StocktakeDto>>> Reject(string id, [FromBody] RejectDto dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;

@@ -5,14 +5,11 @@
  * getDayLabel() provides human-readable label lookup.
  */
 
+import { getBangkokDayCode } from '@/features/chef/chefServiceDate'
 import { DAYS_OF_WEEK } from './constants'
 
-/** Lấy mã ngày hôm nay: t2..t7, cn */
-export const getTodayDayCode = (): string => {
-  const day = new Date().getDay() // 0 is Sunday, 1 is Monday...
-  if (day === 0) return 'cn'
-  return `t${day + 1}`
-}
+/** Lấy mã ngày hôm nay theo giờ nghiệp vụ Việt Nam: t2..t7, cn */
+export const getTodayDayCode = (): string => getBangkokDayCode()
 
 /** Lấy nhãn ngày từ mã ngày (e.g. 't2' → 'Thứ Hai') */
 export const getDayLabel = (dayCode: string): string =>

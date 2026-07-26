@@ -17,6 +17,14 @@ namespace IPCManagement.Api.Controllers;
 [EnableRateLimiting("api-general")]
 public class CoordinationController : ControllerBase
 {
+    /// <summary>
+    /// Hạn mức dung lượng cho mọi file Excel tải lên luồng thực đơn tuần.
+    /// Trỏ về hằng số dùng chung <see cref="XlsxSecurityLimits.MaxUploadBytes"/> để mọi endpoint
+    /// nhận file Excel (thực đơn tuần, import BOM) chỉ có MỘT nguồn sự thật về hạn mức;
+    /// căn cứ đo đạc xem tại chính hằng số đó.
+    /// </summary>
+    private const long MaxUploadBytes = XlsxSecurityLimits.MaxUploadBytes;
+
     private readonly ICoordinationService _coordinationService;
     private readonly ICurrentUserService _currentUserService;
     private readonly ISampleDataImportService _sampleDataImportService;
@@ -391,7 +399,9 @@ public class CoordinationController : ControllerBase
 
     [HttpPost("weekly-menu/import")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     public async Task<IActionResult> ImportWeeklyMenu(
         IFormFile file,
         CancellationToken cancellationToken)
@@ -418,8 +428,10 @@ public class CoordinationController : ControllerBase
 
     [HttpPost("weekly-menu/import/preview")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     public async Task<IActionResult> PreviewWeeklyMenuImport(
         IFormFile file,
         [FromForm] string customerId,
@@ -458,8 +470,10 @@ public class CoordinationController : ControllerBase
 
     [HttpPost("weekly-menu/import/commit")]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(MaxUploadBytes)]
     [ProducesResponseType(typeof(ApiResponse<WeeklyMenuImportResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
     public async Task<IActionResult> CommitWeeklyMenuImport(
         IFormFile file,
         [FromForm] string customerId,

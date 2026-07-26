@@ -24,6 +24,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/routes/routeConfig';
 import { usePaginatedRows } from '@/lib/usePaginatedRows';
+import { addCalendarDays, getBangkokToday } from '@/features/chef/chefServiceDate';
 import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangePageQuery,
@@ -126,13 +127,9 @@ const defaultScheduleRuleForm: ScheduleRuleFormState = {
   reason: '',
 };
 
-const getTodayInputValue = () => new Date().toISOString().slice(0, 10);
+const getTodayInputValue = () => getBangkokToday();
 
-const getNextDayInputValue = (value: string) => {
-  const date = new Date(`${value}T00:00:00`);
-  date.setDate(date.getDate() + 1);
-  return date.toISOString().slice(0, 10);
-};
+const getNextDayInputValue = (value: string) => addCalendarDays(value, 1);
 
 const createDefaultBomForm = (): BomFormState => ({
   dishId: '',
@@ -337,7 +334,7 @@ export default function AdminDataPage() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `audit-log-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `audit-log-${getTodayInputValue()}.csv`;
       document.body.appendChild(a);
       a.click();
       a.remove();

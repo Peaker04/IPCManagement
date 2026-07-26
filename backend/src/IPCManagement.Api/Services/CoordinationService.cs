@@ -1768,7 +1768,7 @@ public class CoordinationService : ICoordinationService
         var shiftNames = NormalizeShiftNames(request.ShiftNames, schedules);
         var effectiveFrom = ParseDateOnly(request.EffectiveFrom, "Ngày bắt đầu hiệu lực")
             ?? schedules.FirstOrDefault()?.WeekStartDate
-            ?? DateOnly.FromDateTime(changedAt);
+            ?? ServiceCalendar.Today();
         var effectiveTo = ParseDateOnly(request.EffectiveTo, "Ngày kết thúc hiệu lực");
         if (effectiveTo is not null && effectiveTo.Value < effectiveFrom)
         {
@@ -1806,7 +1806,7 @@ public class CoordinationService : ICoordinationService
 
     private static Customercontract? ResolveActiveContract(IEnumerable<Customercontract> contracts)
     {
-        var today = DateOnly.FromDateTime(DateTime.UtcNow);
+        var today = ServiceCalendar.Today();
         return contracts
             .Where(contract => string.Equals(contract.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase))
             .OrderByDescending(contract =>
@@ -2668,9 +2668,7 @@ public class CoordinationService : ICoordinationService
             return parsedServiceDate;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var offsetFromMonday = ((int)today.DayOfWeek + 6) % 7;
-        var monday = today.AddDays(-offsetFromMonday);
+        var monday = ServiceCalendar.StartOfWeek(ServiceCalendar.Today());
 
         var dayOffset = (dayOfWeek ?? string.Empty).ToLowerInvariant() switch
         {
@@ -2695,9 +2693,7 @@ public class CoordinationService : ICoordinationService
             return parsedWeekStart;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
-        var offsetFromMonday = ((int)today.DayOfWeek + 6) % 7;
-        return today.AddDays(-offsetFromMonday);
+        return ServiceCalendar.StartOfWeek(ServiceCalendar.Today());
     }
 
     private static string? NormalizeShiftName(string? shift)

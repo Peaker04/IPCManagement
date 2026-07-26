@@ -1,3 +1,4 @@
+import { getBangkokToday } from '@/features/chef/chefServiceDate';
 import type { DemandLine } from '@/features/workflow';
 import type {
   PurchaseRequestResult,
@@ -107,7 +108,7 @@ export function resolvePurchasingRouteState(
     ? toIsoMonday(requestedWeek)
     : requestedDate
       ? toIsoMonday(requestedDate)
-      : toIsoMonday(now);
+      : toIsoMonday(parseIsoDate(getBangkokToday(now))!);
   const weekStart = parseIsoDate(week)!;
   const weekEnd = new Date(weekStart);
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 6);

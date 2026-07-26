@@ -14,7 +14,7 @@ public class DeploymentConfigurationValidatorTests
         var configuration = BuildConfiguration(new Dictionary<string, string?>
         {
             ["ConnectionStrings:DefaultConnection"] = "server=localhost;database=ipcmanagement;user=root;password=123456789;",
-            ["JwtSettings:SecretKey"] = "SJ0sKATrwiXa!8lfV7ygOW$bqYMLPRnE4xc2GIe@#t3uFDvm",
+            ["JwtSettings:SecretKey"] = "fixture-only-secret-Kx7mQp2wZr9TnB4vLd6HsJ3yCg8FaE5U",
             ["Cors:AllowedOrigins:0"] = "http://localhost:5173",
             ["AllowedHosts"] = "*"
         });

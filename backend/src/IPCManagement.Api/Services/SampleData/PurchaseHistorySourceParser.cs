@@ -7,9 +7,18 @@ using System.Xml.Linq;
 
 namespace IPCManagement.Api.Services.SampleData;
 
+/// <summary>
+/// Đọc workbook nguồn lịch sử mua hàng.
+/// Mọi hạn mức chống file XLSX độc hại (zip bomb, merged-cell bomb, XXE, dimension khai khống)
+/// dùng chung với <see cref="XlsxWorkbookReader"/> qua <see cref="XlsxSecurityLimits"/> —
+/// không còn hai bản sao của thuật toán lan giá trị vùng gộp ô như trước.
+/// </summary>
 internal sealed class PurchaseHistorySourceParser
 {
-    private static readonly XNamespace SpreadsheetNs = "http://schemas.openxmlformats.org/spreadsheetml/2006/main";
+    /// <summary>Nhãn dùng trong thông báo lỗi khi từ chối nguồn quá cỡ.</summary>
+    private const string SourceLabel = "File nguồn lịch sử mua hàng";
+
+    private static readonly XNamespace SpreadsheetNs = XlsxSecurityLimits.SpreadsheetNs;
     private static readonly XNamespace RelationshipNs = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
     private static readonly XNamespace PackageRelationshipNs = "http://schemas.openxmlformats.org/package/2006/relationships";
 
@@ -37,11 +46,14 @@ internal sealed class PurchaseHistorySourceParser
             throw new ArgumentException("Workbook stream must be readable.", nameof(source));
         }
 
-        using var workbook = CopyToMemory(source);
+        // Trần dung lượng đặt ngay tại đây: trước kia CopyToMemory nạp không giới hạn nên một
+        // stream vài GB làm phình MemoryStream tới khi OutOfMemory.
+        using var workbook = XlsxSecurityLimits.CopyToBoundedMemory(source, SourceLabel);
         var workbookSha256 = Convert.ToHexString(SHA256.HashData(workbook));
         workbook.Position = 0;
 
         using var archive = new ZipArchive(workbook, ZipArchiveMode.Read, leaveOpen: true);
+        XlsxSecurityLimits.EnsurePackageWithinLimits(archive);
         var sharedStrings = ReadSharedStrings(archive);
         var sheets = ReadSheets(archive);
         var supplierPolicies = ReadSupplierPolicies(archive, sheets, sharedStrings);
@@ -215,16 +227,26 @@ internal sealed class PurchaseHistorySourceParser
     {
         var workbook = LoadDocument(archive, "xl/workbook.xml");
         var relationships = LoadDocument(archive, "xl/_rels/workbook.xml.rels");
-        var targetsById = relationships
-            .Descendants(PackageRelationshipNs + "Relationship")
-            .Where(item => item.Attribute("Id") is not null && item.Attribute("Target") is not null)
-            .ToDictionary(
-                item => item.Attribute("Id")!.Value,
-                item => NormalizeSheetPath(item.Attribute("Target")!.Value),
-                StringComparer.Ordinal);
 
-        return workbook
-            .Descendants(SpreadsheetNs + "sheet")
+        // TryAdd thay cho ToDictionary: file khai hai Relationship trùng Id từng làm
+        // ToDictionary ném ArgumentException và trả HTTP 500. File hợp lệ không đổi kết quả.
+        var targetsById = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var item in relationships.Descendants(PackageRelationshipNs + "Relationship"))
+        {
+            var id = item.Attribute("Id")?.Value;
+            var target = item.Attribute("Target")?.Value;
+            if (id is null || target is null)
+            {
+                continue;
+            }
+
+            targetsById.TryAdd(id, NormalizeSheetPath(target));
+        }
+
+        var sheetElements = workbook.Descendants(SpreadsheetNs + "sheet").ToList();
+        XlsxSecurityLimits.EnsureSheetCountWithinLimit(sheetElements.Count);
+
+        return sheetElements
             .Select(sheet => new
             {
                 Name = sheet.Attribute("name")?.Value,
@@ -243,96 +265,55 @@ internal sealed class PurchaseHistorySourceParser
         IReadOnlyList<string> sharedStrings)
     {
         var document = LoadDocument(archive, sheet.Path);
-        var rows = document
-            .Descendants(SpreadsheetNs + "row")
-            .Select((row, index) => new WorkbookRow(
-                ParseRowNumber(row.Attribute("r")?.Value, index + 1),
-                row.Elements(SpreadsheetNs + "c")
-                    .Where(cell => !string.IsNullOrWhiteSpace(cell.Attribute("r")?.Value))
-                    .Select(cell => new
-                    {
-                        Column = new string(cell.Attribute("r")!.Value.TakeWhile(char.IsLetter).ToArray()),
-                        Value = ReadCellValue(cell, sharedStrings)
-                    })
-                    .Where(cell => !string.IsNullOrWhiteSpace(cell.Column))
-                    .ToDictionary(cell => cell.Column, cell => cell.Value, StringComparer.OrdinalIgnoreCase)))
-            .ToList();
-        ApplyMergedCellValues(rows, document);
+
+        var rows = new List<WorkbookRow>();
+        foreach (var row in document.Descendants(SpreadsheetNs + "row"))
+        {
+            XlsxSecurityLimits.EnsureRowCountWithinLimit(rows.Count);
+            rows.Add(ReadRow(row, sharedStrings, rows.Count + 1));
+        }
+
+        // Vùng gộp ô được kiểm duyệt hạn mức MỘT lần trước khi vào vòng lặp lan giá trị.
+        // Đây chính là lỗ hổng "merged-cell bomb" trước đây còn nguyên ở parser này:
+        // hai vòng lặp lồng nhau chạy theo ref do file khai, nên ref="A1:XFD1048576"
+        // (~17,18 tỉ ô) treo worker vô hạn.
+        XlsxSecurityLimits.ApplyMergedCellValues(
+            XlsxSecurityLimits.BuildRowIndex(rows.Select(item => (item.RowNumber, item.Cells))),
+            XlsxSecurityLimits.ReadMergeRanges(document, sheet.Name));
+
         return rows;
     }
 
-    private static void ApplyMergedCellValues(IReadOnlyList<WorkbookRow> rows, XDocument document)
+    private static WorkbookRow ReadRow(
+        XElement row,
+        IReadOnlyList<string> sharedStrings,
+        int fallbackRowNumber)
     {
-        var rowsByNumber = rows.ToDictionary(row => row.RowNumber);
-        foreach (var mergeCell in document.Descendants(SpreadsheetNs + "mergeCell"))
+        var cells = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var cell in row.Elements(SpreadsheetNs + "c"))
         {
-            var parts = mergeCell.Attribute("ref")?.Value
-                .Split(':', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-            if (parts is null || parts.Length is < 1 or > 2 ||
-                !TryParseCell(parts[0], out var startColumn, out var startRow) ||
-                !TryParseCell(parts[^1], out var endColumn, out var endRow) ||
-                !rowsByNumber.TryGetValue(startRow, out var sourceRow) ||
-                !sourceRow.Cells.TryGetValue(startColumn, out var sourceValue) ||
-                string.IsNullOrWhiteSpace(sourceValue))
+            var reference = cell.Attribute("r")?.Value;
+            if (string.IsNullOrWhiteSpace(reference))
             {
                 continue;
             }
 
-            for (var rowNumber = startRow; rowNumber <= endRow; rowNumber++)
+            // Tên cột phải hợp lệ theo đặc tả Excel (tối đa 3 chữ cái, không quá cột XFD).
+            // Tên khai khống kiểu "AAAAAAAAAA" từng làm phép quy đổi cột tràn số nguyên.
+            var column = new string(reference.TakeWhile(char.IsLetter).ToArray());
+            if (string.IsNullOrWhiteSpace(column) || XlsxSecurityLimits.ColumnLetterToIndex(column) <= 0)
             {
-                if (!rowsByNumber.TryGetValue(rowNumber, out var targetRow))
-                {
-                    continue;
-                }
-
-                for (var column = ColumnToIndex(startColumn); column <= ColumnToIndex(endColumn); column++)
-                {
-                    var columnName = IndexToColumn(column);
-                    if (!targetRow.Cells.TryGetValue(columnName, out var currentValue) ||
-                        string.IsNullOrWhiteSpace(currentValue))
-                    {
-                        targetRow.Cells[columnName] = sourceValue;
-                    }
-                }
+                continue;
             }
-        }
-    }
 
-    private static bool TryParseCell(string reference, out string column, out int row)
-    {
-        row = 0;
-        column = new string(reference.TakeWhile(char.IsLetter).ToArray()).ToUpperInvariant();
-        return !string.IsNullOrWhiteSpace(column) &&
-               int.TryParse(
-                   new string(reference.SkipWhile(char.IsLetter).TakeWhile(char.IsDigit).ToArray()),
-                   NumberStyles.Integer,
-                   CultureInfo.InvariantCulture,
-                   out row) &&
-               row > 0;
-    }
-
-    private static int ColumnToIndex(string column)
-    {
-        var result = 0;
-        foreach (var character in column)
-        {
-            result = result * 26 + character - 'A' + 1;
+            // Gán bằng indexer (ô cuối thắng) thay cho ToDictionary: file khai hai ô cùng
+            // địa chỉ từng làm ToDictionary ném ArgumentException và trả HTTP 500.
+            cells[column] = ReadCellValue(cell, sharedStrings);
         }
 
-        return result;
-    }
-
-    private static string IndexToColumn(int index)
-    {
-        var result = string.Empty;
-        while (index > 0)
-        {
-            index--;
-            result = (char)('A' + index % 26) + result;
-            index /= 26;
-        }
-
-        return result;
+        return new WorkbookRow(
+            XlsxSecurityLimits.ParseRowNumber(row.Attribute("r")?.Value, fallbackRowNumber),
+            cells);
     }
 
     private static IReadOnlyList<string> ReadSharedStrings(ZipArchive archive)
@@ -343,12 +324,19 @@ internal sealed class PurchaseHistorySourceParser
             return [];
         }
 
-        using var stream = entry.Open();
-        var document = XDocument.Load(stream);
-        return document
-            .Descendants(SpreadsheetNs + "si")
-            .Select(item => string.Concat(item.Descendants(SpreadsheetNs + "t").Select(text => text.Value)))
-            .ToList();
+        var document = XlsxSecurityLimits.LoadXmlPart(entry, "Bảng chuỗi dùng chung (xl/sharedStrings.xml)");
+        var values = new List<string>();
+        foreach (var item in document.Descendants(SpreadsheetNs + "si"))
+        {
+            XlsxSecurityLimits.EnsureSharedStringCountWithinLimit(values.Count);
+
+            var text = string.Concat(item.Descendants(SpreadsheetNs + "t").Select(node => node.Value));
+            XlsxSecurityLimits.EnsureCellTextWithinLimit(text);
+
+            values.Add(text);
+        }
+
+        return values;
     }
 
     private static string ReadCellValue(XElement cell, IReadOnlyList<string> sharedStrings)
@@ -363,25 +351,21 @@ internal sealed class PurchaseHistorySourceParser
             return sharedStrings[sharedIndex];
         }
 
-        return type == "inlineStr"
+        var value = type == "inlineStr"
             ? string.Concat(cell.Descendants(SpreadsheetNs + "t").Select(text => text.Value))
             : rawValue;
+
+        // Chuỗi dùng chung đã chặn ở ReadSharedStrings; chốt nốt đường inlineStr và giá trị thô.
+        XlsxSecurityLimits.EnsureCellTextWithinLimit(value);
+        return value;
     }
 
     private static XDocument LoadDocument(ZipArchive archive, string path)
     {
         var entry = archive.GetEntry(path)
             ?? throw new InvalidOperationException($"Workbook is missing '{path}'.");
-        using var stream = entry.Open();
-        return XDocument.Load(stream);
-    }
 
-    private static MemoryStream CopyToMemory(Stream source)
-    {
-        var memory = new MemoryStream();
-        source.CopyTo(memory);
-        memory.Position = 0;
-        return memory;
+        return XlsxSecurityLimits.LoadXmlPart(entry, $"Thành phần '{path}'");
     }
 
     private static bool HasSourceEvidence(IReadOnlyDictionary<string, string> row)
@@ -467,11 +451,6 @@ internal sealed class PurchaseHistorySourceParser
             ? normalized
             : $"xl/{normalized.TrimStart('/')}";
     }
-
-    private static int ParseRowNumber(string? value, int fallback)
-        => int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var parsed) && parsed > 0
-            ? parsed
-            : fallback;
 
     private static string Hash(string value)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
