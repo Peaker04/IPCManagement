@@ -16,7 +16,9 @@ export function PurchaseSupplierSection({ workflow }: { workflow: PurchaseSuppli
                 <SupplierLineItem key={line.id} line={line} suppliers={workflow.suppliers} onUpdate={workflow.updateSupplier} />
               ))}
               {workflow.lines.length === 0 && (
-                <tr><td colSpan={8} className="py-4 text-center text-slate-500">Chưa có đơn mua nào để cập nhật nhà cung cấp</td></tr>
+                workflow.isError
+                  ? <tr><td colSpan={8} className="py-4 text-center font-semibold text-red-700" role="alert">Không tải được dòng mua hàng hoặc danh mục nhà cung cấp. Bảng trống là do lỗi tải dữ liệu, không phải vì đã chọn xong nhà cung cấp cho mọi dòng.</td></tr>
+                  : <tr><td colSpan={8} className="py-4 text-center text-slate-500">Chưa có đơn mua nào để cập nhật nhà cung cấp</td></tr>
               )}
             </tbody>
           </table>

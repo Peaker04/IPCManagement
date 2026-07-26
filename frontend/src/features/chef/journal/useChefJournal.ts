@@ -13,5 +13,12 @@ export function useChefJournal(enabled = true) {
       movement.type === 'issue' || movement.type === 'supplemental' || movement.type === 'return'),
     [movementsQuery.data],
   )
-  return { returnDocuments, kitchenMovements }
+  return {
+    returnDocuments,
+    kitchenMovements,
+    // Sổ chứng từ rỗng vì lỗi tải khác hẳn với ca chưa phát sinh chứng từ nào.
+    isError: documentsQuery.isError || movementsQuery.isError,
+    isRetrying: documentsQuery.isFetching || movementsQuery.isFetching,
+    retry: () => Promise.all([documentsQuery.refetch(), movementsQuery.refetch()]),
+  }
 }

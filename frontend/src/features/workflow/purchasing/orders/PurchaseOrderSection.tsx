@@ -1,5 +1,5 @@
 import { Fragment } from 'react';
-import { ConfirmDialog, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
+import { ConfirmDialog, EmptyState, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
 import { formatWorkflowStatus } from '../../workflowConfig';
 import type { usePurchaseOrders } from './usePurchaseOrders';
 
@@ -11,7 +11,11 @@ export function PurchaseOrderSection({ workflow }: { workflow: PurchaseOrderWork
       <div id="purchasing-orders-panel" role="tabpanel" aria-labelledby="purchasing-orders-tab" className="mt-4 space-y-6">
         <div>
           <div className="mb-2 font-medium text-slate-700">Đề xuất đã duyệt, chưa tạo đơn mua hàng</div>
-          {workflow.approvedRequests.length === 0 ? <div className="text-sm text-slate-500">Không có đề xuất mua hàng nào đã duyệt.</div> : (
+          {workflow.approvedRequests.length === 0 ? (
+            workflow.isApprovedRequestError
+              ? <div className="text-sm font-semibold text-red-700" role="alert">Không tải được đề xuất đã duyệt. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì không còn đề xuất nào chờ tạo đơn.</div>
+              : <div className="text-sm text-slate-500">Không có đề xuất mua hàng nào đã duyệt.</div>
+          ) : (
             <TableViewport className="ipc-table-container" ariaLabel="Bảng đề xuất đã duyệt chờ tạo đơn mua">
               <table className="ipc-table"><thead><tr><th>Chứng từ</th><th>Thao tác</th></tr></thead><tbody>
                 {workflow.approvedRequests.map((line) => <tr key={line.purchaseRequestId}><td className="font-mono">{line.sourceDocumentCode}</td><td><button type="button" className="ipc-button ipc-button-primary" disabled={workflow.isCreating} onClick={() => void workflow.create(line.purchaseRequestId!)}>Tạo đơn mua hàng</button></td></tr>)}
@@ -27,6 +31,16 @@ export function PurchaseOrderSection({ workflow }: { workflow: PurchaseOrderWork
         </div>
         <div>
           <div className="mb-2 font-medium text-slate-700">Danh sách đơn mua hàng</div>
+          {workflow.isOrderError && (
+            <EmptyState
+              variant="error"
+              className="mb-3"
+              title="Không tải được danh sách đơn mua hàng"
+              description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì chưa có đơn mua nào. Hãy tải lại trước khi tạo đơn mới hoặc ghi nhận nhận hàng."
+              onRetry={workflow.retryOrders}
+              isRetrying={workflow.isRetryingOrders}
+            />
+          )}
           <TableViewport className="ipc-table-container" ariaLabel="Bảng đơn mua hàng">
             <table className="ipc-table"><thead><tr><th>Mã đơn mua hàng</th><th>Nhà cung cấp</th><th>Đề xuất gốc</th><th>Ngày đặt</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody>
               {workflow.orders.length === 0 && <tr><td colSpan={6} className="py-4 text-center text-slate-500">Chưa có đơn mua hàng nào</td></tr>}
@@ -42,7 +56,7 @@ export function PurchaseOrderSection({ workflow }: { workflow: PurchaseOrderWork
                     <div className="space-y-2 rounded-md bg-slate-50 p-3">
                       <label className="flex flex-col gap-1 text-sm text-slate-700 md:max-w-xs">Kho nhập hàng
                         <select className="ipc-input" value={workflow.receiveWarehouseByOrder[order.purchaseOrderId] ?? ''} onChange={(event) => workflow.setReceiveWarehouseByOrder({ ...workflow.receiveWarehouseByOrder, [order.purchaseOrderId]: event.target.value })}>
-                          <option value="">{workflow.warehouseOptions.length === 0 ? 'Chưa có kho trong danh mục' : 'Chọn kho nhập hàng'}</option>
+                          <option value="">{workflow.warehouseOptions.length === 0 ? (workflow.isWarehouseError ? 'Không tải được danh mục kho' : 'Chưa có kho trong danh mục') : 'Chọn kho nhập hàng'}</option>
                           {workflow.warehouseOptions.map((warehouse) => <option key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouse}</option>)}
                         </select>
                       </label>

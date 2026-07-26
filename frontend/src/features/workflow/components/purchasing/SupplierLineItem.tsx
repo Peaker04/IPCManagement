@@ -20,7 +20,7 @@ export function SupplierLineItem({ line, suppliers, onUpdate }: SupplierLineItem
   const [expectedDeliveryDate, setExpectedDeliveryDate] = useState(line.expectedDeliveryDate ?? '')
   const [note, setNote] = useState(line.note ?? '')
   const [isUpdating, setIsUpdating] = useState(false)
-  const { data: quotations = [] } = useGetSupplierQuotationsByIngredientQuery(line.ingredientId ?? '', { skip: !line.ingredientId })
+  const { data: quotations = [], isError: isQuotationError } = useGetSupplierQuotationsByIngredientQuery(line.ingredientId ?? '', { skip: !line.ingredientId })
   const bestQuotation = quotations.find((quotation) => quotation.isBestPrice)
 
   const handleSupplierChange = (supplierId: string) => {
@@ -72,7 +72,11 @@ export function SupplierLineItem({ line, suppliers, onUpdate }: SupplierLineItem
           <option value="">Chọn nhà cung cấp</option>
           {suppliers.map((supplier) => <option key={supplier.supplierId} value={supplier.supplierId}>{supplier.supplierName}</option>)}
         </select>
-        {bestQuotation && bestQuotation.supplierId !== selectedSupplierId && (
+        {isQuotationError ? (
+          <div className="mt-1 text-xs font-semibold text-red-700" role="alert">
+            Không tải được báo giá tham khảo; đừng coi là nguyên liệu này chưa có báo giá.
+          </div>
+        ) : bestQuotation && bestQuotation.supplierId !== selectedSupplierId && (
           <div className="text-xs text-emerald-600 mt-1" role="status" aria-live="polite">
             Giá tham khảo tốt nhất: {bestQuotation.supplierName}, {bestQuotation.unitPrice.toLocaleString('vi-VN')} đồng
           </div>

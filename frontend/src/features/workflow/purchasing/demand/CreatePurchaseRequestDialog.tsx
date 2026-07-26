@@ -43,8 +43,12 @@ export function CreatePurchaseRequestDialog({ dialog }: { dialog: PurchaseDemand
             />
           </div>
         ) : (
-          <p className="text-sm text-slate-600">
-            {dialog.isFetching ? 'Đang tải chứng từ nhu cầu...' : 'Không có chứng từ nhu cầu hợp lệ để tạo đề xuất mua.'}
+          <p className={dialog.isError && !dialog.isFetching ? 'text-sm font-semibold text-red-700' : 'text-sm text-slate-600'} role={dialog.isError && !dialog.isFetching ? 'alert' : undefined}>
+            {dialog.isFetching
+              ? 'Đang tải chứng từ nhu cầu...'
+              : dialog.isError
+                ? 'Không tải được chứng từ nhu cầu. Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì không còn nhu cầu nào cần mua.'
+                : 'Không có chứng từ nhu cầu hợp lệ để tạo đề xuất mua.'}
           </p>
         )}
         <DialogFooter>

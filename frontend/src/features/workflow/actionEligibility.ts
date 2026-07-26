@@ -51,14 +51,17 @@ export const resolveIssueCreationAvailability = (options: {
   canManageWarehouse: boolean;
   isFetching: boolean;
   candidateCount?: number;
+  isError?: boolean;
 }) => {
   const disabledReason = !options.canManageWarehouse
     ? 'Chỉ người có quyền thủ kho mới được tạo phiếu xuất.'
     : options.isFetching
       ? 'Đang kiểm tra nhu cầu đủ điều kiện xuất kho.'
-      : (options.candidateCount ?? 0) === 0
-        ? 'Không còn nhu cầu đủ điều kiện xuất kho. Chờ nhu cầu mới hoặc xem lại luân chuyển đã hoàn tất.'
-        : null;
+      : options.isError
+        ? 'Không tải được danh sách nhu cầu đủ điều kiện xuất kho. Hãy tải lại trước khi kết luận là không còn nhu cầu.'
+        : (options.candidateCount ?? 0) === 0
+          ? 'Không còn nhu cầu đủ điều kiện xuất kho. Chờ nhu cầu mới hoặc xem lại luân chuyển đã hoàn tất.'
+          : null;
 
   return {
     canCreate: disabledReason === null,

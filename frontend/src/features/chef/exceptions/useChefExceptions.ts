@@ -22,7 +22,7 @@ export function useChefExceptions(
   const [returns, setReturns] = useState<RecordedReturn[]>([])
   const [createReturn, returnState] = useCreateInventoryReturnMutation()
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
-  const { data: persistedReturnPage } = useGetInventoryReturnsQuery({
+  const { data: persistedReturnPage, isError: isReturnsError } = useGetInventoryReturnsQuery({
     returnDate: scope.serviceDate,
     shiftName: scope.activeShift,
     pageNumber: 1,
@@ -133,6 +133,8 @@ export function useChefExceptions(
       : returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
     requestSupplemental,
     recordReturn,
+    // Danh sách phiếu trả rỗng vì lỗi tải khác với ca chưa phát sinh phiếu trả nào.
+    isReturnsError,
     isSubmittingSupplemental: supplementalState.isLoading,
     isCreatingReturn: returnState.isLoading,
   }

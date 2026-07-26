@@ -1,5 +1,5 @@
 import { CalendarDays, Scale } from 'lucide-react'
-import { PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { EmptyState, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { getWorkflowStatusPresentation } from '@/features/workflow/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
 import type { WeeklyProductionPlanWorkflow } from './useWeeklyProductionPlan'
@@ -31,7 +31,15 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           </div>
         </section>
 
-        {!state.selectedServiceDate && status.isLoading ? (
+        {status.isError ? (
+          <EmptyState
+            variant="error"
+            title="Không tải được kế hoạch sản xuất"
+            description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này chưa có kế hoạch sản xuất. Hãy tải lại trước khi kết luận."
+            onRetry={actions.retry}
+            isRetrying={status.isRetrying}
+          />
+        ) : !state.selectedServiceDate && status.isLoading ? (
           <div className="py-8 text-center text-slate-500">Đang tải kế hoạch sản xuất cả tuần...</div>
         ) : presentation.pages.length === 0 ? (
           <div className="py-8 text-center text-slate-500">Chưa có kế hoạch sản xuất nào.</div>
