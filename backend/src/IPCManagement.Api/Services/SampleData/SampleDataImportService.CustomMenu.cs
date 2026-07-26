@@ -176,17 +176,16 @@ public partial class SampleDataImportService
         cancellationToken.ThrowIfCancellationRequested();
         var resolvedWeekStart = weekStartDate ?? ResolveCurrentWeekStart();
         var customerCode = "IPC";
-        if (!string.IsNullOrWhiteSpace(customerId))
+        // Id khách sai định dạng không được rơi về khách mặc định "IPC" — người dùng sẽ tải
+        // đúng file template của một khách khác mà không có tín hiệu nào.
+        var customerBytes = GuidHelper.ParseFilterIdOrThrow(customerId, "khách hàng");
+        if (customerBytes is not null)
         {
-            var customerBytes = GuidHelper.ParseGuidString(customerId);
-            if (customerBytes is not null)
-            {
-                customerCode = await _context.Customers
-                    .AsNoTracking()
-                    .Where(customer => customer.CustomerId.SequenceEqual(customerBytes) && customer.IsActive != false)
-                    .Select(customer => customer.CustomerCode)
-                    .FirstOrDefaultAsync(cancellationToken) ?? customerCode;
-            }
+            customerCode = await _context.Customers
+                .AsNoTracking()
+                .Where(customer => customer.CustomerId.SequenceEqual(customerBytes) && customer.IsActive != false)
+                .Select(customer => customer.CustomerCode)
+                .FirstOrDefaultAsync(cancellationToken) ?? customerCode;
         }
 
         var content = string.Equals(customerCode, "ANV", StringComparison.OrdinalIgnoreCase)

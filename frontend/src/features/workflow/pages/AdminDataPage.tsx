@@ -38,6 +38,7 @@ import {
   useUpdateDataQualityIssueRemediationMutation,
   type DataQualityIssueRow,
 } from '@/features/workflow';
+import { toNextReportCursor, type ReportCursor } from '@/features/workflow';
 import {
   useDownloadBomTemplateMutation,
   useCommitBomImportMutation,
@@ -209,8 +210,8 @@ export default function AdminDataPage() {
     ? searchParams.get('view') as AdminView
     : 'bom-import';
   const [activeView, setActiveView] = useState<AdminView>(initialView);
-  const [auditCursors, setAuditCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
-  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [auditCursors, setAuditCursors] = useState<ReportCursor[]>([]);
+  const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [currentStockPage, setCurrentStockPage] = useState(1);
   const [qualityPage, setQualityPage] = useState(1);
   const [priceWarningPage, setPriceWarningPage] = useState(1);
@@ -313,6 +314,7 @@ export default function AdminDataPage() {
     ...auditQuery,
     cursorDate: auditCursor?.cursorDate,
     cursorId: auditCursor?.cursorId,
+    cursorOffset: auditCursor?.cursorOffset,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'audit' });
@@ -343,35 +345,41 @@ export default function AdminDataPage() {
       toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
     }
   };
-  const { data: dataQualityReport } = useGetDataQualityPageQuery(
+  const { data: dataQualityReport, isError: isDataQualityError } = useGetDataQualityPageQuery(
     { pageNumber: qualityPage, pageSize: 8, serviceDate: operationalDate },
     { skip: !isCleanupView },
   );
-  const { data: operationalKpis } = useGetOperationalKpisQuery(undefined, { skip: !isStatisticsView });
+  const {
+    data: operationalKpis,
+    isError: isOperationalKpisError,
+    isFetching: isFetchingOperationalKpis,
+    refetch: refetchOperationalKpis,
+  } = useGetOperationalKpisQuery(undefined, { skip: !isStatisticsView });
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
     movementType: 'adjustment',
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
+    cursorOffset: stockMovementCursor?.cursorOffset,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: !isInventoryView });
-  const { data: ingredientDemandPage } = useGetIngredientDemandAggregatePageQuery({
+  const { data: ingredientDemandPage, isError: isIngredientDemandError } = useGetIngredientDemandAggregatePageQuery({
     pageNumber: 1,
     pageSize: 8,
     dateFrom: operationalDate,
     dateTo: operationalDate,
   }, { skip: !isStatisticsView });
-  const { data: purchasePlanPage } = useGetPurchasePlanPageQuery(
+  const { data: purchasePlanPage, isError: isPurchasePlanError } = useGetPurchasePlanPageQuery(
     { groupBy: 'day', pageNumber: 1, pageSize: 8 },
     { skip: !isStatisticsView },
   );
-  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery(
+  const { data: currentStockPageResponse, isError: isCurrentStockError } = useGetCurrentStockPageQuery(
     { pageNumber: currentStockPage, pageSize: 8 },
     { skip: !isInventoryView },
   );
-  const { data: priceVariancePage } = useGetPriceVariancePageQuery({
+  const { data: priceVariancePage, isError: isPriceVarianceError } = useGetPriceVariancePageQuery({
     pageNumber: priceWarningPage,
     pageSize: 8,
     warningOnly: true,
@@ -405,6 +413,20 @@ export default function AdminDataPage() {
   const totalIssuedQty = operationalKpis?.totalKitchenIssuedQty ?? 0;
   const totalUsedQty = operationalKpis?.totalKitchenUsedQty ?? 0;
   const totalReturnedQty = operationalKpis?.totalKitchenReturnedQty ?? 0;
+  // Chỉ số dẫn xuất từ một query chết không được hiển thị `?? 0` kèm badge success:
+  // đó là khẳng định ngược với sự thật, nguy hiểm hơn một empty state sai.
+  const UNKNOWN_KPI_LABEL = 'Chưa xác định';
+  const renderKpiStatus = (
+    hasError: boolean,
+    isAlert: boolean,
+    alertLabel: string,
+    okLabel: string,
+    alertTone: 'danger' | 'warning' | 'neutral' = 'danger',
+  ) => (
+    <StatusBadge variant={hasError ? 'danger' : isAlert ? alertTone : 'success'}>
+      {hasError ? UNKNOWN_KPI_LABEL : isAlert ? alertLabel : okLabel}
+    </StatusBadge>
+  );
   const dataQualityIssues = dataQualityReport?.page.items ?? [];
   const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
   const currentBomPagination = usePaginatedRows(currentBomRows, 8);
@@ -430,23 +452,23 @@ export default function AdminDataPage() {
         ]
       : effectiveActiveView === 'cleanup'
         ? [
-            { label: 'Dữ liệu lỗi', value: `${dataQualityErrorCount} mục`, tone: dataQualityErrorCount ? 'danger' as const : 'success' as const },
-            { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' as const : 'success' as const },
-            { label: 'Đã xử lý', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: 'success' as const },
+            { label: 'Dữ liệu lỗi', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityErrorCount} mục`, tone: isDataQualityError || dataQualityErrorCount ? 'danger' as const : 'success' as const },
+            { label: 'SLA gấp', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: isDataQualityError || (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' as const : 'success' as const },
+            { label: 'Đã xử lý', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: isDataQualityError ? 'danger' as const : 'success' as const },
           ]
         : effectiveActiveView === 'inventory'
           ? [
-              { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' as const },
-              { label: 'Điều chỉnh', value: `${adjustmentMovements.length} bút toán`, tone: adjustmentMovements.length ? 'warning' as const : 'success' as const },
+              { label: 'Tồn kho', value: isCurrentStockError ? UNKNOWN_KPI_LABEL : `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: isCurrentStockError ? 'danger' as const : 'neutral' as const },
+              { label: 'Điều chỉnh', value: stockMovementResult.isError ? UNKNOWN_KPI_LABEL : `${adjustmentMovements.length} bút toán`, tone: stockMovementResult.isError ? 'danger' as const : adjustmentMovements.length ? 'warning' as const : 'success' as const },
             ]
           : effectiveActiveView === 'statistics'
             ? [
-                { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' as const : 'success' as const },
-                { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'warning' as const : 'success' as const },
-                { label: 'Đề xuất mua', value: totalPurchaseQty.toString(), tone: totalPurchaseQty ? 'warning' as const : 'success' as const },
+                { label: 'Thiếu nguyên liệu', value: isIngredientDemandError ? UNKNOWN_KPI_LABEL : shortageCount.toString(), tone: isIngredientDemandError || shortageCount ? 'danger' as const : 'success' as const },
+                { label: 'Cảnh báo giá', value: isPriceVarianceError ? UNKNOWN_KPI_LABEL : priceWarningCount.toString(), tone: isPriceVarianceError ? 'danger' as const : priceWarningCount ? 'warning' as const : 'success' as const },
+                { label: 'Đề xuất mua', value: isPurchasePlanError ? UNKNOWN_KPI_LABEL : totalPurchaseQty.toString(), tone: isPurchasePlanError ? 'danger' as const : totalPurchaseQty ? 'warning' as const : 'success' as const },
               ]
             : effectiveActiveView === 'audit'
-              ? [{ label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' as const }]
+              ? [{ label: 'Audit', value: auditResult.isError ? UNKNOWN_KPI_LABEL : `${displayLogs.length} thay đổi`, tone: auditResult.isError ? 'danger' as const : 'neutral' as const }]
               : [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }];
   const adminTabs: ViewTab[] = [
     { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
@@ -1659,6 +1681,15 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'inventory' && (
         <SectionPanel title="Điều chỉnh tồn và thông báo">
           <div id="admin-inventory-panel" role="tabpanel" aria-labelledby="admin-inventory-tab">
+          {stockMovementResult.isError && (
+            <QueryErrorAlert
+              title="Không tải được lịch sử điều chỉnh tồn"
+              isRetrying={stockMovementResult.isFetching}
+              onRetry={stockMovementResult.refetch}
+            >
+              Danh sách bút toán đang trống vì lỗi tải dữ liệu, không phải vì kho không có điều chỉnh nào.
+            </QueryErrorAlert>
+          )}
           <StockMovementTable
             movements={adjustmentMovements}
             cursorPagination={{
@@ -1667,10 +1698,8 @@ export default function AdminDataPage() {
               isPending: stockMovementResult.isFetching,
               onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
               onNext: () => {
-                const nextCursorDate = stockMovementResult.data?.nextCursorDate;
-                if (nextCursorDate) {
-                  setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementResult.data?.nextCursorId }]);
-                }
+                const nextCursor = toNextReportCursor(stockMovementResult.data);
+                if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
               },
               ariaLabel: 'Phân trang lịch sử điều chỉnh tồn',
             }}
@@ -1681,6 +1710,15 @@ export default function AdminDataPage() {
 
       {effectiveActiveView === 'statistics' && (
         <div id="admin-statistics-panel" role="tabpanel" aria-labelledby="admin-statistics-tab" className="flex flex-col gap-4">
+          {isOperationalKpisError && (
+            <QueryErrorAlert
+              title="Không tải được chỉ số vận hành"
+              isRetrying={isFetchingOperationalKpis}
+              onRetry={refetchOperationalKpis}
+            >
+              Các chỉ số lấy từ API này đang hiển thị “{UNKNOWN_KPI_LABEL}”. Không được đọc chúng như số 0 thật.
+            </QueryErrorAlert>
+          )}
           <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
             <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
               <table className="ipc-data-table ipc-status-action-table">
@@ -1696,65 +1734,67 @@ export default function AdminDataPage() {
                 <tbody>
                   <tr>
                     <td className="font-semibold">Workflow thất bại</td>
-                    <td className="ipc-numeric-cell">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
+                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.failedWorkflowCount ?? 0} bản ghi`}</td>
                     <td className="text-left">Import, nhu cầu hoặc mua hàng đang ở trạng thái FAILED/IMPORT_FAILED.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={(operationalKpis?.failedWorkflowCount ?? 0) ? 'danger' : 'success'}>
-                        {(operationalKpis?.failedWorkflowCount ?? 0) ? 'Cần điều tra' : 'Ổn định'}
-                      </StatusBadge>
+                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Data quality critical</td>
-                    <td className="ipc-numeric-cell">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
+                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.criticalDataQualityCount ?? 0} lỗi`}</td>
                     <td className="text-left">Issue mức error cần xử lý trước khi tiếp tục luồng production.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={(operationalKpis?.criticalDataQualityCount ?? 0) ? 'danger' : 'success'}>
-                        {(operationalKpis?.criticalDataQualityCount ?? 0) ? 'Đang chặn' : 'Đạt'}
-                      </StatusBadge>
+                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở data quality</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Approval chờ lâu</td>
-                    <td className="ipc-numeric-cell">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
+                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.overdueApprovalCount ?? 0} phiếu`}</td>
                     <td className="text-left">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={(operationalKpis?.overdueApprovalCount ?? 0) ? 'warning' : 'success'}>
-                        {(operationalKpis?.overdueApprovalCount ?? 0) ? 'Quá SLA' : 'Trong SLA'}
-                      </StatusBadge>
+                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.overdueApprovalCount), 'Quá SLA', 'Trong SLA', 'warning')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>Mở phê duyệt</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                    <td className="ipc-numeric-cell">{shortageCount} dòng thiếu</td>
+                    <td className="ipc-numeric-cell">{isIngredientDemandError ? UNKNOWN_KPI_LABEL : `${shortageCount} dòng thiếu`}</td>
                     <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={shortageCount ? 'danger' : 'success'}>{shortageCount ? 'Cần xử lý' : 'Đủ tồn'}</StatusBadge>
+                      {renderKpiStatus(isIngredientDemandError, shortageCount > 0, 'Cần xử lý', 'Đủ tồn')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở mua thêm</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Mua hàng</td>
-                    <td className="ipc-numeric-cell">{totalPurchaseQty.toLocaleString('vi-VN')} đơn vị</td>
+                    <td className="ipc-numeric-cell">{isPurchasePlanError ? UNKNOWN_KPI_LABEL : `${totalPurchaseQty.toLocaleString('vi-VN')} đơn vị`}</td>
                     <td className="text-left">Kế hoạch thu mua dự kiến theo ngày từ demand, tồn kho và pending receipt.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={totalPurchaseQty > 0 ? 'warning' : 'success'}>{totalPurchaseQty > 0 ? 'Có phát sinh' : 'Không phát sinh'}</StatusBadge></td>
+                    <td className="ipc-badge-cell">{renderKpiStatus(isPurchasePlanError, totalPurchaseQty > 0, 'Có phát sinh', 'Không phát sinh', 'warning')}</td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Theo dõi thu mua</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Xuất bếp</td>
-                    <td className="ipc-numeric-cell">{totalIssuedQty.toLocaleString('vi-VN')} đơn vị</td>
+                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${totalIssuedQty.toLocaleString('vi-VN')} đơn vị`}</td>
                     <td className="text-left">Theo phiếu xuất kho cho bếp, phục vụ kiểm tra luồng thủ kho.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={totalIssuedQty > 0 ? 'neutral' : 'warning'}>{totalIssuedQty > 0 ? 'Đã ghi nhận' : 'Chưa có phiếu'}</StatusBadge></td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={isOperationalKpisError ? 'danger' : totalIssuedQty > 0 ? 'neutral' : 'warning'}>
+                        {isOperationalKpisError ? UNKNOWN_KPI_LABEL : totalIssuedQty > 0 ? 'Đã ghi nhận' : 'Chưa có phiếu'}
+                      </StatusBadge>
+                    </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Sử dụng thực tế</td>
-                    <td className="ipc-numeric-cell">{totalUsedQty.toLocaleString('vi-VN')} dùng / {totalReturnedQty.toLocaleString('vi-VN')} hoàn</td>
+                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${totalUsedQty.toLocaleString('vi-VN')} dùng / ${totalReturnedQty.toLocaleString('vi-VN')} hoàn`}</td>
                     <td className="text-left">Ghép xuất kho và hoàn kho để tránh tách trùng bước kiểm nguyên liệu dư.</td>
-                    <td className="ipc-badge-cell"><StatusBadge variant={totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>{totalUsedQty > 0 || totalReturnedQty > 0 ? 'Có đối chiếu' : 'Chưa có dữ liệu'}</StatusBadge></td>
+                    <td className="ipc-badge-cell">
+                      <StatusBadge variant={isOperationalKpisError ? 'danger' : totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>
+                        {isOperationalKpisError ? UNKNOWN_KPI_LABEL : totalUsedQty > 0 || totalReturnedQty > 0 ? 'Có đối chiếu' : 'Chưa có dữ liệu'}
+                      </StatusBadge>
+                    </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.CHEF_DASHBOARD}>Mở bếp trưởng</Link></td>
                   </tr>
                   <tr>
@@ -2014,7 +2054,16 @@ export default function AdminDataPage() {
       {effectiveActiveView === 'audit' && (
         <SectionPanel title="Nhật ký thay đổi hệ thống (Audit Trail)" icon={<History size={18} />}>
           <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
-            
+            {auditResult.isError && (
+              <QueryErrorAlert
+                title="Không tải được nhật ký thay đổi"
+                isRetrying={auditResult.isFetching}
+                onRetry={auditResult.refetch}
+              >
+                Nhật ký đang trống vì lỗi tải dữ liệu, không phải vì không có thay đổi nào trong bộ lọc này.
+              </QueryErrorAlert>
+            )}
+
             {/* Bộ lọc Audit log */}
             <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
               <div className="flex flex-col gap-1">

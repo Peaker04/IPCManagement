@@ -32,6 +32,7 @@ import {
   useGetWorkflowDocumentsQuery,
   useWorkflowOverview,
 } from '@/features/workflow';
+import { toNextReportCursor, type ReportCursor } from '@/features/workflow';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '../workflowConfig';
 import {
@@ -74,7 +75,7 @@ export default function WarehousePage() {
   const [isIssueDialogOpen, setIsIssueDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [selectedWarehouseId, setSelectedWarehouseId] = useState('');
-  const [stockMovementCursors, setStockMovementCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
+  const [stockMovementCursors, setStockMovementCursors] = useState<ReportCursor[]>([]);
   const [warehouseFeedback, setWarehouseFeedback] = useState<{
     title: string;
     message: string;
@@ -125,6 +126,7 @@ export default function WarehousePage() {
   } = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
+    cursorOffset: stockMovementCursor?.cursorOffset,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'movement' });
@@ -696,10 +698,8 @@ export default function WarehousePage() {
                     hasNext: stockMovementPage?.hasNext ?? false,
                     onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
                     onNext: () => {
-                      const nextCursorDate = stockMovementPage?.nextCursorDate;
-                      if (nextCursorDate) {
-                        setStockMovementCursors((current) => [...current, { cursorDate: nextCursorDate, cursorId: stockMovementPage?.nextCursorId }]);
-                      }
+                      const nextCursor = toNextReportCursor(stockMovementPage);
+                      if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
                     },
                   }}
                 />

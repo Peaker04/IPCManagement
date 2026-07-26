@@ -13,6 +13,12 @@ public class WorkflowReportQueryDto
     public string? Format { get; set; }
     public string? CursorDate { get; set; }
     public string? CursorId { get; set; }
+    /// <summary>
+    /// Số dòng đã trả ở cùng mốc thời gian <see cref="CursorDate"/>. Bắt buộc để phân trang không nhảy dòng:
+    /// cột thời gian là <c>datetime</c> theo giây nên một mốc có thể chứa hàng chục dòng, nhiều hơn một trang.
+    /// Null nghĩa là client cũ — server giữ nguyên hành vi so sánh chặt để hai bản deploy không lệch nhau.
+    /// </summary>
+    public int? CursorOffset { get; set; }
     public int Limit { get; set; } = 100;
     public string? SortDirection { get; set; }
     public string? Actor { get; set; }
@@ -32,6 +38,8 @@ public class CursorPageDto<T>
     public bool HasNext { get; set; }
     public string? NextCursorDate { get; set; }
     public string? NextCursorId { get; set; }
+    /// <summary>Số dòng đã trả ở mốc <see cref="NextCursorDate"/>; client gửi lại nguyên vẹn ở lần sau.</summary>
+    public int NextCursorOffset { get; set; }
 }
 
 public class OperationalKpiSummaryDto
@@ -118,6 +126,11 @@ public class StockSnapshotDto
 public class IngredientDemandReportDto
 {
     public string MaterialRequestId { get; set; } = string.Empty;
+    /// <summary>
+    /// Khóa ở đúng độ hạt (grain) của báo cáo: một chứng từ có thể có nhiều dòng cùng nguyên liệu.
+    /// Thiếu trường này, client phải ghép <c>MaterialRequestId + IngredientId</c> và bị trùng khóa.
+    /// </summary>
+    public string RequestLineId { get; set; } = string.Empty;
     public string MaterialRequestCode { get; set; } = string.Empty;
     public DateOnly RequestDate { get; set; }
     public string Status { get; set; } = string.Empty;
@@ -192,7 +205,11 @@ public class PriceVarianceBySupplierDto
     public string? IngredientName { get; set; }
     public string SupplierId { get; set; } = string.Empty;
     public string? SupplierName { get; set; }
+    /// <summary>Đơn vị của nhóm. Không có nó thì kg và thùng của cùng nguyên liệu bị gộp làm một dòng giá.</summary>
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
     public int ReceiptCount { get; set; }
+    /// <summary>Giá bình quân **có trọng số theo sản lượng**, không phải trung bình cộng các dòng nhập.</summary>
     public decimal AvgUnitPrice { get; set; }
     public decimal MinUnitPrice { get; set; }
     public decimal MaxUnitPrice { get; set; }
@@ -205,8 +222,12 @@ public class PriceVarianceByPeriodDto
 {
     public string IngredientId { get; set; } = string.Empty;
     public string? IngredientName { get; set; }
+    /// <summary>Đơn vị của nhóm. Không có nó thì kg và thùng của cùng nguyên liệu bị gộp làm một dòng giá.</summary>
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
     public string PeriodLabel { get; set; } = string.Empty;
     public DateOnly PeriodStart { get; set; }
+    /// <summary>Giá bình quân **có trọng số theo sản lượng**, không phải trung bình cộng các dòng nhập.</summary>
     public decimal AvgUnitPrice { get; set; }
     public decimal ReferencePrice { get; set; }
     public decimal VariancePercentVsReference { get; set; }

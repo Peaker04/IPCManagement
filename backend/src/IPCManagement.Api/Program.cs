@@ -239,6 +239,13 @@ builder.Services.AddHealthChecks()
         "database",
         failureStatus: HealthStatus.Unhealthy,
         tags: new[] { "ready" },
+        timeout: TimeSpan.FromSeconds(5))
+    // Degraded chứ không Unhealthy: thiếu migration không làm API mất khả năng phục vụ,
+    // đừng để loadbalancer rút API khỏi vòng vì nó. Xem MigrationHealthCheck.
+    .AddCheck<MigrationHealthCheck>(
+        "migrations",
+        failureStatus: HealthStatus.Degraded,
+        tags: new[] { "ready" },
         timeout: TimeSpan.FromSeconds(5));
 
 builder.Services.AddMemoryCache();

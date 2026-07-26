@@ -1,4 +1,5 @@
 export { getWorkflowContextForPath, workflowLaneDefinitions } from './workflowConfig';
+export { toNextReportCursor } from './workflowApi';
 export {
   useGetApprovalRecordsQuery,
   useExecuteApprovalDecisionMutation,
@@ -92,6 +93,7 @@ export type {
   CreateInventoryReceiptFromPurchaseRequest,
   CurrentStockRow,
   CursorPage,
+  ReportCursor,
   ApprovalRuleDto,
   ApprovalAssignmentDto,
   ApprovalRuleRequestDto,

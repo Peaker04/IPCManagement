@@ -3807,6 +3807,111 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("units", (string)null);
                 });
 
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unitnormalizationreview", b =>
+                {
+                    b.Property<byte[]>("ReviewId")
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reviewId");
+
+                    b.Property<int>("BomLineCount")
+                        .HasColumnType("int")
+                        .HasColumnName("bomLineCount");
+
+                    b.Property<int>("CatalogReceiptCount")
+                        .HasColumnType("int")
+                        .HasColumnName("catalogReceiptCount");
+
+                    b.Property<byte[]>("CatalogUnitId")
+                        .IsRequired()
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("catalogUnitId");
+
+                    b.Property<string>("Confidence")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("varchar(20)")
+                        .HasColumnName("confidence");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("EvidenceNote")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("evidenceNote");
+
+                    b.Property<string>("EvidenceSource")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("varchar(500)")
+                        .HasColumnName("evidenceSource");
+
+                    b.Property<byte[]>("IngredientId")
+                        .IsRequired()
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("ingredientId");
+
+                    b.Property<decimal?>("ObservedStockQty")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("observedStockQty");
+
+                    b.Property<decimal?>("ProposedSourceToCatalogFactor")
+                        .HasPrecision(18, 6)
+                        .HasColumnType("decimal(18,6)")
+                        .HasColumnName("proposedSourceToCatalogFactor");
+
+                    b.Property<byte[]>("RecommendedUnitId")
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("recommendedUnitId");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("reviewedAt");
+
+                    b.Property<byte[]>("ReviewedBy")
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("reviewedBy");
+
+                    b.Property<int>("SourceReceiptCount")
+                        .HasColumnType("int")
+                        .HasColumnName("sourceReceiptCount");
+
+                    b.Property<byte[]>("SourceUnitId")
+                        .IsRequired()
+                        .HasColumnType("binary(16)")
+                        .HasColumnName("sourceUnitId");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("varchar(30)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime")
+                        .HasColumnName("updatedAt");
+
+                    b.HasKey("ReviewId")
+                        .HasName("PRIMARY");
+
+                    b.HasIndex("CatalogUnitId");
+
+                    b.HasIndex("RecommendedUnitId");
+
+                    b.HasIndex("SourceUnitId");
+
+                    b.HasIndex(new[] { "ReviewedBy" }, "fk_unitnormalizationreviews_reviewer");
+
+                    b.HasIndex(new[] { "Status" }, "idx_unitnormalizationreviews_status");
+
+                    b.HasIndex(new[] { "IngredientId", "SourceUnitId", "CatalogUnitId" }, "uq_unitnormalizationreviews_pair")
+                        .IsUnique();
+
+                    b.ToTable("unitnormalizationreviews", (string)null);
+                });
+
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>
                 {
                     b.Property<byte[]>("UserId")
@@ -4999,6 +5104,52 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unitnormalizationreview", b =>
+                {
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "CatalogUnit")
+                        .WithMany()
+                        .HasForeignKey("CatalogUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_unitnormalizationreviews_catalogunit");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_unitnormalizationreviews_ingredient");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "RecommendedUnit")
+                        .WithMany()
+                        .HasForeignKey("RecommendedUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_unitnormalizationreviews_recommendedunit");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.User", "Reviewer")
+                        .WithMany()
+                        .HasForeignKey("ReviewedBy")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_unitnormalizationreviews_reviewer");
+
+                    b.HasOne("IPCManagement.Api.Models.Entities.Unit", "SourceUnit")
+                        .WithMany()
+                        .HasForeignKey("SourceUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_unitnormalizationreviews_sourceunit");
+
+                    b.Navigation("CatalogUnit");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("RecommendedUnit");
+
+                    b.Navigation("Reviewer");
+
+                    b.Navigation("SourceUnit");
                 });
 
             modelBuilder.Entity("IPCManagement.Api.Models.Entities.User", b =>

@@ -48,6 +48,7 @@ import {
   type StockMovement,
   type WorkflowReportQuery,
 } from '@/features/workflow';
+import { toNextReportCursor, type ReportCursor } from '@/features/workflow';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
@@ -105,11 +106,6 @@ const EmptyRow = ({ colSpan, isError = false }: { colSpan: number; isError?: boo
     </td>
   </tr>
 );
-
-interface ReportCursor {
-  cursorDate: string;
-  cursorId?: string;
-}
 
 type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
 
@@ -305,6 +301,7 @@ const ReportsPage = () => {
     ...reportQuery,
     cursorDate: movementCursor?.cursorDate,
     cursorId: movementCursor?.cursorId,
+    cursorOffset: movementCursor?.cursorOffset,
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'movement' });
@@ -314,6 +311,7 @@ const ReportsPage = () => {
     ...reportQuery,
     cursorDate: auditCursor?.cursorDate,
     cursorId: auditCursor?.cursorId,
+    cursorOffset: auditCursor?.cursorOffset,
     limit: reportPageSize,
     sortDirection,
   }, { skip: activeView !== 'audit' });
@@ -498,23 +496,13 @@ const ReportsPage = () => {
   };
 
   const openNextMovementPage = () => {
-    const page = stockMovementResult.data;
-    if (page?.hasNext && page.nextCursorDate) {
-      setMovementCursors((current) => [...current, {
-        cursorDate: page.nextCursorDate!,
-        cursorId: page.nextCursorId,
-      }]);
-    }
+    const nextCursor = stockMovementResult.data?.hasNext ? toNextReportCursor(stockMovementResult.data) : null;
+    if (nextCursor) setMovementCursors((current) => [...current, nextCursor]);
   };
 
   const openNextAuditPage = () => {
-    const page = auditResult.data;
-    if (page?.hasNext && page.nextCursorDate) {
-      setAuditCursors((current) => [...current, {
-        cursorDate: page.nextCursorDate!,
-        cursorId: page.nextCursorId,
-      }]);
-    }
+    const nextCursor = auditResult.data?.hasNext ? toNextReportCursor(auditResult.data) : null;
+    if (nextCursor) setAuditCursors((current) => [...current, nextCursor]);
   };
 
   // Chỉ số cảnh báo giá và nhật ký thay đổi cũng phải ẩn theo quyền: hiển thị "0" cho role

@@ -24,13 +24,10 @@ public class StocktakeRepository : GenericRepository<Stocktake>, IStocktakeRepos
             .Include(s => s.ApprovedByNavigation)
             .AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(request.WarehouseId))
+        var warehouseBytes = GuidHelper.ParseFilterIdOrThrow(request.WarehouseId, "kho");
+        if (warehouseBytes != null)
         {
-            var warehouseBytes = GuidHelper.ParseGuidString(request.WarehouseId);
-            if (warehouseBytes != null)
-            {
-                query = query.Where(s => s.WarehouseId == warehouseBytes);
-            }
+            query = query.Where(s => s.WarehouseId == warehouseBytes);
         }
 
         if (!string.IsNullOrWhiteSpace(request.Status))

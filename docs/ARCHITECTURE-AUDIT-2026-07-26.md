@@ -215,7 +215,30 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 | 2.7 | **Quyết dứt điểm repository**: hoặc bỏ `SaveChanges` khỏi repository + bổ sung `Commit/Rollback` vào UoW, **hoặc** bỏ hẳn repository và chuẩn hóa DbContext + CQRS. Hiện tại tệ nhất vì có cả ba phong cách | 1 phong cách truy cập dữ liệu duy nhất trong `Services/` |
 | 2.8 | **`IAuditService` tập trung** thay 48 điểm gọi rời rạc; bổ sung audit cho luật duyệt, giá NCC, quyết định duyệt, tạo tài khoản, đăng nhập, mọi hard delete; thêm cột `ipAddress`/`correlationId`/`action`; user MySQL chỉ `INSERT`/`SELECT` trên `auditlogs` | Sửa luật duyệt → có audit row join được với log |
 | 2.9 | Inject `TimeProvider` (.NET 8 BCL) thay 142 chỗ `DateTime.*`; dùng `FakeTimeProvider` trong test | Test SLA/hết hạn token chạy xác định, không phụ thuộc ngày lịch |
-| 2.10 | Chốt **EF Migrations là nguồn sự thật duy nhất**: archive `backend/database/*.sql` sang `legacy/`; dựng lại DB dev từ migration sạch để xác thực; CI so khớp `__EFMigrationsHistory` với file; hợp nhất 2 nhánh trước khi thêm migration mới | Dựng DB mới từ 0 bằng `dotnet ef database update` chạy được toàn bộ E2E |
+| 2.10 | Chốt **EF Migrations là nguồn sự thật duy nhất**: archive `backend/database/*.sql` sang `legacy/`; dựng lại DB dev từ migration sạch để xác thực; CI so khớp `__EFMigrationsHistory` với file; hợp nhất 2 nhánh trước khi thêm migration mới | ~~Dựng DB mới từ 0 bằng `dotnet ef database update` chạy được toàn bộ E2E~~ — **xem đính chính 27/07 bên dưới** |
+
+> **Đính chính 27/07/2026 cho mục 2.10.** Tiêu chí nghiệm thu "dựng DB mới từ 0 bằng `dotnet ef database update`"
+> **không đạt được như đang viết**, và đây là dữ kiện đã kiểm chứng bằng thực nghiệm chứ không phải suy đoán:
+> chuỗi migration **không tự dựng được database từ trắng**. Migration đầu tiên
+> (`20260605013906_AddCurrentStockTable`) tham chiếu `warehouses`, mà **không migration nào tạo** `warehouses`
+> hay các bảng nền khác (`users`, `ingredients`, `units`, `suppliers`…). Chuỗi vốn được thiết kế để chạy **đè lên**
+> baseline `backend/database/IPCmanagement.sql`. Chạy thử từ database trắng: hỏng ngay migration đầu tiên,
+> 0/38 áp dụng, lỗi `Failed to open the referenced table 'warehouses'`.
+>
+> Hệ quả cho kế hoạch 2.10: **không thể chỉ archive `backend/database/*.sql` sang `legacy/`** — làm vậy là bỏ đi
+> thứ mà chuỗi migration đang phụ thuộc. Muốn EF Migrations thành nguồn sự thật duy nhất thì trước hết phải
+> viết một migration khởi tạo dựng toàn bộ bảng nền, rồi mới nói tới chuyện archive. Đây là hạng mục lớn hơn
+> mô tả hiện tại đáng kể.
+>
+> Phần đã làm được của 2.10 tính đến 27/07: CI **có** replay migration trên MySQL thật và **có** so khớp schema
+> sinh từ migration với schema sinh từ model (723/723 dòng khớp). Đường cài mới đã đúng bằng model. Chi tiết và
+> giới hạn đã biết của phép so ở `docs/CURRENT-STATE.md`, mục "Sự cố mất dữ liệu và củng cố tầng database".
+>
+> Quan sát ở dòng 167 ("2 migration mồ côi trong DB; 1 migration chưa apply nhưng schema đã đúng") đã được xác
+> nhận lại: 2 ID mồ côi là `20260626043000_SeedTemporaryBomData` và
+> `20260705121500_AddCompletedMealQuantityPlanStatuses`; migration "chưa apply nhưng schema đã đúng" là
+> `20260708130000_RestorePurchaseRequestReceiptStatuses` — thực chất **EF chưa bao giờ nhìn thấy nó** vì thiếu cả
+> `.Designer.cs` lẫn `[Migration]` inline. File đó đã được xoá ngày 27/07.
 
 ### P3 — Tối ưu và trả nợ (sau khi P0–P2 ổn định)
 

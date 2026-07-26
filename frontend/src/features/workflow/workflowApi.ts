@@ -31,6 +31,7 @@ export interface WorkflowReportQuery {
   shiftName?: string;
   cursorDate?: string;
   cursorId?: string;
+  cursorOffset?: number;
   limit?: number;
   sortDirection?: 'asc' | 'desc';
   actor?: string;
@@ -72,7 +73,29 @@ export interface CursorPage<T> {
   hasNext: boolean;
   nextCursorDate?: string;
   nextCursorId?: string;
+  /** Số dòng đã trả ở cùng `nextCursorDate`; phải gửi lại nguyên vẹn nếu không trang sau sẽ nhảy dòng. */
+  nextCursorOffset?: number;
 }
+
+/**
+ * Con trỏ phân trang là một bộ ba: mốc thời gian, id dòng cuối và số dòng đã tiêu thụ tại mốc đó.
+ * Cột thời gian ở backend là `datetime` theo giây nên một mốc chứa nhiều dòng hơn một trang —
+ * bỏ `cursorOffset` là mất dòng ở ranh giới trang.
+ */
+export interface ReportCursor {
+  cursorDate: string;
+  cursorId?: string;
+  cursorOffset?: number;
+}
+
+/** Đẩy con trỏ của trang kế tiếp vào ngăn xếp điều hướng; trả về `null` khi không còn trang sau. */
+export const toNextReportCursor = (page?: {
+  nextCursorDate?: string;
+  nextCursorId?: string;
+  nextCursorOffset?: number;
+}): ReportCursor | null => (page?.nextCursorDate
+  ? { cursorDate: page.nextCursorDate, cursorId: page.nextCursorId, cursorOffset: page.nextCursorOffset }
+  : null);
 
 export interface ApprovalInboxQuery {
   limit?: number;
@@ -440,6 +463,7 @@ interface WorkflowDocumentDto {
 
 interface IngredientDemandReportDto {
   materialRequestId: string;
+  requestLineId: string;
   materialRequestCode: string;
   requestDate: string;
   status: string;
@@ -1334,6 +1358,7 @@ interface CursorPageDto<T> {
   hasNext: boolean;
   nextCursorDate?: string;
   nextCursorId?: string;
+  nextCursorOffset?: number;
 }
 
 export interface DataQualityIssueRemediationResult {
@@ -1417,7 +1442,9 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   const presentation = resolveDemandLinePresentation({ status: item.status, shortage });
 
   return {
-    id: `${item.materialRequestId}-${item.ingredientId}`,
+    // Khóa theo dòng chứng từ: một yêu cầu có thể có nhiều dòng cùng nguyên liệu (đo được
+    // 108 nhóm / 244 dòng trên dữ liệu hiện tại), ghép requestId+ingredientId là trùng khóa.
+    id: item.requestLineId || `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
     materialRequestStatus: item.status,
     ingredientId: item.ingredientId,
@@ -1621,6 +1648,7 @@ const mapCursorPage = <TDto, TRow>(
   hasNext: page.hasNext,
   nextCursorDate: page.nextCursorDate,
   nextCursorId: page.nextCursorId,
+  nextCursorOffset: page.nextCursorOffset,
 });
 
 const mapPageNumberPage = <TDto, TRow>(

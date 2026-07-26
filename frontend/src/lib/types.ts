@@ -45,7 +45,10 @@ export interface ProductionPlan {
   kitchenAssignment: KitchenAssignment
   totalMeals: number
   activeDishes: Dish[]
+  /** Chỉ các dòng có phiếu xuất kho thật. Không được trộn định lượng kế hoạch vào đây. */
   receivedMaterials: Ingredient[]
+  /** Định lượng theo BOM của ca, dùng để đối chiếu — không phải số bếp đã nhận. */
+  plannedMaterials: Ingredient[]
 }
 
 export interface ExcessMaterial {

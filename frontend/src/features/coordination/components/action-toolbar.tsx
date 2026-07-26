@@ -9,6 +9,7 @@ import { useAppDispatch, useOrders, useCurrentShift, useAppSelector } from '@/ap
 import { addAuditLog, markOrdersLocked } from '../coordinationSlice'
 import { useExportCoordinationOrdersMutation, useLockCoordinationOrdersMutation, useSignoffCoordinationScopeMutation, useUnlockCoordinationScopeMutation } from '../coordinationApi'
 import { toDisplayShift } from '../types'
+import type { ShiftType } from '../types'
 import { ActionGuard } from '@/routes/ActionGuard'
 
 type ConfirmationAction = 'lock' | 'export' | 'signoff' | 'unlock' | null
@@ -169,9 +170,10 @@ export function ActionToolbar({ status, hasPlans }: { status?: string; hasPlans:
         throw new Error(response.message || 'Không chốt được đơn.')
       }
 
-      const lockedShifts = response.data.lockedShiftNames?.length
-        ? response.data.lockedShiftNames.map(toDisplayShift)
-        : [currentShift]
+      const recognizedShifts = (response.data.lockedShiftNames ?? [])
+        .map(toDisplayShift)
+        .filter((lockedShift): lockedShift is ShiftType => lockedShift !== undefined)
+      const lockedShifts = recognizedShifts.length > 0 ? recognizedShifts : [currentShift]
 
       dispatch(markOrdersLocked({
         dayOfWeek: currentDayOfWeek,

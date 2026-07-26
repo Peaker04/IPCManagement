@@ -4,9 +4,9 @@
 -- và các cột mới của mealquantityplans, inventoryreceiptlines, inventoryreturns.
 --
 -- THAY THẾ:
---   • Fresh install:  backend/database/IPCmanagement.sql (đầy đủ v1.0)
---   • Nâng cấp DB cũ: backend/database/Upgrade_From_Phase1_To_V10.sql
 --   • DB đang chạy:  dotnet ef database update (khuyến nghị)
+--   • Fresh install:  backend/database/IPCmanagement.sql (đầy đủ v1.0)
+--   • Upgrade_From_Phase1_To_V10.sql nay CŨNG đã deprecated — đừng dùng nữa.
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Nội dung gốc (EF-generated, không sửa thủ công):
 

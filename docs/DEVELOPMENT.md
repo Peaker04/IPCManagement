@@ -59,21 +59,26 @@ của profile; không chạy `lane-reset.sh` vì lệnh đó còn reset Git củ
 
 Chọn skill theo loại yêu cầu, không theo tên file ngẫu nhiên:
 
-| Yêu cầu | Skill/references |
-|---|---|
-| Hiểu architecture, call flow, module hoặc dependency | `.claude/skills/gitnexus/gitnexus-exploring/SKILL.md` |
-| Trace bug hoặc giải thích lỗi | `.claude/skills/gitnexus/gitnexus-debugging/SKILL.md` |
-| Đánh giá blast radius trước khi sửa symbol | `.claude/skills/gitnexus/gitnexus-impact-analysis/SKILL.md` |
-| Rename, extract, split, move hoặc restructure | `.claude/skills/gitnexus/gitnexus-refactoring/SKILL.md` |
-| Viết/review/refactor code nói chung | `.codex/skills/karpathy-guidelines/SKILL.md` |
-| React/shadcn/Tailwind component hoặc responsive UI | `.codex/skills/ui-styling/SKILL.md` |
-| SAP Fiori template/range/validation/diagnostics | `.codex/skills/sketch-findings-ipcmanagement/SKILL.md` |
-| Design tokens và component states | `.codex/skills/design-system/SKILL.md` |
-| Brand voice/identity/messaging | `.codex/skills/brand/SKILL.md` |
-| Logo, corporate identity hoặc nhiều loại design asset | `.codex/skills/design/SKILL.md` |
-| Banner/cover/hero/social creative | `.codex/skills/banner-design/SKILL.md` |
-| Slide deck hoặc presentation chiến lược | `.codex/skills/slides/SKILL.md` |
-| GitNexus CLI/index/status/wiki | `.claude/skills/gitnexus/gitnexus-cli/SKILL.md` |
+| Yêu cầu | Skill (Claude Code) | File gốc (Codex) |
+|---|---|---|
+| Hiểu architecture, call flow, module hoặc dependency | `Skill("gitnexus-exploring")` | `~/.claude/skills/gitnexus-exploring/` |
+| Trace bug hoặc giải thích lỗi | `Skill("gitnexus-debugging")` | `~/.claude/skills/gitnexus-debugging/` |
+| Đánh giá blast radius trước khi sửa symbol | `Skill("gitnexus-impact-analysis")` | `~/.claude/skills/gitnexus-impact-analysis/` |
+| Rename, extract, split, move hoặc restructure | `Skill("gitnexus-refactoring")` | `~/.claude/skills/gitnexus-refactoring/` |
+| Review PR, đánh giá rủi ro merge | `Skill("gitnexus-pr-review")` | `~/.claude/skills/gitnexus-pr-review/` |
+| Security review, taint source→sink | `Skill("gitnexus-taint-analysis")` | `~/.claude/skills/gitnexus-taint-analysis/` |
+| GitNexus CLI/index/status/wiki | `Skill("gitnexus-cli")` | `~/.claude/skills/gitnexus-cli/` |
+| Viết/review/refactor code nói chung | `Skill("karpathy-guidelines")` | `.codex/skills/karpathy-guidelines/SKILL.md` |
+| React/shadcn/Tailwind component hoặc responsive UI | `Skill("ui-styling")` | `.codex/skills/ui-styling/SKILL.md` |
+| SAP Fiori template/range/validation/diagnostics | `Skill("sketch-findings-ipcmanagement")` | `.codex/skills/sketch-findings-ipcmanagement/SKILL.md` |
+| Tra cứu pattern/heuristic UX | `Skill("ui-ux-pro-max")` | `.codex/skills/ui-ux-pro-max/SKILL.md` |
+| Design tokens và component states | `Skill("design-system")` | `.codex/skills/design-system/SKILL.md` |
+| Brand voice/identity/messaging | `Skill("brand")` | `.codex/skills/brand/SKILL.md` |
+| Logo, corporate identity hoặc nhiều loại design asset | `Skill("design")` | `.codex/skills/design/SKILL.md` |
+| Banner/cover/hero/social creative | `Skill("banner-design")` | `.codex/skills/banner-design/SKILL.md` |
+| Slide deck hoặc presentation chiến lược | `Skill("slides")` | `.codex/skills/slides/SKILL.md` |
+
+Skill dự án dùng chung một bản file: `.claude/skills/<name>` là directory junction trỏ về `.codex/skills/<name>`, nên sửa trong `.codex/skills/` có hiệu lực cho cả Claude Code và Codex. Nhóm skill GitNexus do `gitnexus setup -c claude` cài vào `~/.claude/skills/` (ngoài repo, không sửa tay).
 
 Khi task UI liên quan SAP Fiori/template/range/diagnostics, dùng `sketch-findings-ipcmanagement` trước rồi `ui-styling` để implement. Khi task vừa trace vừa sửa code, dùng GitNexus exploration/debugging và impact trước, sau đó mới áp dụng Karpathy guidelines để implement. Các phiên chat đọc `AGENTS.md` để áp dụng routing đầy đủ và cập nhật tài liệu sau thay đổi đáng kể.
 

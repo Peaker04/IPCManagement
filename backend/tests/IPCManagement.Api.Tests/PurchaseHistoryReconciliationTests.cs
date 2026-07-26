@@ -170,8 +170,11 @@ public class PurchaseHistoryReconciliationTests
                 'ckPurchaseHistoryReconciliationActionsSourceRow');
             """)).Should().Be(7);
 
-        // Known pre-existing baseline gap: this proof is scoped to bootstrap-to-09-04,
-        // not full model parity, and the fixture must not manufacture these columns.
+        // Ba cột này TỪNG được ghim là "known baseline gap" với kỳ vọng Be(0), vì fixture đánh
+        // dấu sẵn 20260702061320_AddImportAuditFields là đã applied nên migration không bao giờ
+        // chạy. Nhưng entity Menuversion khai SuccessRowCount/ErrorRowCount/WarningRowCount và
+        // database đang chạy có đủ cả ba — tức database cài mới đang THIẾU cột so với model.
+        // Đã bỏ ID đó khỏi danh sách đánh dấu sẵn nên migration chạy thật; kỳ vọng lật thành 3.
         (await SchemaObjectCountAsync(
             database,
             """
@@ -180,7 +183,7 @@ public class PurchaseHistoryReconciliationTests
             WHERE TABLE_SCHEMA = DATABASE()
               AND TABLE_NAME = 'menuversions'
               AND COLUMN_NAME IN ('successRowCount', 'errorRowCount', 'warningRowCount');
-            """)).Should().Be(0);
+            """)).Should().Be(3);
     }
 
     [Fact]
@@ -1525,25 +1528,25 @@ public class PurchaseHistoryReconciliationTests
     private static async Task BootstrapFreshInstallAsync(string database)
     {
         DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
-        const string duplicateApprovalHistoryIndex =
-            "CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);";
-        const string duplicateApproverIndex =
-            "CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);";
         var schema = await File.ReadAllTextAsync(
             FindRepositoryFile("backend", "database", "IPCmanagement.sql"));
-        schema.Should().Contain(duplicateApprovalHistoryIndex);
-        schema.Should().Contain(duplicateApproverIndex);
         schema.Should().NotContain("successRowCount");
         schema.Should().NotContain("errorRowCount");
         schema.Should().NotContain("warningRowCount");
-        schema = schema
-            .Replace(
-                "CREATE DATABASE IF NOT EXISTS ipcManagement",
-                $"CREATE DATABASE IF NOT EXISTS `{database}`",
-                StringComparison.Ordinal)
-            .Replace("USE ipcManagement;", $"USE `{database}`;", StringComparison.Ordinal)
-            .Replace(duplicateApprovalHistoryIndex, string.Empty, StringComparison.Ordinal)
-            .Replace(duplicateApproverIndex, string.Empty, StringComparison.Ordinal);
+
+        // Chốt an toàn: script cài mới không được tự chọn database. Trước 27/07/2026 nó
+        // hard-code `USE ipcManagement;` nên chạy với database đích nào cũng xoá sạch
+        // database chính. Giữ hai assertion này để lỗ hổng đó không quay lại.
+        schema.Should().NotContain("USE ipcManagement;");
+        schema.Should().NotContain("CREATE DATABASE IF NOT EXISTS ipcManagement");
+
+        // Hai index dưới đây từng được khai hai lần (KEY trong CREATE TABLE + CREATE INDEX
+        // rời), làm script chết với ERROR 1061 nên test cũ phải cắt bỏ chúng trước khi chạy.
+        // Bản khai rời đã bị xoá — pin lại để không ai thêm vào nữa, và script nay chạy nguyên vẹn.
+        schema.Should().NotContain(
+            "CREATE INDEX        ixApprovalHistoriesTarget     ON approvalhistories(targetType, targetId, actionAt);");
+        schema.Should().NotContain(
+            "CREATE INDEX        IX_approvalassignments_approverUserId ON approvalassignments(approverUserId);");
 
         await ExecuteSqlScriptAsync(database, schema);
         await ExecuteSqlScriptAsync(
@@ -1551,14 +1554,20 @@ public class PurchaseHistoryReconciliationTests
             await File.ReadAllTextAsync(
                 FindRepositoryFile("backend", "database", "Init_EF_History_For_Old_DB.sql")));
 
-        // The official fresh schema already contains these four schema changes, while its
-        // history initializer omits their IDs. Register only those proven baseline gaps so
-        // every later migration still executes and any unrelated schema failure remains visible.
+        // Baseline IPCmanagement.sql đã chứa sẵn ba thay đổi dưới đây nhưng
+        // Init_EF_History_For_Old_DB.sql không ghi ID của chúng. Đánh dấu đúng ba ID đó để mọi
+        // migration sau vẫn chạy, và mọi lỗi schema khác vẫn lộ ra thay vì bị che.
+        //
+        // 20260702061320_AddImportAuditFields TỪNG nằm trong danh sách này nhưng đó là khai sai:
+        // baseline KHÔNG có cả 5 cột nó thêm (menuschedules.menuVersionId,
+        // mealquantityplanlines.updatedAt, menuversions.{success,error,warning}RowCount). Đánh dấu
+        // sẵn khiến migration bị bỏ qua và database cài mới thiếu đúng 5 cột đó. Đã bỏ khỏi danh
+        // sách để nó chạy thật. Trước khi thêm bất kỳ ID nào vào đây, phải đối chiếu từng
+        // AddColumn/CreateTable của migration với baseline.
         await ExecuteSqlScriptAsync(
             database,
             """
             INSERT IGNORE INTO `__EFMigrationsHistory` (`MigrationId`, `ProductVersion`) VALUES
-              ('20260702061320_AddImportAuditFields', '9.0.16'),
               ('20260702072352_AddProductionPlanUpdatedAt', '9.0.16'),
               ('20260702124738_AddSupplierQuotations', '9.0.16'),
               ('20260702164531_AddPurchaseOrders', '9.0.16');

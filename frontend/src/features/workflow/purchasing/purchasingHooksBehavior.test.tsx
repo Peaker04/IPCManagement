@@ -1,7 +1,7 @@
-import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PurchaseRequestResult, PurchaseWorkbenchServiceDate } from '../workflowApi'
+import type { PurchaseWorkbenchServiceDate } from '../workflowApi'
 
 const mocks = vi.hoisted(() => ({
   getIngredients: vi.fn(),
@@ -59,35 +59,9 @@ vi.mock('../workflowApi', () => ({
   useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
 }))
 
-import { usePurchaseDemand } from './demand/usePurchaseDemand'
-import { usePurchaseHandoff } from './handoff/usePurchaseHandoff'
-import { usePurchaseOrders } from './orders/usePurchaseOrders'
 import { useSupplierQuotations } from './quotation/useSupplierQuotations'
-import { usePurchaseSupplier } from './supplier/usePurchaseSupplier'
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel'
 import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog'
-
-const makeRequest = (status: string, id: string): PurchaseRequestResult => ({
-  purchaseRequestId: id,
-  purchaseRequestCode: `PR-${id}`,
-  materialRequestId: `MR-${id}`,
-  purchaseForDate: '2026-07-20',
-  status,
-  lines: [{
-    purchaseRequestLineId: `line-${id}`,
-    materialRequestLineId: `material-line-${id}`,
-    ingredientId: 'ingredient-1',
-    ingredientName: 'Gạo',
-    supplierId: '',
-    supplierName: '',
-    unitId: 'unit-1',
-    unitName: 'kg',
-    requiredQty: 10,
-    currentStockQty: 2,
-    purchaseQty: 8,
-    estimatedUnitPrice: 20_000,
-  }],
-})
 
 describe('purchasing hook behavior', () => {
   beforeEach(() => {
@@ -104,63 +78,16 @@ describe('purchasing hook behavior', () => {
     mocks.getSupplierEvidence.mockReturnValue({ data: { candidates: [], diagnostics: [] }, isFetching: false })
   })
 
+  // Trước 27/07 khối này còn kiểm cả usePurchaseSupplier/usePurchaseOrders/usePurchaseHandoff.
+  // Ba hook đó đã bị xoá cùng 4 sub-module chết (không page nào import), nên phần còn lại chỉ
+  // kiểm hook đang sống. Query gating vẫn là hạng mục GIỮ NGUYÊN — xem CONTRIBUTING.md.
   it('skips every inactive purchasing-tab query', () => {
-    renderHook(() => usePurchaseSupplier(false))
-    expect(mocks.getRequests).toHaveBeenCalledWith(
-      { status: 'DRAFT', pageNumber: 1, pageSize: 8 },
-      { skip: true },
-    )
-    expect(mocks.getSuppliers).toHaveBeenCalledWith(undefined, { skip: true })
-
     renderHook(() => useSupplierQuotations(false))
     expect(mocks.getIngredients).toHaveBeenCalledWith(undefined, { skip: true })
     expect(mocks.getQuotations).toHaveBeenCalledWith(
       { ingredientId: '', pageNumber: 1, pageSize: 8 },
       { skip: true },
     )
-
-    renderHook(() => usePurchaseOrders(false))
-    expect(mocks.getOrders).toHaveBeenCalledWith(
-      { pageNumber: 1, pageSize: 6 },
-      { skip: true },
-    )
-    expect(mocks.getWarehouses).toHaveBeenCalledWith(
-      undefined,
-      { skip: true },
-    )
-
-    renderHook(() => usePurchaseHandoff(false))
-    expect(mocks.getStockMovements).toHaveBeenCalledWith(
-      {
-        movementType: 'receipt',
-        cursorDate: undefined,
-        cursorId: undefined,
-        limit: 8,
-        sortDirection: 'desc',
-      },
-      { skip: true },
-    )
-  })
-
-  it('requires explicit selection and submits the selected request when two drafts exist', async () => {
-    mocks.getRequests.mockReturnValue({
-      data: { items: [makeRequest('DRAFT', 'draft-a'), makeRequest('DRAFT', 'draft-b')] },
-    })
-    mocks.submitRequest.mockReturnValue({ unwrap: vi.fn().mockResolvedValue({}) })
-
-    const { result } = renderHook(() => usePurchaseDemand(vi.fn()))
-
-    expect(mocks.getRequests).toHaveBeenCalledWith({ status: 'DRAFT', pageNumber: 1, pageSize: 8 })
-    expect(result.current.command.submitTargetId).toBeUndefined()
-
-    act(() => result.current.command.setSelectedPurchaseRequestId('draft-b'))
-    expect(result.current.command.submitTargetId).toBe('draft-b')
-    await act(() => result.current.command.submitPurchaseRequest())
-    expect(mocks.submitRequest).toHaveBeenLastCalledWith('draft-b')
-
-    act(() => result.current.command.setSelectedPurchaseRequestId('draft-a'))
-    await act(() => result.current.command.submitPurchaseRequest())
-    expect(mocks.submitRequest).toHaveBeenLastCalledWith('draft-a')
   })
 
   it('keeps supplier evidence visible and requires an explicit confirmation', async () => {

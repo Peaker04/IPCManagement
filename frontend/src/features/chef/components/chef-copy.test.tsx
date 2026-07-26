@@ -20,6 +20,7 @@ describe('Chef operational copy', () => {
           totalMeals: 120,
           activeDishes: [],
           receivedMaterials: [],
+          plannedMaterials: [],
         }}
       />,
     );

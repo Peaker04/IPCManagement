@@ -11,6 +11,30 @@ Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ t
 Lý do tồn tại: `stockmovements` là **sổ cái tồn kho không tái tạo được** từ bất kỳ nguồn nào khác.
 Mất bảng này là mất số liệu kho, không có cách dựng lại.
 
+> **Đã xảy ra thật — 26/07/2026, 23:44.** `backend/database/IPCmanagement.sql` hard-code
+> `USE ipcManagement;` nên chạy nó với database đích nào cũng xoá sạch database chính: 46 bảng bị
+> drop, 5 bảng mất hẳn (`stockmovements` trong số đó). **Lúc đó thư mục backup còn chưa tồn tại** —
+> tài liệu này đã viết xong từ 26/07 nhưng chưa ai chạy lần nào. Khôi phục được là nhờ binlog còn
+> nguyên, không nhờ quy trình nào ở đây. Đọc `docs/CURRENT-STATE.md` mục "Sự cố mất dữ liệu và củng
+> cố tầng database" trước khi đụng vào database thật.
+
+## Trạng thái trên máy này (cập nhật 27/07/2026)
+
+| Hạng mục | Trạng thái |
+|---|---|
+| Task `IPC-DB-Backup` | **Đã đăng ký và chạy thật** — 4 tiếng/lần, `LastTaskResult = 0` |
+| Thư mục backup | `D:\Backups\ipc` |
+| User chạy backup | `ipc_backup@localhost` (chỉ đọc — `SELECT, RELOAD, PROCESS, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER`), **không phải `root`** |
+| Mật khẩu user đó | `D:\Backups\ipc-backup-user-password.txt` + biến user `MYSQL_PWD` (đặt bằng `setx`) |
+| Đã diễn tập restore | **Có** — restore vào `ipcmanagement_restore_verify`: 61/61 bảng, 53.415 dòng khớp tuyệt đối, 130 FK 0 dòng mồ côi |
+
+**Hai giới hạn còn nguyên, đừng nhầm là đã xong:**
+
+1. Task chạy **chỉ khi user đang đăng nhập** (đăng ký không kèm mật khẩu tài khoản Windows). Máy đăng
+   xuất thì không có backup. Muốn chạy nền thì đăng ký lại kèm credential Windows.
+2. Backup nằm **cùng ổ `D:` với data directory của MySQL**. Ổ chết là mất cả hai — xem §5.1. Đây vẫn
+   chưa phải disaster recovery.
+
 ---
 
 ## 1. Chạy backup thủ công
@@ -221,14 +245,61 @@ PITR về mặt kỹ thuật đã khả thi ngay, RPO có thể xuống mức ph
   binlog. **Phải copy binlog ra ngoài cùng với file backup** thì PITR mới có ý nghĩa.
 - Chưa có quy trình PITR nào được viết ra hay diễn tập.
 
-Sườn lệnh PITR sau khi đã restore bản dump gần nhất — áp dụng lại binlog từ thời điểm dump tới ngay
-trước thời điểm sự cố:
+**Quy trình PITR — bản đã diễn tập thật ngày 27/07/2026.** Sườn lệnh viết ngày 26/07 (chỉ có
+`--start-datetime`/`--stop-datetime` rồi đổ thẳng vào `ipcmanagement`) **không dùng được trên máy
+này**. Bản dưới đây là bản đã chạy và đã cứu được dữ liệu.
+
+**B0. Copy binlog ra chỗ khác trước khi làm bất cứ gì.** Chúng là nguồn duy nhất và vẫn đang bị ghi
+tiếp; đây là bước không được bỏ.
+
+```powershell
+Copy-Item "D:\MySQL\MySQL Server 9.5\Data\TUANKY-bin.*" D:\Backups\pitr-binlogs\
+```
+
+**B1. Xác định mốc base — chỗ dễ sai nhất.** Mốc base là **thời điểm nội dung của bản dump**, không
+phải giờ tạo file hay giờ `CREATE DATABASE`. Các database snapshot kiểu `ipcmanagement_unit_research_*`
+được tạo rỗng rồi nạp từ một file dump **cũ hơn**, nên lấy giờ `CREATE DATABASE` làm mốc là sai —
+đã sai thật một lần ngày 27/07 và phải swap lại lần hai. Khoảng lặng binlog quanh lúc tạo database chỉ
+chứng minh không ai ghi, **không** chứng minh nội dung thuộc mốc nào. Cách chắc chắn: so md5 khối
+`INSERT` của snapshot với các file trong thư mục backup để tìm đúng file nguồn, rồi lấy giờ của file đó.
+
+**B2. Tìm biên event thật, đừng dùng `--start-datetime`.** Decode binlog ra text rồi tìm dòng `# at <pos>`
+ngay sau mốc base, và vị trí ngay trước transaction đầu tiên của sự cố:
 
 ```cmd
-mysqlbinlog --start-datetime="2026-07-26 01:00:00" --stop-datetime="2026-07-26 09:14:00" ^
-  "D:\MySQL\MySQL Server 9.5\Data\TUANKY-bin.000680" > D:\Backups\pitr.sql
-mysql -u root -p ipcmanagement < D:\Backups\pitr.sql
+mysqlbinlog --no-defaults --base64-output=DECODE-ROWS -v --result-file=D:\Backups\dump670.txt ^
+  D:\Backups\pitr-binlogs\TUANKY-bin.000670
 ```
+
+**B3. Sinh file replay — `--skip-gtids` là BẮT BUỘC.** Server đang bật `gtid_mode=ON`. Thiếu cờ này
+thì mysqlbinlog phát ra `SET @@SESSION.GTID_NEXT='<uuid>:<số>'`, MySQL thấy GTID đó đã có trong
+`gtid_executed` nên **bỏ qua toàn bộ transaction mà không báo lỗi gì** — chạy xong, exit 0, và không có
+gì được áp dụng. Replay vào **database tạm** chứ không vào database thật:
+
+```cmd
+mysqlbinlog --no-defaults --skip-gtids ^
+  --rewrite-db="ipcmanagement->ipcmanagement_pitr" --database=ipcmanagement_pitr ^
+  --start-position=<pos_base> TUANKY-bin.000670 TUANKY-bin.000671 ... ^
+  --stop-position=<pos_truoc_su_co> TUANKY-bin.000680 ^
+  --result-file=D:\Backups\replay.sql
+```
+
+`--start-position` chỉ áp cho file ĐẦU, `--stop-position` chỉ áp cho file CUỐI trong danh sách.
+`--rewrite-db` áp dụng **trước** `--database`, nên `--database` phải ghi tên **sau khi đổi**.
+
+**B4. Soi `replay.sql` trước khi nạp.** Phải bằng 0 hết: `grep -c ipc_lane1`, `grep -c "GTID_NEXT= '"`,
+và số tham chiếu tới database thật chưa được rewrite (`grep -oE 'ipcmanagement\b' | wc -l`). Kiểm tra
+dòng cuối file dừng đúng trước thời điểm sự cố.
+
+**B5. Nạp vào DB tạm rồi TÌM ORACLE.** Đây là thứ đã bắt được lỗi lần đầu: sự cố thường **không đụng
+tới mọi bảng**. Bảng nào script phá hoại không nhắc tên thì vẫn giữ nguyên dữ liệu tiền sự cố — dump
+lại database hỏng **trước khi swap** là có ngay một bộ đối chiếu chính xác tuyệt đối. Ngày 27/07 có 11
+bảng như vậy; gate là **11/11 khớp cả số dòng lẫn md5 khối INSERT**, không phải 10/11.
+
+**B6. Chỉ khi gate xanh mới swap**, và swap bằng cách xoá bảng bên trong database đích rồi nạp lại
+(giữ chính database + quyền của nó), không `DROP DATABASE`.
+
+Mọi `mysqldump` trong quy trình này phải có `--set-gtid-purged=OFF` (lý do ngay bên dưới).
 
 Nếu gặp máy mà binlog **chưa** bật, thêm vào `my.ini` mục `[mysqld]` rồi restart service MySQL
 (cần cửa sổ downtime — **không tự ý bật trên máy đang chạy**):

@@ -48,7 +48,6 @@ type BuildChefProductionPlanOptions = {
   activeDay: string
   activeShift: ShiftType
   isLocked: boolean
-  menuPrice: number
   lossRate: number
   serviceDate: string
   dailyPlanLines?: DailyPlanLine[]
@@ -63,7 +62,6 @@ export function buildChefProductionPlan({
   activeDay,
   activeShift,
   isLocked,
-  menuPrice,
   lossRate,
   serviceDate,
   dailyPlanLines = [],
@@ -93,7 +91,6 @@ export function buildChefProductionPlan({
 
   const activeDishes = Object.entries(portionsByDishId).map(([dishId, portions]) => {
     const dish = dishesById.get(dishId)
-    const priceRatio = Math.max(0.1, Math.min(1.5, menuPrice / 35000))
     return {
       id: dishId,
       name: dish?.name ?? 'Món ăn không rõ',
@@ -102,24 +99,27 @@ export function buildChefProductionPlan({
         ingredientId: ingredient.ingredientId || `${dishId}-${index}`,
         ingredientName: ingredient.name,
         unit: ingredient.unit,
-        grossQty: Number((ingredient.grossQtyPerServing * portions * priceRatio * (1 + lossRate / 100)).toFixed(2)),
+        grossQty: Number((ingredient.grossQtyPerServing * portions * (1 + lossRate / 100)).toFixed(2)),
       })),
     }
   })
 
-  const materialTotals: Record<string, { quantity: number; unit: string }> = {}
+  // Khóa gộp phải là (nguyên liệu, đơn vị): tên nguyên liệu không có UNIQUE index nên gộp theo tên
+  // sẽ cộng nhầm hai master khác nhau, còn bỏ đơn vị khỏi khóa thì cộng kg với thùng vào một số.
+  const materialTotals: Record<string, { name: string; quantity: number; unit: string }> = {}
   activeDishes.forEach((dish) => dish.ingredients.forEach((ingredient) => {
-    materialTotals[ingredient.ingredientName] ??= { quantity: 0, unit: ingredient.unit }
-    materialTotals[ingredient.ingredientName].quantity += ingredient.grossQty
+    const key = `${ingredient.ingredientId}__${ingredient.unit}`
+    materialTotals[key] ??= { name: ingredient.ingredientName, quantity: 0, unit: ingredient.unit }
+    materialTotals[key].quantity += ingredient.grossQty
   }))
 
-  const plannedMaterials: ChefMaterial[] = Object.entries(materialTotals).map(([name, item], index) => ({
-    id: `mat-${index}`,
-    name,
+  const plannedMaterials: ChefMaterial[] = Object.entries(materialTotals).map(([key, item]) => ({
+    id: `mat-${key}`,
+    name: item.name,
     unit: item.unit,
     quantity: Number(item.quantity.toFixed(2)),
-    status: isLocked ? 'Đã nhận' : 'Chờ giao',
-    signed: Boolean(signedMaterials[`${serviceDate}-${activeShift}-${name}`]),
+    status: 'Chờ giao',
+    signed: Boolean(signedMaterials[`${serviceDate}-${activeShift}-${key}`]),
   }))
   const liveMaterials: ChefMaterial[] = kitchenIssues.map((row) => ({
     id: row.id,
@@ -147,8 +147,11 @@ export function buildChefProductionPlan({
         { name: 'Võ Công Việt', shortName: 'VCV' },
       ],
     },
-    totalMeals: totalMeals || liveMaterials.length,
+    totalMeals,
     activeDishes,
-    receivedMaterials: liveMaterials.length > 0 ? liveMaterials : plannedMaterials,
+    // Chỉ dòng từ phiếu xuất kho mới được coi là "đã nhận". Trước đây khi chưa có phiếu xuất,
+    // định lượng kế hoạch bị đổ vào đúng ô này nên bếp đọc số kế hoạch như số thực nhận.
+    receivedMaterials: liveMaterials,
+    plannedMaterials,
   }
 }
