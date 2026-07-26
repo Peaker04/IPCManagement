@@ -261,6 +261,14 @@ jobs:
       - name: Lint frontend
         run: npm run lint:fe
 
+      # Cặp #1 của Phần K: xoá code chết TRƯỚC, chốt baseline SAU. Baseline
+      # (.dependency-cruiser-known-violations.json) ghi nhận 140 vi phạm đang tồn tại
+      # nên CI chỉ đỏ khi có vi phạm MỚI — không có baseline thì rào chắn bị hoãn vô
+      # thời hạn. Sửa được một vi phạm thì chạy `npm run depcruise:baseline -w frontend`
+      # để chốt lại baseline nhỏ hơn; baseline chỉ được co lại, không được phình ra.
+      - name: Luật phụ thuộc frontend (dependency-cruiser)
+        run: npm run depcruise:fe
+
       # Vitest chạy một lượt cho toàn bộ src có thể vượt heap mặc định của Node,
       # nên giới hạn worker và nới heap cho từng worker.
       - name: Test frontend (unit)
