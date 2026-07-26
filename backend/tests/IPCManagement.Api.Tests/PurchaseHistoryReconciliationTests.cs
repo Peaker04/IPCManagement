@@ -254,7 +254,7 @@ public class PurchaseHistoryReconciliationTests
         keys.Should().ContainSingle();
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Parser_reproduces_audited_current_workbook_baseline_and_deterministic_replay()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -278,7 +278,7 @@ public class PurchaseHistoryReconciliationTests
                 $"{candidate.SourceKey}|{candidate.BusinessKey}|{candidate.RowHash}"));
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Parser_retains_raw_source_trace_for_current_workbook()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -535,7 +535,7 @@ public class PurchaseHistoryReconciliationTests
             expectedBlocker is null ? [] : [expectedBlocker]);
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Normalization_parser_routes_every_candidate_once_and_retains_blocker_evidence()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -2110,5 +2110,49 @@ public class PurchaseHistoryReconciliationTests
                 """;
             await command.ExecuteNonQueryAsync();
         }
+    }
+}
+
+/// <summary>
+/// [Fact] nhưng tự skip khi workbook nghiệp vụ riêng không có mặt.
+///
+/// Ba test dùng attribute này đọc <c>.docs/IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx</c>.
+/// Thư mục <c>.docs/</c> bị .gitignore chặn (dữ liệu vận hành thật của khách hàng, không đưa
+/// lên repo), nên trên CI sạch file đó KHÔNG tồn tại và ba test sẽ fail vì FileNotFoundException
+/// — làm đỏ bước "Test backend" trước cả khi tới các gate khác.
+///
+/// Cổng ở đây là sự tồn tại của file chứ không phải biến môi trường: máy nào có workbook thì
+/// test chạy thật, máy nào không có thì skip kèm lý do rõ ràng. Không có nhánh nào "pass giả".
+///
+/// Lấy ý tưởng từ origin/main (a64c4a1) nhưng CHỈ đòi file thật sự được đọc. Bản của main đòi
+/// thêm workbook 19.5.2026 — file đó không có trong .docs của máy này, dùng nguyên bản sẽ làm
+/// ba test skip cả ở local và mất coverage đang có.
+/// </summary>
+internal sealed class PrivateWorkbookFactAttribute : FactAttribute
+{
+    private const string RequiredWorkbook = "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx";
+
+    public PrivateWorkbookFactAttribute()
+    {
+        if (!RepositoryFileExists(".docs", RequiredWorkbook))
+        {
+            Skip = $"Cần workbook nghiệp vụ riêng '{RequiredWorkbook}' trong .docs (không nằm trong repo).";
+        }
+    }
+
+    private static bool RepositoryFileExists(params string[] segments)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine([current.FullName, .. segments])))
+            {
+                return true;
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
     }
 }
