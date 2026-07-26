@@ -98,8 +98,15 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 2. Bấm `Tạo phiếu xuất kho`, chọn bắt buộc `Nhu cầu nguyên liệu` và `Kho xuất`, sau đó bấm `Xác nhận tạo phiếu`.
 3. Vào `Bếp trưởng`, mở KHSX và checklist nguyên liệu.
 4. Xác nhận bếp đã nhận đủ hoặc ghi nhận chênh lệch.
+   Tick checkbox chỉ mở bước xác nhận; dòng chỉ chuyển terminal sau khi người dùng bấm
+   `Đã kiểm đếm và nhận` và server trả thành công. Dòng đã nhận hiển thị checkbox disabled,
+   đồng thời giữ mã phiếu xuất để phân biệt cùng một nguyên liệu được giao qua nhiều chứng từ.
 5. Nếu thiếu phát sinh sau khi đã nhận phiếu xuất, bấm `Yêu cầu cấp bổ sung`, chọn dòng nguyên liệu, nhập số lượng và gửi tới kho. Yêu cầu được lưu trạng thái `PENDING`; thao tác này chưa tự trừ tồn hay tạo phiếu xuất mới.
 6. Nếu có dư/thừa, dùng luồng trả dư/hao hụt theo phiếu xuất.
+
+Với yêu cầu bổ sung phải mua thêm, phiếu nhập được khóa vào kho đang xử lý yêu cầu của bếp.
+Backend từ chối nhập sang kho khác; sau khi nhập đúng kho, thủ kho cấp phần còn lại và bếp ký nhận
+thì supplemental request mới chuyển `FULFILLED`.
 
 ## 9. Kiểm tra bằng chứng cuối luồng
 
@@ -116,6 +123,8 @@ Không để trống kho nhập hoặc số lượng nhận; hệ thống sẽ k
 | Không có customer/menu | Chạy seed reset hoặc nhập dữ liệu master trước |
 | Tạo demand bị chặn | Chưa sign-off số suất, thiếu BOM, sai đơn vị hoặc demand cũ |
 | Không thấy nút duyệt | Request chưa được tạo hoặc user thiếu `purchase.request.approve` |
+| Trang trông như không có dữ liệu sau lỗi API | Đọc alert lỗi và bấm `Thử tải lại`; không kết luận nghiệp vụ đang trống khi dependency chưa tải thành công |
+| Demand/PO/phiếu xuất đã terminal | Không tính đè hoặc mở lại trực tiếp; dùng luồng điều chỉnh riêng được hướng dẫn trên FE |
 | Build backend bị khóa | Có process `IPCManagement.Api` đang chạy; dừng đúng instance trước build |
 
 ## Phạm vi MVP hiện tại

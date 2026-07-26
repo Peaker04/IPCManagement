@@ -28,6 +28,7 @@ public class MaterialDemandController : ControllerBase
     /// <summary>Tính nhu cầu nguyên liệu từ số suất đã chốt, sau đó mới kiểm tồn kho.</summary>
     [HttpPost("generate")]
     [ProducesResponseType(typeof(ApiResponse<MaterialDemandResultDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Generate(
@@ -39,6 +40,10 @@ public class MaterialDemandController : ControllerBase
         try
         {
             result = await _materialDemandService.GenerateAsync(request, userId, cancellationToken);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
         }
         catch (InvalidOperationException ex)
         {

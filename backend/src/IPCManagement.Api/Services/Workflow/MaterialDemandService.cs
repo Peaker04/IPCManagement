@@ -87,7 +87,7 @@ public class MaterialDemandService : IMaterialDemandService
             .ToDictionary(g => g.Key, g => g.ToList());
         var effectivePortionRules = await LoadEffectivePortionRulesAsync(serviceDate, cancellationToken);
 
-        var outputLines = new List<MaterialDemandLineDto>();
+        var outputLines = new Dictionary<string, MaterialDemandLineDto>();
         var missingBomDishes = new List<MissingBomDishDto>();
         var missingConversionIssues = new List<MissingUnitConversionIssueDto>();
         var generatedPlanLineIds = new HashSet<string>();
@@ -141,7 +141,7 @@ public class MaterialDemandService : IMaterialDemandService
                         numbers);
                     generatedRequestLineKeys.Add(BuildMaterialRequestLineKey(productionLine.PlanLineId, bom.IngredientId));
 
-                    outputLines.Add(MapLine(requestLine, productionLine, bom));
+                    outputLines[BuildKey(requestLine.RequestLineId)] = MapLine(requestLine, productionLine, bom);
                 }
             }
         }
@@ -172,7 +172,7 @@ public class MaterialDemandService : IMaterialDemandService
             Scope = scope,
             Status = materialRequest.Status,
             ProductionPlanLineCount = plan.Productionplanlines.Count,
-            Lines = outputLines,
+            Lines = outputLines.Values.ToList(),
             MissingBomDishes = missingBomDishes,
             MissingConversionIssues = DeduplicateConversionIssues(missingConversionIssues)
         };
@@ -224,11 +224,113 @@ public class MaterialDemandService : IMaterialDemandService
         var materialRequest = await _context.Materialrequests
             .AsNoTracking()
             .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Purchaserequestlines)
+                    .ThenInclude(line => line.PurchaseRequest)
+            .Include(request => request.Materialrequestlines)
+                .ThenInclude(line => line.Purchaserequestlines)
+                    .ThenInclude(line => line.Purchaseorderline)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
 
         if (materialRequest is not null && materialRequest.Status == "CANCELLED")
         {
             reasons.Add("Thực đơn tuần đã được import lại, demand cũ đã bị hủy.");
+        }
+
+        string? regenerationBlockReason = null;
+        if (materialRequest is not null)
+        {
+            var purchaseLines = materialRequest.Materialrequestlines
+                .SelectMany(line => line.Purchaserequestlines)
+                .ToList();
+            if (purchaseLines.Any(line => line.Purchaseorderline is not null))
+            {
+                regenerationBlockReason =
+                    "Nhu cầu đã phát sinh đơn mua hàng nên được giữ ở chế độ chỉ đọc. Hãy dùng luồng điều chỉnh riêng.";
+            }
+            else if (await _context.Inventoryissues
+                         .AsNoTracking()
+                         .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(materialRequest.RequestId), cancellationToken))
+            {
+                regenerationBlockReason =
+                    "Nhu cầu đã phát sinh phiếu xuất kho nên được giữ ở chế độ chỉ đọc. Hãy dùng luồng điều chỉnh riêng.";
+            }
+            else if (string.Equals(materialRequest.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                regenerationBlockReason =
+                    "Nhu cầu đã được duyệt nên không thể tính đè. Hãy tạo phiên bản điều chỉnh riêng.";
+            }
+            else if (string.Equals(materialRequest.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+            {
+                var latestDemandAudit = await _context.Auditlogs
+                    .AsNoTracking()
+                    .Where(audit =>
+                        audit.EntityName == nameof(Materialrequest) &&
+                        audit.EntityId != null &&
+                        audit.EntityId.SequenceEqual(materialRequest.RequestId) &&
+                        audit.FieldName == nameof(Materialrequest.Status))
+                    .OrderByDescending(audit => audit.ChangedAt)
+                    .FirstOrDefaultAsync(cancellationToken);
+                var cancellationReason = latestDemandAudit?.Reason;
+                var isMenuReimportCancellation =
+                    latestDemandAudit is not null &&
+                    string.Equals(latestDemandAudit.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
+                    cancellationReason is not null &&
+                    cancellationReason.StartsWith("Menu re-import ", StringComparison.Ordinal) &&
+                    cancellationReason.EndsWith(
+                        " invalidated downstream demand/PR; regenerate required.",
+                        StringComparison.Ordinal);
+
+                if (!isMenuReimportCancellation)
+                {
+                    regenerationBlockReason =
+                        "Nhu cầu đã bị hủy ngoài luồng import lại thực đơn nên không thể mở lại. Hãy tạo luồng điều chỉnh riêng.";
+                }
+                else
+                {
+                    var purchaseRequests = purchaseLines
+                        .Select(line => line.PurchaseRequest)
+                        .DistinctBy(request => Convert.ToBase64String(request.PurchaseRequestId))
+                        .ToList();
+                    foreach (var purchaseRequest in purchaseRequests.Where(request =>
+                                 !string.Equals(request.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase)))
+                    {
+                        if (!string.Equals(purchaseRequest.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+                        {
+                            regenerationBlockReason =
+                                $"Đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} đang ở trạng thái {purchaseRequest.Status}. Hãy xử lý chứng từ này trước.";
+                            break;
+                        }
+
+                        var latestPurchaseAudit = await _context.Auditlogs
+                            .AsNoTracking()
+                            .Where(audit =>
+                                audit.EntityName == nameof(Purchaserequest) &&
+                                audit.EntityId != null &&
+                                audit.EntityId.SequenceEqual(purchaseRequest.PurchaseRequestId) &&
+                                audit.FieldName == nameof(Purchaserequest.Status))
+                            .OrderByDescending(audit => audit.ChangedAt)
+                            .FirstOrDefaultAsync(cancellationToken);
+                        var purchaseCancellationReason = latestPurchaseAudit?.Reason;
+                        if (latestPurchaseAudit is null ||
+                            !string.Equals(latestPurchaseAudit.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
+                            purchaseCancellationReason is null ||
+                            !purchaseCancellationReason.StartsWith("Menu re-import ", StringComparison.Ordinal) ||
+                            !purchaseCancellationReason.EndsWith(
+                                " invalidated downstream demand/PR; regenerate required.",
+                                StringComparison.Ordinal))
+                        {
+                            regenerationBlockReason =
+                                $"Đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} không thuộc lineage có thể mở lại. Hãy tạo luồng điều chỉnh riêng.";
+                            break;
+                        }
+                    }
+                }
+            }
+            else if (!string.Equals(materialRequest.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase))
+            {
+                regenerationBlockReason =
+                    $"Nhu cầu đang ở trạng thái {materialRequest.Status} nên không thể tính lại. Hãy tạo luồng điều chỉnh riêng.";
+            }
         }
 
         var quantityPlanLineIds = plan.Productionplanlines
@@ -287,6 +389,11 @@ public class MaterialDemandService : IMaterialDemandService
         {
             HasExistingPlan = true,
             IsStale = reasons.Count > 0,
+            MaterialRequestId = materialRequest is null ? null : GuidHelper.ToGuidString(materialRequest.RequestId),
+            RequestCode = materialRequest?.RequestCode,
+            Status = materialRequest?.Status,
+            CanRegenerate = regenerationBlockReason is null,
+            RegenerationBlockReason = regenerationBlockReason,
             LastGeneratedAt = plan.UpdatedAt.ToString("O"),
             Reasons = reasons
         };
@@ -676,6 +783,15 @@ public class MaterialDemandService : IMaterialDemandService
                     "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
             }
 
+            var hasInventoryIssue = await _context.Inventoryissues
+                .AsNoTracking()
+                .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
+            if (hasInventoryIssue)
+            {
+                throw new InvalidOperationException(
+                    "Không thể tính lại nhu cầu đã phát sinh phiếu xuất kho. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
+            }
+
             var purchaseRequests = purchaseLines
                 .Select(line => line.PurchaseRequest)
                 .DistinctBy(request => Convert.ToBase64String(request.PurchaseRequestId))
@@ -695,9 +811,8 @@ public class MaterialDemandService : IMaterialDemandService
             }
 
             var menuReimportReason = menuReimportDemandCancellation?.Reason;
-            var canRecycleMenuReimportDraft =
+            var canRecycleMenuReimportLineage =
                 menuReimportDemandCancellation is not null &&
-                string.Equals(menuReimportDemandCancellation.OldValue, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
                 string.Equals(menuReimportDemandCancellation.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) &&
                 menuReimportReason is not null &&
                 menuReimportReason.StartsWith("Menu re-import ", StringComparison.Ordinal) &&
@@ -708,7 +823,7 @@ public class MaterialDemandService : IMaterialDemandService
             foreach (var purchaseRequest in purchaseRequests.Where(request =>
                          !string.Equals(request.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase)))
             {
-                if (!canRecycleMenuReimportDraft ||
+                if (!canRecycleMenuReimportLineage ||
                     !string.Equals(purchaseRequest.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
@@ -726,7 +841,6 @@ public class MaterialDemandService : IMaterialDemandService
                     .FirstOrDefaultAsync(cancellationToken);
                 var purchaseMenuReimportReason = latestPurchaseStatusAudit?.Reason;
                 if (latestPurchaseStatusAudit is null ||
-                    !string.Equals(latestPurchaseStatusAudit.OldValue, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase) ||
                     !string.Equals(latestPurchaseStatusAudit.NewValue, "CANCELLED", StringComparison.OrdinalIgnoreCase) ||
                     purchaseMenuReimportReason is null ||
                     !purchaseMenuReimportReason.StartsWith("Menu re-import ", StringComparison.Ordinal) ||
@@ -746,13 +860,13 @@ public class MaterialDemandService : IMaterialDemandService
             }
 
             if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
-                !canRecycleMenuReimportDraft)
+                !canRecycleMenuReimportLineage)
             {
                 throw new InvalidOperationException(
                     $"Không thể tính lại nhu cầu đang ở trạng thái {existing.Status}. Hãy tạo luồng điều chỉnh riêng.");
             }
 
-            if (canRecycleMenuReimportDraft)
+            if (canRecycleMenuReimportLineage)
             {
                 var changedAt = DateTime.UtcNow;
                 const string regenerationReason =

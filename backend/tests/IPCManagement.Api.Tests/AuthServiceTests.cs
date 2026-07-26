@@ -162,4 +162,29 @@ public class AuthServiceTests
         result.Permissions.Should().Contain(AuthorizationPolicies.PurchaseGenerate);
         result.Permissions.Should().NotContain(AuthorizationPolicies.DemandGenerate);
     }
+
+    [Fact]
+    public async Task GetProfileAsync_Should_ReturnApprovalPermissions_ForManager()
+    {
+        var userId = Guid.NewGuid();
+        var userIdString = userId.ToString();
+        var userIdBytes = GuidHelper.ParseGuidString(userIdString)!;
+        var user = new User
+        {
+            UserId = userIdBytes,
+            Username = "quanly",
+            FullName = "Quản lý",
+            IsActive = true,
+            Role = new Role { RoleCode = "MANAGER", RoleName = "Quản lý" }
+        };
+
+        _userRepository.GetWithRoleAsync(Arg.Is<byte[]>(b => System.Linq.Enumerable.SequenceEqual(b, userIdBytes)))
+            .Returns(user);
+
+        var result = await _service.GetProfileAsync(userIdString);
+
+        result.Should().NotBeNull();
+        result!.Permissions.Should().Contain(AuthorizationPolicies.PurchaseRequestApprove);
+        result.Permissions.Should().Contain(AuthorizationPolicies.PurchasePriceExceptionApprove);
+    }
 }

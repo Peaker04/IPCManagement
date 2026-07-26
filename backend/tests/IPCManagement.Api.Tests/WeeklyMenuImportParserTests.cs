@@ -77,13 +77,15 @@ public class WeeklyMenuImportParserTests
         var result = await service.BuildWeeklyMenuTemplateAsync(
             GuidHelper.ToGuidString(customerId),
             new DateOnly(2026, 7, 20));
-        var fixturePath = Path.Combine(
-            AppContext.BaseDirectory,
-            "Fixtures",
-            "weekly-menu-template-ANV-2026-07-20.xlsx");
+        using var embeddedTemplate = typeof(SampleDataImportService).Assembly
+            .GetManifestResourceStream(
+                "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx")
+            ?? throw new InvalidOperationException("Embedded ANV template was not found.");
+        using var expectedContent = new MemoryStream();
+        await embeddedTemplate.CopyToAsync(expectedContent);
 
         result.CustomerCode.Should().Be("ANV");
-        result.Content.Should().Equal(await File.ReadAllBytesAsync(fixturePath));
+        result.Content.Should().Equal(expectedContent.ToArray());
     }
 
     [Fact]

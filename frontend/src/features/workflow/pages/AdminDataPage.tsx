@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useDeferredValue, useMemo, useState, useTransition, type FormEvent } from 'react';
 import { BarChart3, CalendarCheck, Database, Download, History, PackageCheck, Pencil, PlusCircle, Power, Save, Search, SlidersHorizontal, TrendingUp, Upload, UserPlus, Users, XCircle } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAppSelector } from '@/app/hooks';
@@ -10,9 +10,9 @@ import {
   FieldRow,
   InlineAlert,
   OperationalFrame,
-  RoleInbox,
   PaginationBar,
   PaginatedTableFrame,
+  QueryErrorAlert,
   SectionPanel,
   StatusBadge,
   StockMovementTable,
@@ -29,13 +29,12 @@ import {
   useGetAuditChangePageQuery,
   useGetCurrentStockPageQuery,
   useGetDataQualityPageQuery,
-  useGetIngredientDemandPageQuery,
+  useGetIngredientDemandAggregatePageQuery,
   useGetOperationalKpisQuery,
   useGetPriceVariancePageQuery,
   useGetPurchasePlanPageQuery,
   useGetStockMovementPageQuery,
   useUpdateDataQualityIssueRemediationMutation,
-  useWorkflowOverview,
   type DataQualityIssueRow,
 } from '@/features/workflow';
 import {
@@ -203,6 +202,7 @@ const isAdminView = (value: string | null): value is AdminView =>
 
 export default function AdminDataPage() {
   const { toast } = useToast();
+  const [isViewPending, startViewTransition] = useTransition();
   const operationalDate = getTodayInputValue();
   const currentUser = useAppSelector(selectCurrentUser);
   const [searchParams] = useSearchParams();
@@ -238,6 +238,7 @@ export default function AdminDataPage() {
 
   const [bomPanelMode, setBomPanelMode] = useState<BomPanelMode>('current');
   const [bomSearch, setBomSearch] = useState('');
+  const deferredBomSearch = useDeferredValue(bomSearch);
   const [bomForm, setBomForm] = useState<BomFormState>(createDefaultBomForm);
   const [editingBom, setEditingBom] = useState<{ dishId: string; line: CatalogIngredient } | null>(null);
   const [closingBom, setClosingBom] = useState<{ dishId: string; dishName: string; line: CatalogIngredient } | null>(null);
@@ -248,17 +249,23 @@ export default function AdminDataPage() {
   const [addDishBomLine, addDishBomLineState] = useAddDishBomLineMutation();
   const [updateDishBomLine, updateDishBomLineState] = useUpdateDishBomLineMutation();
   const [closeDishBomLine, closeDishBomLineState] = useCloseDishBomLineMutation();
-  const { data: dishCatalog = [], isLoading: isDishCatalogLoading } = useGetAdminDishCatalogQuery();
-  const { data: ingredientCatalog = [], isLoading: isIngredientCatalogLoading } = useGetIngredientsQuery();
-  const { data: contractResponse } = useGetCustomerContractsQuery();
+  const isBomView = activeView === 'bom-import';
+  const isContractView = activeView === 'contracts';
+  const isCleanupView = activeView === 'cleanup';
+  const isInventoryView = activeView === 'inventory';
+  const isStatisticsView = activeView === 'statistics';
+  const { data: dishCatalog = [], isLoading: isDishCatalogLoading, isFetching: isDishCatalogFetching, isError: isDishCatalogError, refetch: refetchDishCatalog } = useGetAdminDishCatalogQuery(undefined, { skip: !isBomView });
+  const { data: ingredientCatalog = [], isLoading: isIngredientCatalogLoading } = useGetIngredientsQuery(undefined, { skip: !isBomView });
+  const { data: contractResponse } = useGetCustomerContractsQuery(undefined, { skip: !isContractView });
   const customerContracts = useMemo(() => contractResponse?.data ?? [], [contractResponse?.data]);
   const selectedContract = useMemo(
     () => customerContracts.find((customer) => customer.customerId === selectedContractCustomerId) ?? customerContracts[0],
     [customerContracts, selectedContractCustomerId],
   );
   const currentBomRows = useMemo(() => {
+    if (!isBomView) return [];
     const today = getTodayInputValue();
-    const search = bomSearch.trim().toLocaleLowerCase('vi-VN');
+    const search = deferredBomSearch.trim().toLocaleLowerCase('vi-VN');
 
     return dishCatalog
       .filter((dish) => dish.isActive)
@@ -268,11 +275,11 @@ export default function AdminDataPage() {
       .filter(({ line }) => line.bomStatus !== 'ARCHIVED' && (!line.effectiveTo || line.effectiveTo >= today))
       .filter(({ dish, line }) => !search || `${dish.code} ${dish.name} ${line.ingredientCode} ${line.name}`.toLocaleLowerCase('vi-VN').includes(search))
       .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
-  }, [bomImportCustomerId, bomImportTier, bomSearch, dishCatalog]);
+  }, [bomImportCustomerId, bomImportTier, deferredBomSearch, dishCatalog, isBomView]);
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
   const { data: scheduleResponse } = useGetMenuSchedulesQuery(
     { customerId: selectedContract?.customerId, serviceDate: selectedContract?.latestServiceDate ?? undefined },
-    { skip: !selectedContract?.customerId },
+    { skip: !isContractView || !selectedContract?.customerId },
   );
   const menuSchedules = useMemo(() => scheduleResponse?.data ?? [], [scheduleResponse?.data]);
   const selectedSchedule = useMemo(
@@ -288,16 +295,20 @@ export default function AdminDataPage() {
   const [auditEntity, setAuditEntity] = useState('');
   const [auditField, setAuditField] = useState('');
   const authToken = useAppSelector((state) => state.auth.token);
+  const deferredAuditActor = useDeferredValue(auditActor);
+  const deferredAuditArea = useDeferredValue(auditArea);
+  const deferredAuditEntity = useDeferredValue(auditEntity);
+  const deferredAuditField = useDeferredValue(auditField);
 
   const auditQuery = useMemo(
     () => ({
       limit: 100,
-      actor: auditActor.trim() || undefined,
-      businessArea: auditArea.trim() || undefined,
-      entityName: auditEntity.trim() || undefined,
-      fieldName: auditField.trim() || undefined,
+      actor: deferredAuditActor.trim() || undefined,
+      businessArea: deferredAuditArea.trim() || undefined,
+      entityName: deferredAuditEntity.trim() || undefined,
+      fieldName: deferredAuditField.trim() || undefined,
     }),
-    [auditActor, auditArea, auditEntity, auditField]
+    [deferredAuditActor, deferredAuditArea, deferredAuditEntity, deferredAuditField]
   );
 
   const auditCursor = auditCursors.at(-1);
@@ -335,8 +346,11 @@ export default function AdminDataPage() {
       toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
     }
   };
-  const { data: dataQualityReport } = useGetDataQualityPageQuery({ pageNumber: qualityPage, pageSize: 8, serviceDate: operationalDate });
-  const { data: operationalKpis } = useGetOperationalKpisQuery();
+  const { data: dataQualityReport } = useGetDataQualityPageQuery(
+    { pageNumber: qualityPage, pageSize: 8, serviceDate: operationalDate },
+    { skip: !isCleanupView },
+  );
+  const { data: operationalKpis } = useGetOperationalKpisQuery(undefined, { skip: !isStatisticsView });
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
@@ -345,30 +359,36 @@ export default function AdminDataPage() {
     cursorId: stockMovementCursor?.cursorId,
     limit: 8,
     sortDirection: 'desc',
-  }, { skip: activeView !== 'inventory' });
-  const { data: ingredientDemandPage } = useGetIngredientDemandPageQuery({
+  }, { skip: !isInventoryView });
+  const { data: ingredientDemandPage } = useGetIngredientDemandAggregatePageQuery({
     pageNumber: 1,
     pageSize: 8,
     dateFrom: operationalDate,
     dateTo: operationalDate,
-  });
-  const { data: purchasePlanPage } = useGetPurchasePlanPageQuery({ groupBy: 'day', pageNumber: 1, pageSize: 8 });
-  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery({ pageNumber: currentStockPage, pageSize: 8 });
+  }, { skip: !isStatisticsView });
+  const { data: purchasePlanPage } = useGetPurchasePlanPageQuery(
+    { groupBy: 'day', pageNumber: 1, pageSize: 8 },
+    { skip: !isStatisticsView },
+  );
+  const { data: currentStockPageResponse } = useGetCurrentStockPageQuery(
+    { pageNumber: currentStockPage, pageSize: 8 },
+    { skip: !isInventoryView },
+  );
   const { data: priceVariancePage } = useGetPriceVariancePageQuery({
     pageNumber: priceWarningPage,
     pageSize: 8,
     warningOnly: true,
     dateFrom: operationalDate,
     dateTo: operationalDate,
-  });
-  const { roleInboxItems } = useWorkflowOverview();
+  }, { skip: !isStatisticsView });
+  const deferredEmployeeSearch = useDeferredValue(employeeSearch);
   const employeeQuery = useMemo(
     () => ({
       pageNumber: employeePage,
       pageSize: 8,
-      searchKeyword: employeeSearch.trim() || undefined,
+      searchKeyword: deferredEmployeeSearch.trim() || undefined,
     }),
-    [employeePage, employeeSearch],
+    [deferredEmployeeSearch, employeePage],
   );
   const { data: employeeResponse, isFetching: isEmployeeLoading } = useGetAdminEmployeesQuery(employeeQuery, {
     skip: !canManageEmployees || activeView !== 'employees',
@@ -379,7 +399,6 @@ export default function AdminDataPage() {
   const [createEmployee, { isLoading: isCreatingEmployee }] = useCreateAdminEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
-  const adminInbox = roleInboxItems.filter((item) => item.laneId === 'admin');
   const adjustmentMovements = stockMovementResult.data?.items ?? [];
   const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
   const priceWarnings = priceVariancePage?.items ?? [];
@@ -398,7 +417,40 @@ export default function AdminDataPage() {
   const employeeRows = employeeResponse?.data?.items ?? [];
   const employeeMeta = employeeResponse?.data;
   const isSavingEmployee = isCreatingEmployee || isUpdatingEmployee;
+  const displayLogs = auditResult.data?.items ?? [];
   const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'bom-import' : activeView;
+  const adminContextItems = effectiveActiveView === 'bom-import'
+    ? [
+        { label: 'BOM đang hiển thị', value: `${currentBomRows.length} dòng`, tone: 'neutral' as const },
+        { label: 'Đơn giá', value: `${bomImportTier / 1000}k`, tone: 'info' as const },
+        { label: 'Preview', value: bomImportPreview ? `${bomImportPreview.rows.length} dòng` : 'Chưa kiểm tra', tone: bomImportPreview ? 'warning' as const : 'neutral' as const },
+      ]
+    : effectiveActiveView === 'contracts'
+      ? [
+          { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' as const },
+          { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' as const },
+          { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' as const },
+        ]
+      : effectiveActiveView === 'cleanup'
+        ? [
+            { label: 'Dữ liệu lỗi', value: `${dataQualityErrorCount} mục`, tone: dataQualityErrorCount ? 'danger' as const : 'success' as const },
+            { label: 'SLA gấp', value: `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' as const : 'success' as const },
+            { label: 'Đã xử lý', value: `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: 'success' as const },
+          ]
+        : effectiveActiveView === 'inventory'
+          ? [
+              { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' as const },
+              { label: 'Điều chỉnh', value: `${adjustmentMovements.length} bút toán`, tone: adjustmentMovements.length ? 'warning' as const : 'success' as const },
+            ]
+          : effectiveActiveView === 'statistics'
+            ? [
+                { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' as const : 'success' as const },
+                { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'warning' as const : 'success' as const },
+                { label: 'Đề xuất mua', value: totalPurchaseQty.toString(), tone: totalPurchaseQty ? 'warning' as const : 'success' as const },
+              ]
+            : effectiveActiveView === 'audit'
+              ? [{ label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' as const }]
+              : [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }];
   const adminTabs: ViewTab[] = [
     { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
     { id: 'admin-contracts', label: 'Contract' },
@@ -408,8 +460,6 @@ export default function AdminDataPage() {
     { id: 'admin-audit', label: 'Audit' },
     ...(canManageEmployees ? [{ id: 'admin-employees', label: 'Nhân viên' }] : []),
   ];
-
-  const displayLogs = auditResult.data?.items ?? [];
 
   const handleDownloadBomTemplate = async (templateType: BomTemplateType) => {
     if (templateType === 'dish' && !bomTemplateDishId) {
@@ -887,16 +937,7 @@ export default function AdminDataPage() {
         </CommandBar>
       }
       context={
-        <ContextStrip
-          items={[
-            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-            { label: 'Dữ liệu lỗi', value: `${dataQualityErrorCount} mục`, tone: dataQualityErrorCount ? 'danger' : 'success' },
-            { label: 'Cảnh báo giá', value: priceWarningCount.toString(), tone: priceWarningCount ? 'warning' : 'success' },
-            { label: 'Tồn kho', value: `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: 'neutral' },
-            { label: 'Audit', value: `${displayLogs.length} thay đổi`, tone: 'neutral' },
-            ...(canManageEmployees ? [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }] : []),
-          ]}
-        />
+        <ContextStrip items={adminContextItems} />
       }
     >
       <ViewSwitcher
@@ -904,11 +945,22 @@ export default function AdminDataPage() {
         ariaLabel="Chọn góc nhìn quản trị dữ liệu"
         tabs={adminTabs}
         activeTab={`admin-${effectiveActiveView}`}
-        onTabChange={(id) => setActiveView(id.replace('admin-', '') as AdminView)}
+        onTabChange={(id) => startViewTransition(() => setActiveView(id.replace('admin-', '') as AdminView))}
       />
+
+      {isViewPending ? <span className="sr-only" role="status">Đang chuyển vùng dữ liệu quản trị.</span> : null}
 
       {effectiveActiveView === 'bom-import' && (
         <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
+          {isDishCatalogError && (
+            <QueryErrorAlert
+              title="Không tải được danh mục món và BOM"
+              isRetrying={isDishCatalogFetching}
+              onRetry={refetchDishCatalog}
+            >
+              Không thể coi danh mục đang trống. Kiểm tra kết nối rồi thử tải lại trước khi import hoặc chỉnh BOM.
+            </QueryErrorAlert>
+          )}
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
               <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -1008,6 +1060,8 @@ export default function AdminDataPage() {
                     className="ipc-button ipc-button-primary"
                     type="button"
                     disabled={previewBomImportState.isLoading || !bomImportFile}
+                    aria-describedby="bom-import-action-guidance"
+                    title={previewBomImportState.isLoading ? 'Đang kiểm tra file BOM.' : !bomImportFile ? 'Chọn file BOM trước khi kiểm tra.' : undefined}
                     onClick={() => void handlePreviewBomImport()}
                   >
                     <Search size={15} />
@@ -1017,6 +1071,8 @@ export default function AdminDataPage() {
                     className="ipc-button ipc-button-primary"
                     type="button"
                     disabled={commitBomImportState.isLoading || !bomImportPreview?.canCommit}
+                    aria-describedby="bom-import-action-guidance"
+                    title={commitBomImportState.isLoading ? 'Đang nhập dữ liệu BOM.' : !bomImportPreview ? 'Kiểm tra file trước khi nhập dữ liệu.' : !bomImportPreview.canCommit ? 'Preview còn lỗi chặn; sửa file rồi kiểm tra lại.' : undefined}
                     onClick={() => void handleCommitBomImport()}
                   >
                     <Save size={15} />
@@ -1037,7 +1093,7 @@ export default function AdminDataPage() {
                 )}
 
                 <InlineAlert title="Cấu trúc nhập BOM mới" variant="info">
-                  Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Dòng chưa điền nguyên liệu sẽ được bỏ qua khi preview; nguyên liệu mới sẽ được tạo mã sau khi commit.
+                  <span id="bom-import-action-guidance">Tải BOM thiếu để nhập nhanh các món còn thiếu định lượng. Chọn file, kiểm tra preview và xử lý hết lỗi chặn trước khi nhập dữ liệu.</span>
                 </InlineAlert>
               </div>
 
@@ -1622,17 +1678,6 @@ export default function AdminDataPage() {
               ariaLabel: 'Phân trang lịch sử điều chỉnh tồn',
             }}
           />
-          <div className="mt-4">
-            <RoleInbox
-              items={adminInbox}
-              title={null}
-              actionForItem={(item) => (
-                <Link className="ipc-button ipc-button-ghost" to={item.route}>
-                  {item.nextAction}
-                </Link>
-              )}
-            />
-          </div>
           </div>
         </SectionPanel>
       )}
@@ -2097,7 +2142,7 @@ export default function AdminDataPage() {
         </SectionPanel>
       )}
 
-      <Dialog open={isBomDialogOpen} onOpenChange={setIsBomDialogOpen}>
+      {isBomDialogOpen && <Dialog open onOpenChange={setIsBomDialogOpen}>
         <DialogContent aria-label={editingBom ? 'Chỉnh dòng BOM' : 'Thêm dòng BOM'} className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingBom ? 'Chỉnh nhanh dòng BOM' : 'Thêm dòng BOM thủ công'}</DialogTitle>
@@ -2190,9 +2235,9 @@ export default function AdminDataPage() {
             </DialogFooter>
           </form>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
 
-      <Dialog open={closingBom !== null} onOpenChange={(open) => { if (!open) setClosingBom(null); }}>
+      {closingBom && <Dialog open onOpenChange={(open) => { if (!open) setClosingBom(null); }}>
         <DialogContent aria-label="Ngừng áp dụng dòng BOM" className="max-w-md">
           <DialogHeader>
             <DialogTitle>Ngừng áp dụng dòng BOM?</DialogTitle>
@@ -2207,7 +2252,7 @@ export default function AdminDataPage() {
             </button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog>}
     </OperationalFrame>
   );
 }

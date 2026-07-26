@@ -2,6 +2,7 @@ import { useState } from 'react'
 import {
   useCreateInventoryReturnMutation,
   useCreateSupplementalMaterialRequestMutation,
+  useGetInventoryReturnsQuery,
   type KitchenIssueRow,
 } from '@/features/workflow'
 import { formatQuantityWithUnit } from '@/lib/formatters'
@@ -16,10 +17,17 @@ export function useChefExceptions(
   productionPlan: ProductionPlan,
   kitchenIssues: KitchenIssueRow[],
   onFeedback: (feedback: ChefFeedback) => void,
+  enabled = true,
 ) {
   const [returns, setReturns] = useState<RecordedReturn[]>([])
   const [createReturn, returnState] = useCreateInventoryReturnMutation()
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
+  const { data: persistedReturnPage } = useGetInventoryReturnsQuery({
+    returnDate: scope.serviceDate,
+    shiftName: scope.activeShift,
+    pageNumber: 1,
+    pageSize: 100,
+  }, { skip: !enabled })
 
   const requestSupplemental = async (data: SupplementalRequest) => {
     const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
@@ -112,7 +120,17 @@ export function useChefExceptions(
   }
 
   return {
-    activeReturns: returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
+    activeReturns: persistedReturnPage
+      ? persistedReturnPage.items.flatMap((item) => item.lines.map((line) => ({
+          ingredientId: line.ingredientId,
+          ingredientName: line.ingredientName || line.ingredientId,
+          unit: line.unitName || '',
+          returnedQty: line.quantity,
+          condition: item.returnType === 'WASTE' ? 'damaged' as const : 'intact' as const,
+          notes: item.reason,
+          returnedAt: item.createdAt,
+        })))
+      : returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
     requestSupplemental,
     recordReturn,
     isSubmittingSupplemental: supplementalState.isLoading,

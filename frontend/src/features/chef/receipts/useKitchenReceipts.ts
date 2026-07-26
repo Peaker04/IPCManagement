@@ -8,7 +8,7 @@ import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboard
 import { filterKitchenIssues } from '../production/chefProductionModel'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
-export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void) {
+export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback: ChefFeedback) => void, enabled = true) {
   const scopeKey = `${scope.serviceDate}-${scope.apiShiftName}`
   const [pagination, setPagination] = useState({ scopeKey, page: 1 })
   const page = pagination.scopeKey === scopeKey ? pagination.page : 1
@@ -19,7 +19,7 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     shiftName: scope.apiShiftName,
     pageNumber: page,
     pageSize: 100,
-  })
+  }, { skip: !enabled })
   const [confirmReceipt, confirmState] = useConfirmInventoryIssueReceiptMutation()
   const [signedMaterials, setSignedMaterials] = useState<Record<string, boolean>>({})
   const response = query.currentData ?? query.data
@@ -82,7 +82,9 @@ export function useKitchenReceipts(scope: ChefShiftScope, onFeedback: (feedback:
     allReceived: rows.length > 0 && pendingCount === 0 && !hasAdditionalPages,
     setPage,
     signOff,
+    refetch: query.refetch,
     isLoading: query.isLoading,
+    isFetching: query.isFetching,
     isError: query.isError,
     isConfirming: confirmState.isLoading,
   }

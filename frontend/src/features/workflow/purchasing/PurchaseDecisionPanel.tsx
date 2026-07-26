@@ -303,8 +303,20 @@ export function PurchaseDecisionPanel({
                 </option>
               ))}
             </select>
-            {selectedDemand ? <p className="text-[12px] text-slate-600">{selectedDemand.requestCode}. {formatIsoDate(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).</p> : null}
-            <Button className="min-h-11 sm:min-h-9" disabled={!selectedDemand} onClick={() => selectedDemand && setConfirmation({ type: 'create-request', materialRequestId: selectedDemand.materialRequestId })}>
+            <p id="purchase-demand-action-guidance" className="text-[12px] text-slate-600">
+              {selectedDemand
+                ? `${selectedDemand.requestCode}. ${formatIsoDate(selectedDemand.serviceDate)}. Cả ngày (FULLDAY).`
+                : serviceDate.approvedDemands.length === 0
+                  ? 'Không còn nhu cầu đã duyệt đủ điều kiện tạo đề xuất mua cho ngày này.'
+                  : 'Chọn một nhu cầu đã duyệt để tiếp tục.'}
+            </p>
+            <Button
+              className="min-h-11 sm:min-h-9"
+              disabled={!selectedDemand}
+              aria-describedby="purchase-demand-action-guidance"
+              title={!selectedDemand ? (serviceDate.approvedDemands.length === 0 ? 'Không còn nhu cầu đủ điều kiện tạo đề xuất mua.' : 'Chọn nhu cầu đã duyệt trước khi tạo đề xuất.') : undefined}
+              onClick={() => selectedDemand && setConfirmation({ type: 'create-request', materialRequestId: selectedDemand.materialRequestId })}
+            >
               Tạo đề xuất mua
             </Button>
           </div>
@@ -362,7 +374,7 @@ export function PurchaseDecisionPanel({
           <div className="space-y-3">
             <PriceExceptionStatus serviceDate={serviceDate} />
             {serviceDate.blockingExceptionCount > 0 ? (
-              <Button variant="warning" className="min-h-11 sm:min-h-9" render={<Link to={`${ROUTES.APPROVALS}?targetType=purchase-price-exception&date=${serviceDate.serviceDate}&week=${week}`} />}>
+              <Button nativeButton={false} variant="warning" className="min-h-11 sm:min-h-9" render={<Link to={`${ROUTES.APPROVALS}?targetType=purchase-price-exception&date=${serviceDate.serviceDate}&week=${week}`} />}>
                 <CircleAlert aria-hidden="true" />
                 Gửi duyệt ngoại lệ giá
               </Button>
@@ -376,15 +388,21 @@ export function PurchaseDecisionPanel({
             {serviceDate.purchaseRequestId && serviceDate.purchaseRequestStatus?.toUpperCase() === 'DRAFT' ? (
               <Button className="min-h-11 sm:min-h-9" onClick={() => setConfirmation({ type: 'submit-request', purchaseRequestId: serviceDate.purchaseRequestId! })}>Gửi đề xuất mua</Button>
             ) : (
-              <Button variant="outline" className="min-h-11 sm:min-h-9" render={<Link to={`${ROUTES.APPROVALS}?targetType=purchase-request&targetId=${serviceDate.purchaseRequestId ?? ''}&week=${week}&date=${serviceDate.serviceDate}`} />}>Mở phê duyệt đề xuất</Button>
+              <Button nativeButton={false} variant="outline" className="min-h-11 sm:min-h-9" render={<Link to={`${ROUTES.APPROVALS}?targetType=purchase-request&targetId=${serviceDate.purchaseRequestId ?? ''}&week=${week}&date=${serviceDate.serviceDate}`} />}>Mở phê duyệt đề xuất</Button>
             )}
           </div>
         ) : null}
 
         {selectedStage === 'approved-order' ? (
           <div className="space-y-3">
-            <p className="text-[14px] text-slate-700">Đã có {serviceDate.orderCount} đơn đặt hàng cho ngày phục vụ này.</p>
-            <Button className="min-h-11 sm:min-h-9" disabled={!serviceDate.purchaseRequestId || serviceDate.purchaseRequestStatus?.toUpperCase() !== 'APPROVED'} onClick={() => serviceDate.purchaseRequestId && setConfirmation({ type: 'create-orders', purchaseRequestId: serviceDate.purchaseRequestId })}>Tạo đơn đặt hàng</Button>
+            {serviceDate.orderCount > 0 ? (
+              <OrderHandoffStatus serviceDate={serviceDate} week={week} />
+            ) : (
+              <>
+                <p className="text-[14px] text-slate-700">Chưa có đơn đặt hàng cho ngày phục vụ này.</p>
+                <Button className="min-h-11 sm:min-h-9" disabled={!serviceDate.purchaseRequestId || serviceDate.purchaseRequestStatus?.toUpperCase() !== 'APPROVED'} onClick={() => serviceDate.purchaseRequestId && setConfirmation({ type: 'create-orders', purchaseRequestId: serviceDate.purchaseRequestId })}>Tạo đơn đặt hàng</Button>
+              </>
+            )}
           </div>
         ) : null}
 

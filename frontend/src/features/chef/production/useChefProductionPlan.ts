@@ -14,13 +14,21 @@ export function useChefProductionPlan(
   kitchenIssues: KitchenIssueRow[],
   signedMaterials: Record<string, boolean>,
   onFeedback: (feedback: ChefFeedback) => void,
+  enabled = true,
 ) {
   const orders = useAppSelector((state) => state.coordination.orders)
   const menuPrice = useAppSelector((state) => state.coordination.menuPrice)
   const lossRate = useAppSelector((state) => state.coordination.lossRate)
-  const catalog = useGetDishesCatalogQuery()
-  const daily = useGetDailyProductionPlanQuery({ serviceDate: scope.serviceDate, shiftName: scope.apiShiftName })
+  const catalog = useGetDishesCatalogQuery(undefined, { skip: !enabled })
+  const daily = useGetDailyProductionPlanQuery(
+    { serviceDate: scope.serviceDate, shiftName: scope.apiShiftName },
+    { skip: !enabled },
+  )
   const [sendDailyPlan, sendState] = useSendDailyProductionPlanToKitchenMutation()
+  const dailyPlanLines = useMemo(() => mapDailyPlanLines(daily.data), [daily.data])
+  const isLocked = scope.isLocked || Boolean(
+    daily.data && daily.data.totalPlans > 0 && daily.data.sentPlans >= daily.data.totalPlans,
+  )
 
   const productionPlan = useMemo(() => buildChefProductionPlan({
     orders,
@@ -29,12 +37,13 @@ export function useChefProductionPlan(
     signedMaterials,
     activeDay: scope.activeDay,
     activeShift: scope.activeShift,
-    isLocked: scope.isLocked,
+    isLocked,
     menuPrice,
     lossRate,
     serviceDate: scope.serviceDate,
-  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, menuPrice, lossRate])
-  const dailyPlanLines = useMemo(() => mapDailyPlanLines(daily.data), [daily.data])
+    dailyPlanLines,
+    dailyTotalServings: daily.data?.totalServings,
+  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, isLocked, menuPrice, lossRate, dailyPlanLines, daily.data?.totalServings])
   const dailyPlanWarnings = daily.data?.warnings ?? []
   const isCatalogEmpty = !catalog.isLoading && !catalog.isError && (catalog.data?.length ?? 0) === 0
 
@@ -65,12 +74,15 @@ export function useChefProductionPlan(
     dailyPlanLines,
     dailyPlanWarnings,
     receiveDailyPlan,
+    refetch: () => Promise.all([catalog.refetch(), daily.refetch()]),
     isSendingDailyPlan: sendState.isLoading,
+    isLocked,
     status: {
       isCatalogLoading: catalog.isLoading,
       isCatalogError: catalog.isError,
       isCatalogEmpty,
       isDailyPlanLoading: daily.isLoading,
+      isFetching: catalog.isFetching || daily.isFetching,
       isDailyPlanError: daily.isError,
     },
   }

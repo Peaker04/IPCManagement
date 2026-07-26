@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setWeeklyMenu } from '../../coordination/coordinationSlice';
-import { OperationalFrame, ViewSwitcher } from '@/components/common';
+import { OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
 import { useGetDishesCatalogQuery } from '../dishCatalogApi';
 import {
@@ -42,6 +42,7 @@ import { WeeklyMenuCommandBar, WeeklyMenuPricingContext } from '../weekly-menu/s
 import { WeeklyMenuAlerts } from '../weekly-menu/shell/WeeklyMenuAlerts';
 import { WeeklyMenuReadiness } from '../weekly-menu/shell/WeeklyMenuReadiness';
 import { WeeklyMenuViewContent } from '../weekly-menu/shell/WeeklyMenuViewContent';
+import { preloadWeeklyMenuView } from '../weekly-menu/shell/weeklyMenuViewPreload';
 import { buildWeeklyMenuReadiness } from '../weekly-menu/model/readiness';
 
 const WeeklyMenuPage = () => {
@@ -53,6 +54,8 @@ const WeeklyMenuPage = () => {
     data: catalogDishes = [],
     isLoading: isCatalogLoading,
     isError: isCatalogError,
+    isFetching: isCatalogFetching,
+    refetch: refetchCatalog,
   } = useGetDishesCatalogQuery();
   const isCatalogEmpty = !isCatalogLoading && !isCatalogError && catalogDishes.length === 0;
 
@@ -75,6 +78,8 @@ const WeeklyMenuPage = () => {
   const {
     currentData: committedMenuResponse,
     isFetching: isCommittedMenuFetching,
+    isError: isCommittedMenuError,
+    refetch: refetchCommittedMenu,
   } = useGetCommittedWeeklyMenuQuery(
     {
       customerId: effectiveMenuCustomerId,
@@ -87,6 +92,9 @@ const WeeklyMenuPage = () => {
   const menuScheduleWeekStartDate = committedMenu?.weekStartDate?.split('T')[0] ?? (committedMenuWeekStartDate || undefined);
   const {
     currentData: menuSchedulesResponse,
+    isFetching: isMenuSchedulesFetching,
+    isError: isMenuSchedulesError,
+    refetch: refetchMenuSchedules,
   } = useGetMenuSchedulesQuery(
     {
       customerId: effectiveMenuCustomerId,
@@ -97,6 +105,9 @@ const WeeklyMenuPage = () => {
   const menuSchedules = useMemo(() => menuSchedulesResponse?.data ?? [], [menuSchedulesResponse?.data]);
   const {
     currentData: mealQuantityPlansResponse,
+    isFetching: isMealQuantityPlansFetching,
+    isError: isMealQuantityPlansError,
+    refetch: refetchMealQuantityPlans,
   } = useGetMealQuantityPlansQuery(
     {
       customerId: effectiveMenuCustomerId,
@@ -152,13 +163,46 @@ const WeeklyMenuPage = () => {
     dispatch(setWeeklyMenu(committedMenu.importedWeeklyMenu));
   }, [committedMenu, dispatch]);
 
-  const [activeView, setActiveView] = useState<WeeklyMenuView>('schedule');
+  const [selectedView, setSelectedView] = useState<WeeklyMenuView>('schedule');
+  const activeView = useDeferredValue(selectedView);
+  const isViewPending = selectedView !== activeView;
   const [menuFeedback, setMenuFeedback] = useState<{
     title: string;
     message: string;
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const [scheduleFeedback, setScheduleFeedback] = useState<WeeklyScheduleFeedback | null>(null);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (connection?.saveData || connection?.effectiveType === 'slow-2g' || connection?.effectiveType === '2g') return;
+
+    let cancelled = false;
+    let idleHandle: number | undefined;
+    const views: WeeklyMenuView[] = ['demand', 'production-plan', 'purchase-summary', 'cost', 'dish-materials'];
+    const preloadNext = () => {
+      if (cancelled) return;
+      const view = views.shift();
+      if (!view) return;
+      const run = () => void Promise.resolve(preloadWeeklyMenuView(view))
+        .catch(() => undefined)
+        .finally(preloadNext);
+      idleHandle = window.requestIdleCallback
+        ? window.requestIdleCallback(run, { timeout: 1500 })
+        : window.setTimeout(run, 100);
+    };
+    const startHandle = window.setTimeout(preloadNext, 1000);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(startHandle);
+      if (idleHandle !== undefined) {
+        if (window.cancelIdleCallback) window.cancelIdleCallback(idleHandle);
+        else window.clearTimeout(idleHandle);
+      }
+    };
+  }, []);
 
   const resetScopedWeeklyMenuUi = () => {
     dispatch(setWeeklyMenu({}));
@@ -222,14 +266,17 @@ const WeeklyMenuPage = () => {
     onMenuFeedback: setMenuFeedback,
     onQuickServingFeedback: setScheduleFeedback,
   });
-  const productionPlanWorkflow = useWeeklyProductionPlan(weeklyScheduleScope, Boolean(committedMenu?.weekStartDate));
+  const productionPlanWorkflow = useWeeklyProductionPlan(
+    weeklyScheduleScope,
+    activeView === 'production-plan' && Boolean(committedMenu?.weekStartDate),
+  );
   const dishesById = useMemo(() => new Map(catalogDishes.map((dish) => [dish.id, dish])), [catalogDishes]);
   const dishesByName = useMemo(
     () => new Map(catalogDishes.map((dish) => [normalizeDishMatchKey(dish.name), dish])),
     [catalogDishes],
   );
 
-  const weeklyPlanRows = buildWeeklyPlanRows({
+  const weeklyPlanRows = useMemo(() => buildWeeklyPlanRows({
     committedRows: committedMenu?.rows ?? [],
     displayDays,
     weeklyMenu: scheduleWorkflow.state.weeklyMenu,
@@ -238,18 +285,32 @@ const WeeklyMenuPage = () => {
     getServiceDate: scheduleWorkflow.presentation.getServiceDate,
     getSlotServingInfo: scheduleWorkflow.presentation.getSlotServingInfo,
     getLinePricing: scheduleWorkflow.presentation.getLinePricing,
-  });
-  const weeklyRowsWithBom = weeklyPlanRows.filter((row) => row.hasCatalogBom);
-  const weeklyRowsMissingBom = weeklyPlanRows.filter((row) => !row.hasCatalogBom);
-  const weeklyRowsMissingOperationalServings = weeklyPlanRows.filter((row) => row.portions <= 0);
+  }), [
+    committedMenu?.rows,
+    dishesById,
+    dishesByName,
+    displayDays,
+    scheduleWorkflow.presentation.getLinePricing,
+    scheduleWorkflow.presentation.getServiceDate,
+    scheduleWorkflow.presentation.getSlotServingInfo,
+    scheduleWorkflow.state.weeklyMenu,
+  ]);
+  const weeklyRowsWithBom = useMemo(() => weeklyPlanRows.filter((row) => row.hasCatalogBom), [weeklyPlanRows]);
+  const weeklyRowsMissingBom = useMemo(() => weeklyPlanRows.filter((row) => !row.hasCatalogBom), [weeklyPlanRows]);
+  const weeklyRowsMissingOperationalServings = useMemo(() => weeklyPlanRows.filter((row) => row.portions <= 0), [weeklyPlanRows]);
   const invalidBomTierCount = invalidScheduleMenuPrices.length;
-  const quickServingRows = scheduleWorkflow.presentation.buildQuickServingRows(weeklyPlanRows);
+  const quickServingRows = useMemo(
+    () => scheduleWorkflow.presentation.buildQuickServingRows(weeklyPlanRows),
+    [scheduleWorkflow.presentation, weeklyPlanRows],
+  );
   const materialSummary = buildPlanRowsMaterialSummary(weeklyPlanRows, dishesById, dishesByName, {
     customerId: effectiveMenuCustomerId,
     priceTier: menuPrice,
   });
 
   const demandWorkflow = useMaterialDemand({
+    enabled: activeView === 'demand' || activeView === 'purchase-summary',
+    stalenessEnabled: activeView === 'demand',
     scope: weeklyScheduleScope,
     reportDateFrom: committedMenu?.weekStartDate?.split('T')[0],
     reportDateTo: committedMenu?.weekEndDate?.split('T')[0],
@@ -298,6 +359,16 @@ const WeeklyMenuPage = () => {
     weeklyRowsWithBom,
     dishesById,
   });
+  const hasWeeklyMenuQueryError = isCatalogError || isCustomerError || isCommittedMenuError || isMenuSchedulesError || isMealQuantityPlansError;
+  const isRetryingWeeklyMenu = isCatalogFetching || isCustomerLoading || isCommittedMenuFetching || isMenuSchedulesFetching || isMealQuantityPlansFetching;
+  const retryWeeklyMenu = () => {
+    const requests: Array<PromiseLike<unknown>> = [refetchCatalog(), refetchCustomers()];
+    if (effectiveMenuCustomerId) {
+      requests.push(refetchCommittedMenu(), refetchMenuSchedules());
+      if (menuScheduleWeekStartDate) requests.push(refetchMealQuantityPlans());
+    }
+    return Promise.all(requests);
+  };
   return (
 
     <OperationalFrame
@@ -328,6 +399,15 @@ const WeeklyMenuPage = () => {
       />}
       context={<WeeklyMenuPricingContext menuPrice={menuPrice} menuPriceSource={menuPriceSource} />}
     >
+      {hasWeeklyMenuQueryError && (
+        <QueryErrorAlert
+          title="Không tải đủ dữ liệu kế hoạch tuần"
+          isRetrying={isRetryingWeeklyMenu}
+          onRetry={retryWeeklyMenu}
+        >
+          Menu, số suất hoặc danh mục BOM đang gián đoạn. Dữ liệu hiện có chỉ dùng để đối chiếu; hãy thử tải lại trước khi nhập, sửa hoặc tạo demand.
+        </QueryErrorAlert>
+      )}
       <ViewSwitcher
         ariaLabel="Chọn góc nhìn kế hoạch tuần"
         tabs={[
@@ -338,8 +418,8 @@ const WeeklyMenuPage = () => {
           { id: 'cost', label: 'Giá vốn' },
           { id: 'dish-materials', label: 'Nguyên liệu món' },
         ]}
-        activeTab={activeView}
-        onTabChange={(tabId) => setActiveView(tabId as WeeklyMenuView)}
+        activeTab={selectedView}
+        onTabChange={(tabId) => setSelectedView(tabId as WeeklyMenuView)}
       />
       <WeeklyMenuReadiness readiness={readiness} />
       <WeeklyMenuAlerts
@@ -353,24 +433,41 @@ const WeeklyMenuPage = () => {
         hasSelectedCustomer={Boolean(effectiveMenuCustomerId)}
       />
 
-      <WeeklyMenuViewContent
-        activeView={activeView}
-        scope={weeklyScheduleScope}
-        hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
-        committedRows={committedLayoutRows}
-        scheduleWorkflow={scheduleWorkflow}
-        productionPlanWorkflow={productionPlanWorkflow}
-        demandWorkflow={demandWorkflow}
-        servingFeedback={scheduleFeedback}
-        menuCostWorkflow={menuCostWorkflow}
-        purchaseSummaryWorkflow={purchaseSummaryWorkflow}
-        dishMaterialsWorkflow={dishMaterialsWorkflow}
-      />
+      <div
+        className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none"
+        aria-busy={isViewPending}
+        aria-live="polite"
+      >
+        {isViewPending && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
+            Đang cập nhật
+          </span>
+        )}
+        <Suspense fallback={(
+          <section aria-busy="true" className="min-h-[420px] rounded-lg border border-slate-200 bg-white p-6">
+            <span className="text-sm font-medium text-slate-600">Đang chuẩn bị nội dung...</span>
+          </section>
+        )}>
+          <WeeklyMenuViewContent
+            activeView={activeView}
+            scope={weeklyScheduleScope}
+            hasCommittedWeek={Boolean(committedMenu?.weekStartDate)}
+            committedRows={committedLayoutRows}
+            scheduleWorkflow={scheduleWorkflow}
+            productionPlanWorkflow={productionPlanWorkflow}
+            demandWorkflow={demandWorkflow}
+            servingFeedback={scheduleFeedback}
+            menuCostWorkflow={menuCostWorkflow}
+            purchaseSummaryWorkflow={purchaseSummaryWorkflow}
+            dishMaterialsWorkflow={dishMaterialsWorkflow}
+          />
+        </Suspense>
+      </div>
 
 
-      <WeeklyMenuImportDialog workflow={importWorkflow} />
+      {importWorkflow.state.isOpen && <WeeklyMenuImportDialog workflow={importWorkflow} />}
 
-      <WeeklyScheduleEditorDialog workflow={scheduleWorkflow} />
+      {scheduleWorkflow.state.isEditorOpen && <WeeklyScheduleEditorDialog workflow={scheduleWorkflow} />}
 
     </OperationalFrame>
   );

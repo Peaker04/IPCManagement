@@ -23,6 +23,7 @@ interface WarehousePurchaseReceiptDialogProps {
   order: PurchaseOrderDto;
   line: PurchaseOrderLineDto;
   warehouses: WarehouseDto[];
+  preferredWarehouseId?: string;
   week?: string;
   onOpenChange: (open: boolean) => void;
   onSuccess: (result: WarehousePurchaseReceiptResult) => void;
@@ -63,13 +64,15 @@ export function WarehousePurchaseReceiptDialog({
   order,
   line,
   warehouses,
+  preferredWarehouseId,
   week,
   onOpenChange,
   onSuccess,
 }: WarehousePurchaseReceiptDialogProps) {
   const remainingQuantity = Math.max(line.orderedQty - line.receivedQty, 0);
   const idempotencyKey = useRef(createIdempotencyKey());
-  const [warehouseId, setWarehouseId] = useState('');
+  const preferredWarehouse = warehouses.find((warehouse) => warehouse.warehouseId === preferredWarehouseId);
+  const [warehouseId, setWarehouseId] = useState(preferredWarehouse?.warehouseId ?? '');
   const [receiptDate, setReceiptDate] = useState('');
   const [actualQuantity, setActualQuantity] = useState(String(remainingQuantity || ''));
   const [actualUnitPrice, setActualUnitPrice] = useState(String(line.unitPrice || ''));
@@ -217,6 +220,7 @@ export function WarehousePurchaseReceiptDialog({
                 className="ipc-select h-8 w-full"
                 value={warehouseId}
                 onChange={(event) => setWarehouseId(event.target.value)}
+                disabled={Boolean(preferredWarehouse)}
                 aria-invalid={Boolean(errors.warehouseId)}
                 aria-describedby={errors.warehouseId ? 'purchase-receipt-warehouse-error' : undefined}
               >
@@ -225,6 +229,7 @@ export function WarehousePurchaseReceiptDialog({
                   <option key={warehouse.warehouseId} value={warehouse.warehouseId}>{warehouse.warehouseName}</option>
                 ))}
               </select>
+              {preferredWarehouse && <p className="text-xs text-sky-700">Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.</p>}
               {errors.warehouseId && <p id="purchase-receipt-warehouse-error" className="text-xs text-red-700">{errors.warehouseId}</p>}
             </div>
             <div className="grid gap-1.5">

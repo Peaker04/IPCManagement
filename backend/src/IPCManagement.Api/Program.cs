@@ -99,6 +99,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.AdminRoles));
     options.AddPolicy(AuthorizationPolicies.CatalogAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogRoles));
+    options.AddPolicy(AuthorizationPolicies.CatalogReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CatalogReadRoles));
     options.AddPolicy(AuthorizationPolicies.CoordinationAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryAccess, policy =>
@@ -112,6 +114,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.PurchaseAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
+    options.AddPolicy(AuthorizationPolicies.PurchaseOrderReadAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseOrderReadRoles));
     options.AddPolicy(AuthorizationPolicies.PurchaseGenerateAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.PurchaseRoles));
     options.AddPolicy(AuthorizationPolicies.WarehouseAccess, policy =>
@@ -195,6 +199,9 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 // ── Rate Limiting (được tích hợp sẵn trong ASP.NET Core 7+) ──────────────────────
+// PermitLimit đọc từ config để có thể nới tạm khi đo tải (RUNBOOK tools/perf);
+// không cấu hình thì giữ nguyên giá trị production là 100.
+var apiPermitLimit = builder.Configuration.GetValue<int?>("RateLimiting:ApiPermitLimit") ?? 100;
 builder.Services.AddRateLimiter(opts =>
 {
     // Policy cho Auth: 5 lần / 1 phút theo IP (chống brute-force)
@@ -211,7 +218,7 @@ builder.Services.AddRateLimiter(opts =>
     opts.AddPolicy("api-general", context =>
         RateLimitPartition.GetSlidingWindowLimiter(GetRateLimitPartitionKey(context), _ => new SlidingWindowRateLimiterOptions
         {
-            PermitLimit = 100,
+            PermitLimit = apiPermitLimit,
             Window = TimeSpan.FromMinutes(1),
             SegmentsPerWindow = 6,
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,

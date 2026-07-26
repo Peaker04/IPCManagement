@@ -11,6 +11,7 @@ const issue = (id: string, shiftName: string, issueDate = '2026-07-19'): Kitchen
   shiftName,
   warehouseId: 'warehouse-1',
   warehouse: 'Kho chính',
+  materialRequestId: 'material-request-1',
   ingredientId: `ingredient-${id}`,
   ingredient: 'Gạo',
   unitId: 'kg',
@@ -70,7 +71,42 @@ describe('chef production model', () => {
     })
     expect(plan.totalMeals).toBe(8)
     expect(plan.activeDishes[0]).toMatchObject({ id: 'dish-1', name: 'Cơm' })
-    expect(plan.receivedMaterials[0]).toMatchObject({ id: 'morning', quantity: 9, status: 'Đã nhận' })
+    expect(plan.receivedMaterials[0]).toMatchObject({ id: 'morning', quantity: 9, status: 'Chờ giao' })
     expect(plan.date).toBe('2026-07-19')
+  })
+
+  it('uses server daily-plan dishes and meal totals after a page reload', () => {
+    const dishes: CatalogDish[] = [{
+      id: 'dish-1', code: 'MON-01', name: 'Cơm', isActive: true, menuSlots: [], ingredients: [],
+    }]
+    const plan = buildChefProductionPlan({
+      orders: [],
+      catalogDishes: dishes,
+      kitchenIssues: [],
+      signedMaterials: {},
+      activeDay: 't2',
+      activeShift: 'Ca Sáng',
+      isLocked: true,
+      menuPrice: 25000,
+      lossRate: 0,
+      serviceDate: '2026-07-20',
+      dailyTotalServings: 840,
+      dailyPlanLines: [{
+        planLineId: 'line-1',
+        planCode: 'KHSX-001',
+        dishId: 'dish-1',
+        dishName: 'Cơm',
+        shiftName: 'MORNING',
+        totalServings: 840,
+        totalRequiredQty: 10,
+        suggestedPurchaseQty: 0,
+        hasKitchenIssue: false,
+        isReceivedByKitchen: true,
+      }],
+    })
+
+    expect(plan.totalMeals).toBe(840)
+    expect(plan.activeDishes).toHaveLength(1)
+    expect(plan.activeDishes[0]).toMatchObject({ id: 'dish-1', name: 'Cơm' })
   })
 })

@@ -1,3 +1,5 @@
+using IPCManagement.Api.Models.DTOs.Common;
+
 namespace IPCManagement.Api.Models.DTOs.Inventory;
 
 public sealed class CreateSupplementalMaterialRequestDto
@@ -21,7 +23,33 @@ public sealed class SupplementalMaterialRequestDto
     public string UnitId { get; set; } = string.Empty;
     public string UnitName { get; set; } = string.Empty;
     public decimal RequestedQty { get; set; }
+    public decimal FulfilledQty { get; set; }
+    public decimal RemainingQty { get; set; }
+    public decimal AvailableQty { get; set; }
     public string? Reason { get; set; }
     public string Status { get; set; } = string.Empty;
     public DateTime RequestedAt { get; set; }
+    public string? PurchaseRequestId { get; set; }
+    public string? PurchaseRequestCode { get; set; }
+    public string? PurchaseRequestStatus { get; set; }
+    public bool CanFulfill { get; set; }
+    public bool CanRouteToPurchasing { get; set; }
+    public bool CanReject { get; set; }
+    public string? ActionDisabledReason { get; set; }
+}
+
+public sealed class SupplementalMaterialRequestFilterDto : PagedRequestDto
+{
+    public string? WarehouseId { get; set; }
+    public string? Status { get; set; }
+}
+
+public sealed class FulfillSupplementalMaterialRequestDto
+{
+    public decimal Quantity { get; set; }
+}
+
+public sealed class RejectSupplementalMaterialRequestDto
+{
+    public string Reason { get; set; } = string.Empty;
 }

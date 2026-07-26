@@ -436,6 +436,42 @@ public class InventoryIssueServiceTests
                 convertRateToBase REAL DEFAULT 1
             );
 
+            CREATE TABLE supplementalmaterialrequests (
+                requestId BLOB PRIMARY KEY,
+                requestCode TEXT,
+                issueId BLOB,
+                issueLineId BLOB,
+                warehouseId BLOB,
+                ingredientId BLOB,
+                unitId BLOB,
+                requestedQty REAL,
+                reason TEXT,
+                status TEXT,
+                requestedBy BLOB,
+                requestedAt TEXT
+            );
+
+            CREATE TABLE stockmovements (
+                movementId BLOB PRIMARY KEY,
+                movementDate TEXT,
+                warehouseId BLOB,
+                ingredientId BLOB,
+                unitId BLOB,
+                movementType TEXT,
+                refTable TEXT,
+                refId BLOB,
+                quantityIn REAL,
+                quantityOut REAL,
+                beforeQty REAL,
+                afterQty REAL,
+                lotNumber TEXT,
+                manufactureDate TEXT,
+                expiredDate TEXT,
+                performedBy BLOB,
+                reason TEXT,
+                note TEXT
+            );
+
             CREATE TABLE auditlogs (
                 auditId BLOB PRIMARY KEY,
                 changedAt TEXT,
@@ -589,5 +625,85 @@ public class InventoryIssueServiceTests
         var audits = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.ToListAsync(context.Auditlogs);
         audits.Should().HaveCount(2); // KitchenReceived, KitchenReceiptDiscrepancy
         audits.Should().ContainSingle(a => a.NewValue == "Thiếu nửa cân");
+    }
+
+    [Fact]
+    public async Task ConfirmReceiptAsync_Should_CloseFullyIssuedSupplementalRequest_InSameTransaction()
+    {
+        using var context = CreateInMemoryContext();
+        var service = new InventoryIssueService(_issueRepository, _unitOfWork, _stockLedgerService, context);
+        var issueId = GuidHelper.NewId();
+        var requestId = GuidHelper.NewId();
+        var userId = GuidHelper.NewId();
+        var warehouseId = GuidHelper.NewId();
+        var ingredientId = GuidHelper.NewId();
+        var unitId = GuidHelper.NewId();
+        context.Users.Add(new User { UserId = userId, Username = "supplemental-user", FullName = "Supplemental User" });
+        context.Warehouses.Add(new Warehouse { WarehouseId = warehouseId, WarehouseCode = "W-SUP", WarehouseName = "Supplemental Warehouse", WarehouseType = "KHO_BEP" });
+        context.Inventoryissues.Add(new Inventoryissue
+        {
+            IssueId = issueId,
+            IssueCode = "ISS-SUP-TEST",
+            IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            WarehouseId = warehouseId,
+            MaterialRequestId = GuidHelper.NewId(),
+            IssuedBy = userId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        {
+            RequestId = requestId,
+            RequestCode = "SUP-TEST",
+            IssueId = GuidHelper.NewId(),
+            IssueLineId = GuidHelper.NewId(),
+            WarehouseId = warehouseId,
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            RequestedQty = 1,
+            Status = "ISSUED",
+            RequestedBy = userId,
+            RequestedAt = DateTime.UtcNow,
+        });
+        context.Stockmovements.Add(new Stockmovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = DateTime.UtcNow,
+            WarehouseId = warehouseId,
+            IngredientId = ingredientId,
+            UnitId = unitId,
+            MovementType = "ISSUE",
+            RefTable = "supplementalmaterialrequests",
+            RefId = requestId,
+            QuantityIn = 0,
+            QuantityOut = 1,
+            BeforeQty = 2,
+            AfterQty = 1,
+            PerformedBy = userId,
+            Reason = "Supplemental test",
+        });
+        context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = userId,
+            BusinessArea = "SupplementalMaterial",
+            EntityName = nameof(Supplementalmaterialrequest),
+            EntityId = requestId,
+            FieldName = SupplementalMaterialRequestService.FulfillmentIssueAuditField,
+            NewValue = GuidHelper.ToGuidString(issueId),
+            Reason = "Linked supplemental issue",
+        });
+        await context.SaveChangesAsync();
+
+        await service.ConfirmReceiptAsync(
+            GuidHelper.ToGuidString(issueId),
+            new ConfirmInventoryIssueReceiptDto(),
+            GuidHelper.ToGuidString(userId));
+
+        var supplemental = await context.Supplementalmaterialrequests.SingleAsync();
+        supplemental.Status.Should().Be("FULFILLED");
+        var auditLogs = await context.Auditlogs.ToListAsync();
+        auditLogs.Should().Contain(item =>
+            item.EntityId != null && item.EntityId.SequenceEqual(requestId) && item.NewValue == "FULFILLED");
     }
 }

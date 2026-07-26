@@ -9,6 +9,7 @@ import {
   useGetMaterialDemandStalenessQuery,
   useGetWorkflowDocumentsQuery,
 } from '@/features/workflow'
+import type { DemandLine } from '@/features/workflow'
 import { useUpsertQuickServingsMutation } from '../../../coordination/coordinationApi'
 import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
@@ -17,6 +18,8 @@ import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '.
 import { attachDemandDishSources, buildDemandApprovalHref, buildDemandDayPages, buildKhsxDraftDocument, getDemandApprovalPresentation, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState, isDemandDocumentForDate, partitionDemandLines } from './demandModel'
 
 type Options = {
+  enabled?: boolean
+  stalenessEnabled?: boolean
   scope: WeeklyMenuScope
   reportDateFrom?: string
   reportDateTo?: string
@@ -30,6 +33,8 @@ type Options = {
 }
 
 export function useMaterialDemand({
+  enabled = true,
+  stalenessEnabled = enabled,
   scope,
   reportDateFrom,
   reportDateTo,
@@ -68,45 +73,55 @@ export function useMaterialDemand({
     dateFrom: reportDateFrom,
     dateTo: reportDateTo,
   }), [reportDateFrom, reportDateTo, scope.customerId])
-  const { currentData: demandLines = [] } = useGetIngredientDemandQuery(reportQuery, { skip: !scope.customerId })
-  const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(reportQuery, { skip: !scope.customerId })
+  const { currentData: demandLines = [] } = useGetIngredientDemandQuery(reportQuery, { skip: !enabled || !scope.customerId })
+  const { currentData: workflowDocuments = [] } = useGetWorkflowDocumentsQuery(reportQuery, { skip: !enabled || !scope.customerId })
   const stalenessQuery = (serviceDate?: string) => ({
     serviceDate: serviceDate ?? '',
     customerId: scope.customerId,
     scope: 'FULLDAY' as const,
   })
-  const staleness0 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[0]), { skip: !scope.customerId || !serviceDates[0] })
-  const staleness1 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[1]), { skip: !scope.customerId || !serviceDates[1] })
-  const staleness2 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[2]), { skip: !scope.customerId || !serviceDates[2] })
-  const staleness3 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[3]), { skip: !scope.customerId || !serviceDates[3] })
-  const staleness4 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[4]), { skip: !scope.customerId || !serviceDates[4] })
-  const staleness5 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[5]), { skip: !scope.customerId || !serviceDates[5] })
-  const staleness6 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[6]), { skip: !scope.customerId || !serviceDates[6] })
+  const staleness0 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[0]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[0] })
+  const staleness1 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[1]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[1] })
+  const staleness2 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[2]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[2] })
+  const staleness3 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[3]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[3] })
+  const staleness4 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[4]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[4] })
+  const staleness5 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[5]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[5] })
+  const staleness6 = useGetMaterialDemandStalenessQuery(stalenessQuery(serviceDates[6]), { skip: !stalenessEnabled || !scope.customerId || !serviceDates[6] })
+  const stalenessResults = [staleness0, staleness1, staleness2, staleness3, staleness4, staleness5, staleness6]
   const weekStaleness = getWeekStalenessState(
     serviceDates,
-    [staleness0, staleness1, staleness2, staleness3, staleness4, staleness5, staleness6],
+    stalenessResults,
   )
   const staleness = weekStaleness.staleness
   const dayPages = useMemo(() => buildDemandDayPages(scope, weeklyPlanRows), [scope, weeklyPlanRows])
   const dayIndex = getDemandDayIndex(dayPages, selectedDayKey, scope.activeDayKey)
   const activeDay = dayPages[dayIndex]
   const activeDate = activeDay?.rows[0]?.serviceDate ?? ''
+  const activeDateIndex = serviceDates.indexOf(activeDate)
+  const activeStaleness = activeDateIndex >= 0 ? stalenessResults[activeDateIndex]?.data?.data ?? undefined : undefined
+  const regenerableServiceDates = serviceDates.filter((_, index) => stalenessResults[index]?.data?.data?.canRegenerate !== false)
   const { currentData: aggregatePage, isFetching: isFetchingAggregate } = useGetIngredientDemandAggregatePageQuery({
     customerId: scope.customerId,
     dateFrom: activeDate || undefined,
     dateTo: activeDate || undefined,
     pageNumber: aggregatePageNumber,
     pageSize: 100,
-  }, { skip: !scope.customerId || !activeDate })
+  }, { skip: !enabled || !scope.customerId || !activeDate })
   const activeDemand = demandLines.find((line) => line.serviceDate === activeDate && line.materialRequestId)
+    ?? (activeStaleness?.materialRequestId ? {
+      materialRequestId: activeStaleness.materialRequestId,
+      materialRequestStatus: activeStaleness.status ?? undefined,
+      sourceDocumentCode: activeStaleness.requestCode ?? undefined,
+      serviceDate: activeDate,
+    } as DemandLine : undefined)
   const { currentData: approvalHistoryResponse } = useGetApprovalHistoryQuery({
     documentType: 'material-demand',
     documentId: activeDemand?.materialRequestId ?? '',
-  }, { skip: !activeDemand?.materialRequestId })
+  }, { skip: !enabled || !activeDemand?.materialRequestId })
   const rejectionReason = approvalHistoryResponse?.data
     ?.filter((item) => item.decision.toUpperCase() === 'REJECT')
     .at(-1)?.reason ?? undefined
-  const demandApprovalStatus = getDemandApprovalPresentation(demandLines, activeDate, rejectionReason)
+  const demandApprovalStatus = getDemandApprovalPresentation(activeDemand ? [activeDemand] : demandLines, activeDate, rejectionReason)
   const approvalHref = demandApprovalStatus.targetId
     ? buildDemandApprovalHref({
       week: scope.weekStartDate,
@@ -149,6 +164,14 @@ export function useMaterialDemand({
       })
       return
     }
+    if (regenerableServiceDates.length === 0) {
+      setFeedback({
+        title: 'Nhu cầu đã khóa, chỉ có thể xem',
+        message: weekStaleness.staleness?.regenerationBlockReason ?? 'Các ngày trong tuần đã có chứng từ nghiệp vụ phía sau. Hãy dùng luồng điều chỉnh riêng thay vì tính đè.',
+        variant: 'info',
+      })
+      return
+    }
     if (invalidScheduleMenuPrices.length > 0) {
       setFeedback({ title: 'Định mức không hợp lệ', message: 'Có lịch thực đơn dùng giá ngoài 25k, 30k hoặc 34k. Vui lòng nhập lại thực đơn với định mức cố định trước khi tạo nhu cầu.', variant: 'danger' })
       return
@@ -172,8 +195,8 @@ export function useMaterialDemand({
         return
       }
     }
-    setFeedback({ title: 'Đang tạo nhu cầu', message: `Đang tính nhu cầu nguyên liệu cho ${serviceDates.length} ngày trong tuần.`, variant: 'info' })
-    const results = await runInBatches(serviceDates, 2, async (serviceDate) => {
+    setFeedback({ title: 'Đang tạo nhu cầu', message: `Đang tính nhu cầu nguyên liệu cho ${regenerableServiceDates.length}/${serviceDates.length} ngày có thể cập nhật.`, variant: 'info' })
+    const results = await runInBatches(regenerableServiceDates, 2, async (serviceDate) => {
       try {
         const response = await generateMaterialDemand({ serviceDate, customerId: scope.customerId, scope: 'FULLDAY' }).unwrap()
         if (!response.success || !response.data) throw new Error(response.message || 'Không tạo được nhu cầu nguyên liệu.')
@@ -224,7 +247,7 @@ export function useMaterialDemand({
     presentation: {
       sourceMenuValue, materialSummaryCount, weeklyPlanRows, missingBomRows: weeklyPlanRows.filter((row) => !row.hasCatalogBom),
       importDefaultRows: weeklyPlanRows.filter((row) => row.servingsStatus === 'import-default'),
-      demandLines, aggregatedDemandLines, staleness, dayPages, dayIndex, activeDay, activeDate,
+      demandLines, aggregatedDemandLines, staleness, activeStaleness, dayPages, dayIndex, activeDay, activeDate,
       activeRows: activeDay?.rows ?? [], activeQuickServingRows, aggregatePage, aggregateLines, inventoryStatus, inventoryGroups, documents, weeklyDocuments,
       demandApprovalStatus,
       approvalHref,

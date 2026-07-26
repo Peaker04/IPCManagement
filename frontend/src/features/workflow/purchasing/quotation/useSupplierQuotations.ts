@@ -15,7 +15,12 @@ const EMPTY_FORM = { supplierId: '', unitPrice: '', effectiveFrom: '', effective
 
 export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
-  const { data: ingredients = [] } = useGetIngredientsQuery(undefined, { skip: !enabled });
+  const [ingredientSearch, setIngredientSearch] = useState('');
+  const normalizedIngredientSearch = ingredientSearch.trim();
+  const { data: ingredients = [] } = useGetIngredientsQuery(
+    normalizedIngredientSearch ? { searchKeyword: normalizedIngredientSearch } : undefined,
+    { skip: !enabled },
+  );
   const { data: suppliers = [] } = useGetSuppliersQuery(undefined, { skip: !enabled });
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [page, setPage] = useState(1);
@@ -108,6 +113,8 @@ export function useSupplierQuotations(enabled = true) {
 
   return {
     ingredients,
+    ingredientSearch,
+    setIngredientSearch,
     suppliers,
     selectedIngredientId,
     selectIngredient,
