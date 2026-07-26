@@ -66,7 +66,12 @@ const WeeklyMenuPage = () => {
     refetch: refetchCustomers,
   } = useGetCoordinationCustomersQuery();
   const customers = customerResponse?.data ?? [];
-  const { data: customerContractsResponse } = useGetCustomerContractsQuery();
+  const {
+    data: customerContractsResponse,
+    isError: isCustomerContractError,
+    isFetching: isCustomerContractFetching,
+    refetch: refetchCustomerContracts,
+  } = useGetCustomerContractsQuery();
   const customerContracts = customerContractsResponse?.data ?? [];
   const [selectedMenuCustomerId, setSelectedMenuCustomerId] = useState(
     () => window.localStorage.getItem(LAST_WEEKLY_MENU_CUSTOMER_KEY) ?? '',
@@ -359,10 +364,10 @@ const WeeklyMenuPage = () => {
     weeklyRowsWithBom,
     dishesById,
   });
-  const hasWeeklyMenuQueryError = isCatalogError || isCustomerError || isCommittedMenuError || isMenuSchedulesError || isMealQuantityPlansError;
-  const isRetryingWeeklyMenu = isCatalogFetching || isCustomerLoading || isCommittedMenuFetching || isMenuSchedulesFetching || isMealQuantityPlansFetching;
+  const hasWeeklyMenuQueryError = isCatalogError || isCustomerError || isCustomerContractError || isCommittedMenuError || isMenuSchedulesError || isMealQuantityPlansError;
+  const isRetryingWeeklyMenu = isCatalogFetching || isCustomerLoading || isCustomerContractFetching || isCommittedMenuFetching || isMenuSchedulesFetching || isMealQuantityPlansFetching;
   const retryWeeklyMenu = () => {
-    const requests: Array<PromiseLike<unknown>> = [refetchCatalog(), refetchCustomers()];
+    const requests: Array<PromiseLike<unknown>> = [refetchCatalog(), refetchCustomers(), refetchCustomerContracts()];
     if (effectiveMenuCustomerId) {
       requests.push(refetchCommittedMenu(), refetchMenuSchedules());
       if (menuScheduleWeekStartDate) requests.push(refetchMealQuantityPlans());
@@ -405,7 +410,7 @@ const WeeklyMenuPage = () => {
           isRetrying={isRetryingWeeklyMenu}
           onRetry={retryWeeklyMenu}
         >
-          Menu, số suất hoặc danh mục BOM đang gián đoạn. Dữ liệu hiện có chỉ dùng để đối chiếu; hãy thử tải lại trước khi nhập, sửa hoặc tạo demand.
+          Menu, số suất, hợp đồng định mức hoặc danh mục BOM đang gián đoạn. Dữ liệu hiện có chỉ dùng để đối chiếu; hãy thử tải lại trước khi nhập, sửa hoặc tạo nhu cầu.
         </QueryErrorAlert>
       )}
       <ViewSwitcher

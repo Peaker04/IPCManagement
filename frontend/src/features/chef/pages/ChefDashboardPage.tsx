@@ -57,11 +57,12 @@ export default function ChefDashboardPage() {
     production.status.isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
     production.status.isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
     ...production.dailyPlanWarnings,
+    exceptions.isReturnsError ? 'Chưa tải được phiếu trả kho của ca; nhật ký ca đang thiếu dòng, không nên coi là ca chưa phát sinh phiếu trả.' : null,
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
   const statusVariant = production.status.isCatalogError || production.status.isCatalogEmpty || receipts.isError
-    || production.status.isDailyPlanError || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+    || production.status.isDailyPlanError || exceptions.isReturnsError || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
 
   const signOffMaterial = async (materialId: string, signed: boolean) => {
     await receipts.signOff(
@@ -140,7 +141,15 @@ export default function ChefDashboardPage() {
             />
           </div>
         )}
-        {!isProductionView && <ChefDocumentsSection movements={journal.kitchenMovements} documents={journal.returnDocuments} />}
+        {!isProductionView && (
+          <ChefDocumentsSection
+            movements={journal.kitchenMovements}
+            documents={journal.returnDocuments}
+            isError={journal.isError}
+            isRetrying={journal.isRetrying}
+            onRetry={journal.retry}
+          />
+        )}
         </div>
       </div>
     </OperationalFrame>

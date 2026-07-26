@@ -25,17 +25,26 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [selectedMaterialRequestId, setSelectedMaterialRequestId] = useState('');
   const [selectedPurchaseRequestId, setSelectedPurchaseRequestId] = useState('');
-  const { data: purchasePlanResponse } = useGetPurchasePlanPageQuery({
+  const {
+    data: purchasePlanResponse,
+    isError: isPurchasePlanError,
+    isFetching: isFetchingPurchasePlan,
+    refetch: refetchPurchasePlan,
+  } = useGetPurchasePlanPageQuery({
     groupBy: 'day',
     pageNumber: purchasePlanPage,
     pageSize: PAGE_SIZE,
   });
-  const { data: candidateResponse, isFetching: isFetchingCandidates } = useGetMaterialRequestCandidatePageQuery({
+  const {
+    data: candidateResponse,
+    isFetching: isFetchingCandidates,
+    isError: isCandidateError,
+  } = useGetMaterialRequestCandidatePageQuery({
     purpose: 'purchase',
     pageNumber: purchaseCandidatePage,
     pageSize: PAGE_SIZE,
   });
-  const { data: purchaseRequestsResponse } = useGetPurchaseRequestsPageQuery({
+  const { data: purchaseRequestsResponse, isError: isPurchaseRequestError } = useGetPurchaseRequestsPageQuery({
     status: 'DRAFT',
     pageNumber: purchaseRequestPage,
     pageSize: PAGE_SIZE,
@@ -107,6 +116,12 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
 
   return {
     presentation: { purchasePlanLines, purchaseRequestLines, primaryPlan, primaryRequestLine },
+    // Kế hoạch mua rỗng vì lỗi tải khác hẳn với "tuần này không cần mua gì".
+    error: {
+      isPlanError: isPurchasePlanError || isPurchaseRequestError,
+      isPlanRetrying: isFetchingPurchasePlan,
+      retryPlan: () => refetchPurchasePlan(),
+    },
     command: {
       submitTargetId,
       selectedPurchaseRequestId,
@@ -129,6 +144,7 @@ export function usePurchaseDemand(onRequestCreated: () => void) {
       page: purchaseCandidatePage,
       setPage: changeCandidatePage,
       isFetching: isFetchingCandidates,
+      isError: isCandidateError,
       isCreating,
       create: createPurchaseRequest,
       formatCandidate: formatPurchaseRequestCandidate,

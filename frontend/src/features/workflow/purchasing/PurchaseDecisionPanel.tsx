@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CircleAlert, PackageCheck, ReceiptText, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { InlineAlert, SectionPanel, StatusBadge } from '@/components/common';
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -163,7 +163,12 @@ export function PurchaseDecisionPanel({
     purchaseRequestId: serviceDate?.purchaseRequestId ?? '',
     purchaseRequestLineId: selectedLine?.purchaseRequestLineId ?? '',
   };
-  const { data: evidence, isFetching: isEvidenceLoading } = useGetSupplierEvidenceQuery(
+  const {
+    data: evidence,
+    isFetching: isEvidenceLoading,
+    isError: isEvidenceError,
+    refetch: refetchEvidence,
+  } = useGetSupplierEvidenceQuery(
     evidenceArgs,
     { skip: selectedStage !== 'supplier-price' || !evidenceArgs.purchaseRequestId || !evidenceArgs.purchaseRequestLineId },
   );
@@ -330,7 +335,14 @@ export function PurchaseDecisionPanel({
                   <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
                   <p className="mt-1 text-[12px] text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
                 </div>
-                {isEvidenceLoading ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : (
+                {isEvidenceLoading ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : isEvidenceError ? (
+                  <EmptyState
+                    variant="error"
+                    title="Không tải được bằng chứng nhà cung cấp"
+                    description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì nguyên liệu này thiếu báo giá hoặc phiếu nhập. Hãy tải lại trước khi chọn nhà cung cấp và chốt giá."
+                    onRetry={refetchEvidence}
+                  />
+                ) : (
                   <SupplierEvidenceList candidates={evidence?.candidates ?? []} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
                 )}
                 {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}

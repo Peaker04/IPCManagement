@@ -1,4 +1,4 @@
-import { ConfirmDialog, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
+import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
 import type { IngredientLookup } from '@/features/projects/dishCatalogApi';
 import type { useSupplierQuotations } from './useSupplierQuotations';
 
@@ -8,6 +8,11 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
       <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab" className="mt-4 space-y-4">
+        {workflow.isLookupError && (
+          <InlineAlert title="Không tải được danh mục nguyên liệu hoặc nhà cung cấp" variant="danger">
+            <span role="alert">Các ô chọn bên dưới đang rỗng vì lỗi tải dữ liệu, không phải vì hệ thống chưa có nguyên liệu hay nhà cung cấp nào. Hãy tải lại trang trước khi nhập báo giá.</span>
+          </InlineAlert>
+        )}
         <div className="grid gap-3 md:grid-cols-[minmax(220px,0.6fr)_minmax(280px,1fr)]">
           <input
             type="search"
@@ -35,6 +40,15 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
 
         {workflow.selectedIngredientId && (
           <>
+            {workflow.isQuotationError && (
+              <EmptyState
+                variant="error"
+                title="Không tải được báo giá của nguyên liệu này"
+                description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì nguyên liệu này chưa có báo giá. Hãy tải lại trước khi chọn nhà cung cấp hoặc nhập giá mới."
+                onRetry={workflow.retryQuotations}
+                isRetrying={workflow.isFetching}
+              />
+            )}
             <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu">
               <table className="ipc-table">
                 <thead><tr><th>Nhà cung cấp</th><th className="text-right">Đơn giá (đ)</th><th>Hiệu lực từ</th><th>Hiệu lực đến</th><th>Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead>
@@ -51,7 +65,11 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                       </td>
                     </tr>
                   ))}
-                  {workflow.rows.length === 0 && !workflow.isFetching && <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>}
+                  {workflow.rows.length === 0 && !workflow.isFetching && (
+                    workflow.isQuotationError
+                      ? <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không tải được báo giá</td></tr>
+                      : <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
+                  )}
                 </tbody>
               </table>
             </TableViewport>

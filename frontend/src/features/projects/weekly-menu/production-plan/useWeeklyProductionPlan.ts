@@ -49,9 +49,14 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) 
   return {
     scope,
     state: { selectedDayKey, selectedServiceDate, pageIndex: safePageIndex },
-    status: { isLoading: !selectedServiceDate && weekQuery.isFetching },
+    status: {
+      isLoading: !selectedServiceDate && weekQuery.isFetching,
+      isError: weekQuery.isError,
+      isRetrying: weekQuery.isFetching,
+    },
     actions: {
       selectDay,
+      retry: () => weekQuery.refetch(),
       setPage: (page: number) => setNavigation({
         scopeKey,
         selectedDayKey,

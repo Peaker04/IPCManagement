@@ -2,18 +2,20 @@ import { RefreshCw } from 'lucide-react';
 import { InlineAlert } from './InlineAlert';
 
 interface QueryErrorAlertProps {
-  title: string;
+  title: React.ReactNode;
   children: React.ReactNode;
   onRetry: () => unknown;
   isRetrying?: boolean;
+  className?: string;
 }
 
-export function QueryErrorAlert({ title, children, onRetry, isRetrying = false }: QueryErrorAlertProps) {
+export function QueryErrorAlert({ title, children, onRetry, isRetrying = false, className }: QueryErrorAlertProps) {
   return (
     <div role="alert" aria-live="assertive">
       <InlineAlert
         title={title}
         variant="danger"
+        className={className}
         action={(
           <button
             type="button"

@@ -43,7 +43,11 @@ export function WeeklyMenuImportHistory({ workflow }: { workflow: WeeklyMenuImpo
                 </tr>
               )
             })}
-            {history.length === 0 && <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có lịch sử import thực đơn tuần.</td></tr>}
+            {history.length === 0 && (
+              status.isHistoryError
+                ? <tr><td colSpan={7} className="p-5 text-center text-sm font-semibold text-red-700" role="alert">Không tải được lịch sử import. Bảng trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này chưa từng import.</td></tr>
+                : <tr><td colSpan={7} className="p-5 text-center text-sm font-medium text-slate-500">Chưa có lịch sử import thực đơn tuần.</td></tr>
+            )}
           </tbody>
         </table>
       </TableViewport>

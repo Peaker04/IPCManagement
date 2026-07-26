@@ -2,7 +2,7 @@ import { Fragment } from 'react'
 import { Link } from 'react-router-dom'
 import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, Scale, ShoppingCart, TriangleAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { DemandSummary, DocumentRail, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/routes/ActionGuard'
 import { ROUTES } from '@/routes/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
@@ -130,12 +130,12 @@ export function MaterialDemandSection({
           <div>
             <PackageSearch size={18} aria-hidden="true" />
             <dt>Nguyên liệu trong ngày</dt>
-            <dd>{inventoryStatus.totalCount} nguyên liệu</dd>
+            <dd>{status.isDemandError ? 'Chưa xác định' : `${inventoryStatus.totalCount} nguyên liệu`}</dd>
           </div>
-          <div className={inventoryStatus.shortageCount > 0 ? 'is-danger' : 'is-complete'}>
+          <div className={status.isDemandError || inventoryStatus.shortageCount > 0 ? 'is-danger' : 'is-complete'}>
             <TriangleAlert size={18} aria-hidden="true" />
             <dt>Ngoại lệ cần xử lý</dt>
-            <dd>{inventoryStatus.shortageCount > 0 ? `Thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Không có thiếu hụt'}</dd>
+            <dd>{status.isDemandError ? 'Chưa xác định được' : inventoryStatus.shortageCount > 0 ? `Thiếu ${inventoryStatus.shortageCount}/${inventoryStatus.totalCount} nguyên liệu` : 'Không có thiếu hụt'}</dd>
           </div>
         </dl>
 
@@ -172,7 +172,9 @@ export function MaterialDemandSection({
           <InlineAlert title="Nhu cầu nguyên liệu đã bị từ chối" variant="danger">
             {presentation.demandApprovalStatus.reason
               ? `Lý do của quản lý: ${presentation.demandApprovalStatus.reason} Hãy cập nhật dữ liệu nguồn rồi tính lại nhu cầu.`
-              : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
+              : status.isApprovalHistoryError
+                ? 'Không tải được lịch sử phê duyệt nên chưa hiển thị được lý do từ chối. Hãy tải lại trước khi tính lại nhu cầu.'
+                : 'Hãy xem lịch sử phê duyệt, cập nhật dữ liệu nguồn rồi tính lại nhu cầu.'}
           </InlineAlert>
         )}
 
@@ -239,7 +241,15 @@ export function MaterialDemandSection({
         </div>
         </details>
 
-        {presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
+        {status.isDemandError ? (
+          <EmptyState
+            variant="error"
+            title="Không tải được nhu cầu nguyên liệu"
+            description="Máy chủ chưa trả được dòng nhu cầu cho ngày đang xem, nên không thể kết luận là tuần này không cần mua gì. Hãy tải lại rồi mới lập đề xuất mua hoặc phiếu xuất."
+            onRetry={actions.retryDemand}
+            isRetrying={status.isDemandRetrying}
+          />
+        ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
           <section className="ipc-demand-inventory-section">
             <div className="flex min-h-[34px] items-center justify-between rounded-md border border-slate-200 bg-slate-50 px-3 py-2">
               <div className="flex flex-col gap-0.5">

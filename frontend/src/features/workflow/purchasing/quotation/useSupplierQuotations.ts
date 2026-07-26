@@ -17,17 +17,22 @@ export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
   const [ingredientSearch, setIngredientSearch] = useState('');
   const normalizedIngredientSearch = ingredientSearch.trim();
-  const { data: ingredients = [] } = useGetIngredientsQuery(
+  const { data: ingredients = [], isError: isIngredientError } = useGetIngredientsQuery(
     normalizedIngredientSearch ? { searchKeyword: normalizedIngredientSearch } : undefined,
     { skip: !enabled },
   );
-  const { data: suppliers = [] } = useGetSuppliersQuery(undefined, { skip: !enabled });
+  const { data: suppliers = [], isError: isSupplierError } = useGetSuppliersQuery(undefined, { skip: !enabled });
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
-  const { data: response, isFetching } = useGetSupplierQuotationsByIngredientPageQuery({
+  const {
+    data: response,
+    isFetching,
+    isError: isQuotationError,
+    refetch: refetchQuotations,
+  } = useGetSupplierQuotationsByIngredientPageQuery({
     ingredientId: selectedIngredientId,
     pageNumber: page,
     pageSize: 8,
@@ -122,6 +127,11 @@ export function useSupplierQuotations(enabled = true) {
     setPage,
     response,
     isFetching,
+    // Danh mục hoặc bảng báo giá rỗng vì lỗi tải khác hẳn với "nguyên liệu này
+    // chưa có báo giá" — nhầm lẫn ở đây dẫn tới chọn sai nhà cung cấp và giá.
+    isLookupError: isIngredientError || isSupplierError,
+    isQuotationError,
+    retryQuotations: () => refetchQuotations(),
     rows: response?.items ?? [],
     form,
     setForm,

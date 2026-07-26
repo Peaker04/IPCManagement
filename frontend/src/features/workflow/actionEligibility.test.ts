@@ -51,6 +51,14 @@ describe('project-wide action eligibility', () => {
       });
   });
 
+  it('reports a load failure instead of claiming there is no issue candidate left', () => {
+    expect(resolveIssueCreationAvailability({ canManageWarehouse: true, isFetching: false, candidateCount: undefined, isError: true }))
+      .toEqual({
+        canCreate: false,
+        disabledReason: 'Không tải được danh sách nhu cầu đủ điều kiện xuất kho. Hãy tải lại trước khi kết luận là không còn nhu cầu.',
+      });
+  });
+
   it('does not reopen shortages after a demand has been exported', () => {
     expect(resolveDemandLinePresentation({ status: 'EXPORTED', shortage: 120 }))
       .toEqual({ status: 'Đã xuất kho', nextAction: 'Đã hoàn tất', tone: 'success' });

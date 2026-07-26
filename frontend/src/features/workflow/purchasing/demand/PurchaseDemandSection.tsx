@@ -1,6 +1,6 @@
 import { ShoppingCart } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { DemandSummary, DocumentRail, PaginationBar, SectionPanel, SplitWorkbench } from '@/components/common';
+import { DemandSummary, DocumentRail, EmptyState, PaginationBar, SectionPanel, SplitWorkbench } from '@/components/common';
 import type { WorkflowDocument } from '@/features/workflow';
 import type { usePurchaseDemand } from './usePurchaseDemand';
 
@@ -28,7 +28,15 @@ export function PurchaseDemandSection({
         }
       >
         <SectionPanel title="Kế hoạch thu mua dự kiến" icon={<ShoppingCart size={18} />}>
-          <DemandSummary lines={workflow.presentation.purchasePlanLines} />
+          {workflow.error.isPlanError ? (
+            <EmptyState
+              variant="error"
+              title="Không tải được kế hoạch thu mua"
+              description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này không cần mua gì. Hãy tải lại trước khi chốt đề xuất mua."
+              onRetry={workflow.error.retryPlan}
+              isRetrying={workflow.error.isPlanRetrying}
+            />
+          ) : <DemandSummary lines={workflow.presentation.purchasePlanLines} />}
           <PaginationBar
             page={workflow.planPage.response?.pageNumber ?? workflow.planPage.page}
             pageSize={workflow.planPage.response?.pageSize ?? 8}

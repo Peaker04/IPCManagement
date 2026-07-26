@@ -48,7 +48,7 @@ export const useWeeklyMenuImport = ({
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const { data: historyData } = useGetWeeklyMenuImportHistoryQuery()
+  const { data: historyData, isError: isHistoryError } = useGetWeeklyMenuImportHistoryQuery()
   const history = useMemo(() => historyData?.data ?? [], [historyData])
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
@@ -191,7 +191,7 @@ export const useWeeklyMenuImport = ({
   return {
     state, customers, history, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
     wizardStep: getImportWizardStep(state.jobs), hiddenFeedbackByDetail,
-    status: { isCustomerLoading, isCustomerError, isImporting, isPreviewing, isCommitting, isDownloadingTemplate, isSavingMapping, isCreatingCustomer, isRollingBack },
+    status: { isCustomerLoading, isCustomerError, isHistoryError, isImporting, isPreviewing, isCommitting, isDownloadingTemplate, isSavingMapping, isCreatingCustomer, isRollingBack },
     actions: {
       open, close, onOpenChange: (nextOpen: boolean) => nextOpen ? open() : close(),
       selectDraftCustomer: (value: string) => dispatch({ type: 'edit', field: 'draftCustomerId', value }),

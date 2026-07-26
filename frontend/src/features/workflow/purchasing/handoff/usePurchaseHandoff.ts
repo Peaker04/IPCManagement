@@ -4,7 +4,12 @@ import { useGetStockMovementPageQuery } from '@/features/workflow';
 export function usePurchaseHandoff(enabled = true) {
   const [cursors, setCursors] = useState<Array<{ cursorDate: string; cursorId?: string }>>([]);
   const cursor = cursors.at(-1);
-  const { data: response } = useGetStockMovementPageQuery(
+  const {
+    data: response,
+    isError,
+    isFetching,
+    refetch,
+  } = useGetStockMovementPageQuery(
     {
       movementType: 'receipt',
       cursorDate: cursor?.cursorDate,
@@ -21,5 +26,15 @@ export function usePurchaseHandoff(enabled = true) {
     setCursors((current) => [...current, { cursorDate: response.nextCursorDate!, cursorId: response.nextCursorId }]);
   };
 
-  return { movements: response?.items ?? [], response, page: cursors.length + 1, previous, next };
+  return {
+    movements: response?.items ?? [],
+    response,
+    page: cursors.length + 1,
+    previous,
+    next,
+    // Sổ bàn giao rỗng vì lỗi tải khác hẳn với "chưa có lần nhập kho nào".
+    isError,
+    isRetrying: isFetching,
+    retry: () => refetch(),
+  };
 }
