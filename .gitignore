@@ -114,3 +114,8 @@ __pycache__/
 
 ## Artifact test của skill (sinh lại được, không commit)
 .codex/skills/**/scripts/tests/coverage-*.json
+
+## Lockfile của skill AI cài từ nguồn ngoài — trạng thái tooling của từng máy,
+## không phải code dự án. Tự sinh lại khi cài skill, và đã suýt lọt vào một commit
+## refactor ngày 27/07 vì `git add -A`.
+skills-lock.json
