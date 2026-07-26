@@ -121,15 +121,15 @@ public class WarehousePurchaseReceivingTests
         using var context = new IpcManagementContext(options);
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        var receiptLine = model.FindEntityType(typeof(Inventoryreceiptline));
+        var receiptLine = model.FindEntityType(typeof(InventoryReceiptLine));
         receiptLine.Should().NotBeNull();
-        receiptLine!.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+        receiptLine!.FindProperty(nameof(InventoryReceiptLine.PackageQuantitySnapshot))!
             .GetPrecision().Should().Be(18);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageQuantitySnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackageQuantitySnapshot))!
             .GetScale().Should().Be(6);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackageBaseUnitIdSnapshot))!
             .GetMaxLength().Should().Be(16);
-        receiptLine.FindProperty(nameof(Inventoryreceiptline.PackagePolicyVersionSnapshot))!
+        receiptLine.FindProperty(nameof(InventoryReceiptLine.PackagePolicyVersionSnapshot))!
             .GetMaxLength().Should().Be(100);
         receiptLine.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckInventoryReceiptLinesPackageSnapshotComplete",
@@ -137,7 +137,7 @@ public class WarehousePurchaseReceivingTests
         receiptLine.GetForeignKeys().Should().Contain(foreignKey =>
             !foreignKey.IsRequired &&
             foreignKey.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Inventoryreceiptline.PackageBaseUnitIdSnapshot) }) &&
+                .SequenceEqual(new[] { nameof(InventoryReceiptLine.PackageBaseUnitIdSnapshot) }) &&
             foreignKey.PrincipalEntityType.ClrType == typeof(Unit));
     }
 
@@ -450,7 +450,7 @@ public class WarehousePurchaseReceivingTests
                 Unit = unit,
                 Warehouse = warehouse
             };
-            var purchaseRequest = new Purchaserequest
+            var purchaseRequest = new PurchaseRequest
             {
                 PurchaseRequestId = purchaseRequestIdBytes,
                 PurchaseRequestCode = "PR-RECEIVE",
@@ -459,7 +459,7 @@ public class WarehousePurchaseReceivingTests
                 Status = "APPROVED",
                 CreatedBy = userIdBytes
             };
-            var purchaseRequestLine = new Purchaserequestline
+            var purchaseRequestLine = new PurchaseRequestLine
             {
                 PurchaseRequestLineId = purchaseRequestLineIdBytes,
                 PurchaseRequestId = purchaseRequestIdBytes,
@@ -476,7 +476,7 @@ public class WarehousePurchaseReceivingTests
                 Supplier = supplier
             };
             purchaseRequest.Purchaserequestlines.Add(purchaseRequestLine);
-            var order = new Purchaseorder
+            var order = new PurchaseOrder
             {
                 PurchaseOrderId = purchaseOrderIdBytes,
                 PurchaseOrderCode = "PO-RECEIVE",
@@ -490,7 +490,7 @@ public class WarehousePurchaseReceivingTests
                 PurchaseRequest = purchaseRequest,
                 Supplier = supplier
             };
-            order.Purchaseorderlines.Add(new Purchaseorderline
+            order.Purchaseorderlines.Add(new PurchaseOrderLine
             {
                 PurchaseOrderLineId = purchaseOrderLineIdBytes,
                 PurchaseOrderId = purchaseOrderIdBytes,
@@ -537,8 +537,8 @@ public class WarehousePurchaseReceivingTests
                 .ConvertQuantityAsync(Arg.Any<byte[]>(), Arg.Any<byte[]>(), Arg.Any<decimal>())
                 .Returns(callInfo => Task.FromResult(callInfo.ArgAt<decimal>(2)));
             currentStockRepository
-                .When(repository => repository.Add(Arg.Any<Currentstock>()))
-                .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<Currentstock>()));
+                .When(repository => repository.Add(Arg.Any<CurrentStock>()))
+                .Do(callInfo => Context.Currentstocks.Add(callInfo.Arg<CurrentStock>()));
 
             var ledger = new StockLedgerService(
                 currentStockRepository,

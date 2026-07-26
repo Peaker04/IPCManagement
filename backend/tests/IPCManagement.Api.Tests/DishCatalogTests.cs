@@ -47,13 +47,13 @@ public class DishCatalogTests
                 IsActive = true,
                 Menuitems =
                 [
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 2 },
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 1 },
-                    new Menuitem { DishSlot = "Canh", DisplayOrder = 3 }
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 2 },
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 1 },
+                    new MenuItem { DishSlot = "Canh", DisplayOrder = 3 }
                 ],
                 Dishboms =
                 [
-                    new Dishbom
+                    new DishBom
                     {
                         BomId = GuidHelper.ToBytes(bomId),
                         DishId = GuidHelper.ToBytes(dishId),
@@ -274,7 +274,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -300,7 +300,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -326,7 +326,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -362,7 +362,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -396,7 +396,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -433,7 +433,7 @@ public class DishCatalogTests
         var service = CreateDishService(fixture.Context);
         var originalBomId = GuidHelper.NewId();
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = originalBomId,
             DishId = fixture.DishId,
@@ -677,7 +677,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,

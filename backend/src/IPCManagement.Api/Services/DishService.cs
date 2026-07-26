@@ -486,7 +486,7 @@ public class DishService : IDishService
                 }
             }
 
-            var entity = new Dishbom
+            var entity = new DishBom
             {
                 BomId = GuidHelper.NewId(),
                 DishId = row.Dish!.DishId,
@@ -506,13 +506,13 @@ public class DishService : IDishService
 
         if (actor is not null)
         {
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = now,
                 ChangedBy = actor,
                 BusinessArea = "BOM",
-                EntityName = nameof(Dishbom),
+                EntityName = nameof(DishBom),
                 EntityId = actor,
                 FieldName = "BulkImport",
                 OldValue = null,
@@ -683,7 +683,7 @@ public class DishService : IDishService
             throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực cho cùng đơn giá/khách hàng.");
         }
 
-        var entity = new Dishbom
+        var entity = new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = dishBytes,
@@ -828,7 +828,7 @@ public class DishService : IDishService
                 }
             }
 
-            var newVersion = new Dishbom
+            var newVersion = new DishBom
             {
                 BomId = GuidHelper.NewId(),
                 DishId = entity.DishId,
@@ -1592,7 +1592,7 @@ public class DishService : IDishService
 
     private static BomValidationIssueDto CreateValidationIssue(
         Dish dish,
-        Dishbom? line,
+        DishBom? line,
         string issueCode,
         string severity,
         string message) => new()
@@ -1659,7 +1659,7 @@ public class DishService : IDishService
             .ToList()
     };
 
-    private static DishCatalogBomLineDto MapCatalogBomLine(Dishbom bom) => new()
+    private static DishCatalogBomLineDto MapCatalogBomLine(DishBom bom) => new()
     {
         BomId = GuidHelper.ToGuidString(bom.BomId),
         IngredientId = GuidHelper.ToGuidString(bom.IngredientId),
@@ -1682,7 +1682,7 @@ public class DishService : IDishService
         ReferencePrice = bom.Ingredient.ReferencePrice
     };
 
-    private IQueryable<Dishbom> QueryBomLines(byte[] dishBytes)
+    private IQueryable<DishBom> QueryBomLines(byte[] dishBytes)
         => _context.Dishboms
             .Include(line => line.Ingredient)
             .Include(line => line.Unit)
@@ -1738,7 +1738,7 @@ public class DishService : IDishService
             return;
         }
 
-        _context.Bomadjustments.Add(new Bomadjustment
+        _context.Bomadjustments.Add(new BomAdjustment
         {
             BomAdjustmentId = GuidHelper.NewId(),
             BomId = bomId,
@@ -1752,7 +1752,7 @@ public class DishService : IDishService
         });
     }
 
-    private static bool IsPublishedBomLine(Dishbom bom) => NormalizeBomStatus(bom.BomStatus) == BomStatusPublished;
+    private static bool IsPublishedBomLine(DishBom bom) => NormalizeBomStatus(bom.BomStatus) == BomStatusPublished;
 
     private static string NormalizeBomStatus(string? status, string fallback = BomStatusPublished)
     {

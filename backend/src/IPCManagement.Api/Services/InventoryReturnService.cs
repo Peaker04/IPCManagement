@@ -89,7 +89,7 @@ public class InventoryReturnService : IInventoryReturnService
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var inventoryReturn = new Inventoryreturn
+            var inventoryReturn = new InventoryReturn
             {
                 ReturnId = GuidHelper.NewId(),
                 ReturnCode = $"{ResolveReturnCodePrefix(returnType)}-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
@@ -118,7 +118,7 @@ public class InventoryReturnService : IInventoryReturnService
                     unitBytes,
                     quantity);
 
-                return new Inventoryreturnline
+                return new InventoryReturnLine
                 {
                     ReturnLineId = GuidHelper.NewId(),
                     ReturnId = inventoryReturn.ReturnId,
@@ -146,19 +146,19 @@ public class InventoryReturnService : IInventoryReturnService
         }
     }
 
-    private void AddWasteAudit(Inventoryreturn inventoryReturn, Inventoryissue issue, byte[] userIdBytes)
+    private void AddWasteAudit(InventoryReturn inventoryReturn, InventoryIssue issue, byte[] userIdBytes)
     {
         if (_context is null) return;
         
         foreach (var line in inventoryReturn.Inventoryreturnlines)
         {
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = DateTime.UtcNow,
                 ChangedBy = userIdBytes,
                 BusinessArea = "ProductionWaste",
-                EntityName = nameof(Inventoryreturnline),
+                EntityName = nameof(InventoryReturnLine),
                 EntityId = line.ReturnLineId,
                 FieldName = "WasteQuantity",
                 OldValue = "0",
@@ -206,13 +206,13 @@ public class InventoryReturnService : IInventoryReturnService
                     var line = inventoryReturn.Inventoryreturnlines.FirstOrDefault(l => lineBytes != null && l.ReturnLineId.SequenceEqual(lineBytes));
                     if (line != null && line.Quantity != adjustedLine.NewQuantity)
                     {
-                        _context.Auditlogs.Add(new Auditlog
+                        _context.Auditlogs.Add(new AuditLog
                         {
                             AuditId = GuidHelper.NewId(),
                             ChangedAt = confirmedAt,
                             ChangedBy = userIdBytes,
                             BusinessArea = "StorekeeperReturnReceipt",
-                            EntityName = nameof(Inventoryreturnline),
+                            EntityName = nameof(InventoryReturnLine),
                             EntityId = line.ReturnLineId,
                             FieldName = "Quantity",
                             OldValue = line.Quantity.ToString("0.######"),
@@ -227,13 +227,13 @@ public class InventoryReturnService : IInventoryReturnService
             if (dto.HasDiscrepancy)
             {
                 var note = dto.DiscrepancyNote?.Trim() ?? "";
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = confirmedAt,
                     ChangedBy = userIdBytes,
                     BusinessArea = "StorekeeperReturnReceipt",
-                    EntityName = nameof(Inventoryreturn),
+                    EntityName = nameof(InventoryReturn),
                     EntityId = inventoryReturn.ReturnId,
                     FieldName = "StorekeeperReceiptDiscrepancy",
                     OldValue = "expected=kitchen_qty",
@@ -242,13 +242,13 @@ public class InventoryReturnService : IInventoryReturnService
                 });
             }
 
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = confirmedAt,
                 ChangedBy = userIdBytes,
                 BusinessArea = "StorekeeperReturnReceipt",
-                EntityName = nameof(Inventoryreturn),
+                EntityName = nameof(InventoryReturn),
                 EntityId = inventoryReturn.ReturnId,
                 FieldName = "StorekeeperReceived",
                 OldValue = null,

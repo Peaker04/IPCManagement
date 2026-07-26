@@ -23,11 +23,11 @@ public partial class Supplier
 
     public bool? IsActive { get; set; }
 
-    public virtual ICollection<Inventoryreceipt> Inventoryreceipts { get; set; } = new List<Inventoryreceipt>();
+    public virtual ICollection<InventoryReceipt> Inventoryreceipts { get; set; } = new List<InventoryReceipt>();
 
-    public virtual ICollection<Purchaserequestline> Purchaserequestlines { get; set; } = new List<Purchaserequestline>();
+    public virtual ICollection<PurchaseRequestLine> Purchaserequestlines { get; set; } = new List<PurchaseRequestLine>();
 
-    public virtual ICollection<Supplierquotation> Supplierquotations { get; set; } = new List<Supplierquotation>();
+    public virtual ICollection<SupplierQuotation> Supplierquotations { get; set; } = new List<SupplierQuotation>();
 
-    public virtual ICollection<Purchaseorder> Purchaseorders { get; set; } = new List<Purchaseorder>();
+    public virtual ICollection<PurchaseOrder> Purchaseorders { get; set; } = new List<PurchaseOrder>();
 }

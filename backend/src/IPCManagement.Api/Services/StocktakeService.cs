@@ -137,7 +137,7 @@ public class StocktakeService : IStocktakeService
                 {
                     var stock = currentStocks.FirstOrDefault(s => s.IngredientId.SequenceEqual(ingredientId));
 
-                    stocktake.Stocktakelines.Add(new Stocktakeline
+                    stocktake.Stocktakelines.Add(new StocktakeLine
                     {
                         LineId = GuidHelper.NewId(),
                         StocktakeId = stocktake.StocktakeId,
@@ -152,7 +152,7 @@ public class StocktakeService : IStocktakeService
 
                 _stocktakeRepo.Add(stocktake);
 
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = stocktake.CreatedAt,
@@ -255,7 +255,7 @@ public class StocktakeService : IStocktakeService
 
         stocktake.Status = "REVIEWING";
         
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
@@ -335,7 +335,7 @@ public class StocktakeService : IStocktakeService
                     }
                 }
 
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = now,
@@ -386,7 +386,7 @@ public class StocktakeService : IStocktakeService
             stocktake.Notes = string.IsNullOrWhiteSpace(stocktake.Notes) ? reason : $"{stocktake.Notes}\nTừ chối: {reason}";
         }
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = now,

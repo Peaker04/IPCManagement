@@ -64,7 +64,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var receipt = new Inventoryreceipt
+            var receipt = new InventoryReceipt
             {
                 ReceiptId = GuidHelper.NewId(),
                 ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
@@ -78,7 +78,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                 CreatedAt = DateTime.UtcNow
             };
 
-            receipt.Inventoryreceiptlines = dto.Lines.Select(line => new Inventoryreceiptline
+            receipt.Inventoryreceiptlines = dto.Lines.Select(line => new InventoryReceiptLine
             {
                 ReceiptLineId = GuidHelper.NewId(),
                 ReceiptId = receipt.ReceiptId,
@@ -170,7 +170,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var receipt = new Inventoryreceipt
+            var receipt = new InventoryReceipt
             {
                 ReceiptId = GuidHelper.NewId(),
                 ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
@@ -231,7 +231,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                 }
 
                 var unitPrice = DecimalPolicy.RoundMoney(input.UnitPrice ?? purchaseLine.EstimatedUnitPrice);
-                receipt.Inventoryreceiptlines.Add(new Inventoryreceiptline
+                receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
                 {
                     ReceiptLineId = GuidHelper.NewId(),
                     ReceiptId = receipt.ReceiptId,
@@ -272,15 +272,15 @@ public class InventoryReceiptService : IInventoryReceiptService
             if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
             {
                 request.Status = newStatus;
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = DateTime.UtcNow,
                     ChangedBy = userIdBytes,
                     BusinessArea = "Receipt",
-                    EntityName = nameof(Purchaserequest),
+                    EntityName = nameof(PurchaseRequest),
                     EntityId = request.PurchaseRequestId,
-                    FieldName = nameof(Purchaserequest.Status),
+                    FieldName = nameof(PurchaseRequest.Status),
                     OldValue = oldStatus,
                     NewValue = newStatus,
                     Reason = $"Nhập kho từ phiếu mua {request.PurchaseRequestCode}."
@@ -327,7 +327,7 @@ public class InventoryReceiptService : IInventoryReceiptService
     }
 
     private static string ResolvePurchaseReceiptStatus(
-        IEnumerable<Purchaserequestline> purchaseLines,
+        IEnumerable<PurchaseRequestLine> purchaseLines,
         IReadOnlyDictionary<string, decimal> receivedQuantities)
     {
         var lines = purchaseLines.ToList();

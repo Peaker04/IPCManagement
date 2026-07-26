@@ -71,7 +71,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         var actionAt = DateTime.UtcNow;
         var historyId = GuidHelper.NewId();
 
-        Context.Approvalhistories.Add(new Approvalhistory
+        Context.Approvalhistories.Add(new ApprovalHistory
         {
             ApprovalHistoryId = historyId,
             TargetType = targetType,
@@ -97,7 +97,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
     }
 }
 
-public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchaserequest>
+public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<PurchaseRequest>
 {
     public PurchaseRequestApprovalHandler(IpcManagementContext context) : base(context) { }
 
@@ -129,7 +129,7 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
         return await SaveHistoryAsync("purchase-request", targetId, request, actorId, oldStatus, newStatus);
     }
 
-    private async Task<bool> HasPriceWarningAsync(Purchaserequest purchaseRequest)
+    private async Task<bool> HasPriceWarningAsync(PurchaseRequest purchaseRequest)
     {
         foreach (var line in purchaseRequest.Purchaserequestlines)
         {
@@ -158,7 +158,7 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
     }
 }
 
-public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<Purchasepriceexception>
+public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<PurchasePriceException>
 {
     private const string TargetTypeName = "purchase-price-exception";
 
@@ -230,7 +230,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
             newStatus);
     }
 
-    private static ApprovalResultDto MapExistingResult(Approvalhistory history)
+    private static ApprovalResultDto MapExistingResult(ApprovalHistory history)
         => new()
         {
             TargetType = history.TargetType,
@@ -243,7 +243,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
         };
 }
 
-public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Materialrequest>
+public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<MaterialRequest>
 {
     private const string MaterialDemandTargetType = "material-demand";
     private const string PendingStatus = "DRAFT";
@@ -304,7 +304,7 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
             newStatus);
     }
 
-    private static ApprovalResultDto MapExistingResult(Approvalhistory history)
+    private static ApprovalResultDto MapExistingResult(ApprovalHistory history)
         => new()
         {
             TargetType = history.TargetType,
@@ -317,7 +317,7 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
         };
 }
 
-public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Inventoryreceipt>
+public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<InventoryReceipt>
 {
     public InventoryReceiptApprovalHandler(IpcManagementContext context) : base(context) { }
 
@@ -345,7 +345,7 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
     }
 }
 
-public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventoryissue>
+public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<InventoryIssue>
 {
     public InventoryIssueApprovalHandler(IpcManagementContext context) : base(context) { }
 
@@ -368,7 +368,7 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
     }
 }
 
-public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Quantityadjustment>
+public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<QuantityAdjustment>
 {
     private const string OrderAdjustmentTargetType = "order-adjustment";
 
@@ -408,13 +408,13 @@ public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Qua
             line.FinalServings = adjustment.NewServings;
             line.QuantityPlan.Status = OrderStatus.Adjusted;
 
-            Context.Auditlogs.Add(new Auditlog
+            Context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
                 ChangedBy = actorId,
                 BusinessArea = "Coordination",
-                EntityName = nameof(Mealquantityplanline),
+                EntityName = nameof(MealQuantityPlanLine),
                 EntityId = line.QuantityPlanLineId,
                 FieldName = "finalServings",
                 OldValue = oldValue.ToString(),

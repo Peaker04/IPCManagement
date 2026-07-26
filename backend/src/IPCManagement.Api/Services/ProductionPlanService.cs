@@ -116,13 +116,13 @@ public class ProductionPlanService : IProductionPlanService
             plan.SentToKitchenAt = now;
             plan.SentToKitchenBy = userIdBytes;
             plan.UpdatedAt = now;
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = now,
                 ChangedBy = userIdBytes,
                 BusinessArea = "Kitchen",
-                EntityName = nameof(Productionplan),
+                EntityName = nameof(ProductionPlan),
                 EntityId = plan.PlanId,
                 FieldName = "SendToKitchen",
                 OldValue = null,
@@ -141,7 +141,7 @@ public class ProductionPlanService : IProductionPlanService
         return BuildDailyDto(parsedDate, customerIdBytes, normalizedShift, refreshed);
     }
 
-    private static ProductionPlanDto MapPlan(Productionplan plan, bool includeLines = false) => new()
+    private static ProductionPlanDto MapPlan(ProductionPlan plan, bool includeLines = false) => new()
     {
         PlanId = GuidHelper.ToGuidString(plan.PlanId),
         PlanCode = plan.PlanCode,
@@ -165,7 +165,7 @@ public class ProductionPlanService : IProductionPlanService
             : new List<ProductionPlanLineDto>()
     };
 
-    private static ProductionPlanLineDto MapLine(Productionplanline line) => new()
+    private static ProductionPlanLineDto MapLine(ProductionPlanLine line) => new()
     {
         PlanLineId = GuidHelper.ToGuidString(line.PlanLineId),
         DishId = GuidHelper.ToGuidString(line.DishId),
@@ -180,7 +180,7 @@ public class ProductionPlanService : IProductionPlanService
         IsReceivedByKitchen = false
     };
 
-    private IQueryable<Productionplan> BuildDailyPlansQuery(DateOnly serviceDate, byte[]? customerId, string? shiftName)
+    private IQueryable<ProductionPlan> BuildDailyPlansQuery(DateOnly serviceDate, byte[]? customerId, string? shiftName)
     {
         var query = _context.Productionplans
             .Include(plan => plan.Customer)
@@ -212,7 +212,7 @@ public class ProductionPlanService : IProductionPlanService
         DateOnly serviceDate,
         byte[]? customerId,
         string? shiftName,
-        IReadOnlyList<Productionplan> plans)
+        IReadOnlyList<ProductionPlan> plans)
     {
         var planDtos = plans.Select(plan => MapPlan(plan, includeLines: true)).ToList();
         if (!string.IsNullOrWhiteSpace(shiftName))

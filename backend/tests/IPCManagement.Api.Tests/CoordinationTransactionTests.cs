@@ -632,8 +632,8 @@ public class CoordinationTransactionTests
 
         persistedPlan.Status.Should().Be(OrderStatus.Completed);
         audit.BusinessArea.Should().Be("Coordination");
-        audit.EntityName.Should().Be(nameof(Mealquantityplan));
-        audit.FieldName.Should().Be(nameof(Mealquantityplan.Status));
+        audit.EntityName.Should().Be(nameof(MealQuantityPlan));
+        audit.FieldName.Should().Be(nameof(MealQuantityPlan.Status));
         audit.OldValue.Should().Be(OrderStatus.Confirmed);
         audit.NewValue.Should().Be(OrderStatus.Completed);
         audit.ChangedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.UserId)!);
@@ -998,7 +998,7 @@ public class CoordinationTransactionTests
             IsActive = true
         };
 
-        var menuItem = new Menuitem
+        var menuItem = new MenuItem
         {
             MenuItemId = menuItemId,
             MenuId = menuId,
@@ -1008,7 +1008,7 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var schedule = new Menuschedule
+        var schedule = new MenuSchedule
         {
             MenuScheduleId = scheduleId,
             CustomerId = customerId,
@@ -1023,7 +1023,7 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var plan = new Mealquantityplan
+        var plan = new MealQuantityPlan
         {
             QuantityPlanId = planId,
             PlanCode = $"PLAN-{suffix}",
@@ -1035,7 +1035,7 @@ public class CoordinationTransactionTests
                 : null
         };
 
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = lineId,
             QuantityPlanId = planId,
@@ -1116,7 +1116,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfAuditlogPending(DbContext? context)
         {
-            var hasPendingAuditLog = context?.ChangeTracker.Entries<Auditlog>()
+            var hasPendingAuditLog = context?.ChangeTracker.Entries<AuditLog>()
                 .Any(entry => entry.State is EntityState.Added) == true;
 
             if (hasPendingAuditLog)
@@ -1147,7 +1147,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfMealQuantityPlanPending(DbContext? context)
         {
-            var hasPendingPlanChange = context?.ChangeTracker.Entries<Mealquantityplan>()
+            var hasPendingPlanChange = context?.ChangeTracker.Entries<MealQuantityPlan>()
                 .Any(entry => entry.State is EntityState.Modified) == true;
 
             if (hasPendingPlanChange)
@@ -1164,7 +1164,7 @@ public class CoordinationTransactionTests
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
-            if (eventData.Context?.ChangeTracker.Entries<Mealquantityplan>()
+            if (eventData.Context?.ChangeTracker.Entries<MealQuantityPlan>()
                     .Any(entry => entry.State == EntityState.Modified) == true)
             {
                 throw new DbUpdateConcurrencyException("Simulated concurrency conflict");

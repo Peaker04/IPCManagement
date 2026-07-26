@@ -325,7 +325,7 @@ public partial class SampleDataImportService
         return customer;
     }
 
-    private Task<Customerimportmapping?> FindCustomerImportMappingAsync(
+    private Task<CustomerImportMapping?> FindCustomerImportMappingAsync(
         byte[] customerId,
         CancellationToken cancellationToken)
         => _context.Customerimportmappings
@@ -360,7 +360,7 @@ public partial class SampleDataImportService
         var now = DateTime.UtcNow;
         if (mapping is null)
         {
-            mapping = new Customerimportmapping
+            mapping = new CustomerImportMapping
             {
                 MappingId = GuidHelper.NewId(),
                 CustomerId = customer.CustomerId,
@@ -585,7 +585,7 @@ public partial class SampleDataImportService
         Customer customer,
         DateOnly weekStartDate,
         DateOnly weekEndDate,
-        Menuversion version,
+        MenuVersion version,
         string? actorUserId,
         CancellationToken cancellationToken)
     {
@@ -609,13 +609,13 @@ public partial class SampleDataImportService
             var oldStatus = request.Status;
             request.Status = "CANCELLED";
             invalidatedCount++;
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
                 ChangedBy = actorId,
                 BusinessArea = "Demand",
-                EntityName = nameof(Materialrequest),
+                EntityName = nameof(MaterialRequest),
                 EntityId = request.RequestId,
                 FieldName = "Status",
                 OldValue = oldStatus,
@@ -640,13 +640,13 @@ public partial class SampleDataImportService
             var oldStatus = request.Status;
             request.Status = "CANCELLED";
             invalidatedCount++;
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
                 ChangedBy = actorId,
                 BusinessArea = "Purchase",
-                EntityName = nameof(Purchaserequest),
+                EntityName = nameof(PurchaseRequest),
                 EntityId = request.PurchaseRequestId,
                 FieldName = "Status",
                 OldValue = oldStatus,
@@ -767,7 +767,7 @@ public partial class SampleDataImportService
         string workbookPath,
         string originalFileName,
         DateOnly? weekStartFallback,
-        Customerimportmapping? mapping = null,
+        CustomerImportMapping? mapping = null,
         decimal? priceTierAmount = null)
     {
         var sheetCandidates = _reader.GetSheetNames(workbookPath)
@@ -1857,7 +1857,7 @@ public partial class SampleDataImportService
     private static string WeeklyMenuSlotKey(DateOnly serviceDate, string shiftName, string variantKey, string slot)
         => $"{serviceDate:yyyyMMdd}|{shiftName.ToUpperInvariant()}|{variantKey.ToLowerInvariant()}|{slot.ToLowerInvariant()}";
 
-    private async Task<Menuversion> CreateMenuVersionHeaderAsync(
+    private async Task<MenuVersion> CreateMenuVersionHeaderAsync(
         WeeklyMenuImportPlan plan,
         Customer customer,
         string? actorUserId,
@@ -1881,7 +1881,7 @@ public partial class SampleDataImportService
         }
 
         var importBatch = $"MENU-{customer.CustomerCode}-{plan.WeekStartDate:yyyyMMdd}-V{versionNo:00}";
-        var version = new Menuversion
+        var version = new MenuVersion
         {
             MenuVersionId = GuidHelper.NewId(),
             CustomerId = customer.CustomerId,
@@ -1900,7 +1900,7 @@ public partial class SampleDataImportService
         return version;
     }
 
-    private async Task<Menuversion?> GetLatestMenuVersionAsync(
+    private async Task<MenuVersion?> GetLatestMenuVersionAsync(
         byte[] customerId,
         DateOnly weekStartDate,
         CancellationToken cancellationToken)
@@ -1969,7 +1969,7 @@ public partial class SampleDataImportService
     }
 
     private async Task<(bool CanRollback, string? Reason)> EvaluateRollbackEligibilityAsync(
-        Menuversion version,
+        MenuVersion version,
         CancellationToken cancellationToken)
     {
         if (!string.Equals(version.Status, "DRAFT", StringComparison.OrdinalIgnoreCase))
@@ -2046,13 +2046,13 @@ public partial class SampleDataImportService
         version.UpdatedAt = DateTime.UtcNow;
 
         var actorId = await ResolveAuditActorIdAsync(actorUserId, cancellationToken);
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = actorId,
             BusinessArea = "Menu",
-            EntityName = nameof(Menuversion),
+            EntityName = nameof(MenuVersion),
             EntityId = version.MenuVersionId,
             FieldName = "Status",
             OldValue = oldStatus,
@@ -2069,7 +2069,7 @@ public partial class SampleDataImportService
         };
     }
 
-    private static void ApplyMenuVersion(WeeklyMenuImportResultDto result, Menuversion? version)
+    private static void ApplyMenuVersion(WeeklyMenuImportResultDto result, MenuVersion? version)
     {
         if (version is null)
         {
@@ -2244,7 +2244,7 @@ public partial class SampleDataImportService
                 {
                     // Create new menuitem
                     var displayOrder = schedule.Menu.Menuitems.Count + 1;
-                    var newItem = new Menuitem
+                    var newItem = new MenuItem
                     {
                         MenuItemId = GuidHelper.NewId(),
                         MenuId = schedule.Menu.MenuId,

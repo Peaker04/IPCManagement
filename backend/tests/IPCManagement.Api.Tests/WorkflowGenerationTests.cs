@@ -71,7 +71,7 @@ public class WorkflowGenerationTests
 
             var activeLine = await context.Materialrequestlines.AsNoTracking().SingleAsync();
             var cancelledRequestId = GuidHelper.NewId();
-            context.Materialrequests.Add(new Materialrequest
+            context.Materialrequests.Add(new MaterialRequest
             {
                 RequestId = cancelledRequestId,
                 RequestCode = "MR-CANCELLED-STALE",
@@ -82,7 +82,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = cancelledRequestId,
@@ -173,7 +173,7 @@ public class WorkflowGenerationTests
             for (var index = 1; index <= 105; index++)
             {
                 var requestId = GuidHelper.NewId();
-                context.Materialrequests.Add(new Materialrequest
+                context.Materialrequests.Add(new MaterialRequest
                 {
                     RequestId = requestId,
                     RequestCode = $"MR-PAGED-{index:000}",
@@ -184,7 +184,7 @@ public class WorkflowGenerationTests
                     CreatedBy = fixture.UserId,
                     Materialrequestlines =
                     [
-                        new Materialrequestline
+                        new MaterialRequestLine
                         {
                             RequestLineId = GuidHelper.NewId(),
                             RequestId = requestId,
@@ -293,7 +293,7 @@ public class WorkflowGenerationTests
 
         await using var context = fixture.CreateContext();
         var existingItem = await context.Menuitems.AsNoTracking().SingleAsync();
-        context.Menuitems.Add(new Menuitem
+        context.Menuitems.Add(new MenuItem
         {
             MenuItemId = GuidHelper.NewId(),
             MenuId = existingItem.MenuId,
@@ -435,7 +435,7 @@ public class WorkflowGenerationTests
             await SelectDefaultSupplierAsync(context, fixture, purchase!);
             var purchaseLine = await context.Purchaserequestlines.SingleAsync();
 
-            context.Purchaseorders.Add(new Purchaseorder
+            context.Purchaseorders.Add(new PurchaseOrder
             {
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = "PO-DEMAND-LOCK",
@@ -448,7 +448,7 @@ public class WorkflowGenerationTests
                 UpdatedAt = DateTime.UtcNow,
                 Purchaseorderlines =
                 [
-                    new Purchaseorderline
+                    new PurchaseOrderLine
                     {
                         PurchaseOrderLineId = GuidHelper.NewId(),
                         PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
@@ -497,7 +497,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
             var materialRequestId = GuidHelper.ParseGuidString(demand!.MaterialRequestId)!;
-            context.Inventoryissues.Add(new Inventoryissue
+            context.Inventoryissues.Add(new InventoryIssue
             {
                 IssueId = GuidHelper.NewId(),
                 IssueCode = "ISS-DEMAND-LOCK",
@@ -551,7 +551,7 @@ public class WorkflowGenerationTests
         (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
         (await context.Auditlogs.AsNoTracking().AnyAsync(audit =>
             audit.BusinessArea == "Demand" &&
-            audit.FieldName == nameof(Materialrequest.Status) &&
+            audit.FieldName == nameof(MaterialRequest.Status) &&
             audit.OldValue == "MANAGERAPPROVED" &&
             audit.NewValue == "DRAFT")).Should().BeFalse();
     }
@@ -597,7 +597,7 @@ public class WorkflowGenerationTests
         {
             var purchaseRequest = await context.Purchaserequests.SingleAsync();
             var purchaseLine = await context.Purchaserequestlines.SingleAsync();
-            context.Purchaseorders.Add(new Purchaseorder
+            context.Purchaseorders.Add(new PurchaseOrder
             {
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = "PO-CANCELLED-DEMAND-LOCK",
@@ -610,7 +610,7 @@ public class WorkflowGenerationTests
                 UpdatedAt = DateTime.UtcNow,
                 Purchaseorderlines =
                 [
-                    new Purchaseorderline
+                    new PurchaseOrderLine
                     {
                         PurchaseOrderLineId = GuidHelper.NewId(),
                         PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
@@ -734,7 +734,7 @@ public class WorkflowGenerationTests
                 BaseUnitCode = "KG",
                 ConvertRateToBase = 0.001m
             });
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -769,7 +769,7 @@ public class WorkflowGenerationTests
 
         await using (var setupContext = fixture.CreateContext())
         {
-            setupContext.Currentstocks.Add(new Currentstock
+            setupContext.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -841,7 +841,7 @@ public class WorkflowGenerationTests
                 BaseUnitCode = "BOX",
                 ConvertRateToBase = 1
             });
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -880,7 +880,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            context.Dishboms.Add(new Dishbom
+            context.Dishboms.Add(new DishBom
             {
                 BomId = GuidHelper.NewId(),
                 DishId = fixture.DishWithBomId,
@@ -963,7 +963,7 @@ public class WorkflowGenerationTests
             existingBom.EffectiveFrom = new DateOnly(2026, 1, 1);
             existingBom.EffectiveTo = new DateOnly(2026, 12, 31);
 
-            setupContext.Dishboms.Add(new Dishbom
+            setupContext.Dishboms.Add(new DishBom
             {
                 BomId = nextYearBomId,
                 DishId = fixture.DishWithBomId,
@@ -1071,7 +1071,7 @@ public class WorkflowGenerationTests
                 BaseUnitCode = "KG",
                 ConvertRateToBase = 0.001m
             });
-            context.Inventoryreceipts.Add(new Inventoryreceipt
+            context.Inventoryreceipts.Add(new InventoryReceipt
             {
                 ReceiptId = GuidHelper.NewId(),
                 ReceiptCode = "NK-GRAM",
@@ -1082,7 +1082,7 @@ public class WorkflowGenerationTests
                 CreatedAt = DateTime.UtcNow,
                 Inventoryreceiptlines =
                 [
-                    new Inventoryreceiptline
+                    new InventoryReceiptLine
                     {
                         ReceiptLineId = GuidHelper.NewId(),
                         IngredientId = fixture.IngredientId,
@@ -1135,7 +1135,7 @@ public class WorkflowGenerationTests
                 SupplierName = "Inactive Supplier",
                 IsActive = false
             });
-            context.Inventoryreceipts.Add(new Inventoryreceipt
+            context.Inventoryreceipts.Add(new InventoryReceipt
             {
                 ReceiptId = GuidHelper.NewId(),
                 ReceiptCode = "NK-INACTIVE-SUPPLIER",
@@ -1146,7 +1146,7 @@ public class WorkflowGenerationTests
                 CreatedAt = DateTime.UtcNow,
                 Inventoryreceiptlines =
                 [
-                    new Inventoryreceiptline
+                    new InventoryReceiptLine
                     {
                         ReceiptLineId = GuidHelper.NewId(),
                         IngredientId = fixture.IngredientId,
@@ -1284,7 +1284,7 @@ public class WorkflowGenerationTests
                 .Where(item => item.BusinessArea == "Purchasing" && item.FieldName == "ConfirmSupplierDecision")
                 .SingleAsync();
             audit.ChangedBy.Should().Equal(fixture.UserId);
-            audit.EntityName.Should().Be(nameof(Purchaselinesupplierdecision));
+            audit.EntityName.Should().Be(nameof(PurchaseLineSupplierDecision));
             audit.OldValue.Should().BeNull();
             audit.NewValue.Should().HaveLength(64);
         }
@@ -1458,7 +1458,7 @@ public class WorkflowGenerationTests
 
         var purchaseLine = await context.Purchaserequestlines.SingleAsync();
         var supplementalId = GuidHelper.NewId();
-        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        context.Supplementalmaterialrequests.Add(new SupplementalMaterialRequest
         {
             RequestId = supplementalId,
             RequestCode = "SUP-PARTIAL-TEST",
@@ -1472,7 +1472,7 @@ public class WorkflowGenerationTests
             RequestedBy = fixture.UserId,
             RequestedAt = DateTime.UtcNow,
         });
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = DateTime.UtcNow,
@@ -1487,13 +1487,13 @@ public class WorkflowGenerationTests
             AfterQty = 0.9m,
             PerformedBy = fixture.UserId,
         });
-        context.Auditlogs.Add(new Auditlog
+        context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = fixture.UserId,
             BusinessArea = "SupplementalMaterial",
-            EntityName = nameof(Supplementalmaterialrequest),
+            EntityName = nameof(SupplementalMaterialRequest),
             EntityId = supplementalId,
             FieldName = "PurchaseRequestId",
             NewValue = purchase!.PurchaseRequestId,
@@ -1763,7 +1763,7 @@ public class WorkflowGenerationTests
             purchaseStatus.Should().Be("RECEIVED");
 
             var audit = await context.Auditlogs.AsNoTracking()
-                .SingleAsync(item => item.BusinessArea == "Receipt" && item.FieldName == nameof(Purchaserequest.Status));
+                .SingleAsync(item => item.BusinessArea == "Receipt" && item.FieldName == nameof(PurchaseRequest.Status));
             audit.OldValue.Should().Be("SENTTOSUPPLIER");
             audit.NewValue.Should().Be("RECEIVED");
         }
@@ -1785,7 +1785,7 @@ public class WorkflowGenerationTests
 
             var materialRequest = await context.Materialrequests.SingleAsync();
             materialRequest.Status = "SENTTOWAREHOUSE";
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -1838,7 +1838,7 @@ public class WorkflowGenerationTests
 
             var materialRequest = await context.Materialrequests.SingleAsync();
             materialRequest.Status = "SENTTOWAREHOUSE";
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -1929,7 +1929,7 @@ public class WorkflowGenerationTests
 
             var materialRequest = await context.Materialrequests.SingleAsync();
             materialRequest.Status = "SENTTOWAREHOUSE";
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -2046,7 +2046,7 @@ public class WorkflowGenerationTests
 
             var materialRequest = await context.Materialrequests.SingleAsync();
             materialRequest.Status = "SENTTOWAREHOUSE";
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -2055,7 +2055,7 @@ public class WorkflowGenerationTests
                 LastUpdated = DateTime.UtcNow,
                 RowVersion = DateTime.UtcNow
             });
-            context.Inventoryissues.Add(new Inventoryissue
+            context.Inventoryissues.Add(new InventoryIssue
             {
                 IssueId = GuidHelper.NewId(),
                 IssueCode = "PX-OLD",
@@ -2067,7 +2067,7 @@ public class WorkflowGenerationTests
                 CreatedAt = DateTime.UtcNow.AddMinutes(-10),
                 Inventoryissuelines =
                 [
-                    new Inventoryissueline
+                    new InventoryIssueLine
                     {
                         IssueLineId = GuidHelper.NewId(),
                         IngredientId = fixture.IngredientId,
@@ -2125,7 +2125,7 @@ public class WorkflowGenerationTests
 
             var materialRequest = await context.Materialrequests.SingleAsync();
             materialRequest.Status = "SENTTOWAREHOUSE";
-            context.Currentstocks.Add(new Currentstock
+            context.Currentstocks.Add(new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -2298,7 +2298,7 @@ public class WorkflowGenerationTests
                 fixture.UserIdString);
 
             var shortageRequestId = GuidHelper.NewId();
-            context.Materialrequests.Add(new Materialrequest
+            context.Materialrequests.Add(new MaterialRequest
             {
                 RequestId = shortageRequestId,
                 RequestCode = "MR-UAT-SHORTAGE",
@@ -2309,7 +2309,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = shortageRequestId,
@@ -2391,7 +2391,7 @@ public class WorkflowGenerationTests
         await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
 
         materialRequest.Status = "SENTTOWAREHOUSE";
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = GuidHelper.NewId(),
             IssueCode = "ISS-PENDING",
@@ -2402,7 +2402,7 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow,
             Inventoryissuelines =
             [
-                new Inventoryissueline
+                new InventoryIssueLine
                 {
                     IssueLineId = GuidHelper.NewId(),
                     IngredientId = fixture.IngredientId,
@@ -2415,7 +2415,7 @@ public class WorkflowGenerationTests
         var quantityLineId = await context.Mealquantityplanlines
             .Select(item => item.QuantityPlanLineId)
             .SingleAsync();
-        context.Quantityadjustments.Add(new Quantityadjustment
+        context.Quantityadjustments.Add(new QuantityAdjustment
         {
             AdjustmentId = GuidHelper.NewId(),
             QuantityPlanLineId = quantityLineId,
@@ -2461,7 +2461,7 @@ public class WorkflowGenerationTests
         await SelectDefaultSupplierAsync(context, fixture, purchase!);
         await purchaseService.SubmitAsync(purchase!.PurchaseRequestId, fixture.UserIdString);
         var alertPurchaseId = GuidHelper.NewId();
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = alertPurchaseId,
             PurchaseRequestCode = "PR-CURSOR-ALERT",
@@ -2471,7 +2471,7 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Purchaserequestlines =
             [
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = GuidHelper.NewId(),
                     PurchaseRequestId = alertPurchaseId,
@@ -2488,7 +2488,7 @@ public class WorkflowGenerationTests
         });
 
         materialRequest.Status = "SENTTOWAREHOUSE";
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = GuidHelper.NewId(),
             IssueCode = "ISS-CURSOR",
@@ -2499,7 +2499,7 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow,
             Inventoryissuelines =
             [
-                new Inventoryissueline
+                new InventoryIssueLine
                 {
                     IssueLineId = GuidHelper.NewId(),
                     IngredientId = fixture.IngredientId,
@@ -2512,7 +2512,7 @@ public class WorkflowGenerationTests
         var quantityLineId = await context.Mealquantityplanlines
             .Select(item => item.QuantityPlanLineId)
             .SingleAsync();
-        context.Quantityadjustments.Add(new Quantityadjustment
+        context.Quantityadjustments.Add(new QuantityAdjustment
         {
             AdjustmentId = GuidHelper.NewId(),
             QuantityPlanLineId = quantityLineId,
@@ -2762,7 +2762,7 @@ public class WorkflowGenerationTests
         {
             var materialRequest = await SeedReportDocumentsAsync(context, fixture);
             var customerId = await context.Customers.Select(item => item.CustomerId).SingleAsync();
-            context.Menuversions.Add(new Menuversion
+            context.Menuversions.Add(new MenuVersion
             {
                 MenuVersionId = GuidHelper.NewId(),
                 CustomerId = customerId,
@@ -2776,15 +2776,15 @@ public class WorkflowGenerationTests
                 CreatedAt = DateTime.UtcNow.AddMinutes(-25),
                 UpdatedAt = DateTime.UtcNow.AddMinutes(-25)
             });
-            context.Auditlogs.Add(new Auditlog
+            context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = DateTime.UtcNow.AddMinutes(-1),
                 ChangedBy = fixture.UserId,
                 BusinessArea = "Coordination",
-                EntityName = nameof(Mealquantityplan),
+                EntityName = nameof(MealQuantityPlan),
                 EntityId = fixture.QuantityPlanId,
-                FieldName = nameof(Mealquantityplan.Status),
+                FieldName = nameof(MealQuantityPlan.Status),
                 OldValue = "CONFIRMED",
                 NewValue = "COMPLETED",
                 Reason = "Hoàn tất ca điều phối"
@@ -2796,7 +2796,7 @@ public class WorkflowGenerationTests
             var areas = rows.Select(item => item.BusinessArea).ToList();
 
             areas.Should().Contain(["Import", "Approval", "Receipt", "Issue", "Signoff"]);
-            var menuImport = rows.Single(item => item.EntityName == nameof(Menuversion) && item.FieldName == "WeeklyMenu");
+            var menuImport = rows.Single(item => item.EntityName == nameof(MenuVersion) && item.FieldName == "WeeklyMenu");
             menuImport.OldValue.Should().Be("THUC DON DEMO.xlsx");
             menuImport.NewValue.Should().Be("MENU-CUS-20260615-V01 - DRAFT");
             menuImport.ChangedBy.Should().Be(fixture.UserIdString);
@@ -2815,7 +2815,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var baseDate = new DateTime(2026, 8, 10, 8, 0, 0, DateTimeKind.Utc);
         context.Auditlogs.AddRange(
-            new Auditlog
+            new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = baseDate,
@@ -2825,7 +2825,7 @@ public class WorkflowGenerationTests
                 FieldName = "Newest",
                 NewValue = "3"
             },
-            new Auditlog
+            new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = baseDate.AddDays(-1),
@@ -2835,7 +2835,7 @@ public class WorkflowGenerationTests
                 FieldName = "Middle",
                 NewValue = "2"
             },
-            new Auditlog
+            new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = baseDate.AddDays(-2),
@@ -2929,7 +2929,7 @@ public class WorkflowGenerationTests
             IsFreshDaily = false,
             IsActive = true
         });
-        context.Currentstocks.Add(new Currentstock
+        context.Currentstocks.Add(new CurrentStock
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
@@ -2937,7 +2937,7 @@ public class WorkflowGenerationTests
             CurrentQty = -2,
             LastUpdated = DateTime.UtcNow
         });
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = orphanRequestId,
             RequestCode = "MR-ORPHAN",
@@ -2947,7 +2947,7 @@ public class WorkflowGenerationTests
             Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = orphanPurchaseRequestId,
             PurchaseRequestCode = "PR-ORPHAN",
@@ -2956,7 +2956,7 @@ public class WorkflowGenerationTests
             Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
-        context.Purchaserequestlines.Add(new Purchaserequestline
+        context.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = GuidHelper.NewId(),
             PurchaseRequestId = orphanPurchaseRequestId,
@@ -2969,7 +2969,7 @@ public class WorkflowGenerationTests
             PurchaseQty = 2,
             EstimatedUnitPrice = 1000
         });
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = orphanIssueId,
             IssueCode = "ISS-ORPHAN",
@@ -3100,7 +3100,7 @@ public class WorkflowGenerationTests
         var planLineId = GuidHelper.NewId();
         var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
 
-        context.Productionplanlines.Add(new Productionplanline
+        context.Productionplanlines.Add(new ProductionPlanLine
         {
             PlanLineId = planLineId,
             PlanId = fixture.ProductionPlanId,
@@ -3112,7 +3112,7 @@ public class WorkflowGenerationTests
             TotalServings = 200
         });
         context.Materialrequests.AddRange(
-            new Materialrequest
+            new MaterialRequest
             {
                 RequestId = firstRequestId,
                 RequestCode = "MR-PURCHASE-DAY-1",
@@ -3123,7 +3123,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = firstLineId,
                         RequestId = firstRequestId,
@@ -3141,7 +3141,7 @@ public class WorkflowGenerationTests
                     }
                 ]
             },
-            new Materialrequest
+            new MaterialRequest
             {
                 RequestId = secondRequestId,
                 RequestCode = "MR-PURCHASE-DAY-2",
@@ -3152,7 +3152,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = secondLineId,
                         RequestId = secondRequestId,
@@ -3170,7 +3170,7 @@ public class WorkflowGenerationTests
                     }
                 ]
             });
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = "PR-PENDING",
@@ -3180,7 +3180,7 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Purchaserequestlines =
             [
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = purchaseLineId,
                     PurchaseRequestId = purchaseRequestId,
@@ -3196,7 +3196,7 @@ public class WorkflowGenerationTests
                 }
             ]
         });
-        context.Inventoryreceipts.Add(new Inventoryreceipt
+        context.Inventoryreceipts.Add(new InventoryReceipt
         {
             ReceiptId = receiptId,
             ReceiptCode = "RC-PARTIAL",
@@ -3207,7 +3207,7 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow,
             Inventoryreceiptlines =
             [
-                new Inventoryreceiptline
+                new InventoryReceiptLine
                 {
                     ReceiptLineId = GuidHelper.NewId(),
                     ReceiptId = receiptId,
@@ -3265,7 +3265,7 @@ public class WorkflowGenerationTests
         var secondRequestId = GuidHelper.NewId();
         var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
 
-        context.Productionplanlines.Add(new Productionplanline
+        context.Productionplanlines.Add(new ProductionPlanLine
         {
             PlanLineId = planLineId,
             PlanId = fixture.ProductionPlanId,
@@ -3277,7 +3277,7 @@ public class WorkflowGenerationTests
             TotalServings = 200
         });
         context.Materialrequests.AddRange(
-            new Materialrequest
+            new MaterialRequest
             {
                 RequestId = firstRequestId,
                 RequestCode = "MR-YEAR-END",
@@ -3288,7 +3288,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = firstRequestId,
@@ -3306,7 +3306,7 @@ public class WorkflowGenerationTests
                     }
                 ]
             },
-            new Materialrequest
+            new MaterialRequest
             {
                 RequestId = secondRequestId,
                 RequestCode = "MR-NEW-YEAR",
@@ -3317,7 +3317,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = secondRequestId,
@@ -3372,7 +3372,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var planLineId = GuidHelper.NewId();
         var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
-        context.Productionplanlines.Add(new Productionplanline
+        context.Productionplanlines.Add(new ProductionPlanLine
         {
             PlanLineId = planLineId,
             PlanId = fixture.ProductionPlanId,
@@ -3392,7 +3392,7 @@ public class WorkflowGenerationTests
         })
         {
             var requestId = GuidHelper.NewId();
-            context.Materialrequests.Add(new Materialrequest
+            context.Materialrequests.Add(new MaterialRequest
             {
                 RequestId = requestId,
                 RequestCode = requestCode,
@@ -3403,7 +3403,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = requestId,
@@ -3453,7 +3453,7 @@ public class WorkflowGenerationTests
         var activeDraftPurchaseRequestId = GuidHelper.NewId();
         var orphanIssueId = GuidHelper.NewId();
 
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = orphanRequestId,
             RequestCode = "MR-CLEANUP-ORPHAN",
@@ -3463,7 +3463,7 @@ public class WorkflowGenerationTests
             Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = stalePurchaseRequestId,
             PurchaseRequestCode = "PR-CLEANUP-STALE",
@@ -3472,7 +3472,7 @@ public class WorkflowGenerationTests
             Status = "CANCELLED",
             CreatedBy = fixture.UserId
         });
-        context.Purchaserequestlines.Add(new Purchaserequestline
+        context.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = stalePurchaseRequestLineId,
             PurchaseRequestId = stalePurchaseRequestId,
@@ -3485,7 +3485,7 @@ public class WorkflowGenerationTests
             PurchaseQty = 2,
             EstimatedUnitPrice = 1000
         });
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = activeDraftPurchaseRequestId,
             PurchaseRequestCode = "PR-ACTIVE-DRAFT",
@@ -3494,7 +3494,7 @@ public class WorkflowGenerationTests
             Status = "DRAFT",
             CreatedBy = fixture.UserId
         });
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = orphanIssueId,
             IssueCode = "ISS-CLEANUP-ORPHAN",
@@ -3504,7 +3504,7 @@ public class WorkflowGenerationTests
             IssuedBy = fixture.UserId,
             CreatedAt = DateTime.UtcNow
         });
-        context.Inventoryissuelines.Add(new Inventoryissueline
+        context.Inventoryissuelines.Add(new InventoryIssueLine
         {
             IssueLineId = GuidHelper.NewId(),
             IssueId = orphanIssueId,
@@ -3588,7 +3588,7 @@ public class WorkflowGenerationTests
             BaseUnitCode = "RESEARCH_BOX",
             ConvertRateToBase = 1,
         });
-        context.Unitnormalizationreviews.Add(new Unitnormalizationreview
+        context.Unitnormalizationreviews.Add(new UnitNormalizationReview
         {
             ReviewId = GuidHelper.NewId(),
             IngredientId = fixture.IngredientId,
@@ -3662,7 +3662,7 @@ public class WorkflowGenerationTests
                 IsActive = true
             });
         context.Currentstocks.AddRange(
-            new Currentstock
+            new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = decoyIngredientId,
@@ -3671,7 +3671,7 @@ public class WorkflowGenerationTests
                 LastUpdated = importedAt,
                 RowVersion = importedAt
             },
-            new Currentstock
+            new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = fixture.IngredientId,
@@ -3680,7 +3680,7 @@ public class WorkflowGenerationTests
                 LastUpdated = importedAt,
                 RowVersion = importedAt
             },
-            new Currentstock
+            new CurrentStock
             {
                 WarehouseId = fixture.WarehouseId,
                 IngredientId = zeroIngredientId,
@@ -3689,7 +3689,7 @@ public class WorkflowGenerationTests
                 LastUpdated = importedAt,
                 RowVersion = importedAt
             });
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = importedAt.AddDays(-1),
@@ -3754,7 +3754,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        context.Currentstocks.Add(new Currentstock
+        context.Currentstocks.Add(new CurrentStock
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
@@ -3763,7 +3763,7 @@ public class WorkflowGenerationTests
             LastUpdated = DateTime.UtcNow,
             RowVersion = DateTime.UtcNow
         });
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = DateTime.UtcNow.AddMinutes(-5),
@@ -3800,7 +3800,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        context.Currentstocks.Add(new Currentstock
+        context.Currentstocks.Add(new CurrentStock
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
@@ -3838,7 +3838,7 @@ public class WorkflowGenerationTests
         });
         var movementDate = new DateTime(2026, 7, 26, 8, 0, 0, DateTimeKind.Utc);
         context.Stockmovements.AddRange(
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                 MovementDate = movementDate,
@@ -3849,7 +3849,7 @@ public class WorkflowGenerationTests
                 QuantityIn = 3m,
                 PerformedBy = fixture.UserId
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
                 MovementDate = movementDate,
@@ -3879,7 +3879,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        context.Currentstocks.Add(new Currentstock
+        context.Currentstocks.Add(new CurrentStock
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
@@ -3888,7 +3888,7 @@ public class WorkflowGenerationTests
             LastUpdated = DateTime.UtcNow,
             RowVersion = DateTime.UtcNow
         });
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = DateTime.UtcNow.AddMinutes(-5),
@@ -3923,7 +3923,7 @@ public class WorkflowGenerationTests
 
         await using var context = fixture.CreateContext();
         context.Stockmovements.AddRange(
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = new DateTime(2026, 6, 30, 17, 0, 0, DateTimeKind.Utc),
@@ -3937,7 +3937,7 @@ public class WorkflowGenerationTests
                 AfterQty = 10m,
                 PerformedBy = fixture.UserId
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = new DateTime(2026, 7, 5, 8, 0, 0, DateTimeKind.Utc),
@@ -3951,7 +3951,7 @@ public class WorkflowGenerationTests
                 AfterQty = 6m,
                 PerformedBy = fixture.UserId
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = new DateTime(2026, 7, 12, 8, 0, 0, DateTimeKind.Utc),
@@ -3998,7 +3998,7 @@ public class WorkflowGenerationTests
         var oldMovementDate = DateTime.UtcNow.Date.AddDays(-40).AddHours(8);
         var recentMovementDate = DateTime.UtcNow.Date.AddDays(-1).AddHours(8);
         context.Stockmovements.AddRange(
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = oldMovementDate,
@@ -4013,7 +4013,7 @@ public class WorkflowGenerationTests
                 PerformedBy = fixture.UserId,
                 Note = "old"
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = recentMovementDate,
@@ -4064,7 +4064,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var baseDate = new DateTime(2026, 7, 10, 8, 0, 0, DateTimeKind.Utc);
         context.Stockmovements.AddRange(
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = baseDate,
@@ -4079,7 +4079,7 @@ public class WorkflowGenerationTests
                 PerformedBy = fixture.UserId,
                 Note = "newest"
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = baseDate.AddDays(-1),
@@ -4094,7 +4094,7 @@ public class WorkflowGenerationTests
                 PerformedBy = fixture.UserId,
                 Note = "cursor"
             },
-            new Stockmovement
+            new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = baseDate.AddDays(-2),
@@ -4213,7 +4213,7 @@ public class WorkflowGenerationTests
             nameof(Customer.Note),
             nameof(Customer.IsActive),
             "ContractCreated",
-            nameof(Menuschedule.MenuPrice)
+            nameof(MenuSchedule.MenuPrice)
         ]);
     }
 
@@ -4298,7 +4298,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            context.Customercontracts.Add(new Customercontract
+            context.Customercontracts.Add(new CustomerContract
             {
                 ContractId = GuidHelper.NewId(),
                 CustomerId = GuidHelper.ParseGuidString(customerId)!,
@@ -4571,7 +4571,7 @@ public class WorkflowGenerationTests
         {
             customerId = await setupContext.Customers.Select(item => item.CustomerId).SingleAsync();
             menuVersionId = GuidHelper.NewId();
-            setupContext.Menuversions.Add(new Menuversion
+            setupContext.Menuversions.Add(new MenuVersion
             {
                 MenuVersionId = menuVersionId,
                 CustomerId = customerId,
@@ -4639,7 +4639,7 @@ public class WorkflowGenerationTests
                 .SingleAsync(item => item.PlanCode == "KHSX-CUS-20260615-FULLDAY");
             var sourceLine = plan.Productionplanlines.Single();
             demandContext.Productionplanlines.AddRange(
-                new Productionplanline
+                new ProductionPlanLine
                 {
                     PlanLineId = GuidHelper.NewId(),
                     PlanId = sourceLine.PlanId,
@@ -4650,7 +4650,7 @@ public class WorkflowGenerationTests
                     ShiftName = "MORNING",
                     TotalServings = 100
                 },
-                new Productionplanline
+                new ProductionPlanLine
                 {
                     PlanLineId = GuidHelper.NewId(),
                     PlanId = sourceLine.PlanId,
@@ -4716,7 +4716,7 @@ public class WorkflowGenerationTests
 
         await using var context = fixture.CreateContext();
         context.Productionplans.AddRange(
-            new Productionplan
+            new ProductionPlan
             {
                 PlanId = GuidHelper.NewId(),
                 PlanCode = "KHSX-CUS-20280101-FULLDAY",
@@ -4726,7 +4726,7 @@ public class WorkflowGenerationTests
                 CreatedBy = fixture.UserId,
                 CreatedAt = DateTime.UtcNow
             },
-            new Productionplan
+            new ProductionPlan
             {
                 PlanId = GuidHelper.NewId(),
                 PlanCode = "KHSX-CUS-20240101-FULLDAY",
@@ -4766,7 +4766,7 @@ public class WorkflowGenerationTests
         {
             var schedule = await context.Menuschedules.AsNoTracking().SingleAsync();
             var quantityPlan = await context.Mealquantityplans.SingleAsync();
-            context.Menuschedules.Add(new Menuschedule
+            context.Menuschedules.Add(new MenuSchedule
             {
                 MenuScheduleId = GuidHelper.NewId(),
                 CustomerId = schedule.CustomerId,
@@ -4781,7 +4781,7 @@ public class WorkflowGenerationTests
             await context.SaveChangesAsync();
 
             var afternoonSchedule = await context.Menuschedules.SingleAsync(item => item.ShiftName == "AFTERNOON");
-            context.Mealquantityplanlines.Add(new Mealquantityplanline
+            context.Mealquantityplanlines.Add(new MealQuantityPlanLine
             {
                 QuantityPlanLineId = GuidHelper.NewId(),
                 QuantityPlanId = quantityPlan.QuantityPlanId,
@@ -4897,7 +4897,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var firstSchedule = await context.Menuschedules.SingleAsync();
         var scheduleId = GuidHelper.ToGuidString(firstSchedule.MenuScheduleId);
-        context.Menuschedules.Add(new Menuschedule
+        context.Menuschedules.Add(new MenuSchedule
         {
             MenuScheduleId = GuidHelper.NewId(),
             CustomerId = firstSchedule.CustomerId,
@@ -4937,8 +4937,8 @@ public class WorkflowGenerationTests
         var audit = await context.Auditlogs.AsNoTracking()
             .Where(item =>
                 item.BusinessArea == "MenuVersion" &&
-                item.EntityName == nameof(Menuschedule) &&
-                item.FieldName == nameof(Menuschedule.Status))
+                item.EntityName == nameof(MenuSchedule) &&
+                item.FieldName == nameof(MenuSchedule.Status))
             .ToListAsync();
         audit.Should().HaveCount(2);
         audit.Select(item => item.OldValue).Should().AllBeEquivalentTo("ACTIVE");
@@ -4960,7 +4960,7 @@ public class WorkflowGenerationTests
             versionOneId = GuidHelper.NewId();
             versionTwoId = GuidHelper.NewId();
             setupContext.Menuversions.AddRange(
-                new Menuversion
+                new MenuVersion
                 {
                     MenuVersionId = versionOneId,
                     CustomerId = customerId,
@@ -4974,7 +4974,7 @@ public class WorkflowGenerationTests
                     PublishedAt = DateTime.UtcNow.AddHours(-2),
                     UpdatedAt = DateTime.UtcNow.AddHours(-2)
                 },
-                new Menuversion
+                new MenuVersion
                 {
                     MenuVersionId = versionTwoId,
                     CustomerId = customerId,
@@ -5033,8 +5033,8 @@ public class WorkflowGenerationTests
             .Select(item => new { item.BusinessArea, item.FieldName })
             .ToListAsync();
         audits.Should().Contain(item => item.BusinessArea == "MenuVersion" && item.FieldName == "Rollback");
-        audits.Should().Contain(item => item.BusinessArea == "Demand" && item.FieldName == nameof(Materialrequest.Status));
-        audits.Should().Contain(item => item.BusinessArea == "Purchase" && item.FieldName == nameof(Purchaserequest.Status));
+        audits.Should().Contain(item => item.BusinessArea == "Demand" && item.FieldName == nameof(MaterialRequest.Status));
+        audits.Should().Contain(item => item.BusinessArea == "Purchase" && item.FieldName == nameof(PurchaseRequest.Status));
     }
 
     [Fact]
@@ -5055,7 +5055,7 @@ public class WorkflowGenerationTests
         purchase.Should().NotBeNull();
 
         var customer = await context.Customers.SingleAsync();
-        var version = new Menuversion
+        var version = new MenuVersion
         {
             MenuVersionId = GuidHelper.NewId(),
             CustomerId = customer.CustomerId,
@@ -5111,7 +5111,7 @@ public class WorkflowGenerationTests
             await ApproveDemandAsync(context, demand!.MaterialRequestId);
 
             var customer = await context.Customers.SingleAsync();
-            var version = new Menuversion
+            var version = new MenuVersion
             {
                 MenuVersionId = GuidHelper.NewId(),
                 CustomerId = customer.CustomerId,
@@ -5175,7 +5175,7 @@ public class WorkflowGenerationTests
             materialRequest.Status = "DRAFT";
 
             var customer = await context.Customers.SingleAsync();
-            var version = new Menuversion
+            var version = new MenuVersion
             {
                 MenuVersionId = GuidHelper.NewId(),
                 CustomerId = customer.CustomerId,
@@ -5241,9 +5241,9 @@ public class WorkflowGenerationTests
             item.Reason.Contains("regeneration"))).Should().Be(2);
     }
 
-    private static async Task<Materialrequest> SeedReportDocumentsAsync(IpcManagementContext context, WorkflowFixture fixture)
+    private static async Task<MaterialRequest> SeedReportDocumentsAsync(IpcManagementContext context, WorkflowFixture fixture)
     {
-        var materialRequest = new Materialrequest
+        var materialRequest = new MaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = "MR-20260615-FULLDAY",
@@ -5255,7 +5255,7 @@ public class WorkflowGenerationTests
         };
 
         context.Materialrequests.Add(materialRequest);
-        context.Quantityimportbatches.Add(new Quantityimportbatch
+        context.Quantityimportbatches.Add(new QuantityImportBatch
         {
             ImportBatchId = GuidHelper.NewId(),
             BatchCode = "IMP-DEMO",
@@ -5265,10 +5265,10 @@ public class WorkflowGenerationTests
             ImportedAt = DateTime.UtcNow.AddMinutes(-20),
             Status = "COMMITTED"
         });
-        context.Approvalhistories.Add(new Approvalhistory
+        context.Approvalhistories.Add(new ApprovalHistory
         {
             ApprovalHistoryId = GuidHelper.NewId(),
-            TargetType = nameof(Materialrequest),
+            TargetType = nameof(MaterialRequest),
             TargetId = materialRequest.RequestId,
             Decision = "APPROVE",
             OldStatus = "DRAFT",
@@ -5277,7 +5277,7 @@ public class WorkflowGenerationTests
             ActionBy = fixture.UserId,
             ActionAt = DateTime.UtcNow.AddMinutes(-15)
         });
-        context.Inventoryreceipts.Add(new Inventoryreceipt
+        context.Inventoryreceipts.Add(new InventoryReceipt
         {
             ReceiptId = fixture.ReceiptId,
             ReceiptCode = "NK-DEMO",
@@ -5288,7 +5288,7 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow.AddMinutes(-10),
             Inventoryreceiptlines =
             [
-                new Inventoryreceiptline
+                new InventoryReceiptLine
                 {
                     ReceiptLineId = GuidHelper.NewId(),
                     IngredientId = fixture.IngredientId,
@@ -5299,7 +5299,7 @@ public class WorkflowGenerationTests
                 }
             ]
         });
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = fixture.IssueId,
             IssueCode = "PX-DEMO",
@@ -5311,7 +5311,7 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow.AddMinutes(-5),
             Inventoryissuelines =
             [
-                new Inventoryissueline
+                new InventoryIssueLine
                 {
                     IssueLineId = GuidHelper.NewId(),
                     IngredientId = fixture.IngredientId,
@@ -5384,7 +5384,7 @@ public class WorkflowGenerationTests
             .SingleAsync(item =>
                 item.PurchaseRequestId == requestId &&
                 item.PurchaseRequestLineId == lineId);
-        var quotation = new Supplierquotation
+        var quotation = new SupplierQuotation
         {
             QuotationId = GuidHelper.NewId(),
             SupplierId = supplierId,
@@ -5647,7 +5647,7 @@ public class WorkflowGenerationTests
         await SeedSupplierAsync(context, supplierB, "NCC B");
 
         var purchaseRequestId = GuidHelper.NewId();
-        var purchaseRequest = new Purchaserequest
+        var purchaseRequest = new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = $"PR-DEMO-{GuidHelper.ToGuidString(purchaseRequestId)[..8]}",
@@ -5657,7 +5657,7 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Purchaserequestlines =
             [
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = GuidHelper.NewId(),
                     PurchaseRequestId = purchaseRequestId,
@@ -5671,7 +5671,7 @@ public class WorkflowGenerationTests
                     EstimatedUnitPrice = 1000,
                     ExpectedDeliveryDate = new DateOnly(2026, 6, 2)
                 },
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = GuidHelper.NewId(),
                     PurchaseRequestId = purchaseRequestId,
@@ -5693,7 +5693,7 @@ public class WorkflowGenerationTests
         {
             var supplierId = supplierIds[lineIndex];
             var fingerprintSeed = lineIndex == 0 ? 'A' : 'B';
-            line.SupplierDecisions.Add(new Purchaselinesupplierdecision
+            line.SupplierDecisions.Add(new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
                 PurchaseRequestLineId = line.PurchaseRequestLineId,
@@ -5875,7 +5875,7 @@ public class WorkflowGenerationTests
             WarehouseName = "Kho yêu cầu bổ sung",
             WarehouseType = "DRY"
         });
-        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        context.Supplementalmaterialrequests.Add(new SupplementalMaterialRequest
         {
             RequestId = supplementalRequestId,
             RequestCode = "SUP-RECEIPT-WAREHOUSE",
@@ -5889,13 +5889,13 @@ public class WorkflowGenerationTests
             RequestedBy = fixture.UserId,
             RequestedAt = DateTime.UtcNow,
         });
-        context.Auditlogs.Add(new Auditlog
+        context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = fixture.UserId,
             BusinessArea = "SupplementalMaterial",
-            EntityName = nameof(Supplementalmaterialrequest),
+            EntityName = nameof(SupplementalMaterialRequest),
             EntityId = supplementalRequestId,
             FieldName = "PurchaseRequestId",
             NewValue = GuidHelper.ToGuidString(purchaseRequestId),
@@ -5961,11 +5961,11 @@ public class WorkflowGenerationTests
         context.Ingredients.Add(new Ingredient { IngredientId = ingredientBId, IngredientCode = "ING-B", IngredientName = "Nguyên liệu B", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
         context.Dishes.Add(new Dish { DishId = dishId, DishCode = "DISH-DEMO", DishName = "Món demo", DishGroup = "Món chính", IsActive = true });
         // A dùng ít (weight 1), B dùng nhiều (weight 9) trong cùng món -> trung bình có trọng số phải lệch về phía B
-        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientAId, UnitId = fixture.UnitId, GrossQtyPerServing = 1, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
-        context.Dishboms.Add(new Dishbom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientBId, UnitId = fixture.UnitId, GrossQtyPerServing = 9, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+        context.Dishboms.Add(new DishBom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientAId, UnitId = fixture.UnitId, GrossQtyPerServing = 1, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
+        context.Dishboms.Add(new DishBom { BomId = GuidHelper.NewId(), DishId = dishId, IngredientId = ingredientBId, UnitId = fixture.UnitId, GrossQtyPerServing = 9, WasteRatePercent = 0, EffectiveFrom = new DateOnly(2026, 1, 1) });
 
         var receiptId = GuidHelper.NewId();
-        context.Inventoryreceipts.Add(new Inventoryreceipt
+        context.Inventoryreceipts.Add(new InventoryReceipt
         {
             ReceiptId = receiptId,
             ReceiptCode = "PN-DEMO",
@@ -5976,8 +5976,8 @@ public class WorkflowGenerationTests
             CreatedAt = DateTime.UtcNow,
             Inventoryreceiptlines =
             [
-                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientAId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 150 },
-                new Inventoryreceiptline { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientBId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 110 }
+                new InventoryReceiptLine { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientAId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 150 },
+                new InventoryReceiptLine { ReceiptLineId = GuidHelper.NewId(), IngredientId = ingredientBId, UnitId = fixture.UnitId, Quantity = 10, UnitPrice = 110 }
             ]
         });
 
@@ -6005,7 +6005,7 @@ public class WorkflowGenerationTests
         // PR 1: quá hạn (PurchaseForDate đã qua) và ĐÃ nhận đủ hàng qua PO -> không tính là quá hạn nữa
         var resolvedPrId = GuidHelper.NewId();
         var resolvedLineId = GuidHelper.NewId();
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = resolvedPrId,
             PurchaseRequestCode = $"PR-RESOLVED-{GuidHelper.ToGuidString(resolvedPrId)[..8]}",
@@ -6015,7 +6015,7 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Purchaserequestlines =
             [
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = resolvedLineId,
                     PurchaseRequestId = resolvedPrId,
@@ -6030,7 +6030,7 @@ public class WorkflowGenerationTests
                 }
             ]
         });
-        context.Purchaseorders.Add(new Purchaseorder
+        context.Purchaseorders.Add(new PurchaseOrder
         {
             PurchaseOrderId = GuidHelper.NewId(),
             PurchaseOrderCode = "PO-RESOLVED",
@@ -6043,13 +6043,13 @@ public class WorkflowGenerationTests
             UpdatedAt = DateTime.UtcNow,
             Purchaseorderlines =
             [
-                new Purchaseorderline { PurchaseOrderLineId = GuidHelper.NewId(), PurchaseRequestLineId = resolvedLineId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, OrderedQty = 5, ReceivedQty = 5, UnitPrice = 1000 }
+                new PurchaseOrderLine { PurchaseOrderLineId = GuidHelper.NewId(), PurchaseRequestLineId = resolvedLineId, IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, OrderedQty = 5, ReceivedQty = 5, UnitPrice = 1000 }
             ]
         });
 
         // PR 2: quá hạn và CHƯA từng tạo PO -> vẫn tính là quá hạn
         var unresolvedPrId = GuidHelper.NewId();
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = unresolvedPrId,
             PurchaseRequestCode = $"PR-UNRESOLVED-{GuidHelper.ToGuidString(unresolvedPrId)[..8]}",
@@ -6059,7 +6059,7 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Purchaserequestlines =
             [
-                new Purchaserequestline
+                new PurchaseRequestLine
                 {
                     PurchaseRequestLineId = GuidHelper.NewId(),
                     PurchaseRequestId = unresolvedPrId,
@@ -6091,7 +6091,7 @@ public class WorkflowGenerationTests
         var supplierId = GuidHelper.NewId();
         await SeedSupplierAndIngredientAsync(context, fixture, supplierId, "NCC KPI 2");
         var prId = GuidHelper.NewId();
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = prId,
             PurchaseRequestCode = $"PR-LATE-{GuidHelper.ToGuidString(prId)[..8]}",
@@ -6103,7 +6103,7 @@ public class WorkflowGenerationTests
 
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         // Đặt hàng 4 ngày trước (vượt ngưỡng 3 ngày) -> trễ
-        context.Purchaseorders.Add(new Purchaseorder
+        context.Purchaseorders.Add(new PurchaseOrder
         {
             PurchaseOrderId = GuidHelper.NewId(),
             PurchaseOrderCode = "PO-LATE",
@@ -6116,7 +6116,7 @@ public class WorkflowGenerationTests
             UpdatedAt = DateTime.UtcNow
         });
         // Đặt hàng 1 ngày trước (chưa tới ngưỡng) -> chưa trễ
-        context.Purchaseorders.Add(new Purchaseorder
+        context.Purchaseorders.Add(new PurchaseOrder
         {
             PurchaseOrderId = GuidHelper.NewId(),
             PurchaseOrderCode = "PO-NOT-LATE",
@@ -6153,7 +6153,7 @@ public class WorkflowGenerationTests
         // Nhu cầu trung bình 7 ngày: 70 / 7 = 10 mỗi ngày cho mỗi nguyên liệu
         var planId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = requestId,
             RequestCode = "MR-KPI",
@@ -6164,14 +6164,14 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Materialrequestlines =
             [
-                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 },
-                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 }
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 },
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = requestId, PlanLineId = GuidHelper.NewId(), IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, TotalServings = 100, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 70, CurrentStockQty = 0, SuggestedPurchaseQty = 0 }
             ]
         });
 
         // Tồn kho hiện tại: NL tồn thấp chỉ còn 5 (< 10/ngày) -> tồn thấp; NL tồn ổn còn 50 (>= 10/ngày) -> không tính
-        context.Currentstocks.Add(new Currentstock { WarehouseId = fixture.WarehouseId, IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 5, LastUpdated = DateTime.UtcNow });
-        context.Currentstocks.Add(new Currentstock { WarehouseId = fixture.WarehouseId, IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 50, LastUpdated = DateTime.UtcNow });
+        context.Currentstocks.Add(new CurrentStock { WarehouseId = fixture.WarehouseId, IngredientId = lowStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 5, LastUpdated = DateTime.UtcNow });
+        context.Currentstocks.Add(new CurrentStock { WarehouseId = fixture.WarehouseId, IngredientId = healthyStockIngredientId, UnitId = fixture.UnitId, CurrentQty = 50, LastUpdated = DateTime.UtcNow });
 
         await context.SaveChangesAsync();
 
@@ -6191,7 +6191,7 @@ public class WorkflowGenerationTests
         context.Ingredients.Add(new Ingredient { IngredientId = fixture.IngredientId, IngredientCode = "ING-SHORT", IngredientName = "NL thiếu", UnitId = fixture.UnitId, WarehouseId = fixture.WarehouseId, ReferencePrice = 100, IsFreshDaily = false, IsActive = true });
 
         var activeRequestId = GuidHelper.NewId();
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = activeRequestId,
             RequestCode = "MR-ACTIVE",
@@ -6202,12 +6202,12 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Materialrequestlines =
             [
-                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = activeRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = activeRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
             ]
         });
 
         var cancelledRequestId = GuidHelper.NewId();
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = cancelledRequestId,
             RequestCode = "MR-CANCELLED",
@@ -6218,11 +6218,11 @@ public class WorkflowGenerationTests
             CreatedBy = fixture.UserId,
             Materialrequestlines =
             [
-                new Materialrequestline { RequestLineId = GuidHelper.NewId(), RequestId = cancelledRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
+                new MaterialRequestLine { RequestLineId = GuidHelper.NewId(), RequestId = cancelledRequestId, PlanLineId = GuidHelper.NewId(), IngredientId = fixture.IngredientId, UnitId = fixture.UnitId, TotalServings = 10, GrossQtyPerServing = 1, BomRatePercent = 100, TotalRequiredQty = 10, CurrentStockQty = 0, SuggestedPurchaseQty = 10 }
             ]
         });
 
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = GuidHelper.NewId(),
             IssueCode = "IX-PENDING",
@@ -6233,7 +6233,7 @@ public class WorkflowGenerationTests
             ReceivedBy = null,
             CreatedAt = DateTime.UtcNow
         });
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = GuidHelper.NewId(),
             IssueCode = "IX-CONFIRMED",
@@ -6273,7 +6273,7 @@ public class WorkflowGenerationTests
             IsActive = true
         });
 
-        context.Materialrequests.Add(new Materialrequest
+        context.Materialrequests.Add(new MaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = "MR-FAILED",
@@ -6283,7 +6283,7 @@ public class WorkflowGenerationTests
             Status = "FAILED",
             CreatedBy = fixture.UserId
         });
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = "PR-OVERDUE-APPROVAL",
@@ -6292,7 +6292,7 @@ public class WorkflowGenerationTests
             Status = "SENTTOSUPPLIER",
             CreatedBy = fixture.UserId
         });
-        context.Currentstocks.Add(new Currentstock
+        context.Currentstocks.Add(new CurrentStock
         {
             WarehouseId = fixture.WarehouseId,
             IngredientId = fixture.IngredientId,
@@ -6370,7 +6370,7 @@ public class WorkflowGenerationTests
         await using var context = fixture.CreateContext();
         var planLineId = GuidHelper.NewId();
         var menuId = await context.Menus.Select(menu => menu.MenuId).SingleAsync();
-        context.Productionplanlines.Add(new Productionplanline
+        context.Productionplanlines.Add(new ProductionPlanLine
         {
             PlanLineId = planLineId,
             PlanId = fixture.ProductionPlanId,
@@ -6388,7 +6388,7 @@ public class WorkflowGenerationTests
             {
                 var requestDate = new DateOnly(year, month, 1);
                 var requestId = GuidHelper.NewId();
-                context.Materialrequests.Add(new Materialrequest
+                context.Materialrequests.Add(new MaterialRequest
                 {
                     RequestId = requestId,
                     RequestCode = $"MR-HISTORY-{year}{month:00}",
@@ -6399,7 +6399,7 @@ public class WorkflowGenerationTests
                     CreatedBy = fixture.UserId,
                     Materialrequestlines =
                     [
-                        new Materialrequestline
+                        new MaterialRequestLine
                         {
                             RequestLineId = GuidHelper.NewId(),
                             RequestId = requestId,
@@ -6622,7 +6622,7 @@ public class WorkflowGenerationTests
             context.Customers.Add(customer);
             context.Menus.Add(menu);
             context.Dishes.AddRange(dishWithBom, dishMissingBom);
-            context.Menuitems.Add(new Menuitem
+            context.Menuitems.Add(new MenuItem
             {
                 MenuItemId = GuidHelper.NewId(),
                 MenuId = menuId,
@@ -6631,7 +6631,7 @@ public class WorkflowGenerationTests
             });
             if (includeMissingDish)
             {
-                context.Menuitems.Add(new Menuitem
+                context.Menuitems.Add(new MenuItem
                 {
                     MenuItemId = GuidHelper.NewId(),
                     MenuId = menuId,
@@ -6640,7 +6640,7 @@ public class WorkflowGenerationTests
                 });
             }
 
-            context.Dishboms.Add(new Dishbom
+            context.Dishboms.Add(new DishBom
             {
                 BomId = GuidHelper.NewId(),
                 DishId = DishWithBomId,
@@ -6651,7 +6651,7 @@ public class WorkflowGenerationTests
                 BomStatus = "PUBLISHED",
                 EffectiveFrom = new DateOnly(2026, 1, 1)
             });
-            context.Menuschedules.Add(new Menuschedule
+            context.Menuschedules.Add(new MenuSchedule
             {
                 MenuScheduleId = scheduleId,
                 CustomerId = CustomerId,
@@ -6663,7 +6663,7 @@ public class WorkflowGenerationTests
                 BomRatePercent = 100,
                 Status = "ACTIVE"
             });
-            context.Mealquantityplans.Add(new Mealquantityplan
+            context.Mealquantityplans.Add(new MealQuantityPlan
             {
                 QuantityPlanId = QuantityPlanId,
                 PlanCode = "QTY-20260615",
@@ -6674,7 +6674,7 @@ public class WorkflowGenerationTests
                 ConfirmationTime = new TimeOnly(9, 0),
                 ConfirmedBy = UserId
             });
-            context.Mealquantityplanlines.Add(new Mealquantityplanline
+            context.Mealquantityplanlines.Add(new MealQuantityPlanLine
             {
                 QuantityPlanLineId = quantityLineId,
                 QuantityPlanId = QuantityPlanId,
@@ -6686,7 +6686,7 @@ public class WorkflowGenerationTests
                 ConfirmedServings = 100,
                 FinalServings = 100
             });
-            context.Productionplans.Add(new Productionplan
+            context.Productionplans.Add(new ProductionPlan
             {
                 PlanId = ProductionPlanId,
                 PlanCode = "KHSX-REPORT-SEED",
@@ -6753,7 +6753,7 @@ public class WorkflowGenerationTests
                 DishName = "Performance Dish",
                 IsActive = true
             });
-            context.Menuitems.Add(new Menuitem
+            context.Menuitems.Add(new MenuItem
             {
                 MenuItemId = GuidHelper.NewId(),
                 MenuId = menuId,
@@ -6775,7 +6775,7 @@ public class WorkflowGenerationTests
                     IsFreshDaily = true,
                     IsActive = true
                 });
-                context.Dishboms.Add(new Dishbom
+                context.Dishboms.Add(new DishBom
                 {
                     BomId = GuidHelper.NewId(),
                     DishId = dishId,
@@ -6803,7 +6803,7 @@ public class WorkflowGenerationTests
             {
                 var serviceDate = weekStart.AddDays(dayOffset);
                 var quantityPlanId = GuidHelper.NewId();
-                context.Mealquantityplans.Add(new Mealquantityplan
+                context.Mealquantityplans.Add(new MealQuantityPlan
                 {
                     QuantityPlanId = quantityPlanId,
                     PlanCode = $"QTY-PERF-{serviceDate:yyyyMMdd}",
@@ -6818,7 +6818,7 @@ public class WorkflowGenerationTests
                 foreach (var customer in customers)
                 {
                     var scheduleId = GuidHelper.NewId();
-                    context.Menuschedules.Add(new Menuschedule
+                    context.Menuschedules.Add(new MenuSchedule
                     {
                         MenuScheduleId = scheduleId,
                         CustomerId = customer.CustomerId,
@@ -6830,7 +6830,7 @@ public class WorkflowGenerationTests
                         BomRatePercent = 100,
                         Status = "ACTIVE"
                     });
-                    context.Mealquantityplanlines.Add(new Mealquantityplanline
+                    context.Mealquantityplanlines.Add(new MealQuantityPlanLine
                     {
                         QuantityPlanLineId = GuidHelper.NewId(),
                         QuantityPlanId = quantityPlanId,

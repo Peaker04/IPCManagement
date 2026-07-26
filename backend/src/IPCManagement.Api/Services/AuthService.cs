@@ -252,7 +252,7 @@ public class AuthService : IAuthService
         await _refreshTokenRepository.CleanupExpiredForUserAsync(userIdBytes);
 
         // Tạo refresh token mới
-        _refreshTokenRepository.Add(new Refreshtoken
+        _refreshTokenRepository.Add(new RefreshToken
         {
             TokenId    = GuidHelper.NewId(),
             UserId     = userIdBytes,

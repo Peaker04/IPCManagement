@@ -122,7 +122,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
             var purchaseRequestId = GuidHelper.ToGuidString(order.PurchaseRequestId);
             var supplementalAudit = await _context.Auditlogs
                 .AsNoTracking()
-                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
                     item.FieldName == "PurchaseRequestId" &&
                     item.NewValue == purchaseRequestId)
                 .OrderByDescending(item => item.ChangedAt)
@@ -140,7 +140,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
             var validatedLines = await ValidateActualReceiptAsync(order, requirements, request, cancellationToken);
             var now = DateTime.UtcNow;
-            var receipt = new Inventoryreceipt
+            var receipt = new InventoryReceipt
             {
                 ReceiptId = receiptId,
                 ReceiptCode = $"RCP-PO-{Convert.ToHexString(receiptId)}",
@@ -156,7 +156,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
             {
                 var input = validated.Input;
                 var orderLine = validated.OrderLine;
-                receipt.Inventoryreceiptlines.Add(new Inventoryreceiptline
+                receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
                 {
                     ReceiptLineId = BuildReceiptLineId(receiptId, orderLine.PurchaseOrderLineId),
                     ReceiptId = receiptId,
@@ -212,15 +212,15 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
             order.UpdatedAt = now;
             await InjectFaultAsync("AfterOrderProgress", cancellationToken);
 
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = BuildAuditId(receiptId),
                 ChangedAt = now,
                 ChangedBy = actorId,
                 BusinessArea = "Receipt",
-                EntityName = nameof(Purchaseorder),
+                EntityName = nameof(PurchaseOrder),
                 EntityId = order.PurchaseOrderId,
-                FieldName = nameof(Purchaseorder.Status),
+                FieldName = nameof(PurchaseOrder.Status),
                 OldValue = oldStatus,
                 NewValue = order.Status,
                 Reason = $"Kho ghi nhận phiếu {receipt.ReceiptCode} cho {order.PurchaseOrderCode}."
@@ -252,7 +252,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     }
 
     private async Task<IReadOnlyList<ValidatedReceiptLine>> ValidateActualReceiptAsync(
-        Purchaseorder order,
+        PurchaseOrder order,
         IReadOnlyList<PurchaseReceiptEvidenceRequirementsDto> requirements,
         RecordWarehousePurchaseReceiptDto request,
         CancellationToken cancellationToken)
@@ -322,7 +322,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         return validated;
     }
 
-    private static IReadOnlyList<PurchaseReceiptEvidenceRequirementsDto> BuildEvidenceRequirements(Purchaseorder order)
+    private static IReadOnlyList<PurchaseReceiptEvidenceRequirementsDto> BuildEvidenceRequirements(PurchaseOrder order)
         => order.Purchaseorderlines
             .OrderBy(line => line.Ingredient.IngredientName, StringComparer.Ordinal)
             .Select(line => new PurchaseReceiptEvidenceRequirementsDto
@@ -360,8 +360,8 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     }
 
     private static void ValidateIdempotentReplay(
-        Inventoryreceipt existingReceipt,
-        Purchaseorder order,
+        InventoryReceipt existingReceipt,
+        PurchaseOrder order,
         RecordWarehousePurchaseReceiptDto request,
         byte[] warehouseId)
     {
@@ -402,7 +402,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         }
     }
 
-    private async Task<Purchaseorder?> LoadOrderAsync(byte[] purchaseOrderId, CancellationToken cancellationToken)
+    private async Task<PurchaseOrder?> LoadOrderAsync(byte[] purchaseOrderId, CancellationToken cancellationToken)
     {
         if (!IsInMemoryProvider())
         {
@@ -444,7 +444,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         return order;
     }
 
-    private async Task<Inventoryreceipt?> LoadReceiptAsync(byte[] receiptId, CancellationToken cancellationToken)
+    private async Task<InventoryReceipt?> LoadReceiptAsync(byte[] receiptId, CancellationToken cancellationToken)
     {
         var query = _context.Inventoryreceipts
             .Include(receipt => receipt.Inventoryreceiptlines)
@@ -487,7 +487,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         }
     }
 
-    private static string ComputeOrderStatus(IEnumerable<Purchaseorderline> lines)
+    private static string ComputeOrderStatus(IEnumerable<PurchaseOrderLine> lines)
     {
         var lineList = lines.ToList();
         if (lineList.All(line => !DecimalPolicy.LessThanQuantity(line.ReceivedQty, line.OrderedQty)))
@@ -499,8 +499,8 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     }
 
     private static WarehousePurchaseReceiptResultDto BuildResult(
-        Inventoryreceipt receipt,
-        Purchaseorder order,
+        InventoryReceipt receipt,
+        PurchaseOrder order,
         string idempotencyKey,
         IReadOnlyList<PurchaseReceiptEvidenceRequirementsDto> requirements)
         => new()
@@ -531,6 +531,6 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
         => left is null ? right is null : right is not null && left.AsSpan().SequenceEqual(right);
 
     private sealed record ValidatedReceiptLine(
-        Purchaseorderline OrderLine,
+        PurchaseOrderLine OrderLine,
         WarehousePurchaseReceiptLineDto Input);
 }

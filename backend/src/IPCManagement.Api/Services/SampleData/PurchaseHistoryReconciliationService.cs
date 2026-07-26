@@ -361,7 +361,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             var counts = accepted.Actions
                 .GroupBy(action => action.ActionType, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-            var run = new Purchasehistoryreconciliationrun
+            var run = new PurchaseHistoryReconciliationRun
             {
                 PurchaseHistoryReconciliationRunId = runId,
                 ManifestId = accepted.Preview.Manifest.ManifestId,
@@ -642,7 +642,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
 
         var receiptId = DeterministicId($"receipt|{action.ActionHash}");
         var receiptLineId = DeterministicId($"line|{action.ActionHash}");
-        _context.Inventoryreceipts.Add(new Inventoryreceipt
+        _context.Inventoryreceipts.Add(new InventoryReceipt
         {
             ReceiptId = receiptId,
             ReceiptCode = $"RCR-{accepted.Preview.Manifest.ManifestId[..8]}-{action.ActionId[..8]}",
@@ -653,7 +653,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             CreatedBy = accepted.AppliedBy,
             CreatedAt = DateTime.UtcNow
         });
-        _context.Inventoryreceiptlines.Add(new Inventoryreceiptline
+        _context.Inventoryreceiptlines.Add(new InventoryReceiptLine
         {
             ReceiptLineId = receiptLineId,
             ReceiptId = receiptId,
@@ -668,13 +668,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         });
     }
 
-    private static Purchasehistoryreconciliationaction ToAuditAction(
+    private static PurchaseHistoryReconciliationAction ToAuditAction(
         PurchaseHistoryActionDto action,
         byte[] runId,
         DateTime createdAt)
     {
         var sourceParts = action.SourceKey.Split('|', 2);
-        return new Purchasehistoryreconciliationaction
+        return new PurchaseHistoryReconciliationAction
         {
             PurchaseHistoryReconciliationActionId = DeterministicId($"audit|{action.ActionHash}"),
             PurchaseHistoryReconciliationRunId = runId,

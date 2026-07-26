@@ -40,41 +40,41 @@ public class PurchaseHistoryReconciliationTests
         using var context = CreateContext();
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        var run = model.FindEntityType(typeof(Purchasehistoryreconciliationrun));
+        var run = model.FindEntityType(typeof(PurchaseHistoryReconciliationRun));
         run.Should().NotBeNull();
         run!.GetProperties().Select(property => property.Name).Should().Contain(
-            nameof(Purchasehistoryreconciliationrun.ManifestId),
-            nameof(Purchasehistoryreconciliationrun.ManifestHash),
-            nameof(Purchasehistoryreconciliationrun.SourceName),
-            nameof(Purchasehistoryreconciliationrun.SourceSha256),
-            nameof(Purchasehistoryreconciliationrun.PolicyVersion),
-            nameof(Purchasehistoryreconciliationrun.AsOfDate),
-            nameof(Purchasehistoryreconciliationrun.DatabaseFingerprint),
-            nameof(Purchasehistoryreconciliationrun.BackupIdentifier),
-            nameof(Purchasehistoryreconciliationrun.BackupTargetFingerprint),
-            nameof(Purchasehistoryreconciliationrun.RestoreFingerprint),
-            nameof(Purchasehistoryreconciliationrun.RestoreVerified),
-            nameof(Purchasehistoryreconciliationrun.AppliedBy),
-            nameof(Purchasehistoryreconciliationrun.Status),
-            nameof(Purchasehistoryreconciliationrun.CandidateCount),
-            nameof(Purchasehistoryreconciliationrun.CurrentUniqueBusinessKeyCount),
-            nameof(Purchasehistoryreconciliationrun.AuditedDeltaCount),
-            nameof(Purchasehistoryreconciliationrun.ActionCount),
-            nameof(Purchasehistoryreconciliationrun.BlockerCount));
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.ManifestHash))!
+            nameof(PurchaseHistoryReconciliationRun.ManifestId),
+            nameof(PurchaseHistoryReconciliationRun.ManifestHash),
+            nameof(PurchaseHistoryReconciliationRun.SourceName),
+            nameof(PurchaseHistoryReconciliationRun.SourceSha256),
+            nameof(PurchaseHistoryReconciliationRun.PolicyVersion),
+            nameof(PurchaseHistoryReconciliationRun.AsOfDate),
+            nameof(PurchaseHistoryReconciliationRun.DatabaseFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.BackupIdentifier),
+            nameof(PurchaseHistoryReconciliationRun.BackupTargetFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.RestoreFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.RestoreVerified),
+            nameof(PurchaseHistoryReconciliationRun.AppliedBy),
+            nameof(PurchaseHistoryReconciliationRun.Status),
+            nameof(PurchaseHistoryReconciliationRun.CandidateCount),
+            nameof(PurchaseHistoryReconciliationRun.CurrentUniqueBusinessKeyCount),
+            nameof(PurchaseHistoryReconciliationRun.AuditedDeltaCount),
+            nameof(PurchaseHistoryReconciliationRun.ActionCount),
+            nameof(PurchaseHistoryReconciliationRun.BlockerCount));
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.ManifestHash))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.SourceSha256))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.SourceSha256))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.DatabaseFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.DatabaseFingerprint))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.BackupTargetFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.BackupTargetFingerprint))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.RestoreFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.RestoreFingerprint))!
             .GetMaxLength().Should().Be(64);
         run.GetIndexes().Should().Contain(index =>
             index.IsUnique &&
             index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchasehistoryreconciliationrun.ManifestHash) }));
+                .SequenceEqual(new[] { nameof(PurchaseHistoryReconciliationRun.ManifestHash) }));
         run.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckPurchaseHistoryReconciliationRunsCounts",
             "ckPurchaseHistoryReconciliationRunsStatus",
@@ -82,42 +82,42 @@ public class PurchaseHistoryReconciliationTests
         run.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.IsRequired && foreignKey.PrincipalEntityType.ClrType == typeof(User));
 
-        var action = model.FindEntityType(typeof(Purchasehistoryreconciliationaction));
+        var action = model.FindEntityType(typeof(PurchaseHistoryReconciliationAction));
         action.Should().NotBeNull();
         action!.GetProperties().Select(property => property.Name).Should().Contain(
-            nameof(Purchasehistoryreconciliationaction.ActionId),
-            nameof(Purchasehistoryreconciliationaction.ActionType),
-            nameof(Purchasehistoryreconciliationaction.SourceKey),
-            nameof(Purchasehistoryreconciliationaction.SourceSheet),
-            nameof(Purchasehistoryreconciliationaction.SourceRow),
-            nameof(Purchasehistoryreconciliationaction.BusinessKey),
-            nameof(Purchasehistoryreconciliationaction.TargetType),
-            nameof(Purchasehistoryreconciliationaction.TargetId),
-            nameof(Purchasehistoryreconciliationaction.ReasonCode),
-            nameof(Purchasehistoryreconciliationaction.BeforeEvidence),
-            nameof(Purchasehistoryreconciliationaction.BeforeHash),
-            nameof(Purchasehistoryreconciliationaction.AfterEvidence),
-            nameof(Purchasehistoryreconciliationaction.AfterHash),
-            nameof(Purchasehistoryreconciliationaction.ActionHash));
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionId))!
+            nameof(PurchaseHistoryReconciliationAction.ActionId),
+            nameof(PurchaseHistoryReconciliationAction.ActionType),
+            nameof(PurchaseHistoryReconciliationAction.SourceKey),
+            nameof(PurchaseHistoryReconciliationAction.SourceSheet),
+            nameof(PurchaseHistoryReconciliationAction.SourceRow),
+            nameof(PurchaseHistoryReconciliationAction.BusinessKey),
+            nameof(PurchaseHistoryReconciliationAction.TargetType),
+            nameof(PurchaseHistoryReconciliationAction.TargetId),
+            nameof(PurchaseHistoryReconciliationAction.ReasonCode),
+            nameof(PurchaseHistoryReconciliationAction.BeforeEvidence),
+            nameof(PurchaseHistoryReconciliationAction.BeforeHash),
+            nameof(PurchaseHistoryReconciliationAction.AfterEvidence),
+            nameof(PurchaseHistoryReconciliationAction.AfterHash),
+            nameof(PurchaseHistoryReconciliationAction.ActionHash));
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.ActionId))!
             .GetMaxLength().Should().Be(32);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.ActionHash))!
             .GetMaxLength().Should().Be(64);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.BeforeHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.BeforeHash))!
             .GetMaxLength().Should().Be(64);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.AfterHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.AfterHash))!
             .GetMaxLength().Should().Be(64);
         action.GetIndexes().Should().Contain(index =>
             index.IsUnique &&
             index.Properties.Select(property => property.Name).SequenceEqual(
                 new[]
                 {
-                    nameof(Purchasehistoryreconciliationaction.PurchaseHistoryReconciliationRunId),
-                    nameof(Purchasehistoryreconciliationaction.ActionId)
+                    nameof(PurchaseHistoryReconciliationAction.PurchaseHistoryReconciliationRunId),
+                    nameof(PurchaseHistoryReconciliationAction.ActionId)
                 }));
         action.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.IsRequired &&
-            foreignKey.PrincipalEntityType.ClrType == typeof(Purchasehistoryreconciliationrun));
+            foreignKey.PrincipalEntityType.ClrType == typeof(PurchaseHistoryReconciliationRun));
         action.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckPurchaseHistoryReconciliationActionsDisposition",
             "ckPurchaseHistoryReconciliationActionsSourceRow");
@@ -172,7 +172,7 @@ public class PurchaseHistoryReconciliationTests
 
         // Ba cột này TỪNG được ghim là "known baseline gap" với kỳ vọng Be(0), vì fixture đánh
         // dấu sẵn 20260702061320_AddImportAuditFields là đã applied nên migration không bao giờ
-        // chạy. Nhưng entity Menuversion khai SuccessRowCount/ErrorRowCount/WarningRowCount và
+        // chạy. Nhưng entity MenuVersion khai SuccessRowCount/ErrorRowCount/WarningRowCount và
         // database đang chạy có đủ cả ba — tức database cài mới đang THIẾU cột so với model.
         // Đã bỏ ID đó khỏi danh sách đánh dấu sẵn nên migration chạy thật; kỳ vọng lật thành 3.
         (await SchemaObjectCountAsync(
@@ -824,7 +824,7 @@ public class PurchaseHistoryReconciliationTests
             21_000,
             "SAMPLE-LINKED",
             purchaseRequestId: Id(90));
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = Id(91),
             MovementDate = new DateTime(2026, 7, 19),
@@ -1675,7 +1675,7 @@ public class PurchaseHistoryReconciliationTests
         await context.SaveChangesAsync();
     }
 
-    private static async Task<Inventoryreceiptline> SeedReceiptAsync(
+    private static async Task<InventoryReceiptLine> SeedReceiptAsync(
         IpcManagementContext context,
         string receiptCode,
         DateOnly receiptDate,
@@ -1688,7 +1688,7 @@ public class PurchaseHistoryReconciliationTests
         byte[]? purchaseRequestId = null)
     {
         var sequence = context.Inventoryreceipts.Local.Count + 50;
-        var receipt = new Inventoryreceipt
+        var receipt = new InventoryReceipt
         {
             ReceiptId = Id(sequence),
             ReceiptCode = receiptCode,
@@ -1699,7 +1699,7 @@ public class PurchaseHistoryReconciliationTests
             CreatedBy = Id(41),
             CreatedAt = new DateTime(2026, 7, 20)
         };
-        var line = new Inventoryreceiptline
+        var line = new InventoryReceiptLine
         {
             ReceiptLineId = Id(sequence + 20),
             ReceiptId = receipt.ReceiptId,

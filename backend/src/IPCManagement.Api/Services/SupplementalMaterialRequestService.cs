@@ -133,7 +133,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         EnsureWarehouseScope(source.Issue.WarehouseId, scopedWarehouseId);
 
-        var entity = new Supplementalmaterialrequest
+        var entity = new SupplementalMaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = $"SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
@@ -187,7 +187,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var issue = new Inventoryissue
+            var issue = new InventoryIssue
             {
                 IssueId = GuidHelper.NewId(),
                 IssueCode = $"ISS-SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
@@ -198,7 +198,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 IssuedBy = actorId,
                 CreatedAt = DateTime.UtcNow,
             };
-            issue.Inventoryissuelines.Add(new Inventoryissueline
+            issue.Inventoryissuelines.Add(new InventoryIssueLine
             {
                 IssueLineId = GuidHelper.NewId(),
                 IssueId = issue.IssueId,
@@ -273,7 +273,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 _context.Database.ProviderName,
                 "Microsoft.EntityFrameworkCore.InMemory",
                 StringComparison.Ordinal)
-            ? _context.ChangeTracker.Entries<Materialrequestline>()
+            ? _context.ChangeTracker.Entries<MaterialRequestLine>()
                 .Select(entry => entry.Entity)
                 .FirstOrDefault()
             : await materialLineQuery.FirstOrDefaultAsync(line =>
@@ -288,7 +288,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         using var transaction = await _unitOfWork.BeginTransactionAsync();
         try
         {
-            var purchaseRequest = new Purchaserequest
+            var purchaseRequest = new PurchaseRequest
             {
                 PurchaseRequestId = GuidHelper.NewId(),
                 PurchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
@@ -298,7 +298,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 Status = "DRAFT",
                 CreatedBy = actorId,
             };
-            purchaseRequest.Purchaserequestlines.Add(new Purchaserequestline
+            purchaseRequest.Purchaserequestlines.Add(new PurchaseRequestLine
             {
                 PurchaseRequestLineId = GuidHelper.NewId(),
                 PurchaseRequestId = purchaseRequest.PurchaseRequestId,
@@ -365,8 +365,8 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     }
 
     private async Task<SupplementalMaterialRequestDto> MapAsync(
-        Supplementalmaterialrequest entity,
-        Inventoryissueline? loadedSource = null)
+        SupplementalMaterialRequest entity,
+        InventoryIssueLine? loadedSource = null)
     {
         var source = loadedSource ?? await LoadSourceLineAsync(entity);
         decimal fulfilledQty;
@@ -422,7 +422,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         };
     }
 
-    private async Task<Inventoryissueline> LoadSourceLineAsync(Supplementalmaterialrequest entity)
+    private async Task<InventoryIssueLine> LoadSourceLineAsync(SupplementalMaterialRequest entity)
     {
         var query = _context.Inventoryissuelines
             .AsNoTracking()
@@ -434,7 +434,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             return await query.FirstAsync(line => line.IssueLineId == entity.IssueLineId);
         }
 
-        var tracked = _context.ChangeTracker.Entries<Inventoryissueline>()
+        var tracked = _context.ChangeTracker.Entries<InventoryIssueLine>()
             .Select(entry => entry.Entity)
             .FirstOrDefault(line =>
                 line.IssueLineId.SequenceEqual(entity.IssueLineId) ||
@@ -453,7 +453,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 line.UnitId.SequenceEqual(entity.UnitId)));
     }
 
-    private async Task<Supplementalmaterialrequest> LoadTrackedAsync(string id)
+    private async Task<SupplementalMaterialRequest> LoadTrackedAsync(string id)
     {
         var requestId = GuidHelper.ParseGuidString(id)
             ?? throw new ArgumentException("Yêu cầu bổ sung không hợp lệ.");
@@ -468,7 +468,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             .AsNoTracking()
             .Include(item => item.Unit);
         var stock = IsInMemory()
-            ? _context.ChangeTracker.Entries<Currentstock>()
+            ? _context.ChangeTracker.Entries<CurrentStock>()
                 .Select(entry => entry.Entity)
                 .FirstOrDefault()
             : await stockQuery.FirstOrDefaultAsync(item => item.WarehouseId == warehouseId && item.IngredientId == ingredientId);
@@ -492,7 +492,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     {
         var audit = await _context.Auditlogs
             .AsNoTracking()
-            .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+            .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
                 item.EntityId == requestId &&
                 item.FieldName == PurchaseRequestAuditField)
             .OrderByDescending(item => item.ChangedAt)
@@ -511,19 +511,19 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     }
 
     private void AddAudit(
-        Supplementalmaterialrequest entity,
+        SupplementalMaterialRequest entity,
         byte[] actorId,
         string fieldName,
         string? oldValue,
         string? newValue,
         string reason)
-        => _context.Auditlogs.Add(new Auditlog
+        => _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = actorId,
             BusinessArea = "SupplementalMaterial",
-            EntityName = nameof(Supplementalmaterialrequest),
+            EntityName = nameof(SupplementalMaterialRequest),
             EntityId = entity.RequestId,
             FieldName = fieldName,
             OldValue = oldValue,
@@ -531,7 +531,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
             Reason = reason,
         });
 
-    private static void EnsureActionable(Supplementalmaterialrequest entity)
+    private static void EnsureActionable(SupplementalMaterialRequest entity)
     {
         var status = NormalizeStatus(entity.Status);
         if (status is RejectedStatus or FulfilledStatus)
@@ -540,7 +540,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         }
     }
 
-    private static void EnsureWarehouseScope(Supplementalmaterialrequest entity, string? scopedWarehouseId)
+    private static void EnsureWarehouseScope(SupplementalMaterialRequest entity, string? scopedWarehouseId)
         => EnsureWarehouseScope(entity.WarehouseId, scopedWarehouseId);
 
     private static void EnsureWarehouseScope(byte[] warehouseId, string? scopedWarehouseId)

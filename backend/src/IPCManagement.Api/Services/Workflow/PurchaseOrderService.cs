@@ -111,7 +111,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         foreach (var supplierGroup in expectedLines.GroupBy(item => Convert.ToHexString(item.Decision.SupplierId)))
         {
             var supplierId = supplierGroup.First().Decision.SupplierId;
-            var order = new Purchaseorder
+            var order = new PurchaseOrder
             {
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierId),
@@ -125,7 +125,7 @@ public class PurchaseOrderService : IPurchaseOrderService
             };
             foreach (var expected in supplierGroup)
             {
-                order.Purchaseorderlines.Add(new Purchaseorderline
+                order.Purchaseorderlines.Add(new PurchaseOrderLine
                 {
                     PurchaseOrderLineId = BuildDecisionSnapshotId(expected.Line.PurchaseRequestLineId, expected.Decision.DecisionFingerprint),
                     PurchaseOrderId = order.PurchaseOrderId,
@@ -233,7 +233,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         return MapToDto(order);
     }
 
-    private async Task<Purchaseorder?> LoadOrderAsync(byte[] purchaseOrderId, CancellationToken cancellationToken)
+    private async Task<PurchaseOrder?> LoadOrderAsync(byte[] purchaseOrderId, CancellationToken cancellationToken)
         => await _context.Purchaseorders
             .Include(po => po.Supplier)
             .Include(po => po.PurchaseRequest)
@@ -243,7 +243,7 @@ public class PurchaseOrderService : IPurchaseOrderService
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(po => po.PurchaseOrderId == purchaseOrderId, cancellationToken);
 
-    private IQueryable<Purchaseorder> BuildOrderQuery(string? status)
+    private IQueryable<PurchaseOrder> BuildOrderQuery(string? status)
     {
         var query = _context.Purchaseorders
             .AsNoTracking()
@@ -357,7 +357,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         return new PurchaseRequestOrderSource(purchaseRequest, lines);
     }
 
-    private async Task<List<Purchaseorder>> LoadOrdersForRequestAsync(
+    private async Task<List<PurchaseOrder>> LoadOrdersForRequestAsync(
         byte[] purchaseRequestId,
         CancellationToken cancellationToken)
     {
@@ -421,7 +421,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     }
 
     private static List<ExpectedOrderLine> ValidateCurrentOrderDecisions(
-        IReadOnlyCollection<Purchaserequestline> purchaseRequestLines)
+        IReadOnlyCollection<PurchaseRequestLine> purchaseRequestLines)
     {
         if (purchaseRequestLines.Count == 0)
         {
@@ -472,7 +472,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     }
 
     private static void ValidateEstablishedOrders(
-        IReadOnlyCollection<Purchaseorder> orders,
+        IReadOnlyCollection<PurchaseOrder> orders,
         IReadOnlyCollection<ExpectedOrderLine> expectedLines,
         Exception? innerException = null)
     {
@@ -528,14 +528,14 @@ public class PurchaseOrderService : IPurchaseOrderService
     }
 
     private sealed record ExpectedOrderLine(
-        Purchaserequestline Line,
-        Purchaselinesupplierdecision Decision);
+        PurchaseRequestLine Line,
+        PurchaseLineSupplierDecision Decision);
 
     private sealed record PurchaseRequestOrderSource(
-        Purchaserequest Request,
-        IReadOnlyCollection<Purchaserequestline> Lines);
+        PurchaseRequest Request,
+        IReadOnlyCollection<PurchaseRequestLine> Lines);
 
-    private static string ComputeOrderStatus(IEnumerable<Purchaseorderline> lines)
+    private static string ComputeOrderStatus(IEnumerable<PurchaseOrderLine> lines)
     {
         var lineList = lines.ToList();
         if (lineList.All(line => !DecimalPolicy.LessThanQuantity(line.ReceivedQty, line.OrderedQty)))
@@ -549,7 +549,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     private static string BuildPurchaseOrderCode(string purchaseRequestCode, byte[] supplierId)
         => $"PO-{purchaseRequestCode}-{GuidHelper.ToGuidString(supplierId)[..8]}";
 
-    private static PurchaseOrderDto MapToDto(Purchaseorder order) => new()
+    private static PurchaseOrderDto MapToDto(PurchaseOrder order) => new()
     {
         PurchaseOrderId = GuidHelper.ToGuidString(order.PurchaseOrderId),
         PurchaseOrderCode = order.PurchaseOrderCode,

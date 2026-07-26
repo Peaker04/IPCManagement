@@ -7,13 +7,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInventoryIssueRepository
+public class InventoryIssueRepository : GenericRepository<InventoryIssue>, IInventoryIssueRepository
 {
     public InventoryIssueRepository(IpcManagementContext context) : base(context)
     {
     }
 
-    public async Task<(IEnumerable<Inventoryissue> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(IEnumerable<InventoryIssue> Items, int TotalCount)> GetPagedAsync(
         InventoryIssueFilterRequestDto request)
     {
         var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
@@ -65,7 +65,7 @@ public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInve
         return (items, totalCount);
     }
 
-    public async Task<Inventoryissue?> GetByIdWithLinesAsync(byte[] id)
+    public async Task<InventoryIssue?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Inventoryissues
             .AsNoTracking()
             .Include(issue => issue.Warehouse)
@@ -77,7 +77,7 @@ public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInve
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(issue => issue.IssueId == id);
 
-    public async Task<Materialrequest?> GetMaterialRequestForIssueAsync(byte[] id)
+    public async Task<MaterialRequest?> GetMaterialRequestForIssueAsync(byte[] id)
         => await _context.Materialrequests
             .Include(request => request.Materialrequestlines)
                 .ThenInclude(line => line.Ingredient)
@@ -85,7 +85,7 @@ public class InventoryIssueRepository : GenericRepository<Inventoryissue>, IInve
                 .ThenInclude(line => line.Unit)
             .FirstOrDefaultAsync(request => request.RequestId == id);
 
-    public async Task<IReadOnlyList<Inventoryissueline>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId)
+    public async Task<IReadOnlyList<InventoryIssueLine>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId)
         => await _context.Inventoryissuelines
             .AsNoTracking()
             .Include(line => line.Issue)

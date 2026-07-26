@@ -18,5 +18,5 @@ public interface ISupplierQuotationService
     Task DeactivateAsync(string quotationId, CancellationToken cancellationToken = default);
 
     /// <summary>Chọn báo giá tốt nhất (giá thấp nhất) còn hiệu lực tại một thời điểm cho một nguyên liệu — dùng bởi luồng sinh đề xuất mua hàng tự động.</summary>
-    Task<Supplierquotation?> GetBestPriceEntityAsync(byte[] ingredientId, DateOnly asOfDate, CancellationToken cancellationToken = default);
+    Task<SupplierQuotation?> GetBestPriceEntityAsync(byte[] ingredientId, DateOnly asOfDate, CancellationToken cancellationToken = default);
 }

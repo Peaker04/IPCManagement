@@ -106,7 +106,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             ? []
             : await purchaseLineQuery.ToListAsync(cancellationToken);
         var purchaseLines = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<Purchaserequestline>()
+                ? _context.ChangeTracker.Entries<PurchaseRequestLine>()
                     .Select(entry => entry.Entity)
                     .Concat(queriedPurchaseLines)
                     .DistinctBy(line => BuildKey(line.PurchaseRequestLineId))
@@ -130,7 +130,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         var queriedPurchaseOrders = await purchaseOrderQuery.ToListAsync(cancellationToken);
         var purchaseOrders = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<Purchaseorder>()
+                ? _context.ChangeTracker.Entries<PurchaseOrder>()
                     .Select(entry => entry.Entity)
                     .Concat(queriedPurchaseOrders)
                     .DistinctBy(order => BuildKey(order.PurchaseOrderId))
@@ -352,13 +352,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             existingLines.RemoveAll(line => staleLines.Any(stale => stale.PurchaseRequestLineId.SequenceEqual(line.PurchaseRequestLineId)));
         }
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userIdBytes,
             BusinessArea = "Purchasing",
-            EntityName = nameof(Purchaserequest),
+            EntityName = nameof(PurchaseRequest),
             EntityId = purchaseRequest.PurchaseRequestId,
             FieldName = "GenerateFromDemand",
             OldValue = null,
@@ -388,13 +388,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .Include(item => item.PurchaseRequest)
             .Include(item => item.Ingredient)
             .Include(item => item.Unit);
-        Purchaserequestline? line;
+        PurchaseRequestLine? line;
         if (string.Equals(
                 _context.Database.ProviderName,
                 "Microsoft.EntityFrameworkCore.InMemory",
                 StringComparison.Ordinal))
         {
-            var trackedAndStored = _context.ChangeTracker.Entries<Purchaserequestline>()
+            var trackedAndStored = _context.ChangeTracker.Entries<PurchaseRequestLine>()
                 .Select(entry => entry.Entity)
                 .Concat(await lineQuery.ToListAsync(cancellationToken))
                 .DistinctBy(item => BuildKey(item.PurchaseRequestLineId));
@@ -436,7 +436,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         var queriedQuotations = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<Supplierquotation>()
+                ? _context.ChangeTracker.Entries<SupplierQuotation>()
                     .Select(entry => entry.Entity)
                     .Concat(await quotationQuery.ToListAsync(cancellationToken))
                     .DistinctBy(item => BuildKey(item.QuotationId))
@@ -493,7 +493,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         var queriedReceiptLines = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<Inventoryreceiptline>()
+                ? _context.ChangeTracker.Entries<InventoryReceiptLine>()
                     .Select(entry => entry.Entity)
                     .Concat(await receiptLineQuery.ToListAsync(cancellationToken))
                     .DistinctBy(item => BuildKey(item.ReceiptLineId))
@@ -551,7 +551,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private async Task<PurchaseRequestWorkflowResultDto?> ClearStalePurchaseRequestAsync(
-        Materialrequest materialRequest,
+        MaterialRequest materialRequest,
         byte[] userId,
         CancellationToken cancellationToken)
     {
@@ -581,13 +581,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
 
         purchaseRequest.Status = purchaseRequest.Status == PurchaseSubmittedStatus ? purchaseRequest.Status : PurchaseDraftStatus;
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userId,
             BusinessArea = "Purchasing",
-            EntityName = nameof(Purchaserequest),
+            EntityName = nameof(PurchaseRequest),
             EntityId = purchaseRequest.PurchaseRequestId,
             FieldName = "GenerateFromDemand",
             OldValue = $"{staleCount} stale purchase lines",
@@ -647,13 +647,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             .Include(item => item.Ingredient)
             .Include(item => item.Unit)
             .AsQueryable();
-        Purchaserequestline? line;
+        PurchaseRequestLine? line;
         if (string.Equals(
                 _context.Database.ProviderName,
                 "Microsoft.EntityFrameworkCore.InMemory",
                 StringComparison.Ordinal))
         {
-            line = _context.ChangeTracker.Entries<Purchaserequestline>()
+            line = _context.ChangeTracker.Entries<PurchaseRequestLine>()
                 .Select(entry => entry.Entity)
                 .FirstOrDefault(item =>
                     item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
@@ -741,7 +741,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        var decision = new Purchaselinesupplierdecision
+        var decision = new PurchaseLineSupplierDecision
         {
             PurchaseLineSupplierDecisionId = decisionId,
             PurchaseRequestLineId = line.PurchaseRequestLineId,
@@ -781,13 +781,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             actorId,
             cancellationToken);
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = actorId,
             BusinessArea = "Purchasing",
-            EntityName = nameof(Purchaselinesupplierdecision),
+            EntityName = nameof(PurchaseLineSupplierDecision),
             EntityId = decision.PurchaseLineSupplierDecisionId,
             FieldName = "ConfirmSupplierDecision",
             OldValue = currentDecision?.DecisionFingerprint,
@@ -805,8 +805,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private async Task UpsertPriceExceptionAsync(
-        Purchaselinesupplierdecision decision,
-        Purchaselinesupplierdecision? supersededDecision,
+        PurchaseLineSupplierDecision decision,
+        PurchaseLineSupplierDecision? supersededDecision,
         decimal variancePercent,
         string? reason,
         byte[] actorId,
@@ -848,7 +848,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             }
         }
 
-        var priceException = new Purchasepriceexception
+        var priceException = new PurchasePriceException
         {
             PurchasePriceExceptionId = exceptionId,
             PurchaseLineSupplierDecisionId = decision.PurchaseLineSupplierDecisionId,
@@ -868,13 +868,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             PurchaseLineSupplierDecision = decision
         };
         _context.Purchasepriceexceptions.Add(priceException);
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = priceException.RequestedAt,
             ChangedBy = actorId,
             BusinessArea = "Purchasing",
-            EntityName = nameof(Purchasepriceexception),
+            EntityName = nameof(PurchasePriceException),
             EntityId = exceptionId,
             FieldName = "CreatePriceException",
             OldValue = null,
@@ -928,13 +928,13 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         var oldStatus = purchaseRequest.Status;
         purchaseRequest.Status = PurchaseSubmittedStatus;
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userIdBytes,
             BusinessArea = "Purchasing",
-            EntityName = nameof(Purchaserequest),
+            EntityName = nameof(PurchaseRequest),
             EntityId = purchaseRequest.PurchaseRequestId,
             FieldName = "Submit",
             OldValue = oldStatus,
@@ -947,8 +947,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         return MapResult(purchaseRequest, materialRequest.RequestId, purchaseRequest.Purchaserequestlines);
     }
 
-    private async Task<Purchaserequest> EnsurePurchaseRequestAsync(
-        Materialrequest materialRequest,
+    private async Task<PurchaseRequest> EnsurePurchaseRequestAsync(
+        MaterialRequest materialRequest,
         byte[] userId,
         CancellationToken cancellationToken)
     {
@@ -967,7 +967,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return existing;
         }
 
-        var purchaseRequest = new Purchaserequest
+        var purchaseRequest = new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = requestCode,
@@ -982,7 +982,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         return purchaseRequest;
     }
 
-    private static decimal ResolveLatestReceiptPrice(Inventoryreceiptline? latestReceiptLine, Unit targetUnit)
+    private static decimal ResolveLatestReceiptPrice(InventoryReceiptLine? latestReceiptLine, Unit targetUnit)
     {
         if (latestReceiptLine is null || latestReceiptLine.UnitPrice <= 0)
         {
@@ -1020,9 +1020,9 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private void EnsurePurchaseRequestLine(
-        Purchaserequest purchaseRequest,
-        Materialrequestline materialLine,
-        List<Purchaserequestline> existingLines)
+        PurchaseRequest purchaseRequest,
+        MaterialRequestLine materialLine,
+        List<PurchaseRequestLine> existingLines)
     {
         var purchaseQty = PurchaseRequestPlanner.CalculatePurchaseQty(materialLine.SuggestedPurchaseQty);
         var requiredQty = DecimalPolicy.RoundQuantity(materialLine.TotalRequiredQty);
@@ -1041,7 +1041,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return;
         }
 
-        var line = new Purchaserequestline
+        var line = new PurchaseRequestLine
         {
             PurchaseRequestLineId = GuidHelper.NewId(),
             PurchaseRequestId = purchaseRequest.PurchaseRequestId,
@@ -1062,14 +1062,14 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         existingLines.Add(line);
     }
 
-    private static string BuildPurchaseRequestCode(Materialrequest materialRequest)
+    private static string BuildPurchaseRequestCode(MaterialRequest materialRequest)
     {
         var shiftSegment = materialRequest.RequestScope == "FULLDAY" ? "FULLDAY" : materialRequest.RequestScope;
         return $"PR-{materialRequest.RequestDate:yyyyMMdd}-{shiftSegment}";
     }
 
     private async Task ValidateApprovedDemandEligibilityAsync(
-        Materialrequest materialRequest,
+        MaterialRequest materialRequest,
         CancellationToken cancellationToken)
     {
         if (!ApprovedDemandStatuses.Contains(materialRequest.Status))
@@ -1157,9 +1157,9 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private static string ResolveWorkbenchStage(
-        Purchaserequest? request,
-        IReadOnlyCollection<Purchaserequestline> lines,
-        IReadOnlyCollection<Purchaseorder> orders)
+        PurchaseRequest? request,
+        IReadOnlyCollection<PurchaseRequestLine> lines,
+        IReadOnlyCollection<PurchaseOrder> orders)
     {
         if (request is null || lines.Count == 0)
         {
@@ -1186,7 +1186,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             : "supplier-price";
     }
 
-    private static bool IsSupplierReady(Purchaserequestline line)
+    private static bool IsSupplierReady(PurchaseRequestLine line)
         => line.SupplierId is not null &&
            line.EstimatedUnitPrice > 0 &&
            line.ExpectedDeliveryDate is not null &&
@@ -1194,7 +1194,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal) &&
                decision.SupplierId.SequenceEqual(line.SupplierId));
 
-    private static bool HasPriceException(Purchaserequestline line)
+    private static bool HasPriceException(PurchaseRequestLine line)
     {
         if (line.SupplierId is null || line.EstimatedUnitPrice <= 0 || line.Ingredient.ReferencePrice <= 0)
         {
@@ -1237,8 +1237,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
 
-    private async Task<Materialrequest> ResolveMaterialRequestForSubmitAsync(
-        Purchaserequest purchaseRequest,
+    private async Task<MaterialRequest> ResolveMaterialRequestForSubmitAsync(
+        PurchaseRequest purchaseRequest,
         CancellationToken cancellationToken)
     {
         if (purchaseRequest.Purchaserequestlines.Count == 0)
@@ -1270,14 +1270,14 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private async Task ValidateSubmitAsync(
-        Purchaserequest purchaseRequest,
-        Materialrequest materialRequest,
+        PurchaseRequest purchaseRequest,
+        MaterialRequest materialRequest,
         CancellationToken cancellationToken)
     {
         var purchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId);
         var supplementalAudit = await _context.Auditlogs
             .AsNoTracking()
-            .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+            .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
                 item.FieldName == "PurchaseRequestId" &&
                 item.NewValue == purchaseRequestId)
             .OrderByDescending(item => item.ChangedAt)
@@ -1346,7 +1346,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
     }
 
-    private static void ValidateCurrentSupplierDecisionsAsync(Purchaserequest purchaseRequest)
+    private static void ValidateCurrentSupplierDecisionsAsync(PurchaseRequest purchaseRequest)
     {
         foreach (var line in purchaseRequest.Purchaserequestlines)
         {
@@ -1363,7 +1363,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         }
     }
 
-    private static void ValidatePriceExceptionsAsync(Purchaserequest purchaseRequest)
+    private static void ValidatePriceExceptionsAsync(PurchaseRequest purchaseRequest)
     {
         foreach (var line in purchaseRequest.Purchaserequestlines)
         {
@@ -1402,9 +1402,9 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private static PurchaseRequestWorkflowResultDto MapResult(
-        Purchaserequest purchaseRequest,
+        PurchaseRequest purchaseRequest,
         byte[] materialRequestId,
-        IEnumerable<Purchaserequestline> lines)
+        IEnumerable<PurchaseRequestLine> lines)
         => new()
         {
             PurchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
@@ -1419,7 +1419,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 .ToList()
         };
 
-    private static PurchaseRequestWorkflowLineDto MapLine(Purchaserequestline line)
+    private static PurchaseRequestWorkflowLineDto MapLine(PurchaseRequestLine line)
     {
         var decisions = line.SupplierDecisions
             .OrderByDescending(decision => decision.Version)
@@ -1456,7 +1456,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     private static PurchaseLineSupplierDecisionDto MapSupplierDecision(
-        Purchaselinesupplierdecision decision)
+        PurchaseLineSupplierDecision decision)
         => new()
         {
             PurchaseLineSupplierDecisionId = GuidHelper.ToGuidString(decision.PurchaseLineSupplierDecisionId),

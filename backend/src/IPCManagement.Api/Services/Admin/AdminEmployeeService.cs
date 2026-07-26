@@ -186,12 +186,12 @@ public class AdminEmployeeService : IAdminEmployeeService
         }
 
         // Audit Log list to insert
-        var audits = new List<Auditlog>();
+        var audits = new List<AuditLog>();
         var changedAt = DateTime.UtcNow;
 
         if (user.FullName != request.FullName.Trim())
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -209,7 +209,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if (user.Username != request.Username.Trim())
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -227,7 +227,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if (!user.RoleId.SequenceEqual(roleId))
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -245,7 +245,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if ((user.IsActive ?? false) != request.IsActive)
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -267,7 +267,7 @@ public class AdminEmployeeService : IAdminEmployeeService
             var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             user.PasswordHash = newPasswordHash;
 
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -311,7 +311,7 @@ public class AdminEmployeeService : IAdminEmployeeService
             }
 
             var changedAt = DateTime.UtcNow;
-            var audit = new Auditlog
+            var audit = new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,

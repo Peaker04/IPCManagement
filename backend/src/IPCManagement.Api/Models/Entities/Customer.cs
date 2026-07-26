@@ -15,19 +15,19 @@ public partial class Customer
 
     public bool? IsActive { get; set; }
 
-    public virtual ICollection<Customerimportmapping> Customerimportmappings { get; set; } = new List<Customerimportmapping>();
+    public virtual ICollection<CustomerImportMapping> Customerimportmappings { get; set; } = new List<CustomerImportMapping>();
 
-    public virtual ICollection<Mealquantityplanline> Mealquantityplanlines { get; set; } = new List<Mealquantityplanline>();
+    public virtual ICollection<MealQuantityPlanLine> Mealquantityplanlines { get; set; } = new List<MealQuantityPlanLine>();
 
-    public virtual ICollection<Customercontract> Customercontracts { get; set; } = new List<Customercontract>();
+    public virtual ICollection<CustomerContract> Customercontracts { get; set; } = new List<CustomerContract>();
 
-    public virtual ICollection<Dishbom> Dishboms { get; set; } = new List<Dishbom>();
+    public virtual ICollection<DishBom> Dishboms { get; set; } = new List<DishBom>();
 
-    public virtual ICollection<Menuversion> Menuversions { get; set; } = new List<Menuversion>();
+    public virtual ICollection<MenuVersion> Menuversions { get; set; } = new List<MenuVersion>();
 
-    public virtual ICollection<Menuschedule> Menuschedules { get; set; } = new List<Menuschedule>();
+    public virtual ICollection<MenuSchedule> Menuschedules { get; set; } = new List<MenuSchedule>();
 
-    public virtual ICollection<Portionrule> Portionrules { get; set; } = new List<Portionrule>();
+    public virtual ICollection<PortionRule> Portionrules { get; set; } = new List<PortionRule>();
 
-    public virtual ICollection<Productionplanline> Productionplanlines { get; set; } = new List<Productionplanline>();
+    public virtual ICollection<ProductionPlanLine> Productionplanlines { get; set; } = new List<ProductionPlanLine>();
 }

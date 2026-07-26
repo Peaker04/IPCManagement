@@ -4,7 +4,7 @@ namespace IPCManagement.Api.Data.Repositories;
 
 public interface IProductionPlanRepository
 {
-    Task<(IEnumerable<Productionplan> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
-    Task<Productionplan?> GetByIdWithLinesAsync(byte[] id);
-    Task<IReadOnlyList<Productionplan>> GetFilteredAsync(DateOnly? serviceDate, DateOnly? dateFrom, DateOnly? dateTo, byte[]? customerId, CancellationToken cancellationToken = default);
+    Task<(IEnumerable<ProductionPlan> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
+    Task<ProductionPlan?> GetByIdWithLinesAsync(byte[] id);
+    Task<IReadOnlyList<ProductionPlan>> GetFilteredAsync(DateOnly? serviceDate, DateOnly? dateFrom, DateOnly? dateTo, byte[]? customerId, CancellationToken cancellationToken = default);
 }

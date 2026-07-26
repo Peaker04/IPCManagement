@@ -64,7 +64,7 @@ public sealed class SupplementalMaterialRequestServiceTests
     {
         await using var context = CreateContext();
         var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
-        var stock = new Currentstock
+        var stock = new CurrentStock
         {
             WarehouseId = seed.WarehouseId,
             IngredientId = seed.IngredientId,
@@ -84,7 +84,7 @@ public sealed class SupplementalMaterialRequestServiceTests
                 var quantity = call.ArgAt<decimal>(3);
                 var requestId = call.ArgAt<byte[]>(6);
                 stock.CurrentQty -= quantity;
-                context.Stockmovements.Add(new Stockmovement
+                context.Stockmovements.Add(new StockMovement
                 {
                     MovementId = GuidHelper.NewId(),
                     MovementDate = DateTime.UtcNow,
@@ -133,7 +133,7 @@ public sealed class SupplementalMaterialRequestServiceTests
     {
         await using var context = CreateContext();
         var seed = SeedReceivedIssueLine(context, receivedAt: DateTime.UtcNow);
-        context.Materialrequestlines.Add(new Materialrequestline
+        context.Materialrequestlines.Add(new MaterialRequestLine
         {
             RequestLineId = GuidHelper.NewId(),
             RequestId = seed.MaterialRequestId,
@@ -208,7 +208,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         var materialRequestId = GuidHelper.NewId();
         var ingredient = new Ingredient { IngredientId = ingredientId, IngredientCode = "GAO", IngredientName = "Gạo", UnitId = unitId, WarehouseId = warehouseId, IsActive = true };
         var unit = new Unit { UnitId = unitId, UnitCode = "KG", UnitName = "kg", ConvertRateToBase = 1 };
-        var issue = new Inventoryissue
+        var issue = new InventoryIssue
         {
             IssueId = issueId,
             IssueCode = "ISS-TEST",
@@ -220,7 +220,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             ReceivedAt = receivedAt,
             CreatedAt = DateTime.UtcNow,
         };
-        var line = new Inventoryissueline
+        var line = new InventoryIssueLine
         {
             IssueLineId = issueLineId,
             IssueId = issueId,

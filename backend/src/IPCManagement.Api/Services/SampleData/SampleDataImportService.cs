@@ -487,7 +487,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         return user;
     }
 
-    private async Task<Quantityimportbatch> EnsureQuantityImportBatchAsync(
+    private async Task<QuantityImportBatch> EnsureQuantityImportBatchAsync(
         bool dryRun,
         SampleDataImportCountsDto counts,
         CancellationToken cancellationToken)
@@ -501,7 +501,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.QuantityImportBatchesCreated++;
-        batch = new Quantityimportbatch
+        batch = new QuantityImportBatch
         {
             ImportBatchId = GuidHelper.NewId(),
             BatchCode = batchCode,
@@ -744,7 +744,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         Dish dish,
         string dishSlot,
         int displayOrder,
-        List<Menuitem> menuItems,
+        List<MenuItem> menuItems,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -760,7 +760,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.MenuItemsCreated++;
-        var menuItem = new Menuitem
+        var menuItem = new MenuItem
         {
             MenuItemId = GuidHelper.NewId(),
             MenuId = menu.MenuId,
@@ -783,7 +783,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         DateOnly serviceDate,
         DateOnly weekStart,
         string shiftName,
-        List<Menuschedule> schedules,
+        List<MenuSchedule> schedules,
         bool dryRun,
         SampleDataImportCountsDto counts,
         CustomerContractPolicy? contractPolicy = null,
@@ -807,7 +807,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.MenuSchedulesCreated++;
-        var schedule = new Menuschedule
+        var schedule = new MenuSchedule
         {
             MenuScheduleId = GuidHelper.NewId(),
             CustomerId = customer.CustomerId,
@@ -881,10 +881,10 @@ public partial class SampleDataImportService : ISampleDataImportService
     private static IReadOnlyList<string> SplitCsv(string value)
         => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private Mealquantityplan EnsureMealQuantityPlan(
+    private MealQuantityPlan EnsureMealQuantityPlan(
         DateOnly serviceDate,
-        Quantityimportbatch batch,
-        List<Mealquantityplan> plans,
+        QuantityImportBatch batch,
+        List<MealQuantityPlan> plans,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -902,7 +902,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.MealQuantityPlansCreated++;
-        var plan = new Mealquantityplan
+        var plan = new MealQuantityPlan
         {
             QuantityPlanId = GuidHelper.NewId(),
             ImportBatchId = batch.ImportBatchId,
@@ -923,10 +923,10 @@ public partial class SampleDataImportService : ISampleDataImportService
     }
 
     private void EnsureMealQuantityPlanLine(
-        Mealquantityplan plan,
-        Menuschedule schedule,
+        MealQuantityPlan plan,
+        MenuSchedule schedule,
         int servings,
-        List<Mealquantityplanline> planLines,
+        List<MealQuantityPlanLine> planLines,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -944,7 +944,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.MealQuantityPlanLinesCreated++;
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = GuidHelper.NewId(),
             QuantityPlanId = plan.QuantityPlanId,
@@ -972,7 +972,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         Unit unit,
         decimal grossQty,
         decimal priceTier,
-        List<Dishbom> bomLines,
+        List<DishBom> bomLines,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -993,7 +993,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.BomLinesCreated++;
-        var bom = new Dishbom
+        var bom = new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = dish.DishId,
@@ -1086,12 +1086,12 @@ public partial class SampleDataImportService : ISampleDataImportService
         decimal PriceTier,
         IReadOnlyDictionary<string, string> Row);
 
-    private Inventoryreceipt EnsureReceipt(
+    private InventoryReceipt EnsureReceipt(
         Supplier supplier,
         Warehouse warehouse,
         User sampleUser,
         DateOnly receiptDate,
-        List<Inventoryreceipt> receipts,
+        List<InventoryReceipt> receipts,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -1113,7 +1113,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.InventoryReceiptsCreated++;
-        var receipt = new Inventoryreceipt
+        var receipt = new InventoryReceipt
         {
             ReceiptId = GuidHelper.NewId(),
             ReceiptCode = receiptCode,
@@ -1133,15 +1133,15 @@ public partial class SampleDataImportService : ISampleDataImportService
         return receipt;
     }
 
-    private Inventoryreceiptline EnsureReceiptLine(
-        Inventoryreceipt receipt,
+    private InventoryReceiptLine EnsureReceiptLine(
+        InventoryReceipt receipt,
         Ingredient ingredient,
         Unit unit,
         decimal quantity,
         decimal unitPrice,
         string sourceSheet,
         DateOnly receiptDate,
-        List<Inventoryreceiptline> receiptLines,
+        List<InventoryReceiptLine> receiptLines,
         bool dryRun,
         SampleDataImportCountsDto counts,
         out decimal quantityDelta)
@@ -1165,7 +1165,7 @@ public partial class SampleDataImportService : ISampleDataImportService
 
         quantityDelta = quantity;
         counts.InventoryReceiptLinesCreated++;
-        var line = new Inventoryreceiptline
+        var line = new InventoryReceiptLine
         {
             ReceiptLineId = GuidHelper.NewId(),
             ReceiptId = receipt.ReceiptId,
@@ -1190,10 +1190,10 @@ public partial class SampleDataImportService : ISampleDataImportService
         Ingredient ingredient,
         Unit unit,
         User sampleUser,
-        Inventoryreceiptline receiptLine,
+        InventoryReceiptLine receiptLine,
         DateOnly receiptDate,
         decimal quantity,
-        List<Stockmovement> stockMovements,
+        List<StockMovement> stockMovements,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -1216,7 +1216,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.StockMovementsCreated++;
-        var movement = new Stockmovement
+        var movement = new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = receiptDate.ToDateTime(new TimeOnly(8, 5)),
@@ -1248,7 +1248,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         Ingredient ingredient,
         Unit unit,
         decimal quantityDelta,
-        List<Currentstock> currentStocks,
+        List<CurrentStock> currentStocks,
         bool dryRun,
         SampleDataImportCountsDto counts)
     {
@@ -1271,7 +1271,7 @@ public partial class SampleDataImportService : ISampleDataImportService
         }
 
         counts.CurrentStockRowsCreated++;
-        var stock = new Currentstock
+        var stock = new CurrentStock
         {
             WarehouseId = warehouse.WarehouseId,
             IngredientId = ingredient.IngredientId,
@@ -1325,7 +1325,7 @@ public partial class SampleDataImportService : ISampleDataImportService
     }
 
     private static int EstimateServings(
-        Menuschedule schedule,
+        MenuSchedule schedule,
         Dictionary<string, List<int>> servingHints,
         Dictionary<string, int> shiftFallbacks)
     {

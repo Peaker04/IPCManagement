@@ -26,15 +26,15 @@ public class ApprovalRulesController : ControllerBase
     }
 
     [HttpGet]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<Approvalrule>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalRule>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetRules()
     {
         var rules = await _routingService.GetAllRulesAsync();
-        return Ok(ApiResponse<IReadOnlyList<Approvalrule>>.SuccessResult(rules));
+        return Ok(ApiResponse<IReadOnlyList<ApprovalRule>>.SuccessResult(rules));
     }
 
     [HttpGet("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<Approvalrule>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetRuleById([FromRoute] string id)
     {
@@ -50,11 +50,11 @@ public class ApprovalRulesController : ControllerBase
             return NotFound(ApiResponse.FailResult("Không tìm thấy rule."));
         }
 
-        return Ok(ApiResponse<Approvalrule>.SuccessResult(rule));
+        return Ok(ApiResponse<ApprovalRule>.SuccessResult(rule));
     }
 
     [HttpPost]
-    [ProducesResponseType(typeof(ApiResponse<Approvalrule>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CreateRule([FromBody] ApprovalRuleRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.RuleName) || string.IsNullOrWhiteSpace(request.DocumentType))
@@ -62,7 +62,7 @@ public class ApprovalRulesController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Tên rule và loại chứng từ không được để trống."));
         }
 
-        var rule = new Approvalrule
+        var rule = new ApprovalRule
         {
             RuleName = request.RuleName,
             DocumentType = request.DocumentType,
@@ -72,7 +72,7 @@ public class ApprovalRulesController : ControllerBase
             IsActive = request.IsActive
         };
 
-        var assignments = request.Assignments.Select(a => new Approvalassignment
+        var assignments = request.Assignments.Select(a => new ApprovalAssignment
         {
             Sequence = a.Sequence,
             ApproverRole = a.ApproverRole,
@@ -81,11 +81,11 @@ public class ApprovalRulesController : ControllerBase
         }).ToList();
 
         var createdRule = await _routingService.CreateRuleAsync(rule, assignments);
-        return Ok(ApiResponse<Approvalrule>.SuccessResult(createdRule, "Tạo rule phê duyệt thành công."));
+        return Ok(ApiResponse<ApprovalRule>.SuccessResult(createdRule, "Tạo rule phê duyệt thành công."));
     }
 
     [HttpPut("{id}")]
-    [ProducesResponseType(typeof(ApiResponse<Approvalrule>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateRule([FromRoute] string id, [FromBody] ApprovalRuleRequestDto request)
     {
@@ -100,7 +100,7 @@ public class ApprovalRulesController : ControllerBase
             return BadRequest(ApiResponse.FailResult("Tên rule và loại chứng từ không được để trống."));
         }
 
-        var rule = new Approvalrule
+        var rule = new ApprovalRule
         {
             RuleName = request.RuleName,
             DocumentType = request.DocumentType,
@@ -110,7 +110,7 @@ public class ApprovalRulesController : ControllerBase
             IsActive = request.IsActive
         };
 
-        var assignments = request.Assignments.Select(a => new Approvalassignment
+        var assignments = request.Assignments.Select(a => new ApprovalAssignment
         {
             Sequence = a.Sequence,
             ApproverRole = a.ApproverRole,
@@ -124,7 +124,7 @@ public class ApprovalRulesController : ControllerBase
             return NotFound(ApiResponse.FailResult("Không tìm thấy rule cần cập nhật."));
         }
 
-        return Ok(ApiResponse<Approvalrule>.SuccessResult(updatedRule, "Cập nhật rule phê duyệt thành công."));
+        return Ok(ApiResponse<ApprovalRule>.SuccessResult(updatedRule, "Cập nhật rule phê duyệt thành công."));
     }
 
     [HttpDelete("{id}")]

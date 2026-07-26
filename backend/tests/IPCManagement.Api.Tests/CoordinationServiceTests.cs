@@ -19,7 +19,7 @@ public class CoordinationServiceTests
         var firstDishId = Guid.NewGuid();
         var secondDishId = Guid.NewGuid();
 
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = GuidHelper.ToBytes(Guid.NewGuid()),
             QuantityPlanId = GuidHelper.ToBytes(Guid.NewGuid()),
@@ -43,7 +43,7 @@ public class CoordinationServiceTests
                 MenuName = "Menu ca sáng",
                 Menuitems =
                 [
-                    new Menuitem
+                    new MenuItem
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(secondDishId),
@@ -56,7 +56,7 @@ public class CoordinationServiceTests
                             DishName = "Canh rau"
                         }
                     },
-                    new Menuitem
+                    new MenuItem
                     {
                         MenuId = GuidHelper.ToBytes(menuId),
                         DishId = GuidHelper.ToBytes(firstDishId),
@@ -71,13 +71,13 @@ public class CoordinationServiceTests
                     }
                 ]
             },
-            MenuSchedule = new Menuschedule
+            MenuSchedule = new MenuSchedule
             {
                 MenuScheduleId = GuidHelper.ToBytes(Guid.NewGuid()),
                 MenuPrice = 35000,
                 BomRatePercent = 100
             },
-            QuantityPlan = new Mealquantityplan
+            QuantityPlan = new MealQuantityPlan
             {
                 QuantityPlanId = GuidHelper.ToBytes(Guid.NewGuid()),
                 ServiceDate = new DateOnly(2026, 6, 15)

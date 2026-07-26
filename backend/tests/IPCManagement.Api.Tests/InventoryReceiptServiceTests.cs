@@ -72,7 +72,7 @@ public class InventoryReceiptServiceTests
         result!.ReceiptCode.Should().StartWith("RCP-");
 
         // Verify receipt is added
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(r =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(r =>
             r.WarehouseId != null &&
             r.SupplierId != null &&
             r.Inventoryreceiptlines.Count == 1));
@@ -221,7 +221,7 @@ public class InventoryReceiptServiceTests
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
         // Arrange database state
-        var pr = new Purchaserequest
+        var pr = new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = "PR-123",
@@ -230,7 +230,7 @@ public class InventoryReceiptServiceTests
             Status = "SENTTOSUPPLIER",
             CreatedBy = userId
         };
-        pr.Purchaserequestlines.Add(new Purchaserequestline
+        pr.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = purchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -275,7 +275,7 @@ public class InventoryReceiptServiceTests
         pr.Status.Should().Be("PARTIALRECEIVED");
 
         // Verify receipt is added
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(r =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(r =>
             r.PurchaseRequestId != null &&
             r.Inventoryreceiptlines.Count == 1 &&
             r.Inventoryreceiptlines.First().Quantity == 50));
@@ -316,7 +316,7 @@ public class InventoryReceiptServiceTests
         var ingredientId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var unitId = IPCManagement.Api.Helpers.GuidHelper.NewId();
 
-        var request = new Purchaserequest
+        var request = new PurchaseRequest
         {
             PurchaseRequestId = purchaseRequestId,
             PurchaseRequestCode = "PR-DUP",
@@ -325,7 +325,7 @@ public class InventoryReceiptServiceTests
             Status = "SENTTOSUPPLIER",
             CreatedBy = userId
         };
-        request.Purchaserequestlines.Add(new Purchaserequestline
+        request.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = firstPurchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -337,7 +337,7 @@ public class InventoryReceiptServiceTests
             PurchaseQty = 50,
             EstimatedUnitPrice = 5000
         });
-        request.Purchaserequestlines.Add(new Purchaserequestline
+        request.Purchaserequestlines.Add(new PurchaseRequestLine
         {
             PurchaseRequestLineId = secondPurchaseLineId,
             PurchaseRequestId = purchaseRequestId,
@@ -379,7 +379,7 @@ public class InventoryReceiptServiceTests
 
         result.Should().NotBeNull();
         request.Status.Should().Be("RECEIVED");
-        _receiptRepository.Received(1).Add(Arg.Is<Inventoryreceipt>(receipt =>
+        _receiptRepository.Received(1).Add(Arg.Is<InventoryReceipt>(receipt =>
             receipt.Inventoryreceiptlines.Count == 2 &&
             receipt.Inventoryreceiptlines.All(line => line.PurchaseRequestLineId != null)));
     }
