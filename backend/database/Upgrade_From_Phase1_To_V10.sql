@@ -1,5 +1,20 @@
--- Upgrade_From_Phase1_To_V10.sql
+-- ⚠️  DEPRECATED — Upgrade_From_Phase1_To_V10.sql
+-- Chỉ dùng được cho database còn ở schema Phase 1 (pre-2026-06-30). Tính đến
+-- 27/07/2026 không còn database nào ở trạng thái đó, và script chưa từng được
+-- kiểm chứng lại kể từ 08/07.
+--
+-- BIẾT LÀ SAI: khối customerimportmappings bên dưới (dòng ~206) dựng bảng theo
+-- thiết kế cũ `sourceCustomerCode` + `isActive`. Thiết kế hiện tại là
+-- `sheetNameHint` + `labelColumn` + `updatedAt` (xem 20260701175833_AddCustomerImportMapping).
+-- Chạy script này lên một database rồi dùng với API hiện tại sẽ lệch entity.
+-- Không vá vì không còn database Phase 1 nào để kiểm chứng bản vá.
+--
+-- THAY THẾ:
+--   • Database đang chạy: dotnet ef database update   ← dùng cái này
+--   • Cài mới hoàn toàn:  backend/database/IPCmanagement.sql
 -- ─────────────────────────────────────────────────────────────────────────────
+-- Nội dung gốc, giữ nguyên để tham chiếu lịch sử:
+--
 -- Nâng cấp database từ schema Phase 1 (IPCmanagement.sql ban đầu, pre-2026-06-30)
 -- lên v1.0 đầy đủ (EF migration 20260707093741_AddStocktakeEntities).
 --
