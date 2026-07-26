@@ -95,6 +95,11 @@ Desktop.ini
 AGENTS.md
 CLAUDE.md
 .vercel
+# Bộ skill mattpocock/skills: skill nằm trong .claude/ (đã ignore ở trên), nên lockfile,
+# config skill và ticket cục bộ cũng giữ ngoài repo nhóm cho nhất quán.
+skills-lock.json
+docs/agents/
+.scratch/
 
 # Dữ liệu vận hành thật của khách hàng (workbook đặt hàng, định lượng) — không đưa lên repo
 .docs/
@@ -114,8 +119,3 @@ __pycache__/
 
 ## Artifact test của skill (sinh lại được, không commit)
 .codex/skills/**/scripts/tests/coverage-*.json
-
-## Lockfile của skill AI cài từ nguồn ngoài — trạng thái tooling của từng máy,
-## không phải code dự án. Tự sinh lại khi cài skill, và đã suýt lọt vào một commit
-## refactor ngày 27/07 vì `git add -A`.
-skills-lock.json
