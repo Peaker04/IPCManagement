@@ -1269,12 +1269,26 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             ?? throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
     }
 
-    private Task ValidateSubmitAsync(
+    private async Task ValidateSubmitAsync(
         Purchaserequest purchaseRequest,
         Materialrequest materialRequest,
         CancellationToken cancellationToken)
     {
-        if (!ApprovedDemandStatuses.Contains(materialRequest.Status))
+        var purchaseRequestId = GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId);
+        var supplementalAudit = await _context.Auditlogs
+            .AsNoTracking()
+            .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                item.FieldName == "PurchaseRequestId" &&
+                item.NewValue == purchaseRequestId)
+            .OrderByDescending(item => item.ChangedAt)
+            .FirstOrDefaultAsync(cancellationToken);
+        var supplementalRequest = supplementalAudit is null
+            ? null
+            : await _context.Supplementalmaterialrequests
+                .AsNoTracking()
+                .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, cancellationToken);
+
+        if (supplementalRequest is null && !ApprovedDemandStatuses.Contains(materialRequest.Status))
         {
             throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
         }
@@ -1286,9 +1300,31 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         var purchaseLineDemandIds = purchaseRequest.Purchaserequestlines
             .Select(line => BuildKey(line.MaterialRequestLineId))
             .ToHashSet();
-        if (!currentShortageLineIds.SetEquals(purchaseLineDemandIds))
+        if (supplementalRequest is null && !currentShortageLineIds.SetEquals(purchaseLineDemandIds))
         {
             throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+        }
+
+        if (supplementalRequest is not null)
+        {
+            var fulfilledQty = await _context.Stockmovements
+                .AsNoTracking()
+                .Where(item => item.RefTable == "supplementalmaterialrequests" &&
+                    item.RefId == supplementalRequest.RequestId)
+                .SumAsync(item => (decimal?)item.QuantityOut, cancellationToken) ?? 0;
+            var remainingQty = DecimalPolicy.RoundQuantity(
+                Math.Max(supplementalRequest.RequestedQty - fulfilledQty, 0));
+            if (!(string.Equals(supplementalRequest.Status, "NEEDS_PURCHASE", StringComparison.OrdinalIgnoreCase) ||
+                    string.Equals(supplementalRequest.Status, "PARTIALLY_FULFILLED", StringComparison.OrdinalIgnoreCase)) ||
+                purchaseRequest.Purchaserequestlines.Count != 1 ||
+                purchaseRequest.Purchaserequestlines.Any(line =>
+                    !line.IngredientId.SequenceEqual(supplementalRequest.IngredientId) ||
+                    !line.UnitId.SequenceEqual(supplementalRequest.UnitId) ||
+                    line.PurchaseQty <= 0 ||
+                    DecimalPolicy.GreaterThanQuantity(line.PurchaseQty, remainingQty)))
+            {
+                throw new InvalidOperationException("Đề xuất mua bổ sung không còn khớp số lượng bếp đang thiếu. Hãy tải lại yêu cầu.");
+            }
         }
 
         foreach (var line in purchaseRequest.Purchaserequestlines)
@@ -1308,7 +1344,6 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         ValidateCurrentSupplierDecisionsAsync(purchaseRequest);
         ValidatePriceExceptionsAsync(purchaseRequest);
 
-        return Task.CompletedTask;
     }
 
     private static void ValidateCurrentSupplierDecisionsAsync(Purchaserequest purchaseRequest)

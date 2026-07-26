@@ -1,15 +1,11 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { CommandBar, InlineAlert, OperationalFrame } from '@/components/common';
+import { useAppDispatch } from '@/app/hooks';
+import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/common';
 import { useGetOperationalKpisQuery, useWorkflowOverview, type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/features/workflow';
+import { workflowApi } from '@/features/workflow/workflowApi';
+import { resolveWorkflowGateAction } from '@/features/workflow/actionEligibility';
 import { ROUTES } from '../../../routes/routeConfig';
-
-const tonePriority: Record<WorkflowTone, number> = {
-  danger: 3,
-  warning: 2,
-  neutral: 1,
-  success: 0,
-};
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,
@@ -41,12 +37,6 @@ const queueFilters: Array<{ key: DashboardQueueCategory; label: string }> = [
 
 const getNumber = (value: number | undefined) => value ?? 0;
 
-const getLaneTone = (lanes: WorkflowLane[]) =>
-  lanes.reduce<WorkflowTone>(
-    (current, lane) => (tonePriority[lane.tone] > tonePriority[current] ? lane.tone : current),
-    'success',
-  );
-
 const sumLaneCount = (lanes: WorkflowLane[], key: 'waiting' | 'blocked' | 'done') =>
   lanes.reduce((total, lane) => total + lane[key], 0);
 
@@ -66,8 +56,9 @@ const getQueueCategory = (item: RoleInboxItem): Exclude<DashboardQueueCategory, 
 };
 
 const DashboardPage = () => {
+  const dispatch = useAppDispatch();
   const { isError, isLoading, roleInboxItems, workflowLanes } = useWorkflowOverview();
-  const { data: kpis, isError: isKpiError, isLoading: isKpiLoading } = useGetOperationalKpisQuery();
+  const { data: kpis, isError: isKpiError, isLoading: isKpiLoading, isFetching: isKpiFetching, refetch: refetchKpis } = useGetOperationalKpisQuery();
   const [activeQueueFilter, setActiveQueueFilter] = useState<DashboardQueueCategory>('all');
   const isDashboardLoading = isLoading || isKpiLoading;
   const hasDashboardError = isError || isKpiError;
@@ -250,9 +241,16 @@ const DashboardPage = () => {
       }
     >
       {hasDashboardError && (
-        <InlineAlert title="Không tải được dữ liệu workflow" variant="warning">
-          Bảng điều hành đang chờ backend trả dữ liệu báo cáo workflow.
-        </InlineAlert>
+        <QueryErrorAlert
+          title="Không tải được dữ liệu workflow"
+          isRetrying={isKpiFetching}
+          onRetry={() => {
+            dispatch(workflowApi.util.invalidateTags(['WorkflowReports']));
+            return refetchKpis();
+          }}
+        >
+          Chưa thể xác định trạng thái vận hành. Kiểm tra kết nối rồi thử tải lại; hệ thống không xem lỗi này là trạng thái không có việc.
+        </QueryErrorAlert>
       )}
       {isDashboardLoading && (
         <span className="sr-only" role="status">
@@ -397,8 +395,9 @@ const DashboardPage = () => {
                 </div>
               ))
             ) : workflowSteps.map((gate) => {
-              const tone = getLaneTone(gate.lanes);
-              const nextAction = gate.lanes.find((lane) => lane.tone === tone)?.nextAction ?? gate.lanes[0]?.nextAction;
+              const gateLaneIds = new Set(gate.lanes.map((lane) => lane.id));
+              const gateInboxAction = sortQueueItems(roleInboxItems.filter((item) => gateLaneIds.has(item.laneId)))[0]?.nextAction;
+              const hasPendingGateWork = sumLaneCount(gate.lanes, 'waiting') + sumLaneCount(gate.lanes, 'blocked') > 0;
 
               return (
                 <Link key={gate.key} to={gate.route} className="ipc-dashboard-gate">
@@ -408,7 +407,7 @@ const DashboardPage = () => {
                     <small>{gate.description}</small>
                   </span>
                   <span className="ipc-dashboard-gate-next">
-                    {nextAction ?? 'Mở công đoạn'}
+                    {hasPendingGateWork && gateInboxAction ? gateInboxAction : resolveWorkflowGateAction(gate.lanes)}
                   </span>
                 </Link>
               );

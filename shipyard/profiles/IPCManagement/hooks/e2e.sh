@@ -3,15 +3,22 @@
 # Usage: with-lock.sh e2e -- <cmd>
 set -euo pipefail
 
-E2E_SCRIPT="$LANE_DIR/scripts/Invoke-Iter1HappyPathE2E.ps1"
+echo "harness: resetting lane database before E2E..."
+bash "$PROFILE_DIR/hooks/reset.sh"
+
+E2E_SCRIPT="$LANE_DIR/scripts/Invoke-WeeklyHappyPathE2E.ps1"
 if [ ! -f "$E2E_SCRIPT" ] && [ -n "${SOURCE_REPO:-}" ]; then
-  E2E_SCRIPT="$SOURCE_REPO/scripts/Invoke-Iter1HappyPathE2E.ps1"
+  E2E_SCRIPT="$SOURCE_REPO/scripts/Invoke-WeeklyHappyPathE2E.ps1"
 fi
 
 if [ -f "$E2E_SCRIPT" ]; then
   echo "harness: running E2E tests..."
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$E2E_SCRIPT" \
     -BaseUrl "${API_BASE}" \
+    -WeekStartDate "${E2E_WEEK_START_DATE:-${E2E_SERVICE_DATE:-2026-07-20}}" \
+    -CustomerCode "${E2E_CUSTOMER_CODE:-ANV}" \
+    -PriceTierAmount "${E2E_PRICE_TIER_AMOUNT:-25000}" \
+    -WeeklyMenuTemplatePath "${E2E_WEEKLY_MENU_TEMPLATE_PATH:-C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx}" \
     -OutputRoot "$LANE_DIR/.artifacts/e2e" \
     -SkipSeedReset
 else
@@ -41,7 +48,7 @@ FEATURE_SLUG="$(printf '%s' "${BRANCH_NAME:-ipc-e2e}" | sed -E 's#[^A-Za-z0-9._-
 export IPC_E2E_ARTIFACT_ROOT="$LANE_DIR/.artifacts/e2e"
 export IPC_E2E_REPORT_DIR="$LANE_DIR/.playwright-mcp/proof/$FEATURE_SLUG/ticket"
 powershell.exe -NoProfile -Command '
-  $summary = Get-ChildItem -LiteralPath $env:IPC_E2E_ARTIFACT_ROOT -Filter "happy-path-e2e-summary.md" -Recurse |
+  $summary = Get-ChildItem -LiteralPath $env:IPC_E2E_ARTIFACT_ROOT -Filter "weekly-happy-path-e2e-summary.md" -Recurse |
     Sort-Object LastWriteTimeUtc -Descending |
     Select-Object -First 1
   if ($null -eq $summary) { throw "E2E summary artifact was not created." }

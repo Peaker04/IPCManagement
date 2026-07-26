@@ -28,21 +28,30 @@ public class InventoryReturnsController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu trả nguyên liệu dư.</summary>
     [HttpGet]
-    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     public async Task<IActionResult> GetAll([FromQuery] InventoryReturnFilterRequestDto request)
     {
+        var scopedWarehouseId = _currentUserService.GetWarehouseId(User);
+        if (scopedWarehouseId is not null)
+        {
+            request.WarehouseId = scopedWarehouseId;
+        }
         var result = await _inventoryReturnService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryReturnDto>>.SuccessResult(result));
     }
 
     /// <summary>Lấy chi tiết phiếu trả nguyên liệu dư theo ID.</summary>
     [HttpGet("{id}")]
-    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     public async Task<IActionResult> GetById(string id)
     {
         var result = await _inventoryReturnService.GetByIdAsync(id);
         if (result is null)
             return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu trả nguyên liệu với ID: {id}"));
+
+        var scopedWarehouseId = _currentUserService.GetWarehouseId(User);
+        if (scopedWarehouseId is not null && !string.Equals(result.WarehouseId, scopedWarehouseId, StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xem phiếu trả của kho khác."));
 
         return Ok(ApiResponse<InventoryReturnDto>.SuccessResult(result));
     }
@@ -70,6 +79,12 @@ public class InventoryReturnsController : ControllerBase
     public async Task<IActionResult> ConfirmReceipt(string id, [FromBody] ConfirmInventoryReturnReceiptDto dto)
     {
         var userId = _currentUserService.GetUserId(User);
+        var existing = await _inventoryReturnService.GetByIdAsync(id);
+        if (existing is null)
+            return NotFound(ApiResponse.FailResult($"Không tìm thấy phiếu trả nguyên liệu với ID: {id}"));
+        var scopedWarehouseId = _currentUserService.GetWarehouseId(User);
+        if (scopedWarehouseId is not null && !string.Equals(existing.WarehouseId, scopedWarehouseId, StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult("Không có quyền xác nhận phiếu trả của kho khác."));
 
         var success = await _inventoryReturnService.ConfirmReceiptAsync(id, dto, userId);
         if (!success)

@@ -26,6 +26,36 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
         _currentUserService = currentUserService;
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll([FromQuery] SupplementalMaterialRequestFilterDto request)
+    {
+        try
+        {
+            var result = await _service.GetPagedAsync(request, ResolveWarehouseScope());
+            return Ok(ApiResponse<PagedResponseDto<SupplementalMaterialRequestDto>>.SuccessResult(result));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetById(string id)
+    {
+        try
+        {
+            var result = await _service.GetByIdAsync(id, ResolveWarehouseScope());
+            return result is null
+                ? NotFound(ApiResponse.FailResult("Không tìm thấy yêu cầu cấp nguyên liệu bổ sung."))
+                : Ok(ApiResponse<SupplementalMaterialRequestDto>.SuccessResult(result));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
+        }
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateSupplementalMaterialRequestDto request)
     {
@@ -37,11 +67,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
             }
 
-            var roles = _currentUserService.GetRoleNames(User);
-            var scopedWarehouseId = roles.Any(AuthorizationPolicies.IsProductionRole)
-                ? _currentUserService.GetWarehouseId(User)
-                : null;
-            var result = await _service.CreateAsync(request, userId, scopedWarehouseId);
+            var result = await _service.CreateAsync(request, userId, ResolveWarehouseScope());
             return Created(string.Empty, ApiResponse<SupplementalMaterialRequestDto>.SuccessResult(
                 result,
                 "Đã gửi yêu cầu bổ sung tới kho."));
@@ -59,4 +85,61 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
     }
+
+    [HttpPost("{id}/fulfill")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    public async Task<IActionResult> Fulfill(string id, [FromBody] FulfillSupplementalMaterialRequestDto request)
+        => await ExecuteActionAsync(
+            (userId, warehouseId) => _service.FulfillAsync(id, request, userId, warehouseId),
+            "Đã tạo phiếu xuất bổ sung và trừ tồn kho.");
+
+    [HttpPost("{id}/route-to-purchasing")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    public async Task<IActionResult> RouteToPurchasing(string id)
+        => await ExecuteActionAsync(
+            (userId, warehouseId) => _service.RouteToPurchasingAsync(id, userId, warehouseId),
+            "Đã chuyển phần thiếu sang danh sách thu mua.");
+
+    [HttpPost("{id}/reject")]
+    [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
+    public async Task<IActionResult> Reject(string id, [FromBody] RejectSupplementalMaterialRequestDto request)
+        => await ExecuteActionAsync(
+            (userId, warehouseId) => _service.RejectAsync(id, request, userId, warehouseId),
+            "Đã từ chối yêu cầu bổ sung.");
+
+    private async Task<IActionResult> ExecuteActionAsync(
+        Func<string, string?, Task<SupplementalMaterialRequestDto>> action,
+        string successMessage)
+    {
+        try
+        {
+            var userId = _currentUserService.GetUserId(User);
+            if (userId is null)
+            {
+                return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
+            }
+
+            var result = await action(userId, ResolveWarehouseScope());
+            return Ok(ApiResponse<SupplementalMaterialRequestDto>.SuccessResult(result, successMessage));
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(ApiResponse.FailResult(ex.Message));
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(ApiResponse.FailResult(ex.Message));
+        }
+    }
+
+    private string? ResolveWarehouseScope()
+        => _currentUserService.GetWarehouseId(User);
 }

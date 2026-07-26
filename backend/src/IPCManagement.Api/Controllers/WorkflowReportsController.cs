@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Text.Json;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Common;
@@ -20,6 +21,7 @@ public class WorkflowReportsController : ControllerBase
     private static readonly TimeSpan AggregateCacheDuration = TimeSpan.FromSeconds(15);
     private const string OperationalKpisCacheKey = "workflow-reports:operational-kpis";
     private static long _dataQualityCacheVersion;
+    private static readonly ConcurrentDictionary<string, Lazy<Task<object>>> AggregateCacheLoads = new();
 
     private readonly IWorkflowReportService _workflowReportService;
     private readonly ICurrentUserService _currentUserService;
@@ -172,13 +174,13 @@ public class WorkflowReportsController : ControllerBase
     [HttpGet("operational-kpis")]
     public async Task<IActionResult> GetOperationalKpis()
     {
-        var result = await _cache.GetOrCreateAsync(OperationalKpisCacheKey, async entry =>
+        var result = await GetOrCreateAggregateAsync(OperationalKpisCacheKey, async () =>
         {
-            entry.AbsoluteExpirationRelativeToNow = AggregateCacheDuration;
-            return await _workflowReportService.GetOperationalKpisAsync();
+            var dataQuality = await GetDataQualitySnapshotAsync(new WorkflowReportQueryDto());
+            return await _workflowReportService.GetOperationalKpisAsync(dataQuality.ErrorCount);
         });
 
-        return Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(result!));
+        return Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(result));
     }
 
     [HttpGet("issue-vs-return")]
@@ -227,15 +229,35 @@ public class WorkflowReportsController : ControllerBase
     [HttpGet("data-quality/page")]
     public async Task<IActionResult> GetDataQualityPage([FromQuery] DataQualityPageQueryDto query)
     {
-        var version = Volatile.Read(ref _dataQualityCacheVersion);
-        var cacheKey = $"workflow-reports:data-quality:{version}:{JsonSerializer.Serialize(query)}";
-        var result = await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        var snapshot = await GetDataQualitySnapshotAsync(query);
+        var pageItems = snapshot.Issues
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .ToList();
+        var result = new DataQualityPageDto
         {
-            entry.AbsoluteExpirationRelativeToNow = AggregateCacheDuration;
-            return await _workflowReportService.GetDataQualityPageAsync(query);
-        });
+            GeneratedAt = snapshot.GeneratedAt,
+            TotalIssues = snapshot.TotalIssues,
+            IsTruncated = snapshot.IsTruncated,
+            ErrorCount = snapshot.ErrorCount,
+            WarningCount = snapshot.WarningCount,
+            ResolvedIssueCount = snapshot.ResolvedIssueCount,
+            ReopenedIssueCount = snapshot.ReopenedIssueCount,
+            UrgentIssueCount = snapshot.UrgentIssueCount,
+            MissingBomCount = snapshot.MissingBomCount,
+            InvalidUnitCount = snapshot.InvalidUnitCount,
+            MissingConversionCount = snapshot.MissingConversionCount,
+            NegativeStockCount = snapshot.NegativeStockCount,
+            OrphanDocumentCount = snapshot.OrphanDocumentCount,
+            Issues = pageItems,
+            Page = PagedResponseDto<DataQualityIssueDto>.Create(
+                pageItems,
+                snapshot.TotalIssues,
+                query.PageNumber,
+                query.PageSize)
+        };
 
-        return Ok(ApiResponse<DataQualityPageDto>.SuccessResult(result!));
+        return Ok(ApiResponse<DataQualityPageDto>.SuccessResult(result));
     }
 
     [HttpPost("data-quality/issues/remediation")]
@@ -304,5 +326,42 @@ public class WorkflowReportsController : ControllerBase
     {
         _cache.Remove(OperationalKpisCacheKey);
         Interlocked.Increment(ref _dataQualityCacheVersion);
+    }
+
+    private Task<DataQualityReportDto> GetDataQualitySnapshotAsync(WorkflowReportQueryDto query)
+    {
+        var snapshotQuery = JsonSerializer.Deserialize<WorkflowReportQueryDto>(JsonSerializer.Serialize(query))
+            ?? new WorkflowReportQueryDto();
+        snapshotQuery.Limit = 500;
+        var version = Volatile.Read(ref _dataQualityCacheVersion);
+        var cacheKey = $"workflow-reports:data-quality-snapshot:{version}:{JsonSerializer.Serialize(snapshotQuery)}";
+        return GetOrCreateAggregateAsync(
+            cacheKey,
+            () => _workflowReportService.GetDataQualityAsync(snapshotQuery));
+    }
+
+    private async Task<T> GetOrCreateAggregateAsync<T>(string cacheKey, Func<Task<T>> factory)
+        where T : class
+    {
+        if (_cache.TryGetValue<T>(cacheKey, out var cached) && cached is not null)
+        {
+            return cached;
+        }
+
+        var load = AggregateCacheLoads.GetOrAdd(
+            cacheKey,
+            _ => new Lazy<Task<object>>(
+                async () => await factory(),
+                LazyThreadSafetyMode.ExecutionAndPublication));
+        try
+        {
+            var result = (T)await load.Value;
+            _cache.Set(cacheKey, result, AggregateCacheDuration);
+            return result;
+        }
+        finally
+        {
+            AggregateCacheLoads.TryRemove(cacheKey, out _);
+        }
     }
 }

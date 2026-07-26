@@ -36,12 +36,10 @@ public class InventoryReturnService : IInventoryReturnService
 
     public async Task<PagedResponseDto<InventoryReturnDto>> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
-        var (items, totalCount) = await _returnRepository.GetPagedAsync(
-            request.PageNumber,
-            request.PageSize);
+        var (items, totalCount) = await _returnRepository.GetPagedAsync(request);
 
         return PagedResponseDto<InventoryReturnDto>.Create(
-            items.Select(inventoryReturn => InventoryMapper.MapReturn(inventoryReturn)),
+            items.Select(inventoryReturn => InventoryMapper.MapReturn(inventoryReturn, includeLines: true)),
             totalCount,
             request.PageNumber,
             request.PageSize);

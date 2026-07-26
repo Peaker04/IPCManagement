@@ -222,6 +222,68 @@ test('desktop sidebar navigation stays responsive after idle route preloading', 
   expectNavigationWithinBudget(warmWeeklyMenu, 300);
 });
 
+test('controlled background preloading warms every permitted sidebar route module', async ({ page }) => {
+  await openAuthenticatedDashboard(page);
+  const expectedModules = [
+    'DashboardPage.tsx',
+    'WeeklyMenuPage.tsx',
+    'CoordinationPage.tsx',
+    'ApprovalPage.tsx',
+    'PurchasingPage.tsx',
+    'WarehousePage.tsx',
+    'ChefDashboardPage.tsx',
+    'ReportsPage.tsx',
+    'AdminDataPage.tsx',
+    'ApprovalRulesPage.tsx',
+  ];
+
+  await expect.poll(() => page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name)), { timeout: 10_000 })
+    .toEqual(expect.arrayContaining(expectedModules.map((moduleName) => expect.stringContaining(moduleName))));
+
+  const loadedModules = await page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name));
+  await page.evaluate(() => {
+    const state = { fallbackMounts: 0 };
+    (window as unknown as { __ipcPreloadedRouteProbe: typeof state }).__ipcPreloadedRouteProbe = state;
+    new MutationObserver(() => {
+      if (document.querySelector('#ipc-main-content section[aria-busy="true"]')) state.fallbackMounts += 1;
+    }).observe(document.querySelector('#ipc-main-content')!, { childList: true, subtree: true });
+  });
+  await page.getByRole('link', { name: 'Thực đơn tuần' }).click();
+  await expect(page).toHaveURL(ROUTES.WEEKLY_MENU);
+  await expect(page.locator('#ipc-main-content > .ipc-operational-frame')).toBeVisible();
+  await expect.poll(() => page.evaluate(() =>
+    (window as unknown as { __ipcPreloadedRouteProbe: { fallbackMounts: number } })
+      .__ipcPreloadedRouteProbe.fallbackMounts)).toBe(0);
+
+  console.info(`BACKGROUND_PRELOADED_ROUTES ${JSON.stringify(loadedModules)}`);
+  await test.info().attach('background-preloaded-routes', {
+    body: JSON.stringify(loadedModules, null, 2),
+    contentType: 'application/json',
+  });
+});
+
+test('background route preloading respects the browser data-saver preference', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'connection', {
+      configurable: true,
+      value: { effectiveType: '4g', saveData: true },
+    });
+  });
+  await openAuthenticatedDashboard(page);
+  await page.waitForTimeout(1_500);
+
+  const loadedModules = await page.evaluate(() => performance.getEntriesByType('resource')
+    .filter((entry) => entry.initiatorType === 'script')
+    .map((entry) => entry.name.split('/').at(-1) ?? entry.name));
+  expect(loadedModules.some((moduleName) => moduleName.includes('DashboardPage.tsx'))).toBe(true);
+  expect(loadedModules.some((moduleName) => moduleName.includes('WeeklyMenuPage.tsx'))).toBe(false);
+  expect(loadedModules.some((moduleName) => moduleName.includes('ChefDashboardPage.tsx'))).toBe(false);
+});
+
 test('mobile sidebar closes and renders the selected route within budget', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openAuthenticatedDashboard(page);

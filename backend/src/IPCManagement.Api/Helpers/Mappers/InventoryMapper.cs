@@ -87,6 +87,12 @@ public static class InventoryMapper
         CreatedBy = GuidHelper.ToGuidString(inventoryReturn.CreatedBy),
         CreatedByName = inventoryReturn.CreatedByNavigation?.FullName,
         CreatedAt = inventoryReturn.CreatedAt,
+        Status = inventoryReturn.ReceivedAt.HasValue
+            ? inventoryReturn.ReturnType == "WASTE" ? "RECORDED" : "RECEIVED"
+            : "PENDING_RECEIPT",
+        ReceivedBy = inventoryReturn.ReceivedBy is null ? null : GuidHelper.ToGuidString(inventoryReturn.ReceivedBy),
+        ReceivedByName = inventoryReturn.ReceivedByNavigation?.FullName,
+        ReceivedAt = inventoryReturn.ReceivedAt,
         Lines = includeLines
             ? inventoryReturn.Inventoryreturnlines.Select(MapReturnLine).ToList()
             : new List<InventoryReturnLineDto>()

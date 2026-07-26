@@ -8,8 +8,17 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
       <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab" className="mt-4 space-y-4">
-        <div>
-          <label className="mr-2 text-sm font-medium text-slate-700" htmlFor="quotation-ingredient">Nguyên liệu:</label>
+        <div className="grid gap-3 md:grid-cols-[minmax(220px,0.6fr)_minmax(280px,1fr)]">
+          <input
+            type="search"
+            className="ipc-input"
+            aria-label="Tìm nguyên liệu"
+            placeholder="Tìm theo tên hoặc mã nguyên liệu"
+            value={workflow.ingredientSearch}
+            onChange={(event) => workflow.setIngredientSearch(event.target.value)}
+          />
+          <div>
+            <label className="mr-2 text-sm font-medium text-slate-700" htmlFor="quotation-ingredient">Nguyên liệu:</label>
           <select
             id="quotation-ingredient"
             className="ipc-input ipc-quotation-ingredient"
@@ -21,6 +30,7 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
               <option key={ingredient.ingredientId} value={ingredient.ingredientId}>{ingredient.ingredientName}</option>
             ))}
           </select>
+          </div>
         </div>
 
         {workflow.selectedIngredientId && (

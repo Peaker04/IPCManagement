@@ -1,13 +1,14 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '../../coordination/types'
 import { getBangkokDayCode, resolveChefServiceDate } from '../chefServiceDate'
 import { useChefExceptions } from '../exceptions/useChefExceptions'
+import { ChefHeader } from '../components/chef-header'
 import { ChefDocumentsSection } from '../journal/ChefDocumentsSection'
 import { useChefJournal } from '../journal/useChefJournal'
 import { ChefProductionSection } from '../production/ChefProductionSection'
@@ -19,8 +20,11 @@ export default function ChefDashboardPage() {
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
   const [activeDay, setActiveDay] = useState<string>(() => getBangkokDayCode())
   const [activeShift, setActiveShift] = useState<ShiftType>('Ca Sáng')
-  const [activeView, setActiveView] = useState<'production' | 'documents'>('production')
+  const [selectedView, setSelectedView] = useState<'production' | 'documents'>('production')
+  const activeView = useDeferredValue(selectedView)
   const [feedback, setFeedback] = useState<ChefFeedback | null>(null)
+  const isProductionView = activeView === 'production'
+  const isViewPending = selectedView !== activeView
   const lockKey = `${activeDay}-${activeShift}`
   const serviceDate = resolveChefServiceDate(activeDay)
   const scope = useMemo<ChefShiftScope>(() => ({
@@ -31,10 +35,10 @@ export default function ChefDashboardPage() {
     isLocked: Boolean(lockedShifts[lockKey]),
   }), [activeDay, activeShift, lockedShifts, lockKey, serviceDate])
 
-  const receipts = useKitchenReceipts(scope, setFeedback)
-  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback)
-  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback)
-  const journal = useChefJournal()
+  const receipts = useKitchenReceipts(scope, setFeedback, isProductionView)
+  const production = useChefProductionPlan(scope, receipts.rows, receipts.signedMaterials, setFeedback, isProductionView)
+  const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback, isProductionView)
+  const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
 
   const statusMessages = [
@@ -74,9 +78,9 @@ export default function ChefDashboardPage() {
           <ContextStrip items={[
             { label: 'Kế hoạch hôm nay', value: production.dailyPlan ? `${production.dailyPlan.sentPlans}/${production.dailyPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: production.dailyPlan?.sentPlans ? 'success' : 'warning' },
             { label: 'Phiếu trả', value: `${journal.returnDocuments.length} chứng từ`, tone: 'neutral' },
-            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : scope.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : scope.isLocked ? 'warning' : 'neutral' },
+            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
-          <ShiftAlert isLocked={scope.isLocked} />
+          <ShiftAlert isLocked={production.isLocked} />
           {statusMessages.length > 0 && (
             <InlineAlert title="Trạng thái dữ liệu bếp" variant={statusVariant}>
               <ul className="m-0 list-disc space-y-1 pl-5">{statusMessages.map((message, index) => <li key={`${message}-${index}`}>{message}</li>)}</ul>
@@ -86,17 +90,42 @@ export default function ChefDashboardPage() {
       )}
     >
       <div className="ipc-operational-view">
+        {(production.status.isCatalogError || production.status.isDailyPlanError || receipts.isError) && (
+          <QueryErrorAlert
+            title="Không tải đủ dữ liệu vận hành bếp"
+            isRetrying={production.status.isFetching || receipts.isFetching}
+            onRetry={() => Promise.all([production.refetch(), receipts.refetch()])}
+          >
+            Kế hoạch sản xuất, danh mục BOM hoặc phiếu xuất kho đang gián đoạn. Dữ liệu dự kiến chỉ để tham chiếu; tải lại trước khi nhận kế hoạch, ký nhận hoặc tạo ngoại lệ.
+          </QueryErrorAlert>
+        )}
         {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
         <ViewSwitcher
           compact
           ariaLabel="Chọn góc nhìn bếp trưởng"
           tabs={[{ id: 'chef-production', label: 'Ca sản xuất' }, { id: 'chef-documents', label: 'Chứng từ bếp' }]}
-          activeTab={activeView === 'production' ? 'chef-production' : 'chef-documents'}
-          onTabChange={(id) => setActiveView(id === 'chef-production' ? 'production' : 'documents')}
+          activeTab={selectedView === 'production' ? 'chef-production' : 'chef-documents'}
+          onTabChange={(id) => setSelectedView(id === 'chef-production' ? 'production' : 'documents')}
         />
-        {activeView === 'production' && (
-          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab">
-            <ChefProductionSection lines={production.dailyPlanLines} isSending={production.isSendingDailyPlan} onReceivePlan={production.receiveDailyPlan} />
+        <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
+        {isViewPending && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
+            Đang cập nhật
+          </span>
+        )}
+        {isProductionView && (
+          <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
+            <ChefHeader productionPlan={production.productionPlan} />
+            <ChefProductionSection
+              lines={production.dailyPlanLines}
+              isSending={production.isSendingDailyPlan}
+              isLocked={production.isLocked}
+              isLoading={production.status.isDailyPlanLoading}
+              isError={production.status.isDailyPlanError}
+              totalPlans={production.dailyPlan?.totalPlans ?? 0}
+              sentPlans={production.dailyPlan?.sentPlans ?? 0}
+              onReceivePlan={production.receiveDailyPlan}
+            />
             <KitchenReceiptSection
               productionPlan={production.productionPlan}
               returns={exceptions.activeReturns}
@@ -111,7 +140,8 @@ export default function ChefDashboardPage() {
             />
           </div>
         )}
-        {activeView === 'documents' && <ChefDocumentsSection movements={journal.kitchenMovements} documents={journal.returnDocuments} />}
+        {!isProductionView && <ChefDocumentsSection movements={journal.kitchenMovements} documents={journal.returnDocuments} />}
+        </div>
       </div>
     </OperationalFrame>
   )

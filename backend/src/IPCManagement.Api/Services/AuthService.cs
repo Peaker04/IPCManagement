@@ -297,24 +297,8 @@ public class AuthService : IAuthService
             return ["*"];
         }
 
-        var permissions = new List<string>();
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CatalogRead, roleCode, roleName, AuthorizationPolicies.CatalogRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CatalogWrite, roleCode, roleName, AuthorizationPolicies.CatalogRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationRead, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderLock, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderAdjust, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.CoordinationOrderSignoff, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.DemandGenerate, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.InventoryRead, roleCode, roleName, AuthorizationPolicies.InventoryRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.ProductionRead, roleCode, roleName, AuthorizationPolicies.ProductionRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.PurchaseRead, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.PurchaseGenerate, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.WarehouseRead, roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.CoordinationRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.PurchaseRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.WarehouseRoles);
-        AddPermissionIfMatches(permissions, AuthorizationPolicies.ReportRead, roleCode, roleName, AuthorizationPolicies.ProductionRoles);
-        return permissions;
+        var permissions = AuthorizationPolicies.ResolvePermissions(roleCode);
+        return (permissions.Count > 0 ? permissions : AuthorizationPolicies.ResolvePermissions(roleName)).ToList();
     }
 
     private static void AddPermissionIfMatches(

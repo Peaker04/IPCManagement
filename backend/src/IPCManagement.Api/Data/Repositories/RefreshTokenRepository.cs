@@ -26,11 +26,10 @@ public class RefreshTokenRepository : IRefreshTokenRepository
 
     public async Task CleanupExpiredForUserAsync(byte[] userId)
     {
-        var stale = await _context.Refreshtokens
+        await _context.Refreshtokens
             .Where(rt => rt.UserId.SequenceEqual(userId) &&
                          (rt.ExpiresAt < DateTime.UtcNow || rt.IsRevoked || rt.IsUsed))
-            .ToListAsync();
-        _context.Refreshtokens.RemoveRange(stale);
+            .ExecuteDeleteAsync();
     }
 
     public Task SaveChangesAsync()

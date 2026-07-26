@@ -12,7 +12,7 @@ import {
   Utensils,
   Warehouse,
 } from 'lucide-react';
-import { useState, type Dispatch, type SetStateAction } from 'react';
+import { useMemo, useState, useTransition, type Dispatch, type SetStateAction } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   CommandBar,
@@ -20,8 +20,8 @@ import {
   CursorPaginationBar,
   ExceptionLane,
   FieldRow,
-  InlineAlert,
   OperationalFrame,
+  QueryErrorAlert,
   PaginationBar,
   TableViewport,
   SectionPanel,
@@ -134,6 +134,7 @@ const readPageSize = (value: string | null, fallback: number, options: readonly 
 
 const ReportsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [isViewPending, startViewTransition] = useTransition();
   const initialView = searchParams.get('view');
   const initialPage = readPositiveInteger(searchParams.get('page'), 1);
   const [activeView, setActiveView] = useState<ReportView>(
@@ -227,12 +228,12 @@ const ReportsPage = () => {
     updateSearchState({ page: '1' });
   };
 
-  const reportQuery: WorkflowReportQuery = {
+  const reportQuery = useMemo<WorkflowReportQuery>(() => ({
     dateFrom: dateFrom || undefined,
     dateTo: dateTo || undefined,
     shiftName: shiftName || undefined,
     limit: reportPageSize,
-  };
+  }), [dateFrom, dateTo, shiftName]);
 
   const priceVarianceResult = useGetPriceVariancePageQuery({
     ...reportQuery,
@@ -281,7 +282,7 @@ const ReportsPage = () => {
   }, { skip: activeView !== 'audit' });
   const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
 
-  const priceVarianceRows = priceVarianceResult.data?.items ?? [];
+  const priceVarianceRows = activeView === 'price' && priceSubView === 'lines' ? priceVarianceResult.data?.items ?? [] : [];
   const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
   const purchasePlanRows = purchasePlanResult.data?.items ?? [];
   const purchasePlanSummary = {
@@ -301,8 +302,15 @@ const ReportsPage = () => {
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
   const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
-  const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean }> = {
-    price: priceVarianceResult,
+  const activePriceResult = priceSubView === 'supplier'
+    ? priceVarianceBySupplierResult
+    : priceSubView === 'period'
+      ? priceVarianceByPeriodResult
+      : priceSubView === 'dishGroup'
+        ? priceVarianceByDishGroupResult
+        : priceVarianceResult;
+  const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean; refetch: () => unknown }> = {
+    price: activePriceResult,
     demand: ingredientDemandResult,
     purchase: purchasePlanResult,
     stock: currentStockResult,
@@ -580,37 +588,45 @@ const ReportsPage = () => {
         activeTab={`reports-${activeView}`}
         onTabChange={(id) => {
           const nextView = id.replace('reports-', '') as ReportView;
-          setActiveView(nextView);
-          resetReportPages();
-          updateSearchState({
-            view: nextView,
-            subview: nextView === 'price' ? priceSubView : undefined,
-            page: undefined,
-            pageSize: undefined,
+          startViewTransition(() => {
+            setActiveView(nextView);
+            resetReportPages();
+            updateSearchState({
+              view: nextView,
+              subview: nextView === 'price' ? priceSubView : undefined,
+              page: undefined,
+              pageSize: undefined,
+            });
           });
         }}
       />
 
-      {activeReportState.isFetching ? (
+      {activeReportState.isFetching || isViewPending ? (
         <div role="status" aria-live="polite" className="sr-only">
           Đang tải dữ liệu báo cáo cho trang đang xem.
         </div>
       ) : null}
 
       {activeReportState.isError && (
-        <InlineAlert title="Không tải được dữ liệu báo cáo" variant="danger">
-          Vui lòng kiểm tra quyền truy cập hoặc dữ liệu mẫu trước khi đối chiếu.
-        </InlineAlert>
+        <QueryErrorAlert
+          title="Không tải được dữ liệu báo cáo"
+          isRetrying={activeReportState.isFetching}
+          onRetry={activeReportState.refetch}
+        >
+          Không thể kết luận báo cáo đang trống. Vui lòng kiểm tra kết nối hoặc quyền truy cập rồi thử tải lại.
+        </QueryErrorAlert>
       )}
 
       {activeView === 'price' && (
         <div id="reports-price-panel" role="tabpanel" aria-labelledby="reports-price-tab" className="flex flex-col gap-4">
-          <ExceptionLane
-            title="Hàng đợi cảnh báo giá"
-            items={warningQueue}
-            empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
-            className="h-[145px] overflow-y-auto"
-          />
+          {priceSubView === 'lines' && (
+            <ExceptionLane
+              title="Hàng đợi cảnh báo giá"
+              items={warningQueue}
+              empty="Không có nguyên liệu vượt ngưỡng trong kỳ này."
+              className="h-[145px] overflow-y-auto"
+            />
+          )}
 
           <ViewSwitcher
             compact
@@ -619,9 +635,11 @@ const ReportsPage = () => {
             activeTab={`price-sub-${priceSubView}`}
             onTabChange={(id) => {
               const nextSubView = id.replace('price-sub-', '') as PriceSubView;
-              setPriceSubView(nextSubView);
-              resetReportPages();
-              updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
+              startViewTransition(() => {
+                setPriceSubView(nextSubView);
+                resetReportPages();
+                updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
+              });
             }}
           />
 

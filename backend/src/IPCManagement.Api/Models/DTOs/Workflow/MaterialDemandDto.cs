@@ -25,6 +25,11 @@ public class MaterialDemandStalenessDto
 {
     public bool HasExistingPlan { get; set; }
     public bool IsStale { get; set; }
+    public string? MaterialRequestId { get; set; }
+    public string? RequestCode { get; set; }
+    public string? Status { get; set; }
+    public bool CanRegenerate { get; set; } = true;
+    public string? RegenerationBlockReason { get; set; }
     public string? LastGeneratedAt { get; set; }
     public List<string> Reasons { get; set; } = [];
 }

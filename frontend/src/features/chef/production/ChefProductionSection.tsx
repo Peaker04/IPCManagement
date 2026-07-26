@@ -7,6 +7,11 @@ import type { DailyPlanLine } from './chefProductionModel'
 type Props = {
   lines: DailyPlanLine[]
   isSending: boolean
+  isLocked: boolean
+  isLoading: boolean
+  isError: boolean
+  totalPlans: number
+  sentPlans: number
   onReceivePlan: () => Promise<void>
 }
 
@@ -18,18 +23,44 @@ const bomScopeLabels: Record<string, string> = {
 
 const formatBomScope = (scope?: string | null) => scope ? bomScopeLabels[scope.toLowerCase()] ?? 'Theo cấu hình' : 'Theo cấu hình'
 
-export function ChefProductionSection({ lines, isSending, onReceivePlan }: Props) {
+export function ChefProductionSection({
+  lines,
+  isSending,
+  isLocked,
+  isLoading,
+  isError,
+  totalPlans,
+  sentPlans,
+  onReceivePlan,
+}: Props) {
+  const isComplete = totalPlans > 0 && sentPlans >= totalPlans
+  const canReceivePlan = isLocked && !isLoading && !isError && totalPlans > 0 && !isComplete
+  const blockedReason = isLoading
+    ? 'Đang kiểm tra kế hoạch sản xuất.'
+    : isError
+      ? 'Chưa tải được kế hoạch sản xuất. Thử lại trước khi xác nhận.'
+      : !isLocked
+        ? 'Ca chưa chốt. Bếp chỉ được xem trước kế hoạch.'
+        : totalPlans === 0
+          ? 'Chưa có kế hoạch sản xuất cho ngày/ca này.'
+          : undefined
+
   return (
     <SectionPanel
       title="Kế hoạch trong ngày đã gửi bếp"
       icon={<ClipboardList size={18} />}
       badge={(
-        <button className="ipc-button ipc-button-primary" type="button" disabled={isSending} onClick={() => void onReceivePlan()}>
-          <ShieldCheck size={15} />
-          Nhận kế hoạch
-        </button>
+        isComplete ? (
+          <StatusBadge variant="success">Kế hoạch đã gửi bếp</StatusBadge>
+        ) : (
+          <button className="ipc-button ipc-button-primary" type="button" disabled={isSending || !canReceivePlan} onClick={() => void onReceivePlan()}>
+            <ShieldCheck size={15} aria-hidden="true" />
+            {isSending ? 'Đang nhận...' : 'Nhận kế hoạch'}
+          </button>
+        )
       )}
     >
+      {blockedReason ? <p className="mb-3 text-[12px] leading-[1.4] text-slate-600" role="status">{blockedReason}</p> : null}
       <TableViewport className="max-h-[320px]" ariaLabel="Kế hoạch sản xuất gửi bếp" caption="Kế hoạch sản xuất trong ngày đã gửi bếp">
         <table className="ipc-data-table ipc-status-action-table">
           <thead>

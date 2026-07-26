@@ -299,6 +299,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                   min="0"
                   max="9999"
                   disabled={!canEditForecast || pendingForecastOrderIds[order.id]}
+                  title={!canEditForecast ? 'Ca đã khóa số suất dự kiến; mở lại ca trước khi điều chỉnh.' : pendingForecastOrderIds[order.id] ? 'Đang lưu số suất dự kiến.' : undefined}
                   value={order.forecastQuantity}
                   onFocus={() => rememberForecastValue(order)}
                   onBlur={(e) =>
@@ -326,6 +327,7 @@ export function OrderTable({ orders, canEditForecast, canRequestAdjustment, useF
                   min="0"
                   max="9999"
                   disabled={!canRequestAdjustment || pendingOrderIds[order.id]}
+                  title={!canRequestAdjustment ? 'Ca đã hoàn tất; dùng luồng yêu cầu điều chỉnh nếu cần thay đổi.' : pendingOrderIds[order.id] ? 'Đang lưu số suất thực tế.' : undefined}
                   value={order.actualQuantity}
                   onChange={(e) =>
                     handleActualQuantityChange(order, parseServingInput(e.target.value))

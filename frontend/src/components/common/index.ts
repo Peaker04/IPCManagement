@@ -6,6 +6,7 @@ export { EmptyState } from './EmptyState';
 export { ExceptionLane } from './ExceptionLane';
 export { FieldRow } from './FieldRow';
 export { InlineAlert } from './InlineAlert';
+export { QueryErrorAlert } from './QueryErrorAlert';
 export { ContextStrip } from './ContextStrip';
 export { OperationalFrame } from './OperationalFrame';
 export { PageHeader } from './PageHeader';

@@ -32,6 +32,14 @@ const preloadNavigationTarget = (path: string) => {
   void preloadRouteData(path);
 };
 
+const canPreloadRoutesInBackground = () => {
+  const connection = (navigator as Navigator & {
+    connection?: { effectiveType?: string; saveData?: boolean };
+  }).connection;
+
+  return !connection?.saveData && connection?.effectiveType !== 'slow-2g' && connection?.effectiveType !== '2g';
+};
+
 function HeaderShiftContext({ isCoordination, owner }: { isCoordination: boolean; owner: string }) {
   const coordinationShift = useAppSelector((state) => state.coordination.currentShift);
   const activeShift = isCoordination ? coordinationShift : 'Ca trưa';
@@ -77,27 +85,40 @@ export const MainLayout = () => {
   }), [currentUser?.permissions, isAdmin]);
 
   useEffect(() => {
+    if (!canPreloadRoutesInBackground()) return;
+
     let cancelled = false;
     let idleHandle: number | undefined;
     let timeoutHandle: number | undefined;
-    const likelyNextRoute = visibleMenuItems.find((item) => item.path !== location.pathname);
+    let nextRouteIndex = 0;
 
-    const preloadLikelyNextRoute = () => {
-      if (!cancelled && likelyNextRoute) void preloadRoute(likelyNextRoute.path);
+    const scheduleNextRoute = () => {
+      if (cancelled || nextRouteIndex >= visibleMenuItems.length) return;
+
+      const preloadNextRoute = () => {
+        if (cancelled) return;
+        const path = visibleMenuItems[nextRouteIndex]?.path;
+        nextRouteIndex += 1;
+        if (!path) return;
+
+        void preloadRoute(path).finally(scheduleNextRoute);
+      };
+
+      if ('requestIdleCallback' in window) {
+        idleHandle = window.requestIdleCallback(preloadNextRoute, { timeout: 1_000 });
+      } else {
+        timeoutHandle = globalThis.setTimeout(preloadNextRoute, 120);
+      }
     };
 
-    if ('requestIdleCallback' in window) {
-      idleHandle = window.requestIdleCallback(preloadLikelyNextRoute, { timeout: 200 });
-    } else {
-      timeoutHandle = globalThis.setTimeout(preloadLikelyNextRoute, 120);
-    }
+    scheduleNextRoute();
 
     return () => {
       cancelled = true;
       if (idleHandle !== undefined && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleHandle);
       if (timeoutHandle !== undefined) globalThis.clearTimeout(timeoutHandle);
     };
-  }, [location.pathname, visibleMenuItems]);
+  }, [visibleMenuItems]);
 
   const workflowContext = getWorkflowContextForPath(location.pathname);
 

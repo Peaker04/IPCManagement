@@ -39,5 +39,5 @@ public interface IWorkflowReportService
     Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(DataQualityIssueRemediationRequestDto request, string actorUserId);
     Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(DataQualityCleanupRequestDto request, string actorUserId);
     Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query);
-    Task<OperationalKpiSummaryDto> GetOperationalKpisAsync();
+    Task<OperationalKpiSummaryDto> GetOperationalKpisAsync(int? criticalDataQualityCount = null);
 }

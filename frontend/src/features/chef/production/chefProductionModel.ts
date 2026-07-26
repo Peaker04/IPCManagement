@@ -51,6 +51,8 @@ type BuildChefProductionPlanOptions = {
   menuPrice: number
   lossRate: number
   serviceDate: string
+  dailyPlanLines?: DailyPlanLine[]
+  dailyTotalServings?: number
 }
 
 export function buildChefProductionPlan({
@@ -64,17 +66,30 @@ export function buildChefProductionPlan({
   menuPrice,
   lossRate,
   serviceDate,
+  dailyPlanLines = [],
+  dailyTotalServings,
 }: BuildChefProductionPlanOptions): ProductionPlan {
   const dishesById = new Map(catalogDishes.map((dish) => [dish.id, dish]))
   const selectedOrders = orders.filter((order) => order.dayOfWeek === activeDay && order.shift === activeShift)
   const portionsByDishId: Record<string, number> = {}
   let totalMeals = 0
 
-  selectedOrders.forEach((order) => {
-    const quantity = isLocked ? order.actualQuantity : order.forecastQuantity
-    totalMeals += quantity
-    if (quantity > 0) portionsByDishId[order.dishId] = (portionsByDishId[order.dishId] ?? 0) + quantity
-  })
+  if (dailyPlanLines.length > 0) {
+    dailyPlanLines.forEach((line) => {
+      if (line.totalServings > 0) {
+        portionsByDishId[line.dishId] = (portionsByDishId[line.dishId] ?? 0) + line.totalServings
+      }
+    })
+    totalMeals = dailyTotalServings && dailyTotalServings > 0
+      ? dailyTotalServings
+      : Math.max(...dailyPlanLines.map((line) => line.totalServings), 0)
+  } else {
+    selectedOrders.forEach((order) => {
+      const quantity = isLocked ? order.actualQuantity : order.forecastQuantity
+      totalMeals += quantity
+      if (quantity > 0) portionsByDishId[order.dishId] = (portionsByDishId[order.dishId] ?? 0) + quantity
+    })
+  }
 
   const activeDishes = Object.entries(portionsByDishId).map(([dishId, portions]) => {
     const dish = dishesById.get(dishId)
@@ -111,7 +126,7 @@ export function buildChefProductionPlan({
     name: row.ingredient,
     unit: row.unit,
     quantity: row.issuedQty,
-    status: 'Đã nhận',
+    status: row.isReceivedByKitchen ? 'Đã nhận' : 'Chờ giao',
     signed: row.isReceivedByKitchen || Boolean(signedMaterials[`${serviceDate}-${activeShift}-${row.issueId}-${row.id}`]),
     issueId: row.issueId,
     issueCode: row.issueCode,

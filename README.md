@@ -163,6 +163,7 @@ Các tài liệu nghiệp vụ hiện có:
 - [Frontend workspace](frontend/README.md)
 - [Quy tắc đóng góp](CONTRIBUTING.md)
 - [Rule cho các phiên chat và codebase](AGENTS.md)
+- [Trạng thái làm việc và handoff cho phiên mới](docs/CURRENT-STATE.md)
 
 ## 🧪 Testing
 

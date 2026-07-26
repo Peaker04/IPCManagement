@@ -233,11 +233,13 @@ public class PriceVarianceByDishGroupDto
 public class KitchenIssueReportDto
 {
     public string IssueId { get; set; } = string.Empty;
+    public string IssueLineId { get; set; } = string.Empty;
     public string IssueCode { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
     public string? ShiftName { get; set; }
     public string WarehouseId { get; set; } = string.Empty;
     public string? WarehouseName { get; set; }
+    public string MaterialRequestId { get; set; } = string.Empty;
     public string IngredientId { get; set; } = string.Empty;
     public string? IngredientName { get; set; }
     public string UnitId { get; set; } = string.Empty;
@@ -287,6 +289,7 @@ public class DataQualityReportDto
 {
     public DateTime GeneratedAt { get; set; }
     public int TotalIssues { get; set; }
+    public bool IsTruncated { get; set; }
     public int ErrorCount { get; set; }
     public int WarningCount { get; set; }
     public int ResolvedIssueCount { get; set; }

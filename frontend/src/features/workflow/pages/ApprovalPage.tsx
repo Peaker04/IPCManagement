@@ -9,6 +9,7 @@ import {
   DocumentRail,
   InlineAlert,
   OperationalFrame,
+  QueryErrorAlert,
   PaginationBar,
   SectionPanel,
   SplitWorkbench,
@@ -30,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { formatWorkflowStatus } from '../workflowConfig';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
+import { resolveApprovalAvailability } from '../actionEligibility';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -95,7 +97,12 @@ export default function ApprovalPage() {
     ?? purchaseDocuments[0]
     ?? workflowDocuments[0];
   const nearestDeadline = approvalRecords.find((record) => record.deadline)?.deadline;
-  const firstActionableRecord = approvalRecords.find((record) => record.targetType && record.targetId) ?? approvalRecords[0];
+  const approvalAvailability = resolveApprovalAvailability(approvalRecords, {
+    isFetching: isFetchingApprovals,
+    isError: isApprovalLoadError,
+    isDeciding,
+  });
+  const firstActionableRecord = approvalAvailability.firstActionableRecord;
   const requestedTargetType = searchParams.get('target') ?? searchParams.get('targetType');
   const requestedTargetId = searchParams.get('id') ?? searchParams.get('targetId');
   const requestedRecord = approvalRecords.find((record) =>
@@ -203,7 +210,9 @@ export default function ApprovalPage() {
                 className="ipc-button ipc-button-success"
                 type="button"
                 onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Approve')}
-                disabled={!firstActionableRecord?.targetType || !firstActionableRecord.targetId || isDeciding}
+                disabled={Boolean(approvalAvailability.disabledReason)}
+                aria-describedby={approvalAvailability.disabledReason ? 'approval-action-guidance' : undefined}
+                title={approvalAvailability.disabledReason ?? undefined}
               >
                 Duyệt
               </button>
@@ -211,7 +220,9 @@ export default function ApprovalPage() {
                 className="ipc-button ipc-button-ghost"
                 type="button"
                 onClick={() => firstActionableRecord && openDecisionModal(firstActionableRecord, 'Reject')}
-                disabled={!firstActionableRecord?.targetType || !firstActionableRecord.targetId || isDeciding}
+                disabled={Boolean(approvalAvailability.disabledReason)}
+                aria-describedby={approvalAvailability.disabledReason ? 'approval-action-guidance' : undefined}
+                title={approvalAvailability.disabledReason ?? undefined}
               >
                 Từ chối
               </button>
@@ -236,8 +247,8 @@ export default function ApprovalPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Trạng thái chính', value: 'Chờ duyệt', tone: 'warning' },
-            { label: 'Đơn mua', value: `${purchaseDocuments.length} chứng từ`, tone: purchaseDocuments.length ? 'danger' : 'neutral' },
+            { label: 'Trạng thái chính', value: approvalAvailability.statusLabel, tone: approvalAvailability.statusTone },
+            { label: 'Đơn mua', value: `${purchaseDocuments.length} chứng từ`, tone: 'neutral' },
             { label: 'Nhu cầu xuất', value: `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu`, tone: 'warning' },
             { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
           ]}
@@ -273,6 +284,11 @@ export default function ApprovalPage() {
             }
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
+              {approvalAvailability.disabledReason && !isApprovalLoadError && (
+                <InlineAlert title={approvalRecords.length === 0 ? 'Không có chứng từ chờ duyệt' : 'Tạm thời chưa thể xử lý'} variant="info">
+                  <span id="approval-action-guidance">{approvalAvailability.disabledReason} Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử.</span>
+                </InlineAlert>
+              )}
               {decisionAnnouncement && <div role="status" aria-live="polite" className="sr-only">{decisionAnnouncement}</div>}
               {requestedTargetType && requestedTargetId && !requestedRecord && !isFetchingApprovals && !isApprovalLoadError && (
                 <InlineAlert title="Không tìm thấy hồ sơ phê duyệt trong trang hiện tại" variant="warning">
@@ -280,10 +296,13 @@ export default function ApprovalPage() {
                 </InlineAlert>
               )}
               {isApprovalLoadError && (
-                <InlineAlert title="Không tải được hàng đợi phê duyệt" variant="danger">
+                <QueryErrorAlert
+                  title="Không tải được hàng đợi phê duyệt"
+                  isRetrying={isFetchingApprovals}
+                  onRetry={refetchApprovals}
+                >
                   Kiểm tra kết nối rồi thử lại. Ngữ cảnh đang chọn chưa bị thay đổi.
-                  <button className="ipc-button ipc-button-ghost ml-2" type="button" onClick={() => void refetchApprovals()}>Thử lại</button>
-                </InlineAlert>
+                </QueryErrorAlert>
               )}
               <div ref={queueFocusRef} tabIndex={-1} aria-label="Hàng đợi duyệt đã cập nhật">
               <ApprovalQueue

@@ -1,20 +1,29 @@
-import { lazy, type ComponentType } from 'react';
+import { createElement, lazy, type ComponentType } from 'react';
 import { ROUTES } from './routeConfig';
 
 type PageModule = { default: ComponentType };
 
 function createPreloadableRoute(importer: () => Promise<PageModule>) {
   let modulePromise: Promise<PageModule> | undefined;
+  let resolvedComponent: ComponentType | undefined;
   const load = () => {
-    modulePromise ??= importer().catch((error) => {
-      modulePromise = undefined;
-      throw error;
-    });
+    modulePromise ??= importer()
+      .then((module) => {
+        resolvedComponent = module.default;
+        return module;
+      })
+      .catch((error) => {
+        modulePromise = undefined;
+        resolvedComponent = undefined;
+        throw error;
+      });
     return modulePromise;
   };
+  const LazyComponent = lazy(load);
+  const Component = () => createElement(resolvedComponent ?? LazyComponent);
 
   return {
-    Component: lazy(load),
+    Component,
     preload: () => load().then(() => undefined, () => undefined),
   };
 }

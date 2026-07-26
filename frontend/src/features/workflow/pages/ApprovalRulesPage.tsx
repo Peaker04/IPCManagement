@@ -4,6 +4,7 @@ import {
   OperationalFrame,
   SectionPanel,
   CommandBar,
+  QueryErrorAlert,
   StatusBadge,
   useToast,
 } from '@/components/common';
@@ -61,7 +62,7 @@ const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value
 
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
-  const { data: rulesResponse, isLoading: isLoadingRules } = useGetApprovalRulesQuery();
+  const { data: rulesResponse, isLoading: isLoadingRules, isFetching: isFetchingRules, isError: isRulesError, refetch: refetchRules } = useGetApprovalRulesQuery();
   const rules = rulesResponse?.data ?? [];
 
   const { data: employeesResponse } = useGetAdminEmployeesQuery({ pageNumber: 1, pageSize: 200 });
@@ -226,6 +227,14 @@ export default function ApprovalRulesPage() {
         <SectionPanel title="Danh sách các quy tắc phê duyệt" icon={<Layers size={18} />}>
           {isLoadingRules ? (
             <div className="p-8 text-center text-slate-500">Đang tải cấu hình...</div>
+          ) : isRulesError ? (
+            <QueryErrorAlert
+              title="Không tải được quy tắc phê duyệt"
+              isRetrying={isFetchingRules}
+              onRetry={refetchRules}
+            >
+              Chưa thể phân biệt lỗi kết nối với trường hợp chưa cấu hình quy tắc. Hãy thử tải lại trước khi tạo hoặc sửa luồng duyệt.
+            </QueryErrorAlert>
           ) : rules.length === 0 ? (
             <div className="p-8 text-center text-slate-500 italic">Chưa có quy tắc phê duyệt nào được thiết lập.</div>
           ) : (

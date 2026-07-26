@@ -24,8 +24,17 @@ interface PurchaseServiceDateWorkbenchProps {
   children?: ReactNode;
 }
 
-const demandStatusLabel = (serviceDate: PurchaseWorkbenchServiceDate) =>
-  serviceDate.approvedDemandCount > 0 ? 'Đã duyệt' : 'Chưa tạo';
+const demandStatusLabel = (serviceDate: PurchaseWorkbenchServiceDate) => {
+  if (serviceDate.currentStage === 'receiving') {
+    return serviceDate.receivingLineCount > 0
+      && serviceDate.fullyReceivedLineCount >= serviceDate.receivingLineCount
+      ? 'Đã nhận đủ'
+      : 'Đang nhập kho';
+  }
+  if (serviceDate.currentStage === 'approved-order') return 'Đã duyệt';
+  if (serviceDate.currentStage === 'submitted') return 'Đã gửi duyệt';
+  return serviceDate.approvedDemandCount > 0 ? 'Đã duyệt' : 'Chưa tạo';
+};
 
 const formatIsoDate = (value: string) => {
   const [year, month, day] = value.slice(0, 10).split('-');
@@ -64,6 +73,7 @@ export function PurchaseServiceDateWorkbench({
       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:min-h-[11.4rem] xl:grid-cols-3" aria-label="Các ngày cần xử lý">
         {serviceDates.map((serviceDate) => {
           const active = serviceDate.serviceDate === selectedDate;
+          const supplierLineCount = Math.max(serviceDate.shortageLineCount, serviceDate.purchaseLines.length);
           return (
             <button
               key={serviceDate.serviceDate}
@@ -83,7 +93,7 @@ export function PurchaseServiceDateWorkbench({
               </span>
               <span className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] leading-[1.4] text-slate-600">
                 <span>Thiếu: {serviceDate.shortageLineCount} dòng</span>
-                <span>NCC: {serviceDate.supplierReadyLineCount}/{serviceDate.shortageLineCount}</span>
+                <span>NCC: {serviceDate.supplierReadyLineCount}/{supplierLineCount}</span>
                 <span>Ngoại lệ: {serviceDate.blockingExceptionCount}</span>
                 <span>Nhập kho: {receivingStatus(serviceDate)}</span>
               </span>

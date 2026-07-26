@@ -20,6 +20,11 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
             .Include(inventoryReturn => inventoryReturn.Warehouse)
             .Include(inventoryReturn => inventoryReturn.Issue)
             .Include(inventoryReturn => inventoryReturn.CreatedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.ReceivedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
+                .ThenInclude(line => line.Ingredient)
+            .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
+                .ThenInclude(line => line.Unit)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(request.WarehouseId))
@@ -70,6 +75,7 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
             .Include(inventoryReturn => inventoryReturn.Warehouse)
             .Include(inventoryReturn => inventoryReturn.Issue)
             .Include(inventoryReturn => inventoryReturn.CreatedByNavigation)
+            .Include(inventoryReturn => inventoryReturn.ReceivedByNavigation)
             .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)
                 .ThenInclude(line => line.Ingredient)
             .Include(inventoryReturn => inventoryReturn.Inventoryreturnlines)

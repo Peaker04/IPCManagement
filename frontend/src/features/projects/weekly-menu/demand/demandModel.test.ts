@@ -37,11 +37,13 @@ describe('material demand model', () => {
 
   it('marks the week stale when any service date is stale and keeps date-specific reasons', () => {
     expect(aggregateWeekStaleness([
-      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, lastGeneratedAt: '2026-07-20T08:00:00Z', reasons: [] } },
-      { serviceDate: '2026-07-22', staleness: { hasExistingPlan: true, isStale: true, lastGeneratedAt: '2026-07-22T09:00:00Z', reasons: ['Số suất đã thay đổi'] } },
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, canRegenerate: false, regenerationBlockReason: 'Đã có phiếu xuất kho.', lastGeneratedAt: '2026-07-20T08:00:00Z', reasons: [] } },
+      { serviceDate: '2026-07-22', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: true, lastGeneratedAt: '2026-07-22T09:00:00Z', reasons: ['Số suất đã thay đổi'] } },
     ])).toEqual({
       hasExistingPlan: true,
       isStale: true,
+      canRegenerate: true,
+      regenerationBlockReason: null,
       lastGeneratedAt: '2026-07-22T09:00:00Z',
       reasons: ['2026-07-22: Số suất đã thay đổi'],
     })
@@ -90,6 +92,16 @@ describe('material demand model', () => {
 
     expect(pending).toHaveLength(1)
     expect(pending[0].nextServings).toBe(125)
+  })
+
+  it('keeps a terminal week read-only and carries server block reasons into the UI contract', () => {
+    expect(aggregateWeekStaleness([
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: false, regenerationBlockReason: 'Đã có đơn mua hàng.', reasons: ['Menu thay đổi'] } },
+      { serviceDate: '2026-07-21', staleness: { hasExistingPlan: true, isStale: true, canRegenerate: false, regenerationBlockReason: 'Đã có phiếu xuất kho.', reasons: ['Menu thay đổi'] } },
+    ])).toMatchObject({
+      canRegenerate: false,
+      regenerationBlockReason: '2026-07-20: Đã có đơn mua hàng. | 2026-07-21: Đã có phiếu xuất kho.',
+    })
   })
 
   it('puts shortages and stale demand lines before sufficient material lines', () => {
@@ -143,7 +155,8 @@ describe('material demand model', () => {
   it.each([
     ['DRAFT', 'Chờ duyệt', 'warning', 'Mở hàng đợi duyệt'],
     ['MANAGERAPPROVED', 'Đã duyệt', 'success', 'Mở thu mua'],
-    ['CANCELLED', 'Từ chối', 'danger', 'Tính lại nhu cầu'],
+    ['EXPORTED', 'Đã xuất kho', 'success', 'Mở thu mua'],
+    ['CANCELLED', 'Đã hủy', 'neutral', 'Tính lại nhu cầu'],
   ] as const)('maps server demand status %s to operational approval copy', (status, label, tone, actionLabel) => {
     const presentation = getDemandApprovalPresentation([{
       materialRequestId: 'demand-42',
@@ -159,7 +172,7 @@ describe('material demand model', () => {
       tone,
       actionLabel,
     })
-    expect(presentation.reason).toBe(status === 'CANCELLED' ? 'Thiếu căn cứ mua hàng.' : undefined)
+    expect(presentation.reason).toBeUndefined()
   })
 
   it.each([
@@ -174,6 +187,13 @@ describe('material demand model', () => {
       showGenerate,
       generateIsSecondary,
       requiresRegenerateConfirmation: status === 'approved',
+    })
+  })
+
+  it('hides regeneration when the server marks the lineage read-only', () => {
+    expect(getDemandActionPresentation('rejected', true, false)).toMatchObject({
+      showGenerate: false,
+      primaryAction: 'generate',
     })
   })
 

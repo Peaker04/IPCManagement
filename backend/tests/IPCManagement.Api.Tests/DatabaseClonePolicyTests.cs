@@ -27,4 +27,26 @@ public class DatabaseClonePolicyTests
 
         action.Should().Throw<ArgumentException>();
     }
+
+    [Theory]
+    [InlineData("ipc_lane1")]
+    [InlineData("ipc_lane9")]
+    public void ValidateSanitizeTarget_ShouldAllowDisposableLanes(string database)
+    {
+        var action = () => DatabaseClonePolicy.ValidateSanitizeTarget(database);
+
+        action.Should().NotThrow();
+    }
+
+    [Theory]
+    [InlineData("ipcmanagement")]
+    [InlineData("ipc_e2e_template")]
+    [InlineData("ipc_lane0")]
+    [InlineData("ipc_lane1; DROP DATABASE mysql")]
+    public void ValidateSanitizeTarget_ShouldRejectPrimaryTemplateAndUnsafeNames(string database)
+    {
+        var action = () => DatabaseClonePolicy.ValidateSanitizeTarget(database);
+
+        action.Should().Throw<ArgumentException>();
+    }
 }

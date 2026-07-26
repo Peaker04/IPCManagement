@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy } from 'react';
 import { WeeklyScheduleSection } from '../schedule/WeeklyScheduleSection';
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix';
 import type { WeeklyMenuView } from '../model/types';
@@ -8,18 +8,19 @@ import type { MaterialDemandWorkflow } from '../demand/useMaterialDemand';
 import type { MenuCostWorkflow } from '../cost/useMenuCost';
 import type { PurchaseSummaryWorkflow } from '../purchasing/usePurchaseSummary';
 import type { DishMaterialsWorkflow } from '../dish-materials/useDishMaterials';
-import { ProductionPlanSection } from '../production-plan/ProductionPlanSection';
-import { MaterialDemandSection } from '../demand/MaterialDemandSection';
+import {
+  loadDishMaterialsSection,
+  loadMaterialDemandSection,
+  loadMenuCostSection,
+  loadProductionPlanSection,
+  loadPurchaseSummarySection,
+} from './weeklyMenuViewPreload';
 
-const MenuCostSection = lazy(() => import('../cost/MenuCostSection'));
-const PurchaseSummarySection = lazy(() => import('../purchasing/PurchaseSummarySection'));
-const DishMaterialsSection = lazy(() => import('../dish-materials/DishMaterialsSection'));
-
-const ReadOnlySectionFallback = ({ label }: { label: string }) => (
-  <section aria-busy="true" aria-live="polite" className="min-h-[560px] rounded-lg border border-slate-200 bg-white p-6">
-    <span className="text-sm font-medium text-slate-600">Đang tải {label}...</span>
-  </section>
-);
+const MenuCostSection = lazy(loadMenuCostSection);
+const PurchaseSummarySection = lazy(loadPurchaseSummarySection);
+const DishMaterialsSection = lazy(loadDishMaterialsSection);
+const ProductionPlanSection = lazy(loadProductionPlanSection);
+const MaterialDemandSection = lazy(loadMaterialDemandSection);
 
 interface WeeklyMenuViewContentProps {
   activeView: WeeklyMenuView;
@@ -64,10 +65,10 @@ export function WeeklyMenuViewContent({
     return <div {...panelProps('demand')}><MaterialDemandSection workflow={demandWorkflow} scheduleWorkflow={scheduleWorkflow} servingFeedback={servingFeedback} /></div>;
   }
   if (activeView === 'cost') {
-    return <div {...panelProps('cost')}><Suspense fallback={<ReadOnlySectionFallback label="giá vốn" />}><MenuCostSection workflow={menuCostWorkflow} /></Suspense></div>;
+    return <div {...panelProps('cost')}><MenuCostSection workflow={menuCostWorkflow} /></div>;
   }
   if (activeView === 'purchase-summary') {
-    return <div {...panelProps('purchase-summary')}><Suspense fallback={<ReadOnlySectionFallback label="tổng hợp mua" />}><PurchaseSummarySection workflow={purchaseSummaryWorkflow} /></Suspense></div>;
+    return <div {...panelProps('purchase-summary')}><PurchaseSummarySection workflow={purchaseSummaryWorkflow} /></div>;
   }
-  return <div {...panelProps('dish-materials')}><Suspense fallback={<ReadOnlySectionFallback label="nguyên liệu món" />}><DishMaterialsSection workflow={dishMaterialsWorkflow} /></Suspense></div>;
+  return <div {...panelProps('dish-materials')}><DishMaterialsSection workflow={dishMaterialsWorkflow} /></div>;
 }

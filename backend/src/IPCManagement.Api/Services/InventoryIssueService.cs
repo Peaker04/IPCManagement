@@ -222,6 +222,73 @@ public class InventoryIssueService : IInventoryIssueService
             });
         }
 
+        var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
+        var supplementalLinks = await _context.Auditlogs
+            .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
+                item.NewValue == issueIdText)
+            .ToListAsync();
+        foreach (var link in supplementalLinks)
+        {
+            var supplementalRequest = await _context.Supplementalmaterialrequests
+                .FirstOrDefaultAsync(item => item.RequestId == link.EntityId);
+            if (supplementalRequest is null)
+            {
+                continue;
+            }
+
+            var fulfilledQty = await _context.Stockmovements
+                .Where(item => item.RefTable == "supplementalmaterialrequests" &&
+                    item.RefId == supplementalRequest.RequestId)
+                .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
+            var linkedIssueIds = await _context.Auditlogs
+                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                    item.EntityId == supplementalRequest.RequestId &&
+                    item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
+                .Select(item => item.NewValue)
+                .ToListAsync();
+            var parsedIssueIds = linkedIssueIds
+                .Select(GuidHelper.ParseGuidString)
+                .Where(item => item is not null)
+                .Select(item => item!)
+                .ToList();
+            var allLinkedIssuesReceived = parsedIssueIds.Count > 0;
+            foreach (var linkedIssueId in parsedIssueIds)
+            {
+                if (linkedIssueId.SequenceEqual(issue.IssueId))
+                {
+                    continue;
+                }
+
+                if (!await _context.Inventoryissues.AnyAsync(item =>
+                        item.IssueId == linkedIssueId && item.ReceivedAt != null))
+                {
+                    allLinkedIssuesReceived = false;
+                    break;
+                }
+            }
+
+            if (!DecimalPolicy.LessThanQuantity(fulfilledQty, supplementalRequest.RequestedQty) &&
+                allLinkedIssuesReceived)
+            {
+                var oldStatus = supplementalRequest.Status;
+                supplementalRequest.Status = "FULFILLED";
+                _context.Auditlogs.Add(new Auditlog
+                {
+                    AuditId = GuidHelper.NewId(),
+                    ChangedAt = confirmedAt,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "SupplementalMaterial",
+                    EntityName = nameof(Supplementalmaterialrequest),
+                    EntityId = supplementalRequest.RequestId,
+                    FieldName = nameof(Supplementalmaterialrequest.Status),
+                    OldValue = oldStatus,
+                    NewValue = supplementalRequest.Status,
+                    Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
+                });
+            }
+        }
+
         await _context.SaveChangesAsync();
         return InventoryMapper.MapIssue(issue, includeLines: true);
     }

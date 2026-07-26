@@ -16,4 +16,8 @@ fi
 echo "harness: restoring $DB_NAME from $TEMPLATE_DB..."
 dotnet run --project "$TOOL_PROJECT" -c Release -- \
   clone --settings "$SETTINGS_FILE" --source "$TEMPLATE_DB" --target "$DB_NAME"
-echo "harness: lane database restored and verified"
+SANITIZE_TOOL_PROJECT="${SOURCE_REPO:-$LANE_DIR}/backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj"
+dotnet run --project "$SANITIZE_TOOL_PROJECT" -c Release -- \
+  sanitize-e2e --settings "$SETTINGS_FILE" --database "$DB_NAME"
+bash "$PROFILE_DIR/hooks/migrate.sh"
+echo "harness: lane database restored, sanitized, migrated, and verified"

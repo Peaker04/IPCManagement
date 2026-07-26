@@ -289,7 +289,7 @@ export function mapPurchaseRequestLines(requests: PurchaseRequestResult[]): Dema
       materialRequestId: request.materialRequestId,
       purchaseRequestId: request.purchaseRequestId,
       purchaseRequestLineId: line.purchaseRequestLineId,
-      supplierId: line.supplierId,
+      supplierId: line.supplierId ?? undefined,
       ingredientId: line.ingredientId,
       estimatedUnitPrice: line.estimatedUnitPrice,
       expectedDeliveryDate: line.expectedDeliveryDate,

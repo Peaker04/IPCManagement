@@ -2,6 +2,61 @@ using System.Text.Json;
 using IPCManagement.DatabaseTool;
 using MySqlConnector;
 
+if (args.Length == 5 &&
+    args[0] == "sanitize-e2e" &&
+    args[1] == "--settings" &&
+    args[3] == "--database")
+{
+    var sanitizeSettingsPath = Path.GetFullPath(args[2]);
+    var database = args[4];
+    try
+    {
+        DatabaseClonePolicy.ValidateSanitizeTarget(database);
+        await using var connection = await OpenServerConnectionAsync(sanitizeSettingsPath);
+        var transactionTables = new[]
+        {
+            "approvalassignments", "approvalhistories", "auditlogs", "inventoryreturnlines", "inventoryreturns",
+            "supplementalmaterialrequests", "inventoryissuelines", "inventoryissues", "inventoryreceiptlines",
+            "inventoryreceipts", "purchaseorderlines", "purchaseorders", "purchaserequestlines", "purchaserequests",
+            "materialrequestlines", "materialrequests", "productionplanlines", "productionplans", "quantityadjustments",
+            "mealquantityplanlines", "mealquantityplans", "quantityimportbatches", "menuschedules", "menuversions",
+            "stockmovements", "stocksnapshots", "stocktakelines", "stocktakes", "supplierquotations", "refreshtokens"
+        };
+
+        await ExecuteAsync(connection, "SET FOREIGN_KEY_CHECKS=0;");
+        try
+        {
+            foreach (var table in transactionTables)
+            {
+                await ExecuteAsync(connection, $"TRUNCATE TABLE {Quote(database)}.{Quote(table)};");
+            }
+        }
+        finally
+        {
+            await ExecuteAsync(connection, "SET FOREIGN_KEY_CHECKS=1;");
+        }
+
+        foreach (var table in transactionTables)
+        {
+            var count = await ReadRowCountAsync(connection, database, table);
+            if (count != 0)
+            {
+                throw new InvalidOperationException($"E2E sanitization left {count} rows in {table}.");
+            }
+        }
+
+        Console.WriteLine($"SANITIZE={database}");
+        Console.WriteLine($"TRANSACTION_TABLES={transactionTables.Length}");
+        Console.WriteLine("VERIFY=PASS");
+        return 0;
+    }
+    catch (Exception exception)
+    {
+        Console.Error.WriteLine($"E2E sanitization failed: {exception.Message}");
+        return 1;
+    }
+}
+
 if (args.Length != 7 ||
     args[0] != "clone" ||
     args[1] != "--settings" ||
@@ -9,7 +64,8 @@ if (args.Length != 7 ||
     args[5] != "--target")
 {
     Console.Error.WriteLine(
-        "Usage: dotnet run --project IPCManagement.DatabaseTool -- clone --settings <appsettings.json> --source <database> --target <database>");
+        "Usage: dotnet run --project IPCManagement.DatabaseTool -- clone --settings <appsettings.json> --source <database> --target <database>\n" +
+        "   or: dotnet run --project IPCManagement.DatabaseTool -- sanitize-e2e --settings <appsettings.json> --database <ipc_laneN>");
     return 2;
 }
 
@@ -20,23 +76,7 @@ var targetDatabase = args[6];
 try
 {
     DatabaseClonePolicy.ValidateTransition(sourceDatabase, targetDatabase);
-    if (!File.Exists(settingsPath))
-    {
-        throw new FileNotFoundException("Appsettings file was not found.", settingsPath);
-    }
-
-    using var settings = JsonDocument.Parse(await File.ReadAllTextAsync(settingsPath));
-    var sourceConnectionString = settings.RootElement
-        .GetProperty("ConnectionStrings")
-        .GetProperty("DefaultConnection")
-        .GetString() ?? throw new InvalidOperationException("DefaultConnection is missing.");
-    var connectionBuilder = new MySqlConnectionStringBuilder(sourceConnectionString)
-    {
-        Database = "mysql"
-    };
-
-    await using var connection = new MySqlConnection(connectionBuilder.ConnectionString);
-    await connection.OpenAsync();
+    await using var connection = await OpenServerConnectionAsync(settingsPath);
 
     var sourceTables = await ReadTablesAsync(connection, sourceDatabase);
     if (sourceTables.Count == 0)
@@ -213,6 +253,27 @@ static async Task ExecuteAsync(MySqlConnection connection, string sql, int comma
         CommandTimeout = commandTimeout
     };
     await command.ExecuteNonQueryAsync();
+}
+
+static async Task<MySqlConnection> OpenServerConnectionAsync(string settingsPath)
+{
+    if (!File.Exists(settingsPath))
+    {
+        throw new FileNotFoundException("Appsettings file was not found.", settingsPath);
+    }
+
+    using var settings = JsonDocument.Parse(await File.ReadAllTextAsync(settingsPath));
+    var sourceConnectionString = settings.RootElement
+        .GetProperty("ConnectionStrings")
+        .GetProperty("DefaultConnection")
+        .GetString() ?? throw new InvalidOperationException("DefaultConnection is missing.");
+    var connectionBuilder = new MySqlConnectionStringBuilder(sourceConnectionString)
+    {
+        Database = "mysql"
+    };
+    var connection = new MySqlConnection(connectionBuilder.ConnectionString);
+    await connection.OpenAsync();
+    return connection;
 }
 
 static string Quote(string identifier) => $"`{identifier.Replace("`", "``")}`";

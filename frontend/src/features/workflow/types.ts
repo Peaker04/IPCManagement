@@ -129,6 +129,7 @@ export interface DemandLine {
   purchaseRequestLineId?: string;
   supplierId?: string;
   ingredientId?: string;
+  unitId?: string;
   bomId?: string | null;
   priceTierAmount?: number;
   bomScope?: string;

@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow'
 
-export function useChefJournal() {
-  const documentsQuery = useGetWorkflowDocumentsQuery({ limit: 20 })
-  const movementsQuery = useGetStockMovementsQuery({ limit: 20 })
+export function useChefJournal(enabled = true) {
+  const documentsQuery = useGetWorkflowDocumentsQuery({ limit: 20 }, { skip: !enabled })
+  const movementsQuery = useGetStockMovementsQuery({ limit: 20 }, { skip: !enabled })
   const returnDocuments = useMemo(
     () => (documentsQuery.data ?? []).filter((document) => document.type === 'Phiếu trả'),
     [documentsQuery.data],

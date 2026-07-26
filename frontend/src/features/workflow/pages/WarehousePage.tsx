@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useDeferredValue, useState } from 'react';
 import { ClipboardList, PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useHasRole } from '@/app/hooks';
@@ -7,10 +7,10 @@ import {
   ContextStrip,
   DemandSummary,
   DocumentRail,
-  ExceptionLane,
   InlineAlert,
   OperationalFrame,
   PaginationBar,
+  QueryErrorAlert,
   RoleInbox,
   SectionPanel,
   SplitWorkbench,
@@ -23,6 +23,7 @@ import {
   useCreateInventoryIssueMutation,
   useGetCurrentStockQuery,
   useGetCurrentStockPageQuery,
+  useGetIngredientDemandQuery,
   useGetIngredientDemandPageQuery,
   useGetMaterialRequestCandidatePageQuery,
   useGetKitchenIssuesQuery,
@@ -34,10 +35,14 @@ import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '../workflowConfig';
 import {
   useGetPurchaseOrdersPageQuery,
+  useGetSupplementalMaterialRequestsQuery,
   useGetWarehouseSelectorQuery,
   type PurchaseOrderLineDto,
 } from '../workflowApi';
 import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog';
+import { buildWarehouseIssueAllocation } from '../warehouse/warehouseIssueAllocation';
+import { WarehouseExceptionsWorkbench } from '../warehouse/WarehouseExceptionsWorkbench';
+import { resolveIssueCreationAvailability } from '../actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -55,8 +60,10 @@ const getMutationErrorMessage = (error: unknown, fallback: string) => {
 
 export default function WarehousePage() {
   const [searchParams] = useSearchParams();
-  const canReceivePurchases = useHasRole(['warehouse']);
-  const [activeView, setActiveView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const canReceivePurchases = useHasRole(['thukho']);
+  const [selectedView, setSelectedView] = useState<'movement' | 'demand' | 'exceptions'>('movement');
+  const activeView = useDeferredValue(selectedView);
+  const isViewPending = selectedView !== activeView;
   const [purchaseOrderPageNumber, setPurchaseOrderPageNumber] = useState(1);
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<string | null>(searchParams.get('purchaseOrderId'));
   const [selectedReceiptLine, setSelectedReceiptLine] = useState<PurchaseOrderLineDto>();
@@ -73,22 +80,22 @@ export default function WarehousePage() {
     variant: 'info' | 'warning' | 'danger';
   } | null>(null);
   const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
-  const { data: purchaseOrderPageResponse, isFetching: isFetchingPurchaseOrders } = useGetPurchaseOrdersPageQuery({
+  const { data: purchaseOrderPageResponse, isFetching: isFetchingPurchaseOrders, isError: isPurchaseOrderError, refetch: refetchPurchaseOrders } = useGetPurchaseOrdersPageQuery({
     pageNumber: purchaseOrderPageNumber,
     pageSize: 8,
   });
   const { data: receiptWarehouses = [] } = useGetWarehouseSelectorQuery();
+  const { data: supplementalRequests } = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
   const { data: demandPageResponse } = useGetIngredientDemandPageQuery({
     pageNumber: demandPage,
     pageSize: 8,
-  });
+  }, { skip: activeView !== 'demand' });
   const demandLines = demandPageResponse?.items ?? [];
   const { data: issueCandidatePage, isFetching: isFetchingIssueCandidates } = useGetMaterialRequestCandidatePageQuery({
     purpose: 'issue',
     pageNumber: issueCandidatePageNumber,
     pageSize: 8,
   });
-  const { data: issueWarehouseRows = [] } = useGetCurrentStockQuery({ limit: 100 });
   const stockMovementCursor = stockMovementCursors.at(-1);
   const { data: stockMovementPage } = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
@@ -103,7 +110,7 @@ export default function WarehousePage() {
   const currentStockRows = currentStockPageResponse?.items ?? [];
   const { data: kitchenIssueRows = [] } = useGetKitchenIssuesQuery({ limit: 100 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
-  const { roleInboxItems } = useWorkflowOverview();
+  const { roleInboxItems } = useWorkflowOverview({ skip: activeView !== 'demand' });
   const warehouseDocuments = [
     ...workflowDocuments.filter((document) => document.type === 'Phiếu nhập'),
     ...workflowDocuments.filter((document) => document.type === 'Phiếu xuất'),
@@ -115,10 +122,35 @@ export default function WarehousePage() {
   const receiptDocument = warehouseDocuments.find((document) => document.type === 'Phiếu nhập');
   const warehouseName = currentStockRows[0]?.warehouse ?? receiptDocument?.owner ?? issueDocument?.owner ?? 'Kho';
   const issueCandidates = issueCandidatePage?.items ?? [];
-  const warehouseOptions = Array.from(
-    new Map(issueWarehouseRows.filter((row) => row.warehouseId).map((row) => [row.warehouseId, row.warehouse])).entries(),
-  ).map(([id, name]) => ({ id, name }));
+  const issueCreationAvailability = resolveIssueCreationAvailability({
+    canManageWarehouse: canReceivePurchases,
+    isFetching: isFetchingIssueCandidates,
+    candidateCount: issueCandidatePage?.totalCount,
+  });
+  const warehouseOptions = receiptWarehouses.map((warehouse) => ({
+    id: warehouse.warehouseId,
+    name: warehouse.warehouseName,
+  }));
   const selectedIssueCandidate = issueCandidates.find((candidate) => candidate.materialRequestId === selectedMaterialRequestId);
+  const { data: selectedDemandLines = [], isFetching: isFetchingSelectedDemand } = useGetIngredientDemandQuery(
+    selectedIssueCandidate
+      ? { dateFrom: selectedIssueCandidate.requestDate, dateTo: selectedIssueCandidate.requestDate, limit: 100 }
+      : undefined,
+    { skip: !selectedIssueCandidate },
+  );
+  const { data: selectedWarehouseStockRows = [], isFetching: isFetchingSelectedWarehouseStock } = useGetCurrentStockQuery(
+    selectedWarehouseId ? { warehouseId: selectedWarehouseId, limit: -1 } : undefined,
+    { skip: !selectedWarehouseId },
+  );
+  const selectedWarehouseAllocation = selectedIssueCandidate
+    ? buildWarehouseIssueAllocation(
+        selectedIssueCandidate.materialRequestId,
+        selectedWarehouseId,
+        selectedDemandLines,
+        selectedWarehouseStockRows,
+        kitchenIssueRows,
+      )
+    : { lines: [], remainingLineCount: 0, fullyCoveredLineCount: 0 };
   const pendingKitchenReceiptCount = kitchenIssueRows.filter((row) => !row.isReceivedByKitchen).length;
   const purchaseOrders = purchaseOrderPageResponse?.page.items ?? [];
   const requestedPurchaseRequestId = searchParams.get('purchaseRequestId');
@@ -126,6 +158,9 @@ export default function WarehousePage() {
     ?? (selectedPurchaseOrderId === null
       ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId)
       : undefined);
+  const linkedSupplementalRequest = supplementalRequests?.items.find(
+    (request) => request.purchaseRequestId === selectedPurchaseOrder?.purchaseRequestId,
+  );
 
   const selectPurchaseOrder = (purchaseOrderId: string) => {
     setSelectedPurchaseOrderId(selectedPurchaseOrder?.purchaseOrderId === purchaseOrderId ? '' : purchaseOrderId);
@@ -149,7 +184,7 @@ export default function WarehousePage() {
         message: 'Kho cần có nhu cầu nguyên liệu và kế hoạch sản xuất hợp lệ trước khi tạo phiếu xuất.',
         variant: 'warning',
       });
-      setActiveView('demand');
+      setSelectedView('demand');
       return;
     }
 
@@ -159,7 +194,16 @@ export default function WarehousePage() {
         message: 'Chưa có dòng tồn kho live để xác định warehouseId cho phiếu xuất.',
         variant: 'warning',
       });
-      setActiveView('movement');
+      setSelectedView('movement');
+      return;
+    }
+
+    if (selectedWarehouseAllocation.lines.length === 0) {
+      setWarehouseFeedback({
+        title: 'Kho đã chọn chưa thể cấp nguyên liệu',
+        message: 'Chọn kho khác có tồn phù hợp với nhu cầu còn lại. Hệ thống không tạo phiếu rỗng hoặc xuất vượt tồn.',
+        variant: 'warning',
+      });
       return;
     }
 
@@ -168,25 +212,25 @@ export default function WarehousePage() {
         issueDate: selectedIssueCandidate.requestDate,
         warehouseId: selectedWarehouseId,
         materialRequestId: selectedIssueCandidate.materialRequestId,
-        lines: [],
+        lines: selectedWarehouseAllocation.lines,
       }).unwrap();
 
       setWarehouseFeedback({
         title: 'Đã tạo phiếu xuất kho',
         message: response.data
-          ? `Phiếu ${response.data.issueCode} đã được ghi nhận và chờ bếp ký nhận.`
+          ? `Phiếu ${response.data.issueCode} gồm ${selectedWarehouseAllocation.lines.length} nhóm nguyên liệu đã được ghi nhận và chờ bếp ký nhận.`
           : response.message || 'Phiếu xuất kho đã được ghi nhận.',
         variant: 'info',
       });
       setIsIssueDialogOpen(false);
-      setActiveView('movement');
+      setSelectedView('movement');
     } catch (error) {
       setWarehouseFeedback({
         title: 'Chưa tạo được phiếu xuất kho',
         message: getMutationErrorMessage(error, 'Kiểm tra tồn kho, demand còn lại hoặc quyền thủ kho rồi thử lại.'),
         variant: 'danger',
       });
-      setActiveView('exceptions');
+      setSelectedView('exceptions');
     }
   };
 
@@ -201,8 +245,11 @@ export default function WarehousePage() {
                 className="ipc-button ipc-button-primary"
                 type="button"
                 onClick={openIssueDialog}
+                disabled={!issueCreationAvailability.canCreate}
+                aria-describedby={issueCreationAvailability.disabledReason ? 'warehouse-issue-action-guidance' : undefined}
+                title={issueCreationAvailability.disabledReason ?? undefined}
               >
-                Tạo phiếu xuất kho
+                {isFetchingIssueCandidates ? 'Đang kiểm tra nhu cầu' : 'Tạo phiếu xuất kho'}
               </button>
               <Link className="ipc-button ipc-button-success" to={ROUTES.REPORTS}>
                 Xem tồn kho
@@ -236,6 +283,20 @@ export default function WarehousePage() {
         />
       }
     >
+      {isPurchaseOrderError && (
+        <QueryErrorAlert
+          title="Không tải được đơn mua chờ nhập kho"
+          isRetrying={isFetchingPurchaseOrders}
+          onRetry={refetchPurchaseOrders}
+        >
+          Không thể coi danh sách đơn mua đang trống. Hãy kiểm tra kết nối rồi tải lại trước khi ghi nhận nhận hàng.
+        </QueryErrorAlert>
+      )}
+      {issueCreationAvailability.disabledReason && !isFetchingIssueCandidates && (
+        <InlineAlert title="Không thể tạo phiếu xuất kho mới" variant="info">
+          <span id="warehouse-issue-action-guidance">{issueCreationAvailability.disabledReason}</span>
+        </InlineAlert>
+      )}
 
       <Dialog open={isIssueDialogOpen} onOpenChange={setIsIssueDialogOpen}>
         <DialogContent aria-labelledby="warehouse-issue-title" aria-describedby="warehouse-issue-description">
@@ -248,7 +309,10 @@ export default function WarehousePage() {
           <div className="grid gap-4 py-2">
             <div className="grid gap-2">
               <label className="text-sm font-medium text-slate-800" htmlFor="warehouse-material-request">Nhu cầu nguyên liệu <span aria-hidden="true" className="text-red-600">*</span></label>
-              <Select value={selectedMaterialRequestId} onValueChange={(value) => setSelectedMaterialRequestId(value ?? '')}>
+              <Select value={selectedMaterialRequestId} onValueChange={(value) => {
+                setSelectedMaterialRequestId(value ?? '');
+                setSelectedWarehouseId('');
+              }}>
                 <SelectTrigger id="warehouse-material-request" aria-label="Chọn nhu cầu nguyên liệu">
                   <SelectValue placeholder="Chọn chứng từ cần xuất" />
                 </SelectTrigger>
@@ -286,12 +350,32 @@ export default function WarehousePage() {
                 </SelectContent>
               </Select>
               {warehouseOptions.length === 0 && <p className="text-xs text-amber-700">Chưa có kho từ dữ liệu tồn hiện tại.</p>}
+              {selectedWarehouseId && (
+                <div
+                  className={`rounded-sm border px-3 py-2 text-xs ${
+                    selectedWarehouseAllocation.lines.length > 0
+                      ? 'border-sky-200 bg-sky-50 text-slate-700'
+                      : 'border-amber-200 bg-amber-50 text-amber-800'
+                  }`}
+                  role="status"
+                >
+                  {isFetchingSelectedDemand || isFetchingSelectedWarehouseStock
+                    ? 'Đang đối chiếu nhu cầu còn lại với tồn kho đã chọn...'
+                    : selectedWarehouseAllocation.lines.length > 0
+                      ? `Kho có thể xuất ${selectedWarehouseAllocation.lines.length}/${selectedWarehouseAllocation.remainingLineCount} nhóm nguyên liệu còn lại; ${selectedWarehouseAllocation.fullyCoveredLineCount} nhóm đủ toàn bộ số lượng.`
+                      : 'Kho này không có tồn phù hợp với nhu cầu còn lại. Chọn kho khác để tiếp tục.'}
+                </div>
+              )}
             </div>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setIsIssueDialogOpen(false)}>Hủy</Button>
-            <Button type="button" onClick={() => void handleCreateInventoryIssue()} disabled={!selectedMaterialRequestId || !selectedWarehouseId || isCreatingIssue}>
-              {isCreatingIssue ? 'Đang tạo phiếu...' : 'Xác nhận tạo phiếu'}
+            <Button
+              type="button"
+              onClick={() => void handleCreateInventoryIssue()}
+              disabled={!selectedMaterialRequestId || !selectedWarehouseId || isFetchingSelectedDemand || isFetchingSelectedWarehouseStock || selectedWarehouseAllocation.lines.length === 0 || isCreatingIssue}
+            >
+              {isCreatingIssue ? 'Đang tạo phiếu...' : `Xác nhận xuất ${selectedWarehouseAllocation.lines.length} dòng`}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -304,6 +388,7 @@ export default function WarehousePage() {
           order={selectedPurchaseOrder}
           line={selectedReceiptLine}
           warehouses={receiptWarehouses}
+          preferredWarehouseId={linkedSupplementalRequest?.warehouseId}
           week={searchParams.get('week') ?? undefined}
           onOpenChange={(open) => { if (!open) setSelectedReceiptLine(undefined); }}
           onSuccess={(result) => {
@@ -453,10 +538,16 @@ export default function WarehousePage() {
           { id: 'warehouse-demand', label: 'Nhu cầu xuất' },
           { id: 'warehouse-exceptions', label: 'Ngoại lệ' },
         ]}
-        activeTab={`warehouse-${activeView}`}
-        onTabChange={(id) => setActiveView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
+        activeTab={`warehouse-${selectedView}`}
+        onTabChange={(id) => setSelectedView(id.replace('warehouse-', '') as 'movement' | 'demand' | 'exceptions')}
       />
 
+      <div className="relative min-h-[420px] transition-opacity duration-150 motion-reduce:transition-none" aria-busy={isViewPending} aria-live="polite">
+      {isViewPending && (
+        <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm">
+          Đang cập nhật
+        </span>
+      )}
       {activeView === 'movement' && (
         <div id="warehouse-movement-panel" role="tabpanel" aria-labelledby="warehouse-movement-tab">
           <SplitWorkbench
@@ -556,34 +647,11 @@ export default function WarehousePage() {
       )}
 
       {activeView === 'exceptions' && (
-        <SectionPanel title="Nhánh thiếu hàng và xuất bổ sung">
-          <div id="warehouse-exceptions-panel" role="tabpanel" aria-labelledby="warehouse-exceptions-tab">
-          <ExceptionLane
-            title="Thiếu hàng cần xử lí"
-            items={[
-              {
-                title: shortageLine ? `${shortageLine.material} còn thiếu` : shortageCount > 0 ? `${shortageCount} dòng đang thiếu` : 'Không có thiếu hàng',
-                description: shortageLine
-                  ? 'Không đủ hàng để xuất theo danh sách. Tạo phiếu xuất bổ sung hoặc danh sách mua thêm.'
-                  : shortageCount > 0
-                    ? 'Có dòng nhu cầu thiếu hàng trong các trang dữ liệu. Mở tab nhu cầu xuất để xem từng nguyên liệu.'
-                  : 'Các dòng nhu cầu hiện có đủ tồn kho để xử lí.',
-                action: shortageCount > 0 ? 'Thủ kho: Tạo phiếu xuất kho bổ sung' : 'Thủ kho: Theo dõi nhu cầu',
-                tone: shortageCount > 0 ? 'danger' : 'info',
-              },
-              {
-                title: issueDocument ? `Bếp chưa ký nhận ${issueDocument.title}` : 'Chưa có phiếu xuất chờ ký nhận',
-                description: issueDocument
-                  ? `Phiếu ${formatWorkflowStatus(issueDocument.status).toLowerCase()} cần bàn giao để bếp xác nhận nhận nguyên liệu.`
-                  : 'Khi có phiếu xuất từ báo cáo vận hành, thủ kho bàn giao để bếp xác nhận nhận nguyên liệu.',
-                action: 'Thủ kho: Xuất kho cho bếp',
-                tone: issueDocument ? 'warning' : 'info',
-              },
-            ]}
-          />
-          </div>
-        </SectionPanel>
+        <div id="warehouse-exceptions-panel" role="tabpanel" aria-labelledby="warehouse-exceptions-tab">
+          <WarehouseExceptionsWorkbench canManage={canReceivePurchases} />
+        </div>
       )}
+      </div>
     </OperationalFrame>
   );
 }

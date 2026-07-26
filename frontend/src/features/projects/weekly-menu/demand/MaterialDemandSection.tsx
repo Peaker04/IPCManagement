@@ -39,7 +39,11 @@ export function MaterialDemandSection({
   })
   const completedShiftCount = activeShiftGroups.filter((group) => group.quickServingRow?.isCompleted ?? group.rows.every((row) => row.portions > 0)).length
   const isKhsxComplete = activeRows.length > 0 && completedShiftCount === activeShiftGroups.length
-  const actionPresentation = getDemandActionPresentation(presentation.demandApprovalStatus.status, presentation.staleness?.isStale)
+  const actionPresentation = getDemandActionPresentation(
+    presentation.demandApprovalStatus.status,
+    presentation.activeStaleness?.isStale,
+    presentation.activeStaleness?.canRegenerate !== false,
+  )
   const generateLabel = servingBusy
     ? 'Đang lưu suất...'
     : status.isGenerating
@@ -48,7 +52,7 @@ export function MaterialDemandSection({
         ? 'Đang kiểm tra độ mới...'
         : status.stalenessState === 'error'
           ? 'Chưa xác minh được độ mới'
-          : presentation.demandApprovalStatus.status === 'rejected' || presentation.staleness?.isStale
+          : presentation.demandApprovalStatus.status === 'rejected' || presentation.demandApprovalStatus.status === 'cancelled' || presentation.activeStaleness?.isStale
             ? 'Tính lại nhu cầu'
             : 'Tạo nhu cầu từ KHSX'
   const handleGenerate = () => {
@@ -147,8 +151,13 @@ export function MaterialDemandSection({
         )}
         {servingFeedback && <InlineAlert title={servingFeedback.title} variant={servingFeedback.variant}>{servingFeedback.message}</InlineAlert>}
         {state.feedback && <InlineAlert title={state.feedback.title} variant={state.feedback.variant}>{state.feedback.message}</InlineAlert>}
-        {presentation.staleness?.isStale && (
-          <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.staleness.reasons.join(' | ')}</InlineAlert>
+        {presentation.activeStaleness?.isStale && presentation.activeStaleness.canRegenerate !== false && (
+          <InlineAlert title="Nhu cầu nguyên liệu đã lỗi thời, cần tính lại" variant="warning">{presentation.activeStaleness.reasons.join(' | ')}</InlineAlert>
+        )}
+        {presentation.activeStaleness?.canRegenerate === false && (
+          <InlineAlert title="Nhu cầu đã khóa, chỉ có thể xem" variant="info">
+            {presentation.activeStaleness.regenerationBlockReason ?? 'Nhu cầu đã có chứng từ nghiệp vụ phía sau. Hãy dùng luồng điều chỉnh riêng thay vì tính đè.'}
+          </InlineAlert>
         )}
         {status.stalenessState === 'loading' && (
           <InlineAlert title="Đang kiểm tra độ mới nhu cầu" variant="info">Đã kiểm tra {status.stalenessCompletedDateCount}/{status.stalenessExpectedDateCount} ngày trong tuần.</InlineAlert>

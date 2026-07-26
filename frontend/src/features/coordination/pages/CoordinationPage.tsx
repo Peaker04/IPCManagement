@@ -7,7 +7,7 @@ import { useAppDispatch, useAppSelector, useCurrentShift } from '@/app/hooks'
 import { syncOrdersForShift } from '../coordinationSlice'
 import { useGetCoordinationOrdersQuery, useGetMealQuantityPlansQuery } from '../coordinationApi'
 import { toApiShiftName } from '../types'
-import { ContextStrip, InlineAlert, OperationalFrame, SectionPanel } from '@/components/common'
+import { ContextStrip, OperationalFrame, QueryErrorAlert, SectionPanel } from '@/components/common'
 import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
 
@@ -49,6 +49,8 @@ export default function CoordinationPage() {
 
   const error = ordersQuery.isError
     ? 'Không tải được danh sách suất ăn từ hệ thống điều phối.'
+    : plansQuery.isError
+      ? 'Không tải được trạng thái chốt số suất của ca đang chọn.'
     : localError
   const orderStatus = coordinationStatus.status
 
@@ -71,9 +73,14 @@ export default function CoordinationPage() {
         className="operation-surface ipc-coordination-workbench overflow-hidden border-slate-200 bg-white shadow-sm"
       >
         {error && (
-          <InlineAlert title="Không tải được dữ liệu điều phối" variant="warning">
+          <QueryErrorAlert
+            title="Không tải được dữ liệu điều phối"
+            isRetrying={ordersQuery.isFetching || plansQuery.isFetching}
+            onRetry={() => Promise.all([ordersQuery.refetch(), plansQuery.refetch()])}
+          >
             {error}
-          </InlineAlert>
+            {' '}Dữ liệu cũ được giữ chỉ để đối chiếu; hãy tải lại trước khi khóa hoặc điều chỉnh ca.
+          </QueryErrorAlert>
         )}
         <OrderStatusBanner status={orderStatus} />
         <ActionToolbar status={orderStatus} hasPlans={hasPlans} />

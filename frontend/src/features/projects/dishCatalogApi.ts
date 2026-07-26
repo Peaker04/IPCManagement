@@ -241,8 +241,15 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['DishCatalog'],
     }),
-    getIngredients: builder.query<IngredientLookup[], void>({
-      query: () => '/ingredients?pageNumber=1&pageSize=500',
+    getIngredients: builder.query<IngredientLookup[], { searchKeyword?: string } | void>({
+      query: (args) => ({
+        url: '/ingredients',
+        params: {
+          pageNumber: 1,
+          pageSize: 100,
+          ...(args?.searchKeyword ? { searchKeyword: args.searchKeyword } : {}),
+        },
+      }),
       transformResponse: (response: ApiResponse<PagedResponse<IngredientLookup>>) =>
         (response.data?.items ?? []).filter((ingredient) => ingredient.isActive),
       providesTags: ['Ingredients'],

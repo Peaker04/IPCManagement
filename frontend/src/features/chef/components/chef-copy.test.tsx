@@ -63,6 +63,28 @@ describe('Chef operational copy', () => {
     }
   });
 
+  it('requires explicit confirmation before signing a received issue', () => {
+    const onMaterialSignoff = vi.fn();
+    render(<MaterialChecklist materials={[{
+      id: 'issue-line-1',
+      name: 'Bầu',
+      unit: 'kg',
+      quantity: 2,
+      status: 'Chờ giao',
+      signed: false,
+      issueId: 'issue-1',
+      issueCode: 'ISS-SUP-001',
+    }]} onMaterialSignoff={onMaterialSignoff} />);
+
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Ký nhận Bầu' }));
+
+    expect(onMaterialSignoff).not.toHaveBeenCalled();
+    expect(screen.getByRole('dialog', { name: 'Xác nhận đã nhận nguyên liệu' })).toBeInTheDocument();
+    expect(screen.getByText('ISS-SUP-001')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Đã kiểm đếm và nhận' }));
+    expect(onMaterialSignoff).toHaveBeenCalledWith('issue-line-1', true);
+  });
+
   it('does not force the quick-guide heading into uppercase styling', () => {
     render(<OperationalActions materials={[]} />);
 

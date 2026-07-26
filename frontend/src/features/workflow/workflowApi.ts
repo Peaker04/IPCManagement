@@ -18,6 +18,7 @@ import type {
   WorkflowLane,
   WorkflowTone,
 } from './types';
+import { resolveDemandLinePresentation } from './actionEligibility';
 
 export interface WorkflowReportQuery {
   serviceDate?: string;
@@ -105,8 +106,8 @@ export interface PurchaseRequestResult {
     materialRequestLineId: string;
     ingredientId: string;
     ingredientName: string;
-    supplierId: string;
-    supplierName: string;
+    supplierId?: string | null;
+    supplierName?: string | null;
     unitId: string;
     unitName: string;
     requiredQty: number;
@@ -115,6 +116,9 @@ export interface PurchaseRequestResult {
     estimatedUnitPrice: number;
     expectedDeliveryDate?: string;
     note?: string;
+    supplierDecisionStatus?: string;
+    currentSupplierDecision?: PurchaseLineSupplierDecision | null;
+    supplierDecisionHistory?: PurchaseLineSupplierDecision[];
   }>;
 }
 
@@ -352,9 +356,26 @@ export interface SupplementalMaterialRequestResult {
   unitId: string;
   unitName: string;
   requestedQty: number;
+  fulfilledQty: number;
+  remainingQty: number;
+  availableQty: number;
   reason?: string;
   status: string;
   requestedAt: string;
+  purchaseRequestId?: string;
+  purchaseRequestCode?: string;
+  purchaseRequestStatus?: string;
+  canFulfill: boolean;
+  canRouteToPurchasing: boolean;
+  canReject: boolean;
+  actionDisabledReason?: string;
+}
+
+export interface SupplementalMaterialRequestPageQuery {
+  warehouseId?: string;
+  status?: string;
+  pageNumber?: number;
+  pageSize?: number;
 }
 
 export interface InventoryIssueCreatedResult {
@@ -752,6 +773,52 @@ export interface PurchaseOrderLineDto {
   blockerReason?: string | null;
 }
 
+export interface InventoryReturnLineResult {
+  returnLineId: string;
+  ingredientId: string;
+  ingredientName?: string;
+  quantity: number;
+  unitId: string;
+  unitName?: string;
+}
+
+export interface InventoryReturnResult {
+  returnId: string;
+  returnCode: string;
+  returnDate: string;
+  shiftName?: string;
+  returnType: 'RETURN' | 'WASTE';
+  warehouseId: string;
+  warehouseName?: string;
+  issueId: string;
+  issueCode?: string;
+  reason?: string;
+  createdBy: string;
+  createdByName?: string;
+  createdAt: string;
+  status: string;
+  receivedBy?: string;
+  receivedByName?: string;
+  receivedAt?: string;
+  lines: InventoryReturnLineResult[];
+}
+
+export interface InventoryReturnPageQuery {
+  warehouseId?: string;
+  shiftName?: string;
+  returnDate?: string;
+  isReceived?: boolean;
+  pageNumber?: number;
+  pageSize?: number;
+}
+
+export interface ConfirmInventoryReturnReceiptRequest {
+  returnId: string;
+  hasDiscrepancy: boolean;
+  discrepancyNote?: string;
+  adjustedLines: Array<{ returnLineId: string; newQuantity: number }>;
+}
+
 export interface PurchaseOrderDto {
   purchaseOrderId: string;
   purchaseOrderCode: string;
@@ -915,11 +982,13 @@ interface CurrentStockSummaryDto {
 
 interface KitchenIssueReportDto {
   issueId: string;
+  issueLineId: string;
   issueCode: string;
   issueDate: string;
   shiftName?: string;
   warehouseId: string;
   warehouseName?: string;
+  materialRequestId: string;
   ingredientId: string;
   ingredientName?: string;
   unitId: string;
@@ -988,6 +1057,7 @@ interface DataQualityIssueDto {
 interface DataQualityReportDto {
   generatedAt: string;
   totalIssues: number;
+  isTruncated?: boolean;
   errorCount: number;
   warningCount: number;
   resolvedIssueCount?: number;
@@ -1087,6 +1157,11 @@ export interface MaterialDemandStalenessQuery {
 export interface MaterialDemandStaleness {
   hasExistingPlan: boolean;
   isStale: boolean;
+  materialRequestId?: string | null;
+  requestCode?: string | null;
+  status?: string | null;
+  canRegenerate?: boolean;
+  regenerationBlockReason?: string | null;
   lastGeneratedAt?: string | null;
   reasons: string[];
 }
@@ -1148,7 +1223,9 @@ export interface CurrentStockRow {
   id: string;
   warehouseId: string;
   warehouse: string;
+  ingredientId: string;
   ingredient: string;
+  unitId: string;
   unit: string;
   currentQty: number;
   lastUpdated: string;
@@ -1174,6 +1251,7 @@ export interface KitchenIssueRow {
   shiftName?: string;
   warehouseId: string;
   warehouse: string;
+  materialRequestId: string;
   ingredientId: string;
   ingredient: string;
   unitId: string;
@@ -1226,6 +1304,7 @@ export interface DataQualityIssueRow {
 export interface DataQualityReport {
   generatedAt: string;
   totalIssues: number;
+  isTruncated: boolean;
   errorCount: number;
   warningCount: number;
   resolvedIssueCount: number;
@@ -1335,14 +1414,14 @@ const mapDocument = (item: WorkflowDocumentDto): WorkflowDocument => {
 
 const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
   const shortage = Math.max(item.suggestedPurchaseQty, 0);
-  const isCancelled = item.status?.toUpperCase() === 'CANCELLED';
-  const tone: WorkflowTone = isCancelled ? 'warning' : shortage > 0 ? 'danger' : 'success';
+  const presentation = resolveDemandLinePresentation({ status: item.status, shortage });
 
   return {
     id: `${item.materialRequestId}-${item.ingredientId}`,
     materialRequestId: item.materialRequestId,
     materialRequestStatus: item.status,
     ingredientId: item.ingredientId,
+    unitId: item.unitId,
     bomId: item.bomId,
     priceTierAmount: item.priceTierAmount,
     bomScope: item.bomScope,
@@ -1359,9 +1438,7 @@ const mapDemandLine = (item: IngredientDemandReportDto): DemandLine => {
     appliedPortionRatePercent: item.appliedPortionRatePercent,
     bomRatePercent: item.bomRatePercent,
     yieldLossPercent: item.yieldLossPercent,
-    status: isCancelled ? 'Cần tạo lại demand' : shortage > 0 ? 'Thiếu nguyên liệu' : 'Tồn kho đủ',
-    nextAction: isCancelled ? 'Import menu đã thay đổi, tạo lại demand từ KHSX' : shortage > 0 ? 'Đề xuất mua thêm' : 'Tạo phiếu xuất kho',
-    tone,
+    ...presentation,
   };
 };
 
@@ -1468,7 +1545,9 @@ const mapCurrentStock = (item: CurrentStockSummaryDto): CurrentStockRow => ({
   id: `${item.warehouseId}-${item.ingredientId}`,
   warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
+  ingredientId: item.ingredientId,
   ingredient: item.ingredientName ?? item.ingredientId,
+  unitId: item.unitId,
   unit: item.unitName ?? '',
   currentQty: item.currentQty,
   lastUpdated: item.lastUpdated,
@@ -1487,13 +1566,14 @@ const mapStockLedgerReconciliation = (item: StockLedgerReconciliationDto): Stock
 });
 
 const mapKitchenIssue = (item: KitchenIssueReportDto): KitchenIssueRow => ({
-  id: `${item.issueId}-${item.ingredientId}`,
+  id: item.issueLineId,
   issueId: item.issueId,
   issueCode: item.issueCode,
   issueDate: item.issueDate,
   shiftName: item.shiftName,
   warehouseId: item.warehouseId,
   warehouse: item.warehouseName ?? item.warehouseId,
+  materialRequestId: item.materialRequestId,
   ingredientId: item.ingredientId,
   ingredient: item.ingredientName ?? item.ingredientId,
   unitId: item.unitId,
@@ -1581,6 +1661,7 @@ const mapDataQualityIssue = (issue: DataQualityIssueDto): DataQualityIssueRow =>
 const mapDataQualityReport = (item: DataQualityReportDto): DataQualityReport => ({
   generatedAt: item.generatedAt,
   totalIssues: item.totalIssues,
+  isTruncated: item.isTruncated ?? false,
   errorCount: item.errorCount,
   warningCount: item.warningCount,
   resolvedIssueCount: item.resolvedIssueCount ?? 0,
@@ -1733,6 +1814,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PurchaseLineSupplierDecision>) => getData(response),
       invalidatesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId, week }) => [
+        { type: 'WorkflowReports', id: 'PurchaseRequests' },
         {
           type: 'WorkflowReports',
           id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
@@ -1752,6 +1834,8 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
       invalidatesTags: (_result, _error, { data, week }) => [
+        'PurchaseOrders',
+        'WorkflowReports',
         { type: 'PurchaseOrders', id: data.purchaseOrderId },
         { type: 'WorkflowReports', id: `PurchaseReceipt:${data.purchaseOrderId}` },
         ...(week
@@ -1792,7 +1876,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
-      invalidatesTags: ['SupplierQuotations'],
+      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
     }),
     updateSupplierQuotation: builder.mutation<SupplierQuotationDto, { quotationId: string; data: UpdateSupplierQuotationDto }>({
       query: ({ quotationId, data }) => ({
@@ -1801,14 +1885,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
-      invalidatesTags: ['SupplierQuotations'],
+      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
     }),
     deactivateSupplierQuotation: builder.mutation<ApiResponse<void>, string>({
       query: (quotationId) => ({
         url: `/supplier-quotations/${quotationId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['SupplierQuotations'],
+      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
     }),
     getPurchaseOrders: builder.query<PurchaseOrderDto[], { status?: string } | void>({
       query: (query) => ({
@@ -1919,9 +2003,65 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ['WorkflowReports'],
     }),
+    getSupplementalMaterialRequests: builder.query<PageNumberPage<SupplementalMaterialRequestResult>, SupplementalMaterialRequestPageQuery | void>({
+      query: (query) => ({
+        url: '/supplemental-material-requests',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<SupplementalMaterialRequestResult>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    fulfillSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, { requestId: string; quantity: number }>({
+      query: ({ requestId, quantity }) => ({
+        url: `/supplemental-material-requests/${requestId}/fulfill`,
+        method: 'POST',
+        body: { quantity },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    routeSupplementalMaterialRequestToPurchasing: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, string>({
+      query: (requestId) => ({
+        url: `/supplemental-material-requests/${requestId}/route-to-purchasing`,
+        method: 'POST',
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    rejectSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, { requestId: string; reason: string }>({
+      query: ({ requestId, reason }) => ({
+        url: `/supplemental-material-requests/${requestId}/reject`,
+        method: 'POST',
+        body: { reason },
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
     createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
       query: (body) => ({
         url: '/inventory-returns',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['WorkflowReports'],
+    }),
+    getInventoryReturns: builder.query<PageNumberPage<InventoryReturnResult>, InventoryReturnPageQuery | void>({
+      query: (query) => ({
+        url: '/inventory-returns',
+        params: { ...query, pageNumber: query?.pageNumber ?? 1, pageSize: query?.pageSize ?? 8 },
+      }),
+      transformResponse: (response: ApiResponse<PageNumberPage<InventoryReturnResult>>) => response.data ?? {
+        items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
+      },
+      providesTags: ['WorkflowReports'],
+    }),
+    getInventoryReturnById: builder.query<InventoryReturnResult | undefined, string>({
+      query: (returnId) => `/inventory-returns/${returnId}`,
+      transformResponse: (response: ApiResponse<InventoryReturnResult>) => response.data,
+      providesTags: ['WorkflowReports'],
+    }),
+    confirmInventoryReturnReceipt: builder.mutation<ApiResponse<void>, ConfirmInventoryReturnReceiptRequest>({
+      query: ({ returnId, ...body }) => ({
+        url: `/inventory-returns/${returnId}/confirm-receipt`,
         method: 'POST',
         body,
       }),
@@ -2088,6 +2228,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: { status: status === 'Approve' ? 0 : 1, reason },
       }),
       invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
+        'WorkflowReports',
         { type: 'WorkflowReports', id: 'ApprovalInbox' },
         { type: 'WorkflowReports', id: `ApprovalTarget:${targetType}:${targetId}` },
         ...(week
@@ -2297,6 +2438,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         response.data ? mapDataQualityReport(response.data) : {
           generatedAt: '',
           totalIssues: 0,
+          isTruncated: false,
           errorCount: 0,
           warningCount: 0,
           resolvedIssueCount: 0,
@@ -2344,7 +2486,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         url: '/purchase-requests',
         params: query || undefined,
       }),
-      providesTags: ['WorkflowReports'],
+      providesTags: [{ type: 'WorkflowReports', id: 'PurchaseRequests' }],
     }),
     getPurchaseRequestsPage: builder.query<PageNumberPage<PurchaseRequestResult>, PurchaseRequestQuery | void>({
       query: (query) => ({
@@ -2354,7 +2496,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<PurchaseRequestResult>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [{ type: 'WorkflowReports', id: 'PurchaseRequests' }],
     }),
     getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, { documentType: string; documentId: string }>({
       query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
@@ -2404,7 +2546,14 @@ export const {
   useCreateInventoryReceiptFromPurchaseMutation,
   useCreateInventoryIssueMutation,
   useCreateSupplementalMaterialRequestMutation,
+  useGetSupplementalMaterialRequestsQuery,
+  useFulfillSupplementalMaterialRequestMutation,
+  useRouteSupplementalMaterialRequestToPurchasingMutation,
+  useRejectSupplementalMaterialRequestMutation,
   useCreateInventoryReturnMutation,
+  useGetInventoryReturnsQuery,
+  useGetInventoryReturnByIdQuery,
+  useConfirmInventoryReturnReceiptMutation,
   useConfirmInventoryIssueReceiptMutation,
   useGetPurchasePlanQuery,
   useGetPurchasePlanPageQuery,
@@ -2462,11 +2611,12 @@ export const {
   useDeleteApprovalRuleMutation,
 } = workflowApi;
 
-export function useWorkflowOverview() {
-  const documentsResult = useGetWorkflowDocumentsQuery({ limit: 100 });
-  const demandResult = useGetIngredientDemandQuery({ limit: 100 });
-  const priceResult = useGetPriceVarianceQuery({ limit: 100 });
-  const movementsResult = useGetStockMovementsQuery({ limit: 100 });
+export function useWorkflowOverview(options: { skip?: boolean } = {}) {
+  const queryOptions = { skip: options.skip ?? false };
+  const documentsResult = useGetWorkflowDocumentsQuery({ limit: 100 }, queryOptions);
+  const demandResult = useGetIngredientDemandQuery({ limit: 100 }, queryOptions);
+  const priceResult = useGetPriceVarianceQuery({ limit: 100 }, queryOptions);
+  const movementsResult = useGetStockMovementsQuery({ limit: 100 }, queryOptions);
 
   const documents = documentsResult.data ?? [];
   const demandLines = demandResult.data ?? [];

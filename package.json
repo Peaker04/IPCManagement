@@ -27,6 +27,7 @@
     "verify:release": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1",
     "verify:release:audit": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1QualityGate.ps1 -AuditOnly",
     "e2e:happy": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1HappyPathE2E.ps1",
+    "e2e:weekly": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-WeeklyHappyPathE2E.ps1",
     "e2e:exceptions": "powershell -ExecutionPolicy Bypass -File scripts/Invoke-Iter1ExceptionPathE2E.ps1",
     "commitlint": "commitlint --edit"
   },

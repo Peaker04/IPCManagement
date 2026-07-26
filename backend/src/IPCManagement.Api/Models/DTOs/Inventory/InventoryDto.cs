@@ -244,6 +244,10 @@ public class InventoryReturnDto
     public string CreatedBy { get; set; } = string.Empty;
     public string? CreatedByName { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string Status { get; set; } = "PENDING_RECEIPT";
+    public string? ReceivedBy { get; set; }
+    public string? ReceivedByName { get; set; }
+    public DateTime? ReceivedAt { get; set; }
 
     public List<InventoryReturnLineDto> Lines { get; set; } = new();
 }
