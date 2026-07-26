@@ -89,11 +89,16 @@ public class AdminEmployeesController : ControllerBase
     }
 
     [HttpPost("seed")]
-    [AllowAnonymous]
-    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
-    public async Task<IActionResult> SeedSampleUsers()
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyDictionary<string, string>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> SeedSampleUsers([FromServices] IHostEnvironment environment)
     {
-        await _employeeService.SeedSampleUsersAsync();
-        return Ok(ApiResponse.SuccessResult("Tạo tài khoản mẫu thành công."));
+        if (!environment.IsDevelopment())
+            return NotFound(ApiResponse.FailResult("Endpoint tạo tài khoản mẫu chỉ khả dụng ở môi trường Development."));
+
+        var credentials = await _employeeService.SeedSampleUsersAsync();
+        return Ok(ApiResponse<IReadOnlyDictionary<string, string>>.SuccessResult(
+            credentials,
+            "Tạo tài khoản mẫu thành công. Mật khẩu ngẫu nhiên chỉ hiển thị một lần trong response này."));
     }
 }

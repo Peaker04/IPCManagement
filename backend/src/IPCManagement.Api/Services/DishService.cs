@@ -74,7 +74,7 @@ public class DishService : IDishService
 
     public async Task<BomCoverageReportDto> GetBomCoverageAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = ServiceCalendar.Today();
         var dishes = await _context.Dishes
             .AsNoTracking()
             .Where(dish => dish.IsActive ?? true)
@@ -125,7 +125,7 @@ public class DishService : IDishService
 
     public async Task<BomValidationReportDto> GetBomValidationAsync()
     {
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = ServiceCalendar.Today();
         var dishes = await _context.Dishes
             .AsNoTracking()
             .Where(dish => dish.IsActive ?? true)
@@ -341,6 +341,7 @@ public class DishService : IDishService
         var templateType = NormalizeBomTemplateType(query.TemplateType, dishId is not null);
         var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
         var rows = new List<IReadOnlyList<string>>();
+        var today = ServiceCalendar.Today();
 
         if (templateType != "blank")
         {
@@ -360,7 +361,7 @@ public class DishService : IDishService
             var dishes = await dishesQuery
                 .OrderBy(dish => dish.DishCode)
                 .ToListAsync(cancellationToken);
-            var effectiveFrom = DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            var effectiveFrom = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
             foreach (var dish in dishes)
             {
@@ -369,7 +370,7 @@ public class DishService : IDishService
                         .Where(line => line.PriceTierAmount == priceTier)
                         .Where(line => MatchesBomCustomerScope(line.CustomerId, customerId))
                         .Where(line => IsPublishedBomLine(line))
-                        .Where(line => line.EffectiveFrom <= DateOnly.FromDateTime(DateTime.Today) && (line.EffectiveTo is null || line.EffectiveTo >= DateOnly.FromDateTime(DateTime.Today)))
+                        .Where(line => line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today))
                         .OrderBy(line => line.Ingredient.IngredientName)
                         .ToList()
                     : [];
@@ -406,7 +407,7 @@ public class DishService : IDishService
         }
 
         var scope = customerCode is null ? "Global" : $"Customer {customerCode}";
-        return BomTemplateWorkbookBuilder.Build(priceTier, $"{scope} / {templateType}", DateOnly.FromDateTime(DateTime.Today), rows);
+        return BomTemplateWorkbookBuilder.Build(priceTier, $"{scope} / {templateType}", today, rows);
     }
 
     public async Task<BomImportPreviewDto> PreviewBomImportAsync(
@@ -667,7 +668,7 @@ public class DishService : IDishService
             throw new ArgumentException("Đơn vị tính không tồn tại.");
         }
 
-        var effectiveFrom = dto.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today);
+        var effectiveFrom = dto.EffectiveFrom ?? ServiceCalendar.Today();
         var bomStatus = NormalizeBomStatus(dto.BomStatus);
         var priceTier = NormalizePriceTier(dto.PriceTierAmount ?? 25000m);
         var customerId = ParseOptionalCustomerId(dto.CustomerId);
@@ -903,7 +904,7 @@ public class DishService : IDishService
             return false;
         }
 
-        var today = DateOnly.FromDateTime(DateTime.Today);
+        var today = ServiceCalendar.Today();
         if (entity.EffectiveTo is null || entity.EffectiveTo > today)
         {
             entity.EffectiveTo = entity.EffectiveFrom > today ? entity.EffectiveFrom : today;
@@ -1153,7 +1154,7 @@ public class DishService : IDishService
             }
             if (!DateOnly.TryParse(Get("EffectiveFrom"), CultureInfo.InvariantCulture, DateTimeStyles.None, out var effectiveFrom))
             {
-                effectiveFrom = request.EffectiveFrom ?? DateOnly.FromDateTime(DateTime.Today);
+                effectiveFrom = request.EffectiveFrom ?? ServiceCalendar.Today();
                 warnings.Add("EffectiveFrom trống/không hợp lệ, dùng ngày mặc định.");
             }
             DateOnly? effectiveTo = null;

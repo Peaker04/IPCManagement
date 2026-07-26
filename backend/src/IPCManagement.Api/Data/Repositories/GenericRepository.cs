@@ -39,12 +39,34 @@ public abstract class GenericRepository<T> : IGenericRepository<T> where T : cla
 
         var query      = _dbSet.AsNoTracking();
         var totalCount = await query.CountAsync();
-        var items      = await query
+        var items      = await ApplyStableOrdering(query)
             .Skip((pageNumber - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync();
 
         return (items, totalCount);
+    }
+
+    /// <summary>
+    /// Skip/Take không có OrderBy cho thứ tự trang không xác định giữa các lần gọi.
+    /// Sắp theo toàn bộ cột khóa chính (BINARY(16) trong schema này) để trang ổn định
+    /// và database cắt trang bằng chỉ mục khóa chính.
+    /// </summary>
+    private IQueryable<T> ApplyStableOrdering(IQueryable<T> query)
+    {
+        var keyProperties = _context.Model
+            .FindEntityType(typeof(T))!
+            .FindPrimaryKey()!
+            .Properties;
+
+        var ordered = query.OrderBy(e => EF.Property<byte[]>(e, keyProperties[0].Name));
+        for (var i = 1; i < keyProperties.Count; i++)
+        {
+            var name = keyProperties[i].Name;
+            ordered = ordered.ThenBy(e => EF.Property<byte[]>(e, name));
+        }
+
+        return ordered;
     }
 
     public virtual async Task AddAsync(T entity)

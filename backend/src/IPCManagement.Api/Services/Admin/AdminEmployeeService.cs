@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.DTOs.Admin;
@@ -9,6 +10,10 @@ namespace IPCManagement.Api.Services.Admin;
 
 public class AdminEmployeeService : IAdminEmployeeService
 {
+    private const int SamplePasswordLength = 16;
+    private const string SamplePasswordAlphabet =
+        "abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789!@#$%^&*";
+
     private readonly IpcManagementContext _context;
     private static readonly (Guid RoleId, string RoleCode, string RoleName)[] DefaultRoles =
     [
@@ -353,25 +358,28 @@ public class AdminEmployeeService : IAdminEmployeeService
             CreatedAt = user.CreatedAt
         };
 
-    public async Task SeedSampleUsersAsync()
+    public async Task<IReadOnlyDictionary<string, string>> SeedSampleUsersAsync()
     {
         await EnsureDefaultRolesAsync();
 
         var sampleUsers = new[]
         {
-            (Guid.Parse("00000000-0000-0000-0000-000000000001"), "admin", "admin", "Admin User"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000002"), "quanly", "quanly", "Quản lý"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000003"), "dieuphoi", "dieuphoi", "Điều phối"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000004"), "beptruong", "beptruong", "Bếp trưởng"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000005"), "thukho", "thukho", "Thủ kho"),
-            (Guid.Parse("00000000-0000-0000-0000-000000000006"), "thumua", "thumua", "Thu mua")
+            (Guid.Parse("00000000-0000-0000-0000-000000000001"), "admin", "Admin User"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000002"), "quanly", "Quản lý"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000003"), "dieuphoi", "Điều phối"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000004"), "beptruong", "Bếp trưởng"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000005"), "thukho", "Thủ kho"),
+            (Guid.Parse("00000000-0000-0000-0000-000000000006"), "thumua", "Thu mua")
         };
 
-        foreach (var (roleId, username, password, fullName) in sampleUsers)
+        var createdCredentials = new Dictionary<string, string>();
+
+        foreach (var (roleId, username, fullName) in sampleUsers)
         {
             var existingUser = await _context.Users.AnyAsync(u => u.Username == username);
             if (!existingUser)
             {
+                var password = GenerateSamplePassword();
                 _context.Users.Add(new User
                 {
                     UserId = GuidHelper.NewId(),
@@ -382,9 +390,14 @@ public class AdminEmployeeService : IAdminEmployeeService
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow
                 });
+                createdCredentials[username] = password;
             }
         }
 
         await _context.SaveChangesAsync();
+        return createdCredentials;
     }
+
+    private static string GenerateSamplePassword()
+        => RandomNumberGenerator.GetString(SamplePasswordAlphabet, SamplePasswordLength);
 }

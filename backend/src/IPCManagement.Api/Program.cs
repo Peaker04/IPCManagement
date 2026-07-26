@@ -105,6 +105,8 @@ builder.Services.AddAuthorization(options =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.CoordinationRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryRoles));
+    options.AddPolicy(AuthorizationPolicies.InventoryApproveAccess, policy =>
+        policy.RequireAuthenticatedUser().RequireRole(AuthorizationPolicies.InventoryApproveRoles));
     options.AddPolicy(AuthorizationPolicies.InventoryIssueAccess, policy =>
         policy.RequireAuthenticatedUser().RequireRole(
             AuthorizationPolicies.InventoryRoles.Concat(AuthorizationPolicies.ProductionRoles).ToArray()));
@@ -149,6 +151,9 @@ builder.Services.AddControllers()
     {
         opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
         opts.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
+        // DateTime luôn ra ISO-8601 có hậu tố "Z"; enum ra dây dưới dạng chuỗi PascalCase.
+        opts.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
+        opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
     });
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {

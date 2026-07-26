@@ -28,7 +28,9 @@ import {
   StatusBadge,
   StockMovementTable,
   ViewSwitcher,
+  type ContextStripItem,
 } from '@/components/common';
+import { useHasPermission, useHasRole } from '@/app/hooks';
 import { ROUTES } from '@/routes/routeConfig';
 import {
   useGetAuditChangePageQuery,
@@ -96,10 +98,10 @@ const downloadCsv = (csv: string, filename: string) => {
   URL.revokeObjectURL(url);
 };
 
-const EmptyRow = ({ colSpan }: { colSpan: number }) => (
+const EmptyRow = ({ colSpan, isError = false }: { colSpan: number; isError?: boolean }) => (
   <tr>
     <td colSpan={colSpan} className="py-8 text-center text-slate-500">
-      Chưa có dữ liệu để hiển thị
+      {isError ? 'Không tải được dữ liệu, xem cảnh báo phía trên.' : 'Chưa có dữ liệu để hiển thị'}
     </td>
   </tr>
 );
@@ -137,13 +139,48 @@ const ReportsPage = () => {
   const [isViewPending, startViewTransition] = useTransition();
   const initialView = searchParams.get('view');
   const initialPage = readPositiveInteger(searchParams.get('page'), 1);
-  const [activeView, setActiveView] = useState<ReportView>(
+  const [requestedView, setRequestedView] = useState<ReportView>(
     validReportViews.includes(initialView as ReportView) ? (initialView as ReportView) : 'price'
   );
   const initialPriceSubView = searchParams.get('subview');
-  const [priceSubView, setPriceSubView] = useState<PriceSubView>(
+  const [requestedPriceSubView, setRequestedPriceSubView] = useState<PriceSubView>(
     priceSubViewTabs.some((tab) => tab.id === initialPriceSubView) ? initialPriceSubView as PriceSubView : 'lines',
   );
+
+  // Quyền báo cáo phải bám sát policy của WorkflowReportsController, nếu không user sẽ thấy tab
+  // rồi nhận 403 im lặng. Ánh xạ policy backend -> permission do server phát cho từng role:
+  //   price-variance/* và purchase-plan -> PurchaseAccess (Admin/Quản lý/Thu mua) = purchase.read
+  //   receipt-price-variance -> PurchaseOrderReadAccess (thêm Thủ kho) = purchase.read hoặc warehouse.read
+  //   audit-changes -> AdminAccess
+  const canReadPurchaseReports = useHasPermission('purchase.read');
+  const canReadWarehouseReports = useHasPermission('warehouse.read');
+  const canReadReceiptPriceVariance = canReadPurchaseReports || canReadWarehouseReports;
+  const canReadAuditChanges = useHasRole(['admin']);
+
+  const visibleReportViews = useMemo<ReportView[]>(() => validReportViews.filter((view) => {
+    if (view === 'price') return canReadReceiptPriceVariance;
+    if (view === 'purchase') return canReadPurchaseReports;
+    if (view === 'audit') return canReadAuditChanges;
+    return true;
+  }), [canReadReceiptPriceVariance, canReadPurchaseReports, canReadAuditChanges]);
+  const visibleReportTabs = useMemo(
+    () => reportTabs.filter((tab) => visibleReportViews.includes(tab.id.replace('reports-', '') as ReportView)),
+    [visibleReportViews],
+  );
+  const visiblePriceSubViewTabs = useMemo(
+    () => priceSubViewTabs.filter((tab) => (tab.id === 'lines' ? canReadReceiptPriceVariance : canReadPurchaseReports)),
+    [canReadReceiptPriceVariance, canReadPurchaseReports],
+  );
+
+  // Bookmark cũ hoặc URL gõ tay có thể trỏ tới tab đã bị siết quyền: ép về tab hợp lệ đầu tiên
+  // thay vì render bảng trống hoặc gọi API chỉ để nhận 403.
+  const activeView: ReportView = visibleReportViews.includes(requestedView)
+    ? requestedView
+    : visibleReportViews[0] ?? 'demand';
+  const priceSubView: PriceSubView = visiblePriceSubViewTabs.some((tab) => tab.id === requestedPriceSubView)
+    ? requestedPriceSubView
+    : visiblePriceSubViewTabs[0]?.id ?? 'lines';
+
   const [purchasePlanGroupBy, setPurchasePlanGroupBy] = useState<'day' | 'week'>('day');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -480,6 +517,20 @@ const ReportsPage = () => {
     }
   };
 
+  // Chỉ số cảnh báo giá và nhật ký thay đổi cũng phải ẩn theo quyền: hiển thị "0" cho role
+  // không được đọc dữ liệu đó là đánh lừa người dùng, không phải trạng thái thật.
+  const reportContextItems: ContextStripItem[] = [
+    ...(canReadReceiptPriceVariance
+      ? [{ label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' as const : 'success' as const }]
+      : []),
+    { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
+    { label: 'Dòng tồn kho', value: (currentStockResult.data?.totalCount ?? currentStockRows.length).toString(), tone: 'neutral' },
+    ...(canReadAuditChanges
+      ? [{ label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' as const }]
+      : []),
+    { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+  ];
+
   const warningQueue = warningItems.map((item) => ({
     title: item.name,
     description: `Tăng ${formatPercent(item.change)} tại ${item.supplier}. Giá hiện tại ${formatCurrency(item.priceCurrent)}/${formatUnit(item.unit)}.`,
@@ -570,26 +621,18 @@ const ReportsPage = () => {
         </CommandBar>
       }
       context={
-        <ContextStrip
-          items={[
-            { label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' : 'success' },
-            { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-            { label: 'Dòng tồn kho', value: (currentStockResult.data?.totalCount ?? currentStockRows.length).toString(), tone: 'neutral' },
-            { label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' },
-            { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
-          ]}
-        />
+        <ContextStrip items={reportContextItems} />
       }
     >
       <ViewSwitcher
         compact
         ariaLabel="Chọn loại báo cáo vận hành"
-        tabs={reportTabs}
+        tabs={visibleReportTabs}
         activeTab={`reports-${activeView}`}
         onTabChange={(id) => {
           const nextView = id.replace('reports-', '') as ReportView;
           startViewTransition(() => {
-            setActiveView(nextView);
+            setRequestedView(nextView);
             resetReportPages();
             updateSearchState({
               view: nextView,
@@ -631,12 +674,12 @@ const ReportsPage = () => {
           <ViewSwitcher
             compact
             ariaLabel="Chọn cách phân tích biến động giá"
-            tabs={priceSubViewTabs.map((tab) => ({ id: `price-sub-${tab.id}`, label: tab.label }))}
+            tabs={visiblePriceSubViewTabs.map((tab) => ({ id: `price-sub-${tab.id}`, label: tab.label }))}
             activeTab={`price-sub-${priceSubView}`}
             onTabChange={(id) => {
               const nextSubView = id.replace('price-sub-', '') as PriceSubView;
               startViewTransition(() => {
-                setPriceSubView(nextSubView);
+                setRequestedPriceSubView(nextSubView);
                 resetReportPages();
                 updateSearchState({ subview: nextSubView, page: undefined, pageSize: undefined });
               });
@@ -662,7 +705,7 @@ const ReportsPage = () => {
                   </thead>
                   <tbody>
                     {priceVarianceBySupplierRows.length === 0 ? (
-                      <EmptyRow colSpan={9} />
+                      <EmptyRow colSpan={9} isError={priceVarianceBySupplierResult.isError} />
                     ) : (
                       priceVarianceBySupplierRows.map((row) => (
                         <tr key={`${row.ingredientId}-${row.supplierId}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -716,7 +759,7 @@ const ReportsPage = () => {
                   </thead>
                   <tbody>
                     {priceVarianceByPeriodRows.length === 0 ? (
-                      <EmptyRow colSpan={6} />
+                      <EmptyRow colSpan={6} isError={priceVarianceByPeriodResult.isError} />
                     ) : (
                       priceVarianceByPeriodRows.map((row) => (
                         <tr key={`${row.ingredientId}-${row.periodLabel}`} className={row.isWarning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -768,7 +811,7 @@ const ReportsPage = () => {
                   </thead>
                   <tbody>
                     {priceVarianceByDishGroupRows.length === 0 ? (
-                      <EmptyRow colSpan={5} />
+                      <EmptyRow colSpan={5} isError={priceVarianceByDishGroupResult.isError} />
                     ) : (
                       priceVarianceByDishGroupRows.map((row) => (
                         <tr key={row.dishGroup} className={row.warningIngredientCount > 0 ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -815,7 +858,7 @@ const ReportsPage = () => {
                 </thead>
                 <tbody>
                   {priceVarianceRows.length === 0 ? (
-                    <EmptyRow colSpan={7} />
+                    <EmptyRow colSpan={7} isError={priceVarianceResult.isError} />
                   ) : (
                     priceVarianceRows.map((item, index) => (
                       <tr key={`${item.id}-${pricePage}-${index}`} className={item.warning ? 'ipc-report-row is-warning' : 'ipc-report-row'}>
@@ -978,7 +1021,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} /> : purchasePlanRows.map((row) => (
+                {purchasePlanRows.length === 0 ? <EmptyRow colSpan={8} isError={purchasePlanResult.isError} /> : purchasePlanRows.map((row) => (
                   <tr key={`${row.periodKey}-${row.ingredientId}-${row.unitId}`}>
                     <td>{row.periodKey}</td>
                     <td>{row.ingredientName ?? row.ingredientId}</td>
@@ -1168,7 +1211,7 @@ const ReportsPage = () => {
                 </tr>
               </thead>
               <tbody>
-                {auditRows.length === 0 ? <EmptyRow colSpan={7} /> : auditRows.map((row, index) => (
+                {auditRows.length === 0 ? <EmptyRow colSpan={7} isError={auditResult.isError} /> : auditRows.map((row, index) => (
                   <tr key={`${row.id}-${index}`}>
                     <td>{new Date(row.timestamp).toLocaleString('vi-VN')}</td>
                     <td>{row.actor}</td>
