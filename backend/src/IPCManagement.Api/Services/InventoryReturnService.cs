@@ -202,7 +202,7 @@ public class InventoryReturnService : IInventoryReturnService
             {
                 foreach (var adjustedLine in dto.AdjustedLines)
                 {
-                    var lineBytes = GuidHelper.ParseGuidString(adjustedLine.ReturnLineId);
+                    var lineBytes = GuidHelper.ParseFilterIdOrThrow(adjustedLine.ReturnLineId, "dòng phiếu trả");
                     var line = inventoryReturn.Inventoryreturnlines.FirstOrDefault(l => lineBytes != null && l.ReturnLineId.SequenceEqual(lineBytes));
                     if (line != null && line.Quantity != adjustedLine.NewQuantity)
                     {

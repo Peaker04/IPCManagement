@@ -95,6 +95,11 @@ Desktop.ini
 AGENTS.md
 CLAUDE.md
 .vercel
+# Bộ skill mattpocock/skills: skill nằm trong .claude/ (đã ignore ở trên), nên lockfile,
+# config skill và ticket cục bộ cũng giữ ngoài repo nhóm cho nhất quán.
+skills-lock.json
+docs/agents/
+.scratch/
 
 # Dữ liệu vận hành thật của khách hàng (workbook đặt hàng, định lượng) — không đưa lên repo
 .docs/

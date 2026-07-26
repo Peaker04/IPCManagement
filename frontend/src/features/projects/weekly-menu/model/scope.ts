@@ -9,6 +9,7 @@ import {
   formatMenuDishName,
   importSlotLabels,
   normalizeDishMatchKey,
+  normalizeMaterialGroupKey,
 } from './formatters'
 import type {
   MaterialSummary,
@@ -224,7 +225,7 @@ export const aggregateDemandLinesByMaterial = (lines: DemandLine[]): DemandLine[
   lines.forEach((line) => {
     const key = line.ingredientId
       ? `${line.ingredientId}__${line.unit}`
-      : `${normalizeDishMatchKey(line.material)}__${line.unit}`
+      : `${normalizeMaterialGroupKey(line.material)}__${line.unit}`
     const current = groups.get(key) ?? {
       id: `material-${key}`, ingredientId: line.ingredientId, material: line.material, unit: line.unit, required: 0, available: 0, reserved: 0,
       sources: new Set<string>(), materialRequestIds: new Set<string>(), sourceDocumentCodes: new Set<string>(), hasCancelled: false,

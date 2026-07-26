@@ -22,6 +22,18 @@ export const normalizeDishMatchKey = (value?: string) =>
     .replace(/\s+/g, ' ')
     .toLocaleUpperCase('vi-VN')
 
+/**
+ * Khóa gộp cho dữ liệu định lượng: giữ nguyên dấu tiếng Việt, chỉ chuẩn hóa khoảng trắng và hoa/thường.
+ * Không dùng `normalizeDishMatchKey` ở đây — hàm đó bỏ dấu để **dò tìm** món theo tên nên gộp
+ * "Bò" với "Bơ" thành một dòng nếu đem đi cộng số lượng.
+ */
+export const normalizeMaterialGroupKey = (value?: string) =>
+  (value ?? '')
+    .normalize('NFC')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLocaleUpperCase('vi-VN')
+
 export const getShiftLabel = (shiftName?: string) => {
   if (shiftName === 'MORNING') return 'Ca sáng'
   if (shiftName === 'AFTERNOON') return 'Ca chiều'

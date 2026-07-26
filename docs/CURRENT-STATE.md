@@ -137,12 +137,20 @@ Khóa đúng theo ngữ cảnh:
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
-| Backend | 595/595 pass (26/07, sau fix price-variance) | 69.4% | 53.8% | 75.5% method |
-| Frontend | 299/299 pass (26/07) | 39.68% | 29.21% | 32.00% function |
+| Backend | **626 pass / 0 fail / 1 skip** (27/07) — `npm run test:be` gồm 2 project: Api.Tests 586, Application.Tests 41 | 69.4% | 53.8% | 75.5% method |
+| Frontend | **328/328 pass trên 60 file** (27/07) | 39.68% | 29.21% | 32.00% function |
 
-Số coverage phần trăm là của lần chạy coverage 25/07; ngày 26/07 chỉ chạy lại test suite, chưa chạy lại coverage.
+Số coverage phần trăm là của lần chạy coverage 25/07; các lần sau chỉ chạy lại test suite, chưa chạy lại coverage.
 
-- Frontend lint: pass.
+Gate tầng database bổ sung từ 27/07 (xem mục sự cố bên dưới):
+
+- `dotnet ef migrations has-pending-model-changes`: exit 0.
+- Schema dựng từ migration == schema dựng từ model: **723/723** dòng khớp.
+- 2 test replay migration trên MySQL thật: pass.
+- Cài `IPCmanagement.sql` vào database rỗng: 47 bảng / 102 FK, exit 0. Chạy lại trên database không rỗng: dừng ở ERROR 1062, không mất bảng nào.
+
+- Backend build Release: 0 warning.
+- Frontend lint: pass (còn 9 warning tồn đọng của rule `ipc/no-swallowed-query-error`).
 - Frontend production build: pass.
 - Browser E2E không được cộng vào phần trăm V8/Coverlet; browser được kiểm riêng theo action → request → DB → rendered state.
 
@@ -284,6 +292,44 @@ ba panel đó, xếp vào việc tồn đọng.
 Bundle sau P1.9: entry `307.28 kB / 96.66 kB gzip` (baseline `95.5 kB` gzip), `WeeklyMenuPage`
 `84.39 kB` (baseline `83.50 kB`) — tăng ~1,2% do thêm nhánh xử lý lỗi.
 
+## Sự cố mất dữ liệu và củng cố tầng database — 26–27/07/2026
+
+### Sự cố
+
+`backend/database/IPCmanagement.sql` hard-code `USE ipcManagement;` (dòng 18) rồi chạy 46 lệnh `DROP TABLE`. Chỉ định database đích ở dòng lệnh **không có tác dụng** — `USE` bên trong file ghi đè tham số. Lúc **26/07 23:44:34**, chạy file này vào một database nháp đã xoá sạch database chính: 46 bảng bị drop, 5 bảng mất hẳn (`stockmovements`, `currentstocklots`, `stocksnapshots`, `stocktakes`, `stocktakelines`), phần còn lại rỗng.
+
+Đúng rủi ro số 1 của bản audit ("không có lưới an toàn dữ liệu") xảy ra trên thực tế.
+
+### Khôi phục — PITR, và một bài học về mốc base
+
+MySQL local có `binlog_format=ROW`, `binlog_row_image=FULL`, `gtid_mode=ON`, giữ binlog 30 ngày → PITR khả thi. Vì GTID bật, phải replay bằng `mysqlbinlog --skip-gtids` (không có thì MySQL bỏ qua sạch vì GTID đã nằm trong `gtid_executed`), kèm `--rewrite-db` để replay vào database tạm rồi mới swap.
+
+**Lần khôi phục đầu tiên SAI** và đã swap lên database chính. Nguyên nhân: các snapshot kiểu `ipcmanagement_unit_research_*` được **tạo rỗng rồi nạp từ file dump cũ hơn** trong `D:\IPCManagement-backups\`, nên mốc nội dung của chúng là **giờ trong tên file dump**, không phải giờ `CREATE DATABASE` trong binlog. Lấy nhầm mốc (15:07:48 thay vì 14:53:02) làm bỏ sót cả đợt cleanup, 6 bảng sai dữ liệu mà mọi kiểm tra "hợp lý" vẫn xanh. Khoảng lặng binlog quanh lúc tạo database chỉ chứng minh không ai ghi, **không** chứng minh nội dung thuộc mốc nào.
+
+Cái bắt được lỗi là **oracle**: script phá hoại chỉ có 46 lệnh `DROP TABLE` nên **11 bảng không bị đụng** và giữ nguyên dữ liệu tiền sự cố; dump database hỏng lại trước khi swap là có ngay một bộ đối chiếu chính xác tuyệt đối. Bản khôi phục thứ hai (start position `TUANKY-bin.000670 @ 13319`) khớp **11/11 số dòng và 11/11 md5 nội dung**.
+
+Kết quả cuối trên `ipcmanagement`: 61 bảng, **130/130 khoá ngoại 0 dòng mồ côi**, dữ liệu tới ghi cuối cùng trước sự cố (26/07 16:34:36 giờ local = 09:34:37 UTC), mật khẩu admin giữ đúng bản đã xoay. Artifact ở `D:\MySQL-recovery-20260726\`.
+
+### Củng cố sau sự cố
+
+| Việc | Nội dung |
+|---|---|
+| Chốt an toàn `IPCmanagement.sql` | Bỏ `CREATE DATABASE`/`USE`. Chốt bằng bảng `TEMPORARY` + va chạm PRIMARY KEY: chưa chọn database → ERROR 1046; database đích không rỗng → ERROR 1062; **không để lại dấu vết** khi abort. Không dùng biến `@` vì MySqlConnector hiểu `@tên` là parameter. |
+| Lỗi có sẵn được phát hiện kèm | File khai trùng 2 index (`ixApprovalHistoriesTarget`, `IX_approvalassignments_approverUserId` — vừa `KEY` trong `CREATE TABLE` vừa `CREATE INDEX` rời) nên **chưa bao giờ cài trọn được**, chết ở ERROR 1061 tại bảng thứ 47. Test cũ che bằng `.Replace(..., "")`. Đã xoá bản khai trùng và ghim regression. |
+| **B13 đã đóng** | Cơ chế thật của lỗ hổng: `IPC_RUN_MYSQL_MIGRATION_TESTS` chỉ có trong 2 file test, **chưa bao giờ được set trong `.github/`** → 4 test replay im lặng return sớm mỗi lượt CI. Nay có step chạy 2 test fresh-install trên MySQL thật, cộng step **so schema từ migration với schema từ model**. |
+| Hoà giải baseline ↔ model | Đường cài mới trước đây sinh schema **khác** model. Sáu nguyên nhân đã sửa (xem commit `8c145d4`). Nay khớp **723/723** (bảng + cột + kiểu + nullable + khoá ngoại). |
+| Đồng bộ model snapshot | `20260723081500_AddUnitNormalizationReviews` viết tay, không có `.Designer.cs`, nên snapshot chưa bao giờ được cập nhật → `has-pending-model-changes` luôn đỏ. Thêm `SyncUnitNormalizationReviewsSnapshot` với `Up()/Down()` **rỗng**. |
+| Hiện migration pending | `MigrationHealthCheck` vào `/health/ready`, trả **Degraded chứ không Unhealthy** (thiếu migration không làm API mất khả năng phục vụ). |
+| Dọn | Xoá `20260708130000_RestorePurchaseRequestReceiptStatuses.cs` — 1/39 migration duy nhất vừa không có `.Designer.cs` vừa không có `[Migration]` inline nên **EF chưa từng thấy nó**. Deprecate `Upgrade_From_Phase1_To_V10.sql`. |
+
+Database chính đã chạy `dotnet ef database update`: **38 → 40 migration**, sau khi diễn tập trên bản sao đầy đủ với dữ liệu thật (0 lỗi, 0 dòng dữ liệu thay đổi, phân bố `purchaserequests.status` giữ nguyên 6/2/1/1).
+
+### Ba cái bẫy phải nhớ khi đụng vào migration
+
+1. **Migration viết tay phải kèm `.Designer.cs` hoặc `[Migration]` inline.** Thiếu cả hai thì EF không thấy nó — file trông như đang chờ apply nhưng thực chất là code chết.
+2. **KHÔNG chạy `dotnet ef migrations remove` khi migration cuối thiếu `.Designer.cs`.** EF không có snapshot để lùi về và sẽ reset snapshot gần như rỗng; lệnh `add` kế tiếp sinh ra migration tạo lại **toàn bộ database**. Đã xảy ra trong phiên này, khôi phục bằng `git checkout`.
+3. **Trước khi thêm ID vào danh sách "baseline đã có sẵn"** (trong `Init_EF_History_For_Old_DB.sql` hoặc fixture test), phải đối chiếu **từng** `AddColumn`/`CreateTable` của migration đó với baseline. Khai sai làm migration bị bỏ qua và database cài mới thiếu cột — đã xảy ra với `20260702061320_AddImportAuditFields` (5 cột) và `20260702121000_AddProductionPlanMetadata` (1 cột).
+
 ## Phần còn hở, không được mô tả là đã hoàn tất
 
 Còn hở sau đợt P1 ngày 26/07/2026:
@@ -307,15 +353,27 @@ Còn hở sau đợt P1 ngày 26/07/2026:
 - Đợt sửa hiệu năng thứ hai 26/07 (chưa commit, backend 595/595 pass lại): `GenericRepository.GetPagedAsync` đã có OrderBy ổn định theo khóa chính; `ApprovalInboxService` hết N+1 (nạp lô + SLA batch — submit-time giờ lấy sớm nhất thay vì dòng đầu không xác định); `BuildPurchasePlanRowsAsync` bỏ 6 nhánh Include, dùng projection + subquery `PendingReceiptQty`; `ApprovalRoutingService` thêm `GetActiveRulesAsync` + `MatchRule` tĩnh. Smoke warm sau sửa không thoái hóa (danh sách 7–22 ms, price-variance 76 ms). Số đo inbox/purchase-plan trên DB hiện tại không đổi vì inbox gần trống — cải thiện là về scaling số truy vấn theo số chứng từ chờ.
 - Điểm nóng hiệu năng còn mở duy nhất theo RUNBOOK `tools/perf/`: `DishService.GetSampleImportStatus` đếm 7–10 bảng tuần tự.
 
+Còn hở ở tầng database sau đợt 27/07/2026:
+
+- **Hai ID trong `__EFMigrationsHistory` của database chính không còn file migration**: `20260626043000_SeedTemporaryBomData` và `20260705121500_AddCompletedMealQuantityPlanStatuses`. EF bỏ qua dòng thừa nên không vỡ, nhưng **repo không tái lập được lịch sử của database chính**. Chưa quyết xử lý.
+- **Ba ID trong `Init_EF_History_For_Old_DB.sql` cũng không còn file** (`AddCustomerContracts`, `AddMenuVersions`, `UpdateMenuScheduleStatusForVersioning`) — đã hợp nhất vào `20260630031911`. Vô hại, chưa dọn.
+- **Hai test `Migration_upgrade_*` vẫn chưa bật được trong CI**: chúng đòi một lane đã seed sẵn ở trạng thái **trước** migration, CI chưa dựng được fixture đó. Chạy cục bộ cũng đỏ vì lane local đã migrate. Chỉ 2 test `Migration_fresh_*` đang chạy trong CI.
+- **Gate so schema cố ý KHÔNG so hai thứ**, và đây là giới hạn đã biết chứ không phải sót: `DEFAULT` (baseline có chủ đích đặt default SQL mà model EF không khai) và **tên index** (MySQL tự đặt tên index khoá ngoại theo thứ tự tạo → `customerId`, `customerId1`, `unitId3`…, hai đường luôn khác tên dù phủ cùng cột). Một thay đổi chỉ động vào default hoặc tên index sẽ lọt gate.
+- **`stocktakes.activeWarehouseKey` bị loại khỏi gate**: cột `GENERATED ... VIRTUAL` do `20260726120000_AddStocktakeActiveWarehouseUnique` tạo để làm unique index có điều kiện; model cố ý không map. Thêm cột generated tương tự sau này phải nhớ cập nhật danh sách loại trừ trong `verify.yml`.
+- **`Upgrade_From_Phase1_To_V10.sql` đã deprecate nhưng biết là sai**: khối `customerimportmappings` dùng thiết kế cũ. Không vá vì không còn database Phase 1 nào để kiểm chứng bản vá. Nếu có database Phase 1 xuất hiện thì phải vá và test trên chính nó.
+- **Artifact khôi phục đang giữ ở `D:\MySQL-recovery-20260726\`** (binlog copy, dump trước/sau, `ipc_rehearsal`, `ipcmanagement_pitr2`). Chưa quyết thời điểm dọn — giữ tới khi chắc chắn không cần đối chiếu lại.
+- **Backup vẫn là thao tác tay.** Sự cố 26/07 khôi phục được nhờ binlog còn nguyên và có snapshot cũ, không nhờ quy trình backup nào. Rủi ro số 1 của bản audit **chưa được đóng** — mới chỉ chặn được một đường gây ra nó.
+
 ## Bàn giao cho phiên mới — đợt refactor UI = f(data, state)
 
 Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **Bản thiết kế đầy đủ ở
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái khi bàn giao: nhánh `feature/production-plan` ahead 10, working tree sạch (trừ
-`docs/DEVELOPMENT.md` đang có thay đổi của Kỳ về bảng skill routing), **chưa push**.
-Quality gates: BE 626 pass / 0 fail / 1 skip · FE 324/324 · build 0 warning · ma trận P1.9 36/36 trên
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 14** so với
+`origin/feature/production-plan`, working tree sạch, **chưa push**.
+Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **328/328** · build 0 warning ·
+schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
 
 **Phạm vi Kỳ đã chốt:** `1b` (sửa sai nghiệp vụ + dựng hợp đồng, không di chuyển file hàng loạt) +
@@ -328,10 +386,26 @@ browser thật · long task 0/9 trang · CLS warm 0.
   Khuyến nghị xóa toàn bộ, tách commit xóa `types/api.types.ts` làm commit đầu tiên (nó là bản sao của
   `types/api.ts` thiếu đúng 3 dòng `roleCode`/`isAdminFullAccess`/`permissions` — mìn hẹn giờ cho kiểm tra quyền).
 
-**Việc làm được ngay, không phụ thuộc A và B:** G0 — 13 bug đúng-sai nghiệp vụ ở Phần B của bản thiết kế.
-Nặng nhất: `AdminDataPage.tsx:1697-1738` (API chết mà tile vẫn báo "Ổn định/Đạt/Trong SLA/Đủ tồn"),
-`GuidHelper.cs:20-24` (id sai định dạng = **không lọc gì cả**, trả toàn bộ kho, 207 lời gọi / 30 file),
-và `.github/workflows/verify.yml` (**21/36 migration viết tay chưa từng chạy trong CI**).
+**G0 — ĐÃ XONG 27/07/2026.** Cả 13 bug đúng-sai nghiệp vụ ở Phần B của bản thiết kế đã xử lý, gồm
+`AdminDataPage.tsx` (API chết mà tile vẫn báo "Ổn định/Đạt/Trong SLA/Đủ tồn"), `GuidHelper.cs`
+(id sai định dạng = **không lọc gì cả**, trả toàn bộ kho — 29 điểm fail-open), và **B13**
+(`.github/workflows/verify.yml` — migration viết tay chưa từng chạy trong CI). Bốn commit:
+
+```
+58a3e68 chore(db,health): don migration chet, deprecate script Phase 1, bao migration pending
+8c145d4 fix(db,ci): dong bo baseline voi model EF, siet gate B13 thanh so schema tu dong
+3841447 fix(db,ci): chan IPCmanagement.sql pha database chinh, bat replay migration trong CI
+3e205b4 fix: xu ly cac lo hong G0 (B1-B12) tren backend va frontend
+```
+
+Ghi chú về B13: mô tả gốc trong bản thiết kế ("21/36 migration viết tay chưa từng được thực thi trong
+CI") đúng về **hậu quả** nhưng sai về **cơ chế**. Thực tế bộ test replay đã có sẵn trong repo, chỉ bị khoá
+sau `IPC_RUN_MYSQL_MIGRATION_TESTS` mà biến đó chưa bao giờ được set trong `.github/`. Ngoài ra chuỗi
+migration **không tự dựng được database từ trắng** — migration đầu tiên tham chiếu `warehouses` mà không
+migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè lên baseline `IPCmanagement.sql`. Chi tiết ở mục
+"Sự cố mất dữ liệu và củng cố tầng database" bên trên.
+
+**Hai quyết định A và B vẫn còn treo** — chưa động tới.
 
 ## Quy trình tiếp tục ở phiên mới
 
@@ -339,6 +413,7 @@ và `.github/workflows/verify.yml` (**21/36 migration viết tay chưa từng ch
 2. Chạy `git status --short --branch`; xác nhận vẫn ở `feature/production-plan`. Không reset, checkout hoặc commit thay đổi chưa rõ ownership.
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
 4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
+4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
 5. Mở UI bằng browser headed; đăng nhập demo `admin/admin`. Không chỉ gọi API rồi kết luận FE pass.
 6. Khi tiếp tục E2E, dùng tuần ANV 25k làm baseline, kiểm tra toàn bộ tab và đối chiếu FE/BE/DB. Nếu thay đổi dữ liệu test, ghi lại document lineage và correction/audit.
 7. Sau sửa: chạy targeted test, full frontend unit, lint, production build; chạy backend regression khi contract/service thay đổi; chụp lại evidence và cập nhật coverage nếu đã chạy lại coverage.

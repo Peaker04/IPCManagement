@@ -66,13 +66,83 @@ describe('chef production model', () => {
       catalogDishes: dishes,
       kitchenIssues: [issue('morning', 'MORNING')],
       signedMaterials: {},
-      activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, menuPrice: 35000, lossRate: 0,
+      activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, lossRate: 0,
       serviceDate: '2026-07-19',
     })
     expect(plan.totalMeals).toBe(8)
     expect(plan.activeDishes[0]).toMatchObject({ id: 'dish-1', name: 'Cơm' })
     expect(plan.receivedMaterials[0]).toMatchObject({ id: 'morning', quantity: 9, status: 'Chờ giao' })
     expect(plan.date).toBe('2026-07-19')
+  })
+
+  it('never reports planned quantities as materials the kitchen received', () => {
+    const dishes: CatalogDish[] = [{
+      id: 'dish-1', code: 'MON-01', name: 'Cơm', isActive: true, menuSlots: [],
+      ingredients: [{
+        bomId: 'bom-1', ingredientId: 'rice', ingredientCode: 'GAO', unitId: 'kg',
+        priceTierAmount: 35000, bomScope: 'STANDARD', name: 'Gạo', unit: 'kg',
+        grossQtyPerServing: 0.1, wasteRatePercent: 0, bomStatus: 'ACTIVE',
+        bomStatusLabel: 'Đang dùng', referencePrice: 10000, effectiveFrom: '2026-01-01',
+      }],
+    }]
+    const plan = buildChefProductionPlan({
+      orders: [{ dayOfWeek: 'sun', shift: 'Ca Sáng', dishId: 'dish-1', forecastQuantity: 10, actualQuantity: 8 }],
+      catalogDishes: dishes,
+      kitchenIssues: [],
+      signedMaterials: {},
+      activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, lossRate: 0,
+      serviceDate: '2026-07-19',
+    })
+
+    expect(plan.receivedMaterials).toEqual([])
+    expect(plan.plannedMaterials).toHaveLength(1)
+    expect(plan.plannedMaterials[0]).toMatchObject({ name: 'Gạo', quantity: 0.8, status: 'Chờ giao' })
+  })
+
+  it('keeps the meal total at zero instead of substituting the material line count', () => {
+    const plan = buildChefProductionPlan({
+      orders: [],
+      catalogDishes: [],
+      kitchenIssues: [issue('morning', 'MORNING'), issue('morning-2', 'MORNING')],
+      signedMaterials: {},
+      activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, lossRate: 0,
+      serviceDate: '2026-07-19',
+    })
+
+    expect(plan.receivedMaterials).toHaveLength(2)
+    expect(plan.totalMeals).toBe(0)
+  })
+
+  it('does not merge two ingredients that share a name but differ in id or unit', () => {
+    const dishes: CatalogDish[] = [{
+      id: 'dish-1', code: 'MON-01', name: 'Canh', isActive: true, menuSlots: [],
+      ingredients: [
+        {
+          bomId: 'bom-1', ingredientId: 'muoi-hat', ingredientCode: 'MUOI-1', unitId: 'kg',
+          priceTierAmount: 35000, bomScope: 'STANDARD', name: 'Muối', unit: 'kg',
+          grossQtyPerServing: 1, wasteRatePercent: 0, bomStatus: 'ACTIVE',
+          bomStatusLabel: 'Đang dùng', referencePrice: 1000, effectiveFrom: '2026-01-01',
+        },
+        {
+          bomId: 'bom-2', ingredientId: 'muoi-tinh', ingredientCode: 'MUOI-2', unitId: 'thung',
+          priceTierAmount: 35000, bomScope: 'STANDARD', name: 'Muối', unit: 'thùng',
+          grossQtyPerServing: 2, wasteRatePercent: 0, bomStatus: 'ACTIVE',
+          bomStatusLabel: 'Đang dùng', referencePrice: 5000, effectiveFrom: '2026-01-01',
+        },
+      ],
+    }]
+    const plan = buildChefProductionPlan({
+      orders: [{ dayOfWeek: 'sun', shift: 'Ca Sáng', dishId: 'dish-1', forecastQuantity: 1, actualQuantity: 1 }],
+      catalogDishes: dishes,
+      kitchenIssues: [],
+      signedMaterials: {},
+      activeDay: 'sun', activeShift: 'Ca Sáng', isLocked: true, lossRate: 0,
+      serviceDate: '2026-07-19',
+    })
+
+    expect(plan.plannedMaterials).toHaveLength(2)
+    expect(plan.plannedMaterials.map((material) => `${material.quantity} ${material.unit}`).sort())
+      .toEqual(['1 kg', '2 thùng'])
   })
 
   it('uses server daily-plan dishes and meal totals after a page reload', () => {
@@ -87,7 +157,6 @@ describe('chef production model', () => {
       activeDay: 't2',
       activeShift: 'Ca Sáng',
       isLocked: true,
-      menuPrice: 25000,
       lossRate: 0,
       serviceDate: '2026-07-20',
       dailyTotalServings: 840,

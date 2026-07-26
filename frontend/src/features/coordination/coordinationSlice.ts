@@ -15,7 +15,6 @@ const initialState: CoordinationState = {
   currentShift: 'Ca Sáng',
   currentDayOfWeek: initialDay,
   weeklyMenu: defaultWeeklyMenu,
-  menuPrice: 35000,
   lossRate: 5,
   isLocked: false,
   lockedShifts: {},
@@ -252,9 +251,6 @@ const coordinationSlice = createSlice({
         }
       }
     },
-    setMenuPrice: (state, action: PayloadAction<number>) => {
-      state.menuPrice = action.payload
-    },
     setLossRate: (state, action: PayloadAction<number>) => {
       state.lossRate = action.payload
     },
@@ -316,9 +312,12 @@ const coordinationSlice = createSlice({
       .addCase(lockOrderPlan.fulfilled, (state, action) => {
         state.loading = false
         const { dayOfWeek, shift } = action.meta.arg
-        const lockedShifts = action.payload.lockedShiftNames?.length
-          ? action.payload.lockedShiftNames.map(toDisplayShift)
-          : [shift]
+        // Mã ca server trả về mà FE chưa hỗ trợ thì bỏ qua, không quy về ca chiều:
+        // khóa nhầm ca sẽ copy forecast sang actual cho đúng những đơn không được chốt.
+        const recognizedShifts = (action.payload.lockedShiftNames ?? [])
+          .map(toDisplayShift)
+          .filter((lockedShift): lockedShift is ShiftType => lockedShift !== undefined)
+        const lockedShifts = recognizedShifts.length > 0 ? recognizedShifts : [shift]
 
         lockedShifts.forEach((lockedShift) => {
           state.lockedShifts[`${dayOfWeek}-${lockedShift}`] = true
@@ -408,7 +407,6 @@ export const {
   setCurrentDayOfWeek,
   updateOrderDish,
   updateWeeklyMenuDish,
-  setMenuPrice,
   setLossRate,
   setWeeklyMenu,
   shuffleWeeklyMenu,

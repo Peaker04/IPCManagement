@@ -338,7 +338,9 @@ export const coordinationApi = apiSlice.injectEndpoints({
         data: response.data?.map((order) => ({
           ...order,
           shiftName: order.shiftName,
-          shift: order.shiftName ? toDisplayShift(order.shiftName) : order.shift,
+          // Mã ca không thuộc hai ca FE hỗ trợ thì giữ nguyên giá trị server gửi kèm,
+          // không quy về "Ca Chiều" — quy sai làm suất ăn bị cộng vào ca khác.
+          shift: (order.shiftName ? toDisplayShift(order.shiftName) : undefined) ?? order.shift,
           menuName: order.menuName || order.mealType,
           dishes: order.dishes ?? [],
           dishId: order.dishes?.[0]?.dishId || order.dishId || '',
