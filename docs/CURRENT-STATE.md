@@ -307,6 +307,32 @@ Còn hở sau đợt P1 ngày 26/07/2026:
 - Đợt sửa hiệu năng thứ hai 26/07 (chưa commit, backend 595/595 pass lại): `GenericRepository.GetPagedAsync` đã có OrderBy ổn định theo khóa chính; `ApprovalInboxService` hết N+1 (nạp lô + SLA batch — submit-time giờ lấy sớm nhất thay vì dòng đầu không xác định); `BuildPurchasePlanRowsAsync` bỏ 6 nhánh Include, dùng projection + subquery `PendingReceiptQty`; `ApprovalRoutingService` thêm `GetActiveRulesAsync` + `MatchRule` tĩnh. Smoke warm sau sửa không thoái hóa (danh sách 7–22 ms, price-variance 76 ms). Số đo inbox/purchase-plan trên DB hiện tại không đổi vì inbox gần trống — cải thiện là về scaling số truy vấn theo số chứng từ chờ.
 - Điểm nóng hiệu năng còn mở duy nhất theo RUNBOOK `tools/perf/`: `DishService.GetSampleImportStatus` đếm 7–10 bảng tuần tự.
 
+## Bàn giao cho phiên mới — đợt refactor UI = f(data, state)
+
+Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **Bản thiết kế đầy đủ ở
+`docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
+song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
+
+Trạng thái khi bàn giao: nhánh `feature/production-plan` ahead 10, working tree sạch (trừ
+`docs/DEVELOPMENT.md` đang có thay đổi của Kỳ về bảng skill routing), **chưa push**.
+Quality gates: BE 626 pass / 0 fail / 1 skip · FE 324/324 · build 0 warning · ma trận P1.9 36/36 trên
+browser thật · long task 0/9 trang · CLS warm 0.
+
+**Phạm vi Kỳ đã chốt:** `1b` (sửa sai nghiệp vụ + dựng hợp đồng, không di chuyển file hàng loạt) +
+`2a` (được breaking change nội bộ nếu test xanh và UI không đổi hành vi) + `3b` (chia lane subagent).
+
+**Hai quyết định còn treo, cần hỏi Kỳ trước khi làm:**
+- **A.** Phạm vi tái cấu trúc backend — `A1` VSA-lite (~160 file move, **0 file Migrations bị chạm**, ~45h)
+  hay `A2` tối thiểu (~20 file, ~20h). Khuyến nghị `A1`.
+- **B.** Xóa 838 dòng code chết + 430 dòng test đang phủ lên chúng — hành động phá hủy, cần lệnh rõ.
+  Khuyến nghị xóa toàn bộ, tách commit xóa `types/api.types.ts` làm commit đầu tiên (nó là bản sao của
+  `types/api.ts` thiếu đúng 3 dòng `roleCode`/`isAdminFullAccess`/`permissions` — mìn hẹn giờ cho kiểm tra quyền).
+
+**Việc làm được ngay, không phụ thuộc A và B:** G0 — 13 bug đúng-sai nghiệp vụ ở Phần B của bản thiết kế.
+Nặng nhất: `AdminDataPage.tsx:1697-1738` (API chết mà tile vẫn báo "Ổn định/Đạt/Trong SLA/Đủ tồn"),
+`GuidHelper.cs:20-24` (id sai định dạng = **không lọc gì cả**, trả toàn bộ kho, 207 lời gọi / 30 file),
+và `.github/workflows/verify.yml` (**21/36 migration viết tay chưa từng chạy trong CI**).
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
