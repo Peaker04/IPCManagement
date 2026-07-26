@@ -45,6 +45,32 @@ public class WorkflowControllerContractTests
     }
 
     [Fact]
+    public async Task MaterialDemandGenerate_Should_ReturnBadRequest_WhenInputIsInvalid()
+    {
+        var controller = CreateMaterialDemandController();
+        _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
+            .Returns("user-id");
+        _materialDemandService.GenerateAsync(
+                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                "user-id",
+                Arg.Any<CancellationToken>())
+            .Returns(Task.FromException<MaterialDemandResultDto?>(
+                new ArgumentException("Ngày phục vụ không hợp lệ.")));
+
+        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        {
+            ServiceDate = "20-07-2026",
+            Scope = "FULLDAY"
+        }, CancellationToken.None);
+
+        var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
+        var response = badRequest.Value.Should().BeAssignableTo<ApiResponse>().Subject;
+        response.Success.Should().BeFalse();
+        response.Message.Should().Be("Ngày phục vụ không hợp lệ.");
+        response.Errors.Should().BeNull();
+    }
+
+    [Fact]
     public async Task MaterialDemandGenerate_Should_ReturnNotFound_WhenNoCompletedQuantityPlan()
     {
         var controller = CreateMaterialDemandController();

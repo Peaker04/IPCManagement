@@ -10,7 +10,7 @@ namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/purchase-orders")]
-[Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public class PurchaseOrdersController : ControllerBase
 {
@@ -25,6 +25,7 @@ public class PurchaseOrdersController : ControllerBase
 
     /// <summary>Lấy danh sách đơn mua hàng, có thể lọc theo trạng thái.</summary>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseOrderDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetList([FromQuery] string? status, CancellationToken cancellationToken)
     {
@@ -33,6 +34,7 @@ public class PurchaseOrdersController : ControllerBase
     }
 
     [HttpGet("page")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderPageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPage([FromQuery] PurchaseOrderPageQueryDto query, CancellationToken cancellationToken)
     {
@@ -42,6 +44,7 @@ public class PurchaseOrdersController : ControllerBase
 
     /// <summary>Lấy chi tiết một đơn mua hàng kèm các dòng.</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
@@ -57,6 +60,7 @@ public class PurchaseOrdersController : ControllerBase
 
     /// <summary>Tạo đơn mua hàng (theo từng nhà cung cấp) từ một đề xuất mua hàng đã được duyệt.</summary>
     [HttpPost("from-request/{purchaseRequestId}")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseOrderDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
@@ -80,6 +84,7 @@ public class PurchaseOrdersController : ControllerBase
 
     /// <summary>Hủy một đơn mua hàng chưa nhận hàng.</summary>
     [HttpPost("{id}/cancel")]
+    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]

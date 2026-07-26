@@ -215,6 +215,16 @@ public class ProductionPlanService : IProductionPlanService
         IReadOnlyList<Productionplan> plans)
     {
         var planDtos = plans.Select(plan => MapPlan(plan, includeLines: true)).ToList();
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            foreach (var plan in planDtos)
+            {
+                plan.Lines = plan.Lines
+                    .Where(line => string.Equals(line.ShiftName, shiftName, StringComparison.OrdinalIgnoreCase))
+                    .ToList();
+            }
+        }
+
         var warnings = new List<string>();
         if (plans.Count == 0)
         {
@@ -240,7 +250,9 @@ public class ProductionPlanService : IProductionPlanService
             TotalPlans = plans.Count,
             SentPlans = plans.Count(plan => plan.SentToKitchenAt is not null || plan.Status == "SENTTOKITCHEN"),
             TotalDishes = planDtos.Sum(plan => plan.Lines.Count),
-            TotalServings = planDtos.SelectMany(plan => plan.Lines).Sum(line => line.TotalServings),
+            TotalServings = planDtos.Sum(plan => plan.Lines
+                .GroupBy(line => line.ShiftName, StringComparer.OrdinalIgnoreCase)
+                .Sum(group => group.Max(line => line.TotalServings))),
             TotalRequiredQty = planDtos.SelectMany(plan => plan.Lines).Sum(line => line.TotalRequiredQty),
             SuggestedPurchaseQty = planDtos.SelectMany(plan => plan.Lines).Sum(line => line.SuggestedPurchaseQty),
             Warnings = warnings,

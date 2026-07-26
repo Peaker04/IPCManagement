@@ -1,4 +1,5 @@
 import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PurchaseRequestResult, PurchaseWorkbenchServiceDate } from '../workflowApi'
 
@@ -271,6 +272,43 @@ describe('purchasing hook behavior', () => {
     expect(unwrap).toHaveBeenCalled()
   })
 
+  it('replaces order creation with warehouse tracking after an order exists', () => {
+    const serviceDate: PurchaseWorkbenchServiceDate = {
+      serviceDate: '2026-07-20',
+      scope: 'FULLDAY',
+      currentStage: 'receiving',
+      approvedDemandCount: 1,
+      shortageLineCount: 1,
+      supplierReadyLineCount: 1,
+      blockingExceptionCount: 0,
+      purchaseRequestId: 'request-approved',
+      purchaseRequestCode: 'PR-APPROVED',
+      purchaseRequestStatus: 'APPROVED',
+      orderCount: 1,
+      receivingLineCount: 1,
+      fullyReceivedLineCount: 0,
+      approvedDemands: [],
+      purchaseLines: [],
+    }
+
+    render(
+      <MemoryRouter>
+        <PurchaseDecisionPanel
+          week="2026-07-20"
+          selectedStage="approved-order"
+          serviceDate={serviceDate}
+        />
+      </MemoryRouter>,
+    )
+
+    expect(screen.queryByRole('button', { name: 'Tạo đơn đặt hàng' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Mở màn hình nhập kho' })).toHaveAttribute(
+      'href',
+      '/warehouse?week=2026-07-20&purchaseRequestId=request-approved',
+    )
+    expect(screen.getByText('0/1 dòng đã nhận đủ trên 1 đơn đặt hàng.')).toBeInTheDocument()
+  })
+
   it('keeps receipt evidence and idempotency key stable after a conflict', async () => {
     mocks.recordWarehouseReceipt.mockReturnValue({
       unwrap: vi.fn().mockRejectedValue({ data: { message: 'Phiếu nhập đã được xử lý với dữ liệu khác.' } }),
@@ -344,5 +382,49 @@ describe('purchasing hook behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Quay lại chỉnh sửa' }))
     expect(screen.getByLabelText('Số lượng thực nhận *')).toHaveValue(3)
     expect(screen.getByLabelText('Số lô *')).toHaveValue('LOT-2207')
+  })
+
+  it('preselects and locks the warehouse linked to a supplemental request', () => {
+    render(
+      <WarehousePurchaseReceiptDialog
+        open
+        preferredWarehouseId="warehouse-supplemental"
+        warehouses={[
+          { warehouseId: 'warehouse-default', warehouseCode: 'KHO-01', warehouseName: 'Kho trung tâm' },
+          { warehouseId: 'warehouse-supplemental', warehouseCode: 'KHO-02', warehouseName: 'Kho xử lý yêu cầu bổ sung' },
+        ]}
+        order={{
+          purchaseOrderId: 'order-1',
+          purchaseOrderCode: 'PO-001',
+          purchaseRequestId: 'request-1',
+          purchaseRequestCode: 'PR-001',
+          supplierId: 'supplier-1',
+          supplierName: 'Nhà cung cấp Minh An',
+          orderDate: '2026-07-20',
+          status: 'ORDERED',
+          lines: [],
+        }}
+        line={{
+          purchaseOrderLineId: 'order-line-1',
+          purchaseRequestLineId: 'request-line-1',
+          ingredientId: 'ingredient-1',
+          ingredientName: 'Thịt heo',
+          unitId: 'unit-1',
+          unitName: 'kg',
+          orderedQty: 10,
+          receivedQty: 0,
+          unitPrice: 80_000,
+          lotNumberRequired: false,
+          manufactureDateRequired: false,
+          expiryDateRequired: false,
+        }}
+        onOpenChange={vi.fn()}
+        onSuccess={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByLabelText('Kho nhận *')).toHaveValue('warehouse-supplemental')
+    expect(screen.getByLabelText('Kho nhận *')).toBeDisabled()
+    expect(screen.getByText('Kho đích được khóa theo yêu cầu cấp bổ sung liên kết.')).toBeInTheDocument()
   })
 })

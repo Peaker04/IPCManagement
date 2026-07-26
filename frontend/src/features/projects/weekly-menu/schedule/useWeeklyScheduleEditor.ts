@@ -170,6 +170,16 @@ export function useWeeklyScheduleEditor({
       onQuickServingFeedback({ title: 'Chưa hoàn tất được suất', message: error instanceof Error ? error.message : 'Vui lòng kiểm tra kế hoạch suất trước khi hoàn tất.', variant: 'danger' })
     }
   }, [onQuickServingFeedback, scope.customerId, upsertQuickServings])
+  const buildServingRows = useCallback(
+    (weeklyPlanRows: WeeklyPlanRow[]) => buildQuickServingRows({
+      scope,
+      committedRows,
+      plans: mealQuantityPlans,
+      inputs: state.quickServingInputs,
+      weeklyPlanRows,
+    }),
+    [committedRows, mealQuantityPlans, scope, state.quickServingInputs],
+  )
   return {
     scope,
     state: { ...state, weeklyMenu },
@@ -190,7 +200,7 @@ export function useWeeklyScheduleEditor({
       getServiceDate: serviceDate,
       getSlotServingInfo,
       getLinePricing,
-      buildQuickServingRows: (weeklyPlanRows: WeeklyPlanRow[]) => buildQuickServingRows({ scope, committedRows, plans: mealQuantityPlans, inputs: state.quickServingInputs, weeklyPlanRows }),
+      buildQuickServingRows: buildServingRows,
       getQuickServingRow: (rows, planRow) => rows.find((row) => row.serviceDate === planRow.serviceDate && row.shiftName === (planRow.shiftLabel.toLowerCase().includes('sáng') ? 'MORNING' : 'AFTERNOON')),
     },
   }

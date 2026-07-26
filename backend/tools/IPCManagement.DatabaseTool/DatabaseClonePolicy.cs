@@ -23,6 +23,17 @@ public static partial class DatabaseClonePolicy
         }
     }
 
+    public static void ValidateSanitizeTarget(string database)
+    {
+        if (!LaneDatabaseName().IsMatch(database))
+        {
+            throw new ArgumentException("E2E sanitization is restricted to ipc_lane1..ipc_lane9.");
+        }
+    }
+
     [GeneratedRegex("^ipc_(?:lane[1-9]|e2e_template)$", RegexOptions.CultureInvariant)]
     private static partial Regex AllowedDatabaseName();
+
+    [GeneratedRegex("^ipc_lane[1-9]$", RegexOptions.CultureInvariant)]
+    private static partial Regex LaneDatabaseName();
 }

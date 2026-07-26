@@ -119,6 +119,25 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
                 throw new InvalidOperationException("Trạng thái đơn mua hàng không cho phép nhập kho.");
             }
 
+            var purchaseRequestId = GuidHelper.ToGuidString(order.PurchaseRequestId);
+            var supplementalAudit = await _context.Auditlogs
+                .AsNoTracking()
+                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                    item.FieldName == "PurchaseRequestId" &&
+                    item.NewValue == purchaseRequestId)
+                .OrderByDescending(item => item.ChangedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            var supplementalRequest = supplementalAudit?.EntityId is null
+                ? null
+                : await _context.Supplementalmaterialrequests
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, cancellationToken);
+            if (supplementalRequest is not null && !supplementalRequest.WarehouseId.SequenceEqual(warehouseId))
+            {
+                throw new InvalidOperationException(
+                    "Đơn mua bổ sung phải được nhập vào đúng kho đang xử lý yêu cầu của bếp.");
+            }
+
             var validatedLines = await ValidateActualReceiptAsync(order, requirements, request, cancellationToken);
             var now = DateTime.UtcNow;
             var receipt = new Inventoryreceipt

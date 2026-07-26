@@ -11,7 +11,7 @@ namespace IPCManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
+[Authorize]
 [EnableRateLimiting("api-general")]
 public class DishesController : ControllerBase
 {
@@ -26,6 +26,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Lấy catalog món ăn kèm slot thực đơn và chi tiết BOM.</summary>
     [HttpGet("catalog")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCatalog([FromQuery] bool includeInactive = false)
     {
@@ -35,6 +36,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Kiểm tra món nào đã có BOM và món nào thiếu định lượng.</summary>
     [HttpGet("bom-coverage")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomCoverageReportDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBomCoverage()
     {
@@ -44,6 +46,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Validate chất lượng BOM sau import hoặc cập nhật catalog.</summary>
     [HttpGet("bom-validation")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomValidationReportDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBomValidation()
     {
@@ -53,6 +56,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Xem tín hiệu lịch sử import thực đơn/BOM gần nhất.</summary>
     [HttpGet("import-history")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<MenuImportHistoryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMenuImportHistory()
     {
@@ -62,6 +66,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Xem trạng thái dữ liệu mẫu/seed/import theo domain vận hành.</summary>
     [HttpGet("sample-import-status")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<SampleImportStatusDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSampleImportStatus()
     {
@@ -71,6 +76,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Tải file Excel mẫu BOM theo đơn giá/khách hàng.</summary>
     [HttpGet("bom-template")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
     public async Task<IActionResult> DownloadBomTemplate([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
     {
@@ -84,6 +90,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Preview import BOM nhiều món trước khi commit.</summary>
     [HttpPost("bom-import/preview")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> PreviewBomImport(
@@ -102,6 +109,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Commit import BOM sau khi preview không còn lỗi.</summary>
     [HttpPost("bom-import/commit")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> CommitBomImport(
@@ -121,6 +129,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Lấy danh sách món ăn có phân trang và tìm kiếm.</summary>
     [HttpGet]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<DishDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
     {
@@ -130,6 +139,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Lấy chi tiết một món ăn theo ID.</summary>
     [HttpGet("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(string id)
@@ -143,6 +153,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Lấy danh sách BOM của một món ăn.</summary>
     [HttpGet("{id}/bom")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogBomLineDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetBomLines(string id)
@@ -156,6 +167,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Tạo mới món ăn.</summary>
     [HttpPost]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateDishDto dto)
     {
@@ -166,6 +178,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Cập nhật thông tin món ăn.</summary>
     [HttpPut("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(string id, [FromBody] UpdateDishDto dto)
@@ -179,6 +192,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Thêm một dòng BOM nguyên liệu cho món ăn.</summary>
     [HttpPost("{id}/bom")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> AddBomLine(string id, [FromBody] CreateDishBomLineDto dto)
@@ -193,6 +207,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Cập nhật một dòng BOM nguyên liệu của món ăn.</summary>
     [HttpPut("{id}/bom/{bomId}")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateBomLine(string id, string bomId, [FromBody] UpdateDishBomLineDto dto)
@@ -207,6 +222,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Ngừng áp dụng một dòng BOM của món ăn.</summary>
     [HttpDelete("{id}/bom/{bomId}")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> CloseBomLine(string id, string bomId)
@@ -220,6 +236,7 @@ public class DishesController : ControllerBase
 
     /// <summary>Xóa món ăn.</summary>
     [HttpDelete("{id}")]
+    [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(string id)

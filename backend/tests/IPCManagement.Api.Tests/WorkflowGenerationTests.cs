@@ -286,6 +286,35 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task GenerateDemand_Should_ReturnEachPersistedDemandLineOnce_WhenMenuRepeatsDish()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var existingItem = await context.Menuitems.AsNoTracking().SingleAsync();
+        context.Menuitems.Add(new Menuitem
+        {
+            MenuItemId = GuidHelper.NewId(),
+            MenuId = existingItem.MenuId,
+            DishId = existingItem.DishId,
+            DishSlot = "duplicate-option",
+            DisplayOrder = existingItem.DisplayOrder + 1
+        });
+        await context.SaveChangesAsync();
+
+        var result = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        result.Should().NotBeNull();
+        result!.Lines.Should().ContainSingle();
+        (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
+        var audit = await context.Auditlogs.AsNoTracking().SingleAsync(item => item.BusinessArea == "Demand");
+        audit.NewValue.Should().StartWith("1 demand lines;");
+    }
+
+    [Fact]
     public async Task GenerateDemand_Should_ReportMissingBom_And_WriteDemandAudit()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -454,6 +483,51 @@ public class WorkflowGenerationTests
             (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
             (await context.Purchaseorderlines.AsNoTracking().CountAsync()).Should().Be(1);
         }
+    }
+
+    [Fact]
+    public async Task GenerateDemand_Should_BlockRecalculation_WhenInventoryIssueReferencesDemand()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            var materialRequestId = GuidHelper.ParseGuidString(demand!.MaterialRequestId)!;
+            context.Inventoryissues.Add(new Inventoryissue
+            {
+                IssueId = GuidHelper.NewId(),
+                IssueCode = "ISS-DEMAND-LOCK",
+                IssueDate = new DateOnly(2026, 6, 15),
+                WarehouseId = fixture.WarehouseId,
+                MaterialRequestId = materialRequestId,
+                IssuedBy = fixture.UserId,
+                CreatedAt = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync();
+        }
+
+        await using var recalculationContext = fixture.CreateContext();
+        var act = () => new MaterialDemandService(recalculationContext).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("Không thể tính lại nhu cầu đã phát sinh phiếu xuất kho*");
+        var staleness = await new MaterialDemandService(recalculationContext).GetStalenessAsync(
+            "2026-06-15",
+            GuidHelper.ToGuidString((await recalculationContext.Customers.AsNoTracking().SingleAsync()).CustomerId),
+            "FULLDAY");
+        staleness.CanRegenerate.Should().BeFalse();
+        staleness.RegenerationBlockReason.Should().Contain("phiếu xuất kho");
+        staleness.MaterialRequestId.Should().NotBeNullOrWhiteSpace();
+        staleness.RequestCode.Should().Be("MR-CUS-20260615-FULLDAY");
+        staleness.Status.Should().Be("DRAFT");
+        (await recalculationContext.Materialrequests.AsNoTracking().CountAsync()).Should().Be(1);
+        (await recalculationContext.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -1350,6 +1424,89 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task SubmitPurchaseRequest_Should_AllowLinkedSupplementalRequest_AfterPartialWarehouseFulfillment()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS supplementalmaterialrequests (
+                requestId BLOB PRIMARY KEY,
+                requestCode TEXT,
+                issueId BLOB,
+                issueLineId BLOB,
+                warehouseId BLOB,
+                ingredientId BLOB,
+                unitId BLOB,
+                requestedQty REAL,
+                reason TEXT,
+                status TEXT,
+                requestedBy BLOB,
+                requestedAt TEXT
+            );
+            """);
+        var demand = await new MaterialDemandService(context).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+        await ApproveDemandAsync(context, demand!.MaterialRequestId);
+        var service = CreatePurchaseRequestWorkflowService(context);
+        var purchase = await service.GenerateFromDemandAsync(
+            new GeneratePurchaseRequestFromDemandDto { MaterialRequestId = demand.MaterialRequestId },
+            fixture.UserIdString);
+        await SelectDefaultSupplierAsync(context, fixture, purchase!);
+
+        var purchaseLine = await context.Purchaserequestlines.SingleAsync();
+        var supplementalId = GuidHelper.NewId();
+        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        {
+            RequestId = supplementalId,
+            RequestCode = "SUP-PARTIAL-TEST",
+            IssueId = GuidHelper.NewId(),
+            IssueLineId = GuidHelper.NewId(),
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = purchaseLine.IngredientId,
+            UnitId = purchaseLine.UnitId,
+            RequestedQty = purchaseLine.PurchaseQty + 0.1m,
+            Status = "PARTIALLY_FULFILLED",
+            RequestedBy = fixture.UserId,
+            RequestedAt = DateTime.UtcNow,
+        });
+        context.Stockmovements.Add(new Stockmovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = DateTime.UtcNow,
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = purchaseLine.IngredientId,
+            UnitId = purchaseLine.UnitId,
+            MovementType = "ISSUE",
+            RefTable = "supplementalmaterialrequests",
+            RefId = supplementalId,
+            QuantityOut = 0.1m,
+            BeforeQty = 1,
+            AfterQty = 0.9m,
+            PerformedBy = fixture.UserId,
+        });
+        context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = fixture.UserId,
+            BusinessArea = "SupplementalMaterial",
+            EntityName = nameof(Supplementalmaterialrequest),
+            EntityId = supplementalId,
+            FieldName = "PurchaseRequestId",
+            NewValue = purchase!.PurchaseRequestId,
+            Reason = "Linked supplemental purchase regression test",
+        });
+        await context.SaveChangesAsync();
+
+        var submitted = await service.SubmitAsync(purchase.PurchaseRequestId, fixture.UserIdString);
+
+        submitted!.Status.Should().Be("SENTTOSUPPLIER");
+    }
+
+    [Fact]
     public async Task SubmitPurchaseRequest_Should_Block_WhenDemandNotApprovedOrStale()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -1708,6 +1865,7 @@ public class WorkflowGenerationTests
 
             var beforeConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
             beforeConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
+                row.MaterialRequestId == materialRequestId &&
                 row.IsReceivedByKitchen == false &&
                 row.ReceivedAt == null &&
                 row.ReceiptStatus == "Chờ bếp nhận");
@@ -3636,6 +3794,85 @@ public class WorkflowGenerationTests
     }
 
     [Fact]
+    public async Task StockLedgerReconciliation_Should_PreserveCurrentOnlyKey()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        context.Currentstocks.Add(new Currentstock
+        {
+            WarehouseId = fixture.WarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            CurrentQty = 4m,
+            LastUpdated = DateTime.UtcNow,
+            RowVersion = DateTime.UtcNow
+        });
+        await context.SaveChangesAsync();
+
+        var row = (await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+            new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
+
+        row.CurrentQty.Should().Be(4m);
+        row.LedgerQty.Should().Be(0m);
+        row.DifferenceQty.Should().Be(4m);
+        row.LastMovementAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task StockLedgerReconciliation_Should_PreserveMovementOnlyKey_AndUseLatestMovementUnit()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using var context = fixture.CreateContext();
+        var alternateUnitId = GuidHelper.NewId();
+        context.Units.Add(new Unit
+        {
+            UnitId = alternateUnitId,
+            UnitCode = "ALT",
+            UnitName = "Đơn vị mới nhất",
+            BaseUnitCode = "ALT",
+            ConvertRateToBase = 1m
+        });
+        var movementDate = new DateTime(2026, 7, 26, 8, 0, 0, DateTimeKind.Utc);
+        context.Stockmovements.AddRange(
+            new Stockmovement
+            {
+                MovementId = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                MovementDate = movementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = fixture.UnitId,
+                MovementType = "RECEIPT",
+                QuantityIn = 3m,
+                PerformedBy = fixture.UserId
+            },
+            new Stockmovement
+            {
+                MovementId = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+                MovementDate = movementDate,
+                WarehouseId = fixture.WarehouseId,
+                IngredientId = fixture.IngredientId,
+                UnitId = alternateUnitId,
+                MovementType = "ISSUE",
+                QuantityOut = 1m,
+                PerformedBy = fixture.UserId
+            });
+        await context.SaveChangesAsync();
+
+        var row = (await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+            new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
+
+        row.CurrentQty.Should().Be(0m);
+        row.LedgerQty.Should().Be(2m);
+        row.UnitId.Should().Be(GuidHelper.ToGuidString(alternateUnitId));
+        row.UnitName.Should().Be("Đơn vị mới nhất");
+        row.LastMovementAt.Should().Be(movementDate);
+    }
+
+    [Fact]
     public async Task StockLedgerReconciliation_Should_IgnoreSubPrecisionImportNoise()
     {
         await using var fixture = await WorkflowFixture.CreateAsync();
@@ -4396,6 +4633,35 @@ public class WorkflowGenerationTests
                     Scope = "FULLDAY"
                 },
                 fixture.UserIdString);
+
+            var plan = await demandContext.Productionplans
+                .Include(item => item.Productionplanlines)
+                .SingleAsync(item => item.PlanCode == "KHSX-CUS-20260615-FULLDAY");
+            var sourceLine = plan.Productionplanlines.Single();
+            demandContext.Productionplanlines.AddRange(
+                new Productionplanline
+                {
+                    PlanLineId = GuidHelper.NewId(),
+                    PlanId = sourceLine.PlanId,
+                    QuantityPlanLineId = sourceLine.QuantityPlanLineId,
+                    CustomerId = sourceLine.CustomerId,
+                    MenuId = sourceLine.MenuId,
+                    DishId = sourceLine.DishId,
+                    ShiftName = "MORNING",
+                    TotalServings = 100
+                },
+                new Productionplanline
+                {
+                    PlanLineId = GuidHelper.NewId(),
+                    PlanId = sourceLine.PlanId,
+                    QuantityPlanLineId = sourceLine.QuantityPlanLineId,
+                    CustomerId = sourceLine.CustomerId,
+                    MenuId = sourceLine.MenuId,
+                    DishId = sourceLine.DishId,
+                    ShiftName = "AFTERNOON",
+                    TotalServings = 150
+                });
+            await demandContext.SaveChangesAsync();
         }
 
         await using var context = fixture.CreateContext();
@@ -4415,8 +4681,9 @@ public class WorkflowGenerationTests
         daily.ShiftName.Should().Be("MORNING");
         daily.TotalPlans.Should().Be(1);
         daily.SentPlans.Should().Be(1);
-        daily.TotalDishes.Should().Be(1);
+        daily.TotalDishes.Should().Be(2);
         daily.TotalServings.Should().Be(100);
+        daily.Plans.Single().Lines.Should().OnlyContain(line => line.ShiftName == "MORNING");
         daily.Plans.Should().ContainSingle();
         daily.Plans.Single().Status.Should().Be("SENTTOKITCHEN");
         daily.Plans.Single().SentToKitchenBy.Should().Be(fixture.UserIdString);
@@ -4827,6 +5094,63 @@ public class WorkflowGenerationTests
             .Select(item => item.BusinessArea)
             .ToListAsync();
         auditReasons.Should().BeEquivalentTo(["Demand", "Purchase"]);
+    }
+
+    [Fact]
+    public async Task WeeklyMenuReimport_Should_AllowDemandRegeneration_ForApprovedLineageWithoutIrreversibleDocuments()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
+
+        await using (var context = fixture.CreateContext())
+        {
+            var demand = await new MaterialDemandService(context).GenerateAsync(
+                new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+                fixture.UserIdString);
+            demand.Should().NotBeNull();
+            await ApproveDemandAsync(context, demand!.MaterialRequestId);
+
+            var customer = await context.Customers.SingleAsync();
+            var version = new Menuversion
+            {
+                MenuVersionId = GuidHelper.NewId(),
+                CustomerId = customer.CustomerId,
+                WeekStartDate = new DateOnly(2026, 6, 15),
+                VersionNo = 2,
+                Status = "DRAFT",
+                SourceImportBatch = "MENU-CUS-20260615-V02",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+            context.Menuversions.Add(version);
+            await context.SaveChangesAsync();
+
+            var importService = new SampleDataImportService(context, null!);
+            var invalidateMethod = typeof(SampleDataImportService).GetMethod(
+                "InvalidateWorkflowDocumentsForMenuReimportAsync",
+                BindingFlags.NonPublic | BindingFlags.Instance);
+            invalidateMethod.Should().NotBeNull();
+
+            var invalidateTask = (Task<int>)invalidateMethod!.Invoke(importService, [
+                customer,
+                new DateOnly(2026, 6, 15),
+                new DateOnly(2026, 6, 20),
+                version,
+                fixture.UserIdString,
+                CancellationToken.None
+            ])!;
+            (await invalidateTask).Should().Be(1);
+            await context.SaveChangesAsync();
+        }
+
+        await using var regenerationContext = fixture.CreateContext();
+        var regenerated = await new MaterialDemandService(regenerationContext).GenerateAsync(
+            new GenerateMaterialDemandRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            fixture.UserIdString);
+
+        regenerated.Should().NotBeNull();
+        regenerated!.Status.Should().Be("DRAFT");
+        (await regenerationContext.Materialrequests.AsNoTracking().CountAsync()).Should().Be(1);
     }
 
     [Fact]
@@ -5510,6 +5834,87 @@ public class WorkflowGenerationTests
             fixture.UserIdString);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
+    }
+
+    [Fact]
+    public async Task RecordReceipt_Should_RejectWrongWarehouse_ForLinkedSupplementalPurchase()
+    {
+        await using var fixture = await WorkflowFixture.CreateAsync();
+        await using var context = fixture.CreateContext();
+        await context.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS supplementalmaterialrequests (
+                requestId BLOB PRIMARY KEY,
+                requestCode TEXT,
+                issueId BLOB,
+                issueLineId BLOB,
+                warehouseId BLOB,
+                ingredientId BLOB,
+                unitId BLOB,
+                requestedQty REAL,
+                reason TEXT,
+                status TEXT,
+                requestedBy BLOB,
+                requestedAt TEXT
+            );
+            """);
+        var supplierA = GuidHelper.NewId();
+        var supplierB = GuidHelper.NewId();
+        var purchaseRequestId = await SeedApprovedPurchaseRequestWithTwoSuppliersAsync(context, fixture, supplierA, supplierB);
+
+        var orderService = CreatePurchaseOrderService(context);
+        var receivingService = CreatePurchaseReceivingService(context);
+        var orders = await orderService.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
+        var order = orders.First(item => item.SupplierId == GuidHelper.ToGuidString(supplierA));
+        var supplementalWarehouseId = GuidHelper.NewId();
+        var supplementalRequestId = GuidHelper.NewId();
+
+        context.Warehouses.Add(new Warehouse
+        {
+            WarehouseId = supplementalWarehouseId,
+            WarehouseCode = "WH-SUPPLEMENTAL",
+            WarehouseName = "Kho yêu cầu bổ sung",
+            WarehouseType = "DRY"
+        });
+        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        {
+            RequestId = supplementalRequestId,
+            RequestCode = "SUP-RECEIPT-WAREHOUSE",
+            IssueId = GuidHelper.NewId(),
+            IssueLineId = GuidHelper.NewId(),
+            WarehouseId = supplementalWarehouseId,
+            IngredientId = fixture.IngredientId,
+            UnitId = fixture.UnitId,
+            RequestedQty = 10,
+            Status = "NEEDS_PURCHASE",
+            RequestedBy = fixture.UserId,
+            RequestedAt = DateTime.UtcNow,
+        });
+        context.Auditlogs.Add(new Auditlog
+        {
+            AuditId = GuidHelper.NewId(),
+            ChangedAt = DateTime.UtcNow,
+            ChangedBy = fixture.UserId,
+            BusinessArea = "SupplementalMaterial",
+            EntityName = nameof(Supplementalmaterialrequest),
+            EntityId = supplementalRequestId,
+            FieldName = "PurchaseRequestId",
+            NewValue = GuidHelper.ToGuidString(purchaseRequestId),
+            Reason = "Linked supplemental receipt warehouse regression test",
+        });
+        await context.SaveChangesAsync();
+
+        var act = () => receivingService.RecordAsync(
+            CreatePurchaseReceiptRequest(
+                fixture,
+                order.PurchaseOrderId,
+                order.Lines[0].PurchaseOrderLineId,
+                10m,
+                "workflow-wrong-supplemental-warehouse"),
+            fixture.UserIdString);
+
+        await act.Should().ThrowAsync<InvalidOperationException>()
+            .WithMessage("*đúng kho đang xử lý yêu cầu của bếp*");
+        (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(0);
     }
 
     [Fact]

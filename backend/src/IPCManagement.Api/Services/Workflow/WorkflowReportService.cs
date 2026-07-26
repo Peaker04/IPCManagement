@@ -52,7 +52,7 @@ public class WorkflowReportService : IWorkflowReportService
         return await stocks
             .OrderBy(item => item.Warehouse.WarehouseName)
             .ThenBy(item => item.Ingredient.IngredientName)
-            .Take(NormalizeLimit(query.Limit))
+            .Take(NormalizeAggregateLimit(query.Limit))
             .Select(item => new CurrentStockSummaryDto
             {
                 WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
@@ -207,21 +207,41 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query)
     {
+        var limit = NormalizeLimit(query.Limit);
+        var rows = await LoadStockLedgerRowsAsync(query);
+        return rows
+            .OrderBy(item => item.IsMatched)
+            .ThenBy(item => item.WarehouseName)
+            .ThenBy(item => item.IngredientName)
+            .Take(limit)
+            .Select(item => new StockLedgerReconciliationDto
+            {
+                WarehouseId = GuidHelper.ToGuidString(item.WarehouseId),
+                WarehouseName = item.WarehouseName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.UnitName,
+                CurrentQty = item.CurrentQty,
+                LedgerQty = item.LedgerQty,
+                DifferenceQty = item.DifferenceQty,
+                IsMatched = item.IsMatched,
+                LastMovementAt = item.LastMovementAt
+            })
+            .ToList();
+    }
+
+    private async Task<IReadOnlyList<StockLedgerSourceRow>> LoadStockLedgerRowsAsync(WorkflowReportQueryDto query)
+    {
         var warehouseId = GuidHelper.ParseGuidString(query.WarehouseId);
         var ingredientId = GuidHelper.ParseGuidString(query.IngredientId);
-        var limit = NormalizeLimit(query.Limit);
-
         var stocksQuery = _context.Currentstocks
             .AsNoTracking()
-            .Include(item => item.Warehouse)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
+            .TagWith("WorkflowReport.StockLedger.CurrentStock")
             .AsQueryable();
         var movementsQuery = _context.Stockmovements
             .AsNoTracking()
-            .Include(item => item.Warehouse)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
+            .TagWith("WorkflowReport.StockLedger.Movements")
             .AsQueryable();
 
         if (warehouseId is not null)
@@ -236,51 +256,108 @@ public class WorkflowReportService : IWorkflowReportService
             movementsQuery = movementsQuery.Where(item => item.IngredientId == ingredientId);
         }
 
-        var stocks = await stocksQuery.ToListAsync();
-        var movements = await movementsQuery.ToListAsync();
-        var stockByKey = stocks.ToDictionary(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId));
-        var movementByKey = movements
-            .GroupBy(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId))
-            .ToDictionary(group => group.Key, group => group.ToList());
-        var keys = stockByKey.Keys
-            .Concat(movementByKey.Keys)
+        var stocks = await stocksQuery
+            .Select(item => new StockLedgerCurrentProjection
+            {
+                WarehouseId = item.WarehouseId,
+                WarehouseCode = item.Warehouse.WarehouseCode,
+                WarehouseName = item.Warehouse.WarehouseName,
+                IngredientId = item.IngredientId,
+                IngredientCode = item.Ingredient.IngredientCode,
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = item.UnitId,
+                UnitName = item.Unit.UnitName,
+                CurrentQty = item.CurrentQty,
+                LastUpdated = item.LastUpdated
+            })
+            .ToListAsync();
+        var movementAggregates = await movementsQuery
+            .GroupBy(item => new { item.WarehouseId, item.IngredientId })
+            .Select(group => new StockLedgerMovementAggregateProjection
+            {
+                WarehouseId = group.Key.WarehouseId,
+                IngredientId = group.Key.IngredientId,
+                LedgerQty = group.Sum(item => item.QuantityIn - item.QuantityOut),
+                LastMovementAt = group.Max(item => item.MovementDate),
+                LegacyBaselineCount = group.Sum(item => item.RefTable == LegacyLedgerBaselineRefTable ? 1 : 0)
+            })
+            .ToListAsync();
+        var latestDatesQuery = movementsQuery
+            .GroupBy(item => new { item.WarehouseId, item.IngredientId })
+            .Select(group => new
+            {
+                group.Key.WarehouseId,
+                group.Key.IngredientId,
+                MovementDate = group.Max(item => item.MovementDate)
+            });
+        var latestCandidates = await (
+                from movement in movementsQuery
+                join latestDate in latestDatesQuery
+                    on new { movement.WarehouseId, movement.IngredientId, movement.MovementDate }
+                    equals new { latestDate.WarehouseId, latestDate.IngredientId, latestDate.MovementDate }
+                select new StockLedgerLatestMovementProjection
+                {
+                    MovementId = movement.MovementId,
+                    WarehouseId = movement.WarehouseId,
+                    WarehouseCode = movement.Warehouse.WarehouseCode,
+                    WarehouseName = movement.Warehouse.WarehouseName,
+                    IngredientId = movement.IngredientId,
+                    IngredientCode = movement.Ingredient.IngredientCode,
+                    IngredientName = movement.Ingredient.IngredientName,
+                    UnitId = movement.UnitId,
+                    UnitName = movement.Unit.UnitName
+                })
+            .ToListAsync();
+        var latestMovements = latestCandidates
+            .GroupBy(item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId), StringComparer.Ordinal)
+            .Select(group => group
+                .OrderByDescending(item => Convert.ToHexString(item.MovementId), StringComparer.Ordinal)
+                .First())
+            .ToList();
+
+        var stocksByKey = stocks.ToDictionary(
+            item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
+            StringComparer.Ordinal);
+        var aggregatesByKey = movementAggregates.ToDictionary(
+            item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
+            StringComparer.Ordinal);
+        var latestByKey = latestMovements.ToDictionary(
+            item => BuildStockLedgerKey(item.WarehouseId, item.IngredientId),
+            StringComparer.Ordinal);
+        var keys = stocksByKey.Keys
+            .Concat(aggregatesByKey.Keys)
             .Distinct(StringComparer.Ordinal)
             .ToList();
 
-        var rows = new List<StockLedgerReconciliationDto>();
-        foreach (var key in keys)
+        return keys.Select(key =>
         {
-            stockByKey.TryGetValue(key, out var stock);
-            movementByKey.TryGetValue(key, out var keyMovements);
-            var latestMovement = keyMovements?
-                .OrderByDescending(item => item.MovementDate)
-                .FirstOrDefault();
-            var ledgerQty = DecimalPolicy.RoundQuantity(keyMovements?.Sum(item => item.QuantityIn - item.QuantityOut) ?? 0m);
+            stocksByKey.TryGetValue(key, out var stock);
+            aggregatesByKey.TryGetValue(key, out var aggregate);
+            latestByKey.TryGetValue(key, out var latest);
             var currentQty = DecimalPolicy.RoundQuantity(stock?.CurrentQty ?? 0m);
+            var ledgerQty = DecimalPolicy.RoundQuantity(aggregate?.LedgerQty ?? 0m);
             var difference = DecimalPolicy.RoundQuantity(currentQty - ledgerQty);
 
-            rows.Add(new StockLedgerReconciliationDto
+            return new StockLedgerSourceRow
             {
-                WarehouseId = GuidHelper.ToGuidString(stock?.WarehouseId ?? latestMovement!.WarehouseId),
-                WarehouseName = stock?.Warehouse.WarehouseName ?? latestMovement?.Warehouse.WarehouseName,
-                IngredientId = GuidHelper.ToGuidString(stock?.IngredientId ?? latestMovement!.IngredientId),
-                IngredientName = stock?.Ingredient.IngredientName ?? latestMovement?.Ingredient.IngredientName,
-                UnitId = GuidHelper.ToGuidString(stock?.UnitId ?? latestMovement!.UnitId),
-                UnitName = stock?.Unit.UnitName ?? latestMovement?.Unit.UnitName,
+                WarehouseId = stock?.WarehouseId ?? latest!.WarehouseId,
+                WarehouseCode = stock?.WarehouseCode ?? latest?.WarehouseCode,
+                WarehouseName = stock?.WarehouseName ?? latest?.WarehouseName,
+                IngredientId = stock?.IngredientId ?? latest!.IngredientId,
+                IngredientCode = stock?.IngredientCode ?? latest?.IngredientCode,
+                IngredientName = stock?.IngredientName ?? latest?.IngredientName,
+                UnitId = stock?.UnitId ?? latest!.UnitId,
+                UnitName = stock?.UnitName ?? latest?.UnitName,
                 CurrentQty = currentQty,
                 LedgerQty = ledgerQty,
                 DifferenceQty = difference,
                 IsMatched = Math.Abs(difference) <= StockLedgerMatchTolerance,
-                LastMovementAt = latestMovement?.MovementDate
-            });
-        }
-
-        return rows
-            .OrderBy(item => item.IsMatched)
-            .ThenBy(item => item.WarehouseName)
-            .ThenBy(item => item.IngredientName)
-            .Take(limit)
-            .ToList();
+                LastMovementAt = aggregate?.LastMovementAt,
+                CurrentLastUpdated = stock?.LastUpdated,
+                HasCurrentStock = stock is not null,
+                HasLegacyBaseline = aggregate?.LegacyBaselineCount > 0
+            };
+        }).ToList();
     }
 
     public async Task<IReadOnlyList<StockSnapshotDto>> GetStockSnapshotsAsync(WorkflowReportQueryDto query)
@@ -1217,31 +1294,49 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PriceVarianceBySupplierDto>> GetPriceVarianceBySupplierAsync(WorkflowReportQueryDto query)
     {
-        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
-
-        return lines
+        // GroupBy dịch xuống SQL: database chỉ trả mỗi (nguyên liệu, NCC) một dòng aggregate
+        // thay vì tải toàn bộ receipt lines về RAM. Aggregate qua double vì SQLite (test)
+        // không hỗ trợ Avg/Min/Max trên decimal; sai số double << bước làm tròn RoundMoney.
+        var grouped = await BuildFilteredReceiptLinesQuery(query)
             .GroupBy(item => new
             {
-                IngredientKey = Convert.ToBase64String(item.IngredientId),
-                SupplierKey = Convert.ToBase64String(item.Receipt.SupplierId)
+                item.IngredientId,
+                item.Ingredient.IngredientName,
+                item.Ingredient.ReferencePrice,
+                item.Receipt.SupplierId,
+                SupplierName = item.Receipt.Supplier.SupplierName
             })
-            .Select(group =>
+            .Select(group => new
             {
-                var first = group.First();
-                var avgPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice));
-                var variance = WorkflowReportCalculator.CalculateVariancePercent(first.Ingredient.ReferencePrice, avgPrice);
+                group.Key.IngredientId,
+                group.Key.IngredientName,
+                group.Key.ReferencePrice,
+                group.Key.SupplierId,
+                group.Key.SupplierName,
+                ReceiptCount = group.Count(),
+                AvgUnitPrice = group.Average(x => (double)x.UnitPrice),
+                MinUnitPrice = group.Min(x => (double)x.UnitPrice),
+                MaxUnitPrice = group.Max(x => (double)x.UnitPrice)
+            })
+            .ToListAsync();
+
+        return grouped
+            .Select(row =>
+            {
+                var avgPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice);
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(row.ReferencePrice, avgPrice);
 
                 return new PriceVarianceBySupplierDto
                 {
-                    IngredientId = GuidHelper.ToGuidString(first.IngredientId),
-                    IngredientName = first.Ingredient.IngredientName,
-                    SupplierId = GuidHelper.ToGuidString(first.Receipt.SupplierId),
-                    SupplierName = first.Receipt.Supplier.SupplierName,
-                    ReceiptCount = group.Count(),
+                    IngredientId = GuidHelper.ToGuidString(row.IngredientId),
+                    IngredientName = row.IngredientName,
+                    SupplierId = GuidHelper.ToGuidString(row.SupplierId),
+                    SupplierName = row.SupplierName,
+                    ReceiptCount = row.ReceiptCount,
                     AvgUnitPrice = avgPrice,
-                    MinUnitPrice = DecimalPolicy.RoundMoney(group.Min(x => x.UnitPrice)),
-                    MaxUnitPrice = DecimalPolicy.RoundMoney(group.Max(x => x.UnitPrice)),
-                    ReferencePrice = DecimalPolicy.RoundMoney(first.Ingredient.ReferencePrice),
+                    MinUnitPrice = DecimalPolicy.RoundMoney((decimal)row.MinUnitPrice),
+                    MaxUnitPrice = DecimalPolicy.RoundMoney((decimal)row.MaxUnitPrice),
+                    ReferencePrice = DecimalPolicy.RoundMoney(row.ReferencePrice),
                     VariancePercent = variance,
                     IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
                 };
@@ -1264,25 +1359,36 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PriceVarianceByPeriodDto>> GetPriceVarianceByPeriodAsync(WorkflowReportQueryDto query)
     {
-        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
-
-        var byIngredientAndPeriod = lines
+        // GroupBy (nguyên liệu, tháng) dịch xuống SQL; aggregate qua double vì SQLite (test)
+        // không hỗ trợ Avg trên decimal.
+        var groupedRows = await BuildFilteredReceiptLinesQuery(query)
             .GroupBy(item => new
             {
-                IngredientKey = Convert.ToBase64String(item.IngredientId),
-                PeriodStart = new DateOnly(item.Receipt.ReceiptDate.Year, item.Receipt.ReceiptDate.Month, 1)
+                item.IngredientId,
+                item.Ingredient.IngredientName,
+                item.Ingredient.ReferencePrice,
+                item.Receipt.ReceiptDate.Year,
+                item.Receipt.ReceiptDate.Month
             })
-            .Select(group =>
+            .Select(group => new
             {
-                var first = group.First();
-                return new
-                {
-                    first.IngredientId,
-                    first.Ingredient.IngredientName,
-                    first.Ingredient.ReferencePrice,
-                    group.Key.PeriodStart,
-                    AvgUnitPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice))
-                };
+                group.Key.IngredientId,
+                group.Key.IngredientName,
+                group.Key.ReferencePrice,
+                group.Key.Year,
+                group.Key.Month,
+                AvgUnitPrice = group.Average(x => (double)x.UnitPrice)
+            })
+            .ToListAsync();
+
+        var byIngredientAndPeriod = groupedRows
+            .Select(row => new
+            {
+                row.IngredientId,
+                row.IngredientName,
+                row.ReferencePrice,
+                PeriodStart = new DateOnly(row.Year, row.Month, 1),
+                AvgUnitPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice)
             })
             .ToList();
 
@@ -1330,20 +1436,35 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<IReadOnlyList<PriceVarianceByDishGroupDto>> GetPriceVarianceByDishGroupAsync(WorkflowReportQueryDto query)
     {
-        var lines = await BuildFilteredReceiptLinesQuery(query).ToListAsync();
-
-        var ingredientVariance = lines
-            .GroupBy(item => Convert.ToBase64String(item.IngredientId))
-            .Select(group =>
+        // Cả hai bước nặng đều aggregate ở database: (1) biến động giá theo nguyên liệu,
+        // (2) trọng số BOM theo (nhóm món, nguyên liệu). Aggregate qua double vì SQLite (test)
+        // không hỗ trợ Avg/Sum trên decimal.
+        var ingredientRows = await BuildFilteredReceiptLinesQuery(query)
+            .GroupBy(item => new
             {
-                var first = group.First();
-                var avgPrice = DecimalPolicy.RoundMoney(group.Average(x => x.UnitPrice));
-                var variance = WorkflowReportCalculator.CalculateVariancePercent(first.Ingredient.ReferencePrice, avgPrice);
+                item.IngredientId,
+                item.Ingredient.IngredientName,
+                item.Ingredient.ReferencePrice
+            })
+            .Select(group => new
+            {
+                group.Key.IngredientId,
+                group.Key.IngredientName,
+                group.Key.ReferencePrice,
+                AvgUnitPrice = group.Average(x => (double)x.UnitPrice)
+            })
+            .ToListAsync();
+
+        var ingredientVariance = ingredientRows
+            .Select(row =>
+            {
+                var avgPrice = DecimalPolicy.RoundMoney((decimal)row.AvgUnitPrice);
+                var variance = WorkflowReportCalculator.CalculateVariancePercent(row.ReferencePrice, avgPrice);
 
                 return new
                 {
-                    IngredientKey = Convert.ToBase64String(first.IngredientId),
-                    first.Ingredient.IngredientName,
+                    IngredientKey = Convert.ToBase64String(row.IngredientId),
+                    row.IngredientName,
                     VariancePercent = variance,
                     IsWarning = WorkflowReportCalculator.IsPriceIncreaseWarning(variance)
                 };
@@ -1356,27 +1477,37 @@ public class WorkflowReportService : IWorkflowReportService
         }
 
         var today = DateOnly.FromDateTime(DateTime.Today);
-        var activeBomLines = await _context.Dishboms
+        var activeBomWeights = await _context.Dishboms
             .AsNoTracking()
-            .Include(bom => bom.Dish)
             .Where(bom =>
                 SupportedBomPriceTiers.Contains(bom.PriceTierAmount) &&
                 bom.EffectiveFrom <= today &&
                 (bom.EffectiveTo == null || bom.EffectiveTo >= today))
+            .GroupBy(bom => new { bom.Dish.DishGroup, bom.IngredientId })
+            .Select(g => new
+            {
+                g.Key.DishGroup,
+                g.Key.IngredientId,
+                Weight = g.Sum(x => (double)x.GrossQtyPerServing)
+            })
             .ToListAsync();
 
-        var groupIngredientWeights = activeBomLines
-            .Where(bom => ingredientVariance.ContainsKey(Convert.ToBase64String(bom.IngredientId)))
-            .GroupBy(bom => new
+        // Chuẩn hóa tên nhóm sau khi aggregate rồi gộp lại lần nữa: null và chuỗi rỗng
+        // cùng đổ về "Chưa phân nhóm" nên có thể trùng khóa (nhóm, nguyên liệu).
+        var groupIngredientWeights = activeBomWeights
+            .Where(row => ingredientVariance.ContainsKey(Convert.ToBase64String(row.IngredientId)))
+            .Select(row => new
             {
-                GroupName = string.IsNullOrWhiteSpace(bom.Dish.DishGroup) ? "Chưa phân nhóm" : bom.Dish.DishGroup!,
-                IngredientKey = Convert.ToBase64String(bom.IngredientId)
+                GroupName = string.IsNullOrWhiteSpace(row.DishGroup) ? "Chưa phân nhóm" : row.DishGroup!,
+                IngredientKey = Convert.ToBase64String(row.IngredientId),
+                Weight = (decimal)row.Weight
             })
+            .GroupBy(row => new { row.GroupName, row.IngredientKey })
             .Select(g => new
             {
                 g.Key.GroupName,
                 g.Key.IngredientKey,
-                Weight = g.Sum(x => x.GrossQtyPerServing)
+                Weight = g.Sum(x => x.Weight)
             })
             .ToList();
 
@@ -2051,7 +2182,8 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query)
     {
-        var limit = NormalizeLimit(query.Limit);
+        var requestedLimit = NormalizeLimit(query.Limit);
+        var limit = requestedLimit + 1;
         var serviceDate = ParseDateOnly(query.ServiceDate) ?? ParseDateOnly(query.DateFrom) ?? DateOnly.FromDateTime(DateTime.Today);
         var issues = new List<DataQualityIssueDto>();
         var operationalDishKeys = (await _context.Productionplanlines
@@ -2491,14 +2623,15 @@ public class WorkflowReportService : IWorkflowReportService
                 "/admin-data?view=cleanup");
         }));
 
-        var sortedIssues = issues
+        var distinctIssues = issues
             .DistinctBy(issue => issue.IssueId, StringComparer.OrdinalIgnoreCase)
             .OrderBy(issue => issue.PriorityRank)
             .ThenBy(issue => issue.Severity == "error" ? 0 : 1)
             .ThenBy(issue => issue.Category)
             .ThenBy(issue => issue.EntityCode)
-            .Take(limit)
             .ToList();
+        var isTruncated = distinctIssues.Count > requestedLimit;
+        var sortedIssues = distinctIssues.Take(requestedLimit).ToList();
 
         await ApplyDataQualityRemediationStateAsync(sortedIssues);
 
@@ -2506,6 +2639,7 @@ public class WorkflowReportService : IWorkflowReportService
         {
             GeneratedAt = DateTime.UtcNow,
             TotalIssues = sortedIssues.Count,
+            IsTruncated = isTruncated,
             ErrorCount = sortedIssues.Count(issue => issue.Severity == "error" && issue.RemediationStatus != "resolved"),
             WarningCount = sortedIssues.Count(issue => issue.Severity == "warning" && issue.RemediationStatus != "resolved"),
             ResolvedIssueCount = sortedIssues.Count(issue => issue.RemediationStatus == "resolved"),
@@ -2522,7 +2656,7 @@ public class WorkflowReportService : IWorkflowReportService
 
     public async Task<DataQualityPageDto> GetDataQualityPageAsync(DataQualityPageQueryDto query)
     {
-        var sourceQuery = CloneQuery(query, 1000);
+        var sourceQuery = CloneQuery(query, 500);
         var report = await GetDataQualityAsync(sourceQuery);
         var pageItems = report.Issues
             .Skip((query.PageNumber - 1) * query.PageSize)
@@ -2533,6 +2667,7 @@ public class WorkflowReportService : IWorkflowReportService
         {
             GeneratedAt = report.GeneratedAt,
             TotalIssues = report.TotalIssues,
+            IsTruncated = report.IsTruncated,
             ErrorCount = report.ErrorCount,
             WarningCount = report.WarningCount,
             ResolvedIssueCount = report.ResolvedIssueCount,
@@ -2654,53 +2789,37 @@ public class WorkflowReportService : IWorkflowReportService
 
         if (categories.Contains("inventory_ledger_baseline"))
         {
-            var stocks = await _context.Currentstocks
-                .Include(stock => stock.Warehouse)
-                .Include(stock => stock.Ingredient)
-                .OrderBy(stock => stock.Warehouse.WarehouseCode)
-                .ThenBy(stock => stock.Ingredient.IngredientCode)
-                .ToListAsync();
-            var movements = await _context.Stockmovements
-                .AsNoTracking()
-                .ToListAsync();
-            var movementsByKey = movements
-                .GroupBy(movement => BuildStockLedgerKey(movement.WarehouseId, movement.IngredientId))
-                .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
-
+            var ledgerRows = await LoadStockLedgerRowsAsync(new WorkflowReportQueryDto());
             var baselineActionCount = 0;
-            foreach (var stock in stocks)
+            foreach (var stock in ledgerRows
+                         .Where(row => row.HasCurrentStock)
+                         .OrderBy(row => row.WarehouseName)
+                         .ThenBy(row => row.IngredientName))
             {
                 if (baselineActionCount >= limit)
                 {
                     break;
                 }
 
-                var key = BuildStockLedgerKey(stock.WarehouseId, stock.IngredientId);
-                var stockMovements = movementsByKey.GetValueOrDefault(key) ?? [];
-                if (stockMovements.Any(movement =>
-                        string.Equals(movement.RefTable, LegacyLedgerBaselineRefTable, StringComparison.OrdinalIgnoreCase)))
+                if (stock.HasLegacyBaseline)
                 {
                     continue;
                 }
 
-                var latestMovementAt = stockMovements.Count == 0
-                    ? (DateTime?)null
-                    : stockMovements.Max(movement => movement.MovementDate);
-                if (latestMovementAt > stock.LastUpdated)
+                if (stock.LastMovementAt > stock.CurrentLastUpdated)
                 {
                     continue;
                 }
 
-                var ledgerQty = DecimalPolicy.RoundQuantity(
-                    stockMovements.Sum(movement => movement.QuantityIn - movement.QuantityOut));
-                var currentQty = DecimalPolicy.RoundQuantity(stock.CurrentQty);
-                var difference = DecimalPolicy.RoundQuantity(currentQty - ledgerQty);
+                var ledgerQty = stock.LedgerQty;
+                var currentQty = stock.CurrentQty;
+                var difference = stock.DifferenceQty;
                 if (Math.Abs(difference) <= StockLedgerMatchTolerance)
                 {
                     continue;
                 }
 
-                var entityCode = $"{stock.Warehouse.WarehouseCode}/{stock.Ingredient.IngredientCode}";
+                var entityCode = $"{stock.WarehouseCode}/{stock.IngredientCode}";
                 var reason =
                     $"Bổ sung opening balance ledger cho snapshot tồn cũ: ledger={ledgerQty:0.######}, current={currentQty:0.######}.";
                 AddAction(
@@ -2718,7 +2837,7 @@ public class WorkflowReportService : IWorkflowReportService
                     _context.Stockmovements.Add(new Stockmovement
                     {
                         MovementId = GuidHelper.NewId(),
-                        MovementDate = stock.LastUpdated,
+                        MovementDate = stock.CurrentLastUpdated!.Value,
                         WarehouseId = stock.WarehouseId,
                         IngredientId = stock.IngredientId,
                         UnitId = stock.UnitId,
@@ -3032,7 +3151,7 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
     }
 
-    public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync()
+    public async Task<OperationalKpiSummaryDto> GetOperationalKpisAsync(int? criticalDataQualityCount = null)
     {
         var now = DateTime.UtcNow;
         var today = DateOnly.FromDateTime(now);
@@ -3069,7 +3188,11 @@ public class WorkflowReportService : IWorkflowReportService
             await _context.Purchaserequests.AsNoTracking().CountAsync(request => failedStatuses.Contains(request.Status)) +
             await _context.Menuversions.AsNoTracking().CountAsync(version => failedStatuses.Contains(version.Status));
 
-        var dataQuality = await GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 200 });
+        if (criticalDataQualityCount is null)
+        {
+            var dataQuality = await GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 500 });
+            criticalDataQualityCount = dataQuality.ErrorCount;
+        }
 
         var overdueApprovalCount =
             await _context.Purchaserequests
@@ -3130,7 +3253,7 @@ public class WorkflowReportService : IWorkflowReportService
             LateReceiptCount = lateReceiptCount,
             PendingKitchenConfirmationCount = pendingKitchenConfirmationCount,
             FailedWorkflowCount = failedWorkflowCount,
-            CriticalDataQualityCount = dataQuality.ErrorCount,
+            CriticalDataQualityCount = criticalDataQualityCount.Value,
             OverdueApprovalCount = overdueApprovalCount,
             TotalKitchenIssuedQty = DecimalPolicy.RoundQuantity(totalKitchenIssuedQty),
             TotalKitchenUsedQty = totalKitchenUsedQty,
@@ -3347,11 +3470,13 @@ public class WorkflowReportService : IWorkflowReportService
         => new()
         {
             IssueId = GuidHelper.ToGuidString(item.IssueId),
+            IssueLineId = GuidHelper.ToGuidString(item.IssueLineId),
             IssueCode = item.Issue.IssueCode,
             IssueDate = item.Issue.IssueDate,
             ShiftName = item.Issue.ShiftName,
             WarehouseId = GuidHelper.ToGuidString(item.Issue.WarehouseId),
             WarehouseName = item.Issue.Warehouse.WarehouseName,
+            MaterialRequestId = GuidHelper.ToGuidString(item.Issue.MaterialRequestId),
             IngredientId = GuidHelper.ToGuidString(item.IngredientId),
             IngredientName = item.Ingredient.IngredientName,
             UnitId = GuidHelper.ToGuidString(item.UnitId),
@@ -3681,6 +3806,62 @@ public class WorkflowReportService : IWorkflowReportService
             ?? DateOnly.FromDateTime(dateToExclusive).AddDays(-DefaultStockMovementWindowDays).ToDateTime(TimeOnly.MinValue);
 
         return (dateFrom, dateToExclusive);
+    }
+
+    private sealed class StockLedgerCurrentProjection
+    {
+        public byte[] WarehouseId { get; init; } = [];
+        public string? WarehouseCode { get; init; }
+        public string? WarehouseName { get; init; }
+        public byte[] IngredientId { get; init; } = [];
+        public string? IngredientCode { get; init; }
+        public string? IngredientName { get; init; }
+        public byte[] UnitId { get; init; } = [];
+        public string? UnitName { get; init; }
+        public decimal CurrentQty { get; init; }
+        public DateTime LastUpdated { get; init; }
+    }
+
+    private sealed class StockLedgerMovementAggregateProjection
+    {
+        public byte[] WarehouseId { get; init; } = [];
+        public byte[] IngredientId { get; init; } = [];
+        public decimal LedgerQty { get; init; }
+        public DateTime LastMovementAt { get; init; }
+        public int LegacyBaselineCount { get; init; }
+    }
+
+    private sealed class StockLedgerLatestMovementProjection
+    {
+        public byte[] MovementId { get; init; } = [];
+        public byte[] WarehouseId { get; init; } = [];
+        public string? WarehouseCode { get; init; }
+        public string? WarehouseName { get; init; }
+        public byte[] IngredientId { get; init; } = [];
+        public string? IngredientCode { get; init; }
+        public string? IngredientName { get; init; }
+        public byte[] UnitId { get; init; } = [];
+        public string? UnitName { get; init; }
+    }
+
+    private sealed class StockLedgerSourceRow
+    {
+        public byte[] WarehouseId { get; init; } = [];
+        public string? WarehouseCode { get; init; }
+        public string? WarehouseName { get; init; }
+        public byte[] IngredientId { get; init; } = [];
+        public string? IngredientCode { get; init; }
+        public string? IngredientName { get; init; }
+        public byte[] UnitId { get; init; } = [];
+        public string? UnitName { get; init; }
+        public decimal CurrentQty { get; init; }
+        public decimal LedgerQty { get; init; }
+        public decimal DifferenceQty { get; init; }
+        public bool IsMatched { get; init; }
+        public DateTime? LastMovementAt { get; init; }
+        public DateTime? CurrentLastUpdated { get; init; }
+        public bool HasCurrentStock { get; init; }
+        public bool HasLegacyBaseline { get; init; }
     }
 
     private static int NormalizeLimit(int limit)

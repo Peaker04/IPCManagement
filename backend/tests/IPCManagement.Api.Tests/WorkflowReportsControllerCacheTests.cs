@@ -16,14 +16,17 @@ public class WorkflowReportsControllerCacheTests
     public async Task OperationalKpis_ReusesShortLivedAggregateCache()
     {
         var service = Substitute.For<IWorkflowReportService>();
-        service.GetOperationalKpisAsync().Returns(new OperationalKpiSummaryDto { ShortageCount = 12 });
+        service.GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>())
+            .Returns(new DataQualityReportDto { ErrorCount = 6 });
+        service.GetOperationalKpisAsync(Arg.Any<int?>())
+            .Returns(new OperationalKpiSummaryDto { ShortageCount = 12 });
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var controller = CreateController(service, cache);
 
         await controller.GetOperationalKpis();
         var second = await controller.GetOperationalKpis();
 
-        await service.Received(1).GetOperationalKpisAsync();
+        await service.Received(1).GetOperationalKpisAsync(6);
         var response = second.Should().BeOfType<OkObjectResult>().Subject;
         response.Value.Should().NotBeNull();
     }
@@ -32,8 +35,8 @@ public class WorkflowReportsControllerCacheTests
     public async Task DataQualityPage_RemediationInvalidatesCachedAggregate()
     {
         var service = Substitute.For<IWorkflowReportService>();
-        service.GetDataQualityPageAsync(Arg.Any<DataQualityPageQueryDto>())
-            .Returns(new DataQualityPageDto { TotalIssues = 6 });
+        service.GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>())
+            .Returns(new DataQualityReportDto { TotalIssues = 6 });
         service.UpdateDataQualityIssueRemediationAsync(Arg.Any<DataQualityIssueRemediationRequestDto>(), "admin-user")
             .Returns(new DataQualityIssueRemediationDto { IssueId = "issue-1" });
         using var cache = new MemoryCache(new MemoryCacheOptions());
@@ -49,7 +52,33 @@ public class WorkflowReportsControllerCacheTests
         });
         await controller.GetDataQualityPage(query);
 
-        await service.Received(2).GetDataQualityPageAsync(Arg.Any<DataQualityPageQueryDto>());
+        await service.Received(2).GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>());
+    }
+
+    [Fact]
+    public async Task DataQualityPage_ConcurrentColdRequestsComputeSnapshotOnce()
+    {
+        var service = Substitute.For<IWorkflowReportService>();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        service.GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>()).Returns(async _ =>
+        {
+            started.TrySetResult();
+            await release.Task;
+            return new DataQualityReportDto { TotalIssues = 6 };
+        });
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var controller = CreateController(service, cache);
+        var query = new DataQualityPageQueryDto { PageNumber = 1, PageSize = 8 };
+
+        var requests = Enumerable.Range(0, 5)
+            .Select(_ => controller.GetDataQualityPage(query))
+            .ToArray();
+        await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
+        release.SetResult();
+        await Task.WhenAll(requests);
+
+        await service.Received(1).GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>());
     }
 
     private static WorkflowReportsController CreateController(
