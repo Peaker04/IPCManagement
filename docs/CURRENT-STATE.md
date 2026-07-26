@@ -253,6 +253,37 @@ Hai điều đã tự bác bỏ trong quá trình đo, ghi lại để phiên sa
 2. Lọc endpoint bằng `url.includes('/api/')` là **sai**: Vite dev serve `/src/api/apiSlice.ts` cũng
    khớp, nên script trả HTTP 500 cho chính bundle của app. Phải so khớp `pathname.startsWith('/api/')`.
 
+## Hiệu năng điều hướng sau P1.9 — lane 1, ngày 26/07/2026
+
+Kịch bản `.artifacts/p19-perf/nav-perf.mjs`, 9 trang sidebar × 3 lượt, lấy **trung vị**.
+Đo trên **production build qua preview cổng 4174** (`.artifacts/p19-perf/serve-dist.mjs`
+phục vụ `frontend/dist` + proxy `/api` sang lane API 8001) — vì baseline `afterProduction`
+trong `sidebar-navigation-performance-2026-07-25.json` cũng đo trên production preview,
+không phải Vite dev. `vite.config.ts` chỉ khai proxy cho `server` nên phải dựng preview riêng.
+
+| Chỉ số | Baseline 25/07 (afterProduction) | Sau P1.9 (26/07) | Kết luận |
+|---|---|---|---|
+| clickToContent | 65–83 ms | 11–22 ms | không chậm hơn (xem cảnh báo bên dưới) |
+| clickToStable | 90–113 ms | 39–49 ms | không chậm hơn |
+| Long task | 0 trên 9 trang | **0 trên 9 trang** | giữ nguyên |
+| CLS (warm) | 0 | **0** | giữ nguyên |
+
+**Cảnh báo khi đọc hai dòng đầu**: baseline định nghĩa mốc là "route-specific visible content",
+kịch bản mới lấy mốc là "tiêu đề trang đổi + URL đổi". Hai định nghĩa không chắc trùng nhau nên
+**không được kết luận là nhanh hơn 3–4 lần**; chỉ đủ để khẳng định không có thoái hóa. Muốn so
+tuyệt đối thì phải thống nhất lại mốc đo trước.
+
+**CLS chỉ phát sinh ở lượt cold đầu tiên**: Kho nguyên liệu lượt 1 = `0.1989`, lượt 2 và 3 = `0`;
+Thu mua lượt 1 = `0.0498`, sau đó `0`; Bếp trưởng lượt 1 = `0.0088`, sau đó `0`. Truy nguyên bằng
+`.artifacts/p19-perf/cls-attribution.mjs`: nguồn dịch chuyển là các `section.ipc-section-panel`
+(Đơn mua chờ nhập kho, Tồn kho hiện tại, Luân chuyển kho) co giãn khi dữ liệu về lần đầu, không
+phải thành phần nào P1.9 thêm vào. Đây là dao động cold-run đã được ghi nhận từ trước, không phải
+thoái hóa — nhưng nếu muốn CLS bằng 0 cả ở lượt cold thì phải đặt chiều cao tối thiểu ổn định cho
+ba panel đó, xếp vào việc tồn đọng.
+
+Bundle sau P1.9: entry `307.28 kB / 96.66 kB gzip` (baseline `95.5 kB` gzip), `WeeklyMenuPage`
+`84.39 kB` (baseline `83.50 kB`) — tăng ~1,2% do thêm nhánh xử lý lỗi.
+
 ## Phần còn hở, không được mô tả là đã hoàn tất
 
 Còn hở sau đợt P1 ngày 26/07/2026:
@@ -264,7 +295,7 @@ Còn hở sau đợt P1 ngày 26/07/2026:
 - **Luồng BOM import chưa có đường lỗi thân thiện**: file xlsx hỏng cho ra `InvalidDataException` → rơi vào nhánh mặc định → **HTTP 500**. Đường `FILE_READ_ERROR` hiện chỉ tồn tại ở luồng thực đơn tuần.
 - ~~Vercel Root Directory~~ **ĐÃ XÁC MINH 26/07/2026**: Root Directory là `./` (gốc repo) nên root `vercel.json` là file authoritative, `frontend/vercel.json` đã xóa là đúng. Hệ quả cần biết: rewrite SPA khai trong `frontend/vercel.json` **chưa từng có hiệu lực** — deep-link trước nay sống nhờ preset Vite mặc định, giờ mới được khai báo tường minh ở root cùng bộ security header. Lần deploy tới lên `main`/`dev` phải kiểm lại deep-link và header bằng `curl -I`.
 - **CodeQL sẽ fail nếu repo private mà chưa bật GitHub Advanced Security** (bước upload SARIF).
-- ~~Chưa có evidence browser cho P1.9~~ **ĐÃ CHẠY 26/07/2026 trên lane 1**: ma trận 6 ca × 6 mục tiêu = **36/36 PASS**, evidence ở `.artifacts/p19-error-matrix/` (36 screenshot + `p19-matrix-results.json`). Chi tiết ở mục dưới. Vẫn **chưa đo lại p95** sau P1.9; bundle entry tăng `95.5 → 96.65 kB` gzip (+1,15 kB), `WeeklyMenuPage` `83.50 → 84.39 kB`.
+- ~~Chưa có evidence browser cho P1.9~~ **ĐÃ CHẠY 26/07/2026 trên lane 1**: ma trận 6 ca × 6 mục tiêu = **36/36 PASS**, evidence ở `.artifacts/p19-error-matrix/` (36 screenshot + `p19-matrix-results.json`). Chi tiết ở mục dưới. Hiệu năng điều hướng cũng **đã đo lại** trên production preview — xem mục "Hiệu năng điều hướng sau P1.9": long task 0/9 trang, CLS warm 0, không thoái hóa; bundle entry tăng `95.5 → 96.66 kB` gzip (+1,2%).
 - **4 component thu mua là dead code**, không được mount ở đâu: `PurchaseDemandSection`, `PurchaseOrderSection`, `PurchaseSupplierSection`, `PurchaseHandoffSection` (và `SupplierLineItem`). Đã sửa cho đúng nhưng chưa xóa — chờ quyết định.
 
 - Commit import BOM đã có preview/disable theo lỗi nhưng chưa có confirm dialog riêng tóm tắt tier, customer, effective date và số dòng.
