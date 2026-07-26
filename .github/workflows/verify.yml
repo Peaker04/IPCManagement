@@ -142,6 +142,61 @@ jobs:
           --logger "trx;LogFileName=migration-replay.trx"
           --results-directory "${{ github.workspace }}/.artifacts/test-results"
 
+      # B13 (phan 2) — schema tu MIGRATION phai bang schema tu MODEL.
+      # Buoc tren moi chi chung minh migration chay khong loi; buoc nay bat drift noi dung.
+      # Khong dung lai logic dung database: hai test fresh-install o buoc tren de lai
+      # `ipc_lane8` da qua baseline + replay toan bo migration. Neu ai doi ten database do,
+      # buoc nay do ngay thay vi so nham.
+      #
+      # Chu y ve pham vi so sanh:
+      #  - KHONG so DEFAULT: baseline co chu dich dat default SQL ma model EF khong khai,
+      #    nen so default se do vinh vien. Cung ly do nen chuan hoa bo co DEFAULT_GENERATED.
+      #  - KHONG so TEN index: MySQL tu dat ten index khoa ngoai theo thu tu tao
+      #    (customerId, customerId1, unitId3...) nen hai duong luon khac ten du phu cung cot.
+      #  - Bo qua stocktakes.activeWarehouseKey: cot GENERATED VIRTUAL do
+      #    20260726120000_AddStocktakeActiveWarehouseUnique tao de lam unique index co dieu
+      #    kien; model co y khong map no.
+      - name: Schema tu migration phai bang schema tu model (B13)
+        run: |
+          set -euo pipefail
+          MYSQL="mysql -h 127.0.0.1 -uroot -p123456789"
+          $MYSQL -e "DROP DATABASE IF EXISTS ipcmanagement_model_ci; CREATE DATABASE ipcmanagement_model_ci CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
+          $MYSQL ipcmanagement_model_ci < ./.artifacts/ipc-schema.sql
+          shape () {
+            $MYSQL -N -B -e "
+              SELECT CONCAT('TBL|',table_name) FROM information_schema.tables
+               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
+              UNION ALL
+              SELECT CONCAT('COL|',table_name,'|',column_name,'|',column_type,'|',is_nullable,'|',TRIM(REPLACE(extra,'DEFAULT_GENERATED','')))
+               FROM information_schema.columns
+               WHERE table_schema='$1' AND table_name<>'__EFMigrationsHistory'
+                 AND NOT (table_name='stocktakes' AND column_name='activeWarehouseKey')
+              UNION ALL
+              SELECT CONCAT('FK|',table_name,'|',column_name,'|',referenced_table_name,'|',referenced_column_name)
+               FROM information_schema.key_column_usage
+               WHERE table_schema='$1' AND referenced_table_name IS NOT NULL;" | sort
+          }
+          shape ipc_lane8               > ./.artifacts/shape-migrations.txt
+          shape ipcmanagement_model_ci  > ./.artifacts/shape-model.txt
+          echo "So dong doi chieu: migration=$(wc -l < ./.artifacts/shape-migrations.txt) model=$(wc -l < ./.artifacts/shape-model.txt)"
+          # Hai ve rong thi diff cung "khop" — phai chan truoc, khong de gate pass gia.
+          if [ ! -s ./.artifacts/shape-migrations.txt ]; then
+            echo "LOI: ipc_lane8 rong. Test replay migration o buoc tren khong chay hoac doi ten database."
+            exit 1
+          fi
+          if [ ! -s ./.artifacts/shape-model.txt ]; then
+            echo "LOI: ipcmanagement_model_ci rong. Khong nap duoc ./.artifacts/ipc-schema.sql."
+            exit 1
+          fi
+          if diff -u ./.artifacts/shape-model.txt ./.artifacts/shape-migrations.txt > ./.artifacts/shape-diff.txt; then
+            echo "OK: schema tu migration khop schema tu model."
+          else
+            echo "LOI: database cai moi bang migration KHAC voi model EF."
+            echo "  '-' = model co, duong migration thieu | '+' = duong migration co, model khong co"
+            cat ./.artifacts/shape-diff.txt
+            exit 1
+          fi
+
       - name: Báo cáo số integration test đã chạy
         if: always() && steps.integration.conclusion != 'skipped'
         run: |

@@ -248,14 +248,20 @@ CREATE TABLE customercontracts (
   FOREIGN KEY (customerId) REFERENCES customers(customerId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
+-- Hình dạng bảng này lấy theo 20260701175833_AddCustomerImportMapping (và khớp database đang
+-- chạy). Bản cũ trong file dựng sourceCustomerCode + isActive — một thiết kế đã bị thay, khiến
+-- database cài mới lệch hẳn với entity: thiếu sheetNameHint/labelColumn/updatedAt và thừa 2 cột
+-- không ai đọc. Init_EF_History_For_Old_DB.sql khai migration trên là đã applied nên nó không
+-- bao giờ chạy để sửa lại.
 CREATE TABLE customerimportmappings (
   mappingId          BINARY(16)   PRIMARY KEY,
   customerId         BINARY(16)   NOT NULL,
-  sourceCustomerCode VARCHAR(100) NOT NULL,
-  isActive           BOOLEAN      NOT NULL DEFAULT TRUE,
+  sheetNameHint      VARCHAR(100) NULL,
+  labelColumn        VARCHAR(10)  NULL,
   createdAt          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE KEY uqCustomerImportMappings (customerId, sourceCustomerCode),
-  FOREIGN KEY (customerId) REFERENCES customers(customerId)
+  updatedAt          DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY ixCustomerImportMappingsCustomer (customerId),
+  FOREIGN KEY (customerId) REFERENCES customers(customerId) ON DELETE CASCADE
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE portionrules (
@@ -412,9 +418,12 @@ CREATE TABLE productionplans (
   createdAt     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- added by 20260702072352 / 20260702121000
   updatedAt     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  customerId    BINARY(16)   NULL,
   menuVersionId BINARY(16)   NULL,
   weekStartDate DATE         NULL,
-  FOREIGN KEY (createdBy) REFERENCES users(userId)
+  FOREIGN KEY (createdBy)     REFERENCES users(userId),
+  FOREIGN KEY (customerId)    REFERENCES customers(customerId),
+  FOREIGN KEY (menuVersionId) REFERENCES menuversions(menuVersionId)
 ) ENGINE=InnoDB CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 CREATE TABLE productionplanlines (
@@ -503,7 +512,7 @@ CREATE TABLE purchaserequestlines (
   estimatedUnitPrice    DECIMAL(18,2) NOT NULL DEFAULT 0,
   -- added by 20260702194500_AddPurchaseLineDeliveryNote
   expectedDeliveryDate  DATE          NULL,
-  note                  VARCHAR(500)  NULL,
+  note                  TEXT          NULL,
   FOREIGN KEY (purchaseRequestId)     REFERENCES purchaserequests(purchaseRequestId),
   FOREIGN KEY (materialRequestLineId) REFERENCES materialrequestlines(requestLineId),
   FOREIGN KEY (ingredientId)          REFERENCES ingredients(ingredientId),
@@ -681,7 +690,7 @@ CREATE TABLE inventoryreturns (
   createdBy   BINARY(16)  NOT NULL,
   createdAt   DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   -- added by 20260702204500_AddInventoryReturnType
-  returnType  VARCHAR(30) NULL,
+  returnType  VARCHAR(20) NOT NULL DEFAULT 'RETURN',
   -- added by 20260707085015_AddReceivedToInventoryReturn
   receivedAt  DATETIME    NULL,
   receivedBy  BINARY(16)  NULL,
