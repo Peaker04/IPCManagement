@@ -1909,7 +1909,7 @@ public class WorkflowGenerationTests
                 row.ReceivedAt != null &&
                 row.ReceiptStatus == "Bếp đã nhận");
 
-            var dataQuality = await new WorkflowReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+            var dataQuality = await new DataQualityReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
             dataQuality.Issues.Should().Contain(issue =>
                 issue.Category == "kitchen_receipt_discrepancy" &&
                 issue.Message.Contains("Bếp báo chênh lệch"));
@@ -2178,7 +2178,7 @@ public class WorkflowGenerationTests
                 audit.NewValue != null &&
                 audit.NewValue.Contains("missing=150"));
 
-            var report = await new WorkflowReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 100 });
+            var report = await new DataQualityReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 100 });
             report.Issues.Should().ContainSingle(issue =>
                 issue.Category == "stock_shortage" &&
                 issue.Message.Contains("Thiếu tồn kho Ingredient"));
@@ -2984,7 +2984,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new DataQualityReportService(context);
         var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
 
         report.TotalIssues.Should().BeGreaterThanOrEqualTo(5);
@@ -3050,18 +3050,19 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: true);
 
         await using var context = fixture.CreateContext();
-        var service = new WorkflowReportService(context);
-        var initialReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var queryService = new DataQualityReportService(context);
+        var commandService = new DataQualityCommandService(context);
+        var initialReport = await queryService.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
         var missingBomIssue = initialReport.Issues.Single(issue => issue.Category == "legacy_missing_bom");
 
-        await service.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequest
+        await commandService.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequest
         {
             IssueId = missingBomIssue.IssueId,
             Action = "resolve",
             Note = "QA marked fixed"
         }, fixture.UserIdString);
 
-        var resolvedReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var resolvedReport = await queryService.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
         var stillVisibleIssue = resolvedReport.Issues.Single(issue => issue.IssueId == missingBomIssue.IssueId);
         stillVisibleIssue.RemediationStatus.Should().Be("resolved");
         stillVisibleIssue.RemediationNote.Should().Be("QA marked fixed");
@@ -3069,14 +3070,14 @@ public class WorkflowGenerationTests
         resolvedReport.ResolvedIssueCount.Should().Be(1);
         resolvedReport.TotalIssues.Should().Be(initialReport.TotalIssues);
 
-        await service.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequest
+        await commandService.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequest
         {
             IssueId = missingBomIssue.IssueId,
             Action = "reopen",
             Note = "Root cause still exists"
         }, fixture.UserIdString);
 
-        var reopenedReport = await service.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
+        var reopenedReport = await queryService.GetDataQualityAsync(new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 20 });
         var reopenedIssue = reopenedReport.Issues.Single(issue => issue.IssueId == missingBomIssue.IssueId);
         reopenedIssue.RemediationStatus.Should().Be("reopened");
         reopenedIssue.RemediationNote.Should().Be("Root cause still exists");
@@ -3518,8 +3519,8 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
-        var dryRun = await service.CleanupDataQualityAsync(new DataQualityCleanupRequest
+        var commandService = new DataQualityCommandService(context);
+        var dryRun = await commandService.CleanupDataQualityAsync(new DataQualityCleanupRequest
         {
             DryRun = true,
             Limit = 20
@@ -3537,7 +3538,7 @@ public class WorkflowGenerationTests
         (await context.Purchaserequests.AnyAsync(request => request.PurchaseRequestId == stalePurchaseRequestId)).Should().BeTrue();
         (await context.Inventoryissues.AnyAsync(issue => issue.IssueId == orphanIssueId)).Should().BeTrue();
 
-        var applied = await service.CleanupDataQualityAsync(new DataQualityCleanupRequest
+        var applied = await commandService.CleanupDataQualityAsync(new DataQualityCleanupRequest
         {
             DryRun = false,
             Limit = 20,
@@ -3565,7 +3566,7 @@ public class WorkflowGenerationTests
             log.Reason != null &&
             log.Reason.Contains("PRD-142 cleanup"))).Should().Be(applied.AuditLogCount);
 
-        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto
+        var report = await new DataQualityReportService(context).GetDataQualityAsync(new WorkflowReportQueryDto
         {
             ServiceDate = "2026-06-15",
             Limit = 100
@@ -3612,7 +3613,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var report = await new WorkflowReportService(context).GetDataQualityAsync(
+        var report = await new DataQualityReportService(context).GetDataQualityAsync(
             new WorkflowReportQueryDto { ServiceDate = "2026-06-15", Limit = 100 });
 
         var reviewIssue = report.Issues.Should().ContainSingle(issue =>
@@ -3714,7 +3715,7 @@ public class WorkflowGenerationTests
         zeroStock.CurrentQty = 0;
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var commandService = new DataQualityCommandService(context);
         var request = new DataQualityCleanupRequest
         {
             DryRun = true,
@@ -3722,7 +3723,7 @@ public class WorkflowGenerationTests
             Categories = ["inventory_ledger_baseline", "zero_stock_unit"],
             Note = "legacy cleanup regression"
         };
-        var dryRun = await service.CleanupDataQualityAsync(request, fixture.UserIdString);
+        var dryRun = await commandService.CleanupDataQualityAsync(request, fixture.UserIdString);
 
         dryRun.TotalActions.Should().Be(2);
         dryRun.AuditLogCount.Should().Be(0);
@@ -3733,7 +3734,7 @@ public class WorkflowGenerationTests
             .UnitId.Should().Equal(legacyUnitId);
 
         request.DryRun = false;
-        var applied = await service.CleanupDataQualityAsync(request, fixture.UserIdString);
+        var applied = await commandService.CleanupDataQualityAsync(request, fixture.UserIdString);
 
         applied.TotalActions.Should().Be(2);
         applied.AuditLogCount.Should().Be(2);
@@ -3791,7 +3792,7 @@ public class WorkflowGenerationTests
         mismatch.DifferenceQty.Should().Be(-2m);
         mismatch.IsMatched.Should().BeFalse();
 
-        var report = await new WorkflowReportService(context)
+        var report = await new DataQualityReportService(context)
             .GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
         report.Issues.Should().Contain(issue =>
             issue.Category == "inventory_ledger_mismatch" &&
@@ -3909,7 +3910,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new DataQualityReportService(context);
         var row = (await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
             new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
 
@@ -6082,7 +6083,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new OperationalKpiReportService(context);
         var kpis = await service.GetOperationalKpisAsync();
 
         kpis.OverduePurchaseRequestCount.Should().Be(1);
@@ -6136,7 +6137,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new OperationalKpiReportService(context);
         var kpis = await service.GetOperationalKpisAsync();
 
         kpis.LateReceiptCount.Should().Be(1);
@@ -6180,7 +6181,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new OperationalKpiReportService(context);
         var kpis = await service.GetOperationalKpisAsync();
 
         kpis.LowStockCount.Should().Be(1);
@@ -6252,7 +6253,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new OperationalKpiReportService(context);
         var kpis = await service.GetOperationalKpisAsync();
 
         kpis.ShortageCount.Should().Be(1);
@@ -6308,7 +6309,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new OperationalKpiReportService(context);
         var kpis = await service.GetOperationalKpisAsync();
 
         kpis.FailedWorkflowCount.Should().Be(1);
