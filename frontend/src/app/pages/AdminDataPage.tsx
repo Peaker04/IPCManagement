@@ -431,7 +431,7 @@ export default function AdminDataPage() {
     ? [
         { label: 'BOM đang hiển thị', value: `${currentBomRows.length} dòng`, tone: 'neutral' as const },
         { label: 'Đơn giá', value: `${bomImportTier / 1000}k`, tone: 'info' as const },
-        { label: 'Preview', value: bomImportPreview ? `${bomImportPreview.rows.length} dòng` : 'Chưa kiểm tra', tone: bomImportPreview ? 'warning' as const : 'neutral' as const },
+        { label: 'Preview', value: bomImportPreview ? `${bomImportPreview.rows?.length ?? 0} dòng` : 'Chưa kiểm tra', tone: bomImportPreview ? 'warning' as const : 'neutral' as const },
       ]
     : effectiveActiveView === 'contracts'
       ? [
@@ -584,7 +584,7 @@ export default function AdminDataPage() {
     const ingredient = ingredientCatalog.find((item) => item.ingredientId === bomForm.ingredientId);
     const quantity = Number(bomForm.grossQtyPerServing);
     const wasteRate = Number(bomForm.wasteRatePercent);
-    if (!bomForm.dishId || !ingredient) {
+    if (!bomForm.dishId || !ingredient?.ingredientId) {
       setBomImportFeedback({ type: 'error', message: 'Vui lòng chọn món và nguyên liệu.' });
       return;
     }
@@ -1257,10 +1257,10 @@ export default function AdminDataPage() {
                             <td>{row.grossQtyPerServing}</td>
                             <td>{row.wasteRatePercent}%</td>
                             <td>{row.action}</td>
-                            <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors[0] ?? row.warnings[0] ?? 'Hợp lệ'}</StatusBadge></td>
+                            <td><StatusBadge variant={row.status === 'error' ? 'danger' : row.status === 'warning' ? 'warning' : 'success'}>{row.errors?.[0] ?? row.warnings?.[0] ?? 'Hợp lệ'}</StatusBadge></td>
                           </tr>
                         ))}
-                        {(!bomImportPreview || bomImportPreview.rows.length === 0) && <EmptyRow colSpan={8} />}
+                        {(!bomImportPreview || !bomImportPreview.rows?.length) && <EmptyRow colSpan={8} />}
                       </tbody>
                     </table>
                      </PaginatedTableFrame>
