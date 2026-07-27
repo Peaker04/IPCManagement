@@ -28,6 +28,7 @@ public class InventoryReturnsController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu trả nguyên liệu dư.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<InventoryReturnDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     public async Task<IActionResult> GetAllAsync([FromQuery] InventoryReturnFilterRequestDto request)
     {
@@ -42,6 +43,7 @@ public class InventoryReturnsController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu trả nguyên liệu dư theo ID.</summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReturnDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
@@ -58,6 +60,7 @@ public class InventoryReturnsController : ControllerBase
 
     /// <summary>Tạo mới phiếu trả nguyên liệu dư sau sản xuất.</summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReturnCreatedDto>), StatusCodes.Status201Created)]
     [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReturnRequest dto)
     {
@@ -75,6 +78,7 @@ public class InventoryReturnsController : ControllerBase
 
     /// <summary>Thủ kho xác nhận phiếu trả nguyên liệu và cộng tồn kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryReturnReceiptRequest dto)
     {

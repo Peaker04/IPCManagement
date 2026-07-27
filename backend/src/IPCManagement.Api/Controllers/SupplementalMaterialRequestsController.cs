@@ -27,6 +27,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<SupplementalMaterialRequestDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] SupplementalMaterialRequestFilterDto request)
     {
         try
@@ -41,6 +42,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
         try
@@ -57,6 +59,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateSupplementalMaterialRequest request)
     {
         try
@@ -87,6 +90,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpPost("{id}/fulfill")]
+    [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     public async Task<IActionResult> FulfillAsync(string id, [FromBody] FulfillSupplementalMaterialRequest request)
         => await ExecuteActionAsync(
@@ -94,6 +98,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
             "Đã tạo phiếu xuất bổ sung và trừ tồn kho.");
 
     [HttpPost("{id}/route-to-purchasing")]
+    [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     public async Task<IActionResult> RouteToPurchasingAsync(string id)
         => await ExecuteActionAsync(
@@ -101,6 +106,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
             "Đã chuyển phần thiếu sang danh sách thu mua.");
 
     [HttpPost("{id}/reject")]
+    [ProducesResponseType(typeof(ApiResponse<SupplementalMaterialRequestDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
     public async Task<IActionResult> RejectAsync(string id, [FromBody] RejectSupplementalMaterialRequest request)
         => await ExecuteActionAsync(

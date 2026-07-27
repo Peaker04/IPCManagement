@@ -38,6 +38,8 @@ const makePurchaseRequest = (status: string, id: string): PurchaseRequestResult 
     currentStockQty: 40,
     purchaseQty: 60,
     estimatedUnitPrice: 20_000,
+    supplierDecisionStatus: 'BLOCKED',
+    supplierDecisionHistory: [],
   }],
 });
 
@@ -210,6 +212,8 @@ describe('purchasing model', () => {
         currentStockQty: 40,
         purchaseQty: 60,
         estimatedUnitPrice: 20_000,
+        supplierDecisionStatus: 'BLOCKED',
+        supplierDecisionHistory: [],
       }],
     }]);
 

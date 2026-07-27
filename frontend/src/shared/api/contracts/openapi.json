@@ -5153,7 +5153,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -5181,8 +5198,25 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueCreatedDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueCreatedDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueCreatedDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5204,7 +5238,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5245,7 +5296,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryIssueDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5296,7 +5364,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -5324,8 +5409,25 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5347,7 +5449,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5377,8 +5496,25 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReceiptCreatedDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5458,7 +5594,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -5486,8 +5639,25 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnCreatedDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnCreatedDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnCreatedDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5509,7 +5679,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryReturnDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5550,7 +5737,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7732,7 +7936,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       },
@@ -7760,8 +7981,25 @@
           }
         },
         "responses": {
-          "200": {
-            "description": "OK"
+          "201": {
+            "description": "Created",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7783,7 +8021,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7824,7 +8079,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7846,7 +8118,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -7887,7 +8176,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SupplementalMaterialRequestDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8461,7 +8767,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8473,7 +8796,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8495,7 +8835,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WarehouseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8666,7 +9023,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -8853,7 +9227,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentStockSummaryDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9024,7 +9415,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9195,7 +9603,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoCursorPageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoCursorPageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockMovementViewDtoCursorPageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9366,7 +9791,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockLedgerReconciliationDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockLedgerReconciliationDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockLedgerReconciliationDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9537,7 +9979,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9708,7 +10167,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StockSnapshotDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -9879,7 +10355,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDocumentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDocumentDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WorkflowDocumentDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10050,7 +10543,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10237,7 +10747,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandPageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandPageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandPageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10424,7 +10951,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandAggregatePageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandAggregatePageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IngredientDemandAggregatePageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10618,7 +11162,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialRequestCandidatePageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialRequestCandidatePageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialRequestCandidatePageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10789,7 +11350,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseDemandReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseDemandReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchaseDemandReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -10960,7 +11538,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11147,7 +11742,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanPageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanPageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PurchasePlanPageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11318,7 +11930,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11505,7 +12134,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11676,7 +12322,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -11863,7 +12526,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceBySupplierDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12034,7 +12714,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12221,7 +12918,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByPeriodDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12392,7 +13106,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12579,7 +13310,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12750,7 +13498,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12937,7 +13702,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KitchenIssueReportDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -12949,7 +13731,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalKpiSummaryDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalKpiSummaryDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalKpiSummaryDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13120,7 +13919,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13307,7 +14123,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13478,7 +14311,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13649,7 +14499,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoCursorPageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoCursorPageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditChangeReportDtoCursorPageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -13991,7 +14858,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReportDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReportDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityReportDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14178,7 +15062,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityPageDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityPageDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityPageDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14209,7 +15110,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityIssueRemediationDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityIssueRemediationDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityIssueRemediationDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14240,7 +15158,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityCleanupResultDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityCleanupResultDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DataQualityCleanupResultDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14411,7 +15346,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderExportReportRowDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderExportReportRowDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderExportReportRowDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -15307,6 +16259,144 @@
           },
           "purchaseRequestStatus": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditChangeReportDto": {
+        "required": [
+          "auditId",
+          "businessArea",
+          "changedAt",
+          "changedBy",
+          "entityName"
+        ],
+        "type": "object",
+        "properties": {
+          "auditId": {
+            "type": "string"
+          },
+          "changedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "changedBy": {
+            "type": "string"
+          },
+          "changedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "businessArea": {
+            "type": "string"
+          },
+          "entityName": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "fieldName": {
+            "type": "string",
+            "nullable": true
+          },
+          "oldValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "newValue": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditChangeReportDtoCursorPageDto": {
+        "required": [
+          "hasNext",
+          "items",
+          "limit",
+          "nextCursorOffset"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditChangeReportDto"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "nextCursorDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextCursorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextCursorOffset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditChangeReportDtoCursorPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/AuditChangeReportDtoCursorPageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "AuditChangeReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditChangeReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
             "nullable": true
           }
         },
@@ -17143,6 +18233,142 @@
         },
         "additionalProperties": false
       },
+      "CurrentStockSummaryDto": {
+        "required": [
+          "currentQty",
+          "ingredientId",
+          "lastUpdated",
+          "unitId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "lastUpdated": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentStockSummaryDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrentStockSummaryDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentStockSummaryDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CurrentStockSummaryDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "CurrentStockSummaryDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/CurrentStockSummaryDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "Customer": {
         "required": [
           "customerCode",
@@ -17594,6 +18820,38 @@
         },
         "additionalProperties": false
       },
+      "DataQualityCleanupActionDto": {
+        "required": [
+          "action",
+          "category",
+          "entityCode",
+          "entityId",
+          "entityName",
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string"
+          },
+          "entityName": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "entityCode": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
       "DataQualityCleanupRequest": {
         "required": [
           "dryRun",
@@ -17622,6 +18880,273 @@
         },
         "additionalProperties": false
       },
+      "DataQualityCleanupResultDto": {
+        "required": [
+          "actions",
+          "auditLogCount",
+          "dryRun",
+          "executedAt",
+          "removedInventoryIssueLines",
+          "removedInventoryIssues",
+          "removedMaterialRequestLines",
+          "removedMaterialRequests",
+          "removedPurchaseRequestLines",
+          "removedPurchaseRequests",
+          "totalActions"
+        ],
+        "type": "object",
+        "properties": {
+          "dryRun": {
+            "type": "boolean"
+          },
+          "executedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalActions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedMaterialRequests": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedMaterialRequestLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedPurchaseRequests": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedPurchaseRequestLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedInventoryIssues": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "removedInventoryIssueLines": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "auditLogCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataQualityCleanupActionDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityCleanupResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataQualityCleanupResultDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityIssueDto": {
+        "required": [
+          "category",
+          "entityCode",
+          "entityLabel",
+          "entityName",
+          "issueId",
+          "message",
+          "owner",
+          "priorityRank",
+          "remediationStatus",
+          "route",
+          "severity",
+          "slaDueAt",
+          "slaHours",
+          "slaLabel",
+          "suggestedAction"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "owner": {
+            "type": "string"
+          },
+          "priorityRank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slaHours": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "slaDueAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "slaLabel": {
+            "type": "string"
+          },
+          "entityName": {
+            "type": "string"
+          },
+          "entityId": {
+            "type": "string",
+            "nullable": true
+          },
+          "entityCode": {
+            "type": "string"
+          },
+          "entityLabel": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "suggestedAction": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "remediationStatus": {
+            "type": "string"
+          },
+          "remediationAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "remediationByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "remediationNote": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityIssueDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataQualityIssueDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityIssueRemediationDto": {
+        "required": [
+          "issueId",
+          "remediationAt",
+          "remediationStatus"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "remediationStatus": {
+            "type": "string"
+          },
+          "remediationAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityIssueRemediationDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataQualityIssueRemediationDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DataQualityIssueRemediationRequest": {
         "required": [
           "action",
@@ -17637,6 +19162,212 @@
           },
           "note": {
             "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityPageDto": {
+        "required": [
+          "errorCount",
+          "generatedAt",
+          "invalidUnitCount",
+          "issues",
+          "isTruncated",
+          "missingBomCount",
+          "missingConversionCount",
+          "negativeStockCount",
+          "orphanDocumentCount",
+          "page",
+          "reopenedIssueCount",
+          "resolvedIssueCount",
+          "totalIssues",
+          "urgentIssueCount",
+          "warningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalIssues": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isTruncated": {
+            "type": "boolean"
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resolvedIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reopenedIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "urgentIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingBomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "invalidUnitCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingConversionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "negativeStockCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orphanDocumentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataQualityIssueDto"
+            }
+          },
+          "page": {
+            "$ref": "#/components/schemas/DataQualityIssueDtoPagedResponseDto"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataQualityPageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityReportDto": {
+        "required": [
+          "errorCount",
+          "generatedAt",
+          "invalidUnitCount",
+          "issues",
+          "isTruncated",
+          "missingBomCount",
+          "missingConversionCount",
+          "negativeStockCount",
+          "orphanDocumentCount",
+          "reopenedIssueCount",
+          "resolvedIssueCount",
+          "totalIssues",
+          "urgentIssueCount",
+          "warningCount"
+        ],
+        "type": "object",
+        "properties": {
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totalIssues": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "isTruncated": {
+            "type": "boolean"
+          },
+          "errorCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "resolvedIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "reopenedIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "urgentIssueCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingBomCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "invalidUnitCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "missingConversionCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "negativeStockCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "orphanDocumentCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "issues": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DataQualityIssueDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DataQualityReportDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DataQualityReportDto"
+          },
+          "errors": {
             "nullable": true
           }
         },
@@ -18583,6 +20314,344 @@
         },
         "additionalProperties": false
       },
+      "IngredientDemandAggregateDto": {
+        "required": [
+          "currentStockQty",
+          "hasCancelledLine",
+          "ingredientId",
+          "lineCount",
+          "requestDate",
+          "suggestedPurchaseQty",
+          "totalRequiredQty",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "requestDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalRequiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentStockQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "suggestedPurchaseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "lineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasCancelledLine": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandAggregatePageDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "shortageCount",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientDemandAggregateDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "shortageCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandAggregatePageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IngredientDemandAggregatePageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandPageDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "shortageCount",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientDemandReportDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "shortageCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IngredientDemandPageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandReportDto": {
+        "required": [
+          "appliedPortionRatePercent",
+          "appliedPortionRuleSource",
+          "bomRatePercent",
+          "bomScope",
+          "currentStockQty",
+          "ingredientId",
+          "materialRequestCode",
+          "materialRequestId",
+          "priceTierAmount",
+          "requestDate",
+          "requestLineId",
+          "status",
+          "suggestedPurchaseQty",
+          "totalRequiredQty",
+          "totalServings",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "materialRequestId": {
+            "type": "string"
+          },
+          "requestLineId": {
+            "type": "string"
+          },
+          "materialRequestCode": {
+            "type": "string"
+          },
+          "requestDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "status": {
+            "type": "string"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "dishName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "bomId": {
+            "type": "string",
+            "nullable": true
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "bomScope": {
+            "type": "string"
+          },
+          "totalServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bomRatePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "appliedPortionRuleId": {
+            "type": "string",
+            "nullable": true
+          },
+          "appliedPortionRuleSource": {
+            "type": "string"
+          },
+          "appliedPortionRatePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "yieldLossPercent": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "totalRequiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentStockQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "suggestedPurchaseQty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IngredientDemandReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IngredientDemandReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "IngredientDto": {
         "required": [
           "ingredientCode",
@@ -18807,6 +20876,204 @@
         },
         "additionalProperties": false
       },
+      "InventoryIssueCreatedDto": {
+        "required": [
+          "issueCode",
+          "issueId"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueCreatedDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryIssueCreatedDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueDto": {
+        "required": [
+          "createdAt",
+          "issueCode",
+          "issueDate",
+          "issuedBy",
+          "issueId",
+          "lines",
+          "materialRequestId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestId": {
+            "type": "string"
+          },
+          "issuedBy": {
+            "type": "string"
+          },
+          "issuedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryIssueLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryIssueDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryIssueDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryIssueDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryIssueLine": {
         "required": [
           "ingredient",
@@ -18853,6 +21120,44 @@
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryIssueLineDto": {
+        "required": [
+          "ingredientId",
+          "issuedQty",
+          "issueLineId",
+          "requestedQty",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "issueLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -18922,6 +21227,195 @@
           },
           "warehouse": {
             "$ref": "#/components/schemas/Warehouse"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptCreatedDto": {
+        "required": [
+          "receiptCode",
+          "receiptId"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptId": {
+            "type": "string"
+          },
+          "receiptCode": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptCreatedDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReceiptCreatedDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptDto": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "lines",
+          "receiptCode",
+          "receiptDate",
+          "receiptId",
+          "supplierId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptId": {
+            "type": "string"
+          },
+          "receiptCode": {
+            "type": "string"
+          },
+          "receiptDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "purchaseRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryReceiptLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReceiptDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryReceiptDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReceiptDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReceiptDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19020,6 +21514,63 @@
         },
         "additionalProperties": false
       },
+      "InventoryReceiptLineDto": {
+        "required": [
+          "amount",
+          "ingredientId",
+          "quantity",
+          "receiptLineId",
+          "unitId",
+          "unitPrice"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "amount": {
+            "type": "number",
+            "format": "double"
+          },
+          "lotNumber": {
+            "type": "string",
+            "nullable": true
+          },
+          "manufactureDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "expiredDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryReturn": {
         "required": [
           "createdAt",
@@ -19106,6 +21657,220 @@
         },
         "additionalProperties": false
       },
+      "InventoryReturnCreatedDto": {
+        "required": [
+          "returnCode",
+          "returnId"
+        ],
+        "type": "object",
+        "properties": {
+          "returnId": {
+            "type": "string"
+          },
+          "returnCode": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnCreatedDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReturnCreatedDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnDto": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "issueId",
+          "lines",
+          "returnCode",
+          "returnDate",
+          "returnId",
+          "returnType",
+          "status",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "returnId": {
+            "type": "string"
+          },
+          "returnCode": {
+            "type": "string"
+          },
+          "returnDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "returnType": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "type": "string"
+          },
+          "receivedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryReturnLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReturnDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InventoryReturnDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/InventoryReturnDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "InventoryReturnLine": {
         "required": [
           "ingredient",
@@ -19147,6 +21912,381 @@
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
+          }
+        },
+        "additionalProperties": false
+      },
+      "InventoryReturnLineDto": {
+        "required": [
+          "ingredientId",
+          "quantity",
+          "returnLineId",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "returnLineId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueVsReturnUsageReportDto": {
+        "required": [
+          "ingredientId",
+          "issueCode",
+          "issueDate",
+          "issuedQty",
+          "issueId",
+          "returnedQty",
+          "unitId",
+          "usedQty",
+          "varianceQty",
+          "wastedQty"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "returnedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "wastedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "usedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "varianceQty": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueVsReturnUsageReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueVsReturnUsageReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueVsReturnUsageReportDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/IssueVsReturnUsageReportDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "IssueVsReturnUsageReportDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/IssueVsReturnUsageReportDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KitchenIssueReportDto": {
+        "required": [
+          "ingredientId",
+          "isReceivedByKitchen",
+          "issueCode",
+          "issueDate",
+          "issuedQty",
+          "issueId",
+          "issueLineId",
+          "materialRequestId",
+          "receiptStatus",
+          "requestedQty",
+          "unitId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "issueId": {
+            "type": "string"
+          },
+          "issueLineId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "materialRequestId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requestedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "receivedBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receivedAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "isReceivedByKitchen": {
+            "type": "boolean"
+          },
+          "receiptStatus": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "KitchenIssueReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KitchenIssueReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KitchenIssueReportDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/KitchenIssueReportDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "KitchenIssueReportDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/KitchenIssueReportDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -19716,6 +22856,117 @@
           },
           "plan": {
             "$ref": "#/components/schemas/ProductionPlan"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialRequestCandidateDto": {
+        "required": [
+          "actionableLineCount",
+          "actionableQuantity",
+          "hasExistingPurchaseRequest",
+          "materialRequestCode",
+          "materialRequestId",
+          "requestDate",
+          "requestScope",
+          "status"
+        ],
+        "type": "object",
+        "properties": {
+          "materialRequestId": {
+            "type": "string"
+          },
+          "materialRequestCode": {
+            "type": "string"
+          },
+          "requestDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "requestScope": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "actionableLineCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actionableQuantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasExistingPurchaseRequest": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialRequestCandidatePageDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MaterialRequestCandidateDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "MaterialRequestCandidatePageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/MaterialRequestCandidatePageDto"
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -20900,6 +24151,176 @@
         },
         "additionalProperties": false
       },
+      "OperationalKpiSummaryDto": {
+        "required": [
+          "criticalDataQualityCount",
+          "failedWorkflowCount",
+          "generatedAt",
+          "lateReceiptCount",
+          "lowStockCount",
+          "overdueApprovalCount",
+          "overduePurchaseRequestCount",
+          "pendingKitchenConfirmationCount",
+          "shortageCount",
+          "totalKitchenIssuedQty",
+          "totalKitchenReturnedQty",
+          "totalKitchenUsedQty"
+        ],
+        "type": "object",
+        "properties": {
+          "shortageCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lowStockCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overduePurchaseRequestCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lateReceiptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pendingKitchenConfirmationCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedWorkflowCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "criticalDataQualityCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "overdueApprovalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalKitchenIssuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalKitchenUsedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalKitchenReturnedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OperationalKpiSummaryDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/OperationalKpiSummaryDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderExportReportRowDto": {
+        "required": [
+          "bomRatePercent",
+          "confirmedServings",
+          "customerName",
+          "finalServings",
+          "forecastServings",
+          "menuName",
+          "menuPrice",
+          "quantityPlanLineId",
+          "serviceDate",
+          "shiftName"
+        ],
+        "type": "object",
+        "properties": {
+          "quantityPlanLineId": {
+            "type": "string"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string"
+          },
+          "customerName": {
+            "type": "string"
+          },
+          "menuName": {
+            "type": "string"
+          },
+          "forecastServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "confirmedServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "finalServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "menuPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "bomRatePercent": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "OrderExportReportRowDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderExportReportRowDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PortionRule": {
         "required": [
           "createdAt",
@@ -21152,6 +24573,467 @@
           },
           "errors": {
             "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByDishGroupDto": {
+        "required": [
+          "dishGroup",
+          "ingredientCount",
+          "topIngredients",
+          "warningIngredientCount",
+          "weightedAvgVariancePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "dishGroup": {
+            "type": "string"
+          },
+          "ingredientCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "warningIngredientCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "weightedAvgVariancePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "topIngredients": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceDishGroupIngredientDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByDishGroupDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceByDishGroupDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByDishGroupDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceByDishGroupDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByDishGroupDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PriceVarianceByDishGroupDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByPeriodDto": {
+        "required": [
+          "avgUnitPrice",
+          "ingredientId",
+          "isWarning",
+          "periodLabel",
+          "periodStart",
+          "referencePrice",
+          "unitId",
+          "variancePercentVsReference"
+        ],
+        "type": "object",
+        "properties": {
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodLabel": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "avgUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "referencePrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "variancePercentVsReference": {
+            "type": "number",
+            "format": "double"
+          },
+          "variancePercentVsPreviousPeriod": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "isWarning": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByPeriodDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceByPeriodDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByPeriodDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceByPeriodDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceByPeriodDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PriceVarianceByPeriodDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceBySupplierDto": {
+        "required": [
+          "avgUnitPrice",
+          "ingredientId",
+          "isWarning",
+          "maxUnitPrice",
+          "minUnitPrice",
+          "receiptCount",
+          "referencePrice",
+          "supplierId",
+          "unitId",
+          "variancePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "receiptCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "avgUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "minUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "maxUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "referencePrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "variancePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "isWarning": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceBySupplierDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceBySupplierDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceBySupplierDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PriceVarianceBySupplierDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceBySupplierDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PriceVarianceBySupplierDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PriceVarianceDishGroupIngredientDto": {
+        "required": [
+          "ingredientName",
+          "variancePercent",
+          "weight"
+        ],
+        "type": "object",
+        "properties": {
+          "ingredientName": {
+            "type": "string"
+          },
+          "variancePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "weight": {
+            "type": "number",
+            "format": "double"
           }
         },
         "additionalProperties": false
@@ -21606,6 +25488,137 @@
           },
           "isReceivedByKitchen": {
             "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseDemandReportDto": {
+        "required": [
+          "currentStockQty",
+          "estimatedAmount",
+          "estimatedUnitPrice",
+          "ingredientId",
+          "isPriceWarning",
+          "priceVariancePercent",
+          "purchaseForDate",
+          "purchaseQty",
+          "purchaseRequestCode",
+          "purchaseRequestId",
+          "purchaseRequestLineId",
+          "referenceUnitPrice",
+          "requiredQty",
+          "status",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "purchaseRequestId": {
+            "type": "string"
+          },
+          "purchaseRequestLineId": {
+            "type": "string"
+          },
+          "purchaseRequestCode": {
+            "type": "string"
+          },
+          "purchaseForDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentStockQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "purchaseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "referenceUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "priceVariancePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "isPriceWarning": {
+            "type": "boolean"
+          },
+          "expectedDeliveryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchaseDemandReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseDemandReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -22517,6 +26530,207 @@
         },
         "additionalProperties": false
       },
+      "PurchasePlanPageDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalEstimatedAmount",
+          "totalPages",
+          "totalShortageQty"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchasePlanReportDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "totalShortageQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "totalEstimatedAmount": {
+            "type": "number",
+            "format": "double"
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchasePlanPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/PurchasePlanPageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchasePlanReportDto": {
+        "required": [
+          "currentStockQty",
+          "estimatedAmount",
+          "estimatedUnitPrice",
+          "groupBy",
+          "ingredientId",
+          "pendingReceiptQty",
+          "periodEnd",
+          "periodKey",
+          "periodStart",
+          "requiredQty",
+          "shortageQty",
+          "suggestedPurchaseQty",
+          "unitId",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "periodKey": {
+            "type": "string"
+          },
+          "groupBy": {
+            "type": "string"
+          },
+          "periodStart": {
+            "type": "string",
+            "format": "date"
+          },
+          "periodEnd": {
+            "type": "string",
+            "format": "date"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "requiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "currentStockQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "pendingReceiptQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "shortageQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "suggestedPurchaseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedUnitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "estimatedAmount": {
+            "type": "number",
+            "format": "double"
+          },
+          "supplierId": {
+            "type": "string",
+            "nullable": true
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "expectedDeliveryDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "PurchasePlanReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchasePlanReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "PurchasePriceException": {
         "required": [
           "concurrencyVersion",
@@ -23389,6 +27603,169 @@
         },
         "additionalProperties": false
       },
+      "ReceiptPriceVarianceReportDto": {
+        "required": [
+          "ingredientId",
+          "isWarning",
+          "quantity",
+          "receiptCode",
+          "receiptDate",
+          "receiptId",
+          "referencePrice",
+          "supplierId",
+          "unitId",
+          "unitPrice",
+          "variancePercent"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptId": {
+            "type": "string"
+          },
+          "receiptCode": {
+            "type": "string"
+          },
+          "receiptDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "supplierId": {
+            "type": "string"
+          },
+          "supplierName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitPrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "referencePrice": {
+            "type": "number",
+            "format": "double"
+          },
+          "variancePercent": {
+            "type": "number",
+            "format": "double"
+          },
+          "isWarning": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptPriceVarianceReportDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptPriceVarianceReportDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptPriceVarianceReportDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReceiptPriceVarianceReportDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ReceiptPriceVarianceReportDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ReceiptPriceVarianceReportDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "RecordWarehousePurchaseReceiptRequest": {
         "required": [
           "idempotencyKey",
@@ -24209,6 +28586,88 @@
         },
         "additionalProperties": false
       },
+      "StockLedgerReconciliationDto": {
+        "required": [
+          "currentQty",
+          "differenceQty",
+          "ingredientId",
+          "isMatched",
+          "ledgerQty",
+          "unitId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "currentQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "ledgerQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "differenceQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "isMatched": {
+            "type": "boolean"
+          },
+          "lastMovementAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockLedgerReconciliationDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockLedgerReconciliationDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "StockMovement": {
         "required": [
           "afterQty",
@@ -24318,6 +28777,172 @@
         },
         "additionalProperties": false
       },
+      "StockMovementViewDto": {
+        "required": [
+          "afterQty",
+          "beforeQty",
+          "ingredientId",
+          "movementDate",
+          "movementId",
+          "movementType",
+          "quantityIn",
+          "quantityOut",
+          "unitId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "movementId": {
+            "type": "string"
+          },
+          "movementDate": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "movementType": {
+            "type": "string"
+          },
+          "quantityIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantityOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "beforeQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "afterQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "refTable": {
+            "type": "string",
+            "nullable": true
+          },
+          "refId": {
+            "type": "string",
+            "nullable": true
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockMovementViewDtoCursorPageDto": {
+        "required": [
+          "hasNext",
+          "items",
+          "limit",
+          "nextCursorOffset"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockMovementViewDto"
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "hasNext": {
+            "type": "boolean"
+          },
+          "nextCursorDate": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextCursorId": {
+            "type": "string",
+            "nullable": true
+          },
+          "nextCursorOffset": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockMovementViewDtoCursorPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/StockMovementViewDtoCursorPageDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockMovementViewDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockMovementViewDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "StockSnapshot": {
         "required": [
           "closingQty",
@@ -24384,6 +29009,98 @@
           },
           "warehouse": {
             "$ref": "#/components/schemas/Warehouse"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockSnapshotDto": {
+        "required": [
+          "closingQty",
+          "generatedAt",
+          "ingredientId",
+          "openingQty",
+          "periodMonth",
+          "quantityIn",
+          "quantityOut",
+          "snapshotId",
+          "unitId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "snapshotId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string",
+            "nullable": true
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string",
+            "nullable": true
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string",
+            "nullable": true
+          },
+          "periodMonth": {
+            "type": "string",
+            "format": "date"
+          },
+          "openingQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantityIn": {
+            "type": "number",
+            "format": "double"
+          },
+          "quantityOut": {
+            "type": "number",
+            "format": "double"
+          },
+          "closingQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "generatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "additionalProperties": false
+      },
+      "StockSnapshotDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StockSnapshotDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
@@ -24763,6 +29480,205 @@
               "nullable": true
             },
             "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupplementalMaterialRequestDto": {
+        "required": [
+          "availableQty",
+          "canFulfill",
+          "canReject",
+          "canRouteToPurchasing",
+          "fulfilledQty",
+          "ingredientId",
+          "ingredientName",
+          "issueCode",
+          "issueId",
+          "issueLineId",
+          "remainingQty",
+          "requestCode",
+          "requestedAt",
+          "requestedQty",
+          "requestId",
+          "status",
+          "unitId",
+          "unitName",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "requestId": {
+            "type": "string"
+          },
+          "requestCode": {
+            "type": "string"
+          },
+          "issueId": {
+            "type": "string"
+          },
+          "issueCode": {
+            "type": "string"
+          },
+          "issueLineId": {
+            "type": "string"
+          },
+          "warehouseId": {
+            "type": "string"
+          },
+          "ingredientId": {
+            "type": "string"
+          },
+          "ingredientName": {
+            "type": "string"
+          },
+          "unitId": {
+            "type": "string"
+          },
+          "unitName": {
+            "type": "string"
+          },
+          "requestedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "fulfilledQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "remainingQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "availableQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "reason": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "requestedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "purchaseRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "purchaseRequestCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "purchaseRequestStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "canFulfill": {
+            "type": "boolean"
+          },
+          "canRouteToPurchasing": {
+            "type": "boolean"
+          },
+          "canReject": {
+            "type": "boolean"
+          },
+          "actionDisabledReason": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupplementalMaterialRequestDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SupplementalMaterialRequestDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupplementalMaterialRequestDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SupplementalMaterialRequestDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "SupplementalMaterialRequestDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/SupplementalMaterialRequestDtoPagedResponseDto"
           },
           "errors": {
             "nullable": true
@@ -26157,6 +31073,150 @@
         },
         "additionalProperties": false
       },
+      "WarehouseDto": {
+        "required": [
+          "warehouseCode",
+          "warehouseId",
+          "warehouseName"
+        ],
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string"
+          },
+          "warehouseCode": {
+            "type": "string"
+          },
+          "warehouseName": {
+            "type": "string"
+          },
+          "warehouseType": {
+            "type": "string",
+            "nullable": true
+          },
+          "note": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WarehouseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WarehouseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WarehouseDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarehouseDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WarehouseDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WarehouseDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "WarehouseDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/WarehouseDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "WarehousePurchaseReceiptLineRequest": {
         "required": [
           "actualQuantity",
@@ -26795,6 +31855,77 @@
           },
           "dishId": {
             "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDocumentDto": {
+        "required": [
+          "documentCode",
+          "documentDate",
+          "documentId",
+          "documentType",
+          "ownerLane",
+          "route",
+          "status",
+          "summary"
+        ],
+        "type": "object",
+        "properties": {
+          "documentId": {
+            "type": "string"
+          },
+          "documentCode": {
+            "type": "string"
+          },
+          "documentType": {
+            "type": "string"
+          },
+          "documentDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string"
+          },
+          "ownerLane": {
+            "type": "string"
+          },
+          "route": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "WorkflowDocumentDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkflowDocumentDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
           }
         },
         "additionalProperties": false
