@@ -12,7 +12,7 @@
     "fe": "npm run dev -w frontend",
     "be": "dotnet run --project backend/src/IPCManagement.Api",
     "build:be": "dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj",
-    "gen:api:spec": "dotnet tool restore && dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj -c Release && dotnet swagger tofile --output frontend/src/shared/api/contracts/openapi.json backend/src/IPCManagement.Api/bin/Release/net9.0/IPCManagement.Api.dll v1",
+    "gen:api:spec": "dotnet tool restore && dotnet build backend/src/IPCManagement.Api/IPCManagement.Api.csproj -c Release -p:UseAppHost=false -o .artifacts/contract-build/api && dotnet swagger tofile --output frontend/src/shared/api/contracts/openapi.json .artifacts/contract-build/api/IPCManagement.Api.dll v1",
     "gen:api": "npm run gen:api:spec && npx --yes openapi-typescript@7.13.0 frontend/src/shared/api/contracts/openapi.json --output frontend/src/shared/api/contracts/schema.ts --immutable --alphabetize",
     "check:api-contract": "npm run gen:api && git diff --exit-code -- frontend/src/shared/api/contracts/openapi.json frontend/src/shared/api/contracts/schema.ts",
     "test:be": "dotnet test backend/IPCManagement.slnx",
