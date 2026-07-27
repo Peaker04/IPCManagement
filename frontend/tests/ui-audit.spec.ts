@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 type AuditIssue = {
