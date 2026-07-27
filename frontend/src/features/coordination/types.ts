@@ -1,5 +1,11 @@
 export type { ShiftType } from '@/lib/types'
 import type { ShiftType } from '@/lib/types'
+import type { components, paths } from '@/shared/api/contracts/schema'
+
+type LowerCamelQuery<Query> = {
+  [Key in keyof Query as Uncapitalize<Key & string>]: Query[Key]
+}
+
 export type ApiShiftName = 'MORNING' | 'AFTERNOON'
 export type EditableOrderField = 'forecastQuantity' | 'specialNotes'
 
@@ -59,7 +65,7 @@ export interface OrderRow {
   serviceDate?: string
   dayOfWeek: string // 't2', 't3', 't4', 't5', 't6', 't7', 'cn'
   shiftName?: ApiShiftName
-  shift: ShiftType // 'Ca Sáng' | 'Ca Chiều'
+  shift: string // Giữ nguyên nhãn server nếu xuất hiện ca chưa được FE hỗ trợ.
   menuId?: string
   menuCode?: string
   menuName?: string
@@ -85,13 +91,13 @@ export interface MenuSlot {
   dishId: string
   portions: number
   customComponents?: {
-    main?: string
-    sub1?: string
-    sub2?: string
-    rau?: string
-    canh?: string
-    fruit?: string
-    dessert?: string
+    main?: string | null
+    sub1?: string | null
+    sub2?: string | null
+    rau?: string | null
+    canh?: string | null
+    fruit?: string | null
+    dessert?: string | null
   }
 }
 
@@ -127,211 +133,31 @@ export interface DashboardState {
   editingCell: string | null
 }
 
-export interface MenuScheduleQuery {
-  serviceDate?: string
-  dayOfWeek?: string
-  weekStartDate?: string
-  shiftName?: ApiShiftName
-  customerId?: string
-}
+export type MenuScheduleQuery = LowerCamelQuery<
+  NonNullable<paths['/api/coordination/menu-schedules']['get']['parameters']['query']>
+>
+export type MenuScheduleDishDto = components['schemas']['MenuScheduleDishDto']
+export type MenuScheduleDto = components['schemas']['MenuScheduleDto']
+export type CustomerContractDto = components['schemas']['CustomerContractDto']
+export type UpdateCustomerContractRequest = components['schemas']['UpdateCustomerContractRequest']
+export type CreateCustomerContractRequest = components['schemas']['CreateCustomerContractRequest']
+export type UpdateMenuScheduleRulesRequest = components['schemas']['UpdateMenuScheduleRulesRequest']
+export type UpdateMenuScheduleVersionRequest = components['schemas']['UpdateMenuScheduleVersionRequest']
+export type RollbackMenuVersionRequest = components['schemas']['RollbackMenuVersionRequest']
+export type MenuVersionRollbackResult = components['schemas']['MenuVersionRollbackResultDto']
+export type MealQuantityPlanQuery = LowerCamelQuery<
+  NonNullable<paths['/api/coordination/meal-quantity-plans']['get']['parameters']['query']>
+>
+export type MealQuantityPlanLineDto = components['schemas']['MealQuantityPlanLineDto']
+export type MealQuantityPlanDto = components['schemas']['MealQuantityPlanDto']
+export type SignoffOrderRequest = components['schemas']['SignoffOrderRequest']
+export type SignoffOrderResult = components['schemas']['SignoffOrderResultDto']
 
-export interface MenuScheduleDishDto {
-  dishId: string
-  dishCode: string
-  dishName: string
-  dishGroup?: string
-  dishType?: string
-  displayOrder: number
-}
+export type CoordinationScopeActionRequest = Pick<
+  components['schemas']['CoordinationScopeActionRequest'],
+  'note'
+> & { dayOfWeek: string; shift: ShiftType }
 
-export interface MenuScheduleDto {
-  menuScheduleId: string
-  customerId: string
-  customerCode: string
-  customerName: string
-  menuId: string
-  menuCode: string
-  menuName: string
-  serviceDate: string
-  weekStartDate: string
-  shiftName: ApiShiftName
-  shift: ShiftType
-  dayOfWeek: string
-  menuPrice: number
-  bomRatePercent: number
-  status: string
-  menuVersionId?: string | null
-  menuVersionNo?: number | null
-  menuVersionStatus?: string | null
-  publishedBy?: string | null
-  publishedAt?: string | null
-  sourceImportBatch?: string | null
-  dishes: MenuScheduleDishDto[]
-}
-
-export interface CustomerContractDto {
-  contractId?: string | null
-  customerId: string
-  customerCode: string
-  customerName: string
-  note?: string | null
-  isActive: boolean
-  effectiveFrom?: string | null
-  effectiveTo?: string | null
-  contractStatus: string
-  menuScheduleCount: number
-  activeWeekDays: string[]
-  shiftNames: ApiShiftName[]
-  defaultMenuPrice?: number | null
-  defaultBomRatePercent?: number | null
-  latestServiceDate?: string | null
-}
-
-export interface UpdateCustomerContractRequest {
-  customerName?: string
-  note?: string | null
-  isActive?: boolean
-  effectiveFrom?: string
-  effectiveTo?: string
-  activeWeekDays?: string[]
-  shiftNames?: ApiShiftName[]
-  defaultMenuPrice?: number
-  defaultBomRatePercent?: number
-}
-
-export interface CreateCustomerContractRequest {
-  customerCode: string
-  customerName: string
-  note?: string | null
-  isActive?: boolean
-  effectiveFrom?: string
-  effectiveTo?: string
-  activeWeekDays?: string[]
-  shiftNames?: ApiShiftName[]
-  defaultMenuPrice?: number
-  defaultBomRatePercent?: number
-}
-
-export interface UpdateMenuScheduleRulesRequest {
-  menuPrice?: number
-  bomRatePercent?: number
-  status?: string
-  reason?: string
-}
-
-export interface UpdateMenuScheduleVersionRequest {
-  status: string
-  reason?: string
-}
-
-export interface RollbackMenuVersionRequest {
-  customerId: string
-  weekStartDate: string
-  targetVersionNo?: number
-  targetMenuVersionId?: string
-  reason: string
-}
-
-export interface MenuVersionRollbackResult {
-  customerId: string
-  weekStartDate: string
-  activeMenuVersionId: string
-  activeVersionNo: number
-  rolledBackFromMenuVersionId: string
-  rolledBackFromVersionNo: number
-  cancelledDemandCount: number
-  cancelledPurchaseCount: number
-  reason: string
-}
-
-export interface MealQuantityPlanQuery {
-  customerId?: string
-  serviceDate?: string
-  dayOfWeek?: string
-  weekStartDate?: string
-  shiftName?: ApiShiftName
-  status?: string
-}
-
-export interface MealQuantityPlanLineDto {
-  quantityPlanLineId: string
-  menuScheduleId: string
-  customerId: string
-  customerCode: string
-  customerName: string
-  menuId: string
-  menuCode: string
-  menuName: string
-  shiftName: ApiShiftName
-  shift: ShiftType
-  forecastServings: number
-  confirmedServings: number
-  adjustedServings: number
-  finalServings: number
-}
-
-export interface MealQuantityPlanDto {
-  quantityPlanId: string
-  planCode: string
-  serviceDate: string
-  dayOfWeek: string
-  status: 'DRAFT' | 'FORECASTED' | 'CONFIRMED' | 'ADJUSTED' | 'COMPLETED' | 'ARCHIVED' | string
-  forecastReceivedAt?: string
-  confirmedAt?: string
-  lines: MealQuantityPlanLineDto[]
-}
-
-export interface SignoffOrderRequest {
-  note?: string
-}
-
-export interface SignoffOrderResult {
-  success: boolean
-  quantityPlanId: string
-  serviceDate: string
-  oldStatus: string
-  newStatus: string
-  signedOffAt: string
-}
-
-export interface CoordinationScopeActionRequest {
-  dayOfWeek: string
-  shift: ShiftType
-  note?: string
-}
-
-export interface CoordinationScopeActionResult {
-  success: boolean
-  serviceDate: string
-  shiftName: ApiShiftName
-  affectedPlanCount: number
-  oldStatuses: string[]
-  newStatus: string
-  changedAt: string
-}
-
-export interface ProductionPlanLineDto {
-  planLineId: string
-  dishId: string
-  dishName?: string
-  shiftName?: string
-  totalServings: number
-}
-
-export interface ProductionPlanDto {
-  planId: string
-  planCode: string
-  planDate: string
-  customerId?: string
-  customerCode?: string
-  customerName?: string
-  weekStartDate?: string
-  menuVersionId?: string
-  menuVersionNo?: number
-  menuVersionStatus?: string
-  status: string
-  createdBy?: string
-  createdByName?: string
-  createdAt: string
-  lines: ProductionPlanLineDto[]
-}
+export type CoordinationScopeActionResult = components['schemas']['CoordinationScopeActionResultDto']
+export type ProductionPlanLineDto = components['schemas']['ProductionPlanLineDto']
+export type ProductionPlanDto = components['schemas']['ProductionPlanDto']

@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
 import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/api/workflowApi'
-import type { ShiftType } from '../../coordination/types'
+import type { OrderRow, ShiftType } from '../../coordination/types'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { buildChefProductionPlan, mapDailyPlanLines } from './chefProductionModel'
 
@@ -24,13 +24,18 @@ export function useChefProductionPlan(
     { skip: !enabled },
   )
   const [sendDailyPlan, sendState] = useSendDailyProductionPlanToKitchenMutation()
+  const supportedOrders = useMemo(
+    () => orders.filter((order): order is OrderRow & { shift: ShiftType } =>
+      order.shift === 'Ca Sáng' || order.shift === 'Ca Chiều'),
+    [orders],
+  )
   const dailyPlanLines = useMemo(() => mapDailyPlanLines(daily.data), [daily.data])
   const isLocked = scope.isLocked || Boolean(
     daily.data && daily.data.totalPlans > 0 && daily.data.sentPlans >= daily.data.totalPlans,
   )
 
   const productionPlan = useMemo(() => buildChefProductionPlan({
-    orders,
+    orders: supportedOrders,
     catalogDishes: catalog.data ?? [],
     kitchenIssues,
     signedMaterials,
@@ -41,7 +46,7 @@ export function useChefProductionPlan(
     serviceDate: scope.serviceDate,
     dailyPlanLines,
     dailyTotalServings: daily.data?.totalServings,
-  }), [orders, catalog.data, kitchenIssues, signedMaterials, scope, isLocked, lossRate, dailyPlanLines, daily.data?.totalServings])
+  }), [supportedOrders, catalog.data, kitchenIssues, signedMaterials, scope, isLocked, lossRate, dailyPlanLines, daily.data?.totalServings])
   const dailyPlanWarnings = daily.data?.warnings ?? []
   const isCatalogEmpty = !catalog.isLoading && !catalog.isError && (catalog.data?.length ?? 0) === 0
 

@@ -4359,7 +4359,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductionPlanDtoPagedResponseDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ProductionPlanDtoPagedResponseDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ProductionPlanDtoPagedResponseDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -4394,7 +4398,22 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductionPlanDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["ProductionPlanDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["ProductionPlanDtoApiResponse"];
+                    };
+                };
+                /** @description Not Found */
+                readonly 404: {
+                    headers: {
+                        readonly [name: string]: unknown;
+                    };
+                    content: {
+                        readonly "application/json": components["schemas"]["ApiResponse"];
+                        readonly "text/json": components["schemas"]["ApiResponse"];
+                        readonly "text/plain": components["schemas"]["ApiResponse"];
+                    };
                 };
             };
         };
@@ -4431,7 +4450,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -4472,7 +4495,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                        readonly "text/json": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                        readonly "text/plain": components["schemas"]["DailyProductionPlanDtoApiResponse"];
+                    };
                 };
             };
         };
@@ -4508,7 +4535,11 @@ export interface paths {
                     headers: {
                         readonly [name: string]: unknown;
                     };
-                    content?: never;
+                    content: {
+                        readonly "application/json": components["schemas"]["ProductionPlanDtoIReadOnlyListApiResponse"];
+                        readonly "text/json": components["schemas"]["ProductionPlanDtoIReadOnlyListApiResponse"];
+                        readonly "text/plain": components["schemas"]["ProductionPlanDtoIReadOnlyListApiResponse"];
+                    };
                 };
             };
         };
@@ -8396,113 +8427,113 @@ export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
         readonly AdjustOrderAfterLockRequest: {
-            readonly field?: string;
+            readonly field: string;
             /** Format: int32 */
-            readonly newValue?: number;
-            readonly orderId?: string;
-            readonly quantityPlanLineId?: string;
-            readonly reason?: string;
+            readonly newValue: number;
+            readonly orderId: string;
+            readonly quantityPlanLineId?: string | null;
+            readonly reason: string;
         };
         readonly AdjustOrderAfterLockResultDto: {
-            readonly approvalStatus?: string;
-            readonly approvalTargetId?: string;
-            readonly approvalTargetType?: string;
+            readonly approvalStatus: string;
+            readonly approvalTargetId: string;
+            readonly approvalTargetType: string;
             /** Format: int32 */
-            readonly newValue?: number;
+            readonly newValue: number;
             /** Format: int32 */
-            readonly oldValue?: number;
-            readonly reason?: string;
-            readonly requiresApproval?: boolean;
-            readonly success?: boolean;
+            readonly oldValue: number;
+            readonly reason: string;
+            readonly requiresApproval: boolean;
+            readonly success: boolean;
             /** Format: date-time */
-            readonly timestamp?: string;
+            readonly timestamp: string;
         };
         readonly AdjustOrderAfterLockResultDtoApiResponse: {
             readonly data?: components["schemas"]["AdjustOrderAfterLockResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly AdjustServingsRequest: {
-            readonly reason?: string;
+            readonly reason: string;
             /** Format: int32 */
-            readonly servingsQuantity?: number;
+            readonly servingsQuantity: number;
         };
         readonly AdjustServingsResultDto: {
-            readonly auditId?: string;
+            readonly auditId: string;
             /** Format: date-time */
-            readonly changedAt?: string;
+            readonly changedAt: string;
             /** Format: int32 */
-            readonly newServings?: number;
+            readonly newServings: number;
             /** Format: int32 */
-            readonly oldServings?: number;
-            readonly orderId?: string;
-            readonly success?: boolean;
+            readonly oldServings: number;
+            readonly orderId: string;
+            readonly success: boolean;
             readonly warning?: string | null;
         };
         readonly AdjustServingsResultDtoApiResponse: {
             readonly data?: components["schemas"]["AdjustServingsResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly AdminRoleDto: {
-            readonly roleCode?: string;
-            readonly roleId?: string;
-            readonly roleName?: string;
+            readonly roleCode: string;
+            readonly roleId: string;
+            readonly roleName: string;
         };
         readonly AdminRoleDtoListApiResponse: {
             readonly data?: readonly components["schemas"]["AdminRoleDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApiResponse: {
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalAssignment: {
-            readonly approverRole?: string;
+            readonly approverRole: string;
             readonly approverUser?: components["schemas"]["User"];
             /** Format: byte */
             readonly approverUserId?: string | null;
             /** Format: byte */
-            readonly assignmentId?: string;
-            readonly isRequired?: boolean;
-            readonly rule?: components["schemas"]["ApprovalRule"];
+            readonly assignmentId: string;
+            readonly isRequired: boolean;
+            readonly rule: components["schemas"]["ApprovalRule"];
             /** Format: byte */
-            readonly ruleId?: string;
+            readonly ruleId: string;
             /** Format: int32 */
-            readonly sequence?: number;
+            readonly sequence: number;
         };
         readonly ApprovalAssignmentRequest: {
-            readonly approverRole?: string;
+            readonly approverRole: string;
             readonly approverUserId?: string | null;
-            readonly isRequired?: boolean;
+            readonly isRequired: boolean;
             /** Format: int32 */
-            readonly sequence?: number;
+            readonly sequence: number;
         };
         /** @enum {string} */
         readonly ApprovalDecision: "Approve" | "Reject";
         readonly ApprovalHistoryItemDto: {
             /** Format: date-time */
-            readonly actionAt?: string;
-            readonly actionBy?: string;
-            readonly actionByName?: string;
-            readonly decision?: string;
-            readonly historyId?: string;
+            readonly actionAt: string;
+            readonly actionBy: string;
+            readonly actionByName: string;
+            readonly decision: string;
+            readonly historyId: string;
             readonly newStatus?: string | null;
             readonly oldStatus?: string | null;
             readonly reason?: string | null;
-            readonly targetId?: string;
-            readonly targetType?: string;
+            readonly targetId: string;
+            readonly targetType: string;
         };
         readonly ApprovalHistoryItemDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["ApprovalHistoryItemDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalInboxItemDto: {
             /** Format: date */
@@ -8511,22 +8542,22 @@ export interface components {
             readonly evidenceDate?: string | null;
             readonly evidenceId?: string | null;
             readonly evidenceType?: string | null;
-            readonly inboxItemId?: string;
-            readonly itemType?: string;
+            readonly inboxItemId: string;
+            readonly itemType: string;
             /** Format: int32 */
             readonly lineCount?: number | null;
-            readonly materials?: readonly components["schemas"]["ApprovalInboxMaterialDto"][];
-            readonly nextAction?: string;
-            readonly ownerRole?: string;
+            readonly materials: readonly components["schemas"]["ApprovalInboxMaterialDto"][];
+            readonly nextAction: string;
+            readonly ownerRole: string;
             readonly proposalFingerprint?: string | null;
             /** Format: int32 */
             readonly proposalVersion?: number | null;
             /** Format: double */
             readonly proposedPrice?: number | null;
-            readonly reason?: string;
+            readonly reason: string;
             /** Format: double */
             readonly referencePrice?: number | null;
-            readonly route?: string;
+            readonly route: string;
             readonly scope?: string | null;
             /** Format: date */
             readonly serviceDate?: string | null;
@@ -8534,18 +8565,18 @@ export interface components {
             readonly slaDeadline?: string | null;
             /** Format: int32 */
             readonly slaHours?: number | null;
-            readonly source?: string;
+            readonly source: string;
             readonly sourceDocumentCode?: string | null;
-            readonly status?: string;
+            readonly status: string;
             /** Format: date-time */
             readonly submittedAt?: string | null;
-            readonly submittedBy?: string;
+            readonly submittedBy: string;
             readonly supplierName?: string | null;
-            readonly targetCode?: string;
-            readonly targetId?: string;
-            readonly targetType?: string;
-            readonly title?: string;
-            readonly tone?: string;
+            readonly targetCode: string;
+            readonly targetId: string;
+            readonly targetType: string;
+            readonly title: string;
+            readonly tone: string;
             /** Format: double */
             readonly totalQuantity?: number | null;
             /** Format: double */
@@ -8556,109 +8587,109 @@ export interface components {
             readonly weekStartDate?: string | null;
         };
         readonly ApprovalInboxMaterialDto: {
-            readonly name?: string;
+            readonly name: string;
             /** Format: double */
-            readonly quantity?: number;
-            readonly unit?: string;
+            readonly quantity: number;
+            readonly unit: string;
         };
         readonly ApprovalInboxPageDto: {
-            readonly hasNext?: boolean;
-            readonly items?: readonly components["schemas"]["ApprovalInboxItemDto"][];
+            readonly hasNext: boolean;
+            readonly items: readonly components["schemas"]["ApprovalInboxItemDto"][];
             /** Format: int32 */
-            readonly limit?: number;
+            readonly limit: number;
             readonly nextCursor?: string | null;
         };
         readonly ApprovalInboxPageDtoApiResponse: {
             readonly data?: components["schemas"]["ApprovalInboxPageDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalRequest: {
             readonly reason?: string | null;
-            readonly status?: components["schemas"]["ApprovalDecision"];
+            readonly status: components["schemas"]["ApprovalDecision"];
         };
         readonly ApprovalResultDto: {
             /** Format: date-time */
-            readonly actionAt?: string;
-            readonly historyId?: string;
+            readonly actionAt: string;
+            readonly historyId: string;
             readonly newStatus?: string | null;
             readonly oldStatus?: string | null;
-            readonly status?: string;
-            readonly targetId?: string;
-            readonly targetType?: string;
+            readonly status: string;
+            readonly targetId: string;
+            readonly targetType: string;
         };
         readonly ApprovalResultDtoApiResponse: {
             readonly data?: components["schemas"]["ApprovalResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalRule: {
-            readonly approvalassignments?: readonly components["schemas"]["ApprovalAssignment"][];
+            readonly approvalassignments: readonly components["schemas"]["ApprovalAssignment"][];
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly documentType?: string;
-            readonly isActive?: boolean;
+            readonly createdAt: string;
+            readonly documentType: string;
+            readonly isActive: boolean;
             /** Format: double */
             readonly maxAmount?: number | null;
             /** Format: double */
             readonly minAmount?: number | null;
             /** Format: byte */
-            readonly ruleId?: string;
-            readonly ruleName?: string;
+            readonly ruleId: string;
+            readonly ruleName: string;
             /** Format: int32 */
             readonly slaHours?: number | null;
         };
         readonly ApprovalRuleApiResponse: {
             readonly data?: components["schemas"]["ApprovalRule"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalRuleIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["ApprovalRule"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ApprovalRuleRequest: {
-            readonly assignments?: readonly components["schemas"]["ApprovalAssignmentRequest"][];
-            readonly documentType?: string;
-            readonly isActive?: boolean;
+            readonly assignments: readonly components["schemas"]["ApprovalAssignmentRequest"][];
+            readonly documentType: string;
+            readonly isActive: boolean;
             /** Format: double */
             readonly maxAmount?: number | null;
             /** Format: double */
             readonly minAmount?: number | null;
-            readonly ruleName?: string;
+            readonly ruleName: string;
             /** Format: int32 */
             readonly slaHours?: number | null;
         };
         readonly ApprovedDemandSummaryDto: {
-            readonly currentStage?: string;
-            readonly materialRequestId?: string;
+            readonly currentStage: string;
+            readonly materialRequestId: string;
             readonly purchaseRequestCode?: string | null;
             readonly purchaseRequestId?: string | null;
             readonly purchaseRequestStatus?: string | null;
-            readonly requestCode?: string;
-            readonly scope?: string;
-            readonly serviceDate?: string;
+            readonly requestCode: string;
+            readonly scope: string;
+            readonly serviceDate: string;
             /** Format: int32 */
-            readonly shortageLineCount?: number;
-            readonly status?: string;
+            readonly shortageLineCount: number;
+            readonly status: string;
         };
         readonly AuditLog: {
             /** Format: byte */
-            readonly auditId?: string;
-            readonly businessArea?: string;
+            readonly auditId: string;
+            readonly businessArea: string;
             /** Format: date-time */
-            readonly changedAt?: string;
+            readonly changedAt: string;
             /** Format: byte */
-            readonly changedBy?: string;
-            readonly changedByNavigation?: components["schemas"]["User"];
+            readonly changedBy: string;
+            readonly changedByNavigation: components["schemas"]["User"];
             /** Format: byte */
             readonly entityId?: string | null;
-            readonly entityName?: string;
+            readonly entityName: string;
             readonly fieldName?: string | null;
             readonly newValue?: string | null;
             readonly oldValue?: string | null;
@@ -8667,180 +8698,180 @@ export interface components {
         readonly BackupRestoreEvidenceRequest: {
             readonly backupIdentifier: string;
             readonly restoreFingerprint: string;
-            readonly restoreVerified?: boolean;
+            readonly restoreVerified: boolean;
             readonly targetFingerprint: string;
         };
         readonly BomAdjustment: {
             /** Format: date-time */
-            readonly adjustedAt?: string;
+            readonly adjustedAt: string;
             /** Format: byte */
-            readonly adjustedBy?: string;
-            readonly adjustedByNavigation?: components["schemas"]["User"];
-            readonly bom?: components["schemas"]["DishBom"];
+            readonly adjustedBy: string;
+            readonly adjustedByNavigation: components["schemas"]["User"];
+            readonly bom: components["schemas"]["DishBom"];
             /** Format: byte */
-            readonly bomAdjustmentId?: string;
+            readonly bomAdjustmentId: string;
             /** Format: byte */
-            readonly bomId?: string;
+            readonly bomId: string;
             /** Format: double */
-            readonly newGrossQtyPerServing?: number;
+            readonly newGrossQtyPerServing: number;
             /** Format: double */
-            readonly newWasteRatePercent?: number;
+            readonly newWasteRatePercent: number;
             /** Format: double */
-            readonly oldGrossQtyPerServing?: number;
+            readonly oldGrossQtyPerServing: number;
             /** Format: double */
-            readonly oldWasteRatePercent?: number;
+            readonly oldWasteRatePercent: number;
             readonly reason?: string | null;
         };
         readonly BomCoverageDishDto: {
             /** Format: int32 */
-            readonly bomLineCount?: number;
-            readonly dishCode?: string;
+            readonly bomLineCount: number;
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishType?: string | null;
-            readonly hasBom?: boolean;
-            readonly status?: string;
-            readonly statusLabel?: string;
+            readonly hasBom: boolean;
+            readonly status: string;
+            readonly statusLabel: string;
         };
         readonly BomCoverageReportDto: {
             /** Format: int32 */
-            readonly completeDishes?: number;
-            readonly dishes?: readonly components["schemas"]["BomCoverageDishDto"][];
+            readonly completeDishes: number;
+            readonly dishes: readonly components["schemas"]["BomCoverageDishDto"][];
             /** Format: date-time */
-            readonly generatedAt?: string;
+            readonly generatedAt: string;
             /** Format: int32 */
-            readonly missingBomDishes?: number;
+            readonly missingBomDishes: number;
             /** Format: int32 */
-            readonly totalBomLines?: number;
+            readonly totalBomLines: number;
             /** Format: int32 */
-            readonly totalDishes?: number;
+            readonly totalDishes: number;
         };
         readonly BomCoverageReportDtoApiResponse: {
             readonly data?: components["schemas"]["BomCoverageReportDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly BomImportCommitResultDto: {
             /** Format: int32 */
-            readonly archivedRows?: number;
-            readonly auditBatchCode?: string;
-            readonly bomScope?: string;
-            readonly canCommit?: boolean;
+            readonly archivedRows: number;
+            readonly auditBatchCode: string;
+            readonly bomScope: string;
+            readonly canCommit: boolean;
             /** Format: int32 */
-            readonly createdRows?: number;
+            readonly createdRows: number;
             readonly customerId?: string | null;
             /** Format: int32 */
-            readonly errorRows?: number;
+            readonly errorRows: number;
             /** Format: date-time */
-            readonly generatedAt?: string;
+            readonly generatedAt: string;
             /** Format: double */
-            readonly priceTier?: number;
-            readonly rows?: readonly components["schemas"]["BomImportPreviewRowDto"][];
+            readonly priceTier: number;
+            readonly rows: readonly components["schemas"]["BomImportPreviewRowDto"][];
             /** Format: int32 */
-            readonly totalRows?: number;
+            readonly totalRows: number;
             /** Format: int32 */
-            readonly updatedRows?: number;
+            readonly updatedRows: number;
             /** Format: int32 */
-            readonly validRows?: number;
+            readonly validRows: number;
             /** Format: int32 */
-            readonly warningRows?: number;
-            readonly warnings?: readonly string[];
+            readonly warningRows: number;
+            readonly warnings: readonly string[];
         };
         readonly BomImportCommitResultDtoApiResponse: {
             readonly data?: components["schemas"]["BomImportCommitResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly BomImportPreviewDto: {
-            readonly bomScope?: string;
-            readonly canCommit?: boolean;
+            readonly bomScope: string;
+            readonly canCommit: boolean;
             readonly customerId?: string | null;
             /** Format: int32 */
-            readonly errorRows?: number;
+            readonly errorRows: number;
             /** Format: date-time */
-            readonly generatedAt?: string;
+            readonly generatedAt: string;
             /** Format: double */
-            readonly priceTier?: number;
-            readonly rows?: readonly components["schemas"]["BomImportPreviewRowDto"][];
+            readonly priceTier: number;
+            readonly rows: readonly components["schemas"]["BomImportPreviewRowDto"][];
             /** Format: int32 */
-            readonly totalRows?: number;
+            readonly totalRows: number;
             /** Format: int32 */
-            readonly validRows?: number;
+            readonly validRows: number;
             /** Format: int32 */
-            readonly warningRows?: number;
-            readonly warnings?: readonly string[];
+            readonly warningRows: number;
+            readonly warnings: readonly string[];
         };
         readonly BomImportPreviewDtoApiResponse: {
             readonly data?: components["schemas"]["BomImportPreviewDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly BomImportPreviewRowDto: {
-            readonly action?: string;
-            readonly dishCode?: string;
-            readonly dishName?: string;
+            readonly action: string;
+            readonly dishCode: string;
+            readonly dishName: string;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
-            readonly errors?: readonly string[];
+            readonly errors: readonly string[];
             /** Format: double */
-            readonly grossQtyPerServing?: number;
-            readonly ingredientCode?: string;
-            readonly ingredientName?: string;
+            readonly grossQtyPerServing: number;
+            readonly ingredientCode: string;
+            readonly ingredientName: string;
             /** Format: int32 */
-            readonly rowNumber?: number;
-            readonly status?: string;
-            readonly unitCode?: string;
-            readonly warnings?: readonly string[];
+            readonly rowNumber: number;
+            readonly status: string;
+            readonly unitCode: string;
+            readonly warnings: readonly string[];
             /** Format: double */
-            readonly wasteRatePercent?: number;
+            readonly wasteRatePercent: number;
         };
         readonly BomValidationIssueDto: {
             readonly bomId?: string | null;
-            readonly dishCode?: string;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishCode: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly ingredientId?: string | null;
             readonly ingredientName?: string | null;
-            readonly issueCode?: string;
-            readonly message?: string;
-            readonly severity?: string;
+            readonly issueCode: string;
+            readonly message: string;
+            readonly severity: string;
         };
         readonly BomValidationReportDto: {
             /** Format: date-time */
-            readonly generatedAt?: string;
-            readonly issues?: readonly components["schemas"]["BomValidationIssueDto"][];
+            readonly generatedAt: string;
+            readonly issues: readonly components["schemas"]["BomValidationIssueDto"][];
             /** Format: int32 */
-            readonly missingBomDishes?: number;
+            readonly missingBomDishes: number;
             /** Format: int32 */
-            readonly missingIngredientLines?: number;
+            readonly missingIngredientLines: number;
             /** Format: int32 */
-            readonly missingReferencePriceLines?: number;
+            readonly missingReferencePriceLines: number;
             /** Format: int32 */
-            readonly totalIssues?: number;
+            readonly totalIssues: number;
             /** Format: int32 */
-            readonly unknownUnitLines?: number;
+            readonly unknownUnitLines: number;
             /** Format: int32 */
-            readonly zeroQuantityLines?: number;
+            readonly zeroQuantityLines: number;
         };
         readonly BomValidationReportDtoApiResponse: {
             readonly data?: components["schemas"]["BomValidationReportDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly BulkUpdateWeeklyMenuRequest: {
-            readonly customerId?: string;
-            readonly slots?: readonly components["schemas"]["WeeklyMenuSlotUpdateRequest"][];
+            readonly customerId: string;
+            readonly slots: readonly components["schemas"]["WeeklyMenuSlotUpdateRequest"][];
         };
         readonly ConfirmInventoryIssueReceiptRequest: {
             readonly discrepancyNote?: string | null;
-            readonly hasDiscrepancy?: boolean;
+            readonly hasDiscrepancy: boolean;
         };
         readonly ConfirmInventoryReturnLineRequest: {
             /** Format: double */
@@ -8848,75 +8879,75 @@ export interface components {
             readonly returnLineId: string;
         };
         readonly ConfirmInventoryReturnReceiptRequest: {
-            readonly adjustedLines?: readonly components["schemas"]["ConfirmInventoryReturnLineRequest"][];
+            readonly adjustedLines: readonly components["schemas"]["ConfirmInventoryReturnLineRequest"][];
             readonly discrepancyNote?: string | null;
-            readonly hasDiscrepancy?: boolean;
+            readonly hasDiscrepancy: boolean;
         };
         readonly ConfirmPurchaseLineSupplierRequest: {
-            readonly evidenceId?: string;
-            readonly evidenceType?: components["schemas"]["SupplierEvidenceType"];
+            readonly evidenceId: string;
+            readonly evidenceType: components["schemas"]["SupplierEvidenceType"];
             /** Format: int32 */
-            readonly expectedDecisionVersion?: number;
+            readonly expectedDecisionVersion: number;
             readonly note?: string | null;
-            readonly proposedDeliveryDate?: string;
+            readonly proposedDeliveryDate: string;
             /** Format: double */
-            readonly proposedUnitPrice?: number;
-            readonly supplierId?: string;
+            readonly proposedUnitPrice: number;
+            readonly supplierId: string;
         };
         readonly CoordinationCustomerOptionDto: {
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
         };
         readonly CoordinationCustomerOptionDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["CoordinationCustomerOptionDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly CoordinationDishDto: {
-            readonly dishCode?: string;
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishSlot?: string | null;
             readonly dishType?: string | null;
             /** Format: int32 */
-            readonly displayOrder?: number;
+            readonly displayOrder: number;
         };
         readonly CoordinationOrderDto: {
             /** Format: int32 */
-            readonly actualQuantity?: number;
+            readonly actualQuantity: number;
             /** Format: double */
-            readonly appliedRate?: number;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
-            readonly dayOfWeek?: string;
-            readonly dishes?: readonly components["schemas"]["CoordinationDishDto"][];
-            readonly dishId?: string;
+            readonly appliedRate: number;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
+            readonly dayOfWeek: string;
+            readonly dishes: readonly components["schemas"]["CoordinationDishDto"][];
+            readonly dishId: string;
             /** Format: int32 */
-            readonly forecastQuantity?: number;
-            readonly id?: string;
-            readonly mealType?: string;
-            readonly menuCode?: string;
-            readonly menuId?: string;
-            readonly menuName?: string;
-            readonly menuScheduleId?: string;
-            readonly quantityPlanId?: string;
-            readonly quantityPlanLineId?: string;
-            readonly serviceDate?: string;
-            readonly shift?: string;
-            readonly shiftName?: string;
-            readonly specialNotes?: string;
+            readonly forecastQuantity: number;
+            readonly id: string;
+            readonly mealType: string;
+            readonly menuCode: string;
+            readonly menuId: string;
+            readonly menuName: string;
+            readonly menuScheduleId: string;
+            readonly quantityPlanId: string;
+            readonly quantityPlanLineId: string;
+            readonly serviceDate: string;
+            readonly shift: string;
+            readonly shiftName: string;
+            readonly specialNotes: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly CoordinationOrderDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["CoordinationOrderDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly CoordinationScopeActionRequest: {
             readonly dayOfWeek?: string | null;
@@ -8927,25 +8958,25 @@ export interface components {
         };
         readonly CoordinationScopeActionResultDto: {
             /** Format: int32 */
-            readonly affectedPlanCount?: number;
+            readonly affectedPlanCount: number;
             /** Format: date-time */
-            readonly changedAt?: string;
-            readonly newStatus?: string;
-            readonly oldStatuses?: readonly string[];
-            readonly serviceDate?: string;
-            readonly shiftName?: string;
-            readonly success?: boolean;
+            readonly changedAt: string;
+            readonly newStatus: string;
+            readonly oldStatuses: readonly string[];
+            readonly serviceDate: string;
+            readonly shiftName: string;
+            readonly success: boolean;
         };
         readonly CoordinationScopeActionResultDtoApiResponse: {
             readonly data?: components["schemas"]["CoordinationScopeActionResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly CreateCustomerContractRequest: {
             readonly activeWeekDays?: readonly string[] | null;
-            readonly customerCode?: string;
-            readonly customerName?: string;
+            readonly customerCode: string;
+            readonly customerName: string;
             /** Format: double */
             readonly defaultBomRatePercent?: number | null;
             /** Format: double */
@@ -8964,14 +8995,14 @@ export interface components {
             /** Format: date */
             readonly effectiveTo?: string | null;
             /** Format: double */
-            readonly grossQtyPerServing?: number;
+            readonly grossQtyPerServing: number;
             readonly ingredientId: string;
             /** Format: double */
             readonly priceTierAmount?: number | null;
             readonly reason?: string | null;
             readonly unitId?: string | null;
             /** Format: double */
-            readonly wasteRatePercent?: number;
+            readonly wasteRatePercent: number;
         };
         readonly CreateDishRequest: {
             readonly dishCode: string;
@@ -8980,18 +9011,18 @@ export interface components {
             readonly dishType?: string | null;
         };
         readonly CreateEmployeeRequest: {
-            readonly fullName?: string;
-            readonly isActive?: boolean;
-            readonly password?: string;
-            readonly roleId?: string;
-            readonly username?: string;
+            readonly fullName: string;
+            readonly isActive: boolean;
+            readonly password: string;
+            readonly roleId: string;
+            readonly username: string;
         };
         readonly CreateIngredientRequest: {
             readonly ingredientCode: string;
             readonly ingredientName: string;
-            readonly isFreshDaily?: boolean;
+            readonly isFreshDaily: boolean;
             /** Format: double */
-            readonly referencePrice?: number;
+            readonly referencePrice: number;
             readonly unitId: string;
             readonly warehouseId: string;
         };
@@ -9006,7 +9037,7 @@ export interface components {
         readonly CreateInventoryIssueRequest: {
             /** Format: date */
             readonly issueDate: string;
-            readonly lines?: readonly components["schemas"]["CreateInventoryIssueLineRequest"][];
+            readonly lines: readonly components["schemas"]["CreateInventoryIssueLineRequest"][];
             readonly materialRequestId: string;
             readonly receivedBy?: string | null;
             readonly shiftName?: string | null;
@@ -9066,7 +9097,7 @@ export interface components {
             readonly reason?: string | null;
             /** Format: date */
             readonly returnDate: string;
-            readonly returnType?: string;
+            readonly returnType: string;
             readonly shiftName?: string | null;
             readonly warehouseId: string;
         };
@@ -9074,15 +9105,15 @@ export interface components {
             readonly activeWeekDays?: readonly string[] | null;
             /** Format: double */
             readonly bomRatePercent?: number | null;
-            readonly customerId?: string;
+            readonly customerId: string;
             readonly dishCategory?: string | null;
             readonly dishId?: string | null;
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             readonly effectiveTo?: string | null;
             readonly menuSectionName?: string | null;
             readonly menuVariant?: string | null;
             /** Format: double */
-            readonly portionRatePercent?: number;
+            readonly portionRatePercent: number;
             /** Format: int32 */
             readonly priority?: number | null;
             readonly reason?: string | null;
@@ -9098,359 +9129,387 @@ export interface components {
             readonly warehouseId: string;
         };
         readonly CreateSupplementalMaterialRequest: {
-            readonly issueId?: string;
-            readonly issueLineId?: string;
+            readonly issueId: string;
+            readonly issueLineId: string;
             readonly reason?: string | null;
             /** Format: double */
-            readonly requestedQty?: number;
+            readonly requestedQty: number;
         };
         readonly CreateSupplierQuotationRequest: {
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             readonly effectiveTo?: string | null;
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             readonly note?: string | null;
-            readonly supplierId?: string;
+            readonly supplierId: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly CurrentStock: {
             /** Format: double */
-            readonly currentQty?: number;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly currentQty: number;
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: date-time */
-            readonly lastUpdated?: string;
+            readonly lastUpdated: string;
             /** Format: date-time */
-            readonly rowVersion?: string;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly rowVersion: string;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly unitId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly CurrentStockLot: {
             /** Format: double */
-            readonly currentQty?: number;
+            readonly currentQty: number;
             /** Format: date */
             readonly expiredDate?: string | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: date-time */
-            readonly lastUpdated?: string;
+            readonly lastUpdated: string;
             readonly lotNumber?: string | null;
             /** Format: byte */
-            readonly lotStockId?: string;
+            readonly lotStockId: string;
             /** Format: date */
             readonly manufactureDate?: string | null;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly unitId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly Customer: {
-            readonly customerCode?: string;
-            readonly customercontracts?: readonly components["schemas"]["CustomerContract"][];
+            readonly customerCode: string;
+            readonly customercontracts: readonly components["schemas"]["CustomerContract"][];
             /** Format: byte */
-            readonly customerId?: string;
-            readonly customerimportmappings?: readonly components["schemas"]["CustomerImportMapping"][];
-            readonly customerName?: string;
-            readonly dishboms?: readonly components["schemas"]["DishBom"][];
+            readonly customerId: string;
+            readonly customerimportmappings: readonly components["schemas"]["CustomerImportMapping"][];
+            readonly customerName: string;
+            readonly dishboms: readonly components["schemas"]["DishBom"][];
             readonly isActive?: boolean | null;
-            readonly mealquantityplanlines?: readonly components["schemas"]["MealQuantityPlanLine"][];
-            readonly menuschedules?: readonly components["schemas"]["MenuSchedule"][];
-            readonly menuversions?: readonly components["schemas"]["MenuVersion"][];
+            readonly mealquantityplanlines: readonly components["schemas"]["MealQuantityPlanLine"][];
+            readonly menuschedules: readonly components["schemas"]["MenuSchedule"][];
+            readonly menuversions: readonly components["schemas"]["MenuVersion"][];
             readonly note?: string | null;
-            readonly portionrules?: readonly components["schemas"]["PortionRule"][];
-            readonly productionplanlines?: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly portionrules: readonly components["schemas"]["PortionRule"][];
+            readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
         };
         readonly CustomerContract: {
-            readonly activeWeekDays?: string;
+            readonly activeWeekDays: string;
             /** Format: byte */
-            readonly contractId?: string;
+            readonly contractId: string;
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly createdAt: string;
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
+            readonly customerId: string;
             /** Format: double */
-            readonly defaultBomRatePercent?: number;
+            readonly defaultBomRatePercent: number;
             /** Format: double */
-            readonly defaultMenuPrice?: number;
+            readonly defaultMenuPrice: number;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
-            readonly shiftNames?: string;
-            readonly status?: string;
+            readonly shiftNames: string;
+            readonly status: string;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
         };
         readonly CustomerContractDto: {
-            readonly activeWeekDays?: readonly string[];
+            readonly activeWeekDays: readonly string[];
             readonly contractId?: string | null;
-            readonly contractStatus?: string;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
+            readonly contractStatus: string;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
             /** Format: double */
             readonly defaultBomRatePercent?: number | null;
             /** Format: double */
             readonly defaultMenuPrice?: number | null;
             readonly effectiveFrom?: string | null;
             readonly effectiveTo?: string | null;
-            readonly isActive?: boolean;
+            readonly isActive: boolean;
             readonly latestServiceDate?: string | null;
             /** Format: int32 */
-            readonly menuScheduleCount?: number;
+            readonly menuScheduleCount: number;
             readonly note?: string | null;
-            readonly shiftNames?: readonly string[];
+            readonly shiftNames: readonly string[];
         };
         readonly CustomerContractDtoApiResponse: {
             readonly data?: components["schemas"]["CustomerContractDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly CustomerContractDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["CustomerContractDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly CustomerImportMapping: {
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly createdAt: string;
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
+            readonly customerId: string;
             readonly labelColumn?: string | null;
             /** Format: byte */
-            readonly mappingId?: string;
+            readonly mappingId: string;
             readonly sheetNameHint?: string | null;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
         };
         readonly CustomerImportMappingDto: {
-            readonly customerId?: string;
+            readonly customerId: string;
             readonly labelColumn?: string | null;
             readonly sheetNameHint?: string | null;
         };
         readonly CustomerImportMappingDtoApiResponse: {
             readonly data?: components["schemas"]["CustomerImportMappingDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly DailyProductionPlanDto: {
+            readonly customerCode?: string | null;
+            readonly customerId?: string | null;
+            readonly customerName?: string | null;
+            readonly plans: readonly components["schemas"]["ProductionPlanDto"][];
+            /** Format: int32 */
+            readonly sentPlans: number;
+            /** Format: date */
+            readonly serviceDate: string;
+            readonly shiftName?: string | null;
+            /** Format: double */
+            readonly suggestedPurchaseQty: number;
+            /** Format: int32 */
+            readonly totalDishes: number;
+            /** Format: int32 */
+            readonly totalPlans: number;
+            /** Format: double */
+            readonly totalRequiredQty: number;
+            /** Format: int32 */
+            readonly totalServings: number;
+            readonly warnings: readonly string[];
+        };
+        readonly DailyProductionPlanDtoApiResponse: {
+            readonly data?: components["schemas"]["DailyProductionPlanDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly DataQualityCleanupRequest: {
             readonly categories?: readonly string[] | null;
-            readonly dryRun?: boolean;
+            readonly dryRun: boolean;
             /** Format: int32 */
-            readonly limit?: number;
+            readonly limit: number;
             readonly note?: string | null;
         };
         readonly DataQualityIssueRemediationRequest: {
-            readonly action?: string;
-            readonly issueId?: string;
+            readonly action: string;
+            readonly issueId: string;
             readonly note?: string | null;
         };
         readonly Dish: {
-            readonly dishboms?: readonly components["schemas"]["DishBom"][];
-            readonly dishCode?: string;
+            readonly dishboms: readonly components["schemas"]["DishBom"][];
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
             /** Format: byte */
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishType?: string | null;
             readonly isActive?: boolean | null;
-            readonly menuitems?: readonly components["schemas"]["MenuItem"][];
-            readonly portionrules?: readonly components["schemas"]["PortionRule"][];
-            readonly productionplanlines?: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly menuitems: readonly components["schemas"]["MenuItem"][];
+            readonly portionrules: readonly components["schemas"]["PortionRule"][];
+            readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
         };
         readonly DishBom: {
-            readonly bomadjustments?: readonly components["schemas"]["BomAdjustment"][];
+            readonly bomadjustments: readonly components["schemas"]["BomAdjustment"][];
             /** Format: byte */
-            readonly bomId?: string;
-            readonly bomStatus?: string;
+            readonly bomId: string;
+            readonly bomStatus: string;
             readonly customer?: components["schemas"]["Customer"];
             /** Format: byte */
             readonly customerId?: string | null;
-            readonly dish?: components["schemas"]["Dish"];
+            readonly dish: components["schemas"]["Dish"];
             /** Format: byte */
-            readonly dishId?: string;
+            readonly dishId: string;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
             /** Format: double */
-            readonly grossQtyPerServing?: number;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly grossQtyPerServing: number;
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: double */
-            readonly priceTierAmount?: number;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly priceTierAmount: number;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
             /** Format: double */
-            readonly wasteRatePercent?: number;
+            readonly wasteRatePercent: number;
         };
         readonly DishCatalogBomLineDto: {
-            readonly bomId?: string;
-            readonly bomScope?: string;
-            readonly bomStatus?: string;
-            readonly bomStatusLabel?: string;
+            readonly bomId: string;
+            readonly bomScope: string;
+            readonly bomStatus: string;
+            readonly bomStatusLabel: string;
             readonly customerCode?: string | null;
             readonly customerId?: string | null;
             readonly customerName?: string | null;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
             /** Format: double */
-            readonly grossQtyPerServing?: number;
-            readonly ingredientCode?: string;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
+            readonly grossQtyPerServing: number;
+            readonly ingredientCode: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
             /** Format: double */
-            readonly priceTierAmount?: number;
+            readonly priceTierAmount: number;
             /** Format: double */
-            readonly referencePrice?: number;
-            readonly unitCode?: string;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly referencePrice: number;
+            readonly unitCode: string;
+            readonly unitId: string;
+            readonly unitName: string;
             /** Format: double */
-            readonly wasteRatePercent?: number;
+            readonly wasteRatePercent: number;
         };
         readonly DishCatalogBomLineDtoApiResponse: {
             readonly data?: components["schemas"]["DishCatalogBomLineDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly DishCatalogBomLineDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["DishCatalogBomLineDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly DishCatalogDto: {
-            readonly bomLines?: readonly components["schemas"]["DishCatalogBomLineDto"][];
-            readonly dishCode?: string;
+            readonly bomLines: readonly components["schemas"]["DishCatalogBomLineDto"][];
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishType?: string | null;
-            readonly isActive?: boolean;
-            readonly menuSlots?: readonly string[];
+            readonly isActive: boolean;
+            readonly menuSlots: readonly string[];
         };
         readonly DishCatalogDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["DishCatalogDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly DishDto: {
-            readonly dishCode?: string;
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishType?: string | null;
-            readonly isActive?: boolean;
+            readonly isActive: boolean;
         };
         readonly DishDtoApiResponse: {
             readonly data?: components["schemas"]["DishDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly DishDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["DishDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["DishDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly DishDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["DishDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly EmployeeDto: {
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly fullName?: string;
-            readonly isActive?: boolean;
-            readonly roleId?: string;
-            readonly roleName?: string;
-            readonly userId?: string;
-            readonly username?: string;
+            readonly createdAt: string;
+            readonly fullName: string;
+            readonly isActive: boolean;
+            readonly roleId: string;
+            readonly roleName: string;
+            readonly userId: string;
+            readonly username: string;
         };
         readonly EmployeeDtoApiResponse: {
             readonly data?: components["schemas"]["EmployeeDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly EmployeeDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["EmployeeDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["EmployeeDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly EmployeeDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["EmployeeDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ExportOrderReportRequest: {
             readonly dayOfWeek?: string | null;
-            readonly format?: string;
+            readonly format: string;
             readonly serviceDate?: string | null;
             readonly shift?: string | null;
             readonly shiftName?: string | null;
         };
         readonly ExportOrderReportResultDto: {
-            readonly downloadUrl?: string;
-            readonly success?: boolean;
+            readonly downloadUrl: string;
+            readonly success: boolean;
         };
         readonly ExportOrderReportResultDtoApiResponse: {
             readonly data?: components["schemas"]["ExportOrderReportResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly FulfillSupplementalMaterialRequest: {
             /** Format: double */
-            readonly quantity?: number;
+            readonly quantity: number;
         };
         readonly GenerateMaterialDemandRequest: {
             readonly customerId?: string | null;
-            readonly scope?: string;
-            readonly serviceDate?: string;
+            readonly scope: string;
+            readonly serviceDate: string;
             readonly shiftName?: string | null;
         };
         readonly GeneratePurchaseRequestFromDemandRequest: {
-            readonly materialRequestId?: string;
+            readonly materialRequestId: string;
         };
         readonly ImportedCustomComponentsDto: {
             readonly canh?: string | null;
@@ -9462,157 +9521,157 @@ export interface components {
             readonly sub2?: string | null;
         };
         readonly ImportedDayMenuDto: {
-            readonly afternoonSavory?: components["schemas"]["ImportedMenuSlotDto"];
-            readonly afternoonVegetarian?: components["schemas"]["ImportedMenuSlotDto"];
-            readonly morningSavory?: components["schemas"]["ImportedMenuSlotDto"];
-            readonly morningVegetarian?: components["schemas"]["ImportedMenuSlotDto"];
+            readonly afternoonSavory: components["schemas"]["ImportedMenuSlotDto"];
+            readonly afternoonVegetarian: components["schemas"]["ImportedMenuSlotDto"];
+            readonly morningSavory: components["schemas"]["ImportedMenuSlotDto"];
+            readonly morningVegetarian: components["schemas"]["ImportedMenuSlotDto"];
         };
         readonly ImportedMenuSlotDto: {
-            readonly customComponents?: components["schemas"]["ImportedCustomComponentsDto"];
-            readonly dishId?: string;
+            readonly customComponents: components["schemas"]["ImportedCustomComponentsDto"];
+            readonly dishId: string;
             /** Format: int32 */
-            readonly portions?: number;
+            readonly portions: number;
         };
         readonly Ingredient: {
-            readonly currentstocklots?: readonly components["schemas"]["CurrentStockLot"][];
-            readonly currentstocks?: readonly components["schemas"]["CurrentStock"][];
-            readonly dishboms?: readonly components["schemas"]["DishBom"][];
-            readonly ingredientCode?: string;
+            readonly currentstocklots: readonly components["schemas"]["CurrentStockLot"][];
+            readonly currentstocks: readonly components["schemas"]["CurrentStock"][];
+            readonly dishboms: readonly components["schemas"]["DishBom"][];
+            readonly ingredientCode: string;
             /** Format: byte */
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly inventoryissuelines?: readonly components["schemas"]["InventoryIssueLine"][];
-            readonly inventoryreceiptlines?: readonly components["schemas"]["InventoryReceiptLine"][];
-            readonly inventoryreturnlines?: readonly components["schemas"]["InventoryReturnLine"][];
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly inventoryissuelines: readonly components["schemas"]["InventoryIssueLine"][];
+            readonly inventoryreceiptlines: readonly components["schemas"]["InventoryReceiptLine"][];
+            readonly inventoryreturnlines: readonly components["schemas"]["InventoryReturnLine"][];
             readonly isActive?: boolean | null;
-            readonly isFreshDaily?: boolean;
-            readonly materialrequestlines?: readonly components["schemas"]["MaterialRequestLine"][];
-            readonly purchaseorderlines?: readonly components["schemas"]["PurchaseOrderLine"][];
-            readonly purchaserequestlines?: readonly components["schemas"]["PurchaseRequestLine"][];
+            readonly isFreshDaily: boolean;
+            readonly materialrequestlines: readonly components["schemas"]["MaterialRequestLine"][];
+            readonly purchaseorderlines: readonly components["schemas"]["PurchaseOrderLine"][];
+            readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
             /** Format: double */
-            readonly referencePrice?: number;
-            readonly stockmovements?: readonly components["schemas"]["StockMovement"][];
-            readonly stocksnapshots?: readonly components["schemas"]["StockSnapshot"][];
-            readonly stocktakelines?: readonly components["schemas"]["StocktakeLine"][];
-            readonly supplierquotations?: readonly components["schemas"]["SupplierQuotation"][];
-            readonly unit?: components["schemas"]["Unit"];
+            readonly referencePrice: number;
+            readonly stockmovements: readonly components["schemas"]["StockMovement"][];
+            readonly stocksnapshots: readonly components["schemas"]["StockSnapshot"][];
+            readonly stocktakelines: readonly components["schemas"]["StocktakeLine"][];
+            readonly supplierquotations: readonly components["schemas"]["SupplierQuotation"][];
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly unitId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly IngredientDto: {
-            readonly ingredientCode?: string;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly isActive?: boolean;
+            readonly ingredientCode: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly isActive: boolean;
             readonly isFreshDaily?: boolean | null;
             /** Format: double */
-            readonly referencePrice?: number;
-            readonly unitId?: string;
+            readonly referencePrice: number;
+            readonly unitId: string;
             readonly unitName?: string | null;
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
             readonly warehouseName?: string | null;
         };
         readonly IngredientDtoApiResponse: {
             readonly data?: components["schemas"]["IngredientDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly IngredientDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["IngredientDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["IngredientDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly IngredientDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["IngredientDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly InventoryIssue: {
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly inventoryissuelines?: readonly components["schemas"]["InventoryIssueLine"][];
-            readonly inventoryreturns?: readonly components["schemas"]["InventoryReturn"][];
-            readonly issueCode?: string;
+            readonly createdAt: string;
+            readonly inventoryissuelines: readonly components["schemas"]["InventoryIssueLine"][];
+            readonly inventoryreturns: readonly components["schemas"]["InventoryReturn"][];
+            readonly issueCode: string;
             /** Format: date */
-            readonly issueDate?: string;
+            readonly issueDate: string;
             /** Format: byte */
-            readonly issuedBy?: string;
-            readonly issuedByNavigation?: components["schemas"]["User"];
+            readonly issuedBy: string;
+            readonly issuedByNavigation: components["schemas"]["User"];
             /** Format: byte */
-            readonly issueId?: string;
-            readonly materialRequest?: components["schemas"]["MaterialRequest"];
+            readonly issueId: string;
+            readonly materialRequest: components["schemas"]["MaterialRequest"];
             /** Format: byte */
-            readonly materialRequestId?: string;
+            readonly materialRequestId: string;
             /** Format: date-time */
             readonly receivedAt?: string | null;
             /** Format: byte */
             readonly receivedBy?: string | null;
             readonly receivedByNavigation?: components["schemas"]["User"];
             readonly shiftName?: string | null;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly InventoryIssueLine: {
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
-            readonly issue?: components["schemas"]["InventoryIssue"];
+            readonly ingredientId: string;
+            readonly issue: components["schemas"]["InventoryIssue"];
             /** Format: double */
-            readonly issuedQty?: number;
+            readonly issuedQty: number;
             /** Format: byte */
-            readonly issueId?: string;
+            readonly issueId: string;
             /** Format: byte */
-            readonly issueLineId?: string;
+            readonly issueLineId: string;
             /** Format: double */
-            readonly requestedQty?: number;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly requestedQty: number;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
         };
         readonly InventoryReceipt: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
-            readonly inventoryreceiptlines?: readonly components["schemas"]["InventoryReceiptLine"][];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
+            readonly inventoryreceiptlines: readonly components["schemas"]["InventoryReceiptLine"][];
             readonly purchaseRequest?: components["schemas"]["PurchaseRequest"];
             /** Format: byte */
             readonly purchaseRequestId?: string | null;
-            readonly receiptCode?: string;
+            readonly receiptCode: string;
             /** Format: date */
-            readonly receiptDate?: string;
+            readonly receiptDate: string;
             /** Format: byte */
-            readonly receiptId?: string;
-            readonly supplier?: components["schemas"]["Supplier"];
+            readonly receiptId: string;
+            readonly supplier: components["schemas"]["Supplier"];
             /** Format: byte */
-            readonly supplierId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly supplierId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly InventoryReceiptLine: {
             /** Format: double */
             readonly amount?: number | null;
             /** Format: date */
             readonly expiredDate?: string | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             readonly lotNumber?: string | null;
             /** Format: date */
             readonly manufactureDate?: string | null;
@@ -9626,184 +9685,184 @@ export interface components {
             /** Format: byte */
             readonly purchaseRequestLineId?: string | null;
             /** Format: double */
-            readonly quantity?: number;
-            readonly receipt?: components["schemas"]["InventoryReceipt"];
+            readonly quantity: number;
+            readonly receipt: components["schemas"]["InventoryReceipt"];
             /** Format: byte */
-            readonly receiptId?: string;
+            readonly receiptId: string;
             /** Format: byte */
-            readonly receiptLineId?: string;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly receiptLineId: string;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly InventoryReturn: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
-            readonly inventoryreturnlines?: readonly components["schemas"]["InventoryReturnLine"][];
-            readonly issue?: components["schemas"]["InventoryIssue"];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
+            readonly inventoryreturnlines: readonly components["schemas"]["InventoryReturnLine"][];
+            readonly issue: components["schemas"]["InventoryIssue"];
             /** Format: byte */
-            readonly issueId?: string;
+            readonly issueId: string;
             readonly reason?: string | null;
             /** Format: date-time */
             readonly receivedAt?: string | null;
             /** Format: byte */
             readonly receivedBy?: string | null;
             readonly receivedByNavigation?: components["schemas"]["User"];
-            readonly returnCode?: string;
+            readonly returnCode: string;
             /** Format: date */
-            readonly returnDate?: string;
+            readonly returnDate: string;
             /** Format: byte */
-            readonly returnId?: string;
-            readonly returnType?: string;
+            readonly returnId: string;
+            readonly returnType: string;
             readonly shiftName?: string | null;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly InventoryReturnLine: {
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: double */
-            readonly quantity?: number;
-            readonly return?: components["schemas"]["InventoryReturn"];
+            readonly quantity: number;
+            readonly return: components["schemas"]["InventoryReturn"];
             /** Format: byte */
-            readonly returnId?: string;
+            readonly returnId: string;
             /** Format: byte */
-            readonly returnLineId?: string;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly returnLineId: string;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
         };
         readonly LockOrderPlanLineRequest: {
             /** Format: int32 */
             readonly actualQuantity?: number | null;
             /** Format: int32 */
             readonly finalServings?: number | null;
-            readonly orderId?: string;
-            readonly quantityPlanLineId?: string;
+            readonly orderId?: string | null;
+            readonly quantityPlanLineId?: string | null;
         };
         readonly LockOrderPlanRequest: {
             readonly dayOfWeek?: string | null;
-            readonly lines?: readonly components["schemas"]["LockOrderPlanLineRequest"][];
-            readonly scope?: string;
+            readonly lines: readonly components["schemas"]["LockOrderPlanLineRequest"][];
+            readonly scope: string;
             readonly serviceDate?: string | null;
             readonly shift?: string | null;
             readonly shiftName?: string | null;
         };
         readonly LockOrderPlanResultDto: {
             /** Format: date-time */
-            readonly lockedAt?: string;
+            readonly lockedAt: string;
             /** Format: int32 */
-            readonly lockedLineCount?: number;
-            readonly lockedShiftNames?: readonly string[];
-            readonly scope?: string;
-            readonly serviceDate?: string;
-            readonly success?: boolean;
+            readonly lockedLineCount: number;
+            readonly lockedShiftNames: readonly string[];
+            readonly scope: string;
+            readonly serviceDate: string;
+            readonly success: boolean;
         };
         readonly LockOrderPlanResultDtoApiResponse: {
             readonly data?: components["schemas"]["LockOrderPlanResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly LoginRequest: {
             readonly password: string;
             readonly username: string;
         };
         readonly LoginResponseDto: {
-            readonly accessToken?: string;
+            readonly accessToken: string;
             /** Format: int32 */
-            readonly expiresIn?: number;
-            readonly refreshToken?: string;
-            readonly tokenType?: string;
-            readonly user?: components["schemas"]["UserInfoDto"];
+            readonly expiresIn: number;
+            readonly refreshToken: string;
+            readonly tokenType: string;
+            readonly user: components["schemas"]["UserInfoDto"];
         };
         readonly LoginResponseDtoApiResponse: {
             readonly data?: components["schemas"]["LoginResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MaterialDemandApprovalDto: {
             /** Format: date-time */
-            readonly approvedAt?: string;
-            readonly materialRequestId?: string;
-            readonly newStatus?: string;
-            readonly oldStatus?: string;
-            readonly requestCode?: string;
+            readonly approvedAt: string;
+            readonly materialRequestId: string;
+            readonly newStatus: string;
+            readonly oldStatus: string;
+            readonly requestCode: string;
         };
         readonly MaterialDemandApprovalDtoApiResponse: {
             readonly data?: components["schemas"]["MaterialDemandApprovalDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MaterialDemandApproveRequest: {
             readonly reason?: string | null;
         };
         readonly MaterialDemandLineDto: {
             /** Format: double */
-            readonly appliedPortionRatePercent?: number;
+            readonly appliedPortionRatePercent: number;
             readonly appliedPortionRuleId?: string | null;
-            readonly appliedPortionRuleSource?: string;
+            readonly appliedPortionRuleSource: string;
             readonly bomId?: string | null;
             /** Format: double */
-            readonly bomRatePercent?: number;
-            readonly bomScope?: string;
+            readonly bomRatePercent: number;
+            readonly bomScope: string;
             /** Format: double */
-            readonly currentStockQty?: number;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly currentStockQty: number;
+            readonly dishId: string;
+            readonly dishName: string;
             /** Format: double */
-            readonly grossQtyPerServing?: number;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly materialRequestLineId?: string;
+            readonly grossQtyPerServing: number;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly materialRequestLineId: string;
             /** Format: double */
-            readonly priceTierAmount?: number;
-            readonly shiftName?: string;
+            readonly priceTierAmount: number;
+            readonly shiftName: string;
             /** Format: double */
-            readonly suggestedPurchaseQty?: number;
+            readonly suggestedPurchaseQty: number;
             /** Format: double */
-            readonly totalRequiredQty?: number;
+            readonly totalRequiredQty: number;
             /** Format: int32 */
-            readonly totalServings?: number;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly totalServings: number;
+            readonly unitId: string;
+            readonly unitName: string;
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
         readonly MaterialDemandResultDto: {
-            readonly lines?: readonly components["schemas"]["MaterialDemandLineDto"][];
-            readonly materialRequestId?: string;
-            readonly missingBomDishes?: readonly components["schemas"]["MissingBomDishDto"][];
-            readonly missingConversionIssues?: readonly components["schemas"]["MissingUnitConversionIssueDto"][];
+            readonly lines: readonly components["schemas"]["MaterialDemandLineDto"][];
+            readonly materialRequestId: string;
+            readonly missingBomDishes: readonly components["schemas"]["MissingBomDishDto"][];
+            readonly missingConversionIssues: readonly components["schemas"]["MissingUnitConversionIssueDto"][];
             /** Format: int32 */
-            readonly productionPlanLineCount?: number;
-            readonly requestCode?: string;
-            readonly scope?: string;
-            readonly serviceDate?: string;
-            readonly status?: string;
+            readonly productionPlanLineCount: number;
+            readonly requestCode: string;
+            readonly scope: string;
+            readonly serviceDate: string;
+            readonly status: string;
         };
         readonly MaterialDemandResultDtoApiResponse: {
             readonly data?: components["schemas"]["MaterialDemandResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MaterialDemandStalenessDto: {
-            readonly canRegenerate?: boolean;
-            readonly hasExistingPlan?: boolean;
-            readonly isStale?: boolean;
+            readonly canRegenerate: boolean;
+            readonly hasExistingPlan: boolean;
+            readonly isStale: boolean;
             readonly lastGeneratedAt?: string | null;
             readonly materialRequestId?: string | null;
-            readonly reasons?: readonly string[];
+            readonly reasons: readonly string[];
             readonly regenerationBlockReason?: string | null;
             readonly requestCode?: string | null;
             readonly status?: string | null;
@@ -9811,8 +9870,8 @@ export interface components {
         readonly MaterialDemandStalenessDtoApiResponse: {
             readonly data?: components["schemas"]["MaterialDemandStalenessDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MaterialRequest: {
             /** Format: date-time */
@@ -9821,60 +9880,60 @@ export interface components {
             readonly approvedBy?: string | null;
             readonly approvedByNavigation?: components["schemas"]["User"];
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
-            readonly inventoryissues?: readonly components["schemas"]["InventoryIssue"][];
-            readonly materialrequestlines?: readonly components["schemas"]["MaterialRequestLine"][];
-            readonly plan?: components["schemas"]["ProductionPlan"];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
+            readonly inventoryissues: readonly components["schemas"]["InventoryIssue"][];
+            readonly materialrequestlines: readonly components["schemas"]["MaterialRequestLine"][];
+            readonly plan: components["schemas"]["ProductionPlan"];
             /** Format: byte */
-            readonly planId?: string;
-            readonly requestCode?: string;
+            readonly planId: string;
+            readonly requestCode: string;
             /** Format: date */
-            readonly requestDate?: string;
+            readonly requestDate: string;
             /** Format: byte */
-            readonly requestId?: string;
-            readonly requestScope?: string;
-            readonly status?: string;
+            readonly requestId: string;
+            readonly requestScope: string;
+            readonly status: string;
         };
         readonly MaterialRequestLine: {
             /** Format: double */
-            readonly appliedPortionRatePercent?: number;
+            readonly appliedPortionRatePercent: number;
             /** Format: byte */
             readonly appliedPortionRuleId?: string | null;
-            readonly appliedPortionRuleSource?: string;
+            readonly appliedPortionRuleSource: string;
             readonly bom?: components["schemas"]["DishBom"];
             /** Format: byte */
             readonly bomId?: string | null;
             /** Format: double */
-            readonly bomRatePercent?: number;
-            readonly bomScope?: string;
+            readonly bomRatePercent: number;
+            readonly bomScope: string;
             /** Format: double */
-            readonly currentStockQty?: number;
+            readonly currentStockQty: number;
             /** Format: double */
-            readonly grossQtyPerServing?: number;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly grossQtyPerServing: number;
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
-            readonly planLine?: components["schemas"]["ProductionPlanLine"];
+            readonly ingredientId: string;
+            readonly planLine: components["schemas"]["ProductionPlanLine"];
             /** Format: byte */
-            readonly planLineId?: string;
+            readonly planLineId: string;
             /** Format: double */
-            readonly priceTierAmount?: number;
-            readonly purchaserequestlines?: readonly components["schemas"]["PurchaseRequestLine"][];
-            readonly request?: components["schemas"]["MaterialRequest"];
+            readonly priceTierAmount: number;
+            readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
+            readonly request: components["schemas"]["MaterialRequest"];
             /** Format: byte */
-            readonly requestId?: string;
+            readonly requestId: string;
             /** Format: byte */
-            readonly requestLineId?: string;
+            readonly requestLineId: string;
             /** Format: double */
-            readonly suggestedPurchaseQty?: number;
+            readonly suggestedPurchaseQty: number;
             /** Format: double */
-            readonly totalRequiredQty?: number;
+            readonly totalRequiredQty: number;
             /** Format: int32 */
-            readonly totalServings?: number;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly totalServings: number;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
@@ -9885,7 +9944,7 @@ export interface components {
             readonly completedBy?: string | null;
             readonly completedByNavigation?: components["schemas"]["User"];
             /** Format: time */
-            readonly confirmationTime?: string;
+            readonly confirmationTime: string;
             /** Format: date-time */
             readonly confirmedAt?: string | null;
             /** Format: byte */
@@ -9896,115 +9955,115 @@ export interface components {
             readonly importBatch?: components["schemas"]["QuantityImportBatch"];
             /** Format: byte */
             readonly importBatchId?: string | null;
-            readonly mealquantityplanlines?: readonly components["schemas"]["MealQuantityPlanLine"][];
-            readonly planCode?: string;
+            readonly mealquantityplanlines: readonly components["schemas"]["MealQuantityPlanLine"][];
+            readonly planCode: string;
             /** Format: byte */
-            readonly quantityPlanId?: string;
+            readonly quantityPlanId: string;
             /** Format: date-time */
-            readonly rowVersion?: string;
+            readonly rowVersion: string;
             /** Format: date */
-            readonly serviceDate?: string;
-            readonly status?: string;
+            readonly serviceDate: string;
+            readonly status: string;
         };
         readonly MealQuantityPlanDto: {
             /** Format: date-time */
             readonly confirmedAt?: string | null;
-            readonly dayOfWeek?: string;
+            readonly dayOfWeek: string;
             /** Format: date-time */
             readonly forecastReceivedAt?: string | null;
-            readonly lines?: readonly components["schemas"]["MealQuantityPlanLineDto"][];
-            readonly planCode?: string;
-            readonly quantityPlanId?: string;
-            readonly serviceDate?: string;
-            readonly status?: string;
+            readonly lines: readonly components["schemas"]["MealQuantityPlanLineDto"][];
+            readonly planCode: string;
+            readonly quantityPlanId: string;
+            readonly serviceDate: string;
+            readonly status: string;
         };
         readonly MealQuantityPlanDtoApiResponse: {
             readonly data?: components["schemas"]["MealQuantityPlanDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MealQuantityPlanDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["MealQuantityPlanDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MealQuantityPlanLine: {
             /** Format: int32 */
-            readonly adjustedServings?: number;
+            readonly adjustedServings: number;
             /** Format: int32 */
-            readonly confirmedServings?: number;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly confirmedServings: number;
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
+            readonly customerId: string;
             /** Format: int32 */
-            readonly finalServings?: number;
+            readonly finalServings: number;
             /** Format: int32 */
-            readonly forecastServings?: number;
-            readonly menu?: components["schemas"]["Menu"];
+            readonly forecastServings: number;
+            readonly menu: components["schemas"]["Menu"];
             /** Format: byte */
-            readonly menuId?: string;
-            readonly menuSchedule?: components["schemas"]["MenuSchedule"];
+            readonly menuId: string;
+            readonly menuSchedule: components["schemas"]["MenuSchedule"];
             /** Format: byte */
-            readonly menuScheduleId?: string;
-            readonly productionplanlines?: readonly components["schemas"]["ProductionPlanLine"][];
-            readonly quantityadjustments?: readonly components["schemas"]["QuantityAdjustment"][];
-            readonly quantityPlan?: components["schemas"]["MealQuantityPlan"];
+            readonly menuScheduleId: string;
+            readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly quantityadjustments: readonly components["schemas"]["QuantityAdjustment"][];
+            readonly quantityPlan: components["schemas"]["MealQuantityPlan"];
             /** Format: byte */
-            readonly quantityPlanId?: string;
+            readonly quantityPlanId: string;
             /** Format: byte */
-            readonly quantityPlanLineId?: string;
-            readonly shiftName?: string;
+            readonly quantityPlanLineId: string;
+            readonly shiftName: string;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
         };
         readonly MealQuantityPlanLineDto: {
             /** Format: int32 */
-            readonly adjustedServings?: number;
+            readonly adjustedServings: number;
             /** Format: int32 */
-            readonly confirmedServings?: number;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
+            readonly confirmedServings: number;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
             /** Format: int32 */
-            readonly finalServings?: number;
+            readonly finalServings: number;
             /** Format: int32 */
-            readonly forecastServings?: number;
-            readonly menuCode?: string;
-            readonly menuId?: string;
-            readonly menuName?: string;
-            readonly menuScheduleId?: string;
-            readonly quantityPlanLineId?: string;
-            readonly shift?: string;
-            readonly shiftName?: string;
+            readonly forecastServings: number;
+            readonly menuCode: string;
+            readonly menuId: string;
+            readonly menuName: string;
+            readonly menuScheduleId: string;
+            readonly quantityPlanLineId: string;
+            readonly shift: string;
+            readonly shiftName: string;
         };
         readonly Menu: {
             /** Format: date */
             readonly fromDate?: string | null;
             readonly isActive?: boolean | null;
-            readonly mealquantityplanlines?: readonly components["schemas"]["MealQuantityPlanLine"][];
-            readonly menuCode?: string;
+            readonly mealquantityplanlines: readonly components["schemas"]["MealQuantityPlanLine"][];
+            readonly menuCode: string;
             /** Format: byte */
-            readonly menuId?: string;
-            readonly menuitems?: readonly components["schemas"]["MenuItem"][];
-            readonly menuName?: string;
-            readonly menuschedules?: readonly components["schemas"]["MenuSchedule"][];
-            readonly productionplanlines?: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly menuId: string;
+            readonly menuitems: readonly components["schemas"]["MenuItem"][];
+            readonly menuName: string;
+            readonly menuschedules: readonly components["schemas"]["MenuSchedule"][];
+            readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
             /** Format: date */
             readonly toDate?: string | null;
         };
         readonly MenuImportHistoryDto: {
             /** Format: int32 */
-            readonly bomAdjustedCount?: number;
+            readonly bomAdjustedCount: number;
             /** Format: int32 */
-            readonly bomCreatedOrUpdatedCount?: number;
+            readonly bomCreatedOrUpdatedCount: number;
             /** Format: int32 */
-            readonly bomLineCount?: number;
+            readonly bomLineCount: number;
             /** Format: int32 */
-            readonly dishCount?: number;
+            readonly dishCount: number;
             /** Format: date-time */
-            readonly generatedAt?: string;
+            readonly generatedAt: string;
             /** Format: date-time */
             readonly lastBomAdjustedAt?: string | null;
             /** Format: date-time */
@@ -10016,117 +10075,117 @@ export interface components {
             /** Format: date */
             readonly latestMenuWeekStartDate?: string | null;
             /** Format: int32 */
-            readonly mealQuantityImportBatchCount?: number;
+            readonly mealQuantityImportBatchCount: number;
             /** Format: int32 */
-            readonly menuCount?: number;
+            readonly menuCount: number;
             /** Format: int32 */
-            readonly menuScheduleCount?: number;
-            readonly warnings?: readonly string[];
+            readonly menuScheduleCount: number;
+            readonly warnings: readonly string[];
         };
         readonly MenuImportHistoryDtoApiResponse: {
             readonly data?: components["schemas"]["MenuImportHistoryDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MenuItem: {
-            readonly dish?: components["schemas"]["Dish"];
+            readonly dish: components["schemas"]["Dish"];
             /** Format: byte */
-            readonly dishId?: string;
+            readonly dishId: string;
             readonly dishSlot?: string | null;
             /** Format: int32 */
-            readonly displayOrder?: number;
-            readonly menu?: components["schemas"]["Menu"];
+            readonly displayOrder: number;
+            readonly menu: components["schemas"]["Menu"];
             /** Format: byte */
-            readonly menuId?: string;
+            readonly menuId: string;
             /** Format: byte */
-            readonly menuItemId?: string;
+            readonly menuItemId: string;
         };
         readonly MenuSchedule: {
             /** Format: double */
-            readonly bomRatePercent?: number;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly bomRatePercent: number;
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
-            readonly mealquantityplanlines?: readonly components["schemas"]["MealQuantityPlanLine"][];
-            readonly menu?: components["schemas"]["Menu"];
+            readonly customerId: string;
+            readonly mealquantityplanlines: readonly components["schemas"]["MealQuantityPlanLine"][];
+            readonly menu: components["schemas"]["Menu"];
             /** Format: byte */
-            readonly menuId?: string;
+            readonly menuId: string;
             /** Format: double */
-            readonly menuPrice?: number;
+            readonly menuPrice: number;
             /** Format: byte */
-            readonly menuScheduleId?: string;
+            readonly menuScheduleId: string;
             readonly menuVersion?: components["schemas"]["MenuVersion"];
             /** Format: byte */
             readonly menuVersionId?: string | null;
             /** Format: date */
-            readonly serviceDate?: string;
-            readonly shiftName?: string;
-            readonly status?: string;
+            readonly serviceDate: string;
+            readonly shiftName: string;
+            readonly status: string;
             /** Format: date */
-            readonly weekStartDate?: string;
+            readonly weekStartDate: string;
         };
         readonly MenuScheduleDishDto: {
-            readonly dishCode?: string;
+            readonly dishCode: string;
             readonly dishGroup?: string | null;
-            readonly dishId?: string;
-            readonly dishName?: string;
+            readonly dishId: string;
+            readonly dishName: string;
             readonly dishType?: string | null;
             /** Format: int32 */
-            readonly displayOrder?: number;
+            readonly displayOrder: number;
         };
         readonly MenuScheduleDto: {
             /** Format: double */
-            readonly bomRatePercent?: number;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
-            readonly dayOfWeek?: string;
-            readonly dishes?: readonly components["schemas"]["MenuScheduleDishDto"][];
-            readonly menuCode?: string;
-            readonly menuId?: string;
-            readonly menuName?: string;
+            readonly bomRatePercent: number;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
+            readonly dayOfWeek: string;
+            readonly dishes: readonly components["schemas"]["MenuScheduleDishDto"][];
+            readonly menuCode: string;
+            readonly menuId: string;
+            readonly menuName: string;
             /** Format: double */
-            readonly menuPrice?: number;
-            readonly menuScheduleId?: string;
+            readonly menuPrice: number;
+            readonly menuScheduleId: string;
             readonly menuVersionId?: string | null;
             /** Format: int32 */
             readonly menuVersionNo?: number | null;
             readonly menuVersionStatus?: string | null;
             readonly publishedAt?: string | null;
             readonly publishedBy?: string | null;
-            readonly serviceDate?: string;
-            readonly shift?: string;
-            readonly shiftName?: string;
+            readonly serviceDate: string;
+            readonly shift: string;
+            readonly shiftName: string;
             readonly sourceImportBatch?: string | null;
-            readonly status?: string;
-            readonly weekStartDate?: string;
+            readonly status: string;
+            readonly weekStartDate: string;
         };
         readonly MenuScheduleDtoApiResponse: {
             readonly data?: components["schemas"]["MenuScheduleDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MenuScheduleDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["MenuScheduleDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MenuVersion: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
             readonly createdBy?: string | null;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
+            readonly customerId: string;
             /** Format: int32 */
-            readonly errorRowCount?: number;
-            readonly menuschedules?: readonly components["schemas"]["MenuSchedule"][];
+            readonly errorRowCount: number;
+            readonly menuschedules: readonly components["schemas"]["MenuSchedule"][];
             /** Format: byte */
-            readonly menuVersionId?: string;
+            readonly menuVersionId: string;
             /** Format: date-time */
             readonly publishedAt?: string | null;
             /** Format: byte */
@@ -10134,136 +10193,136 @@ export interface components {
             readonly sourceChecksum?: string | null;
             readonly sourceFileName?: string | null;
             readonly sourceImportBatch?: string | null;
-            readonly status?: string;
+            readonly status: string;
             /** Format: int32 */
-            readonly successRowCount?: number;
+            readonly successRowCount: number;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
             /** Format: int32 */
-            readonly versionNo?: number;
+            readonly versionNo: number;
             /** Format: int32 */
-            readonly warningRowCount?: number;
+            readonly warningRowCount: number;
             /** Format: date */
-            readonly weekStartDate?: string;
+            readonly weekStartDate: string;
         };
         readonly MenuVersionRollbackResultDto: {
-            readonly activeMenuVersionId?: string;
+            readonly activeMenuVersionId: string;
             /** Format: int32 */
-            readonly activeVersionNo?: number;
+            readonly activeVersionNo: number;
             /** Format: int32 */
-            readonly cancelledDemandCount?: number;
+            readonly cancelledDemandCount: number;
             /** Format: int32 */
-            readonly cancelledPurchaseCount?: number;
-            readonly customerId?: string;
-            readonly reason?: string;
-            readonly rolledBackFromMenuVersionId?: string;
+            readonly cancelledPurchaseCount: number;
+            readonly customerId: string;
+            readonly reason: string;
+            readonly rolledBackFromMenuVersionId: string;
             /** Format: int32 */
-            readonly rolledBackFromVersionNo?: number;
-            readonly weekStartDate?: string;
+            readonly rolledBackFromVersionNo: number;
+            readonly weekStartDate: string;
         };
         readonly MenuVersionRollbackResultDtoApiResponse: {
             readonly data?: components["schemas"]["MenuVersionRollbackResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly MissingBomDishDto: {
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
-            readonly dishCode?: string;
-            readonly dishId?: string;
-            readonly dishName?: string;
-            readonly menuId?: string;
-            readonly menuName?: string;
-            readonly message?: string;
-            readonly shiftName?: string;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
+            readonly dishCode: string;
+            readonly dishId: string;
+            readonly dishName: string;
+            readonly menuId: string;
+            readonly menuName: string;
+            readonly message: string;
+            readonly shiftName: string;
             /** Format: int32 */
-            readonly totalServings?: number;
+            readonly totalServings: number;
         };
         readonly MissingUnitConversionIssueDto: {
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly issueId?: string;
-            readonly message?: string;
-            readonly sourceUnitId?: string;
-            readonly sourceUnitName?: string;
-            readonly targetUnitId?: string;
-            readonly targetUnitName?: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly issueId: string;
+            readonly message: string;
+            readonly sourceUnitId: string;
+            readonly sourceUnitName: string;
+            readonly targetUnitId: string;
+            readonly targetUnitName: string;
         };
         readonly PortionRule: {
             readonly activeWeekDays?: string | null;
             /** Format: double */
             readonly bomRatePercent?: number | null;
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly customer?: components["schemas"]["Customer"];
+            readonly createdAt: string;
+            readonly customer: components["schemas"]["Customer"];
             /** Format: byte */
-            readonly customerId?: string;
+            readonly customerId: string;
             readonly dish?: components["schemas"]["Dish"];
             readonly dishCategory?: string | null;
             /** Format: byte */
             readonly dishId?: string | null;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
             readonly menuSectionName?: string | null;
             readonly menuVariant?: string | null;
             /** Format: double */
-            readonly portionRatePercent?: number;
+            readonly portionRatePercent: number;
             /** Format: byte */
-            readonly portionRuleId?: string;
+            readonly portionRuleId: string;
             /** Format: int32 */
-            readonly priority?: number;
-            readonly reason?: string;
+            readonly priority: number;
+            readonly reason: string;
             readonly shiftNames?: string | null;
             readonly slotName?: string | null;
-            readonly status?: string;
+            readonly status: string;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
         readonly PortionRuleDto: {
-            readonly activeWeekDays?: readonly string[];
+            readonly activeWeekDays: readonly string[];
             /** Format: double */
             readonly bomRatePercent?: number | null;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
             readonly dishCategory?: string | null;
             readonly dishCode?: string | null;
             readonly dishId?: string | null;
             readonly dishName?: string | null;
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             readonly effectiveTo?: string | null;
             readonly menuSectionName?: string | null;
             readonly menuVariant?: string | null;
             /** Format: double */
-            readonly portionRatePercent?: number;
-            readonly portionRuleId?: string;
+            readonly portionRatePercent: number;
+            readonly portionRuleId: string;
             /** Format: int32 */
-            readonly priority?: number;
-            readonly reason?: string;
-            readonly ruleSource?: string;
-            readonly shiftNames?: readonly string[];
+            readonly priority: number;
+            readonly reason: string;
+            readonly ruleSource: string;
+            readonly shiftNames: readonly string[];
             readonly slotName?: string | null;
-            readonly status?: string;
+            readonly status: string;
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
         readonly PortionRuleDtoApiResponse: {
             readonly data?: components["schemas"]["PortionRuleDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PortionRuleDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["PortionRuleDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ProblemDetails: {
             readonly detail?: string | null;
@@ -10277,320 +10336,393 @@ export interface components {
         };
         readonly ProductionPlan: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
             readonly customer?: components["schemas"]["Customer"];
             /** Format: byte */
             readonly customerId?: string | null;
-            readonly materialrequests?: readonly components["schemas"]["MaterialRequest"][];
+            readonly materialrequests: readonly components["schemas"]["MaterialRequest"][];
             readonly menuVersion?: components["schemas"]["MenuVersion"];
             /** Format: byte */
             readonly menuVersionId?: string | null;
-            readonly planCode?: string;
+            readonly planCode: string;
             /** Format: date */
-            readonly planDate?: string;
+            readonly planDate: string;
             /** Format: byte */
-            readonly planId?: string;
-            readonly productionplanlines?: readonly components["schemas"]["ProductionPlanLine"][];
+            readonly planId: string;
+            readonly productionplanlines: readonly components["schemas"]["ProductionPlanLine"][];
             /** Format: date-time */
             readonly sentToKitchenAt?: string | null;
             /** Format: byte */
             readonly sentToKitchenBy?: string | null;
             readonly sentToKitchenByNavigation?: components["schemas"]["User"];
-            readonly status?: string;
+            readonly status: string;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
             /** Format: date */
             readonly weekStartDate?: string | null;
         };
-        readonly ProductionPlanLine: {
-            readonly customer?: components["schemas"]["Customer"];
-            /** Format: byte */
-            readonly customerId?: string;
-            readonly dish?: components["schemas"]["Dish"];
-            /** Format: byte */
-            readonly dishId?: string;
-            readonly materialrequestlines?: readonly components["schemas"]["MaterialRequestLine"][];
-            readonly menu?: components["schemas"]["Menu"];
-            /** Format: byte */
-            readonly menuId?: string;
-            readonly plan?: components["schemas"]["ProductionPlan"];
-            /** Format: byte */
-            readonly planId?: string;
-            /** Format: byte */
-            readonly planLineId?: string;
-            readonly quantityPlanLine?: components["schemas"]["MealQuantityPlanLine"];
-            /** Format: byte */
-            readonly quantityPlanLineId?: string;
-            readonly shiftName?: string;
+        readonly ProductionPlanDto: {
+            /** Format: date-time */
+            readonly createdAt: string;
+            readonly createdBy: string;
+            readonly createdByName?: string | null;
+            readonly customerCode?: string | null;
+            readonly customerId?: string | null;
+            readonly customerName?: string | null;
+            readonly lines: readonly components["schemas"]["ProductionPlanLineDto"][];
+            readonly menuVersionId?: string | null;
             /** Format: int32 */
-            readonly totalServings?: number;
+            readonly menuVersionNo?: number | null;
+            readonly menuVersionStatus?: string | null;
+            readonly planCode: string;
+            /** Format: date */
+            readonly planDate: string;
+            readonly planId: string;
+            /** Format: date-time */
+            readonly sentToKitchenAt?: string | null;
+            readonly sentToKitchenBy?: string | null;
+            readonly sentToKitchenByName?: string | null;
+            readonly status?: string | null;
+            /** Format: date */
+            readonly weekStartDate?: string | null;
+        };
+        readonly ProductionPlanDtoApiResponse: {
+            readonly data?: components["schemas"]["ProductionPlanDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ProductionPlanDtoIReadOnlyListApiResponse: {
+            readonly data?: readonly components["schemas"]["ProductionPlanDto"][] | null;
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ProductionPlanDtoPagedResponseDto: {
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["ProductionPlanDto"][];
+            /** Format: int32 */
+            readonly pageNumber: number;
+            /** Format: int32 */
+            readonly pageSize: number;
+            /** Format: int32 */
+            readonly totalCount: number;
+            /** Format: int32 */
+            readonly totalPages: number;
+        };
+        readonly ProductionPlanDtoPagedResponseDtoApiResponse: {
+            readonly data?: components["schemas"]["ProductionPlanDtoPagedResponseDto"];
+            readonly errors?: unknown;
+            readonly message: string;
+            readonly success: boolean;
+        };
+        readonly ProductionPlanLine: {
+            readonly customer: components["schemas"]["Customer"];
+            /** Format: byte */
+            readonly customerId: string;
+            readonly dish: components["schemas"]["Dish"];
+            /** Format: byte */
+            readonly dishId: string;
+            readonly materialrequestlines: readonly components["schemas"]["MaterialRequestLine"][];
+            readonly menu: components["schemas"]["Menu"];
+            /** Format: byte */
+            readonly menuId: string;
+            readonly plan: components["schemas"]["ProductionPlan"];
+            /** Format: byte */
+            readonly planId: string;
+            /** Format: byte */
+            readonly planLineId: string;
+            readonly quantityPlanLine: components["schemas"]["MealQuantityPlanLine"];
+            /** Format: byte */
+            readonly quantityPlanLineId: string;
+            readonly shiftName: string;
+            /** Format: int32 */
+            readonly totalServings: number;
+        };
+        readonly ProductionPlanLineDto: {
+            readonly bomScope?: string | null;
+            readonly dishId: string;
+            readonly dishName?: string | null;
+            readonly hasKitchenIssue: boolean;
+            readonly isReceivedByKitchen: boolean;
+            readonly planLineId: string;
+            /** Format: double */
+            readonly priceTierAmount?: number | null;
+            readonly shiftName?: string | null;
+            /** Format: double */
+            readonly suggestedPurchaseQty: number;
+            /** Format: double */
+            readonly totalRequiredQty: number;
+            /** Format: int32 */
+            readonly totalServings: number;
         };
         readonly PurchaseHistoryActionDto: {
-            readonly actionHash?: string;
-            readonly actionId?: string;
-            readonly actionType?: string;
-            readonly afterEvidence?: string;
-            readonly afterHash?: string;
-            readonly beforeEvidence?: string;
-            readonly beforeHash?: string;
+            readonly actionHash: string;
+            readonly actionId: string;
+            readonly actionType: string;
+            readonly afterEvidence: string;
+            readonly afterHash: string;
+            readonly beforeEvidence: string;
+            readonly beforeHash: string;
             readonly businessKey?: string | null;
-            readonly reasonCode?: string;
-            readonly sourceKey?: string;
-            readonly targetId?: string;
-            readonly targetType?: string;
+            readonly reasonCode: string;
+            readonly sourceKey: string;
+            readonly targetId: string;
+            readonly targetType: string;
         };
         readonly PurchaseHistoryApplyRequest: {
-            readonly acceptedActionIds?: readonly string[];
+            readonly acceptedActionIds: readonly string[];
             readonly backupRestoreEvidence: components["schemas"]["BackupRestoreEvidenceRequest"];
             readonly manifestHash: string;
             readonly manifestId: string;
         };
         readonly PurchaseHistoryApplyResultDto: {
-            readonly applied?: boolean;
+            readonly applied: boolean;
             /** Format: int32 */
-            readonly appliedActionCount?: number;
-            readonly auditReference?: string;
-            readonly blockers?: readonly components["schemas"]["PurchaseHistoryBlockerDto"][];
-            readonly manifestId?: string;
-            readonly noOp?: boolean;
-            readonly runId?: string;
+            readonly appliedActionCount: number;
+            readonly auditReference: string;
+            readonly blockers: readonly components["schemas"]["PurchaseHistoryBlockerDto"][];
+            readonly manifestId: string;
+            readonly noOp: boolean;
+            readonly runId: string;
         };
         readonly PurchaseHistoryApplyResultDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseHistoryApplyResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseHistoryBlockerDto: {
-            readonly blockerId?: string;
-            readonly code?: string;
-            readonly field?: string;
-            readonly rawCells?: {
+            readonly blockerId: string;
+            readonly code: string;
+            readonly field: string;
+            readonly rawCells: {
                 readonly [key: string]: string;
             };
-            readonly rawValue?: string;
+            readonly rawValue: string;
             /** Format: int32 */
-            readonly sourceRow?: number;
-            readonly sourceSheet?: string;
+            readonly sourceRow: number;
+            readonly sourceSheet: string;
         };
         readonly PurchaseHistoryManifestDto: {
             /** Format: int32 */
-            readonly actionCount?: number;
-            readonly actionCounts?: {
+            readonly actionCount: number;
+            readonly actionCounts: {
                 readonly [key: string]: number;
             };
             /** Format: date */
-            readonly asOfDate?: string;
+            readonly asOfDate: string;
             /** Format: int32 */
-            readonly auditedDeltaCount?: number;
+            readonly auditedDeltaCount: number;
             /** Format: int32 */
-            readonly blockerCount?: number;
+            readonly blockerCount: number;
             /** Format: int32 */
-            readonly candidateCount?: number;
+            readonly candidateCount: number;
             /** Format: int32 */
-            readonly currentUniqueBusinessKeyCount?: number;
-            readonly databaseFingerprint?: string;
-            readonly manifestHash?: string;
-            readonly manifestId?: string;
-            readonly policyVersion?: string;
-            readonly sourceName?: string;
-            readonly sourceSha256?: string;
+            readonly currentUniqueBusinessKeyCount: number;
+            readonly databaseFingerprint: string;
+            readonly manifestHash: string;
+            readonly manifestId: string;
+            readonly policyVersion: string;
+            readonly sourceName: string;
+            readonly sourceSha256: string;
         };
         readonly PurchaseHistoryPreviewDto: {
-            readonly actions?: readonly components["schemas"]["PurchaseHistoryActionDto"][];
-            readonly blockers?: readonly components["schemas"]["PurchaseHistoryBlockerDto"][];
-            readonly manifest?: components["schemas"]["PurchaseHistoryManifestDto"];
-            readonly previewedBy?: string;
+            readonly actions: readonly components["schemas"]["PurchaseHistoryActionDto"][];
+            readonly blockers: readonly components["schemas"]["PurchaseHistoryBlockerDto"][];
+            readonly manifest: components["schemas"]["PurchaseHistoryManifestDto"];
+            readonly previewedBy: string;
         };
         readonly PurchaseHistoryPreviewDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseHistoryPreviewDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseHistoryPreviewRequest: Record<string, never>;
         readonly PurchaseLineSupplierDecision: {
             /** Format: int32 */
-            readonly concurrencyVersion?: number;
+            readonly concurrencyVersion: number;
             /** Format: date-time */
-            readonly confirmedAt?: string;
+            readonly confirmedAt: string;
             /** Format: byte */
-            readonly confirmedBy?: string;
-            readonly confirmedByNavigation?: components["schemas"]["User"];
+            readonly confirmedBy: string;
+            readonly confirmedByNavigation: components["schemas"]["User"];
             /** Format: byte */
             readonly currentDecisionKey?: string | null;
-            readonly decisionFingerprint?: string;
+            readonly decisionFingerprint: string;
             /** Format: date */
-            readonly evidenceDate?: string;
+            readonly evidenceDate: string;
             /** Format: byte */
-            readonly evidenceId?: string;
+            readonly evidenceId: string;
             /** Format: double */
-            readonly evidenceReferencePrice?: number;
-            readonly evidenceType?: string;
+            readonly evidenceReferencePrice: number;
+            readonly evidenceType: string;
             /** Format: date */
-            readonly proposedDeliveryDate?: string;
+            readonly proposedDeliveryDate: string;
             /** Format: double */
-            readonly proposedUnitPrice?: number;
+            readonly proposedUnitPrice: number;
             /** Format: byte */
-            readonly purchaseLineSupplierDecisionId?: string;
-            readonly purchasepriceexceptions?: readonly components["schemas"]["PurchasePriceException"][];
-            readonly purchaseRequestLine?: components["schemas"]["PurchaseRequestLine"];
+            readonly purchaseLineSupplierDecisionId: string;
+            readonly purchasepriceexceptions: readonly components["schemas"]["PurchasePriceException"][];
+            readonly purchaseRequestLine: components["schemas"]["PurchaseRequestLine"];
             /** Format: byte */
-            readonly purchaseRequestLineId?: string;
-            readonly status?: string;
+            readonly purchaseRequestLineId: string;
+            readonly status: string;
             readonly supersededByDecision?: components["schemas"]["PurchaseLineSupplierDecision"];
             /** Format: byte */
             readonly supersededByDecisionId?: string | null;
-            readonly supersededDecisions?: readonly components["schemas"]["PurchaseLineSupplierDecision"][];
-            readonly supplier?: components["schemas"]["Supplier"];
+            readonly supersededDecisions: readonly components["schemas"]["PurchaseLineSupplierDecision"][];
+            readonly supplier: components["schemas"]["Supplier"];
             /** Format: byte */
-            readonly supplierId?: string;
+            readonly supplierId: string;
             /** Format: int32 */
-            readonly version?: number;
+            readonly version: number;
         };
         readonly PurchaseLineSupplierDecisionDto: {
             /** Format: int32 */
-            readonly concurrencyVersion?: number;
-            readonly confirmedAt?: string;
-            readonly confirmedBy?: string;
-            readonly decisionFingerprint?: string;
-            readonly evidenceDate?: string;
-            readonly evidenceId?: string;
+            readonly concurrencyVersion: number;
+            readonly confirmedAt: string;
+            readonly confirmedBy: string;
+            readonly decisionFingerprint: string;
+            readonly evidenceDate: string;
+            readonly evidenceId: string;
             /** Format: double */
-            readonly evidenceReferencePrice?: number;
-            readonly evidenceType?: components["schemas"]["SupplierEvidenceType"];
-            readonly proposedDeliveryDate?: string;
+            readonly evidenceReferencePrice: number;
+            readonly evidenceType: components["schemas"]["SupplierEvidenceType"];
+            readonly proposedDeliveryDate: string;
             /** Format: double */
-            readonly proposedUnitPrice?: number;
-            readonly purchaseLineSupplierDecisionId?: string;
-            readonly status?: string;
+            readonly proposedUnitPrice: number;
+            readonly purchaseLineSupplierDecisionId: string;
+            readonly status: string;
             readonly supersededByDecisionId?: string | null;
-            readonly supplierId?: string;
+            readonly supplierId: string;
             /** Format: int32 */
-            readonly version?: number;
+            readonly version: number;
         };
         readonly PurchaseLineSupplierDecisionDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseLineSupplierDecisionDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseOrder: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
             /** Format: date */
-            readonly orderDate?: string;
-            readonly purchaseOrderCode?: string;
+            readonly orderDate: string;
+            readonly purchaseOrderCode: string;
             /** Format: byte */
-            readonly purchaseOrderId?: string;
-            readonly purchaseorderlines?: readonly components["schemas"]["PurchaseOrderLine"][];
-            readonly purchaseRequest?: components["schemas"]["PurchaseRequest"];
+            readonly purchaseOrderId: string;
+            readonly purchaseorderlines: readonly components["schemas"]["PurchaseOrderLine"][];
+            readonly purchaseRequest: components["schemas"]["PurchaseRequest"];
             /** Format: byte */
-            readonly purchaseRequestId?: string;
-            readonly status?: string;
-            readonly supplier?: components["schemas"]["Supplier"];
+            readonly purchaseRequestId: string;
+            readonly status: string;
+            readonly supplier: components["schemas"]["Supplier"];
             /** Format: byte */
-            readonly supplierId?: string;
+            readonly supplierId: string;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
         };
         readonly PurchaseOrderDto: {
-            readonly lines?: readonly components["schemas"]["PurchaseOrderLineDto"][];
-            readonly orderDate?: string;
-            readonly purchaseOrderCode?: string;
-            readonly purchaseOrderId?: string;
-            readonly purchaseRequestCode?: string;
-            readonly purchaseRequestId?: string;
-            readonly status?: string;
-            readonly supplierId?: string;
-            readonly supplierName?: string;
+            readonly lines: readonly components["schemas"]["PurchaseOrderLineDto"][];
+            readonly orderDate: string;
+            readonly purchaseOrderCode: string;
+            readonly purchaseOrderId: string;
+            readonly purchaseRequestCode: string;
+            readonly purchaseRequestId: string;
+            readonly status: string;
+            readonly supplierId: string;
+            readonly supplierName: string;
         };
         readonly PurchaseOrderDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseOrderDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseOrderDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["PurchaseOrderDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseOrderDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["PurchaseOrderDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["PurchaseOrderDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly PurchaseOrderLine: {
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: double */
-            readonly orderedQty?: number;
-            readonly purchaseOrder?: components["schemas"]["PurchaseOrder"];
+            readonly orderedQty: number;
+            readonly purchaseOrder: components["schemas"]["PurchaseOrder"];
             /** Format: byte */
-            readonly purchaseOrderId?: string;
+            readonly purchaseOrderId: string;
             /** Format: byte */
-            readonly purchaseOrderLineId?: string;
-            readonly purchaseRequestLine?: components["schemas"]["PurchaseRequestLine"];
+            readonly purchaseOrderLineId: string;
+            readonly purchaseRequestLine: components["schemas"]["PurchaseRequestLine"];
             /** Format: byte */
-            readonly purchaseRequestLineId?: string;
+            readonly purchaseRequestLineId: string;
             /** Format: double */
-            readonly receivedQty?: number;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly receivedQty: number;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly PurchaseOrderLineDto: {
             readonly blockerReason?: string | null;
-            readonly expiryDateRequired?: boolean;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly lotNumberRequired?: boolean;
-            readonly manufactureDateRequired?: boolean;
+            readonly expiryDateRequired: boolean;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly lotNumberRequired: boolean;
+            readonly manufactureDateRequired: boolean;
             /** Format: double */
-            readonly orderedQty?: number;
-            readonly purchaseOrderLineId?: string;
-            readonly purchaseRequestLineId?: string;
+            readonly orderedQty: number;
+            readonly purchaseOrderLineId: string;
+            readonly purchaseRequestLineId: string;
             /** Format: double */
-            readonly receivedQty?: number;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly receivedQty: number;
+            readonly unitId: string;
+            readonly unitName: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly PurchaseOrderPageDto: {
-            readonly orderCountByRequest?: {
+            readonly orderCountByRequest: {
                 readonly [key: string]: number;
             };
-            readonly page?: components["schemas"]["PurchaseOrderDtoPagedResponseDto"];
+            readonly page: components["schemas"]["PurchaseOrderDtoPagedResponseDto"];
         };
         readonly PurchaseOrderPageDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseOrderPageDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchasePriceException: {
             /** Format: int32 */
-            readonly concurrencyVersion?: number;
+            readonly concurrencyVersion: number;
             /** Format: date-time */
             readonly decidedAt?: string | null;
             /** Format: byte */
@@ -10598,44 +10730,44 @@ export interface components {
             readonly decidedByNavigation?: components["schemas"]["User"];
             readonly decisionReason?: string | null;
             /** Format: date */
-            readonly evidenceDate?: string;
+            readonly evidenceDate: string;
             /** Format: byte */
-            readonly evidenceId?: string;
-            readonly evidenceType?: string;
-            readonly proposalFingerprint?: string;
+            readonly evidenceId: string;
+            readonly evidenceType: string;
+            readonly proposalFingerprint: string;
             /** Format: int32 */
-            readonly proposalVersion?: number;
+            readonly proposalVersion: number;
             /** Format: double */
-            readonly proposedPrice?: number;
-            readonly purchaseLineSupplierDecision?: components["schemas"]["PurchaseLineSupplierDecision"];
+            readonly proposedPrice: number;
+            readonly purchaseLineSupplierDecision: components["schemas"]["PurchaseLineSupplierDecision"];
             /** Format: byte */
-            readonly purchaseLineSupplierDecisionId?: string;
+            readonly purchaseLineSupplierDecisionId: string;
             /** Format: byte */
-            readonly purchasePriceExceptionId?: string;
-            readonly reason?: string;
+            readonly purchasePriceExceptionId: string;
+            readonly reason: string;
             /** Format: double */
-            readonly referencePrice?: number;
+            readonly referencePrice: number;
             /** Format: date-time */
-            readonly requestedAt?: string;
+            readonly requestedAt: string;
             /** Format: byte */
-            readonly requestedBy?: string;
-            readonly requestedByNavigation?: components["schemas"]["User"];
-            readonly status?: string;
+            readonly requestedBy: string;
+            readonly requestedByNavigation: components["schemas"]["User"];
+            readonly status: string;
             readonly supersededByException?: components["schemas"]["PurchasePriceException"];
             /** Format: byte */
             readonly supersededByExceptionId?: string | null;
-            readonly supersededExceptions?: readonly components["schemas"]["PurchasePriceException"][];
+            readonly supersededExceptions: readonly components["schemas"]["PurchasePriceException"][];
             /** Format: double */
-            readonly variancePercent?: number;
+            readonly variancePercent: number;
         };
         readonly PurchaseReceiptEvidenceRequirementsDto: {
             readonly blockerReason?: string | null;
-            readonly expiryDateRequired?: boolean;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly lotNumberRequired?: boolean;
-            readonly manufactureDateRequired?: boolean;
-            readonly purchaseOrderLineId?: string;
+            readonly expiryDateRequired: boolean;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly lotNumberRequired: boolean;
+            readonly manufactureDateRequired: boolean;
+            readonly purchaseOrderLineId: string;
         };
         readonly PurchaseRequest: {
             /** Format: date-time */
@@ -10644,423 +10776,423 @@ export interface components {
             readonly approvedBy?: string | null;
             readonly approvedByNavigation?: components["schemas"]["User"];
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
-            readonly inventoryreceipts?: readonly components["schemas"]["InventoryReceipt"][];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
+            readonly inventoryreceipts: readonly components["schemas"]["InventoryReceipt"][];
             /** Format: date */
-            readonly purchaseForDate?: string;
-            readonly purchaseorders?: readonly components["schemas"]["PurchaseOrder"][];
-            readonly purchaseRequestCode?: string;
+            readonly purchaseForDate: string;
+            readonly purchaseorders: readonly components["schemas"]["PurchaseOrder"][];
+            readonly purchaseRequestCode: string;
             /** Format: byte */
-            readonly purchaseRequestId?: string;
-            readonly purchaserequestlines?: readonly components["schemas"]["PurchaseRequestLine"][];
+            readonly purchaseRequestId: string;
+            readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
             /** Format: date */
-            readonly requestDate?: string;
+            readonly requestDate: string;
             readonly shiftName?: string | null;
-            readonly status?: string;
+            readonly status: string;
         };
         readonly PurchaseRequestLine: {
             /** Format: double */
-            readonly currentStockQty?: number;
+            readonly currentStockQty: number;
             /** Format: double */
-            readonly estimatedUnitPrice?: number;
+            readonly estimatedUnitPrice: number;
             /** Format: date */
             readonly expectedDeliveryDate?: string | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
-            readonly inventoryreceiptlines?: readonly components["schemas"]["InventoryReceiptLine"][];
-            readonly isLegacySupplierSnapshot?: boolean;
-            readonly materialRequestLine?: components["schemas"]["MaterialRequestLine"];
+            readonly ingredientId: string;
+            readonly inventoryreceiptlines: readonly components["schemas"]["InventoryReceiptLine"][];
+            readonly isLegacySupplierSnapshot: boolean;
+            readonly materialRequestLine: components["schemas"]["MaterialRequestLine"];
             /** Format: byte */
-            readonly materialRequestLineId?: string;
+            readonly materialRequestLineId: string;
             readonly note?: string | null;
             readonly purchaseOrderLine?: components["schemas"]["PurchaseOrderLine"];
             /** Format: double */
-            readonly purchaseQty?: number;
-            readonly purchaseRequest?: components["schemas"]["PurchaseRequest"];
+            readonly purchaseQty: number;
+            readonly purchaseRequest: components["schemas"]["PurchaseRequest"];
             /** Format: byte */
-            readonly purchaseRequestId?: string;
+            readonly purchaseRequestId: string;
             /** Format: byte */
-            readonly purchaseRequestLineId?: string;
+            readonly purchaseRequestLineId: string;
             /** Format: double */
-            readonly requiredQty?: number;
+            readonly requiredQty: number;
             readonly supplier?: components["schemas"]["Supplier"];
-            readonly supplierDecisions?: readonly components["schemas"]["PurchaseLineSupplierDecision"][];
+            readonly supplierDecisions: readonly components["schemas"]["PurchaseLineSupplierDecision"][];
             /** Format: byte */
             readonly supplierId?: string | null;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
         };
         readonly PurchaseRequestWorkflowLineDto: {
             /** Format: double */
-            readonly currentStockQty?: number;
+            readonly currentStockQty: number;
             readonly currentSupplierDecision?: components["schemas"]["PurchaseLineSupplierDecisionDto"];
             /** Format: double */
-            readonly estimatedUnitPrice?: number;
+            readonly estimatedUnitPrice: number;
             readonly expectedDeliveryDate?: string | null;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly materialRequestLineId?: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly materialRequestLineId: string;
             readonly note?: string | null;
             /** Format: double */
-            readonly purchaseQty?: number;
-            readonly purchaseRequestLineId?: string;
+            readonly purchaseQty: number;
+            readonly purchaseRequestLineId: string;
             /** Format: double */
-            readonly requiredQty?: number;
-            readonly supplierDecisionHistory?: readonly components["schemas"]["PurchaseLineSupplierDecisionDto"][];
-            readonly supplierDecisionStatus?: string;
+            readonly requiredQty: number;
+            readonly supplierDecisionHistory: readonly components["schemas"]["PurchaseLineSupplierDecisionDto"][];
+            readonly supplierDecisionStatus: string;
             readonly supplierId?: string | null;
             readonly supplierName?: string | null;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly unitId: string;
+            readonly unitName: string;
         };
         readonly PurchaseRequestWorkflowResultDto: {
-            readonly lines?: readonly components["schemas"]["PurchaseRequestWorkflowLineDto"][];
-            readonly materialRequestId?: string;
-            readonly purchaseForDate?: string;
-            readonly purchaseRequestCode?: string;
-            readonly purchaseRequestId?: string;
+            readonly lines: readonly components["schemas"]["PurchaseRequestWorkflowLineDto"][];
+            readonly materialRequestId: string;
+            readonly purchaseForDate: string;
+            readonly purchaseRequestCode: string;
+            readonly purchaseRequestId: string;
             readonly shiftName?: string | null;
-            readonly status?: string;
+            readonly status: string;
         };
         readonly PurchaseRequestWorkflowResultDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseRequestWorkflowResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseRequestWorkflowResultDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["PurchaseRequestWorkflowResultDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseRequestWorkflowResultDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["PurchaseRequestWorkflowResultDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["PurchaseRequestWorkflowResultDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly PurchaseRequestWorkflowResultDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseRequestWorkflowResultDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseWorkbenchServiceDateDto: {
             /** Format: int32 */
-            readonly approvedDemandCount?: number;
-            readonly approvedDemands?: readonly components["schemas"]["ApprovedDemandSummaryDto"][];
+            readonly approvedDemandCount: number;
+            readonly approvedDemands: readonly components["schemas"]["ApprovedDemandSummaryDto"][];
             /** Format: int32 */
-            readonly blockingExceptionCount?: number;
-            readonly currentStage?: string;
+            readonly blockingExceptionCount: number;
+            readonly currentStage: string;
             /** Format: int32 */
-            readonly fullyReceivedLineCount?: number;
+            readonly fullyReceivedLineCount: number;
             /** Format: int32 */
-            readonly orderCount?: number;
-            readonly purchaseLines?: readonly components["schemas"]["PurchaseRequestWorkflowLineDto"][];
+            readonly orderCount: number;
+            readonly purchaseLines: readonly components["schemas"]["PurchaseRequestWorkflowLineDto"][];
             readonly purchaseRequestCode?: string | null;
             readonly purchaseRequestId?: string | null;
             readonly purchaseRequestStatus?: string | null;
             /** Format: int32 */
-            readonly receivingLineCount?: number;
-            readonly scope?: string;
-            readonly serviceDate?: string;
+            readonly receivingLineCount: number;
+            readonly scope: string;
+            readonly serviceDate: string;
             /** Format: int32 */
-            readonly shortageLineCount?: number;
+            readonly shortageLineCount: number;
             /** Format: int32 */
-            readonly supplierReadyLineCount?: number;
+            readonly supplierReadyLineCount: number;
         };
         readonly PurchaseWorkbenchWeekDto: {
             /** Format: int32 */
-            readonly page?: number;
+            readonly page: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             readonly selectedDate?: string | null;
             readonly selectedStage?: string | null;
-            readonly serviceDates?: readonly components["schemas"]["PurchaseWorkbenchServiceDateDto"][];
-            readonly stageCounts?: components["schemas"]["PurchaseWorkflowStageCountsDto"];
+            readonly serviceDates: readonly components["schemas"]["PurchaseWorkbenchServiceDateDto"][];
+            readonly stageCounts: components["schemas"]["PurchaseWorkflowStageCountsDto"];
             /** Format: int32 */
-            readonly totalItems?: number;
+            readonly totalItems: number;
             /** Format: int32 */
-            readonly totalPages?: number;
-            readonly weekEnd?: string;
-            readonly weekStart?: string;
+            readonly totalPages: number;
+            readonly weekEnd: string;
+            readonly weekStart: string;
         };
         readonly PurchaseWorkbenchWeekDtoApiResponse: {
             readonly data?: components["schemas"]["PurchaseWorkbenchWeekDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly PurchaseWorkflowStageCountsDto: {
             /** Format: int32 */
-            readonly approvedOrder?: number;
+            readonly approvedOrder: number;
             /** Format: int32 */
-            readonly demand?: number;
+            readonly demand: number;
             /** Format: int32 */
-            readonly exception?: number;
+            readonly exception: number;
             /** Format: int32 */
-            readonly receivingProgress?: number;
+            readonly receivingProgress: number;
             /** Format: int32 */
-            readonly submittedRequest?: number;
+            readonly submittedRequest: number;
             /** Format: int32 */
-            readonly supplierPrice?: number;
+            readonly supplierPrice: number;
         };
         readonly QuantityAdjustment: {
             /** Format: date-time */
-            readonly adjustedAt?: string;
+            readonly adjustedAt: string;
             /** Format: byte */
-            readonly adjustedBy?: string;
-            readonly adjustedByNavigation?: components["schemas"]["User"];
+            readonly adjustedBy: string;
+            readonly adjustedByNavigation: components["schemas"]["User"];
             /** Format: byte */
-            readonly adjustmentId?: string;
+            readonly adjustmentId: string;
             /** Format: int32 */
-            readonly newServings?: number;
+            readonly newServings: number;
             /** Format: int32 */
-            readonly oldServings?: number;
-            readonly quantityPlanLine?: components["schemas"]["MealQuantityPlanLine"];
+            readonly oldServings: number;
+            readonly quantityPlanLine: components["schemas"]["MealQuantityPlanLine"];
             /** Format: byte */
-            readonly quantityPlanLineId?: string;
+            readonly quantityPlanLineId: string;
             readonly reason?: string | null;
         };
         readonly QuantityImportBatch: {
-            readonly batchCode?: string;
+            readonly batchCode: string;
             /** Format: byte */
-            readonly importBatchId?: string;
+            readonly importBatchId: string;
             /** Format: date-time */
-            readonly importedAt?: string;
+            readonly importedAt: string;
             /** Format: byte */
             readonly importedBy?: string | null;
             readonly importedByNavigation?: components["schemas"]["User"];
-            readonly mealquantityplans?: readonly components["schemas"]["MealQuantityPlan"][];
+            readonly mealquantityplans: readonly components["schemas"]["MealQuantityPlan"][];
             readonly sourceCompanyName?: string | null;
-            readonly sourceType?: string;
-            readonly status?: string;
+            readonly sourceType: string;
+            readonly status: string;
         };
         readonly RecordWarehousePurchaseReceiptRequest: {
             readonly idempotencyKey: string;
             readonly lines: readonly components["schemas"]["WarehousePurchaseReceiptLineRequest"][];
             readonly purchaseOrderId: string;
             /** Format: date */
-            readonly receiptDate?: string;
+            readonly receiptDate: string;
             readonly warehouseId: string;
         };
         readonly RefreshToken: {
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly deviceInfo?: string;
+            readonly createdAt: string;
+            readonly deviceInfo: string;
             /** Format: date-time */
-            readonly expiresAt?: string;
-            readonly isRevoked?: boolean;
-            readonly isUsed?: boolean;
+            readonly expiresAt: string;
+            readonly isRevoked: boolean;
+            readonly isUsed: boolean;
             readonly replacedByToken?: string | null;
             /** Format: date-time */
             readonly revokedAt?: string | null;
-            readonly tokenHash?: string;
+            readonly tokenHash: string;
             /** Format: byte */
-            readonly tokenId?: string;
-            readonly user?: components["schemas"]["User"];
+            readonly tokenId: string;
+            readonly user: components["schemas"]["User"];
             /** Format: byte */
-            readonly userId?: string;
+            readonly userId: string;
         };
         readonly RefreshTokenRequest: {
-            readonly accessToken?: string;
-            readonly refreshToken?: string;
+            readonly accessToken: string;
+            readonly refreshToken?: string | null;
         };
         readonly RejectRequest: {
-            readonly reason?: string;
+            readonly reason: string;
         };
         readonly RejectSupplementalMaterialRequest: {
-            readonly reason?: string;
+            readonly reason: string;
         };
         readonly ResolvedPortionRuleDto: {
             /** Format: double */
             readonly bomRatePercent?: number | null;
             /** Format: double */
-            readonly portionRatePercent?: number;
+            readonly portionRatePercent: number;
             readonly portionRuleId?: string | null;
-            readonly source?: string;
-            readonly warnings?: readonly string[];
+            readonly source: string;
+            readonly warnings: readonly string[];
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
         readonly ResolvedPortionRuleDtoApiResponse: {
             readonly data?: components["schemas"]["ResolvedPortionRuleDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly ResolvePortionRuleRequest: {
-            readonly customerId?: string;
+            readonly customerId: string;
             readonly dishCategory?: string | null;
             readonly dishId?: string | null;
             readonly menuSectionName?: string | null;
             readonly menuVariant?: string | null;
-            readonly serviceDate?: string;
+            readonly serviceDate: string;
             readonly shiftName?: string | null;
             readonly slotName?: string | null;
         };
         readonly RevokeTokenRequest: {
-            readonly refreshToken?: string;
+            readonly refreshToken?: string | null;
         };
         readonly Role: {
-            readonly roleCode?: string;
+            readonly roleCode: string;
             /** Format: byte */
-            readonly roleId?: string;
-            readonly roleName?: string;
-            readonly users?: readonly components["schemas"]["User"][];
+            readonly roleId: string;
+            readonly roleName: string;
+            readonly users: readonly components["schemas"]["User"][];
         };
         readonly RollbackMenuVersionRequest: {
-            readonly customerId?: string;
-            readonly reason?: string;
+            readonly customerId: string;
+            readonly reason: string;
             readonly targetMenuVersionId?: string | null;
             /** Format: int32 */
             readonly targetVersionNo?: number | null;
-            readonly weekStartDate?: string;
+            readonly weekStartDate: string;
         };
         readonly RollbackWeeklyMenuImportResultDto: {
             /** Format: int32 */
-            readonly menuSchedulesRemoved?: number;
-            readonly menuVersionId?: string;
+            readonly menuSchedulesRemoved: number;
+            readonly menuVersionId: string;
         };
         readonly RollbackWeeklyMenuImportResultDtoApiResponse: {
             readonly data?: components["schemas"]["RollbackWeeklyMenuImportResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SampleDataFileResultDto: {
-            readonly domain?: string;
-            readonly fileName?: string;
+            readonly domain: string;
+            readonly fileName: string;
             /** Format: int32 */
-            readonly rowsImported?: number;
+            readonly rowsImported: number;
             /** Format: int32 */
-            readonly rowsScanned?: number;
+            readonly rowsScanned: number;
             /** Format: int32 */
-            readonly rowsSkipped?: number;
-            readonly status?: string;
+            readonly rowsSkipped: number;
+            readonly status: string;
         };
         readonly SampleDataImportCountsDto: {
             /** Format: int32 */
-            readonly bomLinesCreated?: number;
+            readonly bomLinesCreated: number;
             /** Format: int32 */
-            readonly bomLinesUpdated?: number;
+            readonly bomLinesUpdated: number;
             /** Format: int32 */
-            readonly currentStockRowsCreated?: number;
+            readonly currentStockRowsCreated: number;
             /** Format: int32 */
-            readonly currentStockRowsUpdated?: number;
+            readonly currentStockRowsUpdated: number;
             /** Format: int32 */
-            readonly customersCreated?: number;
+            readonly customersCreated: number;
             /** Format: int32 */
-            readonly customersUpdated?: number;
+            readonly customersUpdated: number;
             /** Format: int32 */
-            readonly dishesCreated?: number;
+            readonly dishesCreated: number;
             /** Format: int32 */
-            readonly dishesUpdated?: number;
+            readonly dishesUpdated: number;
             /** Format: int32 */
-            readonly ingredientsCreated?: number;
+            readonly ingredientsCreated: number;
             /** Format: int32 */
-            readonly ingredientsUpdated?: number;
+            readonly ingredientsUpdated: number;
             /** Format: int32 */
-            readonly inventoryReceiptLinesCreated?: number;
+            readonly inventoryReceiptLinesCreated: number;
             /** Format: int32 */
-            readonly inventoryReceiptLinesUpdated?: number;
+            readonly inventoryReceiptLinesUpdated: number;
             /** Format: int32 */
-            readonly inventoryReceiptsCreated?: number;
+            readonly inventoryReceiptsCreated: number;
             /** Format: int32 */
-            readonly inventoryReceiptsUpdated?: number;
+            readonly inventoryReceiptsUpdated: number;
             /** Format: int32 */
-            readonly mealQuantityPlanLinesCreated?: number;
+            readonly mealQuantityPlanLinesCreated: number;
             /** Format: int32 */
-            readonly mealQuantityPlanLinesUpdated?: number;
+            readonly mealQuantityPlanLinesUpdated: number;
             /** Format: int32 */
-            readonly mealQuantityPlansCreated?: number;
+            readonly mealQuantityPlansCreated: number;
             /** Format: int32 */
-            readonly mealQuantityPlansUpdated?: number;
+            readonly mealQuantityPlansUpdated: number;
             /** Format: int32 */
-            readonly menuItemsCreated?: number;
+            readonly menuItemsCreated: number;
             /** Format: int32 */
-            readonly menuItemsUpdated?: number;
+            readonly menuItemsUpdated: number;
             /** Format: int32 */
-            readonly menuSchedulesCreated?: number;
+            readonly menuSchedulesCreated: number;
             /** Format: int32 */
-            readonly menuSchedulesUpdated?: number;
+            readonly menuSchedulesUpdated: number;
             /** Format: int32 */
-            readonly menusCreated?: number;
+            readonly menusCreated: number;
             /** Format: int32 */
-            readonly menusUpdated?: number;
+            readonly menusUpdated: number;
             /** Format: int32 */
-            readonly quantityImportBatchesCreated?: number;
+            readonly quantityImportBatchesCreated: number;
             /** Format: int32 */
-            readonly rolesCreated?: number;
+            readonly rolesCreated: number;
             /** Format: int32 */
-            readonly stockMovementsCreated?: number;
+            readonly stockMovementsCreated: number;
             /** Format: int32 */
-            readonly stockMovementsUpdated?: number;
+            readonly stockMovementsUpdated: number;
             /** Format: int32 */
-            readonly suppliersCreated?: number;
+            readonly suppliersCreated: number;
             /** Format: int32 */
-            readonly suppliersUpdated?: number;
+            readonly suppliersUpdated: number;
             /** Format: int32 */
-            readonly unitsCreated?: number;
+            readonly unitsCreated: number;
             /** Format: int32 */
-            readonly usersCreated?: number;
+            readonly usersCreated: number;
             /** Format: int32 */
-            readonly warehousesCreated?: number;
+            readonly warehousesCreated: number;
         };
         readonly SampleDataImportRequest: {
-            readonly dryRun?: boolean;
+            readonly dryRun: boolean;
             /** Format: int32 */
             readonly maxRows?: number | null;
-            readonly replaceBomCatalog?: boolean;
+            readonly replaceBomCatalog: boolean;
             readonly sourceDirectory?: string | null;
         };
         readonly SampleDataImportResultDto: {
-            readonly counts?: components["schemas"]["SampleDataImportCountsDto"];
-            readonly dryRun?: boolean;
-            readonly files?: readonly components["schemas"]["SampleDataFileResultDto"][];
-            readonly importedWeeklyMenu?: {
+            readonly counts: components["schemas"]["SampleDataImportCountsDto"];
+            readonly dryRun: boolean;
+            readonly files: readonly components["schemas"]["SampleDataFileResultDto"][];
+            readonly importedWeeklyMenu: {
                 readonly [key: string]: components["schemas"]["ImportedDayMenuDto"];
             };
-            readonly sourceDirectory?: string;
-            readonly warnings?: readonly string[];
+            readonly sourceDirectory: string;
+            readonly warnings: readonly string[];
         };
         readonly SampleDataImportResultDtoApiResponse: {
             readonly data?: components["schemas"]["SampleDataImportResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SampleImportDomainStatusDto: {
-            readonly displayName?: string;
-            readonly domain?: string;
-            readonly isReady?: boolean;
-            readonly notes?: string;
+            readonly displayName: string;
+            readonly domain: string;
+            readonly isReady: boolean;
+            readonly notes: string;
             /** Format: int32 */
-            readonly rowCount?: number;
-            readonly status?: string;
+            readonly rowCount: number;
+            readonly status: string;
         };
         readonly SampleImportStatusDto: {
-            readonly domains?: readonly components["schemas"]["SampleImportDomainStatusDto"][];
+            readonly domains: readonly components["schemas"]["SampleImportDomainStatusDto"][];
             /** Format: date-time */
-            readonly generatedAt?: string;
-            readonly overallStatus?: string;
+            readonly generatedAt: string;
+            readonly overallStatus: string;
         };
         readonly SampleImportStatusDtoApiResponse: {
             readonly data?: components["schemas"]["SampleImportStatusDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SaveCustomerImportMappingRequest: {
             readonly labelColumn?: string | null;
@@ -11069,88 +11201,88 @@ export interface components {
         readonly SendDailyProductionPlanRequest: {
             readonly customerId?: string | null;
             readonly reason?: string | null;
-            readonly serviceDate?: string;
+            readonly serviceDate: string;
             readonly shiftName?: string | null;
         };
         readonly SignoffOrderRequest: {
             readonly note?: string | null;
         };
         readonly SignoffOrderResultDto: {
-            readonly newStatus?: string;
-            readonly oldStatus?: string;
-            readonly quantityPlanId?: string;
-            readonly serviceDate?: string;
+            readonly newStatus: string;
+            readonly oldStatus: string;
+            readonly quantityPlanId: string;
+            readonly serviceDate: string;
             /** Format: date-time */
-            readonly signedOffAt?: string;
-            readonly success?: boolean;
+            readonly signedOffAt: string;
+            readonly success: boolean;
         };
         readonly SignoffOrderResultDtoApiResponse: {
             readonly data?: components["schemas"]["SignoffOrderResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly StockMovement: {
             /** Format: double */
-            readonly afterQty?: number;
+            readonly afterQty: number;
             /** Format: double */
-            readonly beforeQty?: number;
+            readonly beforeQty: number;
             /** Format: date */
             readonly expiredDate?: string | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             readonly lotNumber?: string | null;
             /** Format: date */
             readonly manufactureDate?: string | null;
             /** Format: date-time */
-            readonly movementDate?: string;
+            readonly movementDate: string;
             /** Format: byte */
-            readonly movementId?: string;
-            readonly movementType?: string;
+            readonly movementId: string;
+            readonly movementType: string;
             readonly note?: string | null;
             /** Format: byte */
-            readonly performedBy?: string;
-            readonly performedByNavigation?: components["schemas"]["User"];
+            readonly performedBy: string;
+            readonly performedByNavigation: components["schemas"]["User"];
             /** Format: double */
-            readonly quantityIn?: number;
+            readonly quantityIn: number;
             /** Format: double */
-            readonly quantityOut?: number;
+            readonly quantityOut: number;
             readonly reason?: string | null;
             /** Format: byte */
             readonly refId?: string | null;
             readonly refTable?: string | null;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly unitId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly StockSnapshot: {
             /** Format: double */
-            readonly closingQty?: number;
+            readonly closingQty: number;
             /** Format: date-time */
-            readonly generatedAt?: string;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly generatedAt: string;
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: double */
-            readonly openingQty?: number;
+            readonly openingQty: number;
             /** Format: date */
-            readonly periodMonth?: string;
+            readonly periodMonth: string;
             /** Format: double */
-            readonly quantityIn?: number;
+            readonly quantityIn: number;
             /** Format: double */
-            readonly quantityOut?: number;
+            readonly quantityOut: number;
             /** Format: byte */
-            readonly snapshotId?: string;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly snapshotId: string;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly unitId: string;
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly Stocktake: {
             /** Format: date-time */
@@ -11159,19 +11291,19 @@ export interface components {
             readonly approvedBy?: string | null;
             readonly approvedByNavigation?: components["schemas"]["User"];
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: byte */
-            readonly createdBy?: string;
-            readonly createdByNavigation?: components["schemas"]["User"];
+            readonly createdBy: string;
+            readonly createdByNavigation: components["schemas"]["User"];
             readonly notes?: string | null;
-            readonly status?: string;
-            readonly stocktakeCode?: string;
+            readonly status: string;
+            readonly stocktakeCode: string;
             /** Format: byte */
-            readonly stocktakeId?: string;
-            readonly stocktakelines?: readonly components["schemas"]["StocktakeLine"][];
-            readonly warehouse?: components["schemas"]["Warehouse"];
+            readonly stocktakeId: string;
+            readonly stocktakelines: readonly components["schemas"]["StocktakeLine"][];
+            readonly warehouse: components["schemas"]["Warehouse"];
             /** Format: byte */
-            readonly warehouseId?: string;
+            readonly warehouseId: string;
         };
         readonly StocktakeDto: {
             /** Format: date-time */
@@ -11179,231 +11311,231 @@ export interface components {
             readonly approvedBy?: string | null;
             readonly approvedByName?: string | null;
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly createdBy?: string;
+            readonly createdAt: string;
+            readonly createdBy: string;
             readonly createdByName?: string | null;
-            readonly lines?: readonly components["schemas"]["StocktakeLineDto"][];
+            readonly lines: readonly components["schemas"]["StocktakeLineDto"][];
             readonly notes?: string | null;
-            readonly status?: string;
-            readonly stocktakeCode?: string;
-            readonly stocktakeId?: string;
-            readonly warehouseId?: string;
-            readonly warehouseName?: string;
+            readonly status: string;
+            readonly stocktakeCode: string;
+            readonly stocktakeId: string;
+            readonly warehouseId: string;
+            readonly warehouseName: string;
         };
         readonly StocktakeDtoApiResponse: {
             readonly data?: components["schemas"]["StocktakeDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly StocktakeDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["StocktakeDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["StocktakeDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly StocktakeDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["StocktakeDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly StocktakeLine: {
             /** Format: double */
             readonly actualQty?: number | null;
             /** Format: double */
             readonly discrepancyQty?: number | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             /** Format: byte */
-            readonly lineId?: string;
+            readonly lineId: string;
             readonly reason?: string | null;
-            readonly stocktake?: components["schemas"]["Stocktake"];
+            readonly stocktake: components["schemas"]["Stocktake"];
             /** Format: byte */
-            readonly stocktakeId?: string;
+            readonly stocktakeId: string;
             /** Format: double */
-            readonly systemQty?: number;
-            readonly unit?: components["schemas"]["Unit"];
+            readonly systemQty: number;
+            readonly unit: components["schemas"]["Unit"];
             /** Format: byte */
-            readonly unitId?: string;
+            readonly unitId: string;
         };
         readonly StocktakeLineDto: {
             /** Format: double */
             readonly actualQty?: number | null;
             /** Format: double */
             readonly discrepancyQty?: number | null;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly lineId?: string;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly lineId: string;
             readonly reason?: string | null;
             /** Format: double */
-            readonly systemQty?: number;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly systemQty: number;
+            readonly unitId: string;
+            readonly unitName: string;
         };
         readonly StringListApiResponse: {
             readonly data?: readonly string[] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly StringStringIReadOnlyDictionaryApiResponse: {
             readonly data?: {
                 readonly [key: string]: string | null;
             } | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly Supplier: {
             readonly address?: string | null;
             readonly contactName?: string | null;
             readonly debtPolicy?: string | null;
-            readonly inventoryreceipts?: readonly components["schemas"]["InventoryReceipt"][];
+            readonly inventoryreceipts: readonly components["schemas"]["InventoryReceipt"][];
             readonly invoicePolicy?: string | null;
             readonly isActive?: boolean | null;
             readonly phone?: string | null;
-            readonly purchaseorders?: readonly components["schemas"]["PurchaseOrder"][];
-            readonly purchaserequestlines?: readonly components["schemas"]["PurchaseRequestLine"][];
-            readonly supplierCode?: string;
+            readonly purchaseorders: readonly components["schemas"]["PurchaseOrder"][];
+            readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
+            readonly supplierCode: string;
             /** Format: byte */
-            readonly supplierId?: string;
-            readonly supplierName?: string;
-            readonly supplierquotations?: readonly components["schemas"]["SupplierQuotation"][];
+            readonly supplierId: string;
+            readonly supplierName: string;
+            readonly supplierquotations: readonly components["schemas"]["SupplierQuotation"][];
         };
         readonly SupplierDto: {
             readonly supplierCode?: string | null;
-            readonly supplierId?: string;
+            readonly supplierId: string;
             readonly supplierName?: string | null;
         };
         readonly SupplierDtoListApiResponse: {
             readonly data?: readonly components["schemas"]["SupplierDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SupplierEvidenceCandidateDto: {
             readonly effectiveFrom?: string | null;
             readonly effectiveTo?: string | null;
-            readonly evidenceDate?: string;
-            readonly evidenceId?: string;
-            readonly evidenceType?: components["schemas"]["SupplierEvidenceType"];
-            readonly ingredientId?: string;
-            readonly supplierId?: string;
-            readonly supplierName?: string;
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly evidenceDate: string;
+            readonly evidenceId: string;
+            readonly evidenceType: components["schemas"]["SupplierEvidenceType"];
+            readonly ingredientId: string;
+            readonly supplierId: string;
+            readonly supplierName: string;
+            readonly unitId: string;
+            readonly unitName: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly SupplierEvidenceResultDto: {
             readonly blocker?: string | null;
-            readonly candidates?: readonly components["schemas"]["SupplierEvidenceCandidateDto"][];
-            readonly diagnostics?: readonly string[];
+            readonly candidates: readonly components["schemas"]["SupplierEvidenceCandidateDto"][];
+            readonly diagnostics: readonly string[];
         };
         readonly SupplierEvidenceResultDtoApiResponse: {
             readonly data?: components["schemas"]["SupplierEvidenceResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         /** @enum {string} */
         readonly SupplierEvidenceType: "EffectiveQuotation" | "LatestValidReceipt";
         readonly SupplierQuotation: {
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             /** Format: date */
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             /** Format: date */
             readonly effectiveTo?: string | null;
-            readonly ingredient?: components["schemas"]["Ingredient"];
+            readonly ingredient: components["schemas"]["Ingredient"];
             /** Format: byte */
-            readonly ingredientId?: string;
+            readonly ingredientId: string;
             readonly isActive?: boolean | null;
             readonly note?: string | null;
             /** Format: byte */
-            readonly quotationId?: string;
-            readonly supplier?: components["schemas"]["Supplier"];
+            readonly quotationId: string;
+            readonly supplier: components["schemas"]["Supplier"];
             /** Format: byte */
-            readonly supplierId?: string;
+            readonly supplierId: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
             /** Format: date-time */
-            readonly updatedAt?: string;
+            readonly updatedAt: string;
         };
         readonly SupplierQuotationDto: {
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             readonly effectiveTo?: string | null;
-            readonly ingredientId?: string;
-            readonly ingredientName?: string;
-            readonly isActive?: boolean;
-            readonly isBestPrice?: boolean;
+            readonly ingredientId: string;
+            readonly ingredientName: string;
+            readonly isActive: boolean;
+            readonly isBestPrice: boolean;
             readonly note?: string | null;
-            readonly quotationId?: string;
-            readonly supplierId?: string;
-            readonly supplierName?: string;
+            readonly quotationId: string;
+            readonly supplierId: string;
+            readonly supplierName: string;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly SupplierQuotationDtoApiResponse: {
             readonly data?: components["schemas"]["SupplierQuotationDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SupplierQuotationDtoListApiResponse: {
             readonly data?: readonly components["schemas"]["SupplierQuotationDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly SupplierQuotationDtoPagedResponseDto: {
-            readonly hasNext?: boolean;
-            readonly hasPrev?: boolean;
-            readonly items?: readonly components["schemas"]["SupplierQuotationDto"][];
+            readonly hasNext: boolean;
+            readonly hasPrev: boolean;
+            readonly items: readonly components["schemas"]["SupplierQuotationDto"][];
             /** Format: int32 */
-            readonly pageNumber?: number;
+            readonly pageNumber: number;
             /** Format: int32 */
-            readonly pageSize?: number;
+            readonly pageSize: number;
             /** Format: int32 */
-            readonly totalCount?: number;
+            readonly totalCount: number;
             /** Format: int32 */
-            readonly totalPages?: number;
+            readonly totalPages: number;
         };
         readonly SupplierQuotationDtoPagedResponseDtoApiResponse: {
             readonly data?: components["schemas"]["SupplierQuotationDtoPagedResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly Unit: {
             readonly baseUnitCode?: string | null;
             /** Format: double */
-            readonly convertRateToBase?: number;
-            readonly currentstocklots?: readonly components["schemas"]["CurrentStockLot"][];
-            readonly currentstocks?: readonly components["schemas"]["CurrentStock"][];
-            readonly dishboms?: readonly components["schemas"]["DishBom"][];
-            readonly ingredients?: readonly components["schemas"]["Ingredient"][];
-            readonly inventoryissuelines?: readonly components["schemas"]["InventoryIssueLine"][];
-            readonly inventoryreceiptlines?: readonly components["schemas"]["InventoryReceiptLine"][];
-            readonly inventoryreturnlines?: readonly components["schemas"]["InventoryReturnLine"][];
-            readonly materialrequestlines?: readonly components["schemas"]["MaterialRequestLine"][];
-            readonly purchaseorderlines?: readonly components["schemas"]["PurchaseOrderLine"][];
-            readonly purchaserequestlines?: readonly components["schemas"]["PurchaseRequestLine"][];
-            readonly stockmovements?: readonly components["schemas"]["StockMovement"][];
-            readonly stocksnapshots?: readonly components["schemas"]["StockSnapshot"][];
-            readonly unitCode?: string;
+            readonly convertRateToBase: number;
+            readonly currentstocklots: readonly components["schemas"]["CurrentStockLot"][];
+            readonly currentstocks: readonly components["schemas"]["CurrentStock"][];
+            readonly dishboms: readonly components["schemas"]["DishBom"][];
+            readonly ingredients: readonly components["schemas"]["Ingredient"][];
+            readonly inventoryissuelines: readonly components["schemas"]["InventoryIssueLine"][];
+            readonly inventoryreceiptlines: readonly components["schemas"]["InventoryReceiptLine"][];
+            readonly inventoryreturnlines: readonly components["schemas"]["InventoryReturnLine"][];
+            readonly materialrequestlines: readonly components["schemas"]["MaterialRequestLine"][];
+            readonly purchaseorderlines: readonly components["schemas"]["PurchaseOrderLine"][];
+            readonly purchaserequestlines: readonly components["schemas"]["PurchaseRequestLine"][];
+            readonly stockmovements: readonly components["schemas"]["StockMovement"][];
+            readonly stocksnapshots: readonly components["schemas"]["StockSnapshot"][];
+            readonly unitCode: string;
             /** Format: byte */
-            readonly unitId?: string;
-            readonly unitName?: string;
+            readonly unitId: string;
+            readonly unitName: string;
         };
         readonly UpdateCustomerContractRequest: {
             readonly activeWeekDays?: readonly string[] | null;
@@ -11442,19 +11574,19 @@ export interface components {
             readonly isActive?: boolean | null;
         };
         readonly UpdateEmployeeRequest: {
-            readonly fullName?: string;
-            readonly isActive?: boolean;
+            readonly fullName: string;
+            readonly isActive: boolean;
             readonly password?: string | null;
-            readonly roleId?: string;
-            readonly username?: string;
+            readonly roleId: string;
+            readonly username: string;
         };
         readonly UpdateEmployeeStatusRequest: {
-            readonly isActive?: boolean;
+            readonly isActive: boolean;
         };
         readonly UpdateForecastServingsRequest: {
-            readonly reason?: string;
+            readonly reason: string;
             /** Format: int32 */
-            readonly servingsQuantity?: number;
+            readonly servingsQuantity: number;
         };
         readonly UpdateIngredientRequest: {
             readonly ingredientName?: string | null;
@@ -11475,7 +11607,7 @@ export interface components {
         };
         readonly UpdateMenuScheduleVersionRequest: {
             readonly reason?: string | null;
-            readonly status?: string;
+            readonly status: string;
         };
         readonly UpdatePortionRuleRequest: {
             readonly activeWeekDays?: readonly string[] | null;
@@ -11508,103 +11640,103 @@ export interface components {
             readonly lines: readonly components["schemas"]["UpdateStocktakeLineItemRequest"][];
         };
         readonly UpdateSupplierQuotationRequest: {
-            readonly effectiveFrom?: string;
+            readonly effectiveFrom: string;
             readonly effectiveTo?: string | null;
-            readonly isActive?: boolean;
+            readonly isActive: boolean;
             readonly note?: string | null;
             /** Format: double */
-            readonly unitPrice?: number;
+            readonly unitPrice: number;
         };
         readonly UpsertQuickServingsRequest: {
-            readonly complete?: boolean;
-            readonly customerId?: string;
-            readonly serviceDate?: string;
+            readonly complete: boolean;
+            readonly customerId: string;
+            readonly serviceDate: string;
             /** Format: int32 */
-            readonly servings?: number;
-            readonly shiftName?: string;
+            readonly servings: number;
+            readonly shiftName: string;
         };
         readonly User: {
-            readonly auditlogs?: readonly components["schemas"]["AuditLog"][];
-            readonly bomadjustments?: readonly components["schemas"]["BomAdjustment"][];
+            readonly auditlogs: readonly components["schemas"]["AuditLog"][];
+            readonly bomadjustments: readonly components["schemas"]["BomAdjustment"][];
             /** Format: date-time */
-            readonly createdAt?: string;
-            readonly fullName?: string;
-            readonly inventoryissueIssuedByNavigations?: readonly components["schemas"]["InventoryIssue"][];
-            readonly inventoryissueReceivedByNavigations?: readonly components["schemas"]["InventoryIssue"][];
-            readonly inventoryreceipts?: readonly components["schemas"]["InventoryReceipt"][];
-            readonly inventoryreturns?: readonly components["schemas"]["InventoryReturn"][];
+            readonly createdAt: string;
+            readonly fullName: string;
+            readonly inventoryissueIssuedByNavigations: readonly components["schemas"]["InventoryIssue"][];
+            readonly inventoryissueReceivedByNavigations: readonly components["schemas"]["InventoryIssue"][];
+            readonly inventoryreceipts: readonly components["schemas"]["InventoryReceipt"][];
+            readonly inventoryreturns: readonly components["schemas"]["InventoryReturn"][];
             readonly isActive?: boolean | null;
-            readonly materialrequestApprovedByNavigations?: readonly components["schemas"]["MaterialRequest"][];
-            readonly materialrequestCreatedByNavigations?: readonly components["schemas"]["MaterialRequest"][];
-            readonly mealquantityplans?: readonly components["schemas"]["MealQuantityPlan"][];
-            readonly passwordHash?: string;
-            readonly productionplans?: readonly components["schemas"]["ProductionPlan"][];
-            readonly purchaseorders?: readonly components["schemas"]["PurchaseOrder"][];
-            readonly purchaserequestApprovedByNavigations?: readonly components["schemas"]["PurchaseRequest"][];
-            readonly purchaserequestCreatedByNavigations?: readonly components["schemas"]["PurchaseRequest"][];
-            readonly quantityadjustments?: readonly components["schemas"]["QuantityAdjustment"][];
-            readonly quantityimportbatches?: readonly components["schemas"]["QuantityImportBatch"][];
-            readonly refreshtokens?: readonly components["schemas"]["RefreshToken"][];
-            readonly role?: components["schemas"]["Role"];
+            readonly materialrequestApprovedByNavigations: readonly components["schemas"]["MaterialRequest"][];
+            readonly materialrequestCreatedByNavigations: readonly components["schemas"]["MaterialRequest"][];
+            readonly mealquantityplans: readonly components["schemas"]["MealQuantityPlan"][];
+            readonly passwordHash: string;
+            readonly productionplans: readonly components["schemas"]["ProductionPlan"][];
+            readonly purchaseorders: readonly components["schemas"]["PurchaseOrder"][];
+            readonly purchaserequestApprovedByNavigations: readonly components["schemas"]["PurchaseRequest"][];
+            readonly purchaserequestCreatedByNavigations: readonly components["schemas"]["PurchaseRequest"][];
+            readonly quantityadjustments: readonly components["schemas"]["QuantityAdjustment"][];
+            readonly quantityimportbatches: readonly components["schemas"]["QuantityImportBatch"][];
+            readonly refreshtokens: readonly components["schemas"]["RefreshToken"][];
+            readonly role: components["schemas"]["Role"];
             /** Format: byte */
-            readonly roleId?: string;
-            readonly stockmovements?: readonly components["schemas"]["StockMovement"][];
-            readonly stocktakesApprovedByNavigations?: readonly components["schemas"]["Stocktake"][];
-            readonly stocktakesCreatedByNavigations?: readonly components["schemas"]["Stocktake"][];
+            readonly roleId: string;
+            readonly stockmovements: readonly components["schemas"]["StockMovement"][];
+            readonly stocktakesApprovedByNavigations: readonly components["schemas"]["Stocktake"][];
+            readonly stocktakesCreatedByNavigations: readonly components["schemas"]["Stocktake"][];
             /** Format: byte */
-            readonly userId?: string;
-            readonly username?: string;
+            readonly userId: string;
+            readonly username: string;
         };
         readonly UserInfoDto: {
-            readonly fullName?: string;
-            readonly isActive?: boolean;
-            readonly isAdminFullAccess?: boolean;
-            readonly permissions?: readonly string[];
-            readonly roleCode?: string;
-            readonly roleName?: string;
-            readonly userId?: string;
-            readonly username?: string;
+            readonly fullName: string;
+            readonly isActive: boolean;
+            readonly isAdminFullAccess: boolean;
+            readonly permissions: readonly string[];
+            readonly roleCode: string;
+            readonly roleName: string;
+            readonly userId: string;
+            readonly username: string;
         };
         readonly UserInfoDtoApiResponse: {
             readonly data?: components["schemas"]["UserInfoDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly UserProfileResponseDto: {
-            readonly isAdmin?: boolean;
-            readonly permissions?: readonly string[];
-            readonly user?: components["schemas"]["UserInfoDto"];
+            readonly isAdmin: boolean;
+            readonly permissions: readonly string[];
+            readonly user: components["schemas"]["UserInfoDto"];
         };
         readonly UserProfileResponseDtoApiResponse: {
             readonly data?: components["schemas"]["UserProfileResponseDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly Warehouse: {
-            readonly currentstocklots?: readonly components["schemas"]["CurrentStockLot"][];
-            readonly currentstocks?: readonly components["schemas"]["CurrentStock"][];
-            readonly ingredients?: readonly components["schemas"]["Ingredient"][];
-            readonly inventoryissues?: readonly components["schemas"]["InventoryIssue"][];
-            readonly inventoryreceipts?: readonly components["schemas"]["InventoryReceipt"][];
-            readonly inventoryreturns?: readonly components["schemas"]["InventoryReturn"][];
+            readonly currentstocklots: readonly components["schemas"]["CurrentStockLot"][];
+            readonly currentstocks: readonly components["schemas"]["CurrentStock"][];
+            readonly ingredients: readonly components["schemas"]["Ingredient"][];
+            readonly inventoryissues: readonly components["schemas"]["InventoryIssue"][];
+            readonly inventoryreceipts: readonly components["schemas"]["InventoryReceipt"][];
+            readonly inventoryreturns: readonly components["schemas"]["InventoryReturn"][];
             readonly note?: string | null;
-            readonly stockmovements?: readonly components["schemas"]["StockMovement"][];
-            readonly stocksnapshots?: readonly components["schemas"]["StockSnapshot"][];
-            readonly stocktakes?: readonly components["schemas"]["Stocktake"][];
-            readonly warehouseCode?: string;
+            readonly stockmovements: readonly components["schemas"]["StockMovement"][];
+            readonly stocksnapshots: readonly components["schemas"]["StockSnapshot"][];
+            readonly stocktakes: readonly components["schemas"]["Stocktake"][];
+            readonly warehouseCode: string;
             /** Format: byte */
-            readonly warehouseId?: string;
-            readonly warehouseName?: string;
-            readonly warehouseType?: string;
+            readonly warehouseId: string;
+            readonly warehouseName: string;
+            readonly warehouseType: string;
         };
         readonly WarehousePurchaseReceiptLineRequest: {
             /** Format: double */
-            readonly actualQuantity?: number;
+            readonly actualQuantity: number;
             readonly actualUnitId: string;
             /** Format: double */
-            readonly actualUnitPrice?: number;
+            readonly actualUnitPrice: number;
             /** Format: date */
             readonly expiryDate?: string | null;
             readonly lotNumber?: string | null;
@@ -11617,107 +11749,107 @@ export interface components {
             readonly purchaseOrderLineId: string;
         };
         readonly WarehousePurchaseReceiptResultDto: {
-            readonly evidenceRequirements?: readonly components["schemas"]["PurchaseReceiptEvidenceRequirementsDto"][];
-            readonly idempotencyKey?: string;
-            readonly purchaseOrderId?: string;
-            readonly purchaseOrderStatus?: string;
-            readonly receiptId?: string;
+            readonly evidenceRequirements: readonly components["schemas"]["PurchaseReceiptEvidenceRequirementsDto"][];
+            readonly idempotencyKey: string;
+            readonly purchaseOrderId: string;
+            readonly purchaseOrderStatus: string;
+            readonly receiptId: string;
         };
         readonly WarehousePurchaseReceiptResultDtoApiResponse: {
             readonly data?: components["schemas"]["WarehousePurchaseReceiptResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly WeeklyMenuImportColumnDto: {
-            readonly column?: string;
-            readonly label?: string;
+            readonly column: string;
+            readonly label: string;
             /** Format: date */
-            readonly serviceDate?: string;
+            readonly serviceDate: string;
         };
         readonly WeeklyMenuImportDiffDto: {
             /** Format: int32 */
-            readonly addedSlots?: number;
+            readonly addedSlots: number;
             /** Format: int32 */
-            readonly changedSlots?: number;
+            readonly changedSlots: number;
             /** Format: int32 */
-            readonly removedSlots?: number;
-            readonly rows?: readonly components["schemas"]["WeeklyMenuImportDiffRowDto"][];
+            readonly removedSlots: number;
+            readonly rows: readonly components["schemas"]["WeeklyMenuImportDiffRowDto"][];
             /** Format: int32 */
-            readonly unchangedSlots?: number;
+            readonly unchangedSlots: number;
         };
         readonly WeeklyMenuImportDiffRowDto: {
-            readonly changeType?: string;
+            readonly changeType: string;
             readonly currentDishName?: string | null;
             readonly importedDishName?: string | null;
-            readonly serviceDate?: string;
-            readonly shiftName?: string;
-            readonly slot?: string;
-            readonly variant?: string;
+            readonly serviceDate: string;
+            readonly shiftName: string;
+            readonly slot: string;
+            readonly variant: string;
         };
         readonly WeeklyMenuImportHistoryItemDto: {
             readonly cannotRollbackReason?: string | null;
-            readonly canRollback?: boolean;
+            readonly canRollback: boolean;
             /** Format: date-time */
-            readonly createdAt?: string;
+            readonly createdAt: string;
             readonly createdByName?: string | null;
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
             /** Format: int32 */
-            readonly errorRowCount?: number;
-            readonly menuVersionId?: string;
+            readonly errorRowCount: number;
+            readonly menuVersionId: string;
             readonly sourceFileName?: string | null;
-            readonly status?: string;
+            readonly status: string;
             /** Format: int32 */
-            readonly successRowCount?: number;
+            readonly successRowCount: number;
             /** Format: int32 */
-            readonly versionNo?: number;
+            readonly versionNo: number;
             /** Format: int32 */
-            readonly warningRowCount?: number;
+            readonly warningRowCount: number;
             /** Format: date */
-            readonly weekStartDate?: string;
+            readonly weekStartDate: string;
         };
         readonly WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse: {
             readonly data?: readonly components["schemas"]["WeeklyMenuImportHistoryItemDto"][] | null;
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly WeeklyMenuImportLayoutDto: {
-            readonly dayColumns?: readonly components["schemas"]["WeeklyMenuImportColumnDto"][];
-            readonly labelColumn?: string;
+            readonly dayColumns: readonly components["schemas"]["WeeklyMenuImportColumnDto"][];
+            readonly labelColumn: string;
             /** Format: int32 */
-            readonly rowsImported?: number;
+            readonly rowsImported: number;
             /** Format: int32 */
-            readonly rowsScanned?: number;
+            readonly rowsScanned: number;
             /** Format: int32 */
-            readonly rowsSkipped?: number;
-            readonly sections?: readonly string[];
-            readonly sheetName?: string;
+            readonly rowsSkipped: number;
+            readonly sections: readonly string[];
+            readonly sheetName: string;
         };
         readonly WeeklyMenuImportResultDto: {
-            readonly committed?: boolean;
-            readonly counts?: components["schemas"]["SampleDataImportCountsDto"];
-            readonly customerCode?: string;
-            readonly customerId?: string;
-            readonly customerName?: string;
-            readonly detectedLayout?: components["schemas"]["WeeklyMenuImportLayoutDto"];
-            readonly fileName?: string;
-            readonly importedWeeklyMenu?: {
+            readonly committed: boolean;
+            readonly counts: components["schemas"]["SampleDataImportCountsDto"];
+            readonly customerCode: string;
+            readonly customerId: string;
+            readonly customerName: string;
+            readonly detectedLayout: components["schemas"]["WeeklyMenuImportLayoutDto"];
+            readonly fileName: string;
+            readonly importedWeeklyMenu: {
                 readonly [key: string]: components["schemas"]["ImportedDayMenuDto"];
             };
             readonly menuVersionId?: string | null;
             /** Format: int32 */
             readonly menuVersionNo?: number | null;
             readonly menuVersionStatus?: string | null;
-            readonly previewDiff?: components["schemas"]["WeeklyMenuImportDiffDto"];
+            readonly previewDiff: components["schemas"]["WeeklyMenuImportDiffDto"];
             readonly publishedAt?: string | null;
             readonly publishedBy?: string | null;
-            readonly rows?: readonly components["schemas"]["WeeklyMenuImportRowDto"][];
+            readonly rows: readonly components["schemas"]["WeeklyMenuImportRowDto"][];
             readonly sourceImportBatch?: string | null;
-            readonly validation?: components["schemas"]["WeeklyMenuImportValidationDto"];
-            readonly warnings?: readonly string[];
+            readonly validation: components["schemas"]["WeeklyMenuImportValidationDto"];
+            readonly warnings: readonly string[];
             /** Format: date */
             readonly weekEndDate?: string | null;
             /** Format: date */
@@ -11726,55 +11858,55 @@ export interface components {
         readonly WeeklyMenuImportResultDtoApiResponse: {
             readonly data?: components["schemas"]["WeeklyMenuImportResultDto"];
             readonly errors?: unknown;
-            readonly message?: string;
-            readonly success?: boolean;
+            readonly message: string;
+            readonly success: boolean;
         };
         readonly WeeklyMenuImportRowDto: {
-            readonly dayKey?: string;
-            readonly dbShiftName?: string;
+            readonly dayKey: string;
+            readonly dbShiftName: string;
             readonly dishId?: string | null;
-            readonly dishName?: string;
-            readonly existingDish?: boolean;
-            readonly isMergedContinuation?: boolean;
+            readonly dishName: string;
+            readonly existingDish: boolean;
+            readonly isMergedContinuation: boolean;
             /** Format: int32 */
-            readonly rowSpan?: number;
+            readonly rowSpan: number;
             /** Format: date */
-            readonly serviceDate?: string;
-            readonly slot?: string;
-            readonly slotLabel?: string;
-            readonly sourceColumn?: string;
+            readonly serviceDate: string;
+            readonly slot: string;
+            readonly slotLabel: string;
+            readonly sourceColumn: string;
             /** Format: int32 */
-            readonly sourceRowNumber?: number;
-            readonly sourceSection?: string;
-            readonly sourceShift?: string;
-            readonly variant?: string;
+            readonly sourceRowNumber: number;
+            readonly sourceSection: string;
+            readonly sourceShift: string;
+            readonly variant: string;
         };
         readonly WeeklyMenuImportValidationDto: {
             /** Format: int32 */
-            readonly errorCount?: number;
-            readonly hasCriticalErrors?: boolean;
-            readonly issues?: readonly components["schemas"]["WeeklyMenuImportValidationIssueDto"][];
-            readonly isValid?: boolean;
+            readonly errorCount: number;
+            readonly hasCriticalErrors: boolean;
+            readonly issues: readonly components["schemas"]["WeeklyMenuImportValidationIssueDto"][];
+            readonly isValid: boolean;
             /** Format: int32 */
-            readonly warningCount?: number;
+            readonly warningCount: number;
         };
         readonly WeeklyMenuImportValidationIssueDto: {
             readonly cell?: string | null;
-            readonly code?: string;
+            readonly code: string;
             readonly column?: string | null;
             readonly field?: string | null;
-            readonly message?: string;
+            readonly message: string;
             /** Format: int32 */
             readonly rowNumber?: number | null;
-            readonly severity?: string;
+            readonly severity: string;
             readonly sheetName?: string | null;
         };
         readonly WeeklyMenuSlotUpdateRequest: {
-            readonly dishId?: string;
+            readonly dishId: string;
             /** Format: date */
-            readonly serviceDate?: string;
-            readonly shiftName?: string;
-            readonly slotType?: string;
+            readonly serviceDate: string;
+            readonly shiftName: string;
+            readonly slotType: string;
         };
     };
     responses: never;

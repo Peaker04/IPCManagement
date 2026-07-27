@@ -196,7 +196,7 @@ const coordinationSlice = createSlice({
       })
       state.isLocked = shifts.includes(state.currentShift)
       state.orders = state.orders.map((order) => {
-        if (order.dayOfWeek === dayOfWeek && shifts.includes(order.shift)) {
+        if (order.dayOfWeek === dayOfWeek && shifts.some((shift) => shift === order.shift)) {
           return {
             ...order,
             actualQuantity: order.forecastQuantity,
@@ -327,7 +327,7 @@ const coordinationSlice = createSlice({
 
         // Copy forecastQuantity to actualQuantity for every shift locked by the backend.
         state.orders = state.orders.map((order) => {
-          if (order.dayOfWeek === dayOfWeek && lockedShifts.includes(order.shift)) {
+          if (order.dayOfWeek === dayOfWeek && lockedShifts.some((lockedShift) => lockedShift === order.shift)) {
             return {
               ...order,
               actualQuantity: order.forecastQuantity,

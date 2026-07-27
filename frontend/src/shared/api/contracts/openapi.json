@@ -5859,7 +5859,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoPagedResponseDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoPagedResponseDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5901,7 +5918,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoIReadOnlyListApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoIReadOnlyListApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoIReadOnlyListApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5936,7 +5970,24 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5967,7 +6018,24 @@
         },
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DailyProductionPlanDtoApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -5989,7 +6057,44 @@
         ],
         "responses": {
           "200": {
-            "description": "OK"
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductionPlanDtoApiResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -14315,13 +14420,20 @@
   "components": {
     "schemas": {
       "AdjustOrderAfterLockRequest": {
+        "required": [
+          "field",
+          "newValue",
+          "orderId",
+          "reason"
+        ],
         "type": "object",
         "properties": {
           "orderId": {
             "type": "string"
           },
           "quantityPlanLineId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "field": {
             "type": "string"
@@ -14337,6 +14449,17 @@
         "additionalProperties": false
       },
       "AdjustOrderAfterLockResultDto": {
+        "required": [
+          "approvalStatus",
+          "approvalTargetId",
+          "approvalTargetType",
+          "newValue",
+          "oldValue",
+          "reason",
+          "requiresApproval",
+          "success",
+          "timestamp"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14373,6 +14496,10 @@
         "additionalProperties": false
       },
       "AdjustOrderAfterLockResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14391,6 +14518,10 @@
         "additionalProperties": false
       },
       "AdjustServingsRequest": {
+        "required": [
+          "reason",
+          "servingsQuantity"
+        ],
         "type": "object",
         "properties": {
           "servingsQuantity": {
@@ -14404,6 +14535,14 @@
         "additionalProperties": false
       },
       "AdjustServingsResultDto": {
+        "required": [
+          "auditId",
+          "changedAt",
+          "newServings",
+          "oldServings",
+          "orderId",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14435,6 +14574,10 @@
         "additionalProperties": false
       },
       "AdjustServingsResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14453,6 +14596,11 @@
         "additionalProperties": false
       },
       "AdminRoleDto": {
+        "required": [
+          "roleCode",
+          "roleId",
+          "roleName"
+        ],
         "type": "object",
         "properties": {
           "roleId": {
@@ -14468,6 +14616,10 @@
         "additionalProperties": false
       },
       "AdminRoleDtoListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14490,6 +14642,10 @@
         "additionalProperties": false
       },
       "ApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14505,6 +14661,14 @@
         "additionalProperties": false
       },
       "ApprovalAssignment": {
+        "required": [
+          "approverRole",
+          "assignmentId",
+          "isRequired",
+          "rule",
+          "ruleId",
+          "sequence"
+        ],
         "type": "object",
         "properties": {
           "assignmentId": {
@@ -14540,6 +14704,11 @@
         "additionalProperties": false
       },
       "ApprovalAssignmentRequest": {
+        "required": [
+          "approverRole",
+          "isRequired",
+          "sequence"
+        ],
         "type": "object",
         "properties": {
           "sequence": {
@@ -14567,6 +14736,15 @@
         "type": "string"
       },
       "ApprovalHistoryItemDto": {
+        "required": [
+          "actionAt",
+          "actionBy",
+          "actionByName",
+          "decision",
+          "historyId",
+          "targetId",
+          "targetType"
+        ],
         "type": "object",
         "properties": {
           "historyId": {
@@ -14607,6 +14785,10 @@
         "additionalProperties": false
       },
       "ApprovalHistoryItemDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14629,6 +14811,23 @@
         "additionalProperties": false
       },
       "ApprovalInboxItemDto": {
+        "required": [
+          "inboxItemId",
+          "itemType",
+          "materials",
+          "nextAction",
+          "ownerRole",
+          "reason",
+          "route",
+          "source",
+          "status",
+          "submittedBy",
+          "targetCode",
+          "targetId",
+          "targetType",
+          "title",
+          "tone"
+        ],
         "type": "object",
         "properties": {
           "inboxItemId": {
@@ -14777,6 +14976,11 @@
         "additionalProperties": false
       },
       "ApprovalInboxMaterialDto": {
+        "required": [
+          "name",
+          "quantity",
+          "unit"
+        ],
         "type": "object",
         "properties": {
           "name": {
@@ -14793,6 +14997,11 @@
         "additionalProperties": false
       },
       "ApprovalInboxPageDto": {
+        "required": [
+          "hasNext",
+          "items",
+          "limit"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -14816,6 +15025,10 @@
         "additionalProperties": false
       },
       "ApprovalInboxPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14834,6 +15047,9 @@
         "additionalProperties": false
       },
       "ApprovalRequest": {
+        "required": [
+          "status"
+        ],
         "type": "object",
         "properties": {
           "status": {
@@ -14847,6 +15063,13 @@
         "additionalProperties": false
       },
       "ApprovalResultDto": {
+        "required": [
+          "actionAt",
+          "historyId",
+          "status",
+          "targetId",
+          "targetType"
+        ],
         "type": "object",
         "properties": {
           "targetType": {
@@ -14877,6 +15100,10 @@
         "additionalProperties": false
       },
       "ApprovalResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14895,6 +15122,14 @@
         "additionalProperties": false
       },
       "ApprovalRule": {
+        "required": [
+          "approvalassignments",
+          "createdAt",
+          "documentType",
+          "isActive",
+          "ruleId",
+          "ruleName"
+        ],
         "type": "object",
         "properties": {
           "ruleId": {
@@ -14939,6 +15174,10 @@
         "additionalProperties": false
       },
       "ApprovalRuleApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14957,6 +15196,10 @@
         "additionalProperties": false
       },
       "ApprovalRuleIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -14979,6 +15222,12 @@
         "additionalProperties": false
       },
       "ApprovalRuleRequest": {
+        "required": [
+          "assignments",
+          "documentType",
+          "isActive",
+          "ruleName"
+        ],
         "type": "object",
         "properties": {
           "ruleName": {
@@ -15015,6 +15264,15 @@
         "additionalProperties": false
       },
       "ApprovedDemandSummaryDto": {
+        "required": [
+          "currentStage",
+          "materialRequestId",
+          "requestCode",
+          "scope",
+          "serviceDate",
+          "shortageLineCount",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "materialRequestId": {
@@ -15055,6 +15313,14 @@
         "additionalProperties": false
       },
       "AuditLog": {
+        "required": [
+          "auditId",
+          "businessArea",
+          "changedAt",
+          "changedBy",
+          "changedByNavigation",
+          "entityName"
+        ],
         "type": "object",
         "properties": {
           "auditId": {
@@ -15106,6 +15372,7 @@
         "required": [
           "backupIdentifier",
           "restoreFingerprint",
+          "restoreVerified",
           "targetFingerprint"
         ],
         "type": "object",
@@ -15129,6 +15396,18 @@
         "additionalProperties": false
       },
       "BomAdjustment": {
+        "required": [
+          "adjustedAt",
+          "adjustedBy",
+          "adjustedByNavigation",
+          "bom",
+          "bomAdjustmentId",
+          "bomId",
+          "newGrossQtyPerServing",
+          "newWasteRatePercent",
+          "oldGrossQtyPerServing",
+          "oldWasteRatePercent"
+        ],
         "type": "object",
         "properties": {
           "bomAdjustmentId": {
@@ -15177,6 +15456,15 @@
         "additionalProperties": false
       },
       "BomCoverageDishDto": {
+        "required": [
+          "bomLineCount",
+          "dishCode",
+          "dishId",
+          "dishName",
+          "hasBom",
+          "status",
+          "statusLabel"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -15213,6 +15501,14 @@
         "additionalProperties": false
       },
       "BomCoverageReportDto": {
+        "required": [
+          "completeDishes",
+          "dishes",
+          "generatedAt",
+          "missingBomDishes",
+          "totalBomLines",
+          "totalDishes"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -15245,6 +15541,10 @@
         "additionalProperties": false
       },
       "BomCoverageReportDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15263,6 +15563,22 @@
         "additionalProperties": false
       },
       "BomImportCommitResultDto": {
+        "required": [
+          "archivedRows",
+          "auditBatchCode",
+          "bomScope",
+          "canCommit",
+          "createdRows",
+          "errorRows",
+          "generatedAt",
+          "priceTier",
+          "rows",
+          "totalRows",
+          "updatedRows",
+          "validRows",
+          "warningRows",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -15330,6 +15646,10 @@
         "additionalProperties": false
       },
       "BomImportCommitResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15348,6 +15668,18 @@
         "additionalProperties": false
       },
       "BomImportPreviewDto": {
+        "required": [
+          "bomScope",
+          "canCommit",
+          "errorRows",
+          "generatedAt",
+          "priceTier",
+          "rows",
+          "totalRows",
+          "validRows",
+          "warningRows",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -15400,6 +15732,10 @@
         "additionalProperties": false
       },
       "BomImportPreviewDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15418,6 +15754,21 @@
         "additionalProperties": false
       },
       "BomImportPreviewRowDto": {
+        "required": [
+          "action",
+          "dishCode",
+          "dishName",
+          "effectiveFrom",
+          "errors",
+          "grossQtyPerServing",
+          "ingredientCode",
+          "ingredientName",
+          "rowNumber",
+          "status",
+          "unitCode",
+          "warnings",
+          "wasteRatePercent"
+        ],
         "type": "object",
         "properties": {
           "rowNumber": {
@@ -15478,6 +15829,14 @@
         "additionalProperties": false
       },
       "BomValidationIssueDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "issueCode",
+          "message",
+          "severity"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -15514,6 +15873,16 @@
         "additionalProperties": false
       },
       "BomValidationReportDto": {
+        "required": [
+          "generatedAt",
+          "issues",
+          "missingBomDishes",
+          "missingIngredientLines",
+          "missingReferencePriceLines",
+          "totalIssues",
+          "unknownUnitLines",
+          "zeroQuantityLines"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -15554,6 +15923,10 @@
         "additionalProperties": false
       },
       "BomValidationReportDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15572,6 +15945,10 @@
         "additionalProperties": false
       },
       "BulkUpdateWeeklyMenuRequest": {
+        "required": [
+          "customerId",
+          "slots"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -15587,6 +15964,9 @@
         "additionalProperties": false
       },
       "ConfirmInventoryIssueReceiptRequest": {
+        "required": [
+          "hasDiscrepancy"
+        ],
         "type": "object",
         "properties": {
           "hasDiscrepancy": {
@@ -15620,6 +16000,10 @@
         "additionalProperties": false
       },
       "ConfirmInventoryReturnReceiptRequest": {
+        "required": [
+          "adjustedLines",
+          "hasDiscrepancy"
+        ],
         "type": "object",
         "properties": {
           "hasDiscrepancy": {
@@ -15640,6 +16024,14 @@
         "additionalProperties": false
       },
       "ConfirmPurchaseLineSupplierRequest": {
+        "required": [
+          "evidenceId",
+          "evidenceType",
+          "expectedDecisionVersion",
+          "proposedDeliveryDate",
+          "proposedUnitPrice",
+          "supplierId"
+        ],
         "type": "object",
         "properties": {
           "evidenceType": {
@@ -15670,6 +16062,11 @@
         "additionalProperties": false
       },
       "CoordinationCustomerOptionDto": {
+        "required": [
+          "customerCode",
+          "customerId",
+          "customerName"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -15685,6 +16082,10 @@
         "additionalProperties": false
       },
       "CoordinationCustomerOptionDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15707,6 +16108,12 @@
         "additionalProperties": false
       },
       "CoordinationDishDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "displayOrder"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -15738,6 +16145,30 @@
         "additionalProperties": false
       },
       "CoordinationOrderDto": {
+        "required": [
+          "actualQuantity",
+          "appliedRate",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "dayOfWeek",
+          "dishes",
+          "dishId",
+          "forecastQuantity",
+          "id",
+          "mealType",
+          "menuCode",
+          "menuId",
+          "menuName",
+          "menuScheduleId",
+          "quantityPlanId",
+          "quantityPlanLineId",
+          "serviceDate",
+          "shift",
+          "shiftName",
+          "specialNotes",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "id": {
@@ -15817,6 +16248,10 @@
         "additionalProperties": false
       },
       "CoordinationOrderDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15865,6 +16300,15 @@
         "additionalProperties": false
       },
       "CoordinationScopeActionResultDto": {
+        "required": [
+          "affectedPlanCount",
+          "changedAt",
+          "newStatus",
+          "oldStatuses",
+          "serviceDate",
+          "shiftName",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15897,6 +16341,10 @@
         "additionalProperties": false
       },
       "CoordinationScopeActionResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -15915,6 +16363,10 @@
         "additionalProperties": false
       },
       "CreateCustomerContractRequest": {
+        "required": [
+          "customerCode",
+          "customerName"
+        ],
         "type": "object",
         "properties": {
           "customerCode": {
@@ -15968,7 +16420,9 @@
       },
       "CreateDishBomLineRequest": {
         "required": [
-          "ingredientId"
+          "grossQtyPerServing",
+          "ingredientId",
+          "wasteRatePercent"
         ],
         "type": "object",
         "properties": {
@@ -16055,6 +16509,13 @@
         "additionalProperties": false
       },
       "CreateEmployeeRequest": {
+        "required": [
+          "fullName",
+          "isActive",
+          "password",
+          "roleId",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "fullName": {
@@ -16079,6 +16540,8 @@
         "required": [
           "ingredientCode",
           "ingredientName",
+          "isFreshDaily",
+          "referencePrice",
           "unitId",
           "warehouseId"
         ],
@@ -16144,6 +16607,7 @@
       "CreateInventoryIssueRequest": {
         "required": [
           "issueDate",
+          "lines",
           "materialRequestId",
           "warehouseId"
         ],
@@ -16362,6 +16826,7 @@
           "issueId",
           "lines",
           "returnDate",
+          "returnType",
           "warehouseId"
         ],
         "type": "object",
@@ -16400,6 +16865,11 @@
         "additionalProperties": false
       },
       "CreatePortionRuleRequest": {
+        "required": [
+          "customerId",
+          "effectiveFrom",
+          "portionRatePercent"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -16502,6 +16972,11 @@
         "additionalProperties": false
       },
       "CreateSupplementalMaterialRequest": {
+        "required": [
+          "issueId",
+          "issueLineId",
+          "requestedQty"
+        ],
         "type": "object",
         "properties": {
           "issueId": {
@@ -16522,6 +16997,12 @@
         "additionalProperties": false
       },
       "CreateSupplierQuotationRequest": {
+        "required": [
+          "effectiveFrom",
+          "ingredientId",
+          "supplierId",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "supplierId": {
@@ -16549,6 +17030,17 @@
         "additionalProperties": false
       },
       "CurrentStock": {
+        "required": [
+          "currentQty",
+          "ingredient",
+          "ingredientId",
+          "lastUpdated",
+          "rowVersion",
+          "unit",
+          "unitId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "warehouseId": {
@@ -16588,6 +17080,17 @@
         "additionalProperties": false
       },
       "CurrentStockLot": {
+        "required": [
+          "currentQty",
+          "ingredient",
+          "ingredientId",
+          "lastUpdated",
+          "lotStockId",
+          "unit",
+          "unitId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "lotStockId": {
@@ -16641,6 +17144,19 @@
         "additionalProperties": false
       },
       "Customer": {
+        "required": [
+          "customerCode",
+          "customercontracts",
+          "customerId",
+          "customerimportmappings",
+          "customerName",
+          "dishboms",
+          "mealquantityplanlines",
+          "menuschedules",
+          "menuversions",
+          "portionrules",
+          "productionplanlines"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -16713,6 +17229,19 @@
         "additionalProperties": false
       },
       "CustomerContract": {
+        "required": [
+          "activeWeekDays",
+          "contractId",
+          "createdAt",
+          "customer",
+          "customerId",
+          "defaultBomRatePercent",
+          "defaultMenuPrice",
+          "effectiveFrom",
+          "shiftNames",
+          "status",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "contractId": {
@@ -16764,6 +17293,16 @@
         "additionalProperties": false
       },
       "CustomerContractDto": {
+        "required": [
+          "activeWeekDays",
+          "contractStatus",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "isActive",
+          "menuScheduleCount",
+          "shiftNames"
+        ],
         "type": "object",
         "properties": {
           "contractId": {
@@ -16831,6 +17370,10 @@
         "additionalProperties": false
       },
       "CustomerContractDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -16849,6 +17392,10 @@
         "additionalProperties": false
       },
       "CustomerContractDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -16871,6 +17418,13 @@
         "additionalProperties": false
       },
       "CustomerImportMapping": {
+        "required": [
+          "createdAt",
+          "customer",
+          "customerId",
+          "mappingId",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "mappingId": {
@@ -16904,6 +17458,9 @@
         "additionalProperties": false
       },
       "CustomerImportMappingDto": {
+        "required": [
+          "customerId"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -16921,6 +17478,10 @@
         "additionalProperties": false
       },
       "CustomerImportMappingDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -16938,7 +17499,106 @@
         },
         "additionalProperties": false
       },
+      "DailyProductionPlanDto": {
+        "required": [
+          "plans",
+          "sentPlans",
+          "serviceDate",
+          "suggestedPurchaseQty",
+          "totalDishes",
+          "totalPlans",
+          "totalRequiredQty",
+          "totalServings",
+          "warnings"
+        ],
+        "type": "object",
+        "properties": {
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalPlans": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sentPlans": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalDishes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalRequiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "suggestedPurchaseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "plans": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionPlanDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "DailyProductionPlanDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/DailyProductionPlanDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "DataQualityCleanupRequest": {
+        "required": [
+          "dryRun",
+          "limit"
+        ],
         "type": "object",
         "properties": {
           "dryRun": {
@@ -16963,6 +17623,10 @@
         "additionalProperties": false
       },
       "DataQualityIssueRemediationRequest": {
+        "required": [
+          "action",
+          "issueId"
+        ],
         "type": "object",
         "properties": {
           "issueId": {
@@ -16979,6 +17643,15 @@
         "additionalProperties": false
       },
       "Dish": {
+        "required": [
+          "dishboms",
+          "dishCode",
+          "dishId",
+          "dishName",
+          "menuitems",
+          "portionrules",
+          "productionplanlines"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -17031,6 +17704,21 @@
         "additionalProperties": false
       },
       "DishBom": {
+        "required": [
+          "bomadjustments",
+          "bomId",
+          "bomStatus",
+          "dish",
+          "dishId",
+          "effectiveFrom",
+          "grossQtyPerServing",
+          "ingredient",
+          "ingredientId",
+          "priceTierAmount",
+          "unit",
+          "unitId",
+          "wasteRatePercent"
+        ],
         "type": "object",
         "properties": {
           "bomId": {
@@ -17100,6 +17788,23 @@
         "additionalProperties": false
       },
       "DishCatalogBomLineDto": {
+        "required": [
+          "bomId",
+          "bomScope",
+          "bomStatus",
+          "bomStatusLabel",
+          "effectiveFrom",
+          "grossQtyPerServing",
+          "ingredientCode",
+          "ingredientId",
+          "ingredientName",
+          "priceTierAmount",
+          "referencePrice",
+          "unitCode",
+          "unitId",
+          "unitName",
+          "wasteRatePercent"
+        ],
         "type": "object",
         "properties": {
           "bomId": {
@@ -17173,6 +17878,10 @@
         "additionalProperties": false
       },
       "DishCatalogBomLineDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17191,6 +17900,10 @@
         "additionalProperties": false
       },
       "DishCatalogBomLineDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17213,6 +17926,14 @@
         "additionalProperties": false
       },
       "DishCatalogDto": {
+        "required": [
+          "bomLines",
+          "dishCode",
+          "dishId",
+          "dishName",
+          "isActive",
+          "menuSlots"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -17251,6 +17972,10 @@
         "additionalProperties": false
       },
       "DishCatalogDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17273,6 +17998,12 @@
         "additionalProperties": false
       },
       "DishDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "isActive"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -17299,6 +18030,10 @@
         "additionalProperties": false
       },
       "DishDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17317,6 +18052,15 @@
         "additionalProperties": false
       },
       "DishDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -17354,6 +18098,10 @@
         "additionalProperties": false
       },
       "DishDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17372,6 +18120,15 @@
         "additionalProperties": false
       },
       "EmployeeDto": {
+        "required": [
+          "createdAt",
+          "fullName",
+          "isActive",
+          "roleId",
+          "roleName",
+          "userId",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "userId": {
@@ -17400,6 +18157,10 @@
         "additionalProperties": false
       },
       "EmployeeDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17418,6 +18179,15 @@
         "additionalProperties": false
       },
       "EmployeeDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -17455,6 +18225,10 @@
         "additionalProperties": false
       },
       "EmployeeDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17473,6 +18247,9 @@
         "additionalProperties": false
       },
       "ExportOrderReportRequest": {
+        "required": [
+          "format"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -17498,6 +18275,10 @@
         "additionalProperties": false
       },
       "ExportOrderReportResultDto": {
+        "required": [
+          "downloadUrl",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17510,6 +18291,10 @@
         "additionalProperties": false
       },
       "ExportOrderReportResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17528,6 +18313,9 @@
         "additionalProperties": false
       },
       "FulfillSupplementalMaterialRequest": {
+        "required": [
+          "quantity"
+        ],
         "type": "object",
         "properties": {
           "quantity": {
@@ -17538,6 +18326,10 @@
         "additionalProperties": false
       },
       "GenerateMaterialDemandRequest": {
+        "required": [
+          "scope",
+          "serviceDate"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -17558,6 +18350,9 @@
         "additionalProperties": false
       },
       "GeneratePurchaseRequestFromDemandRequest": {
+        "required": [
+          "materialRequestId"
+        ],
         "type": "object",
         "properties": {
           "materialRequestId": {
@@ -17601,6 +18396,12 @@
         "additionalProperties": false
       },
       "ImportedDayMenuDto": {
+        "required": [
+          "afternoonSavory",
+          "afternoonVegetarian",
+          "morningSavory",
+          "morningVegetarian"
+        ],
         "type": "object",
         "properties": {
           "morningSavory": {
@@ -17619,6 +18420,11 @@
         "additionalProperties": false
       },
       "ImportedMenuSlotDto": {
+        "required": [
+          "customComponents",
+          "dishId",
+          "portions"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -17635,6 +18441,30 @@
         "additionalProperties": false
       },
       "Ingredient": {
+        "required": [
+          "currentstocklots",
+          "currentstocks",
+          "dishboms",
+          "ingredientCode",
+          "ingredientId",
+          "ingredientName",
+          "inventoryissuelines",
+          "inventoryreceiptlines",
+          "inventoryreturnlines",
+          "isFreshDaily",
+          "materialrequestlines",
+          "purchaseorderlines",
+          "purchaserequestlines",
+          "referencePrice",
+          "stockmovements",
+          "stocksnapshots",
+          "stocktakelines",
+          "supplierquotations",
+          "unit",
+          "unitId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "ingredientId": {
@@ -17754,6 +18584,15 @@
         "additionalProperties": false
       },
       "IngredientDto": {
+        "required": [
+          "ingredientCode",
+          "ingredientId",
+          "ingredientName",
+          "isActive",
+          "referencePrice",
+          "unitId",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "ingredientId": {
@@ -17794,6 +18633,10 @@
         "additionalProperties": false
       },
       "IngredientDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17812,6 +18655,15 @@
         "additionalProperties": false
       },
       "IngredientDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -17849,6 +18701,10 @@
         "additionalProperties": false
       },
       "IngredientDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -17867,6 +18723,20 @@
         "additionalProperties": false
       },
       "InventoryIssue": {
+        "required": [
+          "createdAt",
+          "inventoryissuelines",
+          "inventoryreturns",
+          "issueCode",
+          "issueDate",
+          "issuedBy",
+          "issuedByNavigation",
+          "issueId",
+          "materialRequest",
+          "materialRequestId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "issueId": {
@@ -17938,6 +18808,17 @@
         "additionalProperties": false
       },
       "InventoryIssueLine": {
+        "required": [
+          "ingredient",
+          "ingredientId",
+          "issue",
+          "issuedQty",
+          "issueId",
+          "issueLineId",
+          "requestedQty",
+          "unit",
+          "unitId"
+        ],
         "type": "object",
         "properties": {
           "issueLineId": {
@@ -17977,6 +18858,19 @@
         "additionalProperties": false
       },
       "InventoryReceipt": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "createdByNavigation",
+          "inventoryreceiptlines",
+          "receiptCode",
+          "receiptDate",
+          "receiptId",
+          "supplier",
+          "supplierId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "receiptId": {
@@ -18033,6 +18927,17 @@
         "additionalProperties": false
       },
       "InventoryReceiptLine": {
+        "required": [
+          "ingredient",
+          "ingredientId",
+          "quantity",
+          "receipt",
+          "receiptId",
+          "receiptLineId",
+          "unit",
+          "unitId",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "receiptLineId": {
@@ -18116,6 +19021,20 @@
         "additionalProperties": false
       },
       "InventoryReturn": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "createdByNavigation",
+          "inventoryreturnlines",
+          "issue",
+          "issueId",
+          "returnCode",
+          "returnDate",
+          "returnId",
+          "returnType",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "returnId": {
@@ -18188,6 +19107,16 @@
         "additionalProperties": false
       },
       "InventoryReturnLine": {
+        "required": [
+          "ingredient",
+          "ingredientId",
+          "quantity",
+          "return",
+          "returnId",
+          "returnLineId",
+          "unit",
+          "unitId"
+        ],
         "type": "object",
         "properties": {
           "returnLineId": {
@@ -18226,10 +19155,12 @@
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "orderId": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "actualQuantity": {
             "type": "integer",
@@ -18245,6 +19176,10 @@
         "additionalProperties": false
       },
       "LockOrderPlanRequest": {
+        "required": [
+          "lines",
+          "scope"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -18276,6 +19211,14 @@
         "additionalProperties": false
       },
       "LockOrderPlanResultDto": {
+        "required": [
+          "lockedAt",
+          "lockedLineCount",
+          "lockedShiftNames",
+          "scope",
+          "serviceDate",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18305,6 +19248,10 @@
         "additionalProperties": false
       },
       "LockOrderPlanResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18341,6 +19288,13 @@
         "additionalProperties": false
       },
       "LoginResponseDto": {
+        "required": [
+          "accessToken",
+          "expiresIn",
+          "refreshToken",
+          "tokenType",
+          "user"
+        ],
         "type": "object",
         "properties": {
           "accessToken": {
@@ -18363,6 +19317,10 @@
         "additionalProperties": false
       },
       "LoginResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18381,6 +19339,13 @@
         "additionalProperties": false
       },
       "MaterialDemandApprovalDto": {
+        "required": [
+          "approvedAt",
+          "materialRequestId",
+          "newStatus",
+          "oldStatus",
+          "requestCode"
+        ],
         "type": "object",
         "properties": {
           "materialRequestId": {
@@ -18403,6 +19368,10 @@
         "additionalProperties": false
       },
       "MaterialDemandApprovalDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18431,6 +19400,26 @@
         "additionalProperties": false
       },
       "MaterialDemandLineDto": {
+        "required": [
+          "appliedPortionRatePercent",
+          "appliedPortionRuleSource",
+          "bomRatePercent",
+          "bomScope",
+          "currentStockQty",
+          "dishId",
+          "dishName",
+          "grossQtyPerServing",
+          "ingredientId",
+          "ingredientName",
+          "materialRequestLineId",
+          "priceTierAmount",
+          "shiftName",
+          "suggestedPurchaseQty",
+          "totalRequiredQty",
+          "totalServings",
+          "unitId",
+          "unitName"
+        ],
         "type": "object",
         "properties": {
           "materialRequestLineId": {
@@ -18512,6 +19501,17 @@
         "additionalProperties": false
       },
       "MaterialDemandResultDto": {
+        "required": [
+          "lines",
+          "materialRequestId",
+          "missingBomDishes",
+          "missingConversionIssues",
+          "productionPlanLineCount",
+          "requestCode",
+          "scope",
+          "serviceDate",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "materialRequestId": {
@@ -18555,6 +19555,10 @@
         "additionalProperties": false
       },
       "MaterialDemandResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18573,6 +19577,12 @@
         "additionalProperties": false
       },
       "MaterialDemandStalenessDto": {
+        "required": [
+          "canRegenerate",
+          "hasExistingPlan",
+          "isStale",
+          "reasons"
+        ],
         "type": "object",
         "properties": {
           "hasExistingPlan": {
@@ -18614,6 +19624,10 @@
         "additionalProperties": false
       },
       "MaterialDemandStalenessDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18632,6 +19646,19 @@
         "additionalProperties": false
       },
       "MaterialRequest": {
+        "required": [
+          "createdBy",
+          "createdByNavigation",
+          "inventoryissues",
+          "materialrequestlines",
+          "plan",
+          "planId",
+          "requestCode",
+          "requestDate",
+          "requestId",
+          "requestScope",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "requestId": {
@@ -18694,6 +19721,28 @@
         "additionalProperties": false
       },
       "MaterialRequestLine": {
+        "required": [
+          "appliedPortionRatePercent",
+          "appliedPortionRuleSource",
+          "bomRatePercent",
+          "bomScope",
+          "currentStockQty",
+          "grossQtyPerServing",
+          "ingredient",
+          "ingredientId",
+          "planLine",
+          "planLineId",
+          "priceTierAmount",
+          "purchaserequestlines",
+          "request",
+          "requestId",
+          "requestLineId",
+          "suggestedPurchaseQty",
+          "totalRequiredQty",
+          "totalServings",
+          "unit",
+          "unitId"
+        ],
         "type": "object",
         "properties": {
           "requestLineId": {
@@ -18794,6 +19843,15 @@
         "additionalProperties": false
       },
       "MealQuantityPlan": {
+        "required": [
+          "confirmationTime",
+          "mealquantityplanlines",
+          "planCode",
+          "quantityPlanId",
+          "rowVersion",
+          "serviceDate",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "quantityPlanId": {
@@ -18867,6 +19925,14 @@
         "additionalProperties": false
       },
       "MealQuantityPlanDto": {
+        "required": [
+          "dayOfWeek",
+          "lines",
+          "planCode",
+          "quantityPlanId",
+          "serviceDate",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "quantityPlanId": {
@@ -18904,6 +19970,10 @@
         "additionalProperties": false
       },
       "MealQuantityPlanDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18922,6 +19992,10 @@
         "additionalProperties": false
       },
       "MealQuantityPlanDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -18944,6 +20018,25 @@
         "additionalProperties": false
       },
       "MealQuantityPlanLine": {
+        "required": [
+          "adjustedServings",
+          "confirmedServings",
+          "customer",
+          "customerId",
+          "finalServings",
+          "forecastServings",
+          "menu",
+          "menuId",
+          "menuSchedule",
+          "menuScheduleId",
+          "productionplanlines",
+          "quantityadjustments",
+          "quantityPlan",
+          "quantityPlanId",
+          "quantityPlanLineId",
+          "shiftName",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
@@ -19017,6 +20110,22 @@
         "additionalProperties": false
       },
       "MealQuantityPlanLineDto": {
+        "required": [
+          "adjustedServings",
+          "confirmedServings",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "finalServings",
+          "forecastServings",
+          "menuCode",
+          "menuId",
+          "menuName",
+          "menuScheduleId",
+          "quantityPlanLineId",
+          "shift",
+          "shiftName"
+        ],
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
@@ -19069,6 +20178,15 @@
         "additionalProperties": false
       },
       "Menu": {
+        "required": [
+          "mealquantityplanlines",
+          "menuCode",
+          "menuId",
+          "menuitems",
+          "menuName",
+          "menuschedules",
+          "productionplanlines"
+        ],
         "type": "object",
         "properties": {
           "menuId": {
@@ -19123,6 +20241,17 @@
         "additionalProperties": false
       },
       "MenuImportHistoryDto": {
+        "required": [
+          "bomAdjustedCount",
+          "bomCreatedOrUpdatedCount",
+          "bomLineCount",
+          "dishCount",
+          "generatedAt",
+          "mealQuantityImportBatchCount",
+          "menuCount",
+          "menuScheduleCount",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -19195,6 +20324,10 @@
         "additionalProperties": false
       },
       "MenuImportHistoryDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19213,6 +20346,14 @@
         "additionalProperties": false
       },
       "MenuItem": {
+        "required": [
+          "dish",
+          "dishId",
+          "displayOrder",
+          "menu",
+          "menuId",
+          "menuItemId"
+        ],
         "type": "object",
         "properties": {
           "menuItemId": {
@@ -19245,6 +20386,20 @@
         "additionalProperties": false
       },
       "MenuSchedule": {
+        "required": [
+          "bomRatePercent",
+          "customer",
+          "customerId",
+          "mealquantityplanlines",
+          "menu",
+          "menuId",
+          "menuPrice",
+          "menuScheduleId",
+          "serviceDate",
+          "shiftName",
+          "status",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "menuScheduleId": {
@@ -19305,6 +20460,12 @@
         "additionalProperties": false
       },
       "MenuScheduleDishDto": {
+        "required": [
+          "dishCode",
+          "dishId",
+          "dishName",
+          "displayOrder"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -19332,6 +20493,24 @@
         "additionalProperties": false
       },
       "MenuScheduleDto": {
+        "required": [
+          "bomRatePercent",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "dayOfWeek",
+          "dishes",
+          "menuCode",
+          "menuId",
+          "menuName",
+          "menuPrice",
+          "menuScheduleId",
+          "serviceDate",
+          "shift",
+          "shiftName",
+          "status",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "menuScheduleId": {
@@ -19416,6 +20595,10 @@
         "additionalProperties": false
       },
       "MenuScheduleDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19434,6 +20617,10 @@
         "additionalProperties": false
       },
       "MenuScheduleDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19456,6 +20643,20 @@
         "additionalProperties": false
       },
       "MenuVersion": {
+        "required": [
+          "createdAt",
+          "customer",
+          "customerId",
+          "errorRowCount",
+          "menuschedules",
+          "menuVersionId",
+          "status",
+          "successRowCount",
+          "updatedAt",
+          "versionNo",
+          "warningRowCount",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "menuVersionId": {
@@ -19537,6 +20738,17 @@
         "additionalProperties": false
       },
       "MenuVersionRollbackResultDto": {
+        "required": [
+          "activeMenuVersionId",
+          "activeVersionNo",
+          "cancelledDemandCount",
+          "cancelledPurchaseCount",
+          "customerId",
+          "reason",
+          "rolledBackFromMenuVersionId",
+          "rolledBackFromVersionNo",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -19574,6 +20786,10 @@
         "additionalProperties": false
       },
       "MenuVersionRollbackResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19592,6 +20808,19 @@
         "additionalProperties": false
       },
       "MissingBomDishDto": {
+        "required": [
+          "customerCode",
+          "customerId",
+          "customerName",
+          "dishCode",
+          "dishId",
+          "dishName",
+          "menuId",
+          "menuName",
+          "message",
+          "shiftName",
+          "totalServings"
+        ],
         "type": "object",
         "properties": {
           "dishId": {
@@ -19632,6 +20861,16 @@
         "additionalProperties": false
       },
       "MissingUnitConversionIssueDto": {
+        "required": [
+          "ingredientId",
+          "ingredientName",
+          "issueId",
+          "message",
+          "sourceUnitId",
+          "sourceUnitName",
+          "targetUnitId",
+          "targetUnitName"
+        ],
         "type": "object",
         "properties": {
           "issueId": {
@@ -19662,6 +20901,18 @@
         "additionalProperties": false
       },
       "PortionRule": {
+        "required": [
+          "createdAt",
+          "customer",
+          "customerId",
+          "effectiveFrom",
+          "portionRatePercent",
+          "portionRuleId",
+          "priority",
+          "reason",
+          "status",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "portionRuleId": {
@@ -19752,6 +21003,20 @@
         "additionalProperties": false
       },
       "PortionRuleDto": {
+        "required": [
+          "activeWeekDays",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "effectiveFrom",
+          "portionRatePercent",
+          "portionRuleId",
+          "priority",
+          "reason",
+          "ruleSource",
+          "shiftNames",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "portionRuleId": {
@@ -19844,6 +21109,10 @@
         "additionalProperties": false
       },
       "PortionRuleDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19862,6 +21131,10 @@
         "additionalProperties": false
       },
       "PortionRuleDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -19911,6 +21184,18 @@
         "additionalProperties": { }
       },
       "ProductionPlan": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "createdByNavigation",
+          "materialrequests",
+          "planCode",
+          "planDate",
+          "planId",
+          "productionplanlines",
+          "status",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "planId": {
@@ -19991,7 +21276,227 @@
         },
         "additionalProperties": false
       },
+      "ProductionPlanDto": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "lines",
+          "planCode",
+          "planDate",
+          "planId"
+        ],
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string"
+          },
+          "planCode": {
+            "type": "string"
+          },
+          "planDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "customerId": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerCode": {
+            "type": "string",
+            "nullable": true
+          },
+          "customerName": {
+            "type": "string",
+            "nullable": true
+          },
+          "weekStartDate": {
+            "type": "string",
+            "format": "date",
+            "nullable": true
+          },
+          "menuVersionId": {
+            "type": "string",
+            "nullable": true
+          },
+          "menuVersionNo": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "menuVersionStatus": {
+            "type": "string",
+            "nullable": true
+          },
+          "status": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdBy": {
+            "type": "string"
+          },
+          "createdByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "sentToKitchenAt": {
+            "type": "string",
+            "format": "date-time",
+            "nullable": true
+          },
+          "sentToKitchenBy": {
+            "type": "string",
+            "nullable": true
+          },
+          "sentToKitchenByName": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionPlanLineDto"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductionPlanDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProductionPlanDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductionPlanDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionPlanDto"
+            },
+            "nullable": true
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductionPlanDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductionPlanDto"
+            }
+          },
+          "totalCount": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pageSize": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32",
+            "readOnly": true
+          },
+          "hasPrev": {
+            "type": "boolean",
+            "readOnly": true
+          },
+          "hasNext": {
+            "type": "boolean",
+            "readOnly": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "ProductionPlanDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/ProductionPlanDtoPagedResponseDto"
+          },
+          "errors": {
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
       "ProductionPlanLine": {
+        "required": [
+          "customer",
+          "customerId",
+          "dish",
+          "dishId",
+          "materialrequestlines",
+          "menu",
+          "menuId",
+          "plan",
+          "planId",
+          "planLineId",
+          "quantityPlanLine",
+          "quantityPlanLineId",
+          "shiftName",
+          "totalServings"
+        ],
         "type": "object",
         "properties": {
           "planLineId": {
@@ -20049,7 +21554,76 @@
         },
         "additionalProperties": false
       },
+      "ProductionPlanLineDto": {
+        "required": [
+          "dishId",
+          "hasKitchenIssue",
+          "isReceivedByKitchen",
+          "planLineId",
+          "suggestedPurchaseQty",
+          "totalRequiredQty",
+          "totalServings"
+        ],
+        "type": "object",
+        "properties": {
+          "planLineId": {
+            "type": "string"
+          },
+          "dishId": {
+            "type": "string"
+          },
+          "dishName": {
+            "type": "string",
+            "nullable": true
+          },
+          "shiftName": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalServings": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "priceTierAmount": {
+            "type": "number",
+            "format": "double",
+            "nullable": true
+          },
+          "bomScope": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalRequiredQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "suggestedPurchaseQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "hasKitchenIssue": {
+            "type": "boolean"
+          },
+          "isReceivedByKitchen": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
       "PurchaseHistoryActionDto": {
+        "required": [
+          "actionHash",
+          "actionId",
+          "actionType",
+          "afterEvidence",
+          "afterHash",
+          "beforeEvidence",
+          "beforeHash",
+          "reasonCode",
+          "sourceKey",
+          "targetId",
+          "targetType"
+        ],
         "type": "object",
         "properties": {
           "actionId": {
@@ -20094,6 +21668,7 @@
       },
       "PurchaseHistoryApplyRequest": {
         "required": [
+          "acceptedActionIds",
           "backupRestoreEvidence",
           "manifestHash",
           "manifestId"
@@ -20122,6 +21697,15 @@
         "additionalProperties": false
       },
       "PurchaseHistoryApplyResultDto": {
+        "required": [
+          "applied",
+          "appliedActionCount",
+          "auditReference",
+          "blockers",
+          "manifestId",
+          "noOp",
+          "runId"
+        ],
         "type": "object",
         "properties": {
           "manifestId": {
@@ -20153,6 +21737,10 @@
         "additionalProperties": false
       },
       "PurchaseHistoryApplyResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20171,6 +21759,15 @@
         "additionalProperties": false
       },
       "PurchaseHistoryBlockerDto": {
+        "required": [
+          "blockerId",
+          "code",
+          "field",
+          "rawCells",
+          "rawValue",
+          "sourceRow",
+          "sourceSheet"
+        ],
         "type": "object",
         "properties": {
           "blockerId": {
@@ -20202,6 +21799,21 @@
         "additionalProperties": false
       },
       "PurchaseHistoryManifestDto": {
+        "required": [
+          "actionCount",
+          "actionCounts",
+          "asOfDate",
+          "auditedDeltaCount",
+          "blockerCount",
+          "candidateCount",
+          "currentUniqueBusinessKeyCount",
+          "databaseFingerprint",
+          "manifestHash",
+          "manifestId",
+          "policyVersion",
+          "sourceName",
+          "sourceSha256"
+        ],
         "type": "object",
         "properties": {
           "manifestId": {
@@ -20257,6 +21869,12 @@
         "additionalProperties": false
       },
       "PurchaseHistoryPreviewDto": {
+        "required": [
+          "actions",
+          "blockers",
+          "manifest",
+          "previewedBy"
+        ],
         "type": "object",
         "properties": {
           "manifest": {
@@ -20281,6 +21899,10 @@
         "additionalProperties": false
       },
       "PurchaseHistoryPreviewDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20303,6 +21925,28 @@
         "additionalProperties": false
       },
       "PurchaseLineSupplierDecision": {
+        "required": [
+          "concurrencyVersion",
+          "confirmedAt",
+          "confirmedBy",
+          "confirmedByNavigation",
+          "decisionFingerprint",
+          "evidenceDate",
+          "evidenceId",
+          "evidenceReferencePrice",
+          "evidenceType",
+          "proposedDeliveryDate",
+          "proposedUnitPrice",
+          "purchaseLineSupplierDecisionId",
+          "purchasepriceexceptions",
+          "purchaseRequestLine",
+          "purchaseRequestLineId",
+          "status",
+          "supersededDecisions",
+          "supplier",
+          "supplierId",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "purchaseLineSupplierDecisionId": {
@@ -20400,6 +22044,22 @@
         "additionalProperties": false
       },
       "PurchaseLineSupplierDecisionDto": {
+        "required": [
+          "concurrencyVersion",
+          "confirmedAt",
+          "confirmedBy",
+          "decisionFingerprint",
+          "evidenceDate",
+          "evidenceId",
+          "evidenceReferencePrice",
+          "evidenceType",
+          "proposedDeliveryDate",
+          "proposedUnitPrice",
+          "purchaseLineSupplierDecisionId",
+          "status",
+          "supplierId",
+          "version"
+        ],
         "type": "object",
         "properties": {
           "purchaseLineSupplierDecisionId": {
@@ -20456,6 +22116,10 @@
         "additionalProperties": false
       },
       "PurchaseLineSupplierDecisionDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20474,6 +22138,21 @@
         "additionalProperties": false
       },
       "PurchaseOrder": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "createdByNavigation",
+          "orderDate",
+          "purchaseOrderCode",
+          "purchaseOrderId",
+          "purchaseorderlines",
+          "purchaseRequest",
+          "purchaseRequestId",
+          "status",
+          "supplier",
+          "supplierId",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "purchaseOrderId": {
@@ -20529,6 +22208,17 @@
         "additionalProperties": false
       },
       "PurchaseOrderDto": {
+        "required": [
+          "lines",
+          "orderDate",
+          "purchaseOrderCode",
+          "purchaseOrderId",
+          "purchaseRequestCode",
+          "purchaseRequestId",
+          "status",
+          "supplierId",
+          "supplierName"
+        ],
         "type": "object",
         "properties": {
           "purchaseOrderId": {
@@ -20565,6 +22255,10 @@
         "additionalProperties": false
       },
       "PurchaseOrderDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20583,6 +22277,10 @@
         "additionalProperties": false
       },
       "PurchaseOrderDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20605,6 +22303,15 @@
         "additionalProperties": false
       },
       "PurchaseOrderDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -20642,6 +22349,20 @@
         "additionalProperties": false
       },
       "PurchaseOrderLine": {
+        "required": [
+          "ingredient",
+          "ingredientId",
+          "orderedQty",
+          "purchaseOrder",
+          "purchaseOrderId",
+          "purchaseOrderLineId",
+          "purchaseRequestLine",
+          "purchaseRequestLineId",
+          "receivedQty",
+          "unit",
+          "unitId",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "purchaseOrderLineId": {
@@ -20692,6 +22413,20 @@
         "additionalProperties": false
       },
       "PurchaseOrderLineDto": {
+        "required": [
+          "expiryDateRequired",
+          "ingredientId",
+          "ingredientName",
+          "lotNumberRequired",
+          "manufactureDateRequired",
+          "orderedQty",
+          "purchaseOrderLineId",
+          "purchaseRequestLineId",
+          "receivedQty",
+          "unitId",
+          "unitName",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "purchaseOrderLineId": {
@@ -20741,6 +22476,10 @@
         "additionalProperties": false
       },
       "PurchaseOrderPageDto": {
+        "required": [
+          "orderCountByRequest",
+          "page"
+        ],
         "type": "object",
         "properties": {
           "page": {
@@ -20757,6 +22496,10 @@
         "additionalProperties": false
       },
       "PurchaseOrderPageDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -20775,6 +22518,26 @@
         "additionalProperties": false
       },
       "PurchasePriceException": {
+        "required": [
+          "concurrencyVersion",
+          "evidenceDate",
+          "evidenceId",
+          "evidenceType",
+          "proposalFingerprint",
+          "proposalVersion",
+          "proposedPrice",
+          "purchaseLineSupplierDecision",
+          "purchaseLineSupplierDecisionId",
+          "purchasePriceExceptionId",
+          "reason",
+          "referencePrice",
+          "requestedAt",
+          "requestedBy",
+          "requestedByNavigation",
+          "status",
+          "supersededExceptions",
+          "variancePercent"
+        ],
         "type": "object",
         "properties": {
           "purchasePriceExceptionId": {
@@ -20874,6 +22637,14 @@
         "additionalProperties": false
       },
       "PurchaseReceiptEvidenceRequirementsDto": {
+        "required": [
+          "expiryDateRequired",
+          "ingredientId",
+          "ingredientName",
+          "lotNumberRequired",
+          "manufactureDateRequired",
+          "purchaseOrderLineId"
+        ],
         "type": "object",
         "properties": {
           "purchaseOrderLineId": {
@@ -20902,6 +22673,18 @@
         "additionalProperties": false
       },
       "PurchaseRequest": {
+        "required": [
+          "createdBy",
+          "createdByNavigation",
+          "inventoryreceipts",
+          "purchaseForDate",
+          "purchaseorders",
+          "purchaseRequestCode",
+          "purchaseRequestId",
+          "purchaserequestlines",
+          "requestDate",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "purchaseRequestId": {
@@ -20968,6 +22751,24 @@
         "additionalProperties": false
       },
       "PurchaseRequestLine": {
+        "required": [
+          "currentStockQty",
+          "estimatedUnitPrice",
+          "ingredient",
+          "ingredientId",
+          "inventoryreceiptlines",
+          "isLegacySupplierSnapshot",
+          "materialRequestLine",
+          "materialRequestLineId",
+          "purchaseQty",
+          "purchaseRequest",
+          "purchaseRequestId",
+          "purchaseRequestLineId",
+          "requiredQty",
+          "supplierDecisions",
+          "unit",
+          "unitId"
+        ],
         "type": "object",
         "properties": {
           "purchaseRequestLineId": {
@@ -21057,6 +22858,20 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowLineDto": {
+        "required": [
+          "currentStockQty",
+          "estimatedUnitPrice",
+          "ingredientId",
+          "ingredientName",
+          "materialRequestLineId",
+          "purchaseQty",
+          "purchaseRequestLineId",
+          "requiredQty",
+          "supplierDecisionHistory",
+          "supplierDecisionStatus",
+          "unitId",
+          "unitName"
+        ],
         "type": "object",
         "properties": {
           "purchaseRequestLineId": {
@@ -21125,6 +22940,14 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowResultDto": {
+        "required": [
+          "lines",
+          "materialRequestId",
+          "purchaseForDate",
+          "purchaseRequestCode",
+          "purchaseRequestId",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "purchaseRequestId": {
@@ -21156,6 +22979,10 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21174,6 +23001,10 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowResultDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21196,6 +23027,15 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowResultDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -21233,6 +23073,10 @@
         "additionalProperties": false
       },
       "PurchaseRequestWorkflowResultDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21251,6 +23095,20 @@
         "additionalProperties": false
       },
       "PurchaseWorkbenchServiceDateDto": {
+        "required": [
+          "approvedDemandCount",
+          "approvedDemands",
+          "blockingExceptionCount",
+          "currentStage",
+          "fullyReceivedLineCount",
+          "orderCount",
+          "purchaseLines",
+          "receivingLineCount",
+          "scope",
+          "serviceDate",
+          "shortageLineCount",
+          "supplierReadyLineCount"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -21318,6 +23176,16 @@
         "additionalProperties": false
       },
       "PurchaseWorkbenchWeekDto": {
+        "required": [
+          "page",
+          "pageSize",
+          "serviceDates",
+          "stageCounts",
+          "totalItems",
+          "totalPages",
+          "weekEnd",
+          "weekStart"
+        ],
         "type": "object",
         "properties": {
           "weekStart": {
@@ -21363,6 +23231,10 @@
         "additionalProperties": false
       },
       "PurchaseWorkbenchWeekDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21381,6 +23253,14 @@
         "additionalProperties": false
       },
       "PurchaseWorkflowStageCountsDto": {
+        "required": [
+          "approvedOrder",
+          "demand",
+          "exception",
+          "receivingProgress",
+          "submittedRequest",
+          "supplierPrice"
+        ],
         "type": "object",
         "properties": {
           "demand": {
@@ -21411,6 +23291,16 @@
         "additionalProperties": false
       },
       "QuantityAdjustment": {
+        "required": [
+          "adjustedAt",
+          "adjustedBy",
+          "adjustedByNavigation",
+          "adjustmentId",
+          "newServings",
+          "oldServings",
+          "quantityPlanLine",
+          "quantityPlanLineId"
+        ],
         "type": "object",
         "properties": {
           "adjustmentId": {
@@ -21451,6 +23341,14 @@
         "additionalProperties": false
       },
       "QuantityImportBatch": {
+        "required": [
+          "batchCode",
+          "importBatchId",
+          "importedAt",
+          "mealquantityplans",
+          "sourceType",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "importBatchId": {
@@ -21496,6 +23394,7 @@
           "idempotencyKey",
           "lines",
           "purchaseOrderId",
+          "receiptDate",
           "warehouseId"
         ],
         "type": "object",
@@ -21530,6 +23429,17 @@
         "additionalProperties": false
       },
       "RefreshToken": {
+        "required": [
+          "createdAt",
+          "deviceInfo",
+          "expiresAt",
+          "isRevoked",
+          "isUsed",
+          "tokenHash",
+          "tokenId",
+          "user",
+          "userId"
+        ],
         "type": "object",
         "properties": {
           "tokenId": {
@@ -21576,18 +23486,25 @@
         "additionalProperties": false
       },
       "RefreshTokenRequest": {
+        "required": [
+          "accessToken"
+        ],
         "type": "object",
         "properties": {
           "accessToken": {
             "type": "string"
           },
           "refreshToken": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
       "RejectRequest": {
+        "required": [
+          "reason"
+        ],
         "type": "object",
         "properties": {
           "reason": {
@@ -21597,6 +23514,9 @@
         "additionalProperties": false
       },
       "RejectSupplementalMaterialRequest": {
+        "required": [
+          "reason"
+        ],
         "type": "object",
         "properties": {
           "reason": {
@@ -21606,6 +23526,10 @@
         "additionalProperties": false
       },
       "ResolvePortionRuleRequest": {
+        "required": [
+          "customerId",
+          "serviceDate"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -21642,6 +23566,11 @@
         "additionalProperties": false
       },
       "ResolvedPortionRuleDto": {
+        "required": [
+          "portionRatePercent",
+          "source",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "portionRuleId": {
@@ -21675,6 +23604,10 @@
         "additionalProperties": false
       },
       "ResolvedPortionRuleDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21696,12 +23629,19 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           }
         },
         "additionalProperties": false
       },
       "Role": {
+        "required": [
+          "roleCode",
+          "roleId",
+          "roleName",
+          "users"
+        ],
         "type": "object",
         "properties": {
           "roleId": {
@@ -21724,6 +23664,11 @@
         "additionalProperties": false
       },
       "RollbackMenuVersionRequest": {
+        "required": [
+          "customerId",
+          "reason",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -21748,6 +23693,10 @@
         "additionalProperties": false
       },
       "RollbackWeeklyMenuImportResultDto": {
+        "required": [
+          "menuSchedulesRemoved",
+          "menuVersionId"
+        ],
         "type": "object",
         "properties": {
           "menuVersionId": {
@@ -21761,6 +23710,10 @@
         "additionalProperties": false
       },
       "RollbackWeeklyMenuImportResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -21779,6 +23732,14 @@
         "additionalProperties": false
       },
       "SampleDataFileResultDto": {
+        "required": [
+          "domain",
+          "fileName",
+          "rowsImported",
+          "rowsScanned",
+          "rowsSkipped",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "fileName": {
@@ -21806,6 +23767,41 @@
         "additionalProperties": false
       },
       "SampleDataImportCountsDto": {
+        "required": [
+          "bomLinesCreated",
+          "bomLinesUpdated",
+          "currentStockRowsCreated",
+          "currentStockRowsUpdated",
+          "customersCreated",
+          "customersUpdated",
+          "dishesCreated",
+          "dishesUpdated",
+          "ingredientsCreated",
+          "ingredientsUpdated",
+          "inventoryReceiptLinesCreated",
+          "inventoryReceiptLinesUpdated",
+          "inventoryReceiptsCreated",
+          "inventoryReceiptsUpdated",
+          "mealQuantityPlanLinesCreated",
+          "mealQuantityPlanLinesUpdated",
+          "mealQuantityPlansCreated",
+          "mealQuantityPlansUpdated",
+          "menuItemsCreated",
+          "menuItemsUpdated",
+          "menuSchedulesCreated",
+          "menuSchedulesUpdated",
+          "menusCreated",
+          "menusUpdated",
+          "quantityImportBatchesCreated",
+          "rolesCreated",
+          "stockMovementsCreated",
+          "stockMovementsUpdated",
+          "suppliersCreated",
+          "suppliersUpdated",
+          "unitsCreated",
+          "usersCreated",
+          "warehousesCreated"
+        ],
         "type": "object",
         "properties": {
           "rolesCreated": {
@@ -21944,6 +23940,10 @@
         "additionalProperties": false
       },
       "SampleDataImportRequest": {
+        "required": [
+          "dryRun",
+          "replaceBomCatalog"
+        ],
         "type": "object",
         "properties": {
           "sourceDirectory": {
@@ -21965,6 +23965,14 @@
         "additionalProperties": false
       },
       "SampleDataImportResultDto": {
+        "required": [
+          "counts",
+          "dryRun",
+          "files",
+          "importedWeeklyMenu",
+          "sourceDirectory",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "dryRun": {
@@ -21998,6 +24006,10 @@
         "additionalProperties": false
       },
       "SampleDataImportResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22016,6 +24028,14 @@
         "additionalProperties": false
       },
       "SampleImportDomainStatusDto": {
+        "required": [
+          "displayName",
+          "domain",
+          "isReady",
+          "notes",
+          "rowCount",
+          "status"
+        ],
         "type": "object",
         "properties": {
           "domain": {
@@ -22041,6 +24061,11 @@
         "additionalProperties": false
       },
       "SampleImportStatusDto": {
+        "required": [
+          "domains",
+          "generatedAt",
+          "overallStatus"
+        ],
         "type": "object",
         "properties": {
           "generatedAt": {
@@ -22060,6 +24085,10 @@
         "additionalProperties": false
       },
       "SampleImportStatusDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22092,6 +24121,9 @@
         "additionalProperties": false
       },
       "SendDailyProductionPlanRequest": {
+        "required": [
+          "serviceDate"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -22123,6 +24155,14 @@
         "additionalProperties": false
       },
       "SignoffOrderResultDto": {
+        "required": [
+          "newStatus",
+          "oldStatus",
+          "quantityPlanId",
+          "serviceDate",
+          "signedOffAt",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22148,6 +24188,10 @@
         "additionalProperties": false
       },
       "SignoffOrderResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22166,6 +24210,23 @@
         "additionalProperties": false
       },
       "StockMovement": {
+        "required": [
+          "afterQty",
+          "beforeQty",
+          "ingredient",
+          "ingredientId",
+          "movementDate",
+          "movementId",
+          "movementType",
+          "performedBy",
+          "performedByNavigation",
+          "quantityIn",
+          "quantityOut",
+          "unit",
+          "unitId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "movementId": {
@@ -22258,6 +24319,21 @@
         "additionalProperties": false
       },
       "StockSnapshot": {
+        "required": [
+          "closingQty",
+          "generatedAt",
+          "ingredient",
+          "ingredientId",
+          "openingQty",
+          "periodMonth",
+          "quantityIn",
+          "quantityOut",
+          "snapshotId",
+          "unit",
+          "unitId",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "snapshotId": {
@@ -22313,6 +24389,17 @@
         "additionalProperties": false
       },
       "Stocktake": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "createdByNavigation",
+          "status",
+          "stocktakeCode",
+          "stocktakeId",
+          "stocktakelines",
+          "warehouse",
+          "warehouseId"
+        ],
         "type": "object",
         "properties": {
           "stocktakeId": {
@@ -22370,6 +24457,16 @@
         "additionalProperties": false
       },
       "StocktakeDto": {
+        "required": [
+          "createdAt",
+          "createdBy",
+          "lines",
+          "status",
+          "stocktakeCode",
+          "stocktakeId",
+          "warehouseId",
+          "warehouseName"
+        ],
         "type": "object",
         "properties": {
           "stocktakeId": {
@@ -22425,6 +24522,10 @@
         "additionalProperties": false
       },
       "StocktakeDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22443,6 +24544,15 @@
         "additionalProperties": false
       },
       "StocktakeDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -22480,6 +24590,10 @@
         "additionalProperties": false
       },
       "StocktakeDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22498,6 +24612,16 @@
         "additionalProperties": false
       },
       "StocktakeLine": {
+        "required": [
+          "ingredient",
+          "ingredientId",
+          "lineId",
+          "stocktake",
+          "stocktakeId",
+          "systemQty",
+          "unit",
+          "unitId"
+        ],
         "type": "object",
         "properties": {
           "lineId": {
@@ -22547,6 +24671,14 @@
         "additionalProperties": false
       },
       "StocktakeLineDto": {
+        "required": [
+          "ingredientId",
+          "ingredientName",
+          "lineId",
+          "systemQty",
+          "unitId",
+          "unitName"
+        ],
         "type": "object",
         "properties": {
           "lineId": {
@@ -22586,6 +24718,10 @@
         "additionalProperties": false
       },
       "StringListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22608,6 +24744,10 @@
         "additionalProperties": false
       },
       "StringStringIReadOnlyDictionaryApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22631,6 +24771,15 @@
         "additionalProperties": false
       },
       "Supplier": {
+        "required": [
+          "inventoryreceipts",
+          "purchaseorders",
+          "purchaserequestlines",
+          "supplierCode",
+          "supplierId",
+          "supplierName",
+          "supplierquotations"
+        ],
         "type": "object",
         "properties": {
           "supplierId": {
@@ -22695,6 +24844,9 @@
         "additionalProperties": false
       },
       "SupplierDto": {
+        "required": [
+          "supplierId"
+        ],
         "type": "object",
         "properties": {
           "supplierId": {
@@ -22712,6 +24864,10 @@
         "additionalProperties": false
       },
       "SupplierDtoListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22734,6 +24890,17 @@
         "additionalProperties": false
       },
       "SupplierEvidenceCandidateDto": {
+        "required": [
+          "evidenceDate",
+          "evidenceId",
+          "evidenceType",
+          "ingredientId",
+          "supplierId",
+          "supplierName",
+          "unitId",
+          "unitName",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "evidenceType": {
@@ -22776,6 +24943,10 @@
         "additionalProperties": false
       },
       "SupplierEvidenceResultDto": {
+        "required": [
+          "candidates",
+          "diagnostics"
+        ],
         "type": "object",
         "properties": {
           "candidates": {
@@ -22798,6 +24969,10 @@
         "additionalProperties": false
       },
       "SupplierEvidenceResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22823,6 +24998,17 @@
         "type": "string"
       },
       "SupplierQuotation": {
+        "required": [
+          "createdAt",
+          "effectiveFrom",
+          "ingredient",
+          "ingredientId",
+          "quotationId",
+          "supplier",
+          "supplierId",
+          "unitPrice",
+          "updatedAt"
+        ],
         "type": "object",
         "properties": {
           "quotationId": {
@@ -22876,6 +25062,17 @@
         "additionalProperties": false
       },
       "SupplierQuotationDto": {
+        "required": [
+          "effectiveFrom",
+          "ingredientId",
+          "ingredientName",
+          "isActive",
+          "isBestPrice",
+          "quotationId",
+          "supplierId",
+          "supplierName",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "quotationId": {
@@ -22918,6 +25115,10 @@
         "additionalProperties": false
       },
       "SupplierQuotationDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22936,6 +25137,10 @@
         "additionalProperties": false
       },
       "SupplierQuotationDtoListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -22958,6 +25163,15 @@
         "additionalProperties": false
       },
       "SupplierQuotationDtoPagedResponseDto": {
+        "required": [
+          "hasNext",
+          "hasPrev",
+          "items",
+          "pageNumber",
+          "pageSize",
+          "totalCount",
+          "totalPages"
+        ],
         "type": "object",
         "properties": {
           "items": {
@@ -22995,6 +25209,10 @@
         "additionalProperties": false
       },
       "SupplierQuotationDtoPagedResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -23013,6 +25231,24 @@
         "additionalProperties": false
       },
       "Unit": {
+        "required": [
+          "convertRateToBase",
+          "currentstocklots",
+          "currentstocks",
+          "dishboms",
+          "ingredients",
+          "inventoryissuelines",
+          "inventoryreceiptlines",
+          "inventoryreturnlines",
+          "materialrequestlines",
+          "purchaseorderlines",
+          "purchaserequestlines",
+          "stockmovements",
+          "stocksnapshots",
+          "unitCode",
+          "unitId",
+          "unitName"
+        ],
         "type": "object",
         "properties": {
           "unitId": {
@@ -23241,6 +25477,12 @@
         "additionalProperties": false
       },
       "UpdateEmployeeRequest": {
+        "required": [
+          "fullName",
+          "isActive",
+          "roleId",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "fullName": {
@@ -23263,6 +25505,9 @@
         "additionalProperties": false
       },
       "UpdateEmployeeStatusRequest": {
+        "required": [
+          "isActive"
+        ],
         "type": "object",
         "properties": {
           "isActive": {
@@ -23272,6 +25517,10 @@
         "additionalProperties": false
       },
       "UpdateForecastServingsRequest": {
+        "required": [
+          "reason",
+          "servingsQuantity"
+        ],
         "type": "object",
         "properties": {
           "servingsQuantity": {
@@ -23342,6 +25591,9 @@
         "additionalProperties": false
       },
       "UpdateMenuScheduleVersionRequest": {
+        "required": [
+          "status"
+        ],
         "type": "object",
         "properties": {
           "status": {
@@ -23470,6 +25722,11 @@
         "additionalProperties": false
       },
       "UpdateSupplierQuotationRequest": {
+        "required": [
+          "effectiveFrom",
+          "isActive",
+          "unitPrice"
+        ],
         "type": "object",
         "properties": {
           "unitPrice": {
@@ -23494,6 +25751,13 @@
         "additionalProperties": false
       },
       "UpsertQuickServingsRequest": {
+        "required": [
+          "complete",
+          "customerId",
+          "serviceDate",
+          "servings",
+          "shiftName"
+        ],
         "type": "object",
         "properties": {
           "customerId": {
@@ -23516,6 +25780,34 @@
         "additionalProperties": false
       },
       "User": {
+        "required": [
+          "auditlogs",
+          "bomadjustments",
+          "createdAt",
+          "fullName",
+          "inventoryissueIssuedByNavigations",
+          "inventoryissueReceivedByNavigations",
+          "inventoryreceipts",
+          "inventoryreturns",
+          "materialrequestApprovedByNavigations",
+          "materialrequestCreatedByNavigations",
+          "mealquantityplans",
+          "passwordHash",
+          "productionplans",
+          "purchaseorders",
+          "purchaserequestApprovedByNavigations",
+          "purchaserequestCreatedByNavigations",
+          "quantityadjustments",
+          "quantityimportbatches",
+          "refreshtokens",
+          "role",
+          "roleId",
+          "stockmovements",
+          "stocktakesApprovedByNavigations",
+          "stocktakesCreatedByNavigations",
+          "userId",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "userId": {
@@ -23664,6 +25956,16 @@
         "additionalProperties": false
       },
       "UserInfoDto": {
+        "required": [
+          "fullName",
+          "isActive",
+          "isAdminFullAccess",
+          "permissions",
+          "roleCode",
+          "roleName",
+          "userId",
+          "username"
+        ],
         "type": "object",
         "properties": {
           "userId": {
@@ -23697,6 +25999,10 @@
         "additionalProperties": false
       },
       "UserInfoDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -23715,6 +26021,11 @@
         "additionalProperties": false
       },
       "UserProfileResponseDto": {
+        "required": [
+          "isAdmin",
+          "permissions",
+          "user"
+        ],
         "type": "object",
         "properties": {
           "user": {
@@ -23733,6 +26044,10 @@
         "additionalProperties": false
       },
       "UserProfileResponseDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -23751,6 +26066,21 @@
         "additionalProperties": false
       },
       "Warehouse": {
+        "required": [
+          "currentstocklots",
+          "currentstocks",
+          "ingredients",
+          "inventoryissues",
+          "inventoryreceipts",
+          "inventoryreturns",
+          "stockmovements",
+          "stocksnapshots",
+          "stocktakes",
+          "warehouseCode",
+          "warehouseId",
+          "warehouseName",
+          "warehouseType"
+        ],
         "type": "object",
         "properties": {
           "warehouseId": {
@@ -23829,7 +26159,9 @@
       },
       "WarehousePurchaseReceiptLineRequest": {
         "required": [
+          "actualQuantity",
           "actualUnitId",
+          "actualUnitPrice",
           "purchaseOrderLineId"
         ],
         "type": "object",
@@ -23886,6 +26218,13 @@
         "additionalProperties": false
       },
       "WarehousePurchaseReceiptResultDto": {
+        "required": [
+          "evidenceRequirements",
+          "idempotencyKey",
+          "purchaseOrderId",
+          "purchaseOrderStatus",
+          "receiptId"
+        ],
         "type": "object",
         "properties": {
           "receiptId": {
@@ -23910,6 +26249,10 @@
         "additionalProperties": false
       },
       "WarehousePurchaseReceiptResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -23928,6 +26271,11 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportColumnDto": {
+        "required": [
+          "column",
+          "label",
+          "serviceDate"
+        ],
         "type": "object",
         "properties": {
           "column": {
@@ -23944,6 +26292,13 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportDiffDto": {
+        "required": [
+          "addedSlots",
+          "changedSlots",
+          "removedSlots",
+          "rows",
+          "unchangedSlots"
+        ],
         "type": "object",
         "properties": {
           "addedSlots": {
@@ -23972,6 +26327,13 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportDiffRowDto": {
+        "required": [
+          "changeType",
+          "serviceDate",
+          "shiftName",
+          "slot",
+          "variant"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -24001,6 +26363,20 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportHistoryItemDto": {
+        "required": [
+          "canRollback",
+          "createdAt",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "errorRowCount",
+          "menuVersionId",
+          "status",
+          "successRowCount",
+          "versionNo",
+          "warningRowCount",
+          "weekStartDate"
+        ],
         "type": "object",
         "properties": {
           "menuVersionId": {
@@ -24061,6 +26437,10 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportHistoryItemDtoIReadOnlyListApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -24083,6 +26463,15 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportLayoutDto": {
+        "required": [
+          "dayColumns",
+          "labelColumn",
+          "rowsImported",
+          "rowsScanned",
+          "rowsSkipped",
+          "sections",
+          "sheetName"
+        ],
         "type": "object",
         "properties": {
           "sheetName": {
@@ -24119,6 +26508,20 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportResultDto": {
+        "required": [
+          "committed",
+          "counts",
+          "customerCode",
+          "customerId",
+          "customerName",
+          "detectedLayout",
+          "fileName",
+          "importedWeeklyMenu",
+          "previewDiff",
+          "rows",
+          "validation",
+          "warnings"
+        ],
         "type": "object",
         "properties": {
           "committed": {
@@ -24205,6 +26608,10 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportResultDtoApiResponse": {
+        "required": [
+          "message",
+          "success"
+        ],
         "type": "object",
         "properties": {
           "success": {
@@ -24223,6 +26630,22 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportRowDto": {
+        "required": [
+          "dayKey",
+          "dbShiftName",
+          "dishName",
+          "existingDish",
+          "isMergedContinuation",
+          "rowSpan",
+          "serviceDate",
+          "slot",
+          "slotLabel",
+          "sourceColumn",
+          "sourceRowNumber",
+          "sourceSection",
+          "sourceShift",
+          "variant"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -24278,6 +26701,13 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportValidationDto": {
+        "required": [
+          "errorCount",
+          "hasCriticalErrors",
+          "issues",
+          "isValid",
+          "warningCount"
+        ],
         "type": "object",
         "properties": {
           "isValid": {
@@ -24304,6 +26734,11 @@
         "additionalProperties": false
       },
       "WeeklyMenuImportValidationIssueDto": {
+        "required": [
+          "code",
+          "message",
+          "severity"
+        ],
         "type": "object",
         "properties": {
           "severity": {
@@ -24340,6 +26775,12 @@
         "additionalProperties": false
       },
       "WeeklyMenuSlotUpdateRequest": {
+        "required": [
+          "dishId",
+          "serviceDate",
+          "shiftName",
+          "slotType"
+        ],
         "type": "object",
         "properties": {
           "serviceDate": {

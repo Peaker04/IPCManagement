@@ -60,8 +60,8 @@ public class LockOrderPlanRequest
 
 public class LockOrderPlanLineRequest
 {
-    public string QuantityPlanLineId { get; set; } = string.Empty;
-    public string OrderId { get; set; } = string.Empty;
+    public string? QuantityPlanLineId { get; set; }
+    public string? OrderId { get; set; }
     public int? ActualQuantity { get; set; }
     public int? FinalServings { get; set; }
 }
@@ -88,7 +88,7 @@ public class UpsertQuickServingsRequest
 public class AdjustOrderAfterLockRequest
 {
     public string OrderId { get; set; } = string.Empty;
-    public string QuantityPlanLineId { get; set; } = string.Empty;
+    public string? QuantityPlanLineId { get; set; }
     public string Field { get; set; } = string.Empty;
     public int NewValue { get; set; }
     public string Reason { get; set; } = string.Empty;

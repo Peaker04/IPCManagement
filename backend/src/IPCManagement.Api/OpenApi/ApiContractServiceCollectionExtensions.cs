@@ -36,6 +36,7 @@ public static class ApiContractServiceCollectionExtensions
             });
 
             options.SupportNonNullableReferenceTypes();
+            options.NonNullableReferenceTypesAsRequired();
 
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
