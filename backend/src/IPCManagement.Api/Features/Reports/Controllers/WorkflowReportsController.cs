@@ -87,39 +87,6 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>.SuccessResult(
             await _workflowReportService.GetWorkflowDocumentsAsync(query)));
 
-    [HttpGet("ingredient-demand")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIngredientDemandAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>.SuccessResult(
-            await _workflowReportService.GetIngredientDemandAsync(query)));
-
-    [HttpGet("ingredient-demand/page")]
-    [ProducesResponseType(typeof(ApiResponse<IngredientDemandPageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIngredientDemandPageAsync([FromQuery] IngredientDemandPageQueryDto query)
-        => Ok(ApiResponse<IngredientDemandPageDto>.SuccessResult(
-            await _workflowReportService.GetIngredientDemandPageAsync(query)));
-
-    [HttpGet("ingredient-demand/aggregate/page")]
-    [ProducesResponseType(typeof(ApiResponse<IngredientDemandAggregatePageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIngredientDemandAggregatePageAsync([FromQuery] IngredientDemandAggregatePageQueryDto query)
-        => Ok(ApiResponse<IngredientDemandAggregatePageDto>.SuccessResult(
-            await _workflowReportService.GetIngredientDemandAggregatePageAsync(query)));
-
-    [HttpGet("material-request-candidates/page")]
-    [ProducesResponseType(typeof(ApiResponse<MaterialRequestCandidatePageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMaterialRequestCandidatePageAsync([FromQuery] MaterialRequestCandidatePageQueryDto query)
-    {
-        try
-        {
-            return Ok(ApiResponse<MaterialRequestCandidatePageDto>.SuccessResult(
-                await _workflowReportService.GetMaterialRequestCandidatePageAsync(query)));
-        }
-        catch (ArgumentException ex)
-        {
-            return BadRequest(ApiResponse.FailResult(ex.Message));
-        }
-    }
-
     [HttpGet("purchase-demand")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPurchaseDemandAsync([FromQuery] WorkflowReportQueryDto query)

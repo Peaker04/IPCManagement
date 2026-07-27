@@ -44,7 +44,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
             new IngredientDemandAggregatePageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -105,7 +105,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
             new IngredientDemandAggregatePageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -145,7 +145,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandPageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandPageAsync(
             new IngredientDemandPageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -209,7 +209,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+        var page = await new DemandReportService(reportContext).GetMaterialRequestCandidatePageAsync(
             new MaterialRequestCandidatePageQueryDto
             {
                 Purpose = "purchase",
@@ -241,7 +241,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+        var page = await new DemandReportService(reportContext).GetMaterialRequestCandidatePageAsync(
             new MaterialRequestCandidatePageQueryDto
             {
                 Purpose = "issue",
@@ -4495,7 +4495,7 @@ public class WorkflowGenerationTests
             savedLine.AppliedPortionRatePercent.Should().Be(50m);
             savedLine.BomRatePercent.Should().Be(100m);
 
-            var reportLine = (await new WorkflowReportService(context).GetIngredientDemandAsync(new WorkflowReportQueryDto
+            var reportLine = (await new DemandReportService(context).GetIngredientDemandAsync(new WorkflowReportQueryDto
             {
                 CustomerId = customerId,
                 DateFrom = "2026-06-15",
