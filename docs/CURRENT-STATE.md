@@ -560,8 +560,25 @@ Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với 
 API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
 Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
 `query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
-Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin → Chef → Coordination
-— chưa bắt đầu.
+### Bước 13 — rollout state (đang thực hiện)
+
+- Thứ tự vẫn là Purchasing → Approvals → Reports → Admin → Chef → Coordination.
+- **Purchasing đã hoàn tất** tại `86a2347 refactor(fe-state): classify purchasing query views`.
+  Cả 8 query-owning boundary đã qua `QueryView`: workbench tuần; ba query supplemental/purchase/order;
+  ba query ingredient/supplier/quotation; supplier evidence. Không đổi endpoint, args, skip, cache key/tag,
+  URL hay mutation behavior.
+- State contract: uninitialized không thành empty; query-level 403 không retry; lỗi khác có retry;
+  refreshing giữ stale rows; supplemental pageSize 100 không có pager hiển thị shown/total khi truncated.
+- Targeted Purchasing **28/28**; full FE **354/354**; BE **634 pass / 1 skip**; lint **0 error / 4 warning
+  baseline**; dependency không tăng; production build, OpenAPI deterministic và EF migration gate xanh.
+- Runtime source-backed ở FE `3001`, API `8001`, DB `ipc_lane1` Healthy. Browser headed
+  `1365×900`, `1280×900`, `768×1024`: 9/9 workflow/quotation/warm capture, API 2xx,
+  warm switch 0 request, 0 console/page/request error, 0 long task, CLS 0, 0 page overflow.
+  Evidence: `.artifacts/shipyard-live/query-view-purchasing-performance.json` và chín screenshot
+  `query-view-purchasing-{workflow,quotations,quotations-warm}-*.png`. File
+  `query-view-purchasing-error.*` là attempt selector-wait thất bại trước final run, không phải kết quả cuối.
+- GitNexus staged audit: 9 file/14 symbol/5 flow, **MEDIUM**, đúng scope Purchasing.
+- Bước active tiếp theo là **Approvals**; Gate 13 chưa đóng cho tới khi đủ sáu feature xanh.
 
 ### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
@@ -592,7 +609,7 @@ Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin 
 - Full gate: BE **634 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, OpenAPI regenerate deterministic và EF migration
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
-- Bước active tiếp theo là Bước 13 rollout state; không mở Bước 15–18 trước khi Gate 13 xanh.
+- Bước 14 đã đóng sớm; không mở Bước 15–18 trước khi Gate 13 xanh.
 
 ## Quy trình tiếp tục ở phiên mới
 

@@ -419,7 +419,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 |---|---|---|---|
 | 11 | Hợp đồng `QueryView<T>` và adapter thuần | Khóa `f(data, state)` | **Hoàn tất** |
 | 12 | Hai pilot Material Demand và Warehouse | Pilot state + browser evidence | **Hoàn tất** |
-| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Chưa bắt đầu** |
+| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Đang thực hiện: Purchasing hoàn tất** |
 | 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case lớn và functional core | P1 backend split | Chưa bắt đầu |
 | 16 | Persistence và reliability nhất quán | P3 persistence | Chưa bắt đầu |
@@ -495,6 +495,18 @@ Trong từng feature:
 
 **Gate 13:** không còn data-owning page coerce error/skip thành mảng rỗng; state/component matrix và
 full FE gate xanh; endpoint/cache/DOM không drift; browser ba viewport xanh và CLS warm giữ 0.
+
+**Tiến độ 27/07/2026 — Purchasing hoàn tất tại `86a2347`.** Cả 8 query-owning boundary
+trong feature đã qua `QueryView`: workbench tuần (1), supplemental/purchase/order liên kết (3),
+ingredient/supplier/quotation (3) và supplier evidence (1). Forbidden không có retry, lỗi khác có
+retry, refreshing giữ stale data; danh sách supplemental giới hạn 100 dòng hiển thị truncation
+evidence thay vì bị coi là complete. Targeted state/component/cache **28/28**; full FE **354/354**,
+BE **634 pass / 1 skip**, lint 0 error/4 warning baseline, dependency không tăng, production build,
+OpenAPI và migration gate xanh. Browser headed trên `1365×900`, `1280×900`, `768×1024`:
+9/9 capture workflow/quotation/warm, API 2xx, warm switch 0 request, 0 console/page/request error,
+0 long task, CLS 0, 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-purchasing-performance.json` và chín screenshot cùng prefix.
+Bước active tiếp theo trong Gate 13 là Approvals.
 
 ### Bước 14 — Khóa VSA boundary
 
