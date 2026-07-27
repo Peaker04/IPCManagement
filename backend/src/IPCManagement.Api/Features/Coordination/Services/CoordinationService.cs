@@ -12,18 +12,28 @@ public class CoordinationService : ICoordinationService
     private const decimal FixedBomRatePercent = 100m;
     private readonly IpcManagementContext _context;
     private readonly ICustomerContractService _customerContractService;
+    private readonly IPortionRuleService _portionRuleService;
 
     public CoordinationService(IpcManagementContext context)
-        : this(context, new CustomerContractService(context))
+        : this(context, new CustomerContractService(context), new PortionRuleService(context))
     {
     }
 
     public CoordinationService(
         IpcManagementContext context,
         ICustomerContractService customerContractService)
+        : this(context, customerContractService, new PortionRuleService(context))
+    {
+    }
+
+    public CoordinationService(
+        IpcManagementContext context,
+        ICustomerContractService customerContractService,
+        IPortionRuleService portionRuleService)
     {
         _context = context;
         _customerContractService = customerContractService;
+        _portionRuleService = portionRuleService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -116,307 +126,22 @@ public class CoordinationService : ICoordinationService
         string? userId)
         => _customerContractService.UpdateCustomerContractAsync(customerId, request, userId);
 
-    public async Task<IReadOnlyList<PortionRuleDto>> GetPortionRulesAsync(PortionRuleQueryDto query)
-    {
-        var rulesQuery = _context.Portionrules
-            .Include(rule => rule.Customer)
-            .Include(rule => rule.Dish)
-            .AsNoTracking()
-            .AsSplitQuery()
-            .AsQueryable();
+    public Task<IReadOnlyList<PortionRuleDto>> GetPortionRulesAsync(PortionRuleQueryDto query)
+        => _portionRuleService.GetPortionRulesAsync(query);
 
-        if (!string.IsNullOrWhiteSpace(query.CustomerId))
-        {
-            var customerIdBytes = GuidHelper.ParseGuidString(query.CustomerId);
-            if (customerIdBytes is null)
-            {
-                return [];
-            }
+    public Task<PortionRuleDto> CreatePortionRuleAsync(
+        CreatePortionRuleRequest request,
+        string? userId)
+        => _portionRuleService.CreatePortionRuleAsync(request, userId);
 
-            rulesQuery = rulesQuery.Where(rule => rule.CustomerId == customerIdBytes);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.DishId))
-        {
-            var dishIdBytes = GuidHelper.ParseGuidString(query.DishId);
-            if (dishIdBytes is null)
-            {
-                return [];
-            }
-
-            rulesQuery = rulesQuery.Where(rule => rule.DishId == dishIdBytes);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.Status))
-        {
-            var status = NormalizePortionRuleStatus(query.Status);
-            if (status is null)
-            {
-                return [];
-            }
-
-            rulesQuery = rulesQuery.Where(rule => rule.Status == status);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.EffectiveDate))
-        {
-            var effectiveDate = ParseDateOnly(query.EffectiveDate, "Ngày hiệu lực")!.Value;
-            rulesQuery = rulesQuery.Where(rule =>
-                rule.EffectiveFrom <= effectiveDate &&
-                (rule.EffectiveTo == null || rule.EffectiveTo >= effectiveDate));
-        }
-
-        var rules = await rulesQuery
-            .OrderBy(rule => rule.Customer.CustomerCode)
-            .ThenBy(rule => rule.EffectiveFrom)
-            .ThenByDescending(rule => rule.Priority)
-            .ToListAsync();
-
-        var shiftName = NormalizeShiftName(query.ShiftName);
-        var menuVariant = NormalizeNullableCode(query.MenuVariant);
-        var slotName = NormalizeNullableCode(query.SlotName);
-        return rules
-            .Where(rule => string.IsNullOrWhiteSpace(query.ShiftName) || MatchesCsv(rule.ShiftNames, shiftName))
-            .Where(rule => string.IsNullOrWhiteSpace(query.MenuVariant) || string.Equals(NormalizeNullableCode(rule.MenuVariant), menuVariant, StringComparison.Ordinal))
-            .Where(rule => string.IsNullOrWhiteSpace(query.SlotName) || string.Equals(NormalizeNullableCode(rule.SlotName), slotName, StringComparison.Ordinal))
-            .Select(MapPortionRule)
-            .ToList();
-    }
-
-    public async Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleRequest request, string? userId)
-    {
-        var customerId = GuidHelper.ParseGuidString(request.CustomerId)
-            ?? throw new ArgumentException("Khách hàng không hợp lệ.");
-        var customer = await _context.Customers
-            .FirstOrDefaultAsync(item => item.CustomerId == customerId)
-            ?? throw new ArgumentException("Không tìm thấy khách hàng để tạo portion rule.");
-
-        var dishId = await ResolveOptionalDishIdAsync(request.DishId);
-        var changedAt = DateTime.UtcNow;
-        var rule = new PortionRule
-        {
-            PortionRuleId = GuidHelper.NewId(),
-            CustomerId = customer.CustomerId,
-            DishId = dishId,
-            EffectiveFrom = ParseDateOnly(request.EffectiveFrom, "Ngày bắt đầu hiệu lực")
-                ?? throw new ArgumentException("Ngày bắt đầu hiệu lực không được trống."),
-            EffectiveTo = ParseDateOnly(request.EffectiveTo, "Ngày kết thúc hiệu lực"),
-            ActiveWeekDays = NormalizeOptionalWeekDays(request.ActiveWeekDays),
-            ShiftNames = NormalizeOptionalShiftNames(request.ShiftNames),
-            MenuVariant = NormalizeNullableCode(request.MenuVariant),
-            MenuSectionName = NormalizeNullableText(request.MenuSectionName),
-            SlotName = NormalizeNullableCode(request.SlotName),
-            DishCategory = NormalizeNullableText(request.DishCategory),
-            PortionRatePercent = DecimalPolicy.RoundPercent(request.PortionRatePercent),
-            BomRatePercent = null,
-            YieldLossPercent = request.YieldLossPercent is null ? null : DecimalPolicy.RoundPercent(request.YieldLossPercent.Value),
-            Priority = request.Priority ?? 0,
-            Status = NormalizePortionRuleStatus(request.Status) ?? "ACTIVE",
-            Reason = NormalizeNullableText(request.Reason) ?? "Tạo portion rule",
-            CreatedAt = changedAt,
-            UpdatedAt = changedAt
-        };
-
-        await ValidatePortionRuleAsync(rule, null);
-        _context.Portionrules.Add(rule);
-        AddAudit(ResolveActorId(userId), changedAt, "PortionRule", nameof(PortionRule), rule.PortionRuleId,
-            "RuleCreated", null, BuildPortionRuleAuditValue(rule), rule.Reason);
-        await _context.SaveChangesAsync();
-
-        await _context.Entry(rule).Reference(item => item.Customer).LoadAsync();
-        if (rule.DishId is not null)
-        {
-            await _context.Entry(rule).Reference(item => item.Dish).LoadAsync();
-        }
-
-        return MapPortionRule(rule);
-    }
-
-    public async Task<PortionRuleDto?> UpdatePortionRuleAsync(
+    public Task<PortionRuleDto?> UpdatePortionRuleAsync(
         string portionRuleId,
         UpdatePortionRuleRequest request,
         string? userId)
-    {
-        var portionRuleIdBytes = GuidHelper.ParseGuidString(portionRuleId);
-        if (portionRuleIdBytes is null)
-        {
-            return null;
-        }
+        => _portionRuleService.UpdatePortionRuleAsync(portionRuleId, request, userId);
 
-        var rule = await _context.Portionrules
-            .Include(item => item.Customer)
-            .Include(item => item.Dish)
-            .FirstOrDefaultAsync(item => item.PortionRuleId == portionRuleIdBytes);
-        if (rule is null)
-        {
-            return null;
-        }
-
-        var oldValue = BuildPortionRuleAuditValue(rule);
-        if (request.DishId is not null)
-        {
-            rule.DishId = await ResolveOptionalDishIdAsync(request.DishId);
-        }
-
-        if (request.EffectiveFrom is not null)
-        {
-            rule.EffectiveFrom = ParseDateOnly(request.EffectiveFrom, "Ngày bắt đầu hiệu lực")
-                ?? throw new ArgumentException("Ngày bắt đầu hiệu lực không được trống.");
-        }
-
-        if (request.EffectiveTo is not null)
-        {
-            rule.EffectiveTo = ParseDateOnly(request.EffectiveTo, "Ngày kết thúc hiệu lực");
-        }
-
-        if (request.ActiveWeekDays is not null)
-        {
-            rule.ActiveWeekDays = NormalizeOptionalWeekDays(request.ActiveWeekDays);
-        }
-
-        if (request.ShiftNames is not null)
-        {
-            rule.ShiftNames = NormalizeOptionalShiftNames(request.ShiftNames);
-        }
-
-        if (request.MenuVariant is not null)
-        {
-            rule.MenuVariant = NormalizeNullableCode(request.MenuVariant);
-        }
-
-        if (request.MenuSectionName is not null)
-        {
-            rule.MenuSectionName = NormalizeNullableText(request.MenuSectionName);
-        }
-
-        if (request.SlotName is not null)
-        {
-            rule.SlotName = NormalizeNullableCode(request.SlotName);
-        }
-
-        if (request.DishCategory is not null)
-        {
-            rule.DishCategory = NormalizeNullableText(request.DishCategory);
-        }
-
-        if (request.PortionRatePercent is not null)
-        {
-            rule.PortionRatePercent = DecimalPolicy.RoundPercent(request.PortionRatePercent.Value);
-        }
-
-        rule.BomRatePercent = null;
-
-        if (request.YieldLossPercent is not null)
-        {
-            rule.YieldLossPercent = DecimalPolicy.RoundPercent(request.YieldLossPercent.Value);
-        }
-
-        if (request.Priority is not null)
-        {
-            rule.Priority = request.Priority.Value;
-        }
-
-        if (request.Status is not null)
-        {
-            rule.Status = NormalizePortionRuleStatus(request.Status)
-                ?? throw new ArgumentException("Trạng thái portion rule không hợp lệ.");
-        }
-
-        rule.Reason = NormalizeNullableText(request.Reason) ?? rule.Reason;
-        rule.UpdatedAt = DateTime.UtcNow;
-
-        await ValidatePortionRuleAsync(rule, rule.PortionRuleId);
-        AddAudit(ResolveActorId(userId), rule.UpdatedAt, "PortionRule", nameof(PortionRule), rule.PortionRuleId,
-            "RuleUpdated", oldValue, BuildPortionRuleAuditValue(rule), rule.Reason);
-        await _context.SaveChangesAsync();
-
-        return MapPortionRule(rule);
-    }
-
-    public async Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
-    {
-        var customerId = GuidHelper.ParseGuidString(request.CustomerId);
-        if (customerId is null)
-        {
-            return null;
-        }
-
-        var serviceDate = ParseDateOnly(request.ServiceDate, "Ngày phục vụ")
-            ?? throw new ArgumentException("Ngày phục vụ không được trống.");
-        var dishId = string.IsNullOrWhiteSpace(request.DishId)
-            ? null
-            : GuidHelper.ParseGuidString(request.DishId);
-        if (!string.IsNullOrWhiteSpace(request.DishId) && dishId is null)
-        {
-            throw new ArgumentException("Món ăn không hợp lệ.");
-        }
-
-        var shiftName = NormalizeShiftName(request.ShiftName);
-        var dayCode = ToDayCode(serviceDate);
-        var rules = await _context.Portionrules
-            .AsNoTracking()
-            .Where(rule =>
-                rule.CustomerId == customerId &&
-                rule.Status == "ACTIVE" &&
-                rule.EffectiveFrom <= serviceDate &&
-                (rule.EffectiveTo == null || rule.EffectiveTo >= serviceDate))
-            .ToListAsync();
-
-        var candidates = rules
-            .Where(rule => MatchesCsv(rule.ActiveWeekDays, dayCode))
-            .Where(rule => MatchesCsv(rule.ShiftNames, shiftName))
-            .Where(rule => rule.DishId is null || (dishId is not null && rule.DishId.SequenceEqual(dishId)))
-            .Where(rule => MatchesNullableScope(rule.MenuVariant, request.MenuVariant, NormalizeNullableCode))
-            .Where(rule => MatchesNullableScope(rule.MenuSectionName, request.MenuSectionName, NormalizeNullableText))
-            .Where(rule => MatchesNullableScope(rule.SlotName, request.SlotName, NormalizeNullableCode))
-            .Where(rule => MatchesNullableScope(rule.DishCategory, request.DishCategory, NormalizeNullableText))
-            .OrderByDescending(PortionRuleMatchScore)
-            .ThenByDescending(rule => rule.EffectiveFrom)
-            .ToList();
-
-        var resolvedRule = candidates.FirstOrDefault();
-        if (resolvedRule is not null)
-        {
-            return new ResolvedPortionRuleDto
-            {
-                PortionRuleId = GuidHelper.ToGuidString(resolvedRule.PortionRuleId),
-                Source = ResolvePortionRuleSource(resolvedRule),
-                PortionRatePercent = resolvedRule.PortionRatePercent,
-                BomRatePercent = FixedBomRatePercent,
-                YieldLossPercent = resolvedRule.YieldLossPercent
-            };
-        }
-
-        var contract = await _context.Customercontracts
-            .AsNoTracking()
-            .Where(contract =>
-                contract.CustomerId == customerId &&
-                contract.Status == "ACTIVE" &&
-                contract.EffectiveFrom <= serviceDate &&
-                (contract.EffectiveTo == null || contract.EffectiveTo >= serviceDate))
-            .OrderByDescending(contract => contract.EffectiveFrom)
-            .ToListAsync();
-        var matchedContract = contract.FirstOrDefault(item =>
-            MatchesCsv(item.ActiveWeekDays, dayCode) &&
-            MatchesCsv(item.ShiftNames, shiftName));
-        if (matchedContract is not null)
-        {
-            return new ResolvedPortionRuleDto
-            {
-                Source = "CONTRACT_DEFAULT",
-                PortionRatePercent = 100,
-                BomRatePercent = FixedBomRatePercent
-            };
-        }
-
-        return new ResolvedPortionRuleDto
-        {
-            Source = "DEMO_FALLBACK",
-            PortionRatePercent = 100,
-            BomRatePercent = 100,
-            Warnings = ["Không tìm thấy portion rule/contract hiệu lực; đang dùng fallback demo."]
-        };
-    }
+    public Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
+        => _portionRuleService.ResolvePortionRuleAsync(request);
 
     public async Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
