@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Trạng thái làm việc hiện tại
 
-Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 27/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 28/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
 
 ## Phạm vi người dùng đã chốt
 
@@ -19,7 +19,7 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 
 ## Môi trường Shipyard hiện tại
 
-| Thành phần | Giá trị đã kiểm tra ngày 27/07/2026 |
+| Thành phần | Giá trị đã kiểm tra ngày 28/07/2026 |
 |---|---|
 | Git branch | `feature/production-plan` |
 | Shipyard UI | `http://localhost:8090` |
@@ -142,8 +142,8 @@ Khóa đúng theo ngữ cảnh:
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
-| Backend | **626 pass / 0 fail / 1 skip** (27/07) — `npm run test:be` gồm 2 project: Api.Tests 586, Application.Tests 41 | 69.4% | 53.8% | 75.5% method |
-| Frontend | **328/328 pass trên 60 file** (27/07) | 39.68% | 29.21% | 32.00% function |
+| Backend | **634 pass / 0 fail / 1 skip** (28/07) — `npm run test:be` gồm 2 project: Api.Tests 587, Application.Tests 47 | 69.4% | 53.8% | 75.5% method |
+| Frontend | **416/416 pass trên 74 file** (28/07) | 39.68% | 29.21% | 32.00% function |
 
 Số coverage phần trăm là của lần chạy coverage 25/07; các lần sau chỉ chạy lại test suite, chưa chạy lại coverage.
 
@@ -155,7 +155,7 @@ Gate tầng database bổ sung từ 27/07 (xem mục sự cố bên dưới):
 - Cài `IPCmanagement.sql` vào database rỗng: 47 bảng / 102 FK, exit 0. Chạy lại trên database không rỗng: dừng ở ERROR 1062, không mất bảng nào.
 
 - Backend build Release: 0 warning.
-- Frontend lint: pass (còn 9 warning tồn đọng của rule `ipc/no-swallowed-query-error`).
+- Frontend lint: pass, 0 error / 0 warning.
 - Frontend production build: pass.
 - Browser E2E không được cộng vào phần trăm V8/Coverlet; browser được kiểm riêng theo action → request → DB → rendered state.
 
@@ -563,7 +563,7 @@ Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với 
 API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
 Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
 `query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
-### Bước 13 — rollout state (đang thực hiện)
+### Bước 13 — rollout state (hoàn tất ngày 28/07/2026)
 
 - Thứ tự vẫn là Purchasing → Approvals → Reports → Admin → Chef → Coordination.
 - **Purchasing đã hoàn tất** tại `86a2347 refactor(fe-state): classify purchasing query views`.
@@ -636,7 +636,24 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   Evidence: `.artifacts/shipyard-live/query-view-chef-performance.json` và `query-view-chef-*.png`.
   File `query-view-chef-error.*` có timestamp cũ hơn là probe CLS trước fix, không phải final run.
 - GitNexus staged audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
-- Bước active tiếp theo là **Coordination**; đây là feature cuối trước khi đóng Gate 13.
+- **Coordination đã hoàn tất** tại `fe5a438 refactor(fe-state): classify coordination query views`.
+  Mười một query owner đã qua `QueryView`: workbench điều phối (2), lazy dialog món (1),
+  shell Weekly Menu (6), lịch sử import (1) và kế hoạch sản xuất (1). Shared boundary nằm ở
+  `components/common`; dependency gate không tăng 54 baseline violation.
+- Uninitialized/loading/ready/refreshing/forbidden/error được phân loại tường minh; retryable error
+  giữ cached data, forbidden không retry và không lộ cache. Metric chưa authoritative hiển thị `—`;
+  refreshing overlay nằm ngoài document flow. Endpoint, args, cache key/tag, URL và mutation giữ nguyên.
+- Targeted Coordination/state **26/26**; full FE **416/416**; BE **634 pass / 1 skip**;
+  lint sạch, production build, OpenAPI deterministic và EF pending-model gate xanh.
+- Browser headed ba viewport: **21/21** capture, 118 API 2xx, 0 business mutation, warm scope/
+  production 0 request, 0 non-2xx/request fail/console/page error/long task, CLS 0, 0 page overflow.
+  Evidence: `.artifacts/shipyard-live/query-view-coordination-performance.json` và
+  `query-view-coordination-*.png`. Runtime dùng FE `3001`, API `8001`, Shipyard `8090`, DB
+  `ipc_lane1` Healthy. `query-view-coordination-error.*` là lỗi locator cũ trước final run.
+- Database hiện không có order row ở 14 tổ hợp thứ/ngày + ca, nên browser xác minh ready-empty thật
+  và không seed dữ liệu để ép mở dialog món; lazy query dialog được phủ bằng unit/ownership contract.
+- GitNexus staged audit: 12 file/31 symbol/0 flow, **LOW**, đúng scope Coordination.
+- **Gate 13 đã đóng.** Bước active tiếp theo là **Bước 15 — Reports** vì Bước 14 đã hoàn tất sớm.
 
 ### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
@@ -667,7 +684,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Full gate: BE **634 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, OpenAPI regenerate deterministic và EF migration
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
-- Bước 14 đã đóng sớm; không mở Bước 15–18 trước khi Gate 13 xanh.
+- Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
 ## Quy trình tiếp tục ở phiên mới
 
