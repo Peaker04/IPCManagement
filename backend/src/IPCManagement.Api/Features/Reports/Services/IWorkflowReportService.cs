@@ -7,8 +7,6 @@ namespace IPCManagement.Api.Features.Reports.Services;
 public interface IWorkflowReportService
 {
     Task<IReadOnlyList<StockLedgerReconciliationDto>> GetStockLedgerReconciliationAsync(WorkflowReportQueryDto query);
-    Task<IReadOnlyList<AuditChangeReportDto>> GetAuditChangesAsync(WorkflowReportQueryDto query);
-    Task<CursorPageDto<AuditChangeReportDto>> GetAuditChangePageAsync(WorkflowReportQueryDto query);
     Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query);
     Task<DataQualityPageDto> GetDataQualityPageAsync(DataQualityPageQueryDto query);
     Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(DataQualityIssueRemediationRequest request, string actorUserId);

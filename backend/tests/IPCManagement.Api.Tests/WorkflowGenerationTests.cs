@@ -2794,7 +2794,7 @@ public class WorkflowGenerationTests
             });
             await context.SaveChangesAsync();
 
-            var service = new WorkflowReportService(context);
+            var service = new AuditReportService(context);
             var rows = await service.GetAuditChangesAsync(new WorkflowReportQueryDto { Limit = 20 });
             var areas = rows.Select(item => item.BusinessArea).ToList();
 
@@ -2850,7 +2850,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new AuditReportService(context);
         var firstPage = await service.GetAuditChangePageAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-08-01",
