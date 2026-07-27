@@ -6,7 +6,6 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using IPCManagement.Api.Features.Purchasing.Contracts;
-using IPCManagement.Api.Features.Reports.Services;
 
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
@@ -1201,10 +1200,10 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             return false;
         }
 
-        var variance = WorkflowReportCalculator.CalculateVariancePercent(
+        var variance = PurchasePricePolicy.CalculateVariancePercent(
             DecimalPolicy.RoundMoney(line.Ingredient.ReferencePrice),
             DecimalPolicy.RoundMoney(line.EstimatedUnitPrice));
-        return variance > 15m;
+        return PurchasePricePolicy.RequiresException(variance);
     }
 
     private static void IncrementWorkbenchStageCount(
