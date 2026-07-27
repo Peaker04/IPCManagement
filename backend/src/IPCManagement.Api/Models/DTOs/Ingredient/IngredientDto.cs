@@ -18,7 +18,7 @@ public class IngredientDto
 }
 
 /// <summary>Request DTO — tạo mới nguyên liệu.</summary>
-public class CreateIngredientDto
+public class CreateIngredientRequest
 {
     [Required]
     [MaxLength(50)]
@@ -41,7 +41,7 @@ public class CreateIngredientDto
 }
 
 /// <summary>Request DTO — cập nhật nguyên liệu.</summary>
-public class UpdateIngredientDto
+public class UpdateIngredientRequest
 {
     [MaxLength(200)]
     public string? IngredientName { get; set; }

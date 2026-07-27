@@ -1,5 +1,5 @@
 import { SectionPanel, StatusBadge, TableViewport } from '@/components/common'
-import { getWorkflowStatusPresentation } from '@/features/workflow/workflowConfig'
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { formatImportDate } from '../model/formatters'
 import type { WeeklyMenuImportWorkflow } from './useWeeklyMenuImport'
 

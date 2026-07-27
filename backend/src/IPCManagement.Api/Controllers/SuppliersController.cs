@@ -19,7 +19,7 @@ public class SuppliersController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<List<SupplierDto>>>> GetSuppliers(CancellationToken cancellationToken)
+    public async Task<ActionResult<ApiResponse<List<SupplierDto>>>> GetSuppliersAsync(CancellationToken cancellationToken)
     {
         var suppliers = await _supplierService.GetActiveSuppliersAsync(cancellationToken);
         return Ok(ApiResponse<List<SupplierDto>>.SuccessResult(suppliers));

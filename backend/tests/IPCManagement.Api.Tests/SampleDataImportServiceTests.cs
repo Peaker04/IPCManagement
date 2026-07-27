@@ -50,7 +50,7 @@ public class SampleDataImportServiceTests
             IngredientName = "Nguyên liệu thử"
         };
         var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
-        var bomLines = new List<Dishbom>();
+        var bomLines = new List<DishBom>();
         var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
 
         method!.Invoke(service, [dish, ingredient, unit, 0.10m, 25000m, bomLines, true, counts]);
@@ -143,7 +143,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,
@@ -227,7 +227,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,
@@ -365,7 +365,7 @@ public class SampleDataImportServiceTests
             .Options;
         await using var context = new IpcManagementContext(options);
         var customerId = GuidHelper.NewId();
-        context.Customercontracts.Add(new Customercontract
+        context.Customercontracts.Add(new CustomerContract
         {
             ContractId = GuidHelper.NewId(),
             CustomerId = customerId,
@@ -461,7 +461,7 @@ public class SampleDataImportServiceTests
         await using var context = setup.Context;
         var customerId = GuidHelper.NewId();
         context.Customercontracts.AddRange(
-            new Customercontract
+            new CustomerContract
             {
                 ContractId = GuidHelper.NewId(),
                 CustomerId = customerId,
@@ -474,7 +474,7 @@ public class SampleDataImportServiceTests
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
-            new Customercontract
+            new CustomerContract
             {
                 ContractId = GuidHelper.NewId(),
                 CustomerId = customerId,
@@ -505,7 +505,7 @@ public class SampleDataImportServiceTests
         await using var context = setup.Context;
         var customerId = GuidHelper.NewId();
         context.Customercontracts.AddRange(
-            new Customercontract
+            new CustomerContract
             {
                 ContractId = GuidHelper.NewId(),
                 CustomerId = customerId,
@@ -519,7 +519,7 @@ public class SampleDataImportServiceTests
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             },
-            new Customercontract
+            new CustomerContract
             {
                 ContractId = GuidHelper.NewId(),
                 CustomerId = customerId,
@@ -968,7 +968,7 @@ public class SampleDataImportServiceTests
             MenuName = "Existing menu",
             IsActive = true
         });
-        context.Menuversions.Add(new Menuversion
+        context.Menuversions.Add(new MenuVersion
         {
             MenuVersionId = GuidHelper.NewId(),
             CustomerId = customerId,
@@ -981,7 +981,7 @@ public class SampleDataImportServiceTests
             CreatedAt = DateTime.UtcNow.AddDays(-1),
             UpdatedAt = DateTime.UtcNow.AddDays(-1)
         });
-        context.Menuschedules.Add(new Menuschedule
+        context.Menuschedules.Add(new MenuSchedule
         {
             MenuScheduleId = GuidHelper.NewId(),
             CustomerId = customerId,

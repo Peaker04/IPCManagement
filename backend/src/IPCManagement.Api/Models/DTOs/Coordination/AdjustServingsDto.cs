@@ -1,12 +1,12 @@
 namespace IPCManagement.Api.Models.DTOs.Coordination;
 
-public class AdjustServingsRequestDto
+public class AdjustServingsRequest
 {
     public int ServingsQuantity { get; set; }
     public string Reason { get; set; } = string.Empty;
 }
 
-public class UpdateForecastServingsRequestDto
+public class UpdateForecastServingsRequest
 {
     public int ServingsQuantity { get; set; }
     public string Reason { get; set; } = string.Empty;

@@ -15,7 +15,7 @@ public class SupplierQuotationDto
     public bool IsBestPrice { get; set; }
 }
 
-public class CreateSupplierQuotationDto
+public class CreateSupplierQuotationRequest
 {
     public string SupplierId { get; set; } = string.Empty;
     public string IngredientId { get; set; } = string.Empty;
@@ -25,7 +25,7 @@ public class CreateSupplierQuotationDto
     public string? Note { get; set; }
 }
 
-public class UpdateSupplierQuotationDto
+public class UpdateSupplierQuotationRequest
 {
     public decimal UnitPrice { get; set; }
     public string EffectiveFrom { get; set; } = string.Empty;

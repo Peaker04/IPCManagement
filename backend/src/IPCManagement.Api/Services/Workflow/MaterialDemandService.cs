@@ -21,7 +21,7 @@ public class MaterialDemandService : IMaterialDemandService
     }
 
     public async Task<MaterialDemandResultDto?> GenerateAsync(
-        GenerateMaterialDemandRequestDto request,
+        GenerateMaterialDemandRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {
@@ -148,13 +148,13 @@ public class MaterialDemandService : IMaterialDemandService
 
         PruneStaleLines(plan, materialRequest, generatedPlanLineIds, generatedRequestLineKeys);
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userIdBytes,
             BusinessArea = "Demand",
-            EntityName = nameof(Materialrequest),
+            EntityName = nameof(MaterialRequest),
             EntityId = materialRequest.RequestId,
             FieldName = isRecalculate ? "Recalculate" : "Generate",
             OldValue = null,
@@ -228,7 +228,7 @@ public class MaterialDemandService : IMaterialDemandService
                     .ThenInclude(line => line.PurchaseRequest)
             .Include(request => request.Materialrequestlines)
                 .ThenInclude(line => line.Purchaserequestlines)
-                    .ThenInclude(line => line.Purchaseorderline)
+                    .ThenInclude(line => line.PurchaseOrderLine)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
 
         if (materialRequest is not null && materialRequest.Status == "CANCELLED")
@@ -242,7 +242,7 @@ public class MaterialDemandService : IMaterialDemandService
             var purchaseLines = materialRequest.Materialrequestlines
                 .SelectMany(line => line.Purchaserequestlines)
                 .ToList();
-            if (purchaseLines.Any(line => line.Purchaseorderline is not null))
+            if (purchaseLines.Any(line => line.PurchaseOrderLine is not null))
             {
                 regenerationBlockReason =
                     "Nhu cầu đã phát sinh đơn mua hàng nên được giữ ở chế độ chỉ đọc. Hãy dùng luồng điều chỉnh riêng.";
@@ -264,10 +264,10 @@ public class MaterialDemandService : IMaterialDemandService
                 var latestDemandAudit = await _context.Auditlogs
                     .AsNoTracking()
                     .Where(audit =>
-                        audit.EntityName == nameof(Materialrequest) &&
+                        audit.EntityName == nameof(MaterialRequest) &&
                         audit.EntityId != null &&
                         audit.EntityId.SequenceEqual(materialRequest.RequestId) &&
-                        audit.FieldName == nameof(Materialrequest.Status))
+                        audit.FieldName == nameof(MaterialRequest.Status))
                     .OrderByDescending(audit => audit.ChangedAt)
                     .FirstOrDefaultAsync(cancellationToken);
                 var cancellationReason = latestDemandAudit?.Reason;
@@ -304,10 +304,10 @@ public class MaterialDemandService : IMaterialDemandService
                         var latestPurchaseAudit = await _context.Auditlogs
                             .AsNoTracking()
                             .Where(audit =>
-                                audit.EntityName == nameof(Purchaserequest) &&
+                                audit.EntityName == nameof(PurchaseRequest) &&
                                 audit.EntityId != null &&
                                 audit.EntityId.SequenceEqual(purchaseRequest.PurchaseRequestId) &&
-                                audit.FieldName == nameof(Purchaserequest.Status))
+                                audit.FieldName == nameof(PurchaseRequest.Status))
                             .OrderByDescending(audit => audit.ChangedAt)
                             .FirstOrDefaultAsync(cancellationToken);
                         var purchaseCancellationReason = latestPurchaseAudit?.Reason;
@@ -443,15 +443,15 @@ public class MaterialDemandService : IMaterialDemandService
         request.ApprovedBy = userIdBytes;
         request.ApprovedAt = approvedAt;
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = approvedAt,
             ChangedBy = userIdBytes,
             BusinessArea = "Demand",
-            EntityName = nameof(Materialrequest),
+            EntityName = nameof(MaterialRequest),
             EntityId = request.RequestId,
-            FieldName = nameof(Materialrequest.Status),
+            FieldName = nameof(MaterialRequest.Status),
             OldValue = oldStatus,
             NewValue = DemandApprovedStatus,
             Reason = string.IsNullOrWhiteSpace(reason)
@@ -471,7 +471,7 @@ public class MaterialDemandService : IMaterialDemandService
         };
     }
 
-    private IQueryable<Mealquantityplanline> QueryConfirmedQuantityLines(DateOnly serviceDate, string? shiftName, byte[]? customerId)
+    private IQueryable<MealQuantityPlanLine> QueryConfirmedQuantityLines(DateOnly serviceDate, string? shiftName, byte[]? customerId)
     {
         var query = _context.Mealquantityplanlines
             .Include(line => line.Customer)
@@ -535,7 +535,7 @@ public class MaterialDemandService : IMaterialDemandService
         return await query.AnyAsync(cancellationToken);
     }
 
-    private async Task<List<Mealquantityplanline>> EnsureDefaultImportQuantityLinesAsync(
+    private async Task<List<MealQuantityPlanLine>> EnsureDefaultImportQuantityLinesAsync(
         DateOnly serviceDate,
         string? shiftName,
         byte[]? customerId,
@@ -593,7 +593,7 @@ public class MaterialDemandService : IMaterialDemandService
 
             if (plan is null)
             {
-                plan = new Mealquantityplan
+                plan = new MealQuantityPlan
                 {
                     QuantityPlanId = GuidHelper.NewId(),
                     PlanCode = planCode,
@@ -621,7 +621,7 @@ public class MaterialDemandService : IMaterialDemandService
 
                 if (existingLine is null)
                 {
-                    plan.Mealquantityplanlines.Add(new Mealquantityplanline
+                    plan.Mealquantityplanlines.Add(new MealQuantityPlanLine
                     {
                         QuantityPlanLineId = GuidHelper.NewId(),
                         QuantityPlanId = plan.QuantityPlanId,
@@ -650,13 +650,13 @@ public class MaterialDemandService : IMaterialDemandService
             }
         }
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userId,
             BusinessArea = "Demand",
-            EntityName = nameof(Mealquantityplan),
+            EntityName = nameof(MealQuantityPlan),
             EntityId = schedules.First().MenuScheduleId,
             FieldName = "DefaultImportServings",
             OldValue = null,
@@ -673,7 +673,7 @@ public class MaterialDemandService : IMaterialDemandService
     private static int DefaultImportServings(string shiftName)
         => string.Equals(shiftName, "AFTERNOON", StringComparison.OrdinalIgnoreCase) ? 870 : 840;
 
-    private async Task<Productionplan> EnsureProductionPlanAsync(
+    private async Task<ProductionPlan> EnsureProductionPlanAsync(
         DateOnly serviceDate,
         string scope,
         ProductionPlanContext planContext,
@@ -695,7 +695,7 @@ public class MaterialDemandService : IMaterialDemandService
         }
 
         var now = DateTime.UtcNow;
-        var plan = new Productionplan
+        var plan = new ProductionPlan
         {
             PlanId = GuidHelper.NewId(),
             PlanCode = planCode,
@@ -714,7 +714,7 @@ public class MaterialDemandService : IMaterialDemandService
     }
 
     private async Task<ProductionPlanContext> ResolveProductionPlanContextAsync(
-        IReadOnlyCollection<Mealquantityplanline> quantityLines,
+        IReadOnlyCollection<MealQuantityPlanLine> quantityLines,
         byte[]? requestedCustomerId,
         CancellationToken cancellationToken)
     {
@@ -754,8 +754,8 @@ public class MaterialDemandService : IMaterialDemandService
         return new ProductionPlanContext(customerId, customerCode, weekStartDate, menuVersionId);
     }
 
-    private async Task<(Materialrequest Request, bool IsRecalculate)> EnsureMaterialRequestAsync(
-        Productionplan plan,
+    private async Task<(MaterialRequest Request, bool IsRecalculate)> EnsureMaterialRequestAsync(
+        ProductionPlan plan,
         DateOnly serviceDate,
         string scope,
         string? customerCode,
@@ -769,7 +769,7 @@ public class MaterialDemandService : IMaterialDemandService
                     .ThenInclude(line => line.PurchaseRequest)
             .Include(request => request.Materialrequestlines)
                 .ThenInclude(line => line.Purchaserequestlines)
-                    .ThenInclude(line => line.Purchaseorderline)
+                    .ThenInclude(line => line.PurchaseOrderLine)
                         .ThenInclude(line => line!.PurchaseOrder)
             .FirstOrDefaultAsync(request => request.RequestCode == requestCode, cancellationToken);
         if (existing is not null)
@@ -777,7 +777,7 @@ public class MaterialDemandService : IMaterialDemandService
             var purchaseLines = existing.Materialrequestlines
                 .SelectMany(line => line.Purchaserequestlines)
                 .ToList();
-            if (purchaseLines.Any(line => line.Purchaseorderline is not null))
+            if (purchaseLines.Any(line => line.PurchaseOrderLine is not null))
             {
                 throw new InvalidOperationException(
                     "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
@@ -796,13 +796,13 @@ public class MaterialDemandService : IMaterialDemandService
                 .Select(line => line.PurchaseRequest)
                 .DistinctBy(request => Convert.ToBase64String(request.PurchaseRequestId))
                 .ToList();
-            Auditlog? menuReimportDemandCancellation = null;
+            AuditLog? menuReimportDemandCancellation = null;
             if (string.Equals(existing.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
             {
                 menuReimportDemandCancellation = await _context.Auditlogs
                     .AsNoTracking()
                     .Where(audit =>
-                        audit.EntityName == nameof(Materialrequest) &&
+                        audit.EntityName == nameof(MaterialRequest) &&
                         audit.EntityId != null &&
                         audit.EntityId.SequenceEqual(existing.RequestId) &&
                         audit.FieldName == "Status")
@@ -833,7 +833,7 @@ public class MaterialDemandService : IMaterialDemandService
                 var latestPurchaseStatusAudit = await _context.Auditlogs
                     .AsNoTracking()
                     .Where(audit =>
-                        audit.EntityName == nameof(Purchaserequest) &&
+                        audit.EntityName == nameof(PurchaseRequest) &&
                         audit.EntityId != null &&
                         audit.EntityId.SequenceEqual(purchaseRequest.PurchaseRequestId) &&
                         audit.FieldName == "Status")
@@ -872,13 +872,13 @@ public class MaterialDemandService : IMaterialDemandService
                 const string regenerationReason =
                     "Reopened automatically for regeneration after menu re-import invalidated a mutable DRAFT lineage.";
                 existing.Status = DemandDraftStatus;
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = changedAt,
                     ChangedBy = userId,
                     BusinessArea = "Demand",
-                    EntityName = nameof(Materialrequest),
+                    EntityName = nameof(MaterialRequest),
                     EntityId = existing.RequestId,
                     FieldName = "Status",
                     OldValue = "CANCELLED",
@@ -890,13 +890,13 @@ public class MaterialDemandService : IMaterialDemandService
                              string.Equals(request.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase)))
                 {
                     purchaseRequest.Status = PurchaseDraftStatus;
-                    _context.Auditlogs.Add(new Auditlog
+                    _context.Auditlogs.Add(new AuditLog
                     {
                         AuditId = GuidHelper.NewId(),
                         ChangedAt = changedAt,
                         ChangedBy = userId,
                         BusinessArea = "Purchase",
-                        EntityName = nameof(Purchaserequest),
+                        EntityName = nameof(PurchaseRequest),
                         EntityId = purchaseRequest.PurchaseRequestId,
                         FieldName = "Status",
                         OldValue = "CANCELLED",
@@ -920,7 +920,7 @@ public class MaterialDemandService : IMaterialDemandService
             return (existing, true);
         }
 
-        var materialRequest = new Materialrequest
+        var materialRequest = new MaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = requestCode,
@@ -946,8 +946,8 @@ public class MaterialDemandService : IMaterialDemandService
     }
 
     private void PruneStaleLines(
-        Productionplan plan,
-        Materialrequest materialRequest,
+        ProductionPlan plan,
+        MaterialRequest materialRequest,
         HashSet<string> generatedPlanLineIds,
         HashSet<string> generatedRequestLineKeys)
     {
@@ -975,10 +975,10 @@ public class MaterialDemandService : IMaterialDemandService
         }
     }
 
-    private Productionplanline EnsureProductionPlanLine(
-        Productionplan plan,
-        Mealquantityplanline quantityLine,
-        Menuitem menuItem)
+    private ProductionPlanLine EnsureProductionPlanLine(
+        ProductionPlan plan,
+        MealQuantityPlanLine quantityLine,
+        MenuItem menuItem)
     {
         var existing = plan.Productionplanlines.FirstOrDefault(line =>
             line.QuantityPlanLineId.SequenceEqual(quantityLine.QuantityPlanLineId) &&
@@ -990,7 +990,7 @@ public class MaterialDemandService : IMaterialDemandService
             return existing;
         }
 
-        var productionLine = new Productionplanline
+        var productionLine = new ProductionPlanLine
         {
             PlanLineId = GuidHelper.NewId(),
             PlanId = plan.PlanId,
@@ -1008,10 +1008,10 @@ public class MaterialDemandService : IMaterialDemandService
         return productionLine;
     }
 
-    private Materialrequestline EnsureMaterialRequestLine(
-        Materialrequest request,
-        Productionplanline productionLine,
-        Dishbom bom,
+    private MaterialRequestLine EnsureMaterialRequestLine(
+        MaterialRequest request,
+        ProductionPlanLine productionLine,
+        DishBom bom,
         decimal priceTier,
         string bomScope,
         int servings,
@@ -1039,7 +1039,7 @@ public class MaterialDemandService : IMaterialDemandService
             return existing;
         }
 
-        var requestLine = new Materialrequestline
+        var requestLine = new MaterialRequestLine
         {
             RequestLineId = GuidHelper.NewId(),
             RequestId = request.RequestId,
@@ -1067,9 +1067,9 @@ public class MaterialDemandService : IMaterialDemandService
     }
 
     private static MaterialDemandLineDto MapLine(
-        Materialrequestline requestLine,
-        Productionplanline productionLine,
-        Dishbom bom)
+        MaterialRequestLine requestLine,
+        ProductionPlanLine productionLine,
+        DishBom bom)
         => new()
         {
             MaterialRequestLineId = GuidHelper.ToGuidString(requestLine.RequestLineId),
@@ -1095,7 +1095,7 @@ public class MaterialDemandService : IMaterialDemandService
             SuggestedPurchaseQty = requestLine.SuggestedPurchaseQty
         };
 
-    private static MissingBomDishDto MapMissingBomDish(Mealquantityplanline quantityLine, Menuitem menuItem, string? message = null)
+    private static MissingBomDishDto MapMissingBomDish(MealQuantityPlanLine quantityLine, MenuItem menuItem, string? message = null)
         => new()
         {
             DishId = GuidHelper.ToGuidString(menuItem.DishId),
@@ -1111,7 +1111,7 @@ public class MaterialDemandService : IMaterialDemandService
             Message = message ?? "Món chưa có dòng BOM/định lượng đang hiệu lực nên chưa sinh nhu cầu nguyên liệu."
         };
 
-    private async Task<IReadOnlyList<Portionrule>> LoadEffectivePortionRulesAsync(
+    private async Task<IReadOnlyList<PortionRule>> LoadEffectivePortionRulesAsync(
         DateOnly serviceDate,
         CancellationToken cancellationToken)
         => await _context.Portionrules
@@ -1123,9 +1123,9 @@ public class MaterialDemandService : IMaterialDemandService
             .ToListAsync(cancellationToken);
 
     private static AppliedPortionRule ResolvePortionRule(
-        IReadOnlyList<Portionrule> rules,
-        Mealquantityplanline quantityLine,
-        Menuitem menuItem,
+        IReadOnlyList<PortionRule> rules,
+        MealQuantityPlanLine quantityLine,
+        MenuItem menuItem,
         DateOnly serviceDate)
     {
         var customerKey = BuildKey(quantityLine.CustomerId);
@@ -1189,7 +1189,7 @@ public class MaterialDemandService : IMaterialDemandService
         return string.Equals(normalizedRuleValue, normalize(requestValue), StringComparison.Ordinal);
     }
 
-    private static int PortionRuleMatchScore(Portionrule rule)
+    private static int PortionRuleMatchScore(PortionRule rule)
     {
         var source = ResolvePortionRuleSource(rule);
         var baseScore = source switch
@@ -1203,7 +1203,7 @@ public class MaterialDemandService : IMaterialDemandService
         return baseScore + rule.Priority;
     }
 
-    private static string ResolvePortionRuleSource(Portionrule rule)
+    private static string ResolvePortionRuleSource(PortionRule rule)
     {
         if (rule.DishId is not null)
         {
@@ -1250,13 +1250,13 @@ public class MaterialDemandService : IMaterialDemandService
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
 
-    private static bool IsPublishedAndEffective(Dishbom bom, DateOnly serviceDate)
+    private static bool IsPublishedAndEffective(DishBom bom, DateOnly serviceDate)
         => bom.BomStatus == PublishedBomStatus &&
            bom.EffectiveFrom <= serviceDate &&
            (bom.EffectiveTo is null || bom.EffectiveTo >= serviceDate);
 
-    private static List<Dishbom> ResolveBomLines(
-        IEnumerable<Dishbom> lines,
+    private static List<DishBom> ResolveBomLines(
+        IEnumerable<DishBom> lines,
         byte[] customerId,
         decimal priceTier,
         DateOnly serviceDate)
@@ -1284,7 +1284,7 @@ public class MaterialDemandService : IMaterialDemandService
         };
     }
 
-    private static StockConversionResult CalculateStockInBomUnit(IReadOnlyList<Currentstock> stocks, Unit bomUnit)
+    private static StockConversionResult CalculateStockInBomUnit(IReadOnlyList<CurrentStock> stocks, Unit bomUnit)
     {
         if (stocks.Count == 0)
         {

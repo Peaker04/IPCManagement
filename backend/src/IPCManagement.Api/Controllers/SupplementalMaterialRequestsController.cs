@@ -27,7 +27,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] SupplementalMaterialRequestFilterDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] SupplementalMaterialRequestFilterDto request)
     {
         try
         {
@@ -41,7 +41,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         try
         {
@@ -57,7 +57,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplementalMaterialRequest request)
     {
         try
         {
@@ -88,21 +88,21 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
 
     [HttpPost("{id}/fulfill")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> Fulfill(string id, [FromBody] FulfillSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> FulfillAsync(string id, [FromBody] FulfillSupplementalMaterialRequest request)
         => await ExecuteActionAsync(
             (userId, warehouseId) => _service.FulfillAsync(id, request, userId, warehouseId),
             "Đã tạo phiếu xuất bổ sung và trừ tồn kho.");
 
     [HttpPost("{id}/route-to-purchasing")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> RouteToPurchasing(string id)
+    public async Task<IActionResult> RouteToPurchasingAsync(string id)
         => await ExecuteActionAsync(
             (userId, warehouseId) => _service.RouteToPurchasingAsync(id, userId, warehouseId),
             "Đã chuyển phần thiếu sang danh sách thu mua.");
 
     [HttpPost("{id}/reject")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> Reject(string id, [FromBody] RejectSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> RejectAsync(string id, [FromBody] RejectSupplementalMaterialRequest request)
         => await ExecuteActionAsync(
             (userId, warehouseId) => _service.RejectAsync(id, request, userId, warehouseId),
             "Đã từ chối yêu cầu bổ sung.");

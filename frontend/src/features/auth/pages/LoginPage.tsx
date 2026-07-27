@@ -4,7 +4,7 @@ import { useAppDispatch } from '../../../app/hooks';
 import { setCredentials } from '../authSlice';
 import { useLoginMutation } from '../authApi';
 import { normalizeUserRole, type AppRole } from '../roleUtils';
-import { ROUTES } from '../../../routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import { ChefHat } from 'lucide-react';
 import { FieldRow } from '@/components/common';
 

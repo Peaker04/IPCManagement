@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import {
   formatImportDate,
   formatMenuDishName,
@@ -8,7 +8,7 @@ import {
   parseDisplayDateToIso,
   summarizeImportWarnings,
 } from './formatters'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, getQuickServingKey, resolveDishIngredients } from './scope'
 import type { WeeklyPlanRow } from './types'
 

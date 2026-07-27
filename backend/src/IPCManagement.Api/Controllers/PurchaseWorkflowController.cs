@@ -30,7 +30,7 @@ public class PurchaseWorkflowController : ControllerBase
     [HttpGet("workbench")]
     [ProducesResponseType(typeof(ApiResponse<PurchaseWorkbenchWeekDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> GetWorkbenchWeek(
+    public async Task<IActionResult> GetWorkbenchWeekAsync(
         [FromQuery] PurchaseWorkbenchQueryDto query,
         CancellationToken cancellationToken)
     {
@@ -50,8 +50,8 @@ public class PurchaseWorkflowController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.PurchaseGenerateAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GenerateFromDemand(
-        [FromBody] GeneratePurchaseRequestFromDemandDto request,
+    public async Task<IActionResult> GenerateFromDemandAsync(
+        [FromBody] GeneratePurchaseRequestFromDemandRequest request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
@@ -70,7 +70,7 @@ public class PurchaseWorkflowController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SupplierEvidenceResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetSupplierEvidence(
+    public async Task<IActionResult> GetSupplierEvidenceAsync(
         string id,
         string lineId,
         CancellationToken cancellationToken)
@@ -104,10 +104,10 @@ public class PurchaseWorkflowController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ConfirmLineSupplier(
+    public async Task<IActionResult> ConfirmLineSupplierAsync(
         string id,
         string lineId,
-        [FromBody] ConfirmPurchaseLineSupplierDto request,
+        [FromBody] ConfirmPurchaseLineSupplierRequest request,
         CancellationToken cancellationToken)
     {
         try
@@ -147,7 +147,7 @@ public class PurchaseWorkflowController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Submit(
+    public async Task<IActionResult> SubmitAsync(
         string id,
         CancellationToken cancellationToken)
     {

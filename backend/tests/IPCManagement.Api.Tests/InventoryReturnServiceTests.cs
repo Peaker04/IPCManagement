@@ -56,14 +56,14 @@ public class InventoryReturnServiceTests
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
             WarehouseId = warehouseId,
             IssueId = issueId,
             Reason = "Nguyên liệu dư sau nấu",
-            Lines = new List<CreateInventoryReturnLineDto>
+            Lines = new List<CreateInventoryReturnLineRequest>
             {
                 new()
                 {
@@ -81,7 +81,7 @@ public class InventoryReturnServiceTests
         result.Should().NotBeNull();
         result!.ReturnCode.Should().StartWith("RET-");
 
-        _returnRepository.Received(1).Add(Arg.Is<Inventoryreturn>(inventoryReturn =>
+        _returnRepository.Received(1).Add(Arg.Is<InventoryReturn>(inventoryReturn =>
             inventoryReturn.WarehouseId != null &&
             inventoryReturn.IssueId != null &&
             inventoryReturn.Reason == "Nguyên liệu dư sau nấu" &&
@@ -117,13 +117,13 @@ public class InventoryReturnServiceTests
                 [BuildKey(ingredientId, unitId)] = 3
             });
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = warehouseId,
             IssueId = issueId,
             Reason = "Trả vượt còn lại",
-            Lines = new List<CreateInventoryReturnLineDto>
+            Lines = new List<CreateInventoryReturnLineRequest>
             {
                 new()
                 {
@@ -141,7 +141,7 @@ public class InventoryReturnServiceTests
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*vượt quá số lượng đã xuất*");
 
-        _returnRepository.DidNotReceive().Add(Arg.Any<Inventoryreturn>());
+        _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());
         await _stockLedgerService.DidNotReceive().AddStockAsync(
             Arg.Any<byte[]>(),
             Arg.Any<byte[]>(),
@@ -175,7 +175,7 @@ public class InventoryReturnServiceTests
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ReturnType = "WASTE",
@@ -184,7 +184,7 @@ public class InventoryReturnServiceTests
             Reason = "Hao hụt sơ chế",
             Lines =
             [
-                new CreateInventoryReturnLineDto
+                new CreateInventoryReturnLineRequest
                 {
                     IngredientId = ingredientId,
                     Quantity = 1,
@@ -199,7 +199,7 @@ public class InventoryReturnServiceTests
         // Assert
         result.Should().NotBeNull();
         result!.ReturnCode.Should().StartWith("WST-");
-        _returnRepository.Received(1).Add(Arg.Is<Inventoryreturn>(inventoryReturn =>
+        _returnRepository.Received(1).Add(Arg.Is<InventoryReturn>(inventoryReturn =>
             inventoryReturn.ReturnType == "WASTE" &&
             inventoryReturn.Reason == "Hao hụt sơ chế" &&
             inventoryReturn.Inventoryreturnlines.Count == 1));
@@ -218,7 +218,7 @@ public class InventoryReturnServiceTests
         await _transaction.Received(1).CommitAsync();
     }
 
-    private static Inventoryissue CreateIssue(
+    private static InventoryIssue CreateIssue(
         string issueId,
         string warehouseId,
         string ingredientId,
@@ -229,7 +229,7 @@ public class InventoryReturnServiceTests
         var ingredientBytes = GuidHelper.ParseGuidString(ingredientId)!;
         var unitBytes = GuidHelper.ParseGuidString(unitId)!;
 
-        return new Inventoryissue
+        return new InventoryIssue
         {
             IssueId = issueBytes,
             IssueCode = "ISS-TEST",
@@ -238,7 +238,7 @@ public class InventoryReturnServiceTests
             MaterialRequestId = GuidHelper.NewId(),
             IssuedBy = GuidHelper.NewId(),
             CreatedAt = DateTime.UtcNow,
-            Inventoryissuelines = new List<Inventoryissueline>
+            Inventoryissuelines = new List<InventoryIssueLine>
             {
                 new()
                 {

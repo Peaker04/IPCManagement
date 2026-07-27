@@ -2,7 +2,7 @@ using IPCManagement.Api.Models.DTOs.Common;
 
 namespace IPCManagement.Api.Models.DTOs.Inventory;
 
-public sealed class CreateSupplementalMaterialRequestDto
+public sealed class CreateSupplementalMaterialRequest
 {
     public string IssueId { get; set; } = string.Empty;
     public string IssueLineId { get; set; } = string.Empty;
@@ -44,12 +44,12 @@ public sealed class SupplementalMaterialRequestFilterDto : PagedRequestDto
     public string? Status { get; set; }
 }
 
-public sealed class FulfillSupplementalMaterialRequestDto
+public sealed class FulfillSupplementalMaterialRequest
 {
     public decimal Quantity { get; set; }
 }
 
-public sealed class RejectSupplementalMaterialRequestDto
+public sealed class RejectSupplementalMaterialRequest
 {
     public string Reason { get; set; } = string.Empty;
 }

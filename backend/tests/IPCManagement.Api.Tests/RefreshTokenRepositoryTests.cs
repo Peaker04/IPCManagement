@@ -65,7 +65,7 @@ public class RefreshTokenRepositoryTests
             .Should().Be(2);
     }
 
-    private static Refreshtoken CreateToken(byte[] userId, char hashCharacter, DateTime expiresAt)
+    private static RefreshToken CreateToken(byte[] userId, char hashCharacter, DateTime expiresAt)
         => new()
         {
             TokenId = GuidHelper.NewId(),

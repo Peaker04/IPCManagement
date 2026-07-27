@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import type { MaterialSummary } from '../model/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'
 import { buildPurchaseSummaryPresentation, buildWarehouseCsv } from './purchaseSummaryModel'

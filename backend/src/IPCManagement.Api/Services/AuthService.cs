@@ -31,7 +31,7 @@ public class AuthService : IAuthService
 
     // ── Login ─────────────────────────────────────────────────────────────────
 
-    public async Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, string deviceInfo = "")
+    public async Task<LoginResponseDto?> LoginAsync(LoginRequest request, string deviceInfo = "")
     {
         var user = await _userRepository.FindByUsernameAsync(request.Username);
         if (user is null || user.IsActive == false)
@@ -63,7 +63,7 @@ public class AuthService : IAuthService
 
     // ── Refresh Token ─────────────────────────────────────────────────────────
 
-    public async Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request)
+    public async Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequest request)
     {
         try
         {
@@ -139,7 +139,7 @@ public class AuthService : IAuthService
 
     // ── Revoke (Logout) ────────────────────────────────────────────────────────
 
-    public async Task<bool> RevokeTokenAsync(RevokeTokenRequestDto request)
+    public async Task<bool> RevokeTokenAsync(RevokeTokenRequest request)
     {
         try
         {
@@ -252,7 +252,7 @@ public class AuthService : IAuthService
         await _refreshTokenRepository.CleanupExpiredForUserAsync(userIdBytes);
 
         // Tạo refresh token mới
-        _refreshTokenRepository.Add(new Refreshtoken
+        _refreshTokenRepository.Add(new RefreshToken
         {
             TokenId    = GuidHelper.NewId(),
             UserId     = userIdBytes,

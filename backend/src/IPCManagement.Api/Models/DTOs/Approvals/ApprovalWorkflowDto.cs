@@ -16,7 +16,7 @@ public enum ApprovalDecision
     Reject
 }
 
-public class ApprovalRequestDto
+public class ApprovalRequest
 {
     public ApprovalDecision Status { get; set; }
     public string? Reason { get; set; }

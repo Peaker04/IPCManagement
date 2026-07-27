@@ -4,7 +4,7 @@ import { CalendarDays, CheckCircle2, ChevronDown, ClipboardList, PackageSearch, 
 import { cn } from '@/lib/utils'
 import { DemandSummary, DocumentRail, EmptyState, InlineAlert, PaginationBar, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { ActionGuard } from '@/routes/ActionGuard'
-import { ROUTES } from '@/routes/routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 import { QuickServingCell } from '../schedule/QuickServingCell'
 import type { WeeklyScheduleEditorWorkflow } from '../schedule/types'
 import type { WeeklyScheduleFeedback } from '../schedule/types'

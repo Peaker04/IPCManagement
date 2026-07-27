@@ -24,91 +24,91 @@ public partial class IpcManagementContext : DbContext
         PaginationOptions = paginationOptions.Value;
     }
 
-    public virtual DbSet<Auditlog> Auditlogs { get; set; }
+    public virtual DbSet<AuditLog> Auditlogs { get; set; }
 
-    public virtual DbSet<Approvalhistory> Approvalhistories { get; set; }
+    public virtual DbSet<ApprovalHistory> Approvalhistories { get; set; }
 
-    public virtual DbSet<Bomadjustment> Bomadjustments { get; set; }
+    public virtual DbSet<BomAdjustment> Bomadjustments { get; set; }
 
     public virtual DbSet<Customer> Customers { get; set; }
 
-    public virtual DbSet<Customerimportmapping> Customerimportmappings { get; set; }
+    public virtual DbSet<CustomerImportMapping> Customerimportmappings { get; set; }
 
-    public virtual DbSet<Customercontract> Customercontracts { get; set; }
+    public virtual DbSet<CustomerContract> Customercontracts { get; set; }
 
     public virtual DbSet<Dish> Dishes { get; set; }
 
-    public virtual DbSet<Dishbom> Dishboms { get; set; }
+    public virtual DbSet<DishBom> Dishboms { get; set; }
 
     public virtual DbSet<Ingredient> Ingredients { get; set; }
 
-    public virtual DbSet<Supplierquotation> Supplierquotations { get; set; }
+    public virtual DbSet<SupplierQuotation> Supplierquotations { get; set; }
 
-    public virtual DbSet<Inventoryissue> Inventoryissues { get; set; }
+    public virtual DbSet<InventoryIssue> Inventoryissues { get; set; }
 
-    public virtual DbSet<Inventoryissueline> Inventoryissuelines { get; set; }
+    public virtual DbSet<InventoryIssueLine> Inventoryissuelines { get; set; }
 
-    public virtual DbSet<Supplementalmaterialrequest> Supplementalmaterialrequests { get; set; }
+    public virtual DbSet<SupplementalMaterialRequest> Supplementalmaterialrequests { get; set; }
 
-    public virtual DbSet<Inventoryreceipt> Inventoryreceipts { get; set; }
+    public virtual DbSet<InventoryReceipt> Inventoryreceipts { get; set; }
 
-    public virtual DbSet<Inventoryreceiptline> Inventoryreceiptlines { get; set; }
+    public virtual DbSet<InventoryReceiptLine> Inventoryreceiptlines { get; set; }
 
-    public virtual DbSet<Inventoryreturn> Inventoryreturns { get; set; }
+    public virtual DbSet<InventoryReturn> Inventoryreturns { get; set; }
 
-    public virtual DbSet<Inventoryreturnline> Inventoryreturnlines { get; set; }
+    public virtual DbSet<InventoryReturnLine> Inventoryreturnlines { get; set; }
 
-    public virtual DbSet<Materialrequest> Materialrequests { get; set; }
+    public virtual DbSet<MaterialRequest> Materialrequests { get; set; }
 
-    public virtual DbSet<Materialrequestline> Materialrequestlines { get; set; }
+    public virtual DbSet<MaterialRequestLine> Materialrequestlines { get; set; }
 
-    public virtual DbSet<Mealquantityplan> Mealquantityplans { get; set; }
+    public virtual DbSet<MealQuantityPlan> Mealquantityplans { get; set; }
 
-    public virtual DbSet<Mealquantityplanline> Mealquantityplanlines { get; set; }
+    public virtual DbSet<MealQuantityPlanLine> Mealquantityplanlines { get; set; }
 
     public virtual DbSet<Menu> Menus { get; set; }
 
-    public virtual DbSet<Menuitem> Menuitems { get; set; }
+    public virtual DbSet<MenuItem> Menuitems { get; set; }
 
-    public virtual DbSet<Menuschedule> Menuschedules { get; set; }
+    public virtual DbSet<MenuSchedule> Menuschedules { get; set; }
 
-    public virtual DbSet<Menuversion> Menuversions { get; set; }
+    public virtual DbSet<MenuVersion> Menuversions { get; set; }
 
-    public virtual DbSet<Portionrule> Portionrules { get; set; }
+    public virtual DbSet<PortionRule> Portionrules { get; set; }
 
-    public virtual DbSet<Productionplan> Productionplans { get; set; }
+    public virtual DbSet<ProductionPlan> Productionplans { get; set; }
 
-    public virtual DbSet<Productionplanline> Productionplanlines { get; set; }
+    public virtual DbSet<ProductionPlanLine> Productionplanlines { get; set; }
 
-    public virtual DbSet<Purchaserequest> Purchaserequests { get; set; }
+    public virtual DbSet<PurchaseRequest> Purchaserequests { get; set; }
 
-    public virtual DbSet<Purchaserequestline> Purchaserequestlines { get; set; }
+    public virtual DbSet<PurchaseRequestLine> Purchaserequestlines { get; set; }
 
-    public virtual DbSet<Purchaseorder> Purchaseorders { get; set; }
+    public virtual DbSet<PurchaseOrder> Purchaseorders { get; set; }
 
-    public virtual DbSet<Purchaseorderline> Purchaseorderlines { get; set; }
+    public virtual DbSet<PurchaseOrderLine> Purchaseorderlines { get; set; }
 
-    public virtual DbSet<Purchaselinesupplierdecision> Purchaselinesupplierdecisions { get; set; }
+    public virtual DbSet<PurchaseLineSupplierDecision> Purchaselinesupplierdecisions { get; set; }
 
-    public virtual DbSet<Purchasepriceexception> Purchasepriceexceptions { get; set; }
+    public virtual DbSet<PurchasePriceException> Purchasepriceexceptions { get; set; }
 
-    public virtual DbSet<Purchasehistoryreconciliationrun> Purchasehistoryreconciliationruns { get; set; }
+    public virtual DbSet<PurchaseHistoryReconciliationRun> Purchasehistoryreconciliationruns { get; set; }
 
-    public virtual DbSet<Purchasehistoryreconciliationaction> Purchasehistoryreconciliationactions { get; set; }
+    public virtual DbSet<PurchaseHistoryReconciliationAction> Purchasehistoryreconciliationactions { get; set; }
 
-    public virtual DbSet<Quantityadjustment> Quantityadjustments { get; set; }
+    public virtual DbSet<QuantityAdjustment> Quantityadjustments { get; set; }
 
-    public virtual DbSet<Quantityimportbatch> Quantityimportbatches { get; set; }
+    public virtual DbSet<QuantityImportBatch> Quantityimportbatches { get; set; }
 
     public virtual DbSet<Role> Roles { get; set; }
 
-    public virtual DbSet<Stockmovement> Stockmovements { get; set; }
+    public virtual DbSet<StockMovement> Stockmovements { get; set; }
 
-    public virtual DbSet<Currentstock> Currentstocks { get; set; }
+    public virtual DbSet<CurrentStock> Currentstocks { get; set; }
 
-    public virtual DbSet<Currentstocklot> Currentstocklots { get; set; }
+    public virtual DbSet<CurrentStockLot> Currentstocklots { get; set; }
 
-    public virtual DbSet<Stocksnapshot> Stocksnapshots { get; set; }
+    public virtual DbSet<StockSnapshot> Stocksnapshots { get; set; }
 
     public virtual DbSet<Supplier> Suppliers { get; set; }
 
@@ -116,17 +116,17 @@ public partial class IpcManagementContext : DbContext
 
     public virtual DbSet<User> Users { get; set; }
 
-    public virtual DbSet<Refreshtoken> Refreshtokens { get; set; }
+    public virtual DbSet<RefreshToken> Refreshtokens { get; set; }
 
     public virtual DbSet<Stocktake> Stocktakes { get; set; }
 
-    public virtual DbSet<Stocktakeline> Stocktakelines { get; set; }
+    public virtual DbSet<StocktakeLine> Stocktakelines { get; set; }
 
     public virtual DbSet<Warehouse> Warehouses { get; set; }
 
-    public virtual DbSet<Approvalrule> Approvalrules { get; set; }
+    public virtual DbSet<ApprovalRule> Approvalrules { get; set; }
 
-    public virtual DbSet<Approvalassignment> Approvalassignments { get; set; }
+    public virtual DbSet<ApprovalAssignment> Approvalassignments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -134,7 +134,7 @@ public partial class IpcManagementContext : DbContext
             .UseCollation("utf8mb4_unicode_ci")
             .HasCharSet("utf8mb4");
 
-        modelBuilder.Entity<Auditlog>(entity =>
+        modelBuilder.Entity<AuditLog>(entity =>
         {
             entity.HasKey(e => e.AuditId).HasName("PRIMARY");
 
@@ -183,7 +183,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("auditlogs_ibfk_1");
         });
 
-        modelBuilder.Entity<Approvalhistory>(entity =>
+        modelBuilder.Entity<ApprovalHistory>(entity =>
         {
             entity.HasKey(e => e.ApprovalHistoryId).HasName("PRIMARY");
 
@@ -229,7 +229,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("approvalhistories_ibfk_1");
         });
 
-        modelBuilder.Entity<Approvalrule>(entity =>
+        modelBuilder.Entity<ApprovalRule>(entity =>
         {
             entity.HasKey(e => e.RuleId).HasName("PRIMARY");
             entity.ToTable("approvalrules");
@@ -261,7 +261,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("createdAt");
         });
 
-        modelBuilder.Entity<Approvalassignment>(entity =>
+        modelBuilder.Entity<ApprovalAssignment>(entity =>
         {
             entity.HasKey(e => e.AssignmentId).HasName("PRIMARY");
             entity.ToTable("approvalassignments");
@@ -298,7 +298,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("approvalassignments_ibfk_2");
         });
 
-        modelBuilder.Entity<Bomadjustment>(entity =>
+        modelBuilder.Entity<BomAdjustment>(entity =>
         {
             entity.HasKey(e => e.BomAdjustmentId).HasName("PRIMARY");
 
@@ -378,7 +378,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("note");
         });
 
-        modelBuilder.Entity<Customerimportmapping>(entity =>
+        modelBuilder.Entity<CustomerImportMapping>(entity =>
         {
             entity.HasKey(e => e.MappingId).HasName("PRIMARY");
 
@@ -421,7 +421,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("customerimportmappings_ibfk_1");
         });
 
-        modelBuilder.Entity<Customercontract>(entity =>
+        modelBuilder.Entity<CustomerContract>(entity =>
         {
             entity.HasKey(e => e.ContractId).HasName("PRIMARY");
 
@@ -503,7 +503,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("isActive");
         });
 
-        modelBuilder.Entity<Dishbom>(entity =>
+        modelBuilder.Entity<DishBom>(entity =>
         {
             entity.HasKey(e => e.BomId).HasName("PRIMARY");
 
@@ -632,7 +632,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("ingredients_ibfk_2");
         });
 
-        modelBuilder.Entity<Inventoryissue>(entity =>
+        modelBuilder.Entity<InventoryIssue>(entity =>
         {
             entity.HasKey(e => e.IssueId).HasName("PRIMARY");
 
@@ -703,7 +703,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryissues_ibfk_1");
         });
 
-        modelBuilder.Entity<Inventoryissueline>(entity =>
+        modelBuilder.Entity<InventoryIssueLine>(entity =>
         {
             entity.HasKey(e => e.IssueLineId).HasName("PRIMARY");
 
@@ -756,7 +756,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryissuelines_ibfk_3");
         });
 
-        modelBuilder.Entity<Supplementalmaterialrequest>(entity =>
+        modelBuilder.Entity<SupplementalMaterialRequest>(entity =>
         {
             entity.HasKey(e => e.RequestId).HasName("PRIMARY");
             entity.ToTable("supplementalmaterialrequests");
@@ -778,15 +778,15 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.RequestedBy).HasMaxLength(16).IsFixedLength().HasColumnName("requestedBy");
             entity.Property(e => e.RequestedAt).HasColumnType("datetime").HasColumnName("requestedAt");
 
-            entity.HasOne<Inventoryissue>().WithMany().HasForeignKey(e => e.IssueId).OnDelete(DeleteBehavior.Restrict);
-            entity.HasOne<Inventoryissueline>().WithMany().HasForeignKey(e => e.IssueLineId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<InventoryIssue>().WithMany().HasForeignKey(e => e.IssueId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<InventoryIssueLine>().WithMany().HasForeignKey(e => e.IssueLineId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Warehouse>().WithMany().HasForeignKey(e => e.WarehouseId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Ingredient>().WithMany().HasForeignKey(e => e.IngredientId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<Unit>().WithMany().HasForeignKey(e => e.UnitId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<User>().WithMany().HasForeignKey(e => e.RequestedBy).OnDelete(DeleteBehavior.Restrict);
         });
 
-        modelBuilder.Entity<Inventoryreceipt>(entity =>
+        modelBuilder.Entity<InventoryReceipt>(entity =>
         {
             entity.HasKey(e => e.ReceiptId).HasName("PRIMARY");
 
@@ -851,7 +851,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryreceipts_ibfk_1");
         });
 
-        modelBuilder.Entity<Inventoryreceiptline>(entity =>
+        modelBuilder.Entity<InventoryReceiptLine>(entity =>
         {
             entity.HasKey(e => e.ReceiptLineId).HasName("PRIMARY");
 
@@ -946,7 +946,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryreceiptlines_ibfk_5");
         });
 
-        modelBuilder.Entity<Purchasehistoryreconciliationrun>(entity =>
+        modelBuilder.Entity<PurchaseHistoryReconciliationRun>(entity =>
         {
             entity.HasKey(e => e.PurchaseHistoryReconciliationRunId).HasName("PRIMARY");
 
@@ -1009,7 +1009,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchasehistoryreconciliationruns_ibfk_1");
         });
 
-        modelBuilder.Entity<Purchasehistoryreconciliationaction>(entity =>
+        modelBuilder.Entity<PurchaseHistoryReconciliationAction>(entity =>
         {
             entity.HasKey(e => e.PurchaseHistoryReconciliationActionId).HasName("PRIMARY");
 
@@ -1063,7 +1063,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchasehistoryreconciliationactions_ibfk_1");
         });
 
-        modelBuilder.Entity<Inventoryreturn>(entity =>
+        modelBuilder.Entity<InventoryReturn>(entity =>
         {
             entity.HasKey(e => e.ReturnId).HasName("PRIMARY");
 
@@ -1139,7 +1139,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryreturns_ibfk_1");
         });
 
-        modelBuilder.Entity<Inventoryreturnline>(entity =>
+        modelBuilder.Entity<InventoryReturnLine>(entity =>
         {
             entity.HasKey(e => e.ReturnLineId).HasName("PRIMARY");
 
@@ -1189,7 +1189,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("inventoryreturnlines_ibfk_3");
         });
 
-        modelBuilder.Entity<Materialrequest>(entity =>
+        modelBuilder.Entity<MaterialRequest>(entity =>
         {
             entity.HasKey(e => e.RequestId).HasName("PRIMARY");
 
@@ -1250,7 +1250,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("materialrequests_ibfk_1");
         });
 
-        modelBuilder.Entity<Materialrequestline>(entity =>
+        modelBuilder.Entity<MaterialRequestLine>(entity =>
         {
             entity.HasKey(e => e.RequestLineId).HasName("PRIMARY");
 
@@ -1361,7 +1361,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("materialrequestlines_ibfk_4");
         });
 
-        modelBuilder.Entity<Mealquantityplan>(entity =>
+        modelBuilder.Entity<MealQuantityPlan>(entity =>
         {
             entity.HasKey(e => e.QuantityPlanId).HasName("PRIMARY");
 
@@ -1432,7 +1432,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("mealquantityplans_ibfk_1");
         });
 
-        modelBuilder.Entity<Mealquantityplanline>(entity =>
+        modelBuilder.Entity<MealQuantityPlanLine>(entity =>
         {
             entity.HasKey(e => e.QuantityPlanLineId).HasName("PRIMARY");
 
@@ -1525,7 +1525,7 @@ public partial class IpcManagementContext : DbContext
             entity.Property(e => e.ToDate).HasColumnName("toDate");
         });
 
-        modelBuilder.Entity<Menuitem>(entity =>
+        modelBuilder.Entity<MenuItem>(entity =>
         {
             entity.HasKey(e => e.MenuItemId).HasName("PRIMARY");
 
@@ -1565,7 +1565,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("menuitems_ibfk_1");
         });
 
-        modelBuilder.Entity<Menuschedule>(entity =>
+        modelBuilder.Entity<MenuSchedule>(entity =>
         {
             entity.HasKey(e => e.MenuScheduleId).HasName("PRIMARY");
 
@@ -1626,7 +1626,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("menuschedules_ibfk_3");
         });
 
-        modelBuilder.Entity<Menuversion>(entity =>
+        modelBuilder.Entity<MenuVersion>(entity =>
         {
             entity.HasKey(e => e.MenuVersionId).HasName("PRIMARY");
 
@@ -1697,7 +1697,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("menuversions_ibfk_1");
         });
 
-        modelBuilder.Entity<Portionrule>(entity =>
+        modelBuilder.Entity<PortionRule>(entity =>
         {
             entity.HasKey(e => e.PortionRuleId).HasName("PRIMARY");
 
@@ -1779,7 +1779,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("portionrules_ibfk_2");
         });
 
-        modelBuilder.Entity<Productionplan>(entity =>
+        modelBuilder.Entity<ProductionPlan>(entity =>
         {
             entity.HasKey(e => e.PlanId).HasName("PRIMARY");
 
@@ -1855,7 +1855,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("productionplans_ibfk_4");
         });
 
-        modelBuilder.Entity<Productionplanline>(entity =>
+        modelBuilder.Entity<ProductionPlanLine>(entity =>
         {
             entity.HasKey(e => e.PlanLineId).HasName("PRIMARY");
 
@@ -1926,7 +1926,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("productionplanlines_ibfk_2");
         });
 
-        modelBuilder.Entity<Purchaserequest>(entity =>
+        modelBuilder.Entity<PurchaseRequest>(entity =>
         {
             entity.HasKey(e => e.PurchaseRequestId).HasName("PRIMARY");
 
@@ -1978,7 +1978,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchaserequests_ibfk_1");
         });
 
-        modelBuilder.Entity<Purchaserequestline>(entity =>
+        modelBuilder.Entity<PurchaseRequestLine>(entity =>
         {
             entity.HasKey(e => e.PurchaseRequestLineId).HasName("PRIMARY");
 
@@ -2069,7 +2069,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchaserequestlines_ibfk_5");
         });
 
-        modelBuilder.Entity<Purchaselinesupplierdecision>(entity =>
+        modelBuilder.Entity<PurchaseLineSupplierDecision>(entity =>
         {
             entity.HasKey(e => e.PurchaseLineSupplierDecisionId).HasName("PRIMARY");
 
@@ -2134,7 +2134,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchaselinesupplierdecisions_ibfk_4");
         });
 
-        modelBuilder.Entity<Purchasepriceexception>(entity =>
+        modelBuilder.Entity<PurchasePriceException>(entity =>
         {
             entity.HasKey(e => e.PurchasePriceExceptionId).HasName("PRIMARY");
 
@@ -2203,7 +2203,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchasepriceexceptions_ibfk_4");
         });
 
-        modelBuilder.Entity<Purchaseorder>(entity =>
+        modelBuilder.Entity<PurchaseOrder>(entity =>
         {
             entity.HasKey(e => e.PurchaseOrderId).HasName("PRIMARY");
 
@@ -2266,7 +2266,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchaseorders_ibfk_3");
         });
 
-        modelBuilder.Entity<Purchaseorderline>(entity =>
+        modelBuilder.Entity<PurchaseOrderLine>(entity =>
         {
             entity.HasKey(e => e.PurchaseOrderLineId).HasName("PRIMARY");
 
@@ -2315,8 +2315,8 @@ public partial class IpcManagementContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("purchaseorderlines_ibfk_1");
 
-            entity.HasOne(d => d.PurchaseRequestLine).WithOne(p => p.Purchaseorderline)
-                .HasForeignKey<Purchaseorderline>(d => d.PurchaseRequestLineId)
+            entity.HasOne(d => d.PurchaseRequestLine).WithOne(p => p.PurchaseOrderLine)
+                .HasForeignKey<PurchaseOrderLine>(d => d.PurchaseRequestLineId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("purchaseorderlines_ibfk_2");
 
@@ -2331,7 +2331,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("purchaseorderlines_ibfk_4");
         });
 
-        modelBuilder.Entity<Quantityadjustment>(entity =>
+        modelBuilder.Entity<QuantityAdjustment>(entity =>
         {
             entity.HasKey(e => e.AdjustmentId).HasName("PRIMARY");
 
@@ -2374,7 +2374,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("quantityadjustments_ibfk_1");
         });
 
-        modelBuilder.Entity<Quantityimportbatch>(entity =>
+        modelBuilder.Entity<QuantityImportBatch>(entity =>
         {
             entity.HasKey(e => e.ImportBatchId).HasName("PRIMARY");
 
@@ -2436,7 +2436,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("roleName");
         });
 
-        modelBuilder.Entity<Stockmovement>(entity =>
+        modelBuilder.Entity<StockMovement>(entity =>
         {
             entity.HasKey(e => e.MovementId).HasName("PRIMARY");
 
@@ -2540,7 +2540,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("stockmovements_ibfk_1");
         });
 
-        modelBuilder.Entity<Currentstocklot>(entity =>
+        modelBuilder.Entity<CurrentStockLot>(entity =>
         {
             entity.HasKey(e => e.LotStockId).HasName("PRIMARY");
 
@@ -2602,7 +2602,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("currentstocklots_ibfk_1");
         });
 
-        modelBuilder.Entity<Stocksnapshot>(entity =>
+        modelBuilder.Entity<StockSnapshot>(entity =>
         {
             entity.HasKey(e => e.SnapshotId).HasName("PRIMARY");
 
@@ -2712,7 +2712,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("supplierName");
         });
 
-        modelBuilder.Entity<Supplierquotation>(entity =>
+        modelBuilder.Entity<SupplierQuotation>(entity =>
         {
             entity.HasKey(e => e.QuotationId).HasName("PRIMARY");
 
@@ -2864,7 +2864,7 @@ public partial class IpcManagementContext : DbContext
                 .HasColumnName("warehouseType");
         });
 
-        modelBuilder.Entity<Currentstock>(entity =>
+        modelBuilder.Entity<CurrentStock>(entity =>
         {
             entity.HasKey(e => new { e.WarehouseId, e.IngredientId }).HasName("PRIMARY");
 
@@ -2920,7 +2920,7 @@ public partial class IpcManagementContext : DbContext
                 .HasConstraintName("currentstock_ibfk_1");
         });
 
-        modelBuilder.Entity<Refreshtoken>(entity =>
+        modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.HasKey(e => e.TokenId).HasName("PRIMARY");
 
@@ -3003,7 +3003,7 @@ public partial class IpcManagementContext : DbContext
             entity.HasOne(d => d.ApprovedByNavigation).WithMany(p => p.StocktakesApprovedByNavigations).HasForeignKey(d => d.ApprovedBy);
         });
 
-        modelBuilder.Entity<Stocktakeline>(entity =>
+        modelBuilder.Entity<StocktakeLine>(entity =>
         {
             entity.HasKey(e => e.LineId).HasName("PRIMARY");
             entity.ToTable("stocktakelines");

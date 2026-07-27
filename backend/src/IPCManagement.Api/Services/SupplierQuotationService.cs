@@ -85,7 +85,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         return MapWithBestPrice(quotations);
     }
 
-    public async Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationDto request, CancellationToken cancellationToken = default)
+    public async Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationRequest request, CancellationToken cancellationToken = default)
     {
         var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId)
             ?? throw new ArgumentException("Nhà cung cấp không hợp lệ.");
@@ -109,7 +109,7 @@ public class SupplierQuotationService : ISupplierQuotationService
             .ToListAsync(cancellationToken);
         ValidateNoOverlappingQuotation(existingQuotations, quotationId: null, effectiveFrom, effectiveTo);
 
-        var quotation = new Supplierquotation
+        var quotation = new SupplierQuotation
         {
             QuotationId = GuidHelper.NewId(),
             SupplierId = supplierIdBytes,
@@ -131,7 +131,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         return await MapSingleWithBestPriceAsync(quotation, cancellationToken);
     }
 
-    public async Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationDto request, CancellationToken cancellationToken = default)
+    public async Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationRequest request, CancellationToken cancellationToken = default)
     {
         var quotationIdBytes = GuidHelper.ParseGuidString(quotationId)
             ?? throw new ArgumentException("Báo giá không hợp lệ.");
@@ -184,7 +184,7 @@ public class SupplierQuotationService : ISupplierQuotationService
 
     /// <summary>Chọn báo giá tốt nhất (giá thấp nhất) còn hiệu lực tại một thời điểm cho một nguyên liệu.
     /// Hòa giá: ưu tiên báo giá có ngày bắt đầu hiệu lực gần nhất, sau đó theo tên NCC A-Z để đảm bảo kết quả ổn định.</summary>
-    public async Task<Supplierquotation?> GetBestPriceEntityAsync(byte[] ingredientId, DateOnly asOfDate, CancellationToken cancellationToken = default)
+    public async Task<SupplierQuotation?> GetBestPriceEntityAsync(byte[] ingredientId, DateOnly asOfDate, CancellationToken cancellationToken = default)
     {
         var candidates = await _context.Supplierquotations
             .Include(q => q.Supplier)
@@ -203,7 +203,7 @@ public class SupplierQuotationService : ISupplierQuotationService
     }
 
     private static void ValidateNoOverlappingQuotation(
-        IEnumerable<Supplierquotation> existingQuotations,
+        IEnumerable<SupplierQuotation> existingQuotations,
         byte[]? quotationId,
         DateOnly effectiveFrom,
         DateOnly? effectiveTo)
@@ -240,7 +240,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         throw new ArgumentException($"{fieldName} không hợp lệ.");
     }
 
-    private async Task<SupplierQuotationDto> MapSingleWithBestPriceAsync(Supplierquotation quotation, CancellationToken cancellationToken)
+    private async Task<SupplierQuotationDto> MapSingleWithBestPriceAsync(SupplierQuotation quotation, CancellationToken cancellationToken)
     {
         var siblings = await _context.Supplierquotations
             .Include(q => q.Supplier)
@@ -251,7 +251,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         return MapWithBestPrice(siblings).First(dto => dto.QuotationId == GuidHelper.ToGuidString(quotation.QuotationId));
     }
 
-    private static List<SupplierQuotationDto> MapWithBestPrice(List<Supplierquotation> quotations, Guid? preferredBestQuotationId = null)
+    private static List<SupplierQuotationDto> MapWithBestPrice(List<SupplierQuotation> quotations, Guid? preferredBestQuotationId = null)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         var bestQuotationId = preferredBestQuotationId ?? quotations

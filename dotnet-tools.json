@@ -8,6 +8,13 @@
         "reportgenerator"
       ],
       "rollForward": false
+    },
+    "swashbuckle.aspnetcore.cli": {
+      "version": "7.3.1",
+      "commands": [
+        "swagger"
+      ],
+      "rollForward": false
     }
   }
 }

@@ -6,12 +6,12 @@ namespace IPCManagement.Api.Services.Approvals;
 
 public interface IApprovalRoutingService
 {
-    Task<Approvalrule?> GetMatchingRuleAsync(string documentType, decimal? amount);
-    Task<IReadOnlyList<Approvalrule>> GetActiveRulesAsync(string documentType);
-    Task<IReadOnlyList<Approvalassignment>> GetAssignmentsForRuleAsync(byte[] ruleId);
-    Task<IReadOnlyList<Approvalrule>> GetAllRulesAsync();
-    Task<Approvalrule?> GetRuleByIdAsync(byte[] ruleId);
-    Task<Approvalrule> CreateRuleAsync(Approvalrule rule, IEnumerable<Approvalassignment> assignments);
-    Task<Approvalrule?> UpdateRuleAsync(byte[] ruleId, Approvalrule rule, IEnumerable<Approvalassignment> assignments);
+    Task<ApprovalRule?> GetMatchingRuleAsync(string documentType, decimal? amount);
+    Task<IReadOnlyList<ApprovalRule>> GetActiveRulesAsync(string documentType);
+    Task<IReadOnlyList<ApprovalAssignment>> GetAssignmentsForRuleAsync(byte[] ruleId);
+    Task<IReadOnlyList<ApprovalRule>> GetAllRulesAsync();
+    Task<ApprovalRule?> GetRuleByIdAsync(byte[] ruleId);
+    Task<ApprovalRule> CreateRuleAsync(ApprovalRule rule, IEnumerable<ApprovalAssignment> assignments);
+    Task<ApprovalRule?> UpdateRuleAsync(byte[] ruleId, ApprovalRule rule, IEnumerable<ApprovalAssignment> assignments);
     Task<bool> DeleteRuleAsync(byte[] ruleId);
 }

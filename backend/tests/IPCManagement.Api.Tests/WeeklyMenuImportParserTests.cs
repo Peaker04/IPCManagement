@@ -38,7 +38,7 @@ public class WeeklyMenuImportParserTests
                 tempFile,
                 Path.GetFileName(fixturePath),
                 new DateOnly(2026, 7, 20),
-                new Customerimportmapping { SheetNameHint = "ANV" },
+                new CustomerImportMapping { SheetNameHint = "ANV" },
                 priceTier);
 
             GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
@@ -198,7 +198,7 @@ public class WeeklyMenuImportParserTests
                 tempFile,
                 Path.GetFileName(tempFile),
                 new DateOnly(2026, 6, 15),
-                new Customerimportmapping { SheetNameHint = "ANV" },
+                new CustomerImportMapping { SheetNameHint = "ANV" },
                 25000m);
 
             GetEnumerable(plan, "Items")
@@ -274,7 +274,7 @@ public class WeeklyMenuImportParserTests
                 tempFile,
                 "weekly-menu-template-ANV-2026-06-15.xlsx",
                 new DateOnly(2026, 6, 15),
-                new Customerimportmapping { SheetNameHint = "ANV" },
+                new CustomerImportMapping { SheetNameHint = "ANV" },
                 25000m);
 
             GetProperty<string>(plan, "SheetName").Should().Be("ANV 25k");
@@ -733,7 +733,7 @@ public class WeeklyMenuImportParserTests
             var actionWithoutHint = () => InvokeParse(tempFile, "customer-file.xlsx", null, null);
             actionWithoutHint.Should().Throw<TargetInvocationException>();
 
-            var mapping = new Customerimportmapping { SheetNameHint = "MENU" };
+            var mapping = new CustomerImportMapping { SheetNameHint = "MENU" };
             var plan = InvokeParse(tempFile, "customer-file.xlsx", null, mapping);
 
             GetProperty<string>(plan, "SheetName").Should().Be("MENU");
@@ -807,7 +807,7 @@ public class WeeklyMenuImportParserTests
                 ["", "", "Phụ", "Tôm thịt rim"],
             ]);
 
-            var mapping = new Customerimportmapping { LabelColumn = "c" };
+            var mapping = new CustomerImportMapping { LabelColumn = "c" };
             var plan = InvokeParse(tempFile, "override.xlsx", null, mapping);
 
             GetProperty<string>(plan, "LabelColumn").Should().Be("c");
@@ -822,7 +822,7 @@ public class WeeklyMenuImportParserTests
         string workbookPath,
         string fileName,
         DateOnly? weekStartDate,
-        Customerimportmapping? mapping = null,
+        CustomerImportMapping? mapping = null,
         decimal? priceTierAmount = null)
     {
         var service = new SampleDataImportService(null!, null!);

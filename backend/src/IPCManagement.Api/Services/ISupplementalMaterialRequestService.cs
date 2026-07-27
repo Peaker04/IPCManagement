@@ -10,12 +10,12 @@ public interface ISupplementalMaterialRequestService
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto?> GetByIdAsync(string id, string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> CreateAsync(
-        CreateSupplementalMaterialRequestDto request,
+        CreateSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> FulfillAsync(
         string id,
-        FulfillSupplementalMaterialRequestDto request,
+        FulfillSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
@@ -24,7 +24,7 @@ public interface ISupplementalMaterialRequestService
         string? scopedWarehouseId = null);
     Task<SupplementalMaterialRequestDto> RejectAsync(
         string id,
-        RejectSupplementalMaterialRequestDto request,
+        RejectSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null);
 }

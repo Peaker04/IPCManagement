@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAppSelector } from '../app/hooks'
-import { ROUTES } from './routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 
 interface RoleGuardProps {
   requiredPermissions: string[]

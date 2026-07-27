@@ -5,9 +5,9 @@ import { CursorPaginationBar } from './CursorPaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantity, formatUnit } from '@/lib/formatters';
-import type { StockMovement } from '@/features/workflow';
+import type { StockMovement } from '@/types/workflow';
 import { useLocalPagination } from '@/lib/useLocalPagination';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useToast } from './useToast';
 
 interface StockMovementTableProps {

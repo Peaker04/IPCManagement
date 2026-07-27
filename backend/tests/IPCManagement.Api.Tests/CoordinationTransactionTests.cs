@@ -37,13 +37,13 @@ public class CoordinationTransactionTests
 
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
-        var request = new LockOrderPlanRequestDto
+        var request = new LockOrderPlanRequest
         {
             ServiceDate = "2026-06-15",
             Scope = "FULLDAY",
             Lines =
             [
-                new LockOrderPlanLineDto
+                new LockOrderPlanLineRequest
                 {
                     QuantityPlanLineId = GuidHelper.ToGuidString(fixture.LineId),
                     FinalServings = 140
@@ -89,7 +89,7 @@ public class CoordinationTransactionTests
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
-        var request = new AdjustServingsRequestDto
+        var request = new AdjustServingsRequest
         {
             ServingsQuantity = 120,
             Reason = "Điều chỉnh trực tiếp không qua duyệt"
@@ -128,7 +128,7 @@ public class CoordinationTransactionTests
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
-        var request = new UpdateForecastServingsRequestDto
+        var request = new UpdateForecastServingsRequest
         {
             ServingsQuantity = 135,
             Reason = "Nhập tay số suất trước chốt"
@@ -174,7 +174,7 @@ public class CoordinationTransactionTests
 
         var act = async () => await service.UpdateForecastServingsAsync(
             lineId,
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = -1,
                 Reason = "Nhập sai"
@@ -208,13 +208,13 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
         var lockResult = await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto
+            new LockOrderPlanRequest
             {
                 ServiceDate = "2026-06-15",
                 Scope = "FULLDAY",
                 Lines =
                 [
-                    new LockOrderPlanLineDto
+                    new LockOrderPlanLineRequest
                     {
                         QuantityPlanLineId = lineId,
                         FinalServings = 140
@@ -236,7 +236,7 @@ public class CoordinationTransactionTests
 
         var directForecastEdit = async () => await service.UpdateForecastServingsAsync(
             lineId,
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = 150,
                 Reason = "Không được sửa trực tiếp sau khóa"
@@ -269,14 +269,14 @@ public class CoordinationTransactionTests
             new IpcManagementContext(options),
             Substitute.For<IMaterialDemandService>());
         var act = async () => await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto
+            new LockOrderPlanRequest
             {
                 ServiceDate = "2026-06-15",
                 Scope = "MORNING",
                 ShiftName = "MORNING",
                 Lines =
                 [
-                    new LockOrderPlanLineDto
+                    new LockOrderPlanLineRequest
                     {
                         QuantityPlanLineId = GuidHelper.ToGuidString(fixture.LineId),
                         FinalServings = 140
@@ -306,7 +306,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var result = await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserId);
 
         result.Should().NotBeNull();
@@ -332,7 +332,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var act = async () => await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserId);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -353,13 +353,13 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var result = await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto
+            new LockOrderPlanRequest
             {
                 ServiceDate = "2026-06-15",
                 Scope = "FULLDAY",
                 Lines =
                 [
-                    new LockOrderPlanLineDto
+                    new LockOrderPlanLineRequest
                     {
                         QuantityPlanLineId = GuidHelper.ToGuidString(morning.LineId),
                         FinalServings = 140
@@ -390,16 +390,16 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         (await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             null)).Should().BeNull();
 
         var invalidShift = async () => await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "MORNING", ShiftName = "INVALID" },
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "MORNING", ShiftName = "INVALID" },
             Guid.NewGuid().ToString());
         await invalidShift.Should().ThrowAsync<ArgumentException>();
 
         (await service.LockOrderPlanAsync(
-            new LockOrderPlanRequestDto { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
+            new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             Guid.NewGuid().ToString())).Should().BeNull();
     }
 
@@ -418,7 +418,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
         var first = await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -430,7 +430,7 @@ public class CoordinationTransactionTests
         first.Should().NotBeNull();
 
         var duplicate = async () => await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -466,7 +466,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
 
         var result = await service.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -506,7 +506,7 @@ public class CoordinationTransactionTests
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -520,7 +520,7 @@ public class CoordinationTransactionTests
 
         var approval = await handler.HandleAsync(
             pending!.ApprovalTargetId,
-            new ApprovalRequestDto
+            new ApprovalRequest
             {
                 Status = ApprovalDecision.Approve,
                 Reason = "Đã kiểm tra"
@@ -564,7 +564,7 @@ public class CoordinationTransactionTests
         var materialDemandService = Substitute.For<IMaterialDemandService>();
         var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
-            new AdjustOrderAfterLockRequestDto
+            new AdjustOrderAfterLockRequest
             {
                 OrderId = lineId,
                 Field = "actualQuantity",
@@ -578,7 +578,7 @@ public class CoordinationTransactionTests
 
         var rejection = await handler.HandleAsync(
             pending!.ApprovalTargetId,
-            new ApprovalRequestDto
+            new ApprovalRequest
             {
                 Status = ApprovalDecision.Reject,
                 Reason = "Không đủ căn cứ"
@@ -619,7 +619,7 @@ public class CoordinationTransactionTests
 
         var result = await service.SignoffOrderAsync(
             planId,
-            new SignoffOrderRequestDto { Note = "Chốt số suất trước khi tạo demand" },
+            new SignoffOrderRequest { Note = "Chốt số suất trước khi tạo demand" },
             fixture.UserId);
 
         result.Should().NotBeNull();
@@ -632,8 +632,8 @@ public class CoordinationTransactionTests
 
         persistedPlan.Status.Should().Be(OrderStatus.Completed);
         audit.BusinessArea.Should().Be("Coordination");
-        audit.EntityName.Should().Be(nameof(Mealquantityplan));
-        audit.FieldName.Should().Be(nameof(Mealquantityplan.Status));
+        audit.EntityName.Should().Be(nameof(MealQuantityPlan));
+        audit.FieldName.Should().Be(nameof(MealQuantityPlan.Status));
         audit.OldValue.Should().Be(OrderStatus.Confirmed);
         audit.NewValue.Should().Be(OrderStatus.Completed);
         audit.ChangedBy.Should().Equal(GuidHelper.ParseGuidString(fixture.UserId)!);
@@ -654,7 +654,7 @@ public class CoordinationTransactionTests
             Substitute.For<IMaterialDemandService>());
 
         var result = await service.SignoffOrderScopeAsync(
-            new CoordinationScopeActionRequestDto
+            new CoordinationScopeActionRequest
             {
                 ServiceDate = "2026-06-15",
                 ShiftName = "MORNING",
@@ -688,7 +688,7 @@ public class CoordinationTransactionTests
             Substitute.For<IMaterialDemandService>());
 
         var result = await service.UnlockOrderPlanScopeAsync(
-            new CoordinationScopeActionRequestDto
+            new CoordinationScopeActionRequest
             {
                 ServiceDate = "2026-06-15",
                 ShiftName = "MORNING",
@@ -721,7 +721,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var result = await service.SignoffOrderScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
         result.Should().NotBeNull();
@@ -745,7 +745,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var act = async () => await service.SignoffOrderScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -767,7 +767,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var result = await service.UnlockOrderPlanScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
         result.Should().NotBeNull();
@@ -791,7 +791,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var act = async () => await service.UnlockOrderPlanScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -813,7 +813,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var signoff = await service.SignoffOrderScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             morning.UserId);
 
         signoff.Should().NotBeNull();
@@ -844,7 +844,7 @@ public class CoordinationTransactionTests
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
 
         var act = async () => await service.SignoffOrderScopeAsync(
-            new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
+            new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             first.UserId);
 
         await act.Should().ThrowAsync<InvalidOperationException>();
@@ -862,13 +862,13 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
-        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         (await service.SignoffOrderScopeAsync(request, null)).Should().BeNull();
         (await service.UnlockOrderPlanScopeAsync(request, null)).Should().BeNull();
         (await service.SignoffOrderScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
         (await service.UnlockOrderPlanScopeAsync(request, Guid.NewGuid().ToString())).Should().BeNull();
-        var fallbackShiftRequest = new CoordinationScopeActionRequestDto
+        var fallbackShiftRequest = new CoordinationScopeActionRequest
         {
             ServiceDate = "2026-06-15",
             Shift = "Ca Sáng"
@@ -876,7 +876,7 @@ public class CoordinationTransactionTests
         (await service.SignoffOrderScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
         (await service.UnlockOrderPlanScopeAsync(fallbackShiftRequest, Guid.NewGuid().ToString())).Should().BeNull();
 
-        var invalidRequest = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "INVALID" };
+        var invalidRequest = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "INVALID" };
         Func<Task> invalidSignoff = async () =>
             await service.SignoffOrderScopeAsync(invalidRequest, Guid.NewGuid().ToString());
         Func<Task> invalidUnlock = async () =>
@@ -897,7 +897,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
         var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
-        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         Func<Task> act = action == "signoff"
             ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
@@ -926,7 +926,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowConcurrencyOnPlanSaveChangesInterceptor());
         var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
-        var request = new CoordinationScopeActionRequestDto { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
+        var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
         Func<Task> act = action == "signoff"
             ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
             : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
@@ -998,7 +998,7 @@ public class CoordinationTransactionTests
             IsActive = true
         };
 
-        var menuItem = new Menuitem
+        var menuItem = new MenuItem
         {
             MenuItemId = menuItemId,
             MenuId = menuId,
@@ -1008,7 +1008,7 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var schedule = new Menuschedule
+        var schedule = new MenuSchedule
         {
             MenuScheduleId = scheduleId,
             CustomerId = customerId,
@@ -1023,7 +1023,7 @@ public class CoordinationTransactionTests
             Menu = menu
         };
 
-        var plan = new Mealquantityplan
+        var plan = new MealQuantityPlan
         {
             QuantityPlanId = planId,
             PlanCode = $"PLAN-{suffix}",
@@ -1035,7 +1035,7 @@ public class CoordinationTransactionTests
                 : null
         };
 
-        var line = new Mealquantityplanline
+        var line = new MealQuantityPlanLine
         {
             QuantityPlanLineId = lineId,
             QuantityPlanId = planId,
@@ -1116,7 +1116,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfAuditlogPending(DbContext? context)
         {
-            var hasPendingAuditLog = context?.ChangeTracker.Entries<Auditlog>()
+            var hasPendingAuditLog = context?.ChangeTracker.Entries<AuditLog>()
                 .Any(entry => entry.State is EntityState.Added) == true;
 
             if (hasPendingAuditLog)
@@ -1147,7 +1147,7 @@ public class CoordinationTransactionTests
 
         private static void ThrowIfMealQuantityPlanPending(DbContext? context)
         {
-            var hasPendingPlanChange = context?.ChangeTracker.Entries<Mealquantityplan>()
+            var hasPendingPlanChange = context?.ChangeTracker.Entries<MealQuantityPlan>()
                 .Any(entry => entry.State is EntityState.Modified) == true;
 
             if (hasPendingPlanChange)
@@ -1164,7 +1164,7 @@ public class CoordinationTransactionTests
             InterceptionResult<int> result,
             CancellationToken cancellationToken = default)
         {
-            if (eventData.Context?.ChangeTracker.Entries<Mealquantityplan>()
+            if (eventData.Context?.ChangeTracker.Entries<MealQuantityPlan>()
                     .Any(entry => entry.State == EntityState.Modified) == true)
             {
                 throw new DbUpdateConcurrencyException("Simulated concurrency conflict");

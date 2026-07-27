@@ -1,6 +1,6 @@
 import { act, render, renderHook, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { KitchenIssueRow } from '@/features/workflow'
+import type { KitchenIssueRow } from '@/api/workflowApi'
 import type { ProductionPlan } from '@/lib/types'
 import type { ChefMaterial } from './chefDashboardTypes'
 import type { ChefShiftScope } from './production/useChefProductionPlan'
@@ -22,11 +22,11 @@ vi.mock('@/app/hooks', () => ({
   }),
 }))
 
-vi.mock('@/features/projects/dishCatalogApi', () => ({
+vi.mock('@/api/dishCatalogApi', () => ({
   useGetDishesCatalogQuery: mocks.getCatalog,
 }))
 
-vi.mock('@/features/workflow', () => ({
+vi.mock('@/api/workflowApi', () => ({
   useConfirmInventoryIssueReceiptMutation: () => [mocks.confirmReceipt, { isLoading: false }],
   useCreateInventoryReturnMutation: () => [mocks.createReturn, { isLoading: false }],
   useCreateSupplementalMaterialRequestMutation: () => [mocks.createSupplemental, { isLoading: false }],

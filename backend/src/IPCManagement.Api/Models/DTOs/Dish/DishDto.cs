@@ -14,7 +14,7 @@ public class DishDto
 }
 
 /// <summary>Request DTO — tạo mới món ăn.</summary>
-public class CreateDishDto
+public class CreateDishRequest
 {
     [Required]
     [MaxLength(50)]
@@ -32,7 +32,7 @@ public class CreateDishDto
 }
 
 /// <summary>Request DTO — cập nhật món ăn.</summary>
-public class UpdateDishDto
+public class UpdateDishRequest
 {
     [MaxLength(200)]
     public string? DishName  { get; set; }
@@ -175,7 +175,7 @@ public class SampleImportDomainStatusDto
 }
 
 /// <summary>Request DTO — thêm một dòng BOM cho món ăn.</summary>
-public class CreateDishBomLineDto
+public class CreateDishBomLineRequest
 {
     [Required]
     public string IngredientId { get; set; } = string.Empty;
@@ -205,7 +205,7 @@ public class CreateDishBomLineDto
 }
 
 /// <summary>Request DTO — cập nhật một dòng BOM của món ăn.</summary>
-public class UpdateDishBomLineDto
+public class UpdateDishBomLineRequest
 {
     public string? IngredientId { get; set; }
 

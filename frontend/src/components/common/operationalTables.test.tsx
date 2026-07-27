@@ -8,7 +8,7 @@ import { DocumentRail } from './DocumentRail';
 import { RoleInbox } from './RoleInbox';
 import { StockMovementTable } from './StockMovementTable';
 import { ToastProvider } from './ToastProvider';
-import type { ApprovalRecord, DemandLine, RoleInboxItem, StockMovement, WorkflowDocument } from '@/features/workflow';
+import type { ApprovalRecord, DemandLine, RoleInboxItem, StockMovement, WorkflowDocument } from '@/types/workflow';
 
 const roleInboxItems: RoleInboxItem[] = Array.from({ length: 5 }, (_, index) => ({
   id: `task-${index + 1}`,

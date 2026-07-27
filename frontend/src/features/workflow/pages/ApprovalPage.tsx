@@ -17,21 +17,15 @@ import {
   useToast,
   ViewSwitcher,
 } from '@/components/common';
-import { ROUTES } from '@/routes/routeConfig';
-import {
-  useExecuteApprovalDecisionMutation,
-  useGetApprovalRecordsQuery,
-  useGetWorkflowDocumentsQuery,
-  useGetPurchaseRequestsPageQuery,
-  useGetApprovalHistoryQuery,
-} from '@/features/workflow';
-import type { ApprovalRecord } from '@/features/workflow';
+import { ROUTES } from '@/lib/routeConfig';
+import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetWorkflowDocumentsQuery, useGetPurchaseRequestsPageQuery, useGetApprovalHistoryQuery } from '@/api/workflowApi';
+import type { ApprovalRecord } from '@/types/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { formatWorkflowStatus } from '../workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
-import { resolveApprovalAvailability } from '../actionEligibility';
+import { resolveApprovalAvailability } from '@/lib/actionEligibility';
 
 export default function ApprovalPage() {
   const { toast } = useToast();

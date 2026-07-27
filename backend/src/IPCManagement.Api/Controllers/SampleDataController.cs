@@ -33,8 +33,8 @@ public class SampleDataController : ControllerBase
     [HttpPost("import")]
     [ProducesResponseType(typeof(ApiResponse<SampleDataImportResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> Import(
-        [FromBody] SampleDataImportRequestDto request,
+    public async Task<IActionResult> ImportAsync(
+        [FromBody] SampleDataImportRequest request,
         CancellationToken cancellationToken)
     {
         if (!_environment.IsDevelopment())
@@ -56,8 +56,8 @@ public class SampleDataController : ControllerBase
     [HttpPost("purchase-history/preview")]
     [ProducesResponseType(typeof(ApiResponse<PurchaseHistoryPreviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> PreviewPurchaseHistory(
-        [FromBody] PurchaseHistoryPreviewRequestDto request,
+    public async Task<IActionResult> PreviewPurchaseHistoryAsync(
+        [FromBody] PurchaseHistoryPreviewRequest request,
         CancellationToken cancellationToken)
     {
         _ = request;
@@ -84,8 +84,8 @@ public class SampleDataController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> ApplyPurchaseHistory(
-        [FromBody] PurchaseHistoryApplyRequestDto request,
+    public async Task<IActionResult> ApplyPurchaseHistoryAsync(
+        [FromBody] PurchaseHistoryApplyRequest request,
         CancellationToken cancellationToken)
     {
         if (!_environment.IsDevelopment())

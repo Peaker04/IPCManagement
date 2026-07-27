@@ -22,14 +22,14 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<ApiResponse<PagedResponseDto<StocktakeDto>>>> GetPaged([FromQuery] StocktakeFilterRequestDto request)
+    public async Task<ActionResult<ApiResponse<PagedResponseDto<StocktakeDto>>>> GetPagedAsync([FromQuery] StocktakeFilterRequestDto request)
     {
         var result = await _stocktakeService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<StocktakeDto>>.SuccessResult(result));
     }
 
     [HttpGet("{id}")]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> GetById(string id)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> GetByIdAsync(string id)
     {
         var result = await _stocktakeService.GetByIdAsync(id);
         if (result == null) return NotFound(ApiResponse<StocktakeDto>.FailResult("Không tìm thấy phiên kiểm kê."));
@@ -37,7 +37,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> Create([FromBody] CreateStocktakeDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> CreateAsync([FromBody] CreateStocktakeRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.CreateAsync(dto, userId);
@@ -45,7 +45,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPut("{id}/actual-qty")]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> UpdateActualQty(string id, [FromBody] UpdateStocktakeLinesDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> UpdateActualQtyAsync(string id, [FromBody] UpdateStocktakeLinesRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.UpdateActualQtyAsync(id, dto, userId);
@@ -53,7 +53,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPost("{id}/submit")]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> Submit(string id)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> SubmitAsync(string id)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.SubmitForApprovalAsync(id, userId);
@@ -62,7 +62,7 @@ public class StocktakesController : ControllerBase
 
     [HttpPost("{id}/approve")]
     [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> Approve(string id)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> ApproveAsync(string id)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.ApproveAsync(id, userId);
@@ -71,7 +71,7 @@ public class StocktakesController : ControllerBase
 
     [HttpPost("{id}/reject")]
     [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> Reject(string id, [FromBody] RejectDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> RejectAsync(string id, [FromBody] RejectRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.RejectAsync(id, userId, dto.Reason);
@@ -79,7 +79,7 @@ public class StocktakesController : ControllerBase
     }
 }
 
-public class RejectDto
+public class RejectRequest
 {
     public string Reason { get; set; } = string.Empty;
 }

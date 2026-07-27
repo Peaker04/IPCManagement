@@ -27,7 +27,7 @@ public class PurchaseOrdersController : ControllerBase
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseOrderDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetList([FromQuery] string? status, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetListAsync([FromQuery] string? status, CancellationToken cancellationToken)
     {
         var orders = await _purchaseOrderService.GetListAsync(status, cancellationToken);
         return Ok(ApiResponse<IReadOnlyList<PurchaseOrderDto>>.SuccessResult(orders));
@@ -36,7 +36,7 @@ public class PurchaseOrdersController : ControllerBase
     [HttpGet("page")]
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderPageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPage([FromQuery] PurchaseOrderPageQueryDto query, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPageAsync([FromQuery] PurchaseOrderPageQueryDto query, CancellationToken cancellationToken)
     {
         var page = await _purchaseOrderService.GetPageAsync(query, cancellationToken);
         return Ok(ApiResponse<PurchaseOrderPageDto>.SuccessResult(page));
@@ -47,7 +47,7 @@ public class PurchaseOrdersController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(string id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByIdAsync(string id, CancellationToken cancellationToken)
     {
         var order = await _purchaseOrderService.GetByIdAsync(id, cancellationToken);
         if (order is null)
@@ -64,7 +64,7 @@ public class PurchaseOrdersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseOrderDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CreateFromRequest(string purchaseRequestId, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateFromRequestAsync(string purchaseRequestId, CancellationToken cancellationToken)
     {
         try
         {
@@ -88,7 +88,7 @@ public class PurchaseOrdersController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PurchaseOrderDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Cancel(string id, CancellationToken cancellationToken)
+    public async Task<IActionResult> CancelAsync(string id, CancellationToken cancellationToken)
     {
         try
         {

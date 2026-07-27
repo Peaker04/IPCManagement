@@ -57,7 +57,7 @@ public class InventoryIssueService : IInventoryIssueService
         return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
     }
 
-    public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueDto dto, string? userId)
+    public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueRequest dto, string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
@@ -81,7 +81,7 @@ public class InventoryIssueService : IInventoryIssueService
         {
             await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
 
-            var issue = new Inventoryissue
+            var issue = new InventoryIssue
             {
                 IssueId = GuidHelper.NewId(),
                 IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
@@ -93,7 +93,7 @@ public class InventoryIssueService : IInventoryIssueService
                 CreatedAt = DateTime.UtcNow
             };
 
-            issue.Inventoryissuelines = issueLines.Select(line => new Inventoryissueline
+            issue.Inventoryissuelines = issueLines.Select(line => new InventoryIssueLine
             {
                 IssueLineId = GuidHelper.NewId(),
                 IssueId = issue.IssueId,
@@ -148,7 +148,7 @@ public class InventoryIssueService : IInventoryIssueService
 
     public async Task<InventoryIssueDto?> ConfirmReceiptAsync(
         string id,
-        ConfirmInventoryIssueReceiptDto dto,
+        ConfirmInventoryIssueReceiptRequest dto,
         string? userId)
     {
         if (_context is null)
@@ -198,13 +198,13 @@ public class InventoryIssueService : IInventoryIssueService
             issue.ReceivedBy = userIdBytes;
             issue.ReceivedAt = confirmedAt;
 
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = confirmedAt,
                 ChangedBy = userIdBytes,
                 BusinessArea = "KitchenReceipt",
-                EntityName = nameof(Inventoryissue),
+                EntityName = nameof(InventoryIssue),
                 EntityId = issue.IssueId,
                 FieldName = "KitchenReceived",
                 OldValue = null,
@@ -215,13 +215,13 @@ public class InventoryIssueService : IInventoryIssueService
             if (dto.HasDiscrepancy)
             {
                 var note = dto.DiscrepancyNote!.Trim();
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = confirmedAt,
                     ChangedBy = userIdBytes,
                     BusinessArea = "KitchenReceipt",
-                    EntityName = nameof(Inventoryissue),
+                    EntityName = nameof(InventoryIssue),
                     EntityId = issue.IssueId,
                     FieldName = "KitchenReceiptDiscrepancy",
                     OldValue = "expected=issued_qty",
@@ -232,7 +232,7 @@ public class InventoryIssueService : IInventoryIssueService
 
             var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
             var supplementalLinks = await _context.Auditlogs
-                .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
                     item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
                     item.NewValue == issueIdText)
                 .ToListAsync();
@@ -250,7 +250,7 @@ public class InventoryIssueService : IInventoryIssueService
                         item.RefId == supplementalRequest.RequestId)
                     .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
                 var linkedIssueIds = await _context.Auditlogs
-                    .Where(item => item.EntityName == nameof(Supplementalmaterialrequest) &&
+                    .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
                         item.EntityId == supplementalRequest.RequestId &&
                         item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
                     .Select(item => item.NewValue)
@@ -281,15 +281,15 @@ public class InventoryIssueService : IInventoryIssueService
                 {
                     var oldStatus = supplementalRequest.Status;
                     supplementalRequest.Status = "FULFILLED";
-                    _context.Auditlogs.Add(new Auditlog
+                    _context.Auditlogs.Add(new AuditLog
                     {
                         AuditId = GuidHelper.NewId(),
                         ChangedAt = confirmedAt,
                         ChangedBy = userIdBytes,
                         BusinessArea = "SupplementalMaterial",
-                        EntityName = nameof(Supplementalmaterialrequest),
+                        EntityName = nameof(SupplementalMaterialRequest),
                         EntityId = supplementalRequest.RequestId,
-                        FieldName = nameof(Supplementalmaterialrequest.Status),
+                        FieldName = nameof(SupplementalMaterialRequest.Status),
                         OldValue = oldStatus,
                         NewValue = supplementalRequest.Status,
                         Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
@@ -311,7 +311,7 @@ public class InventoryIssueService : IInventoryIssueService
     private async Task EnsureStockAvailableAsync(
         byte[] warehouseId,
         DateOnly issueDate,
-        Materialrequest materialRequest,
+        MaterialRequest materialRequest,
         IReadOnlyList<ResolvedIssueLine> issueLines,
         byte[] actorId)
     {
@@ -387,13 +387,13 @@ public class InventoryIssueService : IInventoryIssueService
         var changedAt = DateTime.UtcNow;
         foreach (var line in shortage.Lines)
         {
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
                 ChangedBy = actorId,
                 BusinessArea = "StockException",
-                EntityName = nameof(Materialrequest),
+                EntityName = nameof(MaterialRequest),
                 EntityId = materialRequestId,
                 FieldName = "StockShortage",
                 OldValue = $"available={line.AvailableQty}",
@@ -406,9 +406,9 @@ public class InventoryIssueService : IInventoryIssueService
     }
 
     private static IReadOnlyList<ResolvedIssueLine> ResolveIssueLines(
-        CreateInventoryIssueDto dto,
-        Materialrequest materialRequest,
-        IReadOnlyList<Inventoryissueline> issuedLines)
+        CreateInventoryIssueRequest dto,
+        MaterialRequest materialRequest,
+        IReadOnlyList<InventoryIssueLine> issuedLines)
     {
         var demandByItem = materialRequest.Materialrequestlines
             .GroupBy(line => BuildKey(line.IngredientId, line.UnitId))
@@ -463,7 +463,7 @@ public class InventoryIssueService : IInventoryIssueService
     }
 
     private static List<ResolvedIssueLine> BuildLinesFromRequest(
-        IReadOnlyList<CreateInventoryIssueLineDto> inputLines,
+        IReadOnlyList<CreateInventoryIssueLineRequest> inputLines,
         IReadOnlyDictionary<string, DemandLineSummary> demandByItem,
         IReadOnlyDictionary<string, decimal> alreadyIssuedByItem)
     {
@@ -524,8 +524,8 @@ public class InventoryIssueService : IInventoryIssueService
     }
 
     private void UpdateMaterialRequestStatusIfCompleted(
-        Materialrequest materialRequest,
-        IReadOnlyList<Inventoryissueline> previouslyIssuedLines,
+        MaterialRequest materialRequest,
+        IReadOnlyList<InventoryIssueLine> previouslyIssuedLines,
         IReadOnlyList<ResolvedIssueLine> currentIssueLines,
         byte[] userIdBytes)
     {
@@ -568,15 +568,15 @@ public class InventoryIssueService : IInventoryIssueService
             if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
             {
                 materialRequest.Status = newStatus;
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = DateTime.UtcNow,
                     ChangedBy = userIdBytes,
                     BusinessArea = "InventoryIssue",
-                    EntityName = nameof(Materialrequest),
+                    EntityName = nameof(MaterialRequest),
                     EntityId = materialRequest.RequestId,
-                    FieldName = nameof(Materialrequest.Status),
+                    FieldName = nameof(MaterialRequest.Status),
                     OldValue = oldStatus,
                     NewValue = newStatus,
                     Reason = "Đã xuất đủ nguyên liệu, tự động chuyển trạng thái Nhu cầu thành EXPORTED."
@@ -591,7 +591,7 @@ public class InventoryIssueService : IInventoryIssueService
     private static string BuildKey(byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToHexString(ingredientId)}:{Convert.ToHexString(unitId)}";
 
-    private static decimal CalculateAvailableQuantity(Currentstock? stock, Unit? targetUnit)
+    private static decimal CalculateAvailableQuantity(CurrentStock? stock, Unit? targetUnit)
     {
         if (stock is null)
         {

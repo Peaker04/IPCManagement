@@ -4,9 +4,9 @@ import { useAppDispatch, useAppSelector } from '../../app/hooks';
 import { ROLE_LABELS, selectCurrentUser } from '../../features/auth';
 import { store } from '../../app/store';
 import { logoutSession } from '../../features/auth/logoutSession';
-import { ROUTES } from '../../routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import { preloadRoute, preloadRouteData } from '../../routes/routeLoaders';
-import { getWorkflowContextForPath, toneFromStatus } from '../../features/workflow/workflowConfig';
+import { getWorkflowContextForPath, toneFromStatus } from '@/lib/workflowConfig';
 import { uiCopy } from '../../lib/uiCopy';
 import {
   ChefHat,

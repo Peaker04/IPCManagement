@@ -23,7 +23,7 @@ public partial class Stocktake
 
     public DateTime? ApprovedAt { get; set; }
 
-    public virtual ICollection<Stocktakeline> Stocktakelines { get; set; } = new List<Stocktakeline>();
+    public virtual ICollection<StocktakeLine> Stocktakelines { get; set; } = new List<StocktakeLine>();
 
     public virtual Warehouse Warehouse { get; set; } = null!;
 

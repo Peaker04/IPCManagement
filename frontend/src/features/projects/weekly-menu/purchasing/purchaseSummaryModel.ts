@@ -1,4 +1,4 @@
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import { calculateTotalMaterialCost } from '../model/scope'
 import type { MaterialSummary, PurchaseSummaryMaterialEntry } from '../model/types'
 

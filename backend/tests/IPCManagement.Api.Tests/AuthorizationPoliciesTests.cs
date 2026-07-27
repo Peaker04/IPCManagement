@@ -30,16 +30,16 @@ public class AuthorizationPoliciesTests
     [Fact]
     public void ControllerPolicies_Should_SeparateOperationalReadsFromWrites()
     {
-        typeof(DishesController).GetMethod(nameof(DishesController.GetCatalog))!
+        typeof(DishesController).GetMethod(nameof(DishesController.GetCatalogAsync))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.CatalogReadAccess);
-        typeof(DishesController).GetMethod(nameof(DishesController.Create))!
+        typeof(DishesController).GetMethod(nameof(DishesController.CreateAsync))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.CatalogAccess);
-        typeof(PurchaseOrdersController).GetMethod(nameof(PurchaseOrdersController.GetPage))!
+        typeof(PurchaseOrdersController).GetMethod(nameof(PurchaseOrdersController.GetPageAsync))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.PurchaseOrderReadAccess);
-        typeof(PurchaseOrdersController).GetMethod(nameof(PurchaseOrdersController.CreateFromRequest))!
+        typeof(PurchaseOrdersController).GetMethod(nameof(PurchaseOrdersController.CreateFromRequestAsync))!
             .GetCustomAttributes(typeof(AuthorizeAttribute), true).Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.PurchaseAccess);
         AuthorizationPolicies.PurchaseOrderReadRoles.Should().Contain("WarehouseStaff");

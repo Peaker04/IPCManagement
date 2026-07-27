@@ -24,7 +24,7 @@ public class AdminEmployeesController : ControllerBase
 
     [HttpGet("roles")]
     [ProducesResponseType(typeof(ApiResponse<List<AdminRoleDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRoles()
+    public async Task<IActionResult> GetRolesAsync()
     {
         var roles = await _employeeService.GetRolesAsync();
         return Ok(ApiResponse<List<AdminRoleDto>>.SuccessResult(roles));
@@ -32,7 +32,7 @@ public class AdminEmployeesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<EmployeeDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _employeeService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<EmployeeDto>>.SuccessResult(result));
@@ -41,7 +41,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _employeeService.GetByIdAsync(id);
         if (result is null)
@@ -52,11 +52,11 @@ public class AdminEmployeesController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] CreateEmployeeDto request)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateEmployeeRequest request)
     {
         var created = await _employeeService.CreateAsync(request);
         return CreatedAtAction(
-            nameof(GetById),
+            nameof(GetByIdAsync),
             new { id = created.UserId },
             ApiResponse<EmployeeDto>.SuccessResult(created, "Tạo tài khoản nhân viên thành công."));
     }
@@ -64,7 +64,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateEmployeeDto request, [FromServices] ICurrentUserService currentUserService)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateEmployeeRequest request, [FromServices] ICurrentUserService currentUserService)
     {
         var adminId = currentUserService.GetUserId(User);
         var updated = await _employeeService.UpdateAsync(id, request, adminId);
@@ -77,7 +77,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpPatch("{id}/status")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateEmployeeStatusDto request, [FromServices] ICurrentUserService currentUserService)
+    public async Task<IActionResult> UpdateStatusAsync(string id, [FromBody] UpdateEmployeeStatusRequest request, [FromServices] ICurrentUserService currentUserService)
     {
         var adminId = currentUserService.GetUserId(User);
         var updated = await _employeeService.UpdateStatusAsync(id, request, adminId);
@@ -91,7 +91,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpPost("seed")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyDictionary<string, string>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> SeedSampleUsers([FromServices] IHostEnvironment environment)
+    public async Task<IActionResult> SeedSampleUsersAsync([FromServices] IHostEnvironment environment)
     {
         if (!environment.IsDevelopment())
             return NotFound(ApiResponse.FailResult("Endpoint tạo tài khoản mẫu chỉ khả dụng ở môi trường Development."));

@@ -87,7 +87,7 @@ public class StocktakeService : IStocktakeService
         return entity == null ? null : MapStocktake(entity, true);
     }
 
-    public async Task<StocktakeDto> CreateAsync(CreateStocktakeDto dto, string userId)
+    public async Task<StocktakeDto> CreateAsync(CreateStocktakeRequest dto, string userId)
     {
         if (_context == null) throw new InvalidOperationException("DbContext is null.");
 
@@ -137,7 +137,7 @@ public class StocktakeService : IStocktakeService
                 {
                     var stock = currentStocks.FirstOrDefault(s => s.IngredientId.SequenceEqual(ingredientId));
 
-                    stocktake.Stocktakelines.Add(new Stocktakeline
+                    stocktake.Stocktakelines.Add(new StocktakeLine
                     {
                         LineId = GuidHelper.NewId(),
                         StocktakeId = stocktake.StocktakeId,
@@ -152,7 +152,7 @@ public class StocktakeService : IStocktakeService
 
                 _stocktakeRepo.Add(stocktake);
 
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = stocktake.CreatedAt,
@@ -206,7 +206,7 @@ public class StocktakeService : IStocktakeService
         return false;
     }
 
-    public async Task<StocktakeDto> UpdateActualQtyAsync(string id, UpdateStocktakeLinesDto dto, string userId)
+    public async Task<StocktakeDto> UpdateActualQtyAsync(string id, UpdateStocktakeLinesRequest dto, string userId)
     {
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
@@ -255,7 +255,7 @@ public class StocktakeService : IStocktakeService
 
         stocktake.Status = "REVIEWING";
         
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
@@ -335,7 +335,7 @@ public class StocktakeService : IStocktakeService
                     }
                 }
 
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = now,
@@ -386,7 +386,7 @@ public class StocktakeService : IStocktakeService
             stocktake.Notes = string.IsNullOrWhiteSpace(stocktake.Notes) ? reason : $"{stocktake.Notes}\nTừ chối: {reason}";
         }
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = now,

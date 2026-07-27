@@ -1,4 +1,4 @@
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
 import type { BomPriceTier } from '../../weeklyMenuPlanning'
 

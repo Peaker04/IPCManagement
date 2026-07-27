@@ -88,7 +88,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         return user is null ? null : MapEmployee(user);
     }
 
-    public async Task<EmployeeDto> CreateAsync(CreateEmployeeDto request)
+    public async Task<EmployeeDto> CreateAsync(CreateEmployeeRequest request)
     {
         // ResolveRoleIdAsync gọi EnsureDefaultRolesAsync và hàm đó tự SaveChangesAsync. Trước đây đây là
         // hai lần commit rời rạc: nếu insert user hỏng (trùng username, lỗi kết nối) thì 7 role mặc định
@@ -132,7 +132,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         return MapEmployee(created);
     }
 
-    public async Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request, string? changedByUserId)
+    public async Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeRequest request, string? changedByUserId)
     {
         var userId = GuidHelper.ParseGuidString(id);
         if (userId is null)
@@ -169,7 +169,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
     private async Task<byte[]?> ApplyEmployeeUpdateAsync(
         byte[] userId,
-        UpdateEmployeeDto request,
+        UpdateEmployeeRequest request,
         string? changedByUserId)
     {
         var user = await _context.Users.FirstOrDefaultAsync(item => item.UserId == userId);
@@ -186,12 +186,12 @@ public class AdminEmployeeService : IAdminEmployeeService
         }
 
         // Audit Log list to insert
-        var audits = new List<Auditlog>();
+        var audits = new List<AuditLog>();
         var changedAt = DateTime.UtcNow;
 
         if (user.FullName != request.FullName.Trim())
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -209,7 +209,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if (user.Username != request.Username.Trim())
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -227,7 +227,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if (!user.RoleId.SequenceEqual(roleId))
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -245,7 +245,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         if ((user.IsActive ?? false) != request.IsActive)
         {
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -267,7 +267,7 @@ public class AdminEmployeeService : IAdminEmployeeService
             var newPasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
             user.PasswordHash = newPasswordHash;
 
-            audits.Add(new Auditlog
+            audits.Add(new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,
@@ -292,7 +292,7 @@ public class AdminEmployeeService : IAdminEmployeeService
         return user.UserId;
     }
 
-    public async Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request, string? changedByUserId)
+    public async Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusRequest request, string? changedByUserId)
     {
         var userId = GuidHelper.ParseGuidString(id);
         if (userId is null)
@@ -311,7 +311,7 @@ public class AdminEmployeeService : IAdminEmployeeService
             }
 
             var changedAt = DateTime.UtcNow;
-            var audit = new Auditlog
+            var audit = new AuditLog
             {
                 AuditId = GuidHelper.NewId(),
                 ChangedAt = changedAt,

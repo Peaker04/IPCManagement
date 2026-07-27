@@ -64,7 +64,7 @@ public class WorkflowReportPaginationTests
         context.Warehouses.Add(warehouse);
         context.Units.Add(unit);
         context.Ingredients.AddRange(ingredients);
-        context.Currentstocks.AddRange(ingredientIds.Select((ingredientId, index) => new Currentstock
+        context.Currentstocks.AddRange(ingredientIds.Select((ingredientId, index) => new CurrentStock
         {
             WarehouseId = warehouseId,
             IngredientId = ingredientId,

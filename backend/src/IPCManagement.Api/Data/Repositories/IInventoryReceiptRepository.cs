@@ -2,8 +2,8 @@ using IPCManagement.Api.Models.Entities;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public interface IInventoryReceiptRepository : IGenericRepository<Inventoryreceipt>
+public interface IInventoryReceiptRepository : IGenericRepository<InventoryReceipt>
 {
-    Task<(IEnumerable<Inventoryreceipt> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
-    Task<Inventoryreceipt?> GetByIdWithLinesAsync(byte[] id);
+    Task<(IEnumerable<InventoryReceipt> Items, int TotalCount)> GetPagedAsync(int pageNumber, int pageSize);
+    Task<InventoryReceipt?> GetByIdWithLinesAsync(byte[] id);
 }

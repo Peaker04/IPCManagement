@@ -37,7 +37,7 @@ public class PortionRuleDto
     public string RuleSource { get; set; } = string.Empty;
 }
 
-public class CreatePortionRuleDto
+public class CreatePortionRuleRequest
 {
     public string CustomerId { get; set; } = string.Empty;
     public string? DishId { get; set; }
@@ -57,7 +57,7 @@ public class CreatePortionRuleDto
     public string? Reason { get; set; }
 }
 
-public class UpdatePortionRuleDto
+public class UpdatePortionRuleRequest
 {
     public string? DishId { get; set; }
     public string? EffectiveFrom { get; set; }
@@ -76,7 +76,7 @@ public class UpdatePortionRuleDto
     public string? Reason { get; set; }
 }
 
-public class ResolvePortionRuleDto
+public class ResolvePortionRuleRequest
 {
     public string CustomerId { get; set; } = string.Empty;
     public string ServiceDate { get; set; } = string.Empty;

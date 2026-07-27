@@ -8,8 +8,8 @@ public interface IAdminEmployeeService
     Task<List<AdminRoleDto>> GetRolesAsync();
     Task<PagedResponseDto<EmployeeDto>> GetPagedAsync(PagedRequestDto request);
     Task<EmployeeDto?> GetByIdAsync(string id);
-    Task<EmployeeDto> CreateAsync(CreateEmployeeDto request);
-    Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeDto request, string? changedByUserId);
-    Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusDto request, string? changedByUserId);
+    Task<EmployeeDto> CreateAsync(CreateEmployeeRequest request);
+    Task<EmployeeDto?> UpdateAsync(string id, UpdateEmployeeRequest request, string? changedByUserId);
+    Task<EmployeeDto?> UpdateStatusAsync(string id, UpdateEmployeeStatusRequest request, string? changedByUserId);
     Task<IReadOnlyDictionary<string, string>> SeedSampleUsersAsync();
 }

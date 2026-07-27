@@ -39,7 +39,7 @@ public class InventoryReceiptLineDto
 
 // ─── Create Inventory Receipt ────────────────────────────────────────────
 
-public class CreateInventoryReceiptDto
+public class CreateInventoryReceiptRequest
 {
     [Required]
     public DateOnly ReceiptDate       { get; set; }
@@ -53,10 +53,10 @@ public class CreateInventoryReceiptDto
     public string?  PurchaseRequestId { get; set; }
 
     [Required, MinLength(1)]
-    public List<CreateInventoryReceiptLineDto> Lines { get; set; } = new();
+    public List<CreateInventoryReceiptLineRequest> Lines { get; set; } = new();
 }
 
-public class CreateInventoryReceiptLineDto
+public class CreateInventoryReceiptLineRequest
 {
     [Required]
     public string   IngredientId    { get; set; } = string.Empty;
@@ -81,7 +81,7 @@ public class InventoryReceiptCreatedDto
     public string ReceiptCode { get; set; } = string.Empty;
 }
 
-public class CreateInventoryReceiptFromPurchaseDto
+public class CreateInventoryReceiptFromPurchaseRequest
 {
     [Required]
     public string PurchaseRequestId { get; set; } = string.Empty;
@@ -96,10 +96,10 @@ public class CreateInventoryReceiptFromPurchaseDto
     public string WarehouseId { get; set; } = string.Empty;
 
     [Required, MinLength(1)]
-    public List<CreateInventoryReceiptFromPurchaseLineDto> Lines { get; set; } = new();
+    public List<CreateInventoryReceiptFromPurchaseLineRequest> Lines { get; set; } = new();
 }
 
-public class CreateInventoryReceiptFromPurchaseLineDto
+public class CreateInventoryReceiptFromPurchaseLineRequest
 {
     [Required]
     public string PurchaseRequestLineId { get; set; } = string.Empty;
@@ -158,7 +158,7 @@ public class InventoryIssueLineDto
 
 // ─── Create Inventory Issue ──────────────────────────────────────────────
 
-public class CreateInventoryIssueDto
+public class CreateInventoryIssueRequest
 {
     [Required]
     public DateOnly IssueDate { get; set; }
@@ -173,10 +173,10 @@ public class CreateInventoryIssueDto
 
     public string? ReceivedBy { get; set; }
 
-    public List<CreateInventoryIssueLineDto> Lines { get; set; } = new();
+    public List<CreateInventoryIssueLineRequest> Lines { get; set; } = new();
 }
 
-public class CreateInventoryIssueLineDto
+public class CreateInventoryIssueLineRequest
 {
     [Required]
     public string IngredientId { get; set; } = string.Empty;
@@ -197,7 +197,7 @@ public class InventoryIssueCreatedDto
     public string IssueCode { get; set; } = string.Empty;
 }
 
-public class ConfirmInventoryIssueReceiptDto
+public class ConfirmInventoryIssueReceiptRequest
 {
     public bool HasDiscrepancy { get; set; }
 
@@ -264,7 +264,7 @@ public class InventoryReturnLineDto
 
 // ─── Create Inventory Return ─────────────────────────────────────────────
 
-public class CreateInventoryReturnDto
+public class CreateInventoryReturnRequest
 {
     [Required]
     public DateOnly ReturnDate { get; set; }
@@ -282,10 +282,10 @@ public class CreateInventoryReturnDto
     public string? Reason { get; set; }
 
     [Required, MinLength(1)]
-    public List<CreateInventoryReturnLineDto> Lines { get; set; } = new();
+    public List<CreateInventoryReturnLineRequest> Lines { get; set; } = new();
 }
 
-public class CreateInventoryReturnLineDto
+public class CreateInventoryReturnLineRequest
 {
     [Required]
     public string IngredientId { get; set; } = string.Empty;
@@ -303,17 +303,17 @@ public class InventoryReturnCreatedDto
     public string ReturnCode { get; set; } = string.Empty;
 }
 
-public class ConfirmInventoryReturnReceiptDto
+public class ConfirmInventoryReturnReceiptRequest
 {
     public bool HasDiscrepancy { get; set; }
 
     [MaxLength(1000)]
     public string? DiscrepancyNote { get; set; }
 
-    public List<ConfirmInventoryReturnLineDto> AdjustedLines { get; set; } = new();
+    public List<ConfirmInventoryReturnLineRequest> AdjustedLines { get; set; } = new();
 }
 
-public class ConfirmInventoryReturnLineDto
+public class ConfirmInventoryReturnLineRequest
 {
     [Required]
     public string ReturnLineId { get; set; } = string.Empty;

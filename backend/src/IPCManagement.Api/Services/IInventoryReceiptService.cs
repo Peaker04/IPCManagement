@@ -7,6 +7,6 @@ public interface IInventoryReceiptService
 {
     Task<PagedResponseDto<InventoryReceiptDto>> GetPagedAsync(PagedRequestDto request);
     Task<InventoryReceiptDto?> GetByIdAsync(string id);
-    Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptDto dto, string? userId);
-    Task<InventoryReceiptCreatedDto?> CreateFromPurchaseRequestAsync(CreateInventoryReceiptFromPurchaseDto dto, string? userId);
+    Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptRequest dto, string? userId);
+    Task<InventoryReceiptCreatedDto?> CreateFromPurchaseRequestAsync(CreateInventoryReceiptFromPurchaseRequest dto, string? userId);
 }

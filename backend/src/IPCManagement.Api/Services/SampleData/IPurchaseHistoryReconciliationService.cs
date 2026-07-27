@@ -7,7 +7,7 @@ public interface IPurchaseHistoryReconciliationService
     Task<PurchaseHistoryPreviewDto> PreviewAsync(CancellationToken cancellationToken = default);
 
     Task<PurchaseHistoryApplyResultDto> ApplyAsync(
-        PurchaseHistoryApplyRequestDto request,
+        PurchaseHistoryApplyRequest request,
         byte[] appliedBy,
         CancellationToken cancellationToken = default);
 }

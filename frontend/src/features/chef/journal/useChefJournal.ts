@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/features/workflow'
+import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
 
 export function useChefJournal(enabled = true) {
   const documentsQuery = useGetWorkflowDocumentsQuery({ limit: 20 }, { skip: !enabled })

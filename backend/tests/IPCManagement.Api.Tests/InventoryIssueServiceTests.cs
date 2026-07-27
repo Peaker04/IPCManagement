@@ -44,7 +44,7 @@ public class InventoryIssueServiceTests
     public void CreateInventoryIssueDtoValidator_Should_Allow_EmptyLines_ForAutoBuildFromDemand()
     {
         var validator = new CreateInventoryIssueDtoValidator();
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = Guid.NewGuid().ToString(),
@@ -68,13 +68,13 @@ public class InventoryIssueServiceTests
         var unitId = Guid.NewGuid().ToString();
         SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 5);
 
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
             WarehouseId = warehouseId,
             MaterialRequestId = materialRequestId,
-            Lines = new List<CreateInventoryIssueLineDto>
+            Lines = new List<CreateInventoryIssueLineRequest>
             {
                 new()
                 {
@@ -94,7 +94,7 @@ public class InventoryIssueServiceTests
         result!.IssueCode.Should().StartWith("ISS-");
 
         // Verify issue is added
-        _issueRepository.Received(1).Add(Arg.Is<Inventoryissue>(i =>
+        _issueRepository.Received(1).Add(Arg.Is<InventoryIssue>(i =>
             i.WarehouseId != null &&
             i.MaterialRequestId != null &&
             i.Inventoryissuelines.Count == 1));
@@ -128,13 +128,13 @@ public class InventoryIssueServiceTests
         var unitId = Guid.NewGuid().ToString();
         SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 10);
 
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
             WarehouseId = warehouseId,
             MaterialRequestId = materialRequestId,
-            Lines = new List<CreateInventoryIssueLineDto>
+            Lines = new List<CreateInventoryIssueLineRequest>
             {
                 new()
                 {
@@ -181,7 +181,7 @@ public class InventoryIssueServiceTests
         SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 12);
         _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>())
             .Returns([
-                new Inventoryissueline
+                new InventoryIssueLine
                 {
                     IngredientId = GuidHelper.ParseGuidString(ingredientId)!,
                     UnitId = GuidHelper.ParseGuidString(unitId)!,
@@ -189,7 +189,7 @@ public class InventoryIssueServiceTests
                 }
             ]);
 
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
@@ -200,7 +200,7 @@ public class InventoryIssueServiceTests
         var result = await _service.CreateAsync(dto, userId);
 
         result.Should().NotBeNull();
-        _issueRepository.Received(1).Add(Arg.Is<Inventoryissue>(issue =>
+        _issueRepository.Received(1).Add(Arg.Is<InventoryIssue>(issue =>
             issue.Inventoryissuelines.Count == 1 &&
             issue.Inventoryissuelines.Single().RequestedQty == 7 &&
             issue.Inventoryissuelines.Single().IssuedQty == 7));
@@ -228,7 +228,7 @@ public class InventoryIssueServiceTests
         SeedIssuableMaterialRequest(materialRequestId, ingredientId, unitId, requiredQty: 12);
         _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>())
             .Returns([
-                new Inventoryissueline
+                new InventoryIssueLine
                 {
                     IngredientId = GuidHelper.ParseGuidString(ingredientId)!,
                     UnitId = GuidHelper.ParseGuidString(unitId)!,
@@ -236,7 +236,7 @@ public class InventoryIssueServiceTests
                 }
             ]);
 
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
@@ -244,7 +244,7 @@ public class InventoryIssueServiceTests
             MaterialRequestId = materialRequestId,
             Lines =
             [
-                new CreateInventoryIssueLineDto
+                new CreateInventoryIssueLineRequest
                 {
                     IngredientId = ingredientId,
                     RequestedQty = 3,
@@ -258,7 +258,7 @@ public class InventoryIssueServiceTests
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*vượt nhu cầu còn lại*");
-        _issueRepository.DidNotReceive().Add(Arg.Any<Inventoryissue>());
+        _issueRepository.DidNotReceive().Add(Arg.Any<InventoryIssue>());
         await _stockLedgerService.DidNotReceive().RemoveStockWithCheckAsync(
             Arg.Any<byte[]>(),
             Arg.Any<byte[]>(),
@@ -277,7 +277,7 @@ public class InventoryIssueServiceTests
         var ingredientBytes = GuidHelper.ParseGuidString(ingredientId)!;
         var unitBytes = GuidHelper.ParseGuidString(unitId)!;
         _issueRepository.GetMaterialRequestForIssueAsync(Arg.Any<byte[]>())
-            .Returns(new Materialrequest
+            .Returns(new MaterialRequest
             {
                 RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
                 RequestCode = "MR-TEST",
@@ -288,7 +288,7 @@ public class InventoryIssueServiceTests
                 PlanId = GuidHelper.NewId(),
                 Materialrequestlines =
                 [
-                    new Materialrequestline
+                    new MaterialRequestLine
                     {
                         RequestLineId = GuidHelper.NewId(),
                         RequestId = GuidHelper.ParseGuidString(materialRequestId)!,
@@ -522,7 +522,7 @@ public class InventoryIssueServiceTests
         var warehouseId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();
 
-        var pr = new Materialrequest
+        var pr = new MaterialRequest
         {
             RequestId = materialRequestId,
             RequestCode = "MR-123",
@@ -532,7 +532,7 @@ public class InventoryIssueServiceTests
             CreatedBy = userId,
             PlanId = GuidHelper.NewId()
         };
-        pr.Materialrequestlines.Add(new Materialrequestline
+        pr.Materialrequestlines.Add(new MaterialRequestLine
         {
             RequestLineId = GuidHelper.NewId(),
             RequestId = materialRequestId,
@@ -546,19 +546,19 @@ public class InventoryIssueServiceTests
         context.Units.Add(new Unit { UnitId = unitId, UnitCode = "U-1", UnitName = "Mock Unit" });
         context.Warehouses.Add(new Warehouse { WarehouseId = warehouseId, WarehouseCode = "W-1", WarehouseName = "Mock Warehouse", WarehouseType = "KHO_BEP" });
         context.Materialrequests.Add(pr);
-        context.Currentstocks.Add(new Currentstock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 100 });
+        context.Currentstocks.Add(new CurrentStock { WarehouseId = warehouseId, IngredientId = ingredientId, UnitId = unitId, CurrentQty = 100 });
         await context.SaveChangesAsync();
 
         _issueRepository.GetMaterialRequestForIssueAsync(Arg.Any<byte[]>()).Returns(pr);
-        _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>()).Returns(new List<Inventoryissueline>());
+        _issueRepository.GetIssuedLinesForMaterialRequestAsync(Arg.Any<byte[]>()).Returns(new List<InventoryIssueLine>());
 
-        var dto = new CreateInventoryIssueDto
+        var dto = new CreateInventoryIssueRequest
         {
             IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
             WarehouseId = GuidHelper.ToGuidString(warehouseId),
             MaterialRequestId = GuidHelper.ToGuidString(materialRequestId),
-            Lines = new List<CreateInventoryIssueLineDto>
+            Lines = new List<CreateInventoryIssueLineRequest>
             {
                 new()
                 {
@@ -590,7 +590,7 @@ public class InventoryIssueServiceTests
         var issueId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();
 
-        var issue = new Inventoryissue
+        var issue = new InventoryIssue
         {
             IssueId = issueId,
             IssueCode = "ISS-TEST",
@@ -610,7 +610,7 @@ public class InventoryIssueServiceTests
         var dbIssue = await context.Inventoryissues.FirstAsync();
         issueId = dbIssue.IssueId;
 
-        var dto = new ConfirmInventoryIssueReceiptDto
+        var dto = new ConfirmInventoryIssueReceiptRequest
         {
             HasDiscrepancy = true,
             DiscrepancyNote = "Thiếu nửa cân"
@@ -640,7 +640,7 @@ public class InventoryIssueServiceTests
         var unitId = GuidHelper.NewId();
         context.Users.Add(new User { UserId = userId, Username = "supplemental-user", FullName = "Supplemental User" });
         context.Warehouses.Add(new Warehouse { WarehouseId = warehouseId, WarehouseCode = "W-SUP", WarehouseName = "Supplemental Warehouse", WarehouseType = "KHO_BEP" });
-        context.Inventoryissues.Add(new Inventoryissue
+        context.Inventoryissues.Add(new InventoryIssue
         {
             IssueId = issueId,
             IssueCode = "ISS-SUP-TEST",
@@ -650,7 +650,7 @@ public class InventoryIssueServiceTests
             IssuedBy = userId,
             CreatedAt = DateTime.UtcNow,
         });
-        context.Supplementalmaterialrequests.Add(new Supplementalmaterialrequest
+        context.Supplementalmaterialrequests.Add(new SupplementalMaterialRequest
         {
             RequestId = requestId,
             RequestCode = "SUP-TEST",
@@ -664,7 +664,7 @@ public class InventoryIssueServiceTests
             RequestedBy = userId,
             RequestedAt = DateTime.UtcNow,
         });
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = DateTime.UtcNow,
@@ -681,13 +681,13 @@ public class InventoryIssueServiceTests
             PerformedBy = userId,
             Reason = "Supplemental test",
         });
-        context.Auditlogs.Add(new Auditlog
+        context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = DateTime.UtcNow,
             ChangedBy = userId,
             BusinessArea = "SupplementalMaterial",
-            EntityName = nameof(Supplementalmaterialrequest),
+            EntityName = nameof(SupplementalMaterialRequest),
             EntityId = requestId,
             FieldName = SupplementalMaterialRequestService.FulfillmentIssueAuditField,
             NewValue = GuidHelper.ToGuidString(issueId),
@@ -697,7 +697,7 @@ public class InventoryIssueServiceTests
 
         await service.ConfirmReceiptAsync(
             GuidHelper.ToGuidString(issueId),
-            new ConfirmInventoryIssueReceiptDto(),
+            new ConfirmInventoryIssueReceiptRequest(),
             GuidHelper.ToGuidString(userId));
 
         var supplemental = await context.Supplementalmaterialrequests.SingleAsync();

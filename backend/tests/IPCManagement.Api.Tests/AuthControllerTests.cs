@@ -22,10 +22,10 @@ public class AuthControllerTests
     {
         var controller = CreateController();
         _tokenService.GetRefreshTokenExpiryDays().Returns(30);
-        _authService.LoginAsync(Arg.Any<LoginRequestDto>(), Arg.Any<string>())
+        _authService.LoginAsync(Arg.Any<LoginRequest>(), Arg.Any<string>())
             .Returns(BuildLoginResponse("raw-refresh-token"));
 
-        var result = await controller.Login(new LoginRequestDto { Username = "admin", Password = "admin" });
+        var result = await controller.LoginAsync(new LoginRequest { Username = "admin", Password = "admin" });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;
@@ -40,12 +40,12 @@ public class AuthControllerTests
         var controller = CreateController();
         controller.Request.Headers.Cookie = "refreshToken=old-refresh-token";
         _tokenService.GetRefreshTokenExpiryDays().Returns(30);
-        _authService.RefreshTokenAsync(Arg.Is<RefreshTokenRequestDto>(request =>
+        _authService.RefreshTokenAsync(Arg.Is<RefreshTokenRequest>(request =>
                 request.AccessToken == "expired-access-token" &&
                 request.RefreshToken == "old-refresh-token"))
             .Returns(BuildLoginResponse("new-refresh-token"));
 
-        var result = await controller.Refresh(new RefreshTokenRequestDto { AccessToken = "expired-access-token" });
+        var result = await controller.RefreshAsync(new RefreshTokenRequest { AccessToken = "expired-access-token" });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;

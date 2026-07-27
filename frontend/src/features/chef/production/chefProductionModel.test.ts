@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import type { CatalogDish } from '@/features/projects/dishCatalogApi'
-import type { KitchenIssueRow } from '@/features/workflow'
+import type { CatalogDish } from '@/api/dishCatalogApi'
+import type { KitchenIssueRow } from '@/api/workflowApi'
 import { buildChefProductionPlan, filterKitchenIssues, mapDailyPlanLines } from './chefProductionModel'
 
 const issue = (id: string, shiftName: string, issueDate = '2026-07-19'): KitchenIssueRow => ({

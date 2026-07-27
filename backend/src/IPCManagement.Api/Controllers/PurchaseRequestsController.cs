@@ -28,7 +28,7 @@ public class PurchaseRequestsController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseRequestWorkflowResultDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPurchaseRequests([FromQuery] PurchaseRequestQueryDto query)
+    public async Task<IActionResult> GetPurchaseRequestsAsync([FromQuery] PurchaseRequestQueryDto query)
     {
         var status = query.Status?.Trim();
         DateOnly? dateFrom = null;
@@ -111,7 +111,7 @@ public class PurchaseRequestsController : ControllerBase
 
     [HttpGet("page")]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PurchaseRequestWorkflowResultDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPurchaseRequestsPage([FromQuery] PurchaseRequestQueryDto query)
+    public async Task<IActionResult> GetPurchaseRequestsPageAsync([FromQuery] PurchaseRequestQueryDto query)
     {
         var status = query.Status?.Trim();
         DateOnly? dateFrom = null;
@@ -179,7 +179,7 @@ public class PurchaseRequestsController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetPurchaseRequestById(string id)
+    public async Task<IActionResult> GetPurchaseRequestByIdAsync(string id)
     {
         var guid = GuidHelper.ParseGuidString(id);
         if (guid is null)

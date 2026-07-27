@@ -3,10 +3,10 @@ using IPCManagement.Api.Models.DTOs.Inventory;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public interface IInventoryIssueRepository : IGenericRepository<Inventoryissue>
+public interface IInventoryIssueRepository : IGenericRepository<InventoryIssue>
 {
-    Task<(IEnumerable<Inventoryissue> Items, int TotalCount)> GetPagedAsync(InventoryIssueFilterRequestDto request);
-    Task<Inventoryissue?> GetByIdWithLinesAsync(byte[] id);
-    Task<Materialrequest?> GetMaterialRequestForIssueAsync(byte[] id);
-    Task<IReadOnlyList<Inventoryissueline>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId);
+    Task<(IEnumerable<InventoryIssue> Items, int TotalCount)> GetPagedAsync(InventoryIssueFilterRequestDto request);
+    Task<InventoryIssue?> GetByIdWithLinesAsync(byte[] id);
+    Task<MaterialRequest?> GetMaterialRequestForIssueAsync(byte[] id);
+    Task<IReadOnlyList<InventoryIssueLine>> GetIssuedLinesForMaterialRequestAsync(byte[] materialRequestId);
 }

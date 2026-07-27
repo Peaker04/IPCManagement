@@ -36,8 +36,8 @@ public interface IWorkflowReportService
     Task<CursorPageDto<AuditChangeReportDto>> GetAuditChangePageAsync(WorkflowReportQueryDto query);
     Task<DataQualityReportDto> GetDataQualityAsync(WorkflowReportQueryDto query);
     Task<DataQualityPageDto> GetDataQualityPageAsync(DataQualityPageQueryDto query);
-    Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(DataQualityIssueRemediationRequestDto request, string actorUserId);
-    Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(DataQualityCleanupRequestDto request, string actorUserId);
+    Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(DataQualityIssueRemediationRequest request, string actorUserId);
+    Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(DataQualityCleanupRequest request, string actorUserId);
     Task<IReadOnlyList<OrderExportReportRowDto>> GetOrderExportAsync(WorkflowReportQueryDto query);
     Task<OperationalKpiSummaryDto> GetOperationalKpisAsync(int? criticalDataQualityCount = null);
 }

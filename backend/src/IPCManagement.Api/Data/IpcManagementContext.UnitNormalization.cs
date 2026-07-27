@@ -5,11 +5,11 @@ namespace IPCManagement.Api.Data;
 
 public partial class IpcManagementContext
 {
-    public virtual DbSet<Unitnormalizationreview> Unitnormalizationreviews { get; set; }
+    public virtual DbSet<UnitNormalizationReview> Unitnormalizationreviews { get; set; }
 
     partial void OnModelCreatingPartial(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<Unitnormalizationreview>(entity =>
+        modelBuilder.Entity<UnitNormalizationReview>(entity =>
         {
             entity.HasKey(item => item.ReviewId).HasName("PRIMARY");
             entity.ToTable("unitnormalizationreviews");

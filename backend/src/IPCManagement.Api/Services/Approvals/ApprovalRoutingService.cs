@@ -18,10 +18,10 @@ public class ApprovalRoutingService : IApprovalRoutingService
         _context = context;
     }
 
-    public async Task<Approvalrule?> GetMatchingRuleAsync(string documentType, decimal? amount)
+    public async Task<ApprovalRule?> GetMatchingRuleAsync(string documentType, decimal? amount)
         => MatchRule(await GetActiveRulesAsync(documentType), amount);
 
-    public async Task<IReadOnlyList<Approvalrule>> GetActiveRulesAsync(string documentType)
+    public async Task<IReadOnlyList<ApprovalRule>> GetActiveRulesAsync(string documentType)
     {
         var normalizedType = (documentType ?? string.Empty).Trim().ToLowerInvariant();
 
@@ -35,7 +35,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
     /// Chọn rule khớp nhất từ danh sách đã tải — cho phép caller tải rule một lần
     /// rồi match nhiều chứng từ mà không phát sinh truy vấn theo từng chứng từ.
     /// </summary>
-    public static Approvalrule? MatchRule(IReadOnlyList<Approvalrule>? rules, decimal? amount)
+    public static ApprovalRule? MatchRule(IReadOnlyList<ApprovalRule>? rules, decimal? amount)
     {
         if (rules is null || rules.Count == 0)
         {
@@ -55,7 +55,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
         return rules.FirstOrDefault();
     }
 
-    public async Task<IReadOnlyList<Approvalassignment>> GetAssignmentsForRuleAsync(byte[] ruleId)
+    public async Task<IReadOnlyList<ApprovalAssignment>> GetAssignmentsForRuleAsync(byte[] ruleId)
     {
         return await _context.Approvalassignments
             .AsNoTracking()
@@ -65,7 +65,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
             .ToListAsync();
     }
 
-    public async Task<IReadOnlyList<Approvalrule>> GetAllRulesAsync()
+    public async Task<IReadOnlyList<ApprovalRule>> GetAllRulesAsync()
     {
         return await _context.Approvalrules
             .AsNoTracking()
@@ -75,7 +75,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
             .ToListAsync();
     }
 
-    public async Task<Approvalrule?> GetRuleByIdAsync(byte[] ruleId)
+    public async Task<ApprovalRule?> GetRuleByIdAsync(byte[] ruleId)
     {
         return await _context.Approvalrules
             .AsNoTracking()
@@ -84,7 +84,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
             .FirstOrDefaultAsync(r => r.RuleId.SequenceEqual(ruleId));
     }
 
-    public async Task<Approvalrule> CreateRuleAsync(Approvalrule rule, IEnumerable<Approvalassignment> assignments)
+    public async Task<ApprovalRule> CreateRuleAsync(ApprovalRule rule, IEnumerable<ApprovalAssignment> assignments)
     {
         if (rule.RuleId == null || rule.RuleId.Length == 0)
         {
@@ -106,7 +106,7 @@ public class ApprovalRoutingService : IApprovalRoutingService
         return rule;
     }
 
-    public async Task<Approvalrule?> UpdateRuleAsync(byte[] ruleId, Approvalrule rule, IEnumerable<Approvalassignment> assignments)
+    public async Task<ApprovalRule?> UpdateRuleAsync(byte[] ruleId, ApprovalRule rule, IEnumerable<ApprovalAssignment> assignments)
     {
         var existingRule = await _context.Approvalrules
             .Include(r => r.Approvalassignments)

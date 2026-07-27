@@ -109,7 +109,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CustomerContractDto> CreateCustomerContractAsync(
-        CreateCustomerContractDto request,
+        CreateCustomerContractRequest request,
         string? userId)
     {
         var customerCode = NormalizeCustomerCode(request.CustomerCode);
@@ -147,7 +147,7 @@ public class CoordinationService : ICoordinationService
         AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
             "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
 
-        var contractRequest = new UpdateCustomerContractDto
+        var contractRequest = new UpdateCustomerContractRequest
         {
             EffectiveFrom = request.EffectiveFrom,
             EffectiveTo = request.EffectiveTo,
@@ -165,7 +165,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<CustomerContractDto?> UpdateCustomerContractAsync(
         string customerId,
-        UpdateCustomerContractDto request,
+        UpdateCustomerContractRequest request,
         string? userId)
     {
         var customerIdBytes = GuidHelper.ParseGuidString(customerId);
@@ -227,10 +227,10 @@ public class CoordinationService : ICoordinationService
                 throw new ArgumentException("Ngày kết thúc hiệu lực không được trước ngày bắt đầu.");
             }
 
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.EffectiveFrom),
+            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveFrom),
                 contract.EffectiveFrom.ToString("yyyy-MM-dd"), nextEffectiveFrom.ToString("yyyy-MM-dd"),
                 () => contract.EffectiveFrom = nextEffectiveFrom);
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.EffectiveTo),
+            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveTo),
                 contract.EffectiveTo?.ToString("yyyy-MM-dd"), nextEffectiveTo?.ToString("yyyy-MM-dd"),
                 () => contract.EffectiveTo = nextEffectiveTo);
         }
@@ -238,7 +238,7 @@ public class CoordinationService : ICoordinationService
         if (request.ActiveWeekDays is not null)
         {
             var nextWeekDays = NormalizeWeekDays(request.ActiveWeekDays, schedules);
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.ActiveWeekDays),
+            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ActiveWeekDays),
                 contract.ActiveWeekDays, string.Join(",", nextWeekDays),
                 () => contract.ActiveWeekDays = string.Join(",", nextWeekDays));
         }
@@ -246,7 +246,7 @@ public class CoordinationService : ICoordinationService
         if (request.ShiftNames is not null)
         {
             var nextShifts = NormalizeShiftNames(request.ShiftNames, schedules);
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.ShiftNames),
+            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ShiftNames),
                 contract.ShiftNames, string.Join(",", nextShifts),
                 () => contract.ShiftNames = string.Join(",", nextShifts));
         }
@@ -259,12 +259,12 @@ public class CoordinationService : ICoordinationService
                 throw new ArgumentException("Đơn giá menu mặc định không được âm.");
             }
 
-            UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.DefaultMenuPrice),
+            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultMenuPrice),
                 contract.DefaultMenuPrice.ToString(), nextPrice.ToString(),
                 () => contract.DefaultMenuPrice = nextPrice);
         }
 
-        UpdateContractField(actorId, changedAt, contract, nameof(Customercontract.DefaultBomRatePercent),
+        UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultBomRatePercent),
             contract.DefaultBomRatePercent.ToString(), FixedBomRatePercent.ToString(),
             () => contract.DefaultBomRatePercent = FixedBomRatePercent);
 
@@ -343,7 +343,7 @@ public class CoordinationService : ICoordinationService
             .ToList();
     }
 
-    public async Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleDto request, string? userId)
+    public async Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleRequest request, string? userId)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId)
             ?? throw new ArgumentException("Khách hàng không hợp lệ.");
@@ -353,7 +353,7 @@ public class CoordinationService : ICoordinationService
 
         var dishId = await ResolveOptionalDishIdAsync(request.DishId);
         var changedAt = DateTime.UtcNow;
-        var rule = new Portionrule
+        var rule = new PortionRule
         {
             PortionRuleId = GuidHelper.NewId(),
             CustomerId = customer.CustomerId,
@@ -379,7 +379,7 @@ public class CoordinationService : ICoordinationService
 
         await ValidatePortionRuleAsync(rule, null);
         _context.Portionrules.Add(rule);
-        AddAudit(ResolveActorId(userId), changedAt, "PortionRule", nameof(Portionrule), rule.PortionRuleId,
+        AddAudit(ResolveActorId(userId), changedAt, "PortionRule", nameof(PortionRule), rule.PortionRuleId,
             "RuleCreated", null, BuildPortionRuleAuditValue(rule), rule.Reason);
         await _context.SaveChangesAsync();
 
@@ -394,7 +394,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<PortionRuleDto?> UpdatePortionRuleAsync(
         string portionRuleId,
-        UpdatePortionRuleDto request,
+        UpdatePortionRuleRequest request,
         string? userId)
     {
         var portionRuleIdBytes = GuidHelper.ParseGuidString(portionRuleId);
@@ -486,14 +486,14 @@ public class CoordinationService : ICoordinationService
         rule.UpdatedAt = DateTime.UtcNow;
 
         await ValidatePortionRuleAsync(rule, rule.PortionRuleId);
-        AddAudit(ResolveActorId(userId), rule.UpdatedAt, "PortionRule", nameof(Portionrule), rule.PortionRuleId,
+        AddAudit(ResolveActorId(userId), rule.UpdatedAt, "PortionRule", nameof(PortionRule), rule.PortionRuleId,
             "RuleUpdated", oldValue, BuildPortionRuleAuditValue(rule), rule.Reason);
         await _context.SaveChangesAsync();
 
         return MapPortionRule(rule);
     }
 
-    public async Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleDto request)
+    public async Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId);
         if (customerId is null)
@@ -580,7 +580,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
-        UpdateMenuScheduleRulesDto request,
+        UpdateMenuScheduleRulesRequest request,
         string? userId)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
@@ -605,24 +605,24 @@ public class CoordinationService : ICoordinationService
 
             if (schedule.MenuPrice != nextPrice)
             {
-                AddAudit(actorId, changedAt, "CustomerContract", nameof(Menuschedule), schedule.MenuScheduleId,
-                    nameof(Menuschedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason);
+                AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
+                    nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason);
                 schedule.MenuPrice = nextPrice;
             }
         }
 
         if (schedule.BomRatePercent != FixedBomRatePercent)
         {
-            AddAudit(actorId, changedAt, "PortionRule", nameof(Menuschedule), schedule.MenuScheduleId,
-                nameof(Menuschedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason);
+            AddAudit(actorId, changedAt, "PortionRule", nameof(MenuSchedule), schedule.MenuScheduleId,
+                nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason);
             schedule.BomRatePercent = FixedBomRatePercent;
         }
 
         var status = NormalizeMenuScheduleStatus(request.Status);
         if (status is not null && !string.Equals(schedule.Status, status, StringComparison.OrdinalIgnoreCase))
         {
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuschedule), schedule.MenuScheduleId,
-                nameof(Menuschedule.Status), schedule.Status, status, reason);
+            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
+                nameof(MenuSchedule.Status), schedule.Status, status, reason);
             schedule.Status = status;
         }
 
@@ -633,7 +633,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
         string menuScheduleId,
-        UpdateMenuScheduleVersionDto request,
+        UpdateMenuScheduleVersionRequest request,
         string? userId)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
@@ -677,9 +677,9 @@ public class CoordinationService : ICoordinationService
                 actorId,
                 changedAt,
                 "MenuVersion",
-                nameof(Menuversion),
+                nameof(MenuVersion),
                 version.MenuVersionId,
-                nameof(Menuversion.Status),
+                nameof(MenuVersion.Status),
                 version.Status,
                 status,
                 string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật version thực đơn" : request.Reason.Trim());
@@ -704,9 +704,9 @@ public class CoordinationService : ICoordinationService
                 actorId,
                 changedAt,
                 "MenuVersion",
-                nameof(Menuschedule),
+                nameof(MenuSchedule),
                 weekSchedule.MenuScheduleId,
-                nameof(Menuschedule.Status),
+                nameof(MenuSchedule.Status),
                 weekSchedule.Status,
                 status,
                 string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật version thực đơn" : request.Reason.Trim());
@@ -718,7 +718,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
-        RollbackMenuVersionDto request,
+        RollbackMenuVersionRequest request,
         string? userId)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId)
@@ -771,23 +771,23 @@ public class CoordinationService : ICoordinationService
                 IsPublishedMenuVersionStatus(version.Status) &&
                 !version.MenuVersionId.SequenceEqual(target.MenuVersionId)))
             {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuversion), activeVersion.MenuVersionId,
-                    nameof(Menuversion.Status), activeVersion.Status, "SUPERSEDED", reason);
+                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
+                    nameof(MenuVersion.Status), activeVersion.Status, "SUPERSEDED", reason);
                 activeVersion.Status = "SUPERSEDED";
                 activeVersion.UpdatedAt = changedAt;
             }
 
             if (!string.Equals(target.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase))
             {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuversion), target.MenuVersionId,
-                    nameof(Menuversion.Status), target.Status, "PUBLISHED", reason);
+                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
+                    nameof(MenuVersion.Status), target.Status, "PUBLISHED", reason);
             }
 
             target.Status = "PUBLISHED";
             target.PublishedBy = actorId;
             target.PublishedAt = changedAt;
             target.UpdatedAt = changedAt;
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuversion), target.MenuVersionId,
+            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
                 "Rollback", current.VersionNo.ToString(), target.VersionNo.ToString(), reason);
 
             var weekSchedules = (await _context.Menuschedules
@@ -798,8 +798,8 @@ public class CoordinationService : ICoordinationService
             foreach (var schedule in weekSchedules.Where(schedule =>
                 !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
             {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuschedule), schedule.MenuScheduleId,
-                    nameof(Menuschedule.Status), schedule.Status, "ACTIVE", reason);
+                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
+                    nameof(MenuSchedule.Status), schedule.Status, "ACTIVE", reason);
                 schedule.Status = "ACTIVE";
             }
 
@@ -933,7 +933,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<MealQuantityPlanDto?> UpsertQuickServingsAsync(
-        UpsertQuickServingsRequestDto request,
+        UpsertQuickServingsRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -990,7 +990,7 @@ public class CoordinationService : ICoordinationService
         {
             if (plan is null)
             {
-                plan = new Mealquantityplan
+                plan = new MealQuantityPlan
                 {
                     QuantityPlanId = GuidHelper.NewId(),
                     PlanCode = planCode,
@@ -1022,7 +1022,7 @@ public class CoordinationService : ICoordinationService
                     item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
                 if (line is null)
                 {
-                    line = new Mealquantityplanline
+                    line = new MealQuantityPlanLine
                     {
                         QuantityPlanLineId = GuidHelper.NewId(),
                         QuantityPlanId = plan.QuantityPlanId,
@@ -1045,7 +1045,7 @@ public class CoordinationService : ICoordinationService
                 userIdBytes,
                 changedAt,
                 "Coordination",
-                nameof(Mealquantityplan),
+                nameof(MealQuantityPlan),
                 plan.QuantityPlanId,
                 request.Complete ? "QuickCompleteServings" : "QuickForecastServings",
                 null,
@@ -1076,7 +1076,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<LockOrderPlanResultDto?> LockOrderPlanAsync(
-        LockOrderPlanRequestDto request,
+        LockOrderPlanRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1177,7 +1177,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
-        AdjustOrderAfterLockRequestDto request,
+        AdjustOrderAfterLockRequest request,
         string? userId)
     {
         if (request.NewValue < 0)
@@ -1245,7 +1245,7 @@ public class CoordinationService : ICoordinationService
         var requestedAt = DateTime.UtcNow;
         var adjustmentId = GuidHelper.NewId();
 
-        _context.Quantityadjustments.Add(new Quantityadjustment
+        _context.Quantityadjustments.Add(new QuantityAdjustment
         {
             AdjustmentId = adjustmentId,
             QuantityPlanLineId = line.QuantityPlanLineId,
@@ -1274,7 +1274,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<AdjustServingsResultDto?> AdjustServingsAsync(
         string orderId,
-        AdjustServingsRequestDto request,
+        AdjustServingsRequest request,
         string? userId)
     {
         var lineId = GuidHelper.ParseGuidString(orderId);
@@ -1298,7 +1298,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<AdjustServingsResultDto?> UpdateForecastServingsAsync(
         string orderId,
-        UpdateForecastServingsRequestDto request,
+        UpdateForecastServingsRequest request,
         string? userId)
     {
         if (request.ServingsQuantity < 0)
@@ -1339,13 +1339,13 @@ public class CoordinationService : ICoordinationService
             line.FinalServings = request.ServingsQuantity;
             line.UpdatedAt = changedAt;
 
-            _context.Auditlogs.Add(new Auditlog
+            _context.Auditlogs.Add(new AuditLog
             {
                 AuditId = auditId,
                 ChangedAt = changedAt,
                 ChangedBy = userIdBytes,
                 BusinessArea = "Coordination",
-                EntityName = nameof(Mealquantityplanline),
+                EntityName = nameof(MealQuantityPlanLine),
                 EntityId = line.QuantityPlanLineId,
                 FieldName = "forecastServings",
                 OldValue = oldValue.ToString(),
@@ -1375,7 +1375,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<SignoffOrderResultDto?> SignoffOrderAsync(
         string quantityPlanId,
-        SignoffOrderRequestDto request,
+        SignoffOrderRequest request,
         string? userId)
     {
         var planIdBytes = GuidHelper.ParseGuidString(quantityPlanId);
@@ -1404,15 +1404,15 @@ public class CoordinationService : ICoordinationService
         plan.CompletedAt = signedOffAt;
         plan.CompletedBy = userIdBytes;
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = signedOffAt,
             ChangedBy = userIdBytes,
             BusinessArea = "Coordination",
-            EntityName = nameof(Mealquantityplan),
+            EntityName = nameof(MealQuantityPlan),
             EntityId = planIdBytes,
-            FieldName = nameof(Mealquantityplan.Status),
+            FieldName = nameof(MealQuantityPlan.Status),
             OldValue = oldStatus,
             NewValue = OrderStatus.Completed,
             Reason = string.IsNullOrWhiteSpace(request.Note)
@@ -1442,7 +1442,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(
-        CoordinationScopeActionRequestDto request,
+        CoordinationScopeActionRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1493,15 +1493,15 @@ public class CoordinationService : ICoordinationService
                 plan.Status = OrderStatus.Completed;
                 plan.CompletedAt = changedAt;
                 plan.CompletedBy = userIdBytes;
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = changedAt,
                     ChangedBy = userIdBytes,
                     BusinessArea = "Coordination",
-                    EntityName = nameof(Mealquantityplan),
+                    EntityName = nameof(MealQuantityPlan),
                     EntityId = plan.QuantityPlanId,
-                    FieldName = nameof(Mealquantityplan.Status),
+                    FieldName = nameof(MealQuantityPlan.Status),
                     OldValue = oldStatus,
                     NewValue = OrderStatus.Completed,
                     Reason = string.IsNullOrWhiteSpace(request.Note)
@@ -1571,15 +1571,15 @@ public class CoordinationService : ICoordinationService
         plan.CompletedAt = null;
         plan.CompletedBy = null;
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = unlockedAt,
             ChangedBy = userIdBytes,
             BusinessArea = "Coordination",
-            EntityName = nameof(Mealquantityplan),
+            EntityName = nameof(MealQuantityPlan),
             EntityId = planIdBytes,
-            FieldName = nameof(Mealquantityplan.Status),
+            FieldName = nameof(MealQuantityPlan.Status),
             OldValue = oldStatus,
             NewValue = OrderStatus.Draft,
             Reason = "Mở khóa kế hoạch (revert về Draft)"
@@ -1611,7 +1611,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(
-        CoordinationScopeActionRequestDto request,
+        CoordinationScopeActionRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1668,15 +1668,15 @@ public class CoordinationService : ICoordinationService
                 plan.ConfirmationTime = new TimeOnly(8, 30);
                 plan.CompletedAt = null;
                 plan.CompletedBy = null;
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = changedAt,
                     ChangedBy = userIdBytes,
                     BusinessArea = "Coordination",
-                    EntityName = nameof(Mealquantityplan),
+                    EntityName = nameof(MealQuantityPlan),
                     EntityId = plan.QuantityPlanId,
-                    FieldName = nameof(Mealquantityplan.Status),
+                    FieldName = nameof(MealQuantityPlan.Status),
                     OldValue = oldStatus,
                     NewValue = OrderStatus.Draft,
                     Reason = string.IsNullOrWhiteSpace(request.Note)
@@ -1712,7 +1712,7 @@ public class CoordinationService : ICoordinationService
         };
     }
 
-    public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request)
+    public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequest request)
     {
         var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
         var shiftName = NormalizeShiftName(request.ShiftName ?? request.Shift);
@@ -1734,7 +1734,7 @@ public class CoordinationService : ICoordinationService
         });
     }
 
-    private async Task<Menuschedule?> FindMenuScheduleForUpdateAsync(string menuScheduleId)
+    private async Task<MenuSchedule?> FindMenuScheduleForUpdateAsync(string menuScheduleId)
     {
         var scheduleIdBytes = GuidHelper.ParseGuidString(menuScheduleId);
         if (scheduleIdBytes is null)
@@ -1751,10 +1751,10 @@ public class CoordinationService : ICoordinationService
             .FirstOrDefaultAsync(schedule => schedule.MenuScheduleId == scheduleIdBytes);
     }
 
-    private Customercontract ResolveMutableContract(
+    private CustomerContract ResolveMutableContract(
         Customer customer,
-        IReadOnlyList<Menuschedule> schedules,
-        UpdateCustomerContractDto request,
+        IReadOnlyList<MenuSchedule> schedules,
+        UpdateCustomerContractRequest request,
         byte[] actorId,
         DateTime changedAt)
     {
@@ -1783,7 +1783,7 @@ public class CoordinationService : ICoordinationService
         {
             throw new ArgumentException("Đơn giá menu mặc định không được âm.");
         }
-        var contract = new Customercontract
+        var contract = new CustomerContract
         {
             ContractId = GuidHelper.NewId(),
             CustomerId = customer.CustomerId,
@@ -1799,12 +1799,12 @@ public class CoordinationService : ICoordinationService
         };
 
         customer.Customercontracts.Add(contract);
-        AddAudit(actorId, changedAt, "CustomerContract", nameof(Customercontract), contract.ContractId,
+        AddAudit(actorId, changedAt, "CustomerContract", nameof(CustomerContract), contract.ContractId,
             "ContractCreated", null, GuidHelper.ToGuidString(customer.CustomerId), "Tạo contract hiệu lực cho khách hàng");
         return contract;
     }
 
-    private static Customercontract? ResolveActiveContract(IEnumerable<Customercontract> contracts)
+    private static CustomerContract? ResolveActiveContract(IEnumerable<CustomerContract> contracts)
     {
         var today = ServiceCalendar.Today();
         return contracts
@@ -1819,7 +1819,7 @@ public class CoordinationService : ICoordinationService
     private void UpdateContractField(
         byte[] actorId,
         DateTime changedAt,
-        Customercontract contract,
+        CustomerContract contract,
         string fieldName,
         string? oldValue,
         string? newValue,
@@ -1830,14 +1830,14 @@ public class CoordinationService : ICoordinationService
             return;
         }
 
-        AddAudit(actorId, changedAt, "CustomerContract", nameof(Customercontract), contract.ContractId,
+        AddAudit(actorId, changedAt, "CustomerContract", nameof(CustomerContract), contract.ContractId,
             fieldName, oldValue, newValue, "Cập nhật contract hiệu lực của khách hàng");
         apply();
     }
 
     private void ApplyContractToUnlockedSchedules(
-        Customercontract contract,
-        IReadOnlyList<Menuschedule> schedules,
+        CustomerContract contract,
+        IReadOnlyList<MenuSchedule> schedules,
         byte[] actorId,
         DateTime changedAt)
     {
@@ -1847,16 +1847,16 @@ public class CoordinationService : ICoordinationService
         {
             if (schedule.MenuPrice != contract.DefaultMenuPrice)
             {
-                AddAudit(actorId, changedAt, "CustomerContract", nameof(Menuschedule), schedule.MenuScheduleId,
-                    nameof(Menuschedule.MenuPrice), schedule.MenuPrice.ToString(), contract.DefaultMenuPrice.ToString(),
+                AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
+                    nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), contract.DefaultMenuPrice.ToString(),
                     "Áp dụng đơn giá mặc định từ contract khách hàng");
                 schedule.MenuPrice = contract.DefaultMenuPrice;
             }
 
             if (schedule.BomRatePercent != contract.DefaultBomRatePercent)
             {
-                AddAudit(actorId, changedAt, "CustomerContract", nameof(Menuschedule), schedule.MenuScheduleId,
-                    nameof(Menuschedule.BomRatePercent), schedule.BomRatePercent.ToString(), contract.DefaultBomRatePercent.ToString(),
+                AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
+                    nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), contract.DefaultBomRatePercent.ToString(),
                     "Áp dụng BOM cố định 100% theo tier đơn giá mới");
                 schedule.BomRatePercent = FixedBomRatePercent;
             }
@@ -1864,8 +1864,8 @@ public class CoordinationService : ICoordinationService
     }
 
     private static void ValidateNoOverlappingContract(
-        IEnumerable<Customercontract> contracts,
-        Customercontract target)
+        IEnumerable<CustomerContract> contracts,
+        CustomerContract target)
     {
         var targetDays = SplitCsv(target.ActiveWeekDays).ToHashSet(StringComparer.OrdinalIgnoreCase);
         var targetShifts = SplitCsv(target.ShiftNames).ToHashSet(StringComparer.OrdinalIgnoreCase);
@@ -1894,8 +1894,8 @@ public class CoordinationService : ICoordinationService
     }
 
     private static bool MatchesContract(
-        Menuschedule schedule,
-        Customercontract contract,
+        MenuSchedule schedule,
+        CustomerContract contract,
         ISet<string> activeDays,
         ISet<string> shifts)
     {
@@ -1910,7 +1910,7 @@ public class CoordinationService : ICoordinationService
 
     private static IReadOnlyList<string> NormalizeWeekDays(
         IReadOnlyList<string>? requestedWeekDays,
-        IReadOnlyList<Menuschedule> schedules)
+        IReadOnlyList<MenuSchedule> schedules)
     {
         var values = requestedWeekDays is { Count: > 0 }
             ? requestedWeekDays
@@ -1935,7 +1935,7 @@ public class CoordinationService : ICoordinationService
 
     private static IReadOnlyList<string> NormalizeShiftNames(
         IReadOnlyList<string>? requestedShiftNames,
-        IReadOnlyList<Menuschedule> schedules)
+        IReadOnlyList<MenuSchedule> schedules)
     {
         var values = requestedShiftNames is { Count: > 0 }
             ? requestedShiftNames
@@ -2001,12 +2001,12 @@ public class CoordinationService : ICoordinationService
         throw new ArgumentException($"{fieldName} không hợp lệ.");
     }
 
-    private static decimal ResolveDefaultMenuPrice(IReadOnlyList<Menuschedule> schedules)
+    private static decimal ResolveDefaultMenuPrice(IReadOnlyList<MenuSchedule> schedules)
         => schedules.Count == 0
             ? 25000
             : DecimalPolicy.RoundMoney(schedules.Average(schedule => schedule.MenuPrice));
 
-    private static decimal ResolveDefaultBomRate(IReadOnlyList<Menuschedule> schedules)
+    private static decimal ResolveDefaultBomRate(IReadOnlyList<MenuSchedule> schedules)
         => FixedBomRatePercent;
 
     private static IReadOnlyList<string> SplitCsv(string value)
@@ -2058,7 +2058,7 @@ public class CoordinationService : ICoordinationService
         };
     }
 
-    private async Task<IReadOnlyList<Menuversion>> LoadMenuVersionsAsync(IReadOnlyList<Menuschedule> schedules)
+    private async Task<IReadOnlyList<MenuVersion>> LoadMenuVersionsAsync(IReadOnlyList<MenuSchedule> schedules)
     {
         if (schedules.Count == 0)
         {
@@ -2083,7 +2083,7 @@ public class CoordinationService : ICoordinationService
             .ToList();
     }
 
-    private async Task<Menuversion?> GetLatestMenuVersionAsync(byte[] customerId, DateOnly weekStartDate)
+    private async Task<MenuVersion?> GetLatestMenuVersionAsync(byte[] customerId, DateOnly weekStartDate)
     {
         var versions = await _context.Menuversions
             .AsNoTracking()
@@ -2094,7 +2094,7 @@ public class CoordinationService : ICoordinationService
         return versions.FirstOrDefault(version => version.CustomerId.SequenceEqual(customerId));
     }
 
-    private async Task<Menuversion> EnsureMenuVersionAsync(
+    private async Task<MenuVersion> EnsureMenuVersionAsync(
         byte[] customerId,
         DateOnly weekStartDate,
         byte[] actorId,
@@ -2113,7 +2113,7 @@ public class CoordinationService : ICoordinationService
             return version;
         }
 
-        version = new Menuversion
+        version = new MenuVersion
         {
             MenuVersionId = GuidHelper.NewId(),
             CustomerId = customerId,
@@ -2127,12 +2127,12 @@ public class CoordinationService : ICoordinationService
         };
 
         _context.Menuversions.Add(version);
-        AddAudit(actorId, changedAt, "MenuVersion", nameof(Menuversion), version.MenuVersionId,
+        AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), version.MenuVersionId,
             "VersionCreated", null, version.SourceImportBatch, "Tạo header version cho thực đơn tuần");
         return version;
     }
 
-    private static Menuversion? ResolveMenuVersion(IEnumerable<Menuversion> versions, Menuschedule schedule)
+    private static MenuVersion? ResolveMenuVersion(IEnumerable<MenuVersion> versions, MenuSchedule schedule)
         => versions
             .Where(version =>
                 version.WeekStartDate == schedule.WeekStartDate &&
@@ -2140,10 +2140,10 @@ public class CoordinationService : ICoordinationService
             .OrderByDescending(version => version.VersionNo)
             .FirstOrDefault();
 
-    private static Menuversion? ResolveRollbackTarget(
-        IReadOnlyList<Menuversion> versions,
-        Menuversion current,
-        RollbackMenuVersionDto request)
+    private static MenuVersion? ResolveRollbackTarget(
+        IReadOnlyList<MenuVersion> versions,
+        MenuVersion current,
+        RollbackMenuVersionRequest request)
     {
         // Id phiên bản sai định dạng phải báo lỗi: rơi xuống nhánh dưới sẽ rollback về **phiên bản khác**
         // với phiên bản người dùng chọn, kéo theo hủy nhu cầu và đơn mua của tuần đó.
@@ -2168,7 +2168,7 @@ public class CoordinationService : ICoordinationService
     private async Task<(int CancelledDemandCount, int CancelledPurchaseCount)> InvalidateWorkflowDocumentsForMenuRollbackAsync(
         byte[] customerId,
         DateOnly weekStartDate,
-        Menuversion targetVersion,
+        MenuVersion targetVersion,
         byte[] actorId,
         DateTime changedAt,
         string rollbackReason)
@@ -2185,8 +2185,8 @@ public class CoordinationService : ICoordinationService
 
         foreach (var request in materialRequests)
         {
-            AddAudit(actorId, changedAt, "Demand", nameof(Materialrequest), request.RequestId,
-                nameof(Materialrequest.Status), request.Status, "CANCELLED", reason);
+            AddAudit(actorId, changedAt, "Demand", nameof(MaterialRequest), request.RequestId,
+                nameof(MaterialRequest.Status), request.Status, "CANCELLED", reason);
             request.Status = "CANCELLED";
         }
 
@@ -2205,15 +2205,15 @@ public class CoordinationService : ICoordinationService
 
         foreach (var request in purchaseRequests)
         {
-            AddAudit(actorId, changedAt, "Purchase", nameof(Purchaserequest), request.PurchaseRequestId,
-                nameof(Purchaserequest.Status), request.Status, "CANCELLED", reason);
+            AddAudit(actorId, changedAt, "Purchase", nameof(PurchaseRequest), request.PurchaseRequestId,
+                nameof(PurchaseRequest.Status), request.Status, "CANCELLED", reason);
             request.Status = "CANCELLED";
         }
 
         return (materialRequests.Count, purchaseRequests.Count);
     }
 
-    private static MenuScheduleDto MapMenuSchedule(Menuschedule schedule, Menuversion? version = null)
+    private static MenuScheduleDto MapMenuSchedule(MenuSchedule schedule, MenuVersion? version = null)
         => new()
         {
             MenuScheduleId = GuidHelper.ToGuidString(schedule.MenuScheduleId),
@@ -2271,7 +2271,7 @@ public class CoordinationService : ICoordinationService
         return dishIdBytes;
     }
 
-    private async Task ValidatePortionRuleAsync(Portionrule rule, byte[]? excludeRuleId)
+    private async Task ValidatePortionRuleAsync(PortionRule rule, byte[]? excludeRuleId)
     {
         if (rule.EffectiveTo is not null && rule.EffectiveTo.Value < rule.EffectiveFrom)
         {
@@ -2309,7 +2309,7 @@ public class CoordinationService : ICoordinationService
         }
     }
 
-    private static bool SamePortionRuleScope(Portionrule left, Portionrule right)
+    private static bool SamePortionRuleScope(PortionRule left, PortionRule right)
         => SameOptionalBytes(left.DishId, right.DishId) &&
            string.Equals(NormalizeNullableCode(left.MenuVariant), NormalizeNullableCode(right.MenuVariant), StringComparison.Ordinal) &&
            string.Equals(NormalizeNullableText(left.MenuSectionName), NormalizeNullableText(right.MenuSectionName), StringComparison.Ordinal) &&
@@ -2356,7 +2356,7 @@ public class CoordinationService : ICoordinationService
         return string.Equals(normalizedRuleValue, normalize(requestValue), StringComparison.Ordinal);
     }
 
-    private static int PortionRuleMatchScore(Portionrule rule)
+    private static int PortionRuleMatchScore(PortionRule rule)
     {
         var source = ResolvePortionRuleSource(rule);
         var baseScore = source switch
@@ -2370,7 +2370,7 @@ public class CoordinationService : ICoordinationService
         return baseScore + rule.Priority;
     }
 
-    private static string ResolvePortionRuleSource(Portionrule rule)
+    private static string ResolvePortionRuleSource(PortionRule rule)
     {
         if (rule.DishId is not null)
         {
@@ -2463,10 +2463,10 @@ public class CoordinationService : ICoordinationService
             ? []
             : value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    private static string BuildPortionRuleAuditValue(Portionrule rule)
+    private static string BuildPortionRuleAuditValue(PortionRule rule)
         => $"{ResolvePortionRuleSource(rule)}; portion={rule.PortionRatePercent}; bom={rule.BomRatePercent?.ToString() ?? "-"}; status={rule.Status}";
 
-    private static PortionRuleDto MapPortionRule(Portionrule rule)
+    private static PortionRuleDto MapPortionRule(PortionRule rule)
         => new()
         {
             PortionRuleId = GuidHelper.ToGuidString(rule.PortionRuleId),
@@ -2507,7 +2507,7 @@ public class CoordinationService : ICoordinationService
         string? newValue,
         string reason)
     {
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = changedAt,
@@ -2543,10 +2543,10 @@ public class CoordinationService : ICoordinationService
         => string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
            string.Equals(status, "PUBLISHED", StringComparison.OrdinalIgnoreCase);
 
-    private static bool IsLockedSchedule(Menuschedule schedule)
+    private static bool IsLockedSchedule(MenuSchedule schedule)
         => string.Equals(schedule.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
 
-    private IQueryable<Mealquantityplanline> QueryLines(DateOnly serviceDate, string? shiftName)
+    private IQueryable<MealQuantityPlanLine> QueryLines(DateOnly serviceDate, string? shiftName)
     {
         var query = _context.Mealquantityplanlines
             .Include(line => line.Customer)
@@ -2566,7 +2566,7 @@ public class CoordinationService : ICoordinationService
         return query;
     }
 
-    private static CoordinationOrderDto MapOrder(Mealquantityplanline line)
+    private static CoordinationOrderDto MapOrder(MealQuantityPlanLine line)
         => new()
         {
             Id = GuidHelper.ToGuidString(line.QuantityPlanLineId),
@@ -2609,7 +2609,7 @@ public class CoordinationService : ICoordinationService
         };
 
     private static MealQuantityPlanDto MapMealQuantityPlan(
-        Mealquantityplan plan,
+        MealQuantityPlan plan,
         string? shiftName = null,
         byte[]? customerId = null)
         => new()

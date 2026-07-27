@@ -13,7 +13,7 @@ public sealed class PurchaseReceiptEvidenceRequirementsDto
     public string? BlockerReason { get; set; }
 }
 
-public sealed class RecordWarehousePurchaseReceiptDto : IValidatableObject
+public sealed class RecordWarehousePurchaseReceiptRequest : IValidatableObject
 {
     [Required, MaxLength(36)]
     public string PurchaseOrderId { get; set; } = string.Empty;
@@ -27,7 +27,7 @@ public sealed class RecordWarehousePurchaseReceiptDto : IValidatableObject
     public DateOnly ReceiptDate { get; set; }
 
     [Required, MinLength(1)]
-    public IReadOnlyList<WarehousePurchaseReceiptLineDto> Lines { get; set; } = [];
+    public IReadOnlyList<WarehousePurchaseReceiptLineRequest> Lines { get; set; } = [];
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -40,7 +40,7 @@ public sealed class RecordWarehousePurchaseReceiptDto : IValidatableObject
     }
 }
 
-public sealed class WarehousePurchaseReceiptLineDto : IValidatableObject
+public sealed class WarehousePurchaseReceiptLineRequest : IValidatableObject
 {
     [Required, MaxLength(36)]
     public string PurchaseOrderLineId { get; set; } = string.Empty;

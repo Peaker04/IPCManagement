@@ -2,6 +2,8 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { TypedUseSelectorHook } from 'react-redux';
 import type { RootState, AppDispatch } from './store';
 
+export { useHasRole } from '@/lib/useHasRole'
+
 // Use throughout your app instead of plain `useDispatch` and `useSelector`
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
@@ -16,14 +18,6 @@ export const useHasPermission = (permission: string) =>
     if (!user) return false
     if (user.isAdminFullAccess || user.permissions.includes('*')) return true
     return user.permissions.includes(permission)
-  })
-
-export const useHasRole = (allowedRoles: string[]) =>
-  useAppSelector((state) => {
-    const user = state.auth.user
-    if (!user) return false
-    if (user.isAdminFullAccess || user.role === 'admin') return true
-    return allowedRoles.includes(user.role)
   })
 
 export const useCurrentRole = () =>

@@ -17,19 +17,19 @@ public partial class Warehouse
 
     public virtual ICollection<Ingredient> Ingredients { get; set; } = new List<Ingredient>();
 
-    public virtual ICollection<Inventoryissue> Inventoryissues { get; set; } = new List<Inventoryissue>();
+    public virtual ICollection<InventoryIssue> Inventoryissues { get; set; } = new List<InventoryIssue>();
 
-    public virtual ICollection<Inventoryreceipt> Inventoryreceipts { get; set; } = new List<Inventoryreceipt>();
+    public virtual ICollection<InventoryReceipt> Inventoryreceipts { get; set; } = new List<InventoryReceipt>();
 
-    public virtual ICollection<Inventoryreturn> Inventoryreturns { get; set; } = new List<Inventoryreturn>();
+    public virtual ICollection<InventoryReturn> Inventoryreturns { get; set; } = new List<InventoryReturn>();
 
-    public virtual ICollection<Stockmovement> Stockmovements { get; set; } = new List<Stockmovement>();
+    public virtual ICollection<StockMovement> Stockmovements { get; set; } = new List<StockMovement>();
 
-    public virtual ICollection<Currentstock> Currentstocks { get; set; } = new List<Currentstock>();
+    public virtual ICollection<CurrentStock> Currentstocks { get; set; } = new List<CurrentStock>();
 
-    public virtual ICollection<Currentstocklot> Currentstocklots { get; set; } = new List<Currentstocklot>();
+    public virtual ICollection<CurrentStockLot> Currentstocklots { get; set; } = new List<CurrentStockLot>();
 
-    public virtual ICollection<Stocksnapshot> Stocksnapshots { get; set; } = new List<Stocksnapshot>();
+    public virtual ICollection<StockSnapshot> Stocksnapshots { get; set; } = new List<StockSnapshot>();
 
     public virtual ICollection<Stocktake> Stocktakes { get; set; } = new List<Stocktake>();
 }

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { WeeklyPlanRow } from '../model/types'
 import type { WeeklyMenuScope } from '../schedule/types'
 import { buildMenuCostPresentation } from './costModel'

@@ -4,7 +4,7 @@ using IPCManagement.Api.Models.Entities;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public interface IStockMovementRepository : IGenericRepository<Stockmovement>
+public interface IStockMovementRepository : IGenericRepository<StockMovement>
 {
-    Task<IEnumerable<Stockmovement>> GetByIngredientAsync(byte[] ingredientId);
+    Task<IEnumerable<StockMovement>> GetByIngredientAsync(byte[] ingredientId);
 }

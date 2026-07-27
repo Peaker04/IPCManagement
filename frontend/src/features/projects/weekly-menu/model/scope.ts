@@ -1,5 +1,5 @@
-import type { DemandLine } from '@/features/workflow'
-import type { CatalogDish, CatalogIngredient } from '../../dishCatalogApi'
+import type { DemandLine } from '@/types/workflow'
+import type { CatalogDish, CatalogIngredient } from '@/api/dishCatalogApi'
 import type { WeeklyMenuState } from '../../../coordination/types'
 import type { WeeklyMenuImportResult } from '../../../coordination/coordinationApi'
 import type { ImportedLayoutRow } from '../../components/ImportedLayoutMatrix'

@@ -3,7 +3,7 @@ using IPCManagement.Api.Models.DTOs.Approvals;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class ApprovalRequestDtoValidator : AbstractValidator<ApprovalRequestDto>
+public class ApprovalRequestDtoValidator : AbstractValidator<ApprovalRequest>
 {
     public ApprovalRequestDtoValidator()
     {

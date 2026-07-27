@@ -54,7 +54,7 @@ public class CustomerContractDto
     public string? LatestServiceDate { get; set; }
 }
 
-public class UpdateCustomerContractDto
+public class UpdateCustomerContractRequest
 {
     public string? CustomerName { get; set; }
     public string? Note { get; set; }
@@ -67,7 +67,7 @@ public class UpdateCustomerContractDto
     public decimal? DefaultBomRatePercent { get; set; }
 }
 
-public class CreateCustomerContractDto
+public class CreateCustomerContractRequest
 {
     public string CustomerCode { get; set; } = string.Empty;
     public string CustomerName { get; set; } = string.Empty;
@@ -81,7 +81,7 @@ public class CreateCustomerContractDto
     public decimal? DefaultBomRatePercent { get; set; }
 }
 
-public class UpdateMenuScheduleRulesDto
+public class UpdateMenuScheduleRulesRequest
 {
     public decimal? MenuPrice { get; set; }
     public decimal? BomRatePercent { get; set; }
@@ -89,13 +89,13 @@ public class UpdateMenuScheduleRulesDto
     public string? Reason { get; set; }
 }
 
-public class UpdateMenuScheduleVersionDto
+public class UpdateMenuScheduleVersionRequest
 {
     public string Status { get; set; } = string.Empty;
     public string? Reason { get; set; }
 }
 
-public class RollbackMenuVersionDto
+public class RollbackMenuVersionRequest
 {
     public string CustomerId { get; set; } = string.Empty;
     public string WeekStartDate { get; set; } = string.Empty;

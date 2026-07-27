@@ -1,6 +1,6 @@
 import { ClipboardList } from 'lucide-react'
 import { DocumentRail, EmptyState, SectionPanel, StockMovementTable } from '@/components/common'
-import type { StockMovement, WorkflowDocument } from '@/features/workflow'
+import type { StockMovement, WorkflowDocument } from '@/types/workflow'
 
 type Props = {
   movements: StockMovement[]

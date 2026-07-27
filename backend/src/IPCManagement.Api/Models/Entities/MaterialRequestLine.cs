@@ -1,0 +1,55 @@
+﻿using System;
+using System.Collections.Generic;
+
+namespace IPCManagement.Api.Models.Entities;
+
+public partial class MaterialRequestLine
+{
+    public byte[] RequestLineId { get; set; } = null!;
+
+    public byte[] RequestId { get; set; } = null!;
+
+    public byte[] PlanLineId { get; set; } = null!;
+
+    public byte[] IngredientId { get; set; } = null!;
+
+    public byte[] UnitId { get; set; } = null!;
+
+    public byte[]? BomId { get; set; }
+
+    public decimal PriceTierAmount { get; set; } = 25000m;
+
+    public string BomScope { get; set; } = "global";
+
+    public int TotalServings { get; set; }
+
+    public decimal GrossQtyPerServing { get; set; }
+
+    public decimal BomRatePercent { get; set; }
+
+    public byte[]? AppliedPortionRuleId { get; set; }
+
+    public string AppliedPortionRuleSource { get; set; } = "CONTRACT_DEFAULT";
+
+    public decimal AppliedPortionRatePercent { get; set; } = 100;
+
+    public decimal? YieldLossPercent { get; set; }
+
+    public decimal TotalRequiredQty { get; set; }
+
+    public decimal CurrentStockQty { get; set; }
+
+    public decimal SuggestedPurchaseQty { get; set; }
+
+    public virtual Ingredient Ingredient { get; set; } = null!;
+
+    public virtual DishBom? Bom { get; set; }
+
+    public virtual ProductionPlanLine PlanLine { get; set; } = null!;
+
+    public virtual ICollection<PurchaseRequestLine> Purchaserequestlines { get; set; } = new List<PurchaseRequestLine>();
+
+    public virtual MaterialRequest Request { get; set; } = null!;
+
+    public virtual Unit Unit { get; set; } = null!;
+}

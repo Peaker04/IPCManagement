@@ -40,41 +40,41 @@ public class PurchaseHistoryReconciliationTests
         using var context = CreateContext();
         var model = context.GetService<IDesignTimeModel>().Model;
 
-        var run = model.FindEntityType(typeof(Purchasehistoryreconciliationrun));
+        var run = model.FindEntityType(typeof(PurchaseHistoryReconciliationRun));
         run.Should().NotBeNull();
         run!.GetProperties().Select(property => property.Name).Should().Contain(
-            nameof(Purchasehistoryreconciliationrun.ManifestId),
-            nameof(Purchasehistoryreconciliationrun.ManifestHash),
-            nameof(Purchasehistoryreconciliationrun.SourceName),
-            nameof(Purchasehistoryreconciliationrun.SourceSha256),
-            nameof(Purchasehistoryreconciliationrun.PolicyVersion),
-            nameof(Purchasehistoryreconciliationrun.AsOfDate),
-            nameof(Purchasehistoryreconciliationrun.DatabaseFingerprint),
-            nameof(Purchasehistoryreconciliationrun.BackupIdentifier),
-            nameof(Purchasehistoryreconciliationrun.BackupTargetFingerprint),
-            nameof(Purchasehistoryreconciliationrun.RestoreFingerprint),
-            nameof(Purchasehistoryreconciliationrun.RestoreVerified),
-            nameof(Purchasehistoryreconciliationrun.AppliedBy),
-            nameof(Purchasehistoryreconciliationrun.Status),
-            nameof(Purchasehistoryreconciliationrun.CandidateCount),
-            nameof(Purchasehistoryreconciliationrun.CurrentUniqueBusinessKeyCount),
-            nameof(Purchasehistoryreconciliationrun.AuditedDeltaCount),
-            nameof(Purchasehistoryreconciliationrun.ActionCount),
-            nameof(Purchasehistoryreconciliationrun.BlockerCount));
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.ManifestHash))!
+            nameof(PurchaseHistoryReconciliationRun.ManifestId),
+            nameof(PurchaseHistoryReconciliationRun.ManifestHash),
+            nameof(PurchaseHistoryReconciliationRun.SourceName),
+            nameof(PurchaseHistoryReconciliationRun.SourceSha256),
+            nameof(PurchaseHistoryReconciliationRun.PolicyVersion),
+            nameof(PurchaseHistoryReconciliationRun.AsOfDate),
+            nameof(PurchaseHistoryReconciliationRun.DatabaseFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.BackupIdentifier),
+            nameof(PurchaseHistoryReconciliationRun.BackupTargetFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.RestoreFingerprint),
+            nameof(PurchaseHistoryReconciliationRun.RestoreVerified),
+            nameof(PurchaseHistoryReconciliationRun.AppliedBy),
+            nameof(PurchaseHistoryReconciliationRun.Status),
+            nameof(PurchaseHistoryReconciliationRun.CandidateCount),
+            nameof(PurchaseHistoryReconciliationRun.CurrentUniqueBusinessKeyCount),
+            nameof(PurchaseHistoryReconciliationRun.AuditedDeltaCount),
+            nameof(PurchaseHistoryReconciliationRun.ActionCount),
+            nameof(PurchaseHistoryReconciliationRun.BlockerCount));
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.ManifestHash))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.SourceSha256))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.SourceSha256))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.DatabaseFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.DatabaseFingerprint))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.BackupTargetFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.BackupTargetFingerprint))!
             .GetMaxLength().Should().Be(64);
-        run.FindProperty(nameof(Purchasehistoryreconciliationrun.RestoreFingerprint))!
+        run.FindProperty(nameof(PurchaseHistoryReconciliationRun.RestoreFingerprint))!
             .GetMaxLength().Should().Be(64);
         run.GetIndexes().Should().Contain(index =>
             index.IsUnique &&
             index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchasehistoryreconciliationrun.ManifestHash) }));
+                .SequenceEqual(new[] { nameof(PurchaseHistoryReconciliationRun.ManifestHash) }));
         run.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckPurchaseHistoryReconciliationRunsCounts",
             "ckPurchaseHistoryReconciliationRunsStatus",
@@ -82,42 +82,42 @@ public class PurchaseHistoryReconciliationTests
         run.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.IsRequired && foreignKey.PrincipalEntityType.ClrType == typeof(User));
 
-        var action = model.FindEntityType(typeof(Purchasehistoryreconciliationaction));
+        var action = model.FindEntityType(typeof(PurchaseHistoryReconciliationAction));
         action.Should().NotBeNull();
         action!.GetProperties().Select(property => property.Name).Should().Contain(
-            nameof(Purchasehistoryreconciliationaction.ActionId),
-            nameof(Purchasehistoryreconciliationaction.ActionType),
-            nameof(Purchasehistoryreconciliationaction.SourceKey),
-            nameof(Purchasehistoryreconciliationaction.SourceSheet),
-            nameof(Purchasehistoryreconciliationaction.SourceRow),
-            nameof(Purchasehistoryreconciliationaction.BusinessKey),
-            nameof(Purchasehistoryreconciliationaction.TargetType),
-            nameof(Purchasehistoryreconciliationaction.TargetId),
-            nameof(Purchasehistoryreconciliationaction.ReasonCode),
-            nameof(Purchasehistoryreconciliationaction.BeforeEvidence),
-            nameof(Purchasehistoryreconciliationaction.BeforeHash),
-            nameof(Purchasehistoryreconciliationaction.AfterEvidence),
-            nameof(Purchasehistoryreconciliationaction.AfterHash),
-            nameof(Purchasehistoryreconciliationaction.ActionHash));
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionId))!
+            nameof(PurchaseHistoryReconciliationAction.ActionId),
+            nameof(PurchaseHistoryReconciliationAction.ActionType),
+            nameof(PurchaseHistoryReconciliationAction.SourceKey),
+            nameof(PurchaseHistoryReconciliationAction.SourceSheet),
+            nameof(PurchaseHistoryReconciliationAction.SourceRow),
+            nameof(PurchaseHistoryReconciliationAction.BusinessKey),
+            nameof(PurchaseHistoryReconciliationAction.TargetType),
+            nameof(PurchaseHistoryReconciliationAction.TargetId),
+            nameof(PurchaseHistoryReconciliationAction.ReasonCode),
+            nameof(PurchaseHistoryReconciliationAction.BeforeEvidence),
+            nameof(PurchaseHistoryReconciliationAction.BeforeHash),
+            nameof(PurchaseHistoryReconciliationAction.AfterEvidence),
+            nameof(PurchaseHistoryReconciliationAction.AfterHash),
+            nameof(PurchaseHistoryReconciliationAction.ActionHash));
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.ActionId))!
             .GetMaxLength().Should().Be(32);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.ActionHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.ActionHash))!
             .GetMaxLength().Should().Be(64);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.BeforeHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.BeforeHash))!
             .GetMaxLength().Should().Be(64);
-        action.FindProperty(nameof(Purchasehistoryreconciliationaction.AfterHash))!
+        action.FindProperty(nameof(PurchaseHistoryReconciliationAction.AfterHash))!
             .GetMaxLength().Should().Be(64);
         action.GetIndexes().Should().Contain(index =>
             index.IsUnique &&
             index.Properties.Select(property => property.Name).SequenceEqual(
                 new[]
                 {
-                    nameof(Purchasehistoryreconciliationaction.PurchaseHistoryReconciliationRunId),
-                    nameof(Purchasehistoryreconciliationaction.ActionId)
+                    nameof(PurchaseHistoryReconciliationAction.PurchaseHistoryReconciliationRunId),
+                    nameof(PurchaseHistoryReconciliationAction.ActionId)
                 }));
         action.GetForeignKeys().Should().ContainSingle(foreignKey =>
             foreignKey.IsRequired &&
-            foreignKey.PrincipalEntityType.ClrType == typeof(Purchasehistoryreconciliationrun));
+            foreignKey.PrincipalEntityType.ClrType == typeof(PurchaseHistoryReconciliationRun));
         action.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain(
             "ckPurchaseHistoryReconciliationActionsDisposition",
             "ckPurchaseHistoryReconciliationActionsSourceRow");
@@ -172,7 +172,7 @@ public class PurchaseHistoryReconciliationTests
 
         // Ba cột này TỪNG được ghim là "known baseline gap" với kỳ vọng Be(0), vì fixture đánh
         // dấu sẵn 20260702061320_AddImportAuditFields là đã applied nên migration không bao giờ
-        // chạy. Nhưng entity Menuversion khai SuccessRowCount/ErrorRowCount/WarningRowCount và
+        // chạy. Nhưng entity MenuVersion khai SuccessRowCount/ErrorRowCount/WarningRowCount và
         // database đang chạy có đủ cả ba — tức database cài mới đang THIẾU cột so với model.
         // Đã bỏ ID đó khỏi danh sách đánh dấu sẵn nên migration chạy thật; kỳ vọng lật thành 3.
         (await SchemaObjectCountAsync(
@@ -254,7 +254,7 @@ public class PurchaseHistoryReconciliationTests
         keys.Should().ContainSingle();
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Parser_reproduces_audited_current_workbook_baseline_and_deterministic_replay()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -278,7 +278,7 @@ public class PurchaseHistoryReconciliationTests
                 $"{candidate.SourceKey}|{candidate.BusinessKey}|{candidate.RowHash}"));
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Parser_retains_raw_source_trace_for_current_workbook()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -535,7 +535,7 @@ public class PurchaseHistoryReconciliationTests
             expectedBlocker is null ? [] : [expectedBlocker]);
     }
 
-    [Fact]
+    [PrivateWorkbookFact]
     public void Normalization_parser_routes_every_candidate_once_and_retains_blocker_evidence()
     {
         var parser = new PurchaseHistorySourceParser();
@@ -558,8 +558,8 @@ public class PurchaseHistoryReconciliationTests
     {
         var requestTypes = new[]
         {
-            typeof(PurchaseHistoryPreviewRequestDto),
-            typeof(PurchaseHistoryApplyRequestDto)
+            typeof(PurchaseHistoryPreviewRequest),
+            typeof(PurchaseHistoryApplyRequest)
         };
         var forbiddenFragments = new[]
         {
@@ -573,15 +573,15 @@ public class PurchaseHistoryReconciliationTests
             .NotContain(name => forbiddenFragments.Any(fragment =>
                 name.Contains(fragment, StringComparison.OrdinalIgnoreCase)));
 
-        var invalid = new PurchaseHistoryApplyRequestDto();
+        var invalid = new PurchaseHistoryApplyRequest();
         var errors = new List<ValidationResult>();
         Validator.TryValidateObject(invalid, new ValidationContext(invalid), errors, validateAllProperties: true)
             .Should().BeFalse();
         errors.Select(error => error.MemberNames.Single()).Should().Contain(
-            nameof(PurchaseHistoryApplyRequestDto.ManifestId),
-            nameof(PurchaseHistoryApplyRequestDto.ManifestHash),
-            nameof(PurchaseHistoryApplyRequestDto.AcceptedActionIds),
-            nameof(PurchaseHistoryApplyRequestDto.BackupRestoreEvidence));
+            nameof(PurchaseHistoryApplyRequest.ManifestId),
+            nameof(PurchaseHistoryApplyRequest.ManifestHash),
+            nameof(PurchaseHistoryApplyRequest.AcceptedActionIds),
+            nameof(PurchaseHistoryApplyRequest.BackupRestoreEvidence));
     }
 
     [Fact]
@@ -824,7 +824,7 @@ public class PurchaseHistoryReconciliationTests
             21_000,
             "SAMPLE-LINKED",
             purchaseRequestId: Id(90));
-        context.Stockmovements.Add(new Stockmovement
+        context.Stockmovements.Add(new StockMovement
         {
             MovementId = Id(91),
             MovementDate = new DateTime(2026, 7, 19),
@@ -1026,7 +1026,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryPreviewDto>>();
@@ -1052,7 +1052,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(expectedStatus);
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
@@ -1068,7 +1068,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
@@ -1081,7 +1081,7 @@ public class PurchaseHistoryReconciliationTests
         var request = EndpointApplyRequest();
         var service = Substitute.For<IPurchaseHistoryReconciliationService>();
         service.ApplyAsync(
-                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<PurchaseHistoryApplyRequest>(),
                 Arg.Any<byte[]>(),
                 Arg.Any<CancellationToken>())
             .Returns(
@@ -1119,7 +1119,7 @@ public class PurchaseHistoryReconciliationTests
             !result.Applied && result.NoOp && result.AuditReference == firstPayload.Data!.AuditReference);
         firstPayload.Data!.AuditReference.Should().NotContain("\\").And.NotContain(":\\");
         await service.Received(2).ApplyAsync(
-            Arg.Is<PurchaseHistoryApplyRequestDto>(accepted =>
+            Arg.Is<PurchaseHistoryApplyRequest>(accepted =>
                 accepted.ManifestId == request.ManifestId &&
                 accepted.ManifestHash == request.ManifestHash &&
                 accepted.AcceptedActionIds.SequenceEqual(request.AcceptedActionIds)),
@@ -1132,7 +1132,7 @@ public class PurchaseHistoryReconciliationTests
     {
         var service = Substitute.For<IPurchaseHistoryReconciliationService>();
         service.ApplyAsync(
-                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<PurchaseHistoryApplyRequest>(),
                 Arg.Any<byte[]>(),
                 Arg.Any<CancellationToken>())
             .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new InvalidOperationException("Manifest drifted."));
@@ -1172,7 +1172,7 @@ public class PurchaseHistoryReconciliationTests
 
         response.StatusCode.Should().Be(expectedStatus);
         await service.DidNotReceive().ApplyAsync(
-            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<PurchaseHistoryApplyRequest>(),
             Arg.Any<byte[]>(),
             Arg.Any<CancellationToken>());
     }
@@ -1191,7 +1191,7 @@ public class PurchaseHistoryReconciliationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         await service.DidNotReceive().ApplyAsync(
-            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<PurchaseHistoryApplyRequest>(),
             Arg.Any<byte[]>(),
             Arg.Any<CancellationToken>());
     }
@@ -1675,7 +1675,7 @@ public class PurchaseHistoryReconciliationTests
         await context.SaveChangesAsync();
     }
 
-    private static async Task<Inventoryreceiptline> SeedReceiptAsync(
+    private static async Task<InventoryReceiptLine> SeedReceiptAsync(
         IpcManagementContext context,
         string receiptCode,
         DateOnly receiptDate,
@@ -1688,7 +1688,7 @@ public class PurchaseHistoryReconciliationTests
         byte[]? purchaseRequestId = null)
     {
         var sequence = context.Inventoryreceipts.Local.Count + 50;
-        var receipt = new Inventoryreceipt
+        var receipt = new InventoryReceipt
         {
             ReceiptId = Id(sequence),
             ReceiptCode = receiptCode,
@@ -1699,7 +1699,7 @@ public class PurchaseHistoryReconciliationTests
             CreatedBy = Id(41),
             CreatedAt = new DateTime(2026, 7, 20)
         };
-        var line = new Inventoryreceiptline
+        var line = new InventoryReceiptLine
         {
             ReceiptLineId = Id(sequence + 20),
             ReceiptId = receipt.ReceiptId,
@@ -1806,13 +1806,13 @@ public class PurchaseHistoryReconciliationTests
                 ? new InvalidOperationException($"Injected action failure at boundary {index}.")
                 : null);
 
-    private static PurchaseHistoryApplyRequestDto AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
+    private static PurchaseHistoryApplyRequest AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
         => new()
         {
             ManifestId = preview.Manifest.ManifestId,
             ManifestHash = preview.Manifest.ManifestHash,
             AcceptedActionIds = preview.Actions.Select(action => action.ActionId).ToList(),
-            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            BackupRestoreEvidence = new BackupRestoreEvidenceRequest
             {
                 BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
                 TargetFingerprint = new string('C', 64),
@@ -1821,13 +1821,13 @@ public class PurchaseHistoryReconciliationTests
             }
         };
 
-    private static PurchaseHistoryApplyRequestDto EndpointApplyRequest()
+    private static PurchaseHistoryApplyRequest EndpointApplyRequest()
         => new()
         {
             ManifestId = "manifest-1",
             ManifestHash = new string('C', 64),
             AcceptedActionIds = ["action-1"],
-            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            BackupRestoreEvidence = new BackupRestoreEvidenceRequest
             {
                 BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
                 TargetFingerprint = new string('D', 64),
@@ -2110,5 +2110,49 @@ public class PurchaseHistoryReconciliationTests
                 """;
             await command.ExecuteNonQueryAsync();
         }
+    }
+}
+
+/// <summary>
+/// [Fact] nhưng tự skip khi workbook nghiệp vụ riêng không có mặt.
+///
+/// Ba test dùng attribute này đọc <c>.docs/IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx</c>.
+/// Thư mục <c>.docs/</c> bị .gitignore chặn (dữ liệu vận hành thật của khách hàng, không đưa
+/// lên repo), nên trên CI sạch file đó KHÔNG tồn tại và ba test sẽ fail vì FileNotFoundException
+/// — làm đỏ bước "Test backend" trước cả khi tới các gate khác.
+///
+/// Cổng ở đây là sự tồn tại của file chứ không phải biến môi trường: máy nào có workbook thì
+/// test chạy thật, máy nào không có thì skip kèm lý do rõ ràng. Không có nhánh nào "pass giả".
+///
+/// Lấy ý tưởng từ origin/main (a64c4a1) nhưng CHỈ đòi file thật sự được đọc. Bản của main đòi
+/// thêm workbook 19.5.2026 — file đó không có trong .docs của máy này, dùng nguyên bản sẽ làm
+/// ba test skip cả ở local và mất coverage đang có.
+/// </summary>
+internal sealed class PrivateWorkbookFactAttribute : FactAttribute
+{
+    private const string RequiredWorkbook = "IPC. Theo dõi đặt hàng ngày 20.7.2026.xlsx";
+
+    public PrivateWorkbookFactAttribute()
+    {
+        if (!RepositoryFileExists(".docs", RequiredWorkbook))
+        {
+            Skip = $"Cần workbook nghiệp vụ riêng '{RequiredWorkbook}' trong .docs (không nằm trong repo).";
+        }
+    }
+
+    private static bool RepositoryFileExists(params string[] segments)
+    {
+        var current = new DirectoryInfo(AppContext.BaseDirectory);
+        while (current is not null)
+        {
+            if (File.Exists(Path.Combine([current.FullName, .. segments])))
+            {
+                return true;
+            }
+
+            current = current.Parent;
+        }
+
+        return false;
     }
 }

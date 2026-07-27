@@ -5,8 +5,8 @@ import { PaginationBar } from './PaginationBar';
 import { StatusBadge } from './StatusBadge';
 import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
-import type { WorkflowDocument } from '@/features/workflow';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import type { WorkflowDocument } from '@/types/workflow';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { useToast } from './useToast';
 
 interface DocumentRailProps {

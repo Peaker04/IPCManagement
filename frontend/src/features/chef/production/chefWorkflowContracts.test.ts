@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROUTES } from '@/routes/routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 import pageSource from '../pages/ChefDashboardPage.tsx?raw'
 import exceptionSource from '../exceptions/useChefExceptions.ts?raw'
 import receiptSource from '../receipts/useKitchenReceipts.ts?raw'

@@ -11,7 +11,7 @@ import {
   useGetCurrentUserQuery,
 } from '../features/auth';
 import { normalizeUserRole } from '../features/auth/roleUtils';
-import { ROUTES } from './routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 
 export const ProtectedRoute = () => {
   const dispatch = useAppDispatch();

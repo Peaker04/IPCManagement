@@ -32,7 +32,7 @@ public class DailyProductionPlanDto
     public IReadOnlyList<ProductionPlanDto> Plans { get; set; } = [];
 }
 
-public class SendDailyProductionPlanRequestDto
+public class SendDailyProductionPlanRequest
 {
     public string ServiceDate { get; set; } = string.Empty;
     public string? CustomerId { get; set; }

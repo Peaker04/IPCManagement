@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowLeft, ShieldAlert } from 'lucide-react'
 import { SectionPanel } from '@/components/common'
-import { ROUTES } from '../../../routes/routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 
 const ForbiddenPage = () => {
   return (

@@ -24,13 +24,13 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     {
         using var context = CreateInboxContext();
         var model = context.GetService<IDesignTimeModel>().Model;
-        var line = model.FindEntityType(typeof(Purchaserequestline));
-        var order = model.FindEntityType(typeof(Purchaseorder));
+        var line = model.FindEntityType(typeof(PurchaseRequestLine));
+        var order = model.FindEntityType(typeof(PurchaseOrder));
 
-        line!.FindProperty(nameof(Purchaserequestline.SupplierId))!.IsNullable.Should().BeTrue();
+        line!.FindProperty(nameof(PurchaseRequestLine.SupplierId))!.IsNullable.Should().BeTrue();
         order!.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchaseorder.PurchaseRequestId), nameof(Purchaseorder.SupplierId) }));
+                .SequenceEqual(new[] { nameof(PurchaseOrder.PurchaseRequestId), nameof(PurchaseOrder.SupplierId) }));
 
         var migration = File.ReadAllText(FindRepositoryFile(
             "backend", "src", "IPCManagement.Api", "Migrations",
@@ -46,12 +46,12 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     {
         await using var context = CreateInboxContext();
         var model = context.GetService<IDesignTimeModel>().Model;
-        var entity = model.FindEntityType(typeof(Purchasepriceexception));
+        var entity = model.FindEntityType(typeof(PurchasePriceException));
 
         entity.Should().NotBeNull();
-        entity!.FindProperty(nameof(Purchasepriceexception.ProposalFingerprint))!.IsNullable.Should().BeFalse();
-        entity.FindProperty(nameof(Purchasepriceexception.ProposalVersion))!.IsNullable.Should().BeFalse();
-        entity.FindProperty(nameof(Purchasepriceexception.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
+        entity!.FindProperty(nameof(PurchasePriceException.ProposalFingerprint))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(PurchasePriceException.ProposalVersion))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(PurchasePriceException.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
         entity.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain([
             "ckPurchasePriceExceptionsStrictVariance",
             "ckPurchasePriceExceptionsDecisionComplete",
@@ -61,20 +61,20 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
                 .SequenceEqual(new[] {
-                    nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId),
-                    nameof(Purchasepriceexception.ProposalFingerprint),
-                    nameof(Purchasepriceexception.ProposalVersion)
+                    nameof(PurchasePriceException.PurchaseLineSupplierDecisionId),
+                    nameof(PurchasePriceException.ProposalFingerprint),
+                    nameof(PurchasePriceException.ProposalVersion)
                 }));
         var decisionForeignKey = entity.GetForeignKeys().Single(key =>
             key.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchasepriceexception.PurchaseLineSupplierDecisionId) }));
+                .SequenceEqual(new[] { nameof(PurchasePriceException.PurchaseLineSupplierDecisionId) }));
         decisionForeignKey.IsRequired.Should().BeTrue();
 
         var decisionId = GuidHelper.NewId();
         var firstExceptionId = GuidHelper.NewId();
         var secondExceptionId = GuidHelper.NewId();
         context.Purchasepriceexceptions.AddRange(
-            new Purchasepriceexception
+            new PurchasePriceException
             {
                 PurchasePriceExceptionId = firstExceptionId,
                 PurchaseLineSupplierDecisionId = decisionId,
@@ -93,7 +93,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
                 SupersededByExceptionId = secondExceptionId,
                 ConcurrencyVersion = 2
             },
-            new Purchasepriceexception
+            new PurchasePriceException
             {
                 PurchasePriceExceptionId = secondExceptionId,
                 PurchaseLineSupplierDecisionId = decisionId,
@@ -254,7 +254,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Nhu cầu hợp lệ" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Nhu cầu hợp lệ" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -288,7 +288,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await fixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Thiếu dữ liệu" },
+            new ApprovalRequest { Status = ApprovalDecision.Reject, Reason = "Thiếu dữ liệu" },
             fixture.ActorIdString,
             BuildPrincipal("Quản lý"));
 
@@ -306,7 +306,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         await using var fixture = await MaterialDemandApprovalFixture.CreateAsync();
         var requestId = await fixture.SeedRequestAsync("DRAFT");
         var service = fixture.CreateWorkflowService();
-        var decision = new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Đồng ý" };
+        var decision = new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Đồng ý" };
 
         var first = await service.ExecuteAsync(
             "material-demand", requestId, decision, fixture.ActorIdString, BuildPrincipal("Manager"));
@@ -329,14 +329,14 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
         var act = async () => await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Đổi quyết định" },
+            new ApprovalRequest { Status = ApprovalDecision.Reject, Reason = "Đổi quyết định" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -355,7 +355,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = async () => await fixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Replay không có history" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Replay không có history" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -420,7 +420,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = async () => await approvalFixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve },
+            new ApprovalRequest { Status = ApprovalDecision.Approve },
             approvalFixture.ActorIdString,
             BuildPrincipal("Purchasing"));
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
@@ -435,7 +435,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         await using var context = CreateInboxContext();
         var pending = await SeedInboxDemandAsync(context, 1, "DRAFT");
         var terminal = await SeedInboxDemandAsync(context, 2, "MANAGERAPPROVED");
-        context.Approvalhistories.Add(new Approvalhistory
+        context.Approvalhistories.Add(new ApprovalHistory
         {
             ApprovalHistoryId = GuidHelper.NewId(),
             TargetType = "material-demand",
@@ -484,7 +484,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Báo giá hợp lệ" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Báo giá hợp lệ" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -511,7 +511,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = () => fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được dùng" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Không được dùng" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -532,7 +532,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = () => fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được phép" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Không được phép" },
             fixture.ActorIdString,
             BuildPrincipal(role));
 
@@ -619,7 +619,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     private static ClaimsPrincipal BuildPrincipal(string role)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)], "test"));
 
-    private static ConfirmPurchaseLineSupplierDto BuildConfirmation(
+    private static ConfirmPurchaseLineSupplierRequest BuildConfirmation(
         PriceExceptionConfirmationSetup setup,
         decimal proposedPrice,
         string reason,
@@ -688,7 +688,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             IsActive = true,
             Unit = unit
         };
-        var request = new Purchaserequest
+        var request = new PurchaseRequest
         {
             PurchaseRequestId = requestId,
             PurchaseRequestCode = "PR-PRICE-EXCEPTION",
@@ -698,7 +698,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             CreatedBy = actorId,
             CreatedByNavigation = user
         };
-        var line = new Purchaserequestline
+        var line = new PurchaseRequestLine
         {
             PurchaseRequestLineId = lineId,
             PurchaseRequestId = requestId,
@@ -712,7 +712,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             Unit = unit
         };
         request.Purchaserequestlines.Add(line);
-        var quotation = new Supplierquotation
+        var quotation = new SupplierQuotation
         {
             QuotationId = evidenceId,
             SupplierId = supplierId,
@@ -836,7 +836,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             await using var context = CreateContext();
             var decisionId = GuidHelper.NewId();
             var fingerprint = new string('A', 64);
-            var decision = new Purchaselinesupplierdecision
+            var decision = new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = decisionId,
                 PurchaseRequestLineId = GuidHelper.NewId(),
@@ -855,7 +855,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
                 CurrentDecisionKey = GuidHelper.NewId(),
                 ConcurrencyVersion = 1
             };
-            var priceException = new Purchasepriceexception
+            var priceException = new PurchasePriceException
             {
                 PurchasePriceExceptionId = GuidHelper.NewId(),
                 PurchaseLineSupplierDecisionId = decisionId,
@@ -907,7 +907,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         return new IpcManagementContext(options);
     }
 
-    private static async Task<Materialrequest> SeedInboxDemandAsync(
+    private static async Task<MaterialRequest> SeedInboxDemandAsync(
         IpcManagementContext context,
         int ordinal,
         string status,
@@ -956,7 +956,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             IsActive = true
         };
         var submittedAt = new DateTime(2026, 7, 21, 8, ordinal, 0, DateTimeKind.Utc);
-        var plan = new Productionplan
+        var plan = new ProductionPlan
         {
             PlanId = planId,
             PlanCode = $"KHSX-2026072{ordinal}-FULLDAY",
@@ -968,7 +968,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             UpdatedAt = submittedAt,
             CreatedByNavigation = user
         };
-        var request = new Materialrequest
+        var request = new MaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = $"MR-2026072{ordinal}-FULLDAY",
@@ -992,8 +992,8 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         return request;
     }
 
-    private static Materialrequestline CreateInboxLine(
-        Materialrequest request,
+    private static MaterialRequestLine CreateInboxLine(
+        MaterialRequest request,
         Ingredient ingredient,
         Unit unit,
         decimal suggestedPurchaseQuantity)
@@ -1064,7 +1064,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         {
             await using var context = CreateContext();
             var requestId = GuidHelper.NewId();
-            context.Materialrequests.Add(new Materialrequest
+            context.Materialrequests.Add(new MaterialRequest
             {
                 RequestId = requestId,
                 RequestCode = $"MR-{Guid.NewGuid():N}",

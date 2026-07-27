@@ -8,15 +8,7 @@ import {
   StatusBadge,
   useToast,
 } from '@/components/common';
-import {
-  useGetApprovalRulesQuery,
-  useCreateApprovalRuleMutation,
-  useUpdateApprovalRuleMutation,
-  useDeleteApprovalRuleMutation,
-  type ApprovalAssignmentDto,
-  type ApprovalRuleDto,
-  type ApprovalRuleRequestDto,
-} from '@/features/workflow';
+import { useGetApprovalRulesQuery, useCreateApprovalRuleMutation, useUpdateApprovalRuleMutation, useDeleteApprovalRuleMutation, type ApprovalAssignmentDto, type ApprovalRuleDto, type ApprovalRuleRequestDto } from '@/api/workflowApi';
 import { useGetAdminEmployeesQuery, type AdminEmployee } from '@/features/admin/adminApi';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';

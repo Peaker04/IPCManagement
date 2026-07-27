@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { uiCopy } from '@/lib/uiCopy';
-import type { WorkflowLane } from '@/features/workflow';
+import type { WorkflowLane } from '@/types/workflow';
 
 interface SwimlaneProgressProps {
   lanes: WorkflowLane[];

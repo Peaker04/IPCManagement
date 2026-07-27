@@ -9,7 +9,7 @@ public interface IApprovalWorkflowService
     Task<ApprovalResultDto?> ExecuteAsync(
         string targetType,
         string targetId,
-        ApprovalRequestDto request,
+        ApprovalRequest request,
         string? actorUserId,
         ClaimsPrincipal? actor = null);
 }
@@ -26,7 +26,7 @@ public class ApprovalWorkflowService : IApprovalWorkflowService
     public async Task<ApprovalResultDto?> ExecuteAsync(
         string targetType,
         string targetId,
-        ApprovalRequestDto request,
+        ApprovalRequest request,
         string? actorUserId,
         ClaimsPrincipal? actor = null)
     {
