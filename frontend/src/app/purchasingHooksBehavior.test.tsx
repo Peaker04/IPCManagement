@@ -1,4 +1,4 @@
-import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi'
@@ -57,66 +57,138 @@ import { useSupplierQuotations } from '@/features/purchasing/quotation/useSuppli
 import { PurchaseDecisionPanel } from '@/features/purchasing/PurchaseDecisionPanel'
 import { WarehousePurchaseReceiptDialog } from '@/features/warehouse/WarehousePurchaseReceiptDialog'
 
+const readyQuery = <T,>(data: T, overrides: Record<string, unknown> = {}) => ({
+  data,
+  currentData: data,
+  isUninitialized: false,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: true,
+  isError: false,
+  error: undefined,
+  refetch: vi.fn(),
+  ...overrides,
+})
+
+const uninitializedQuery = () => ({
+  data: undefined,
+  currentData: undefined,
+  isUninitialized: true,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: false,
+  isError: false,
+  error: undefined,
+  refetch: vi.fn(),
+})
+
+const supplierServiceDate = (): PurchaseWorkbenchServiceDate => ({
+  serviceDate: '2026-07-20',
+  scope: 'FULLDAY',
+  currentStage: 'supplier-price',
+  approvedDemandCount: 1,
+  shortageLineCount: 1,
+  supplierReadyLineCount: 0,
+  blockingExceptionCount: 0,
+  purchaseRequestId: 'request-1',
+  purchaseRequestCode: 'PR-001',
+  purchaseRequestStatus: 'DRAFT',
+  orderCount: 0,
+  receivingLineCount: 0,
+  fullyReceivedLineCount: 0,
+  approvedDemands: [],
+  purchaseLines: [{
+    purchaseRequestLineId: 'line-1',
+    materialRequestLineId: 'material-line-1',
+    ingredientId: 'ingredient-1',
+    ingredientName: 'Gạo',
+    unitId: 'unit-1',
+    unitName: 'kg',
+    requiredQty: 10,
+    currentStockQty: 2,
+    purchaseQty: 8,
+    estimatedUnitPrice: 20_000,
+    supplierDecisionStatus: 'UNCONFIRMED',
+    supplierDecisionHistory: [],
+  }],
+})
+
 describe('purchasing hook behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mocks.getIngredients.mockReturnValue({ data: [] })
+    mocks.getIngredients.mockReturnValue(readyQuery([]))
     mocks.getOrders.mockReturnValue({ data: undefined })
     mocks.getCandidates.mockReturnValue({ data: undefined, isFetching: false })
     mocks.getPlan.mockReturnValue({ data: undefined })
     mocks.getRequests.mockReturnValue({ data: undefined })
     mocks.getStockMovements.mockReturnValue({ data: undefined })
-    mocks.getQuotations.mockReturnValue({ data: undefined, isFetching: false })
-    mocks.getSuppliers.mockReturnValue({ data: [] })
+    mocks.getQuotations.mockReturnValue(uninitializedQuery())
+    mocks.getSuppliers.mockReturnValue(readyQuery([]))
     mocks.getWarehouses.mockReturnValue({ data: undefined })
-    mocks.getSupplierEvidence.mockReturnValue({ data: { candidates: [], diagnostics: [] }, isFetching: false })
+    mocks.getSupplierEvidence.mockReturnValue(readyQuery({ candidates: [], diagnostics: [] }))
   })
 
   // Trước 27/07 khối này còn kiểm cả usePurchaseSupplier/usePurchaseOrders/usePurchaseHandoff.
   // Ba hook đó đã bị xoá cùng 4 sub-module chết (không page nào import), nên phần còn lại chỉ
   // kiểm hook đang sống. Query gating vẫn là hạng mục GIỮ NGUYÊN — xem CONTRIBUTING.md.
   it('skips every inactive purchasing-tab query', () => {
-    renderHook(() => useSupplierQuotations(false))
+    mocks.getIngredients.mockReturnValue(uninitializedQuery())
+    mocks.getSuppliers.mockReturnValue(uninitializedQuery())
+    mocks.getQuotations.mockReturnValue(uninitializedQuery())
+
+    const { result } = renderHook(() => useSupplierQuotations(false))
     expect(mocks.getIngredients).toHaveBeenCalledWith(undefined, { skip: true })
     expect(mocks.getQuotations).toHaveBeenCalledWith(
       { ingredientId: '', pageNumber: 1, pageSize: 8 },
       { skip: true },
     )
+    expect(result.current.ingredientView.phase).toBe('uninitialized')
+    expect(result.current.supplierView.phase).toBe('uninitialized')
+    expect(result.current.quotationView.phase).toBe('uninitialized')
+  })
+
+  it('classifies a query-level quotation 403 as forbidden', () => {
+    mocks.getQuotations.mockImplementation((_args, options) => options.skip
+      ? uninitializedQuery()
+      : {
+          ...uninitializedQuery(),
+          isUninitialized: false,
+          isError: true,
+          error: { status: 403 },
+        })
+    const { result } = renderHook(() => useSupplierQuotations(true))
+
+    act(() => result.current.selectIngredient('ingredient-1'))
+
+    expect(result.current.quotationView).toEqual({
+      phase: 'forbidden',
+      message: 'Bạn không có quyền xem báo giá nhà cung cấp.',
+    })
+  })
+
+  it('keeps quotation rows while their cache entry refreshes', () => {
+    mocks.getQuotations.mockImplementation((_args, options) => options.skip
+      ? uninitializedQuery()
+      : readyQuery({
+          items: [{ quotationId: 'quotation-1' }],
+          totalCount: 1,
+          pageNumber: 1,
+          pageSize: 8,
+          totalPages: 1,
+          hasPrev: false,
+          hasNext: false,
+        }, { isFetching: true }))
+    const { result } = renderHook(() => useSupplierQuotations(true))
+
+    act(() => result.current.selectIngredient('ingredient-1'))
+
+    expect(result.current.quotationView).toMatchObject({ phase: 'ready', isRefreshing: true })
+    expect(result.current.rows).toEqual([{ quotationId: 'quotation-1' }])
   })
 
   it('keeps supplier evidence visible and requires an explicit confirmation', async () => {
-    const serviceDate: PurchaseWorkbenchServiceDate = {
-      serviceDate: '2026-07-20',
-      scope: 'FULLDAY',
-      currentStage: 'supplier-price',
-      approvedDemandCount: 1,
-      shortageLineCount: 1,
-      supplierReadyLineCount: 0,
-      blockingExceptionCount: 0,
-      purchaseRequestId: 'request-1',
-      purchaseRequestCode: 'PR-001',
-      purchaseRequestStatus: 'DRAFT',
-      orderCount: 0,
-      receivingLineCount: 0,
-      fullyReceivedLineCount: 0,
-      approvedDemands: [],
-      purchaseLines: [{
-        purchaseRequestLineId: 'line-1',
-        materialRequestLineId: 'material-line-1',
-        ingredientId: 'ingredient-1',
-        ingredientName: 'Gạo',
-        unitId: 'unit-1',
-        unitName: 'kg',
-        requiredQty: 10,
-        currentStockQty: 2,
-        purchaseQty: 8,
-        estimatedUnitPrice: 20_000,
-        supplierDecisionStatus: 'UNCONFIRMED',
-        supplierDecisionHistory: [],
-      }],
-    }
-    mocks.getSupplierEvidence.mockReturnValue({
-      data: {
+    const serviceDate = supplierServiceDate()
+    mocks.getSupplierEvidence.mockReturnValue(readyQuery({
         candidates: [{
           evidenceType: 'EffectiveQuotation',
           evidenceId: 'quote-1',
@@ -131,9 +203,7 @@ describe('purchasing hook behavior', () => {
           effectiveTo: '2026-07-30',
         }],
         diagnostics: [],
-      },
-      isFetching: false,
-    })
+      }, { isFetching: true }))
 
     render(
       <PurchaseDecisionPanel
@@ -145,6 +215,7 @@ describe('purchasing hook behavior', () => {
     )
 
     expect(screen.getByText('Nhà cung cấp Minh An')).toBeInTheDocument()
+    expect(screen.getByText(/danh sách hiện tại vẫn được giữ/i)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xác nhận nhà cung cấp' })).toBeDisabled()
 
     fireEvent.click(screen.getByRole('button', { name: /Chọn Nhà cung cấp Minh An/i }))
@@ -154,6 +225,28 @@ describe('purchasing hook behavior', () => {
     expect(screen.getByRole('dialog', { name: 'Xác nhận nhà cung cấp' })).toBeInTheDocument()
     await waitFor(() => expect(screen.getByRole('button', { name: 'Quay lại chọn nhà cung cấp' })).toHaveFocus())
     expect(mocks.confirmLineSupplier).not.toHaveBeenCalled()
+  })
+
+  it('renders supplier-evidence forbidden without a retry action', () => {
+    const serviceDate = supplierServiceDate()
+    mocks.getSupplierEvidence.mockReturnValue({
+      ...uninitializedQuery(),
+      isUninitialized: false,
+      isError: true,
+      error: { status: 403 },
+    })
+
+    render(
+      <PurchaseDecisionPanel
+        week="2026-07-20"
+        selectedStage="supplier-price"
+        serviceDate={serviceDate}
+        selectedLine={serviceDate.purchaseLines[0]}
+      />,
+    )
+
+    expect(screen.getByText('Bạn không có quyền xem bằng chứng nhà cung cấp.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull()
   })
 
   it('exposes purchase request submission when every supplier decision is ready', async () => {

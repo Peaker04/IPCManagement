@@ -1,8 +1,9 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { ChefHat } from 'lucide-react';
-import { InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
+import { EmptyState, InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
+import { toQueryView } from '@/lib/queryView';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
   useGetPurchaseOrdersQuery,
@@ -36,13 +37,35 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
   const supplementalQuery = useGetSupplementalMaterialRequestsQuery({ pageNumber: 1, pageSize: 100 });
   const purchaseQuery = useGetPurchaseRequestsQuery();
   const orderQuery = useGetPurchaseOrdersQuery();
+  const supplementalView = toQueryView(supplementalQuery, {
+    instruction: 'Đang chờ khởi tạo danh sách nhu cầu mua bổ sung.',
+    retry: () => supplementalQuery.refetch(),
+    errorMessage: 'Không tải được nhu cầu mua bổ sung từ bếp.',
+    forbiddenMessage: 'Bạn không có quyền xem nhu cầu mua bổ sung từ bếp.',
+    getTruncation: (data) => data.totalCount > data.items.length
+      ? { shown: data.items.length, total: data.totalCount }
+      : null,
+  });
+  const purchaseView = toQueryView(purchaseQuery, {
+    instruction: 'Đang chờ khởi tạo danh sách đề xuất mua.',
+    retry: () => purchaseQuery.refetch(),
+    errorMessage: 'Không tải được đề xuất mua liên kết.',
+    forbiddenMessage: 'Bạn không có quyền xem đề xuất mua liên kết.',
+  });
+  const orderView = toQueryView(orderQuery, {
+    instruction: 'Đang chờ khởi tạo danh sách đơn đặt hàng.',
+    retry: () => orderQuery.refetch(),
+    errorMessage: 'Không tải được đơn đặt hàng liên kết.',
+    forbiddenMessage: 'Bạn không có quyền xem đơn đặt hàng liên kết.',
+  });
   const [selectedRequestId, setSelectedRequestId] = useState<string>();
-  const supplementalItems = useMemo(
-    () => (supplementalQuery.data?.items ?? []).filter((item) => item.purchaseRequestId && item.remainingQty > 0),
-    [supplementalQuery.data?.items],
-  );
-  const purchaseRequests = purchaseQuery.data?.data ?? [];
-  const purchaseOrders = orderQuery.data ?? [];
+  const supplementalResponse = supplementalView.phase === 'ready' ? supplementalView.data : undefined;
+  const purchaseResponse = purchaseView.phase === 'ready' ? purchaseView.data : undefined;
+  const orderResponse = orderView.phase === 'ready' ? orderView.data : undefined;
+  const supplementalItems = (supplementalResponse?.items ?? [])
+    .filter((item) => item.purchaseRequestId && item.remainingQty > 0);
+  const purchaseRequests = purchaseResponse?.data ?? [];
+  const purchaseOrders = orderResponse ?? [];
 
   const effectiveSelectedRequestId = selectedRequestId && supplementalItems.some((item) => item.requestId === selectedRequestId)
     ? selectedRequestId
@@ -50,20 +73,18 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
   const selectedSupplemental = supplementalItems.find((item) => item.requestId === effectiveSelectedRequestId);
   const selectedPurchaseRequest = purchaseRequests.find((item) => item.purchaseRequestId === selectedSupplemental?.purchaseRequestId);
   const selectedOrders = purchaseOrders.filter((item) => item.purchaseRequestId === selectedPurchaseRequest?.purchaseRequestId);
-  const selectedLine = useMemo<PurchaseRequestWorkflowLine | undefined>(() => {
-    const line = selectedPurchaseRequest?.lines[0];
-    if (!line) return undefined;
-    return {
-      ...line,
-      supplierDecisionStatus: line.supplierDecisionStatus ?? (isSupplierReady(line) ? 'READY' : 'BLOCKED'),
-      currentSupplierDecision: line.currentSupplierDecision ?? undefined,
-      supplierDecisionHistory: line.supplierDecisionHistory ?? [],
-    };
-  }, [selectedPurchaseRequest]);
+  const sourceLine = selectedPurchaseRequest?.lines[0];
+  const selectedLine: PurchaseRequestWorkflowLine | undefined = sourceLine
+    ? {
+      ...sourceLine,
+      supplierDecisionStatus: sourceLine.supplierDecisionStatus ?? (isSupplierReady(sourceLine) ? 'READY' : 'BLOCKED'),
+      currentSupplierDecision: sourceLine.currentSupplierDecision ?? undefined,
+      supplierDecisionHistory: sourceLine.supplierDecisionHistory ?? [],
+    }
+    : undefined;
   const selectedStage = resolveStage(selectedPurchaseRequest?.status ?? 'DRAFT', selectedLine, selectedOrders.length > 0);
-  const serviceDate = useMemo<PurchaseWorkbenchServiceDate | undefined>(() => {
-    if (!selectedPurchaseRequest || !selectedSupplemental) return undefined;
-    return {
+  const serviceDate: PurchaseWorkbenchServiceDate | undefined = selectedPurchaseRequest && selectedSupplemental
+    ? {
       serviceDate: selectedPurchaseRequest.purchaseForDate,
       scope: selectedPurchaseRequest.shiftName || 'FULLDAY',
       currentStage: selectedStage,
@@ -82,15 +103,49 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
       ),
       approvedDemands: [],
       purchaseLines: selectedLine ? [selectedLine] : [],
-    };
-  }, [selectedLine, selectedOrders, selectedPurchaseRequest, selectedStage, selectedSupplemental]);
+    }
+    : undefined;
 
-  if (supplementalQuery.isError || purchaseQuery.isError || orderQuery.isError) {
+  const isForbidden = supplementalView.phase === 'forbidden'
+    || purchaseView.phase === 'forbidden'
+    || orderView.phase === 'forbidden';
+  const isError = supplementalView.phase === 'error'
+    || purchaseView.phase === 'error'
+    || orderView.phase === 'error';
+  const isLoading = supplementalView.phase === 'loading'
+    || purchaseView.phase === 'loading'
+    || orderView.phase === 'loading';
+  const isRefreshing = supplementalView.phase === 'ready' && supplementalView.isRefreshing
+    || purchaseView.phase === 'ready' && purchaseView.isRefreshing
+    || orderView.phase === 'ready' && orderView.isRefreshing;
+  const retryFailedQueries = () => {
+    if (supplementalView.phase === 'error') supplementalView.retry();
+    if (purchaseView.phase === 'error') purchaseView.retry();
+    if (orderView.phase === 'error') orderView.retry();
+  };
+
+  if (isForbidden) {
     return (
-      <InlineAlert title="Không tải được nhu cầu mua bổ sung từ bếp" variant="danger">
-        Không thể chọn nhà cung cấp khi yêu cầu bổ sung hoặc đề xuất mua chưa tải thành công. Hãy thử tải lại trang.
+      <InlineAlert title="Không có quyền xem nhu cầu mua bổ sung từ bếp" variant="danger">
+        Không thể mở dữ liệu yêu cầu bổ sung, đề xuất mua hoặc đơn đặt hàng liên kết với quyền hiện tại.
       </InlineAlert>
     );
+  }
+  if (isError) {
+    return (
+      <EmptyState
+        variant="error"
+        title="Không tải được nhu cầu mua bổ sung từ bếp"
+        description="Không thể chọn nhà cung cấp khi yêu cầu bổ sung hoặc đề xuất mua chưa tải thành công."
+        onRetry={retryFailedQueries}
+        isRetrying={supplementalView.phase === 'error' && supplementalView.isRetrying
+          || purchaseView.phase === 'error' && purchaseView.isRetrying
+          || orderView.phase === 'error' && orderView.isRetrying}
+      />
+    );
+  }
+  if (isLoading) {
+    return <InlineAlert title="Đang tải nhu cầu mua bổ sung" variant="info">Đang đồng bộ yêu cầu bếp và đề xuất mua liên kết.</InlineAlert>;
   }
   if (supplementalItems.length === 0) return null;
 
@@ -100,6 +155,16 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
       icon={<ChefHat size={18} aria-hidden="true" />}
       description="Các yêu cầu kho không đủ hàng. Chọn một dòng để hoàn tất nhà cung cấp, gửi duyệt và tạo đơn mua."
     >
+      {isRefreshing && (
+        <InlineAlert title="Đang cập nhật nhu cầu mua bổ sung" variant="info">
+          Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+        </InlineAlert>
+      )}
+      {supplementalView.phase === 'ready' && supplementalView.truncation && (
+        <InlineAlert title="Danh sách đang bị giới hạn" variant="warning">
+          Đang hiển thị {supplementalView.truncation.shown}/{supplementalView.truncation.total ?? 'nhiều hơn'} yêu cầu bổ sung. Dùng bộ lọc hoặc luồng đầy đủ trước khi kết luận đã xử lý hết.
+        </InlineAlert>
+      )}
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(340px,0.8fr)]">
         <TableViewport ariaLabel="Danh sách nhu cầu mua bổ sung từ bếp" caption="Đề xuất mua được liên kết với yêu cầu bổ sung và phiếu xuất gốc.">
           <table className="ipc-data-table min-w-[760px]">
