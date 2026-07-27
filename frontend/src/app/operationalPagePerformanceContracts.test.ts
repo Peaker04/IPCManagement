@@ -9,7 +9,7 @@ import chefJournalSource from '../features/chef/journal/useChefJournal.ts?raw';
 import reportsSource from '../features/reports/pages/ReportsPage.tsx?raw';
 import weeklyMenuSource from '../features/projects/pages/WeeklyMenuPage.tsx?raw';
 import materialDemandSource from '../features/projects/weekly-menu/demand/useMaterialDemand.ts?raw';
-import warehouseSource from '../features/workflow/pages/WarehousePage.tsx?raw';
+import warehouseSource from '../features/warehouse/pages/WarehousePage.tsx?raw';
 
 describe('operational page performance contracts', () => {
   it('keeps supplier quotations as an isolated purchasing work object', () => {

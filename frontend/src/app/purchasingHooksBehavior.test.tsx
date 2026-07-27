@@ -55,7 +55,7 @@ vi.mock('@/api/workflowApi', () => ({
 
 import { useSupplierQuotations } from '@/features/purchasing/quotation/useSupplierQuotations'
 import { PurchaseDecisionPanel } from '@/features/purchasing/PurchaseDecisionPanel'
-import { WarehousePurchaseReceiptDialog } from '@/features/workflow/warehouse/WarehousePurchaseReceiptDialog'
+import { WarehousePurchaseReceiptDialog } from '@/features/warehouse/WarehousePurchaseReceiptDialog'
 
 describe('purchasing hook behavior', () => {
   beforeEach(() => {

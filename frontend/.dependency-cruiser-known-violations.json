@@ -929,22 +929,5 @@
       "severity": "error",
       "name": "R3-feature-khong-goi-app"
     }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/WarehousePage.tsx",
-    "to": "src/app/hooks.ts",
-    "unresolvedTo": "@/app/hooks",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R3-feature-khong-goi-app"
-    }
   }
 ]

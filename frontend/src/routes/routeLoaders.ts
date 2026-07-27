@@ -35,7 +35,7 @@ const coordinationRoute = createPreloadableRoute(() => import('../features/coord
 const chefDashboardRoute = createPreloadableRoute(() => import('../features/chef/pages/ChefDashboardPage'));
 const approvalRoute = createPreloadableRoute(() => import('../features/workflow/pages/ApprovalPage'));
 const purchasingRoute = createPreloadableRoute(() => import('../features/purchasing/pages/PurchasingPage'));
-const warehouseRoute = createPreloadableRoute(() => import('../features/workflow/pages/WarehousePage'));
+const warehouseRoute = createPreloadableRoute(() => import('../features/warehouse/pages/WarehousePage'));
 const adminDataRoute = createPreloadableRoute(() => import('../features/workflow/pages/AdminDataPage'));
 const approvalRulesRoute = createPreloadableRoute(() => import('../features/workflow/pages/ApprovalRulesPage'));
 

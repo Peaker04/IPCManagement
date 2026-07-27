@@ -1,7 +1,7 @@
 import { useDeferredValue, useState } from 'react';
 import { ClipboardList, PackageOpen, ReceiptText, Warehouse } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { useHasRole } from '@/app/hooks';
+import { useHasRole } from '@/lib/useHasRole';
 import {
   CommandBar,
   ContextStrip,
@@ -30,9 +30,9 @@ import {
   useGetWarehouseSelectorQuery,
   type PurchaseOrderLineDto,
 } from '@/api/workflowApi';
-import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog';
-import { buildWarehouseIssueAllocation } from '../warehouse/warehouseIssueAllocation';
-import { WarehouseExceptionsWorkbench } from '../warehouse/WarehouseExceptionsWorkbench';
+import { WarehousePurchaseReceiptDialog } from '../WarehousePurchaseReceiptDialog';
+import { buildWarehouseIssueAllocation } from '../warehouseIssueAllocation';
+import { WarehouseExceptionsWorkbench } from '../WarehouseExceptionsWorkbench';
 import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
