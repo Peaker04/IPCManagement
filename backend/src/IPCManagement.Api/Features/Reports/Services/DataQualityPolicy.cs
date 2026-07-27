@@ -42,6 +42,46 @@ internal static class DataQualityPolicy
         };
     }
 
+    internal static string NormalizeRemediationAction(string action)
+        => action.Trim().ToLowerInvariant() switch
+        {
+            "resolve" or "resolved" => "resolved",
+            "reopen" or "reopened" => "reopened",
+            _ => throw new ArgumentException("Hành động data-quality issue phải là resolve hoặc reopen.")
+        };
+
+    internal static HashSet<string> NormalizeCleanupCategories(IReadOnlyList<string>? categories)
+    {
+        var normalized = (categories ?? ["orphan_document", "stale_demand", "stale_purchase_request"])
+            .Where(category => !string.IsNullOrWhiteSpace(category))
+            .Select(category => category.Trim().ToLowerInvariant())
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        if (normalized.Count == 0)
+        {
+            normalized.Add("orphan_document");
+            normalized.Add("stale_demand");
+            normalized.Add("stale_purchase_request");
+        }
+
+        var unsupported = normalized
+            .Where(category => category is not (
+                "orphan_document" or
+                "stale_demand" or
+                "stale_purchase_request" or
+                "inventory_ledger_baseline" or
+                "zero_stock_unit"))
+            .OrderBy(category => category)
+            .ToList();
+        if (unsupported.Count > 0)
+        {
+            throw new ArgumentException(
+                $"Data-quality cleanup chỉ hỗ trợ orphan_document, stale_demand, stale_purchase_request, inventory_ledger_baseline, zero_stock_unit. Không hỗ trợ: {string.Join(", ", unsupported)}.");
+        }
+
+        return normalized;
+    }
+
     internal static string NormalizeRemediationStatus(string? status)
         => status?.Trim().ToLowerInvariant() switch
         {
