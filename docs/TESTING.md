@@ -94,6 +94,9 @@ không được hiển thị lỗi tải dữ liệu như một empty state hợ
 
 - Backend đặt test trong `backend/tests/IPCManagement.Api.Tests/` hoặc `backend/tests/IPCManagement.Application.Tests/`, dùng tên class kết thúc bằng `Tests.cs`.
 - Frontend unit test đặt cạnh module với hậu tố test TypeScript/TSX; dùng Testing Library cho component và Vitest cho model/utility.
+- Adapter query-state phải có table-driven test cho đủ uninitialized, loading, ready-empty, ready-success,
+  refreshing, partial/truncation, forbidden và error. `src/lib/queryView.test.ts` là contract test nền;
+  mỗi feature pilot phải bổ sung component/browser assertion cho presentation tương ứng.
 - Browser scenarios đặt trong `frontend/tests/` với hậu tố spec TypeScript; snapshot nằm trong thư mục snapshot tương ứng.
 - Dùng `frontend/src/test/setup.ts` cho cleanup và matcher của Testing Library; không đưa side effect dùng chung vào từng test nếu có thể đặt ở setup.
 

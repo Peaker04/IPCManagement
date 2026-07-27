@@ -24,6 +24,7 @@ export function MaterialDemandSection({
   servingFeedback: WeeklyScheduleFeedback | null
 }) {
   const { state, status, actions, presentation } = workflow
+  const demandView = workflow.dataState
   const { activeDay, dayPages, dayIndex, activeRows, activeQuickServingRows, inventoryStatus, inventoryGroups } = presentation
   const servingBusy = status.isSavingQuickServings || scheduleWorkflow.status.isSavingQuickServings
   const isStalenessUnavailable = status.stalenessState === 'loading' || status.stalenessState === 'error'
@@ -241,13 +242,34 @@ export function MaterialDemandSection({
         </div>
         </details>
 
-        {status.isDemandError ? (
+        {demandView.phase === 'ready' && demandView.isRefreshing && (
+          <InlineAlert title="Đang cập nhật nhu cầu nguyên liệu" variant="info">
+            Dữ liệu hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
+          </InlineAlert>
+        )}
+        {demandView.phase === 'ready' && demandView.truncation && (
+          <InlineAlert title="Dữ liệu nhu cầu chưa đầy đủ" variant="warning">
+            Đang hiển thị {demandView.truncation.shown.toLocaleString('vi-VN')}
+            {demandView.truncation.total !== undefined ? `/${demandView.truncation.total.toLocaleString('vi-VN')}` : ''} dòng. Hãy thu hẹp bộ lọc trước khi ra quyết định.
+          </InlineAlert>
+        )}
+        {demandView.phase === 'uninitialized' ? (
+          <InlineAlert title="Chưa có phạm vi nhu cầu" variant="info">
+            {demandView.instruction}
+          </InlineAlert>
+        ) : demandView.phase === 'loading' ? (
+          <div className="ipc-demand-summary is-empty" role="status">Đang tải nhu cầu nguyên liệu...</div>
+        ) : demandView.phase === 'forbidden' ? (
+          <InlineAlert title="Không có quyền xem nhu cầu nguyên liệu" variant="danger">
+            {demandView.message}
+          </InlineAlert>
+        ) : demandView.phase === 'error' ? (
           <EmptyState
             variant="error"
             title="Không tải được nhu cầu nguyên liệu"
             description="Máy chủ chưa trả được dòng nhu cầu cho ngày đang xem, nên không thể kết luận là tuần này không cần mua gì. Hãy tải lại rồi mới lập đề xuất mua hoặc phiếu xuất."
-            onRetry={actions.retryDemand}
-            isRetrying={status.isDemandRetrying}
+            onRetry={demandView.retry}
+            isRetrying={demandView.isRetrying}
           />
         ) : presentation.demandLines.length > 0 || presentation.aggregateLines.length > 0 ? (
           <section className="ipc-demand-inventory-section">

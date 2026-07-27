@@ -24,6 +24,7 @@ import { useCreateInventoryIssueMutation, useGetCurrentStockQuery, useGetCurrent
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { toQueryView } from '@/lib/queryView';
 import {
   useGetPurchaseOrdersPageQuery,
   useGetSupplementalMaterialRequestsQuery,
@@ -37,6 +38,8 @@ import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const EMPTY_QUERY_ROWS: never[] = [];
 
 const getMutationErrorMessage = (error: unknown, fallback: string) => {
   if (error && typeof error === 'object' && 'data' in error) {
@@ -107,28 +110,33 @@ export default function WarehousePage() {
     pageSize: 8,
   });
   const stockMovementCursor = stockMovementCursors.at(-1);
-  const {
-    data: stockMovementPage,
-    isError: isStockMovementError,
-    isFetching: isFetchingStockMovement,
-    refetch: refetchStockMovement,
-  } = useGetStockMovementPageQuery({
+  const stockMovementQuery = useGetStockMovementPageQuery({
     cursorDate: stockMovementCursor?.cursorDate,
     cursorId: stockMovementCursor?.cursorId,
     cursorOffset: stockMovementCursor?.cursorOffset,
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'movement' });
-  const {
-    data: currentStockPageResponse,
-    isError: isCurrentStockError,
-    isFetching: isFetchingCurrentStock,
-    refetch: refetchCurrentStock,
-  } = useGetCurrentStockPageQuery({
+  const stockMovementView = toQueryView(stockMovementQuery, {
+    instruction: 'Mở tab Luân chuyển để xem sổ kho.',
+    retry: () => stockMovementQuery.refetch(),
+    errorMessage: 'Không tải được sổ luân chuyển kho.',
+    forbiddenMessage: 'Bạn không có quyền xem sổ luân chuyển kho.',
+  });
+  const stockMovementPage = stockMovementView.phase === 'ready' ? stockMovementView.data : undefined;
+  const currentStockQuery = useGetCurrentStockPageQuery({
     pageNumber: currentStockPage,
     pageSize: 8,
   }, { skip: activeView !== 'movement' });
-  const currentStockRows = currentStockPageResponse?.items ?? [];
+  const currentStockView = toQueryView(currentStockQuery, {
+    instruction: 'Mở tab Luân chuyển để xem tồn kho hiện tại.',
+    retry: () => currentStockQuery.refetch(),
+    errorMessage: 'Không tải được tồn kho hiện tại.',
+    forbiddenMessage: 'Bạn không có quyền xem tồn kho hiện tại.',
+  });
+  const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
+  const currentStockRows = currentStockPageResponse ? currentStockPageResponse.items : EMPTY_QUERY_ROWS;
+  const isCurrentStockError = currentStockView.phase === 'error' || currentStockView.phase === 'forbidden';
   const { data: kitchenIssueRows = [], isError: isKitchenIssueError } = useGetKitchenIssuesQuery({ limit: 100 });
   const [createInventoryIssue, { isLoading: isCreatingIssue }] = useCreateInventoryIssueMutation();
   const { roleInboxItems } = useWorkflowOverview({ skip: activeView !== 'demand' });
@@ -623,15 +631,25 @@ export default function WarehousePage() {
           >
             <div className="flex flex-col gap-4">
               <SectionPanel title="Tồn kho hiện tại" icon={<Warehouse size={18} />}>
-                {isCurrentStockError && (
+                {currentStockView.phase === 'forbidden' && (
+                  <InlineAlert title="Không có quyền xem tồn kho hiện tại" variant="danger" className="mb-3">
+                    {currentStockView.message}
+                  </InlineAlert>
+                )}
+                {currentStockView.phase === 'error' && (
                   <EmptyState
                     variant="error"
                     className="mb-3"
                     title="Không tải được tồn kho hiện tại"
                     description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì kho hết hàng. Hãy tải lại trước khi lập phiếu xuất hoặc kết luận thiếu hàng."
-                    onRetry={refetchCurrentStock}
-                    isRetrying={isFetchingCurrentStock}
+                    onRetry={currentStockView.retry}
+                    isRetrying={currentStockView.isRetrying}
                   />
+                )}
+                {currentStockView.phase === 'ready' && currentStockView.isRefreshing && (
+                  <InlineAlert title="Đang cập nhật tồn kho" variant="info" className="mb-3">
+                    Bảng hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
+                  </InlineAlert>
                 )}
                 <TableViewport className="ipc-warehouse-table-shell" ariaLabel="Bảng tồn kho hiện tại trong kho" caption="Danh sách tồn kho hiện tại trong kho">
                   <table className="ipc-data-table">
@@ -644,10 +662,14 @@ export default function WarehousePage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {currentStockRows.length === 0 ? (
+                      {currentStockView.phase === 'loading' ? (
+                        <tr><td colSpan={4} className="text-center text-slate-600" role="status">Đang tải tồn kho hiện tại...</td></tr>
+                      ) : currentStockView.phase === 'uninitialized' ? (
+                        <tr><td colSpan={4} className="text-center text-slate-600">{currentStockView.instruction}</td></tr>
+                      ) : currentStockRows.length === 0 ? (
                         <tr>
                           <td colSpan={4} className={isCurrentStockError ? 'text-center font-semibold text-red-700' : 'text-center text-slate-500'}>
-                            {isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}
+                            {currentStockView.phase === 'forbidden' ? 'Không có quyền xem tồn kho' : isCurrentStockError ? 'Không tải được tồn kho' : 'Chưa có dữ liệu tồn kho'}
                           </td>
                         </tr>
                       ) : currentStockRows.map((row) => (
@@ -670,28 +692,44 @@ export default function WarehousePage() {
               </SectionPanel>
 
               <SectionPanel title="Luân chuyển kho" icon={<ClipboardList size={18} />}>
-                {isStockMovementError && (
+                {stockMovementView.phase === 'forbidden' && (
+                  <InlineAlert title="Không có quyền xem sổ luân chuyển kho" variant="danger" className="mb-3">
+                    {stockMovementView.message}
+                  </InlineAlert>
+                )}
+                {stockMovementView.phase === 'error' && (
                   <EmptyState
                     variant="error"
                     className="mb-3"
                     title="Không tải được sổ luân chuyển kho"
                     description="Không có dòng luân chuyển nào hiển thị vì lỗi tải dữ liệu. Đừng coi đây là bằng chứng kho chưa phát sinh nhập, xuất hay trả hàng."
-                    onRetry={refetchStockMovement}
-                    isRetrying={isFetchingStockMovement}
+                    onRetry={stockMovementView.retry}
+                    isRetrying={stockMovementView.isRetrying}
                   />
                 )}
-                <StockMovementTable
-                  movements={stockMovementPage?.items ?? []}
-                  cursorPagination={{
-                    page: stockMovementCursors.length + 1,
-                    hasNext: stockMovementPage?.hasNext ?? false,
-                    onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
-                    onNext: () => {
-                      const nextCursor = toNextReportCursor(stockMovementPage);
-                      if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
-                    },
-                  }}
-                />
+                {stockMovementView.phase === 'ready' && stockMovementView.isRefreshing && (
+                  <InlineAlert title="Đang cập nhật sổ luân chuyển" variant="info" className="mb-3">
+                    Các dòng hiện tại vẫn được giữ trong khi hệ thống tải bản mới.
+                  </InlineAlert>
+                )}
+                {stockMovementView.phase === 'loading' ? (
+                  <div className="ipc-stock-movement-table is-empty" role="status">Đang tải sổ luân chuyển kho...</div>
+                ) : stockMovementView.phase === 'uninitialized' ? (
+                  <InlineAlert title="Chưa tải sổ luân chuyển" variant="info">{stockMovementView.instruction}</InlineAlert>
+                ) : stockMovementView.phase === 'ready' ? (
+                  <StockMovementTable
+                    movements={stockMovementPage?.items ?? EMPTY_QUERY_ROWS}
+                    cursorPagination={{
+                      page: stockMovementCursors.length + 1,
+                      hasNext: stockMovementPage?.hasNext ?? false,
+                      onPrevious: () => setStockMovementCursors((current) => current.slice(0, -1)),
+                      onNext: () => {
+                        const nextCursor = toNextReportCursor(stockMovementPage);
+                        if (nextCursor) setStockMovementCursors((current) => [...current, nextCursor]);
+                      },
+                    }}
+                  />
+                ) : null}
               </SectionPanel>
             </div>
           </SplitWorkbench>

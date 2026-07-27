@@ -47,6 +47,12 @@ Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự modul
 
 Trong các workbench nhiều tab, query RTK Query được gate theo panel cần dữ liệu thay vì chạy toàn bộ ở page parent. Weekly Menu split Demand, Production Plan, Purchase Summary, Cost và Dish Materials thành chunk riêng; sau khi route ổn định, các chunk này được preload tuần tự trong idle slot mà không preload API. Weekly, Chef và Warehouse dùng selected view riêng với deferred rendered view: tab strip phản hồi ngay, còn panel cũ được giữ trong boundary cục bộ cho tới frame mới. Shell/sidebar/header không remount; trạng thái pending là overlay tuyệt đối nên không chiếm layout, và transition tôn trọng `prefers-reduced-motion`.
 
+`frontend/src/lib/queryView.ts` là hợp đồng opt-in cho kiến trúc `f(data, state)`: adapter thuần chuyển RTK
+Query snapshot thành `uninitialized`, `loading`, `forbidden`, `error` hoặc `ready`; `ready` giữ riêng
+`isRefreshing` và bằng chứng truncation. Empty chỉ được dẫn xuất từ dữ liệu authoritative trong `ready`.
+Lint chặn query đã đi qua adapter nhưng vẫn đọc trực tiếp `query.data ?? []`. Hợp đồng đã có test nền;
+Material Demand và Warehouse là hai pilot đầu tiên, nên các feature chưa pilot vẫn giữ state handling hiện có.
+
 Frontend giữ cây module hiện tại thay vì đổi tên hàng loạt sang `shared/`. Hai composition
 lớn đã được tách theo page model/panel: Reports page còn 799 dòng; Admin Data page chỉ
 là shell 74 dòng với model và bảy panel riêng. CSS global được nạp theo thứ tự tường minh
