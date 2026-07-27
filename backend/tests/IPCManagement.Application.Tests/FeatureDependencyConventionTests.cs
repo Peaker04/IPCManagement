@@ -78,6 +78,23 @@ public class FeatureDependencyConventionTests
         }
     }
 
+    [Fact]
+    public void FeatureControllers_Should_NotReferenceIpcManagementContext()
+    {
+        var featureRoot = FindFeatureRoot();
+        var violations = Directory
+            .EnumerateFiles(featureRoot, "*Controller.cs", SearchOption.AllDirectories)
+            .Where(file => File.ReadAllText(file).Contains("IpcManagementContext", StringComparison.Ordinal))
+            .Select(file => Path.GetRelativePath(featureRoot, file))
+            .OrderBy(file => file)
+            .ToArray();
+
+        Assert.True(
+            violations.Length == 0,
+            "Feature controller(s) reference IpcManagementContext directly: "
+            + string.Join(", ", violations));
+    }
+
     private static Dictionary<FeatureEdge, int> ScanFeatureReferences()
     {
         var featureRoot = FindFeatureRoot();
