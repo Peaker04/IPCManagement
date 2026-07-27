@@ -404,7 +404,7 @@ hàm thuần, có test bảng tám trạng thái và xử lý 403 tường minh.
 Roadmap này nối tiếp Bước 1–10; không làm lại codegen, semantic rename, giải thể `workflow`, cache tag hay
 VSA-lite đã hoàn tất.
 
-### Bước 11 — Khóa hợp đồng `f(data, state)` (1–2 ngày)
+### Bước 11 — Khóa hợp đồng `f(data, state)` — hoàn tất 27/07/2026
 
 - Định nghĩa `QueryView<T>` và adapter thuần từ RTK Query result.
 - Thêm test table-driven cho uninitialized, loading, ready-empty, ready-success, refreshing, partial,
@@ -414,6 +414,10 @@ VSA-lite đã hoàn tất.
 
 **Nghiệm thu:** TypeScript bắt thiếu case; query `skip` không thể rơi vào empty; response 403 không có nút
 retry; refreshing giữ data cũ.
+
+**Đã thực hiện:** commit `d2a5d62` thêm `QueryView<T>`, adapter thuần `toQueryView`, tám test trạng thái và
+lint guardrail kiểu strangler: query đã opt-in không được tiếp tục dùng `query.data ?? []`. Chưa nối vào UI;
+Material Demand và Warehouse vẫn thuộc Bước 12.
 
 ### Bước 12 — Pilot trên hai luồng quyết định thật (3–5 ngày)
 
