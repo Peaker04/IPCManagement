@@ -6,7 +6,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Caching.Memory;
-using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Reports.Contracts;
 using IPCManagement.Api.Features.Reports.Services;
 using IPCManagement.Api.Shared.Contracts;
@@ -86,26 +85,6 @@ public class WorkflowReportsController : ControllerBase
     public async Task<IActionResult> GetWorkflowDocumentsAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>.SuccessResult(
             await _workflowReportService.GetWorkflowDocumentsAsync(query)));
-
-    [HttpGet("purchase-demand")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetPurchaseDemandAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(
-            await _workflowReportService.GetPurchaseDemandAsync(query)));
-
-    [HttpGet("purchase-plan")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPurchasePlanAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>.SuccessResult(
-            await _workflowReportService.GetPurchasePlanAsync(query)));
-
-    [HttpGet("purchase-plan/page")]
-    [ProducesResponseType(typeof(ApiResponse<PurchasePlanPageDto>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPurchasePlanPageAsync([FromQuery] PurchasePlanPageQueryDto query)
-        => Ok(ApiResponse<PurchasePlanPageDto>.SuccessResult(
-            await _workflowReportService.GetPurchasePlanPageAsync(query)));
 
     [HttpGet("kitchen-issues")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
@@ -278,12 +257,6 @@ public class WorkflowReportsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult(ex.Message));
         }
     }
-
-    [HttpGet("order-export")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetOrderExportAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>.SuccessResult(
-            await _workflowReportService.GetOrderExportAsync(query)));
 
     private void InvalidateAggregateCaches()
     {

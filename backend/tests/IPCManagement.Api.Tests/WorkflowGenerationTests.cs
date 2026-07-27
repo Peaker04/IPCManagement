@@ -1328,7 +1328,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var reportLine = (await new WorkflowReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
+            var reportLine = (await new PurchasingReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
             {
                 Limit = 100
             })).Single();
@@ -3224,13 +3224,13 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var dayRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-06-15",
             DateTo = "2026-06-16",
             GroupBy = "day"
         });
-        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var weekRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-06-15",
             DateTo = "2026-06-16",
@@ -3340,13 +3340,13 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var dayRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2027-12-31",
             DateTo = "2028-01-01",
             GroupBy = "day"
         });
-        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var weekRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2027-12-31",
             DateTo = "2028-01-01",
@@ -3428,7 +3428,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var rows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var rows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-01-01",
             DateTo = "2026-12-31",
@@ -6426,7 +6426,7 @@ public class WorkflowGenerationTests
 
         queryCounter.Reset();
         var stopwatch = Stopwatch.StartNew();
-        var rows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var rows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2028-06-01",
             DateTo = "2028-06-30",
