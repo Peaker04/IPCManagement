@@ -370,8 +370,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 35** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 7, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 42** so với
+`origin/feature/production-plan`, working tree sạch sau Bước 8, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -470,6 +470,27 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Full quality gates: FE **327/327**, lint **0 error / 9 warning baseline**, dependency-cruiser sạch,
   production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**; contract drift gate
   và `git diff --check` xanh. Không chạy seed/reset database, không push.
+
+### Bước 8 — migrate frontend sang OpenAPI types (đã hoàn tất ngày 27/07/2026)
+
+- Sáu commit nguyên tử: `616e841` sửa metadata nullable/required của contract; `7957264` auth;
+  `17a81a8` admin; `bfc2856` dish catalog; `ae5490d` coordination; `9d7ae0d` workflow/reporting.
+- Năm API module mục tiêu không còn khai lại wire DTO/request/response bằng tay. Chúng derive từ
+  `components`/`paths` trong `src/shared/api/contracts/schema.ts`; query PascalCase của Swagger được
+  remap bằng `Uncapitalize`, còn view/domain model và mapper FE vẫn giữ nguyên hình dạng phục vụ UI.
+- Bổ sung success-response metadata cho các controller inventory, supplemental request, warehouse và
+  workflow report để generator nhìn thấy đúng DTO. Contract hiện có **173 operation / 396 schema**;
+  chỉ còn bốn success response không có JSON schema: ba DELETE dish/ingredient và CSV audit export.
+- Hai hook legacy vẫn được giữ để không thay public surface: update supplier trên purchase-request line và
+  `POST /purchase-orders/{purchaseOrderId}/receive`. Backend/OpenAPI hiện không có hai route này; type adapter
+  của chúng được derive từ contract gần nhất, không giả là operation sinh tự động và chưa xóa trong Bước 8.
+- Contract regenerate deterministic: SHA-256 trước/sau không đổi cho cả `openapi.json` và `schema.ts`;
+  không có `as any`. Targeted workflow/purchasing/warehouse/reporting **113/113** và full FE **327/327**.
+- Full quality gates: lint **0 error / 9 warning baseline**, dependency-cruiser sạch với **54 known violation**,
+  production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**; `git diff --check` xanh.
+- GitNexus staged audit của lát cuối: **14 file / 118 symbol / 73 execution flow, CRITICAL** do `workflowApi`
+  là hub và contract sinh thay đổi rộng; toàn bộ blast radius đã được phép và phủ bằng full gates. Sau commit đã
+  re-index thành công: **9.445 node / 26.543 edge / 300 flow**. Không reset/seed database, không push.
 
 ## Quy trình tiếp tục ở phiên mới
 
