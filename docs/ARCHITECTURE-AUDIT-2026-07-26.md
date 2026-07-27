@@ -435,50 +435,71 @@ mọi response có `isTruncated/totalCount`, và thêm query-level forbidden sta
 **Nghiệm thu:** `isUninitialized`/adapter được dùng tại mọi query có `skip`; không còn data-owning page tự
 coerce lỗi thành mảng rỗng; các common leaf component vẫn presentation-only.
 
-### Bước 14 — Khóa boundary VSA thật sự (3–5 ngày)
+### Bước 14 — P0: khóa boundary VSA thật sự (3–5 ngày)
 
 - Thêm backend architecture test cho feature dependency direction.
-- Chọn DAG và loại bốn cặp hai chiều: `Purchasing↔Reports`, `Planning↔Purchasing`,
+- Chọn dependency DAG rõ ràng và loại bốn cặp hai chiều: `Purchasing↔Reports`, `Planning↔Purchasing`,
   `Coordination↔SampleData`, `Approvals↔Coordination`.
-- Đưa port/interface về feature sở hữu; chỉ chuyển DTO ổn định thực sự dùng chung vào `Shared/Contracts`.
+- Đưa port/interface về đúng feature sở hữu; chỉ chuyển DTO thực sự dùng chung và ổn định vào
+  `Shared/Contracts`.
 - Bỏ direct `IpcManagementContext` khỏi `PurchaseRequestsController` và `ApprovalHistoryController`.
+- Không di chuyển `Migrations`, không big-bang restructure và không đổi schema trong bước khóa boundary.
 
 **Nghiệm thu:** không còn dependency cycle backend; controller chỉ điều phối use case; migration diff bằng 0.
 
-### Bước 15 — Tách functional core khỏi các hotspot (2–4 tuần, từng use case)
+### Bước 15 — P1: tách use case đang phình và functional core (2–4 tuần)
 
-Thứ tự: `WorkflowReportService` → `CoordinationService` → `PurchaseRequestWorkflowService` →
-`DishService` → `SampleDataImportService.CustomMenu`. Tách pure policy/projection/state transition khỏi EF,
-transaction và clock; application service giữ imperative shell. Controller được tách theo resource/use case,
-không chỉ đổi một file lớn thành nhiều partial file.
+Thứ tự ưu tiên theo cặp controller/service và use case thực:
+
+1. `CoordinationController` + `CoordinationService`: tách order, contract, portion rule, weekly menu/import,
+   meal quantity plan và lock/signoff/export.
+2. `WorkflowReportsController` + `WorkflowReportService`: tách inventory report, demand/purchasing report,
+   price variance, audit/data quality/KPI; controller không còn giữ cache/single-flight/CSV command logic.
+3. `PurchaseRequestsController`: đưa EF query/filter/mapping vào query/application service, controller chỉ
+   điều phối request/response.
+4. `DishesController` + `DishService`: tách catalog, BOM và BOM import/validation.
+5. `PurchaseRequestWorkflowService`: tách state transition/policy thuần khỏi EF, transaction và clock.
+
+Mỗi phần phải tách theo responsibility/use case thật; không đổi một file lớn thành nhiều partial file vẫn
+chung state và responsibility. Pure policy/projection/state transition là functional core có test không cần
+database; application service giữ imperative shell.
 
 **Nghiệm thu:** pure core có test không cần DB; controller không quá 400 dòng/20 action; service trên 1.000
 dòng phải có kế hoạch split được kiểm bằng gate.
 
-### Bước 16 — Persistence và reliability (1–2 tuần)
+### Bước 16 — P3a: persistence và reliability (1–2 tuần)
 
+- Tách EF mapping sang `IEntityTypeConfiguration<T>` theo feature, giữ `IpcManagementContext` làm
+  registration root.
 - Chuẩn hóa transaction runner cùng execution strategy trước khi bật retry.
 - Thay `InvalidOperationException` dùng cho nghiệp vụ bằng domain/application exception có mapping rõ.
-- Canonicalize hai migration ID chỉ có trong database mà không reset/seed dữ liệu.
-- Tách EF mapping sang `IEntityTypeConfiguration<T>` theo feature, giữ `IpcManagementContext` làm registration root.
+- Khôi phục canonical migration lineage, gồm hai migration ID chỉ có trong database, mà không reset/seed dữ liệu.
 - Giữ lịch backup `IPC-DB-Backup`, nhưng bổ sung bản sao khác ổ/máy và restore rehearsal có bằng chứng.
 
 **Nghiệm thu:** luồng đa bảng chịu transient retry mà không nhân đôi side effect; fresh/install và upgrade lane
 có lineage giải thích được; restore drill đạt RPO/RTO đã chọn.
 
-### Bước 17 — Thu hẹp frontend ownership còn lại (1–2 tuần)
+### Bước 17 — P2: trả nợ frontend boundary và ownership (1–2 tuần)
 
-- Tách `workflowApi.ts` thành endpoint injection module theo feature nhưng giữ một `apiSlice` và cache tags chung.
-- Chuyển `MainLayout` về `app/layout`; xử lý `projects→coordination` bằng ownership hoặc shared contract rõ ràng.
-- Giảm baseline 54 dependency violation về zero hoặc whitelist từng ngoại lệ có owner/ngày hết hạn.
+- Tách `workflowApi.ts` thành endpoint module thuộc từng feature nhưng giữ một `apiSlice`, base query và cache
+  tags chung để không đổi cache behavior.
+- Chuyển `MainLayout` sang `app/layout`.
+- Giải quyết cụm `projects→coordination` bằng ownership hoặc shared API/contract rõ ràng, không đổi tên feature
+  trước khi xóa dependency.
+- Xử lý 54 dependency violation thành zero-baseline; ngoại lệ bắt buộc phải có lý do, owner và ngày hết hạn.
 - Tách `useAdminDataPageModel` và `useReportsPageModel` thành model theo panel/use case sau khi state contract ổn định.
 
 **Nghiệm thu:** không thêm feature-to-feature edge; endpoint name/cache key không đổi; full navigation/cache test xanh.
 
-### Bước 18 — Test/documentation guardrail (3–5 ngày)
+### Bước 18 — P3b: test, file-growth và documentation guardrail (3–5 ngày)
 
 - Tách `WorkflowGenerationTests.cs` theo workflow và fixture builder; giữ nguyên coverage hành vi.
-- Thêm file-size/action-count report vào quality gate ở chế độ warning trước, chỉ block sau một chu kỳ ổn định.
+- Thêm file-size/action-count report vào quality gate ở chế độ warning trước, chỉ block sau một chu kỳ ổn định:
+  - Controller cảnh báo khi `>250` dòng hoặc `>12` actions.
+  - Controller `>400` dòng hoặc `>20` actions bắt buộc có kế hoạch split.
+  - Service cảnh báo khi `>600` dòng; `>1.000` dòng bắt buộc có kế hoạch split.
+  - File frontend viết tay cảnh báo khi `>600` dòng.
+  - Test suite cảnh báo khi `>1.500` dòng.
 - Cập nhật `docs/ARCHITECTURE.md`, `docs/TESTING.md` và `docs/CURRENT-STATE.md` sau từng bước lớn.
 
 **Nghiệm thu cuối:** full backend/frontend/contract/dependency gates xanh; browser desktop thật xác nhận
