@@ -1,6 +1,6 @@
 namespace IPCManagement.Api.Models.DTOs.SampleData;
 
-public class SampleDataImportRequestDto
+public class SampleDataImportRequest
 {
     public string? SourceDirectory { get; set; }
     public bool DryRun { get; set; } = true;
@@ -207,7 +207,7 @@ public class CustomerImportMappingDto
     public string? LabelColumn { get; set; }
 }
 
-public class SaveCustomerImportMappingDto
+public class SaveCustomerImportMappingRequest
 {
     public string? SheetNameHint { get; set; }
     public string? LabelColumn { get; set; }

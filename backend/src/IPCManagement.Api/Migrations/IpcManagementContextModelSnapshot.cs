@@ -24,7 +24,7 @@ namespace IPCManagement.Api.Migrations
             MySqlModelBuilderExtensions.HasCharSet(modelBuilder, "utf8mb4");
             MySqlModelBuilderExtensions.AutoIncrementColumns(modelBuilder);
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalAssignment", b =>
                 {
                     b.Property<byte[]>("AssignmentId")
                         .HasMaxLength(16)
@@ -71,7 +71,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("approvalassignments", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalHistory", b =>
                 {
                     b.Property<byte[]>("ApprovalHistoryId")
                         .HasMaxLength(16)
@@ -135,7 +135,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("approvalhistories", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalRule", b =>
                 {
                     b.Property<byte[]>("RuleId")
                         .HasMaxLength(16)
@@ -187,7 +187,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("approvalrules", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.AuditLog", b =>
                 {
                     b.Property<byte[]>("AuditId")
                         .HasMaxLength(16)
@@ -251,7 +251,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("auditlogs", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Bomadjustment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BomAdjustment", b =>
                 {
                     b.Property<byte[]>("BomAdjustmentId")
                         .HasMaxLength(16)
@@ -313,7 +313,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("bomadjustments", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstock", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStock", b =>
                 {
                     b.Property<byte[]>("WarehouseId")
                         .HasMaxLength(16)
@@ -364,7 +364,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("currentstock", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStockLot", b =>
                 {
                     b.Property<byte[]>("LotStockId")
                         .HasMaxLength(16)
@@ -474,7 +474,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("customers", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customercontract", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CustomerContract", b =>
                 {
                     b.Property<byte[]>("ContractId")
                         .HasMaxLength(16)
@@ -551,7 +551,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("customercontracts", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CustomerImportMapping", b =>
                 {
                     b.Property<byte[]>("MappingId")
                         .HasMaxLength(16)
@@ -642,7 +642,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("dishes", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.DishBom", b =>
                 {
                     b.Property<byte[]>("BomId")
                         .HasMaxLength(16)
@@ -795,7 +795,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("ingredients", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissue", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssue", b =>
                 {
                     b.Property<byte[]>("IssueId")
                         .HasMaxLength(16)
@@ -872,7 +872,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("inventoryissues", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissueline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssueLine", b =>
                 {
                     b.Property<byte[]>("IssueLineId")
                         .HasMaxLength(16)
@@ -925,7 +925,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("inventoryissuelines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreceipt", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReceipt", b =>
                 {
                     b.Property<byte[]>("ReceiptId")
                         .HasMaxLength(16)
@@ -994,7 +994,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("inventoryreceipts", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreceiptline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReceiptLine", b =>
                 {
                     b.Property<byte[]>("ReceiptLineId")
                         .HasMaxLength(16)
@@ -1097,7 +1097,7 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturn", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReturn", b =>
                 {
                     b.Property<byte[]>("ReturnId")
                         .HasMaxLength(16)
@@ -1188,7 +1188,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("inventoryreturns", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturnline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReturnLine", b =>
                 {
                     b.Property<byte[]>("ReturnLineId")
                         .HasMaxLength(16)
@@ -1236,7 +1236,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("inventoryreturnlines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequest", b =>
                 {
                     b.Property<byte[]>("RequestId")
                         .HasMaxLength(16)
@@ -1308,7 +1308,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("materialrequests", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequestLine", b =>
                 {
                     b.Property<byte[]>("RequestLineId")
                         .HasMaxLength(16)
@@ -1443,7 +1443,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("materialrequestlines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlan", b =>
                 {
                     b.Property<byte[]>("QuantityPlanId")
                         .HasMaxLength(16)
@@ -1528,7 +1528,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("mealquantityplans", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlanLine", b =>
                 {
                     b.Property<byte[]>("QuantityPlanLineId")
                         .HasMaxLength(16)
@@ -1649,7 +1649,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("menus", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuitem", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuItem", b =>
                 {
                     b.Property<byte[]>("MenuItemId")
                         .HasMaxLength(16)
@@ -1693,7 +1693,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("menuitems", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuschedule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuSchedule", b =>
                 {
                     b.Property<byte[]>("MenuScheduleId")
                         .HasMaxLength(16)
@@ -1770,7 +1770,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("menuschedules", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuVersion", b =>
                 {
                     b.Property<byte[]>("MenuVersionId")
                         .HasMaxLength(16)
@@ -1876,7 +1876,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("menuversions", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Portionrule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PortionRule", b =>
                 {
                     b.Property<byte[]>("PortionRuleId")
                         .HasMaxLength(16)
@@ -1995,7 +1995,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("portionrules", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlan", b =>
                 {
                     b.Property<byte[]>("PlanId")
                         .HasMaxLength(16)
@@ -2085,7 +2085,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("productionplans", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlanLine", b =>
                 {
                     b.Property<byte[]>("PlanLineId")
                         .HasMaxLength(16)
@@ -2156,7 +2156,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("productionplanlines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationAction", b =>
                 {
                     b.Property<byte[]>("PurchaseHistoryReconciliationActionId")
                         .HasMaxLength(16)
@@ -2275,7 +2275,7 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationRun", b =>
                 {
                     b.Property<byte[]>("PurchaseHistoryReconciliationRunId")
                         .HasMaxLength(16)
@@ -2429,7 +2429,7 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseLineSupplierDecision", b =>
                 {
                     b.Property<byte[]>("PurchaseLineSupplierDecisionId")
                         .HasMaxLength(16)
@@ -2561,7 +2561,7 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseOrder", b =>
                 {
                     b.Property<byte[]>("PurchaseOrderId")
                         .HasMaxLength(16)
@@ -2638,7 +2638,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("purchaseorders", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseOrderLine", b =>
                 {
                     b.Property<byte[]>("PurchaseOrderLineId")
                         .HasMaxLength(16)
@@ -2704,7 +2704,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("purchaseorderlines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchasePriceException", b =>
                 {
                     b.Property<byte[]>("PurchasePriceExceptionId")
                         .HasMaxLength(16)
@@ -2837,7 +2837,7 @@ namespace IPCManagement.Api.Migrations
                         });
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequest", b =>
                 {
                     b.Property<byte[]>("PurchaseRequestId")
                         .HasMaxLength(16)
@@ -2904,7 +2904,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("purchaserequests", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequestLine", b =>
                 {
                     b.Property<byte[]>("PurchaseRequestLineId")
                         .HasMaxLength(16)
@@ -3000,7 +3000,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("purchaserequestlines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityadjustment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityAdjustment", b =>
                 {
                     b.Property<byte[]>("AdjustmentId")
                         .HasMaxLength(16)
@@ -3052,7 +3052,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("quantityadjustments", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityImportBatch", b =>
                 {
                     b.Property<byte[]>("ImportBatchId")
                         .HasMaxLength(16)
@@ -3108,7 +3108,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("quantityimportbatches", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Refreshtoken", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.RefreshToken", b =>
                 {
                     b.Property<byte[]>("TokenId")
                         .HasMaxLength(16)
@@ -3209,7 +3209,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("roles", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stockmovement", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockMovement", b =>
                 {
                     b.Property<byte[]>("MovementId")
                         .HasMaxLength(16)
@@ -3330,7 +3330,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("stockmovements", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockSnapshot", b =>
                 {
                     b.Property<byte[]>("SnapshotId")
                         .HasMaxLength(16)
@@ -3482,7 +3482,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("stocktakes", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktakeline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StocktakeLine", b =>
                 {
                     b.Property<byte[]>("LineId")
                         .HasMaxLength(16)
@@ -3543,7 +3543,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("stocktakelines", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.SupplementalMaterialRequest", b =>
                 {
                     b.Property<byte[]>("RequestId")
                         .HasMaxLength(16)
@@ -3698,7 +3698,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("suppliers", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplierquotation", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.SupplierQuotation", b =>
                 {
                     b.Property<byte[]>("QuotationId")
                         .HasMaxLength(16)
@@ -3807,7 +3807,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("units", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unitnormalizationreview", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.UnitNormalizationReview", b =>
                 {
                     b.Property<byte[]>("ReviewId")
                         .HasColumnType("binary(16)")
@@ -4008,7 +4008,7 @@ namespace IPCManagement.Api.Migrations
                     b.ToTable("warehouses", (string)null);
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalassignment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalAssignment", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ApproverUser")
                         .WithMany()
@@ -4016,7 +4016,7 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("approvalassignments_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Approvalrule", "Rule")
+                    b.HasOne("IPCManagement.Api.Models.Entities.ApprovalRule", "Rule")
                         .WithMany("Approvalassignments")
                         .HasForeignKey("RuleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4028,7 +4028,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Rule");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalhistory", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalHistory", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ActionByNavigation")
                         .WithMany()
@@ -4039,7 +4039,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("ActionByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Auditlog", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.AuditLog", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ChangedByNavigation")
                         .WithMany("Auditlogs")
@@ -4050,7 +4050,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("ChangedByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Bomadjustment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.BomAdjustment", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "AdjustedByNavigation")
                         .WithMany("Bomadjustments")
@@ -4058,7 +4058,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("bomadjustments_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Dishbom", "Bom")
+                    b.HasOne("IPCManagement.Api.Models.Entities.DishBom", "Bom")
                         .WithMany("Bomadjustments")
                         .HasForeignKey("BomId")
                         .IsRequired()
@@ -4069,7 +4069,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Bom");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstock", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStock", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Currentstocks")
@@ -4096,7 +4096,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Currentstocklot", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CurrentStockLot", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Currentstocklots")
@@ -4123,7 +4123,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customercontract", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CustomerContract", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Customercontracts")
@@ -4134,7 +4134,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Customerimportmapping", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.CustomerImportMapping", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Customerimportmappings")
@@ -4146,7 +4146,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.DishBom", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Dishboms")
@@ -4200,7 +4200,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissue", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssue", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "IssuedByNavigation")
                         .WithMany("InventoryissueIssuedByNavigations")
@@ -4208,7 +4208,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryissues_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Materialrequest", "MaterialRequest")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MaterialRequest", "MaterialRequest")
                         .WithMany("Inventoryissues")
                         .HasForeignKey("MaterialRequestId")
                         .IsRequired()
@@ -4234,7 +4234,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissueline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssueLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Inventoryissuelines")
@@ -4242,7 +4242,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryissuelines_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissue", "Issue")
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssue", "Issue")
                         .WithMany("Inventoryissuelines")
                         .HasForeignKey("IssueId")
                         .IsRequired()
@@ -4261,7 +4261,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreceipt", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReceipt", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
                         .WithMany("Inventoryreceipts")
@@ -4269,7 +4269,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreceipts_ibfk_4");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequest", "PurchaseRequest")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequest", "PurchaseRequest")
                         .WithMany("Inventoryreceipts")
                         .HasForeignKey("PurchaseRequestId")
                         .HasConstraintName("inventoryreceipts_ibfk_3");
@@ -4295,7 +4295,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreceiptline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReceiptLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Inventoryreceiptlines")
@@ -4309,12 +4309,12 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("inventoryreceiptlines_ibfk_5");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequestLine", "PurchaseRequestLine")
                         .WithMany("Inventoryreceiptlines")
                         .HasForeignKey("PurchaseRequestLineId")
                         .HasConstraintName("inventoryreceiptlines_ibfk_4");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryreceipt", "Receipt")
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryReceipt", "Receipt")
                         .WithMany("Inventoryreceiptlines")
                         .HasForeignKey("ReceiptId")
                         .IsRequired()
@@ -4337,7 +4337,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturn", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReturn", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
                         .WithMany("Inventoryreturns")
@@ -4345,7 +4345,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreturns_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissue", "Issue")
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssue", "Issue")
                         .WithMany("Inventoryreturns")
                         .HasForeignKey("IssueId")
                         .IsRequired()
@@ -4371,7 +4371,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturnline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReturnLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Inventoryreturnlines")
@@ -4379,7 +4379,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("inventoryreturnlines_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryreturn", "Return")
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryReturn", "Return")
                         .WithMany("Inventoryreturnlines")
                         .HasForeignKey("ReturnId")
                         .IsRequired()
@@ -4398,7 +4398,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequest", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ApprovedByNavigation")
                         .WithMany("MaterialrequestApprovedByNavigations")
@@ -4411,7 +4411,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("materialrequests_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Productionplan", "Plan")
+                    b.HasOne("IPCManagement.Api.Models.Entities.ProductionPlan", "Plan")
                         .WithMany("Materialrequests")
                         .HasForeignKey("PlanId")
                         .IsRequired()
@@ -4424,9 +4424,9 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Plan");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequestLine", b =>
                 {
-                    b.HasOne("IPCManagement.Api.Models.Entities.Dishbom", "Bom")
+                    b.HasOne("IPCManagement.Api.Models.Entities.DishBom", "Bom")
                         .WithMany()
                         .HasForeignKey("BomId")
                         .OnDelete(DeleteBehavior.SetNull)
@@ -4438,13 +4438,13 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("materialrequestlines_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Productionplanline", "PlanLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.ProductionPlanLine", "PlanLine")
                         .WithMany("Materialrequestlines")
                         .HasForeignKey("PlanLineId")
                         .IsRequired()
                         .HasConstraintName("materialrequestlines_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Materialrequest", "Request")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MaterialRequest", "Request")
                         .WithMany("Materialrequestlines")
                         .HasForeignKey("RequestId")
                         .IsRequired()
@@ -4467,7 +4467,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlan", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CompletedByNavigation")
                         .WithMany()
@@ -4479,7 +4479,7 @@ namespace IPCManagement.Api.Migrations
                         .HasForeignKey("ConfirmedBy")
                         .HasConstraintName("mealquantityplans_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Quantityimportbatch", "ImportBatch")
+                    b.HasOne("IPCManagement.Api.Models.Entities.QuantityImportBatch", "ImportBatch")
                         .WithMany("Mealquantityplans")
                         .HasForeignKey("ImportBatchId")
                         .HasConstraintName("mealquantityplans_ibfk_1");
@@ -4491,7 +4491,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("ImportBatch");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlanLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Mealquantityplanlines")
@@ -4505,13 +4505,13 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("mealquantityplanlines_ibfk_4");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Menuschedule", "MenuSchedule")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MenuSchedule", "MenuSchedule")
                         .WithMany("Mealquantityplanlines")
                         .HasForeignKey("MenuScheduleId")
                         .IsRequired()
                         .HasConstraintName("mealquantityplanlines_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Mealquantityplan", "QuantityPlan")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MealQuantityPlan", "QuantityPlan")
                         .WithMany("Mealquantityplanlines")
                         .HasForeignKey("QuantityPlanId")
                         .IsRequired()
@@ -4526,7 +4526,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("QuantityPlan");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuitem", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuItem", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Dish", "Dish")
                         .WithMany("Menuitems")
@@ -4545,7 +4545,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Menu");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuschedule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuSchedule", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Menuschedules")
@@ -4559,7 +4559,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("menuschedules_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MenuVersion", "MenuVersion")
                         .WithMany("Menuschedules")
                         .HasForeignKey("MenuVersionId")
                         .OnDelete(DeleteBehavior.SetNull)
@@ -4572,7 +4572,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("MenuVersion");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuVersion", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Menuversions")
@@ -4583,7 +4583,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Portionrule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PortionRule", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Portionrules")
@@ -4601,7 +4601,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Dish");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlan", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
                         .WithMany("Productionplans")
@@ -4614,7 +4614,7 @@ namespace IPCManagement.Api.Migrations
                         .HasForeignKey("CustomerId")
                         .HasConstraintName("productionplans_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Menuversion", "MenuVersion")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MenuVersion", "MenuVersion")
                         .WithMany()
                         .HasForeignKey("MenuVersionId")
                         .HasConstraintName("productionplans_ibfk_3");
@@ -4633,7 +4633,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("SentToKitchenByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlanLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Customer", "Customer")
                         .WithMany("Productionplanlines")
@@ -4653,13 +4653,13 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("productionplanlines_ibfk_4");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Productionplan", "Plan")
+                    b.HasOne("IPCManagement.Api.Models.Entities.ProductionPlan", "Plan")
                         .WithMany("Productionplanlines")
                         .HasForeignKey("PlanId")
                         .IsRequired()
                         .HasConstraintName("productionplanlines_ibfk_1");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Mealquantityplanline", "QuantityPlanLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MealQuantityPlanLine", "QuantityPlanLine")
                         .WithMany("Productionplanlines")
                         .HasForeignKey("QuantityPlanLineId")
                         .IsRequired()
@@ -4676,9 +4676,9 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("QuantityPlanLine");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationaction", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationAction", b =>
                 {
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", "PurchaseHistoryReconciliationRun")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationRun", "PurchaseHistoryReconciliationRun")
                         .WithMany("Purchasehistoryreconciliationactions")
                         .HasForeignKey("PurchaseHistoryReconciliationRunId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -4688,7 +4688,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("PurchaseHistoryReconciliationRun");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationRun", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "AppliedByNavigation")
                         .WithMany()
@@ -4700,7 +4700,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("AppliedByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseLineSupplierDecision", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ConfirmedByNavigation")
                         .WithMany()
@@ -4709,14 +4709,14 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("purchaselinesupplierdecisions_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequestLine", "PurchaseRequestLine")
                         .WithMany("SupplierDecisions")
                         .HasForeignKey("PurchaseRequestLineId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("purchaselinesupplierdecisions_ibfk_1");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "SupersededByDecision")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseLineSupplierDecision", "SupersededByDecision")
                         .WithMany("SupersededDecisions")
                         .HasForeignKey("SupersededByDecisionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4738,7 +4738,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseOrder", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "CreatedByNavigation")
                         .WithMany("Purchaseorders")
@@ -4746,7 +4746,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("purchaseorders_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequest", "PurchaseRequest")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequest", "PurchaseRequest")
                         .WithMany("Purchaseorders")
                         .HasForeignKey("PurchaseRequestId")
                         .IsRequired()
@@ -4765,7 +4765,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorderline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseOrderLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Purchaseorderlines")
@@ -4773,15 +4773,15 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("purchaseorderlines_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaseorder", "PurchaseOrder")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseOrder", "PurchaseOrder")
                         .WithMany("Purchaseorderlines")
                         .HasForeignKey("PurchaseOrderId")
                         .IsRequired()
                         .HasConstraintName("purchaseorderlines_ibfk_1");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequestline", "PurchaseRequestLine")
-                        .WithOne("Purchaseorderline")
-                        .HasForeignKey("IPCManagement.Api.Models.Entities.Purchaseorderline", "PurchaseRequestLineId")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequestLine", "PurchaseRequestLine")
+                        .WithOne("PurchaseOrderLine")
+                        .HasForeignKey("IPCManagement.Api.Models.Entities.PurchaseOrderLine", "PurchaseRequestLineId")
                         .IsRequired()
                         .HasConstraintName("purchaseorderlines_ibfk_2");
 
@@ -4800,7 +4800,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchasePriceException", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "DecidedByNavigation")
                         .WithMany()
@@ -4808,7 +4808,7 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .HasConstraintName("purchasepriceexceptions_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", "PurchaseLineSupplierDecision")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseLineSupplierDecision", "PurchaseLineSupplierDecision")
                         .WithMany("Purchasepriceexceptions")
                         .HasForeignKey("PurchaseLineSupplierDecisionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4822,7 +4822,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("purchasepriceexceptions_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchasepriceexception", "SupersededByException")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchasePriceException", "SupersededByException")
                         .WithMany("SupersededExceptions")
                         .HasForeignKey("SupersededByExceptionId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -4837,7 +4837,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("SupersededByException");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequest", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ApprovedByNavigation")
                         .WithMany("PurchaserequestApprovedByNavigations")
@@ -4855,7 +4855,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("CreatedByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequestLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Purchaserequestlines")
@@ -4863,13 +4863,13 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("purchaserequestlines_ibfk_3");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Materialrequestline", "MaterialRequestLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MaterialRequestLine", "MaterialRequestLine")
                         .WithMany("Purchaserequestlines")
                         .HasForeignKey("MaterialRequestLineId")
                         .IsRequired()
                         .HasConstraintName("purchaserequestlines_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Purchaserequest", "PurchaseRequest")
+                    b.HasOne("IPCManagement.Api.Models.Entities.PurchaseRequest", "PurchaseRequest")
                         .WithMany("Purchaserequestlines")
                         .HasForeignKey("PurchaseRequestId")
                         .IsRequired()
@@ -4897,7 +4897,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityadjustment", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityAdjustment", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "AdjustedByNavigation")
                         .WithMany("Quantityadjustments")
@@ -4905,7 +4905,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired()
                         .HasConstraintName("quantityadjustments_ibfk_2");
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Mealquantityplanline", "QuantityPlanLine")
+                    b.HasOne("IPCManagement.Api.Models.Entities.MealQuantityPlanLine", "QuantityPlanLine")
                         .WithMany("Quantityadjustments")
                         .HasForeignKey("QuantityPlanLineId")
                         .IsRequired()
@@ -4916,7 +4916,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("QuantityPlanLine");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityImportBatch", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "ImportedByNavigation")
                         .WithMany("Quantityimportbatches")
@@ -4926,7 +4926,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("ImportedByNavigation");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Refreshtoken", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.RefreshToken", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.User", "User")
                         .WithMany("Refreshtokens")
@@ -4938,7 +4938,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stockmovement", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockMovement", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Stockmovements")
@@ -4973,7 +4973,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocksnapshot", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StockSnapshot", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Stocksnapshots")
@@ -5023,7 +5023,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Warehouse");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Stocktakeline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.StocktakeLine", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Stocktakelines")
@@ -5048,7 +5048,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplementalmaterialrequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.SupplementalMaterialRequest", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", null)
                         .WithMany()
@@ -5056,13 +5056,13 @@ namespace IPCManagement.Api.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissue", null)
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssue", null)
                         .WithMany()
                         .HasForeignKey("IssueId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("IPCManagement.Api.Models.Entities.Inventoryissueline", null)
+                    b.HasOne("IPCManagement.Api.Models.Entities.InventoryIssueLine", null)
                         .WithMany()
                         .HasForeignKey("IssueLineId")
                         .OnDelete(DeleteBehavior.Restrict)
@@ -5087,7 +5087,7 @@ namespace IPCManagement.Api.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Supplierquotation", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.SupplierQuotation", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Ingredient", "Ingredient")
                         .WithMany("Supplierquotations")
@@ -5106,7 +5106,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Unitnormalizationreview", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.UnitNormalizationReview", b =>
                 {
                     b.HasOne("IPCManagement.Api.Models.Entities.Unit", "CatalogUnit")
                         .WithMany()
@@ -5163,7 +5163,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Approvalrule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ApprovalRule", b =>
                 {
                     b.Navigation("Approvalassignments");
                 });
@@ -5198,7 +5198,7 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Productionplanlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Dishbom", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.DishBom", b =>
                 {
                     b.Navigation("Bomadjustments");
                 });
@@ -5232,41 +5232,41 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Supplierquotations");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryissue", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryIssue", b =>
                 {
                     b.Navigation("Inventoryissuelines");
 
                     b.Navigation("Inventoryreturns");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreceipt", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReceipt", b =>
                 {
                     b.Navigation("Inventoryreceiptlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Inventoryreturn", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.InventoryReturn", b =>
                 {
                     b.Navigation("Inventoryreturnlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequest", b =>
                 {
                     b.Navigation("Inventoryissues");
 
                     b.Navigation("Materialrequestlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Materialrequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MaterialRequestLine", b =>
                 {
                     b.Navigation("Purchaserequestlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlan", b =>
                 {
                     b.Navigation("Mealquantityplanlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Mealquantityplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MealQuantityPlanLine", b =>
                 {
                     b.Navigation("Productionplanlines");
 
@@ -5284,51 +5284,51 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Productionplanlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuschedule", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuSchedule", b =>
                 {
                     b.Navigation("Mealquantityplanlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Menuversion", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.MenuVersion", b =>
                 {
                     b.Navigation("Menuschedules");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplan", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlan", b =>
                 {
                     b.Navigation("Materialrequests");
 
                     b.Navigation("Productionplanlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Productionplanline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.ProductionPlanLine", b =>
                 {
                     b.Navigation("Materialrequestlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasehistoryreconciliationrun", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseHistoryReconciliationRun", b =>
                 {
                     b.Navigation("Purchasehistoryreconciliationactions");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaselinesupplierdecision", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseLineSupplierDecision", b =>
                 {
                     b.Navigation("Purchasepriceexceptions");
 
                     b.Navigation("SupersededDecisions");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaseorder", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseOrder", b =>
                 {
                     b.Navigation("Purchaseorderlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchasepriceexception", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchasePriceException", b =>
                 {
                     b.Navigation("SupersededExceptions");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequest", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequest", b =>
                 {
                     b.Navigation("Inventoryreceipts");
 
@@ -5337,16 +5337,16 @@ namespace IPCManagement.Api.Migrations
                     b.Navigation("Purchaserequestlines");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Purchaserequestline", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.PurchaseRequestLine", b =>
                 {
                     b.Navigation("Inventoryreceiptlines");
 
-                    b.Navigation("Purchaseorderline");
+                    b.Navigation("PurchaseOrderLine");
 
                     b.Navigation("SupplierDecisions");
                 });
 
-            modelBuilder.Entity("IPCManagement.Api.Models.Entities.Quantityimportbatch", b =>
+            modelBuilder.Entity("IPCManagement.Api.Models.Entities.QuantityImportBatch", b =>
                 {
                     b.Navigation("Mealquantityplans");
                 });

@@ -1,6 +1,6 @@
 import { CalendarDays, Scale } from 'lucide-react'
 import { EmptyState, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
-import { getWorkflowStatusPresentation } from '@/features/workflow/workflowConfig'
+import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
 import type { WeeklyProductionPlanWorkflow } from './useWeeklyProductionPlan'
 

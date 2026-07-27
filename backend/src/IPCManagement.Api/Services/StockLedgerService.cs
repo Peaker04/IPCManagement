@@ -51,7 +51,7 @@ public class StockLedgerService : IStockLedgerService
         var beforeQty = 0m;
         if (currentStock is null)
         {
-            currentStock = new Currentstock
+            currentStock = new CurrentStock
             {
                 WarehouseId = warehouseId,
                 IngredientId = ingredientId,
@@ -72,7 +72,7 @@ public class StockLedgerService : IStockLedgerService
         }
 
         var afterQty = DecimalPolicy.RoundQuantity(beforeQty + quantity);
-        var movement = new Stockmovement
+        var movement = new StockMovement
         {
             MovementId = GuidHelper.NewId(),
             MovementDate = updatedAt,
@@ -159,7 +159,7 @@ public class StockLedgerService : IStockLedgerService
         foreach (var allocation in allocations)
         {
             var runningAfterQty = DecimalPolicy.RoundQuantity(runningBeforeQty - allocation.Quantity);
-            var movement = new Stockmovement
+            var movement = new StockMovement
             {
                 MovementId = GuidHelper.NewId(),
                 MovementDate = updatedAt,
@@ -210,7 +210,7 @@ public class StockLedgerService : IStockLedgerService
 
         if (lot is null)
         {
-            _context.Currentstocklots.Add(new Currentstocklot
+            _context.Currentstocklots.Add(new CurrentStockLot
             {
                 LotStockId = GuidHelper.NewId(),
                 WarehouseId = warehouseId,

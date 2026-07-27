@@ -1175,7 +1175,7 @@ public class WorkflowReportService : IWorkflowReportService
             .ToList();
     }
 
-    private async Task<Dictionary<string, decimal>> LoadLatestReceiptPriceLookupAsync(IReadOnlyCollection<Purchaserequestline> purchaseLines)
+    private async Task<Dictionary<string, decimal>> LoadLatestReceiptPriceLookupAsync(IReadOnlyCollection<PurchaseRequestLine> purchaseLines)
     {
         if (purchaseLines.Count == 0)
         {
@@ -1207,7 +1207,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     private static decimal ResolvePurchaseReferencePrice(
-        Purchaserequestline line,
+        PurchaseRequestLine line,
         IReadOnlyDictionary<string, decimal> latestReceiptPrices)
     {
         if (line.SupplierId is null)
@@ -1616,7 +1616,7 @@ public class WorkflowReportService : IWorkflowReportService
         public double PendingReceiptQty { get; init; }
     }
 
-    private IQueryable<Inventoryreceiptline> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
+    private IQueryable<InventoryReceiptLine> BuildFilteredReceiptLinesQuery(WorkflowReportQueryDto query)
     {
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
         var supplierId = GuidHelper.ParseFilterIdOrThrow(query.SupplierId, "nhà cung cấp");
@@ -1868,8 +1868,8 @@ public class WorkflowReportService : IWorkflowReportService
                 ChangedAt = item.ChangedAt,
                 ChangedBy = GuidHelper.ToGuidString(item.ChangedBy),
                 ChangedByName = item.ChangedByNavigation.FullName ?? item.ChangedByNavigation.Username ?? "System",
-                BusinessArea = item.EntityName == nameof(Mealquantityplan)
-                    && item.FieldName == nameof(Mealquantityplan.Status)
+                BusinessArea = item.EntityName == nameof(MealQuantityPlan)
+                    && item.FieldName == nameof(MealQuantityPlan.Status)
                     && item.NewValue == "COMPLETED"
                         ? "Signoff"
                         : item.BusinessArea,
@@ -1920,7 +1920,7 @@ public class WorkflowReportService : IWorkflowReportService
                     ? "Sample Data Importer"
                     : item.ImportedByNavigation.FullName ?? item.ImportedByNavigation.Username ?? "Sample Data Importer",
                 BusinessArea = "Import",
-                EntityName = nameof(Quantityimportbatch),
+                EntityName = nameof(QuantityImportBatch),
                 EntityId = GuidHelper.ToGuidString(item.ImportBatchId),
                 FieldName = item.SourceType,
                 OldValue = null,
@@ -1980,7 +1980,7 @@ public class WorkflowReportService : IWorkflowReportService
                         ? actorName
                         : "Sample Data Importer",
                     BusinessArea = "Import",
-                    EntityName = nameof(Menuversion),
+                    EntityName = nameof(MenuVersion),
                     EntityId = GuidHelper.ToGuidString(item.MenuVersionId),
                     FieldName = "WeeklyMenu",
                     OldValue = item.SourceFileName,
@@ -2070,7 +2070,7 @@ public class WorkflowReportService : IWorkflowReportService
                 ChangedBy = GuidHelper.ToGuidString(item.CreatedBy),
                 ChangedByName = item.CreatedByNavigation.FullName ?? item.CreatedByNavigation.Username ?? "System",
                 BusinessArea = "Receipt",
-                EntityName = nameof(Inventoryreceipt),
+                EntityName = nameof(InventoryReceipt),
                 EntityId = GuidHelper.ToGuidString(item.ReceiptId),
                 FieldName = "Receive",
                 OldValue = item.PurchaseRequestId == null ? null : GuidHelper.ToGuidString(item.PurchaseRequestId),
@@ -2115,7 +2115,7 @@ public class WorkflowReportService : IWorkflowReportService
                 ChangedBy = GuidHelper.ToGuidString(item.IssuedBy),
                 ChangedByName = item.IssuedByNavigation.FullName ?? item.IssuedByNavigation.Username ?? "System",
                 BusinessArea = "Issue",
-                EntityName = nameof(Inventoryissue),
+                EntityName = nameof(InventoryIssue),
                 EntityId = GuidHelper.ToGuidString(item.IssueId),
                 FieldName = item.ShiftName ?? "FULLDAY",
                 OldValue = GuidHelper.ToGuidString(item.MaterialRequestId),
@@ -2330,7 +2330,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(line => BuildDataQualityIssue(
                 "missing_conversion",
                 "error",
-                nameof(Dishbom),
+                nameof(DishBom),
                 GuidHelper.ToGuidString(line.BomId),
                 line.Dish.DishCode,
                 line.Ingredient.IngredientName,
@@ -2354,7 +2354,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(legacyBomLines.Select(line => BuildDataQualityIssue(
             "legacy_bom_tier",
             "error",
-            nameof(Dishbom),
+            nameof(DishBom),
             GuidHelper.ToGuidString(line.BomId),
             line.Dish.DishCode,
             line.Ingredient.IngredientName,
@@ -2378,7 +2378,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(stock => BuildDataQualityIssue(
                 "missing_conversion",
                 "error",
-                nameof(Currentstock),
+                nameof(CurrentStock),
                 $"{GuidHelper.ToGuidString(stock.WarehouseId)}:{GuidHelper.ToGuidString(stock.IngredientId)}",
                 stock.Warehouse.WarehouseCode,
                 stock.Ingredient.IngredientName,
@@ -2401,7 +2401,7 @@ public class WorkflowReportService : IWorkflowReportService
             .Select(line => BuildDataQualityIssue(
                 line.Receipt.ReceiptDate < serviceDate ? "legacy_missing_conversion" : "missing_conversion",
                 "warning",
-                nameof(Inventoryreceiptline),
+                nameof(InventoryReceiptLine),
                 GuidHelper.ToGuidString(line.ReceiptLineId),
                 line.Receipt.ReceiptCode,
                 line.Ingredient.IngredientName,
@@ -2426,7 +2426,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(inactiveBomIngredients.Select(line => BuildDataQualityIssue(
             "inactive_bom_ingredient",
             "warning",
-            nameof(Dishbom),
+            nameof(DishBom),
             GuidHelper.ToGuidString(line.BomId),
             line.Dish.DishCode,
             line.Dish.DishName,
@@ -2448,7 +2448,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(negativeStocks.Select(stock => BuildDataQualityIssue(
             "negative_stock",
             "error",
-            nameof(Currentstock),
+            nameof(CurrentStock),
             $"{GuidHelper.ToGuidString(stock.WarehouseId)}:{GuidHelper.ToGuidString(stock.IngredientId)}",
             stock.Warehouse.WarehouseCode,
             stock.Ingredient.IngredientName,
@@ -2468,7 +2468,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(ledgerMismatches.Select(item => BuildDataQualityIssue(
             "inventory_ledger_mismatch",
             "error",
-            nameof(Currentstock),
+            nameof(CurrentStock),
             $"{item.WarehouseId}:{item.IngredientId}",
             item.WarehouseName ?? item.WarehouseId,
             item.IngredientName ?? item.IngredientId,
@@ -2513,7 +2513,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(missingContractPlans.Select(plan => BuildDataQualityIssue(
             "missing_contract",
             "error",
-            nameof(Productionplan),
+            nameof(ProductionPlan),
             GuidHelper.ToGuidString(plan.PlanId),
             plan.PlanCode,
             plan.Customer?.CustomerName ?? GuidHelper.ToGuidString(plan.CustomerId!),
@@ -2534,7 +2534,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(inactiveSupplierLines.Select(line => BuildDataQualityIssue(
             "missing_supplier",
             "error",
-            nameof(Purchaserequestline),
+            nameof(PurchaseRequestLine),
             GuidHelper.ToGuidString(line.PurchaseRequestLineId),
             line.PurchaseRequest.PurchaseRequestCode,
             $"{line.Ingredient.IngredientName} / {line.Supplier!.SupplierName}",
@@ -2552,7 +2552,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(staleDemands.Select(request => BuildDataQualityIssue(
             "stale_demand",
             "warning",
-            nameof(Materialrequest),
+            nameof(MaterialRequest),
             GuidHelper.ToGuidString(request.RequestId),
             request.RequestCode,
             request.RequestDate.ToString("yyyy-MM-dd"),
@@ -2570,7 +2570,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(stalePurchaseRequests.Select(request => BuildDataQualityIssue(
             "stale_purchase_request",
             "warning",
-            nameof(Purchaserequest),
+            nameof(PurchaseRequest),
             GuidHelper.ToGuidString(request.PurchaseRequestId),
             request.PurchaseRequestCode,
             request.PurchaseForDate.ToString("yyyy-MM-dd"),
@@ -2606,7 +2606,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(orphanMaterialRequests.Select(request => BuildDataQualityIssue(
             "orphan_document",
             "warning",
-            nameof(Materialrequest),
+            nameof(MaterialRequest),
             GuidHelper.ToGuidString(request.RequestId),
             request.RequestCode,
             request.Status,
@@ -2626,7 +2626,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(orphanPurchaseLines.Select(line => BuildDataQualityIssue(
             "orphan_document",
             "warning",
-            nameof(Purchaserequestline),
+            nameof(PurchaseRequestLine),
             GuidHelper.ToGuidString(line.PurchaseRequestLineId),
             line.PurchaseRequest.PurchaseRequestCode,
             line.Ingredient.IngredientName,
@@ -2644,7 +2644,7 @@ public class WorkflowReportService : IWorkflowReportService
         issues.AddRange(orphanIssues.Select(issue => BuildDataQualityIssue(
             "orphan_document",
             "warning",
-            nameof(Inventoryissue),
+            nameof(InventoryIssue),
             GuidHelper.ToGuidString(issue.IssueId),
             issue.IssueCode,
             issue.IssueDate.ToString("yyyy-MM-dd"),
@@ -2673,7 +2673,7 @@ public class WorkflowReportService : IWorkflowReportService
             return BuildDataQualityIssue(
                 "unit_normalization_review",
                 "warning",
-                nameof(Unitnormalizationreview),
+                nameof(UnitNormalizationReview),
                 GuidHelper.ToGuidString(review.ReviewId),
                 review.Ingredient.IngredientCode,
                 $"{review.SourceUnit.UnitCode} → {recommendedUnit}",
@@ -2748,7 +2748,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     public async Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(
-        DataQualityIssueRemediationRequestDto request,
+        DataQualityIssueRemediationRequest request,
         string actorUserId)
     {
         var issueId = request.IssueId.Trim();
@@ -2763,7 +2763,7 @@ public class WorkflowReportService : IWorkflowReportService
         var note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
         var now = DateTime.UtcNow;
 
-        _context.Auditlogs.Add(new Auditlog
+        _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
             ChangedAt = now,
@@ -2788,7 +2788,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     public async Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(
-        DataQualityCleanupRequestDto request,
+        DataQualityCleanupRequest request,
         string actorUserId)
     {
         var actorId = GuidHelper.ParseGuidString(actorUserId)
@@ -2830,7 +2830,7 @@ public class WorkflowReportService : IWorkflowReportService
 
             if (!request.DryRun)
             {
-                _context.Auditlogs.Add(new Auditlog
+                _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
                     ChangedAt = now,
@@ -2884,7 +2884,7 @@ public class WorkflowReportService : IWorkflowReportService
                     $"Bổ sung opening balance ledger cho snapshot tồn cũ: ledger={ledgerQty:0.######}, current={currentQty:0.######}.";
                 AddAction(
                     "inventory_ledger_baseline",
-                    nameof(Currentstock),
+                    nameof(CurrentStock),
                     stock.IngredientId,
                     entityCode,
                     "ledger_baseline_added",
@@ -2894,7 +2894,7 @@ public class WorkflowReportService : IWorkflowReportService
 
                 if (!request.DryRun)
                 {
-                    _context.Stockmovements.Add(new Stockmovement
+                    _context.Stockmovements.Add(new StockMovement
                     {
                         MovementId = GuidHelper.NewId(),
                         MovementDate = stock.CurrentLastUpdated!.Value,
@@ -2939,7 +2939,7 @@ public class WorkflowReportService : IWorkflowReportService
                     $"Chuẩn hóa unit cho tồn bằng 0 từ '{oldUnitCode}' sang unit nguyên liệu '{targetUnitCode}'; không cần hệ số quy đổi.";
                 AddAction(
                     "zero_stock_unit",
-                    nameof(Currentstock),
+                    nameof(CurrentStock),
                     stock.IngredientId,
                     $"{stock.Warehouse.WarehouseCode}/{stock.Ingredient.IngredientCode}",
                     "unit_normalized",
@@ -2960,7 +2960,7 @@ public class WorkflowReportService : IWorkflowReportService
                 .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
                     .ThenInclude(line => line.Inventoryreceiptlines)
                 .Include(purchaseRequest => purchaseRequest.Purchaserequestlines)
-                    .ThenInclude(line => line.Purchaseorderline)
+                    .ThenInclude(line => line.PurchaseOrderLine)
                 .Include(purchaseRequest => purchaseRequest.Inventoryreceipts)
                 .Include(purchaseRequest => purchaseRequest.Purchaseorders)
                 .Where(purchaseRequest => staleStatuses.Contains(purchaseRequest.Status))
@@ -2973,14 +2973,14 @@ public class WorkflowReportService : IWorkflowReportService
                 if (purchaseRequest.Inventoryreceipts.Count > 0 ||
                     purchaseRequest.Purchaseorders.Count > 0 ||
                     purchaseRequest.Purchaserequestlines.Any(line =>
-                        line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null))
+                        line.Inventoryreceiptlines.Count > 0 || line.PurchaseOrderLine is not null))
                 {
                     continue;
                 }
 
                 AddAction(
                     "stale_purchase_request",
-                    nameof(Purchaserequest),
+                    nameof(PurchaseRequest),
                     purchaseRequest.PurchaseRequestId,
                     purchaseRequest.PurchaseRequestCode,
                     "removed",
@@ -3009,7 +3009,7 @@ public class WorkflowReportService : IWorkflowReportService
             var orphanPurchaseLines = await _context.Purchaserequestlines
                 .Include(line => line.PurchaseRequest)
                 .Include(line => line.Inventoryreceiptlines)
-                .Include(line => line.Purchaseorderline)
+                .Include(line => line.PurchaseOrderLine)
                 .Include(line => line.Ingredient)
                 .Where(line =>
                     orphanCleanupStatuses.Contains(line.PurchaseRequest.Status) &&
@@ -3025,14 +3025,14 @@ public class WorkflowReportService : IWorkflowReportService
                     continue;
                 }
 
-                if (line.Inventoryreceiptlines.Count > 0 || line.Purchaseorderline is not null)
+                if (line.Inventoryreceiptlines.Count > 0 || line.PurchaseOrderLine is not null)
                 {
                     continue;
                 }
 
                 AddAction(
                     "orphan_document",
-                    nameof(Purchaserequestline),
+                    nameof(PurchaseRequestLine),
                     line.PurchaseRequestLineId,
                     $"{line.PurchaseRequest.PurchaseRequestCode}/{line.Ingredient.IngredientName}",
                     "removed",
@@ -3083,7 +3083,7 @@ public class WorkflowReportService : IWorkflowReportService
 
                 AddAction(
                     "orphan_document",
-                    nameof(Inventoryissue),
+                    nameof(InventoryIssue),
                     issue.IssueId,
                     issue.IssueCode,
                     "removed",
@@ -3134,7 +3134,7 @@ public class WorkflowReportService : IWorkflowReportService
 
                 AddAction(
                     category,
-                    nameof(Materialrequest),
+                    nameof(MaterialRequest),
                     materialRequest.RequestId,
                     materialRequest.RequestCode,
                     "removed",
@@ -3227,13 +3227,13 @@ public class WorkflowReportService : IWorkflowReportService
         var candidateOverdueRequests = await _context.Purchaserequests
             .AsNoTracking()
             .Include(pr => pr.Purchaserequestlines)
-                .ThenInclude(line => line.Purchaseorderline)
+                .ThenInclude(line => line.PurchaseOrderLine)
             .Where(pr => (pr.Status == "DRAFT" || pr.Status == "APPROVED") && pr.PurchaseForDate < today)
             .ToListAsync();
 
         var overduePurchaseRequestCount = candidateOverdueRequests.Count(pr => pr.Purchaserequestlines.Any(line =>
-            line.Purchaseorderline is null ||
-            DecimalPolicy.LessThanQuantity(line.Purchaseorderline.ReceivedQty, line.Purchaseorderline.OrderedQty)));
+            line.PurchaseOrderLine is null ||
+            DecimalPolicy.LessThanQuantity(line.PurchaseOrderLine.ReceivedQty, line.PurchaseOrderLine.OrderedQty)));
 
         var lateReceiptCount = await _context.Purchaseorders
             .AsNoTracking()
@@ -3357,7 +3357,7 @@ public class WorkflowReportService : IWorkflowReportService
         });
     }
 
-    private IQueryable<Inventoryissueline> QueryIssueLines(WorkflowReportQueryDto query)
+    private IQueryable<InventoryIssueLine> QueryIssueLines(WorkflowReportQueryDto query)
     {
         var warehouseId = GuidHelper.ParseFilterIdOrThrow(query.WarehouseId, "kho");
         var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
@@ -3526,7 +3526,7 @@ public class WorkflowReportService : IWorkflowReportService
             .ToListAsync();
     }
 
-    private static KitchenIssueReportDto MapKitchenIssue(Inventoryissueline item)
+    private static KitchenIssueReportDto MapKitchenIssue(InventoryIssueLine item)
         => new()
         {
             IssueId = GuidHelper.ToGuidString(item.IssueId),
@@ -3768,8 +3768,8 @@ public class WorkflowReportService : IWorkflowReportService
     private static string BuildStockSnapshotKey(byte[] warehouseId, byte[] ingredientId, byte[] unitId)
         => $"{Convert.ToBase64String(warehouseId)}|{Convert.ToBase64String(ingredientId)}|{Convert.ToBase64String(unitId)}";
 
-    private static Stocksnapshot BuildSnapshotRow(
-        IGrouping<string, Stockmovement> movementGroup,
+    private static StockSnapshot BuildSnapshotRow(
+        IGrouping<string, StockMovement> movementGroup,
         DateOnly periodMonth,
         DateTime periodStart,
         DateTime periodEnd,
@@ -3791,7 +3791,7 @@ public class WorkflowReportService : IWorkflowReportService
         var quantityOut = DecimalPolicy.RoundQuantity(periodMovements.Sum(item => item.QuantityOut));
         var closingQty = periodMovements.LastOrDefault()?.AfterQty ?? openingQty;
 
-        return new Stocksnapshot
+        return new StockSnapshot
         {
             SnapshotId = GuidHelper.NewId(),
             WarehouseId = firstMovement.WarehouseId,

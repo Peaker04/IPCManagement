@@ -1,4 +1,5 @@
-import type { DemandLine, MaterialDemandStaleness, WorkflowDocument } from '@/features/workflow'
+import type { DemandLine, WorkflowDocument } from '@/types/workflow'
+import type { MaterialDemandStaleness } from '@/api/workflowApi'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope } from '../schedule/types'
 import { formatMaterialDishSource } from '../model/formatters'

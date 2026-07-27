@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IInventoryReturnRepository
+public class InventoryReturnRepository : GenericRepository<InventoryReturn>, IInventoryReturnRepository
 {
     public InventoryReturnRepository(IpcManagementContext context) : base(context)
     {
     }
 
-    public async Task<(IEnumerable<Inventoryreturn> Items, int TotalCount)> GetPagedAsync(InventoryReturnFilterRequestDto request)
+    public async Task<(IEnumerable<InventoryReturn> Items, int TotalCount)> GetPagedAsync(InventoryReturnFilterRequestDto request)
     {
         var (pageNumber, pageSize) = NormalizePaging(request.PageNumber, request.PageSize);
 
@@ -66,7 +66,7 @@ public class InventoryReturnRepository : GenericRepository<Inventoryreturn>, IIn
         return (items, totalCount);
     }
 
-    public async Task<Inventoryreturn?> GetByIdWithLinesAsync(byte[] id)
+    public async Task<InventoryReturn?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Inventoryreturns
             .AsNoTracking()
             .Include(inventoryReturn => inventoryReturn.Warehouse)

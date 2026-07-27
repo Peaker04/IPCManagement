@@ -14,7 +14,7 @@ public class ProductionPlanRepository : IProductionPlanRepository
         _context = context;
     }
 
-    public async Task<(IEnumerable<Productionplan> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(IEnumerable<ProductionPlan> Items, int TotalCount)> GetPagedAsync(
         int pageNumber,
         int pageSize)
     {
@@ -35,7 +35,7 @@ public class ProductionPlanRepository : IProductionPlanRepository
         return (items, totalCount);
     }
 
-    public async Task<Productionplan?> GetByIdWithLinesAsync(byte[] id)
+    public async Task<ProductionPlan?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Productionplans
             .AsNoTracking()
             .Include(plan => plan.Customer)
@@ -45,7 +45,7 @@ public class ProductionPlanRepository : IProductionPlanRepository
                 .ThenInclude(line => line.Dish)
             .FirstOrDefaultAsync(plan => plan.PlanId == id);
 
-    public async Task<IReadOnlyList<Productionplan>> GetFilteredAsync(
+    public async Task<IReadOnlyList<ProductionPlan>> GetFilteredAsync(
         DateOnly? serviceDate,
         DateOnly? dateFrom,
         DateOnly? dateTo,

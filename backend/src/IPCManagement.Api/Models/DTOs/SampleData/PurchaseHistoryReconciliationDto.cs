@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace IPCManagement.Api.Models.DTOs.SampleData;
 
-public sealed class PurchaseHistoryPreviewRequestDto;
+public sealed class PurchaseHistoryPreviewRequest;
 
 public sealed class PurchaseHistoryPreviewDto
 {
@@ -56,7 +56,7 @@ public sealed class PurchaseHistoryBlockerDto
     public Dictionary<string, string> RawCells { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 }
 
-public sealed class PurchaseHistoryApplyRequestDto
+public sealed class PurchaseHistoryApplyRequest
 {
     [Required]
     public string ManifestId { get; set; } = string.Empty;
@@ -68,7 +68,7 @@ public sealed class PurchaseHistoryApplyRequestDto
     public List<string> AcceptedActionIds { get; set; } = [];
 
     [Required]
-    public BackupRestoreEvidenceDto? BackupRestoreEvidence { get; set; }
+    public BackupRestoreEvidenceRequest? BackupRestoreEvidence { get; set; }
 }
 
 public sealed class PurchaseHistoryApplyResultDto
@@ -82,7 +82,7 @@ public sealed class PurchaseHistoryApplyResultDto
     public List<PurchaseHistoryBlockerDto> Blockers { get; set; } = [];
 }
 
-public sealed class BackupRestoreEvidenceDto
+public sealed class BackupRestoreEvidenceRequest
 {
     [Required]
     public string BackupIdentifier { get; set; } = string.Empty;

@@ -107,7 +107,7 @@ public class WorkflowLifecycleE2ETests
         var username = $"ci-e2e-{Guid.NewGuid():N}"[..20];
         var password = $"Ipc!{Guid.NewGuid():N}"[..24];
 
-        await employeeService.CreateAsync(new CreateEmployeeDto
+        await employeeService.CreateAsync(new CreateEmployeeRequest
         {
             FullName = "CI E2E Admin",
             Username = username,
@@ -135,7 +135,7 @@ public class WorkflowLifecycleE2ETests
 
         public async Task LoginAsync(string username, string password)
         {
-            var response = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequestDto
+            var response = await _client.PostAsJsonAsync("/api/auth/login", new LoginRequest
             {
                 Username = username,
                 Password = password

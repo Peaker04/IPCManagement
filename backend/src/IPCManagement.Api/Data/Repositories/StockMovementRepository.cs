@@ -7,11 +7,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class StockMovementRepository : GenericRepository<Stockmovement>, IStockMovementRepository
+public class StockMovementRepository : GenericRepository<StockMovement>, IStockMovementRepository
 {
     public StockMovementRepository(IpcManagementContext context) : base(context) { }
 
-    public async Task<IEnumerable<Stockmovement>> GetByIngredientAsync(byte[] ingredientId)
+    public async Task<IEnumerable<StockMovement>> GetByIngredientAsync(byte[] ingredientId)
     {
         return await _dbSet
             .AsNoTracking()

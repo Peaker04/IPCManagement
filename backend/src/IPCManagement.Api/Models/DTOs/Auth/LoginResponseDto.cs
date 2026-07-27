@@ -28,13 +28,13 @@ public class UserProfileResponseDto
     public bool IsAdmin { get; set; }
 }
 
-public class RefreshTokenRequestDto
+public class RefreshTokenRequest
 {
     public string AccessToken  { get; set; } = string.Empty;
     public string RefreshToken { get; set; } = string.Empty;
 }
 
-public class RevokeTokenRequestDto
+public class RevokeTokenRequest
 {
     public string RefreshToken { get; set; } = string.Empty;
 }

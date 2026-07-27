@@ -24,7 +24,7 @@ const mocks = vi.hoisted(() => ({
   stockMovementPage: vi.fn(),
 }));
 
-vi.mock('@/features/workflow', () => ({
+vi.mock('@/api/workflowApi', () => ({
   useGetAuditChangePageQuery: mocks.auditChangePage,
   useGetCurrentStockPageQuery: mocks.currentStockPage,
   useGetDataQualityPageQuery: mocks.dataQualityPage,

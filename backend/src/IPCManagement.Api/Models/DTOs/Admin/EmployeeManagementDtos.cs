@@ -18,7 +18,7 @@ public class AdminRoleDto
     public string RoleName { get; set; } = string.Empty;
 }
 
-public class CreateEmployeeDto
+public class CreateEmployeeRequest
 {
     public string FullName { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
@@ -27,7 +27,7 @@ public class CreateEmployeeDto
     public bool IsActive { get; set; } = true;
 }
 
-public class UpdateEmployeeDto
+public class UpdateEmployeeRequest
 {
     public string FullName { get; set; } = string.Empty;
     public string Username { get; set; } = string.Empty;
@@ -36,7 +36,7 @@ public class UpdateEmployeeDto
     public bool IsActive { get; set; }
 }
 
-public class UpdateEmployeeStatusDto
+public class UpdateEmployeeStatusRequest
 {
     public bool IsActive { get; set; }
 }

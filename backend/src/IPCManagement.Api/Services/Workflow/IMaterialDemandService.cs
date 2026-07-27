@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Services.Workflow;
 public interface IMaterialDemandService
 {
     Task<MaterialDemandResultDto?> GenerateAsync(
-        GenerateMaterialDemandRequestDto request,
+        GenerateMaterialDemandRequest request,
         string? userId,
         CancellationToken cancellationToken = default);
 

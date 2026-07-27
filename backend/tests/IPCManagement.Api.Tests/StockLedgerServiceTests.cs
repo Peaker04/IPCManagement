@@ -26,7 +26,7 @@ public class StockLedgerServiceTests
 
         _currentStockRepository
             .GetByWarehouseAndIngredientAsync(warehouseId, ingredientId)
-            .Returns(new Currentstock
+            .Returns(new CurrentStock
             {
                 WarehouseId = warehouseId,
                 IngredientId = ingredientId,
@@ -57,7 +57,7 @@ public class StockLedgerServiceTests
 
         await _currentStockRepository.Received(1)
             .TryDecreaseAsync(warehouseId, ingredientId, 3.5m, Arg.Any<DateTime>());
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.WarehouseId == warehouseId &&
             movement.IngredientId == ingredientId &&
             movement.UnitId == unitId &&
@@ -82,7 +82,7 @@ public class StockLedgerServiceTests
             .Returns(false);
         _currentStockRepository
             .GetByWarehouseAndIngredientAsync(warehouseId, ingredientId)
-            .Returns(new Currentstock
+            .Returns(new CurrentStock
             {
                 WarehouseId = warehouseId,
                 IngredientId = ingredientId,
@@ -110,7 +110,7 @@ public class StockLedgerServiceTests
 
         await act.Should().ThrowAsync<InvalidOperationException>()
             .WithMessage("*không đủ tồn kho*Hiện có: 4*");
-        _stockMovementRepository.DidNotReceive().Add(Arg.Any<Stockmovement>());
+        _stockMovementRepository.DidNotReceive().Add(Arg.Any<StockMovement>());
     }
 
     [Fact]
@@ -121,7 +121,7 @@ public class StockLedgerServiceTests
         var ingredientId = GuidHelper.NewId();
         var gramUnitId = GuidHelper.NewId();
         var kilogramUnitId = GuidHelper.NewId();
-        var currentStock = new Currentstock
+        var currentStock = new CurrentStock
         {
             WarehouseId = warehouseId,
             IngredientId = ingredientId,
@@ -153,7 +153,7 @@ public class StockLedgerServiceTests
 
         currentStock.CurrentQty.Should().Be(6m);
         _currentStockRepository.Received(1).Update(currentStock);
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.UnitId == gramUnitId &&
             movement.QuantityIn == 1000m &&
             movement.QuantityOut == 0 &&
@@ -172,7 +172,7 @@ public class StockLedgerServiceTests
 
         _currentStockRepository
             .GetByWarehouseAndIngredientAsync(warehouseId, ingredientId)
-            .Returns(new Currentstock
+            .Returns(new CurrentStock
             {
                 WarehouseId = warehouseId,
                 IngredientId = ingredientId,
@@ -203,7 +203,7 @@ public class StockLedgerServiceTests
 
         await _currentStockRepository.Received(1)
             .TryDecreaseAsync(warehouseId, ingredientId, 1500m, Arg.Any<DateTime>());
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.UnitId == kilogramUnitId &&
             movement.QuantityOut == 1.5m &&
             movement.QuantityIn == 0 &&
@@ -222,7 +222,7 @@ public class StockLedgerServiceTests
 
         _currentStockRepository
             .GetByWarehouseAndIngredientAsync(warehouseId, ingredientId)
-            .Returns((Currentstock?)null);
+            .Returns((CurrentStock?)null);
 
         await service.AddStockAsync(
             warehouseId,
@@ -239,7 +239,7 @@ public class StockLedgerServiceTests
             new DateOnly(2026, 7, 1),
             new DateOnly(2026, 7, 31));
 
-        var lot = fixture.Context.ChangeTracker.Entries<Currentstocklot>()
+        var lot = fixture.Context.ChangeTracker.Entries<CurrentStockLot>()
             .Select(entry => entry.Entity)
             .Single();
         lot.WarehouseId.Should().Equal(warehouseId);
@@ -248,7 +248,7 @@ public class StockLedgerServiceTests
         lot.CurrentQty.Should().Be(12m);
         lot.LotNumber.Should().Be("LOT-A");
         lot.ExpiredDate.Should().Be(new DateOnly(2026, 7, 31));
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.QuantityIn == 12m &&
             movement.BeforeQty == 0m &&
             movement.AfterQty == 12m &&
@@ -265,7 +265,7 @@ public class StockLedgerServiceTests
         var ingredientId = GuidHelper.NewId();
         var unitId = GuidHelper.NewId();
         fixture.Context.Currentstocklots.AddRange(
-            new Currentstocklot
+            new CurrentStockLot
             {
                 LotStockId = GuidHelper.NewId(),
                 WarehouseId = warehouseId,
@@ -276,7 +276,7 @@ public class StockLedgerServiceTests
                 CurrentQty = 10m,
                 LastUpdated = DateTime.UtcNow
             },
-            new Currentstocklot
+            new CurrentStockLot
             {
                 LotStockId = GuidHelper.NewId(),
                 WarehouseId = warehouseId,
@@ -291,7 +291,7 @@ public class StockLedgerServiceTests
 
         _currentStockRepository
             .GetByWarehouseAndIngredientAsync(warehouseId, ingredientId)
-            .Returns(new Currentstock
+            .Returns(new CurrentStock
             {
                 WarehouseId = warehouseId,
                 IngredientId = ingredientId,
@@ -321,12 +321,12 @@ public class StockLedgerServiceTests
             .ToListAsync();
         lots.Single(item => item.LotNumber == "LOT-EARLY").CurrentQty.Should().Be(0m);
         lots.Single(item => item.LotNumber == "LOT-LATE").CurrentQty.Should().Be(7m);
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.LotNumber == "LOT-EARLY" &&
             movement.QuantityOut == 5m &&
             movement.BeforeQty == 15m &&
             movement.AfterQty == 10m));
-        _stockMovementRepository.Received(1).Add(Arg.Is<Stockmovement>(movement =>
+        _stockMovementRepository.Received(1).Add(Arg.Is<StockMovement>(movement =>
             movement.LotNumber == "LOT-LATE" &&
             movement.QuantityOut == 3m &&
             movement.BeforeQty == 10m &&

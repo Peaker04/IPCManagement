@@ -25,7 +25,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy danh sách tất cả kho.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _warehouseService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<WarehouseDto>>.SuccessResult(result));
@@ -33,7 +33,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy toàn bộ kho cho các bộ chọn nghiệp vụ.</summary>
     [HttpGet("selector")]
-    public async Task<IActionResult> GetSelector()
+    public async Task<IActionResult> GetSelectorAsync()
     {
         var warehouses = new List<WarehouseDto>();
         var pageNumber = 1;
@@ -56,7 +56,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy chi tiết kho theo ID.</summary>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _warehouseService.GetByIdAsync(id);
         if (result is null)

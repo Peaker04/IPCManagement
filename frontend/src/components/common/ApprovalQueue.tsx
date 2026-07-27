@@ -5,8 +5,8 @@ import { useLocalPagination } from '@/lib/useLocalPagination';
 import { uiCopy } from '@/lib/uiCopy';
 import { StatusBadge } from './StatusBadge';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import type { ApprovalRecord } from '@/features/workflow';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import type { ApprovalRecord } from '@/types/workflow';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 interface ApprovalQueueProps {
   records: ApprovalRecord[];

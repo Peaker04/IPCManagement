@@ -3,7 +3,7 @@ using IPCManagement.Api.Models.DTOs.Admin;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class CreateEmployeeDtoValidator : AbstractValidator<CreateEmployeeDto>
+public class CreateEmployeeDtoValidator : AbstractValidator<CreateEmployeeRequest>
 {
     public CreateEmployeeDtoValidator()
     {
@@ -24,7 +24,7 @@ public class CreateEmployeeDtoValidator : AbstractValidator<CreateEmployeeDto>
     }
 }
 
-public class UpdateEmployeeDtoValidator : AbstractValidator<UpdateEmployeeDto>
+public class UpdateEmployeeDtoValidator : AbstractValidator<UpdateEmployeeRequest>
 {
     public UpdateEmployeeDtoValidator()
     {

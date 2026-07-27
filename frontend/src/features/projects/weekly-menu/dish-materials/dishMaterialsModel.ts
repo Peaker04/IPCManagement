@@ -1,4 +1,4 @@
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import { matchesShift, resolveDishIngredients, type BomResolutionContext } from '../model/scope'
 import type { WeeklyPlanRow } from '../model/types'
 

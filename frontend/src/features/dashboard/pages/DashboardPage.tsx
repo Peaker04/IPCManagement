@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAppDispatch } from '@/app/hooks';
 import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/common';
-import { useGetOperationalKpisQuery, useWorkflowOverview, type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/features/workflow';
-import { workflowApi } from '@/features/workflow/workflowApi';
-import { resolveWorkflowGateAction } from '@/features/workflow/actionEligibility';
-import { ROUTES } from '../../../routes/routeConfig';
+import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
+import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
+import { workflowApi } from '@/api/workflowApi';
+import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
+import { ROUTES } from '@/lib/routeConfig';
 
 const queuePriority: Record<WorkflowTone, number> = {
   danger: 0,

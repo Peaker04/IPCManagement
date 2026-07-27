@@ -4,9 +4,9 @@ namespace IPCManagement.Api.Services;
 
 public interface IAuthService
 {
-    Task<LoginResponseDto?> LoginAsync(LoginRequestDto request, string deviceInfo = "");
-    Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequestDto request);
-    Task<bool>              RevokeTokenAsync(RevokeTokenRequestDto request);
+    Task<LoginResponseDto?> LoginAsync(LoginRequest request, string deviceInfo = "");
+    Task<LoginResponseDto?> RefreshTokenAsync(RefreshTokenRequest request);
+    Task<bool>              RevokeTokenAsync(RevokeTokenRequest request);
     Task<UserInfoDto?>      GetProfileAsync(string userId);
     Task<UserProfileResponseDto?> GetMeAsync(string userId);
 }

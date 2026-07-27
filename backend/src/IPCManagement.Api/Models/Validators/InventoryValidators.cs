@@ -4,7 +4,7 @@ using IPCManagement.Api.Models.DTOs.Inventory;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInventoryReceiptDto>
+public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInventoryReceiptRequest>
 {
     public CreateInventoryReceiptDtoValidator()
     {
@@ -30,7 +30,7 @@ public class CreateInventoryReceiptDtoValidator : AbstractValidator<CreateInvent
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryReceiptLineDtoValidator : AbstractValidator<CreateInventoryReceiptLineDto>
+public class CreateInventoryReceiptLineDtoValidator : AbstractValidator<CreateInventoryReceiptLineRequest>
 {
     public CreateInventoryReceiptLineDtoValidator()
     {
@@ -57,7 +57,7 @@ public class CreateInventoryReceiptLineDtoValidator : AbstractValidator<CreateIn
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventoryIssueDto>
+public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventoryIssueRequest>
 {
     public CreateInventoryIssueDtoValidator()
     {
@@ -78,7 +78,7 @@ public class CreateInventoryIssueDtoValidator : AbstractValidator<CreateInventor
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInventoryIssueLineDto>
+public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInventoryIssueLineRequest>
 {
     public CreateInventoryIssueLineDtoValidator()
     {
@@ -102,7 +102,7 @@ public class CreateInventoryIssueLineDtoValidator : AbstractValidator<CreateInve
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInventoryReturnDto>
+public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInventoryReturnRequest>
 {
     public CreateInventoryReturnDtoValidator()
     {
@@ -136,7 +136,7 @@ public class CreateInventoryReturnDtoValidator : AbstractValidator<CreateInvento
            string.Equals(value, "WASTE", StringComparison.OrdinalIgnoreCase);
 }
 
-public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInventoryReturnLineDto>
+public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInventoryReturnLineRequest>
 {
     public CreateInventoryReturnLineDtoValidator()
     {
@@ -155,7 +155,7 @@ public class CreateInventoryReturnLineDtoValidator : AbstractValidator<CreateInv
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseDto>
+public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseRequest>
 {
     public CreateInventoryReceiptFromPurchaseDtoValidator()
     {
@@ -185,7 +185,7 @@ public class CreateInventoryReceiptFromPurchaseDtoValidator : AbstractValidator<
     private static bool BeValidGuid(string value) => Guid.TryParse(value, out _);
 }
 
-public class CreateInventoryReceiptFromPurchaseLineDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseLineDto>
+public class CreateInventoryReceiptFromPurchaseLineDtoValidator : AbstractValidator<CreateInventoryReceiptFromPurchaseLineRequest>
 {
     public CreateInventoryReceiptFromPurchaseLineDtoValidator()
     {

@@ -1,8 +1,5 @@
 import { useMemo, useState } from 'react'
-import {
-  useConfirmInventoryIssueReceiptMutation,
-  useGetKitchenIssuesPageQuery,
-} from '@/features/workflow'
+import { useConfirmInventoryIssueReceiptMutation, useGetKitchenIssuesPageQuery } from '@/api/workflowApi'
 import { countPendingKitchenReceipts } from '../chefReadiness'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
 import { filterKitchenIssues } from '../production/chefProductionModel'

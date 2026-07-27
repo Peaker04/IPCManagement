@@ -1,4 +1,4 @@
-import { formatWorkflowStatus } from '../workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 const approvalDecisionLabels: Record<string, string> = {
   APPROVE: 'Đã duyệt',

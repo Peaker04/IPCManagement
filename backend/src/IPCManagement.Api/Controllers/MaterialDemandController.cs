@@ -31,8 +31,8 @@ public class MaterialDemandController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Generate(
-        [FromBody] GenerateMaterialDemandRequestDto request,
+    public async Task<IActionResult> GenerateAsync(
+        [FromBody] GenerateMaterialDemandRequest request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
@@ -61,7 +61,7 @@ public class MaterialDemandController : ControllerBase
     /// <summary>Kiểm tra xem demand đã tính có bị lỗi thời so với dữ liệu hiện tại không.</summary>
     [HttpGet("staleness")]
     [ProducesResponseType(typeof(ApiResponse<MaterialDemandStalenessDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStaleness(
+    public async Task<IActionResult> GetStalenessAsync(
         [FromQuery] string serviceDate,
         [FromQuery] string? customerId,
         [FromQuery] string? scope,
@@ -75,9 +75,9 @@ public class MaterialDemandController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MaterialDemandApprovalDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Approve(
+    public async Task<IActionResult> ApproveAsync(
         string id,
-        [FromBody] MaterialDemandApproveRequestDto? request,
+        [FromBody] MaterialDemandApproveRequest? request,
         CancellationToken cancellationToken)
     {
         try

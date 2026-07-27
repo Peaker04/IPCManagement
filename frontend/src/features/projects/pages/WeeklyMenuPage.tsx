@@ -3,7 +3,7 @@ import { useAppDispatch, useAppSelector } from '@/app/hooks';
 import { setWeeklyMenu } from '../../coordination/coordinationSlice';
 import { OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common';
 import { DAYS_OF_WEEK_WITH_DATES as DEFAULT_DAYS_OF_WEEK } from '@/lib/constants';
-import { useGetDishesCatalogQuery } from '../dishCatalogApi';
+import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi';
 import {
   useGetCoordinationCustomersQuery,
   useGetCustomerContractsQuery,

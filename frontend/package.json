@@ -16,7 +16,9 @@
     "test:performance": "playwright test tests/navigation-performance.spec.ts tests/cache-navigation.spec.ts",
     "test:smoke": "playwright test tests/route-smoke.spec.ts",
     "test:visual": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts",
-    "test:visual:update": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts --update-snapshots"
+    "test:visual:update": "playwright test tests/visual-routes.spec.ts tests/pagination-visual.spec.ts --update-snapshots",
+    "depcruise": "depcruise src --config .dependency-cruiser.cjs --ignore-known .dependency-cruiser-known-violations.json --output-type err",
+    "depcruise:baseline": "depcruise src --config .dependency-cruiser.cjs --output-type baseline > .dependency-cruiser-known-violations.json"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -45,6 +47,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "dependency-cruiser": "^18.1.0",
     "eslint": "^10.3.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.2",

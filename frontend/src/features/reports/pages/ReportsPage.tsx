@@ -31,27 +31,13 @@ import {
   type ContextStripItem,
 } from '@/components/common';
 import { useHasPermission, useHasRole } from '@/app/hooks';
-import { ROUTES } from '@/routes/routeConfig';
-import {
-  useGetAuditChangePageQuery,
-  useGetCurrentStockPageQuery,
-  useGetDataQualityPageQuery,
-  useGetIngredientDemandPageQuery,
-  useGetIssueVsReturnUsagePageQuery,
-  useGetKitchenIssuesPageQuery,
-  useGetPriceVariancePageQuery,
-  useGetPriceVarianceBySupplierPageQuery,
-  useGetPriceVarianceByPeriodPageQuery,
-  useGetPriceVarianceByDishGroupPageQuery,
-  useGetPurchasePlanPageQuery,
-  useGetStockMovementPageQuery,
-  type StockMovement,
-  type WorkflowReportQuery,
-} from '@/features/workflow';
-import { toNextReportCursor, type ReportCursor } from '@/features/workflow';
+import { ROUTES } from '@/lib/routeConfig';
+import { useGetAuditChangePageQuery, useGetCurrentStockPageQuery, useGetDataQualityPageQuery, useGetIngredientDemandPageQuery, useGetIssueVsReturnUsagePageQuery, useGetKitchenIssuesPageQuery, useGetPriceVariancePageQuery, useGetPriceVarianceBySupplierPageQuery, useGetPriceVarianceByPeriodPageQuery, useGetPriceVarianceByDishGroupPageQuery, useGetPurchasePlanPageQuery, useGetStockMovementPageQuery, type WorkflowReportQuery } from '@/api/workflowApi';
+import { type StockMovement } from '@/types/workflow';
+import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
 import { formatCurrency, formatPercent, formatQuantityWithUnit, formatUnit } from '@/lib/formatters';
 import { uiCopy } from '@/lib/uiCopy';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { normalizePurchasePlanGroupBy } from '../reportPlanning';
 
 type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';

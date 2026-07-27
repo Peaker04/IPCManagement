@@ -513,7 +513,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .Take(Math.Min(limit * 4 + 1, 200))
             .ToListAsync(cancellationToken);
         var exceptions = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<Purchasepriceexception>()
+                ? _context.ChangeTracker.Entries<PurchasePriceException>()
                     .Select(entry => entry.Entity)
                     .Concat(queriedExceptions)
                     .DistinctBy(item => Convert.ToBase64String(item.PurchasePriceExceptionId))
@@ -742,13 +742,13 @@ public sealed class ApprovalInboxService : IApprovalInboxService
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
     }
 
-    private Task<bool> HasPriceWarningAsync(Purchaserequest request, CancellationToken cancellationToken)
+    private Task<bool> HasPriceWarningAsync(PurchaseRequest request, CancellationToken cancellationToken)
         => Task.FromResult(request.Purchaserequestlines.Any(line => HasUnapprovedPriceException(line)));
 
-    private Task<bool> IsPriceWarningAsync(Purchaserequestline line, CancellationToken cancellationToken)
+    private Task<bool> IsPriceWarningAsync(PurchaseRequestLine line, CancellationToken cancellationToken)
         => Task.FromResult(HasUnapprovedPriceException(line));
 
-    private static bool HasUnapprovedPriceException(Purchaserequestline line)
+    private static bool HasUnapprovedPriceException(PurchaseRequestLine line)
     {
         var currentDecision = line.SupplierDecisions.SingleOrDefault(decision =>
             string.Equals(decision.Status, "CURRENT", StringComparison.Ordinal));
@@ -767,7 +767,7 @@ public sealed class ApprovalInboxService : IApprovalInboxService
                    string.Equals(priceException.Status, "APPROVED", StringComparison.Ordinal));
     }
 
-    private static ApprovalInboxMaterialDto MapPurchaseMaterial(Purchaserequestline line)
+    private static ApprovalInboxMaterialDto MapPurchaseMaterial(PurchaseRequestLine line)
         => new()
         {
             Name = line.Ingredient.IngredientName,

@@ -38,7 +38,7 @@ public class IngredientService : IIngredientService
         return entity is null ? null : IngredientMapper.MapToDto(entity);
     }
 
-    public async Task<IngredientDto> CreateAsync(CreateIngredientDto dto)
+    public async Task<IngredientDto> CreateAsync(CreateIngredientRequest dto)
     {
         // Kiểm tra trùng code
         if (await _ingredientRepo.IsCodeExistsAsync(dto.IngredientCode))
@@ -65,7 +65,7 @@ public class IngredientService : IIngredientService
         return IngredientMapper.MapToDto(entity);
     }
 
-    public async Task<IngredientDto?> UpdateAsync(string id, UpdateIngredientDto dto)
+    public async Task<IngredientDto?> UpdateAsync(string id, UpdateIngredientRequest dto)
     {
         var bytes = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;

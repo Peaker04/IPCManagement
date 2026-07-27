@@ -5,7 +5,7 @@ namespace IPCManagement.Api.Services.Workflow;
 public interface IPurchaseReceivingService
 {
     Task<WarehousePurchaseReceiptResultDto> RecordAsync(
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         string? userId,
         CancellationToken cancellationToken = default);
 }

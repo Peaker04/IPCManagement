@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROUTES } from '@/routes/routeConfig'
+import { ROUTES } from '@/lib/routeConfig'
 
 describe('operational page route contracts', () => {
   it('keeps the three MVP workflows on their existing routes', () => {

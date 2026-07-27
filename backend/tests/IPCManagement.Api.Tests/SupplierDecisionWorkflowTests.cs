@@ -30,12 +30,12 @@ public class SupplierDecisionWorkflowTests
     {
         await using var context = CreateContext();
         var model = context.GetService<IDesignTimeModel>().Model;
-        var entity = model.FindEntityType(typeof(Purchaselinesupplierdecision));
+        var entity = model.FindEntityType(typeof(PurchaseLineSupplierDecision));
 
         entity.Should().NotBeNull();
-        entity!.FindProperty(nameof(Purchaselinesupplierdecision.DecisionFingerprint))!.IsNullable.Should().BeFalse();
-        entity.FindProperty(nameof(Purchaselinesupplierdecision.Version))!.IsNullable.Should().BeFalse();
-        entity.FindProperty(nameof(Purchaselinesupplierdecision.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
+        entity!.FindProperty(nameof(PurchaseLineSupplierDecision.DecisionFingerprint))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(PurchaseLineSupplierDecision.Version))!.IsNullable.Should().BeFalse();
+        entity.FindProperty(nameof(PurchaseLineSupplierDecision.ConcurrencyVersion))!.IsConcurrencyToken.Should().BeTrue();
         entity.GetCheckConstraints().Select(constraint => constraint.Name).Should().Contain([
             "ckPurchaseLineSupplierDecisionsEvidenceComplete",
             "ckPurchaseLineSupplierDecisionsConfirmationComplete",
@@ -44,23 +44,23 @@ public class SupplierDecisionWorkflowTests
         ]);
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.Version) }));
+                .SequenceEqual(new[] { nameof(PurchaseLineSupplierDecision.PurchaseRequestLineId), nameof(PurchaseLineSupplierDecision.Version) }));
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.PurchaseRequestLineId), nameof(Purchaselinesupplierdecision.DecisionFingerprint) }));
+                .SequenceEqual(new[] { nameof(PurchaseLineSupplierDecision.PurchaseRequestLineId), nameof(PurchaseLineSupplierDecision.DecisionFingerprint) }));
         entity.GetIndexes().Should().Contain(index =>
             index.IsUnique && index.Properties.Select(property => property.Name)
-                .SequenceEqual(new[] { nameof(Purchaselinesupplierdecision.CurrentDecisionKey) }));
+                .SequenceEqual(new[] { nameof(PurchaseLineSupplierDecision.CurrentDecisionKey) }));
 
-        var line = model.FindEntityType(typeof(Purchaserequestline));
-        line!.FindProperty(nameof(Purchaserequestline.IsLegacySupplierSnapshot))!.IsNullable.Should().BeFalse();
-        line.FindNavigation(nameof(Purchaserequestline.SupplierDecisions)).Should().NotBeNull();
+        var line = model.FindEntityType(typeof(PurchaseRequestLine));
+        line!.FindProperty(nameof(PurchaseRequestLine.IsLegacySupplierSnapshot))!.IsNullable.Should().BeFalse();
+        line.FindNavigation(nameof(PurchaseRequestLine.SupplierDecisions)).Should().NotBeNull();
 
         var lineId = GuidHelper.NewId();
         var firstId = GuidHelper.NewId();
         var secondId = GuidHelper.NewId();
         context.Purchaselinesupplierdecisions.AddRange(
-            new Purchaselinesupplierdecision
+            new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = firstId,
                 PurchaseRequestLineId = lineId,
@@ -79,7 +79,7 @@ public class SupplierDecisionWorkflowTests
                 SupersededByDecisionId = secondId,
                 ConcurrencyVersion = 2
             },
-            new Purchaselinesupplierdecision
+            new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = secondId,
                 PurchaseRequestLineId = lineId,
@@ -210,7 +210,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
 
         var act = () => CreateService(context).GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -229,7 +229,7 @@ public class SupplierDecisionWorkflowTests
         var demand = SeedDemand(context, "MANAGERAPPROVED", new DateOnly(2026, 7, 20), "FULLDAY");
         await context.SaveChangesAsync();
         var service = CreateService(context);
-        var request = new GeneratePurchaseRequestFromDemandDto
+        var request = new GeneratePurchaseRequestFromDemandRequest
         {
             MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
         };
@@ -259,7 +259,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
 
         var act = () => CreateService(context).GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -279,7 +279,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(current.RequestId)
             },
@@ -289,7 +289,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
 
         var act = () => service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(stale.RequestId)
             },
@@ -376,7 +376,7 @@ public class SupplierDecisionWorkflowTests
             new DateOnly(2026, 7, 20),
             "FULLDAY",
             "MR-REOPENED");
-        context.Purchaserequests.Add(new Purchaserequest
+        context.Purchaserequests.Add(new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = "PR-20260720-FULLDAY",
@@ -519,7 +519,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -570,7 +570,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -611,7 +611,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -638,7 +638,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -652,7 +652,7 @@ public class SupplierDecisionWorkflowTests
         var first = await service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = SupplierEvidenceType.EffectiveQuotation,
                 EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
@@ -665,7 +665,7 @@ public class SupplierDecisionWorkflowTests
         var second = await service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = SupplierEvidenceType.EffectiveQuotation,
                 EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
@@ -705,7 +705,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -719,7 +719,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var requestId = generated!.PurchaseRequestId;
         var lineId = generated.Lines.Single().PurchaseRequestLineId;
-        var baseRequest = new ConfirmPurchaseLineSupplierDto
+        var baseRequest = new ConfirmPurchaseLineSupplierRequest
         {
             EvidenceType = SupplierEvidenceType.EffectiveQuotation,
             EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
@@ -733,7 +733,7 @@ public class SupplierDecisionWorkflowTests
         var staleVersion = () => service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = baseRequest.EvidenceType,
                 EvidenceId = baseRequest.EvidenceId,
@@ -751,7 +751,7 @@ public class SupplierDecisionWorkflowTests
         var staleEvidence = () => service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = baseRequest.EvidenceType,
                 EvidenceId = baseRequest.EvidenceId,
@@ -772,7 +772,7 @@ public class SupplierDecisionWorkflowTests
         var wrongStatus = () => service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = baseRequest.EvidenceType,
                 EvidenceId = baseRequest.EvidenceId,
@@ -796,7 +796,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -815,7 +815,7 @@ public class SupplierDecisionWorkflowTests
             await service.ConfirmLineSupplierAsync(
                 requestId,
                 lineId,
-                new ConfirmPurchaseLineSupplierDto
+                new ConfirmPurchaseLineSupplierRequest
                 {
                     EvidenceType = SupplierEvidenceType.EffectiveQuotation,
                     EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
@@ -848,14 +848,14 @@ public class SupplierDecisionWorkflowTests
     [Fact]
     public void Confirmation_endpoint_uses_purchasing_policy_and_contract_omits_server_fields()
     {
-        var action = typeof(PurchaseWorkflowController).GetMethod(nameof(PurchaseWorkflowController.ConfirmLineSupplier));
+        var action = typeof(PurchaseWorkflowController).GetMethod(nameof(PurchaseWorkflowController.ConfirmLineSupplierAsync));
         action.Should().NotBeNull();
         action!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .Cast<AuthorizeAttribute>()
             .Should().Contain(attribute => attribute.Policy == AuthorizationPolicies.PurchaseGenerateAccess);
         typeof(PurchaseWorkflowController).GetMethod("UpdateLineSupplier").Should().BeNull();
 
-        var clientFields = typeof(ConfirmPurchaseLineSupplierDto).GetProperties()
+        var clientFields = typeof(ConfirmPurchaseLineSupplierRequest).GetProperties()
             .Select(property => property.Name)
             .ToArray();
         clientFields.Should().NotContain([
@@ -876,7 +876,7 @@ public class SupplierDecisionWorkflowTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var generated = await service.GenerateFromDemandAsync(
-            new GeneratePurchaseRequestFromDemandDto
+            new GeneratePurchaseRequestFromDemandRequest
             {
                 MaterialRequestId = GuidHelper.ToGuidString(demand.RequestId)
             },
@@ -893,7 +893,7 @@ public class SupplierDecisionWorkflowTests
         await service.ConfirmLineSupplierAsync(
             requestId,
             lineId,
-            new ConfirmPurchaseLineSupplierDto
+            new ConfirmPurchaseLineSupplierRequest
             {
                 EvidenceType = SupplierEvidenceType.EffectiveQuotation,
                 EvidenceId = GuidHelper.ToGuidString(quotation.QuotationId),
@@ -1040,7 +1040,7 @@ public class SupplierDecisionWorkflowTests
         var current = fixture.Decisions.Single(decision => decision.ProposedUnitPrice == 110m);
         current.Status = "SUPERSEDED";
         current.CurrentDecisionKey = null;
-        var replacement = new Purchaselinesupplierdecision
+        var replacement = new PurchaseLineSupplierDecision
         {
             PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
             PurchaseRequestLineId = current.PurchaseRequestLineId,
@@ -1090,16 +1090,16 @@ public class SupplierDecisionWorkflowTests
                 new StockMovementRepository(context)));
 
     private static (
-        Purchaserequest Request,
+        PurchaseRequest Request,
         Supplier SupplierA,
         Supplier SupplierB,
-        IReadOnlyList<Purchaselinesupplierdecision> Decisions)
+        IReadOnlyList<PurchaseLineSupplierDecision> Decisions)
         SeedApprovedPurchaseRequestForOrders(IpcManagementContext context)
     {
         var unit = SeedUnit(context, $"KG-{Guid.NewGuid():N}", "kg", "KG", 1m);
         var supplierA = SeedSupplier(context, $"SUP-PO-A-{Guid.NewGuid():N}", "Supplier PO A");
         var supplierB = SeedSupplier(context, $"SUP-PO-B-{Guid.NewGuid():N}", "Supplier PO B");
-        var request = new Purchaserequest
+        var request = new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = $"PR-PO-{Guid.NewGuid():N}",
@@ -1108,7 +1108,7 @@ public class SupplierDecisionWorkflowTests
             Status = "APPROVED",
             CreatedBy = UserIdBytes
         };
-        var decisions = new List<Purchaselinesupplierdecision>();
+        var decisions = new List<PurchaseLineSupplierDecision>();
         foreach (var (supplier, proposedPrice, fingerprintSeed) in new[]
                  {
                      (supplierA, 110m, 'A'),
@@ -1126,7 +1126,7 @@ public class SupplierDecisionWorkflowTests
                 IsActive = true,
                 Unit = unit
             };
-            var line = new Purchaserequestline
+            var line = new PurchaseRequestLine
             {
                 PurchaseRequestLineId = GuidHelper.NewId(),
                 PurchaseRequestId = request.PurchaseRequestId,
@@ -1144,7 +1144,7 @@ public class SupplierDecisionWorkflowTests
                 Supplier = supplier,
                 Unit = unit
             };
-            var decision = new Purchaselinesupplierdecision
+            var decision = new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
                 PurchaseRequestLineId = line.PurchaseRequestLineId,
@@ -1167,7 +1167,7 @@ public class SupplierDecisionWorkflowTests
             if (PurchasePricePolicy.RequiresException(
                     PurchasePricePolicy.CalculateVariancePercent(100m, proposedPrice)))
             {
-                decision.Purchasepriceexceptions.Add(new Purchasepriceexception
+                decision.Purchasepriceexceptions.Add(new PurchasePriceException
                 {
                     PurchasePriceExceptionId = GuidHelper.NewId(),
                     PurchaseLineSupplierDecisionId = decision.PurchaseLineSupplierDecisionId,
@@ -1394,7 +1394,7 @@ public class SupplierDecisionWorkflowTests
         return supplier;
     }
 
-    private static Supplierquotation SeedQuotation(
+    private static SupplierQuotation SeedQuotation(
         IpcManagementContext context,
         Supplier supplier,
         Ingredient ingredient,
@@ -1407,7 +1407,7 @@ public class SupplierDecisionWorkflowTests
             context.Ingredients.Add(ingredient);
         }
 
-        var quotation = new Supplierquotation
+        var quotation = new SupplierQuotation
         {
             QuotationId = GuidHelper.NewId(),
             SupplierId = supplier.SupplierId,
@@ -1444,7 +1444,7 @@ public class SupplierDecisionWorkflowTests
         return unit;
     }
 
-    private static Inventoryreceiptline SeedReceiptLine(
+    private static InventoryReceiptLine SeedReceiptLine(
         IpcManagementContext context,
         Supplier supplier,
         Ingredient ingredient,
@@ -1452,7 +1452,7 @@ public class SupplierDecisionWorkflowTests
         DateOnly receiptDate,
         decimal unitPrice)
     {
-        var receipt = new Inventoryreceipt
+        var receipt = new InventoryReceipt
         {
             ReceiptId = GuidHelper.NewId(),
             ReceiptCode = $"REC-{Guid.NewGuid():N}",
@@ -1463,7 +1463,7 @@ public class SupplierDecisionWorkflowTests
             CreatedAt = DateTime.UtcNow,
             Supplier = supplier
         };
-        var line = new Inventoryreceiptline
+        var line = new InventoryReceiptLine
         {
             ReceiptLineId = GuidHelper.NewId(),
             ReceiptId = receipt.ReceiptId,
@@ -1481,16 +1481,16 @@ public class SupplierDecisionWorkflowTests
         return line;
     }
 
-    private static Purchaserequest SeedPurchaseProgress(
+    private static PurchaseRequest SeedPurchaseProgress(
         IpcManagementContext context,
-        Materialrequest demand,
+        MaterialRequest demand,
         string status,
         Supplier? supplier = null,
         decimal estimatedUnitPrice = 100m,
         bool withOrder = false)
     {
         var materialLine = demand.Materialrequestlines.Single();
-        var request = new Purchaserequest
+        var request = new PurchaseRequest
         {
             PurchaseRequestId = GuidHelper.NewId(),
             PurchaseRequestCode = $"PR-{demand.RequestDate:yyyyMMdd}-FULLDAY",
@@ -1499,7 +1499,7 @@ public class SupplierDecisionWorkflowTests
             Status = status,
             CreatedBy = UserIdBytes
         };
-        var line = new Purchaserequestline
+        var line = new PurchaseRequestLine
         {
             PurchaseRequestLineId = GuidHelper.NewId(),
             PurchaseRequestId = request.PurchaseRequestId,
@@ -1520,7 +1520,7 @@ public class SupplierDecisionWorkflowTests
         };
         if (supplier is not null)
         {
-            line.SupplierDecisions.Add(new Purchaselinesupplierdecision
+            line.SupplierDecisions.Add(new PurchaseLineSupplierDecision
             {
                 PurchaseLineSupplierDecisionId = GuidHelper.NewId(),
                 PurchaseRequestLineId = line.PurchaseRequestLineId,
@@ -1545,7 +1545,7 @@ public class SupplierDecisionWorkflowTests
 
         if (withOrder)
         {
-            var order = new Purchaseorder
+            var order = new PurchaseOrder
             {
                 PurchaseOrderId = GuidHelper.NewId(),
                 PurchaseOrderCode = "PO-WORKBENCH",
@@ -1560,7 +1560,7 @@ public class SupplierDecisionWorkflowTests
                 Supplier = supplier,
                 Purchaseorderlines =
                 [
-                    new Purchaseorderline
+                    new PurchaseOrderLine
                     {
                         PurchaseOrderLineId = GuidHelper.NewId(),
                         PurchaseRequestLineId = line.PurchaseRequestLineId,
@@ -1603,7 +1603,7 @@ public class SupplierDecisionWorkflowTests
         }
     }
 
-    private static Materialrequest SeedDemand(
+    private static MaterialRequest SeedDemand(
         IpcManagementContext context,
         string status,
         DateOnly serviceDate,
@@ -1628,7 +1628,7 @@ public class SupplierDecisionWorkflowTests
             IsActive = true,
             Unit = unit
         };
-        var plan = new Productionplan
+        var plan = new ProductionPlan
         {
             PlanId = GuidHelper.NewId(),
             PlanCode = $"PLAN-{Guid.NewGuid():N}",
@@ -1639,7 +1639,7 @@ public class SupplierDecisionWorkflowTests
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
-        var demand = new Materialrequest
+        var demand = new MaterialRequest
         {
             RequestId = GuidHelper.NewId(),
             RequestCode = requestCode ?? $"MR-{Guid.NewGuid():N}",
@@ -1650,7 +1650,7 @@ public class SupplierDecisionWorkflowTests
             CreatedBy = UserIdBytes,
             Plan = plan
         };
-        demand.Materialrequestlines.Add(new Materialrequestline
+        demand.Materialrequestlines.Add(new MaterialRequestLine
         {
             RequestLineId = GuidHelper.NewId(),
             RequestId = demand.RequestId,

@@ -8,11 +8,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class CurrentStockRepository : GenericRepository<Currentstock>, ICurrentStockRepository
+public class CurrentStockRepository : GenericRepository<CurrentStock>, ICurrentStockRepository
 {
     public CurrentStockRepository(IpcManagementContext context) : base(context) { }
 
-    public async Task<Currentstock?> GetByWarehouseAndIngredientAsync(byte[] warehouseId, byte[] ingredientId)
+    public async Task<CurrentStock?> GetByWarehouseAndIngredientAsync(byte[] warehouseId, byte[] ingredientId)
     {
         return await _dbSet
             .Include(c => c.Ingredient)
@@ -20,7 +20,7 @@ public class CurrentStockRepository : GenericRepository<Currentstock>, ICurrentS
             .FirstOrDefaultAsync(c => c.WarehouseId == warehouseId && c.IngredientId == ingredientId);
     }
 
-    public async Task<IEnumerable<Currentstock>> GetByWarehouseAsync(byte[] warehouseId)
+    public async Task<IEnumerable<CurrentStock>> GetByWarehouseAsync(byte[] warehouseId)
     {
         return await _dbSet
             .AsNoTracking()
@@ -81,7 +81,7 @@ public class CurrentStockRepository : GenericRepository<Currentstock>, ICurrentS
     private void DetachStaleTrackedStock(byte[] warehouseId, byte[] ingredientId)
     {
         var trackedEntry = _context.ChangeTracker
-            .Entries<Currentstock>()
+            .Entries<CurrentStock>()
             .FirstOrDefault(entry =>
                 entry.State == EntityState.Unchanged &&
                 entry.Entity.WarehouseId is not null &&

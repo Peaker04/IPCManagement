@@ -370,21 +370,20 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 14** so với
-`origin/feature/production-plan`, working tree sạch, **chưa push**.
-Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **328/328** · build 0 warning ·
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 29** so với
+`origin/feature/production-plan`, working tree sạch sau Bước 6, **chưa push**.
+Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
 
 **Phạm vi Kỳ đã chốt:** `1b` (sửa sai nghiệp vụ + dựng hợp đồng, không di chuyển file hàng loạt) +
 `2a` (được breaking change nội bộ nếu test xanh và UI không đổi hành vi) + `3b` (chia lane subagent).
 
-**Hai quyết định còn treo, cần hỏi Kỳ trước khi làm:**
+**Một quyết định còn treo, cần hỏi Kỳ trước khi làm:**
 - **A.** Phạm vi tái cấu trúc backend — `A1` VSA-lite (~160 file move, **0 file Migrations bị chạm**, ~45h)
   hay `A2` tối thiểu (~20 file, ~20h). Khuyến nghị `A1`.
-- **B.** Xóa 838 dòng code chết + 430 dòng test đang phủ lên chúng — hành động phá hủy, cần lệnh rõ.
-  Khuyến nghị xóa toàn bộ, tách commit xóa `types/api.types.ts` làm commit đầu tiên (nó là bản sao của
-  `types/api.ts` thiếu đúng 3 dòng `roleCode`/`isAdminFullAccess`/`permissions` — mìn hẹn giờ cho kiểm tra quyền).
+- **B đã chốt và thực hiện:** Kỳ chọn B1, xóa code chết có kiểm chứng; các commit `c657918`,
+  `9ef1b8e`, `e2071e7` đã xóa code chết và giữ lại 5 test đang phủ code sống.
 
 **G0 — ĐÃ XONG 27/07/2026.** Cả 13 bug đúng-sai nghiệp vụ ở Phần B của bản thiết kế đã xử lý, gồm
 `AdminDataPage.tsx` (API chết mà tile vẫn báo "Ổn định/Đạt/Trong SLA/Đủ tồn"), `GuidHelper.cs`
@@ -405,7 +404,52 @@ migration **không tự dựng được database từ trắng** — migration đ
 migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè lên baseline `IPCmanagement.sql`. Chi tiết ở mục
 "Sự cố mất dữ liệu và củng cố tầng database" bên trên.
 
-**Hai quyết định A và B vẫn còn treo** — chưa động tới.
+**A vẫn còn treo** — chưa cần chốt để hoàn tất điểm dừng an toàn sau bước 5.
+
+### Bước 4 — hậu tố `Async` (đã hoàn tất ngày 27/07/2026)
+
+- Commit `00432c7 refactor(be): add Async suffix to controller actions`.
+- Cả **175/175** controller action trả `Task`/`ValueTask` hiện có hậu tố `Async`; không đổi route URL.
+- Cập nhật các điểm tham chiếu nguy cơ bằng tên action (`nameof`, `CreatedAtAction`, reflection và test gọi trực tiếp),
+  rồi quét lại không còn tên cũ; compiler sau đó bắt thêm 3 lời gọi nội bộ trong `AuthController`.
+- Thêm `backend/.editorconfig` để giữ quy ước hậu tố async cho method `async`, prefix `I` cho interface và `_camelCase`
+  cho private/protected field. Build + backend tests xanh: **626 pass / 0 fail / 1 skip**.
+- `gitnexus analyze` đã chạy lại, index up-to-date. `detect_changes --scope all` báo critical ở cấp diff tổng hợp
+  (31 file / 228 symbol / 250 flow) vì đây là đổi tên hàng loạt; impact từng target đều **LOW**, không có HIGH/CRITICAL.
+
+### Bước 5 — contract sinh từ Swagger + chuẩn hóa request model (đã hoàn tất ngày 27/07/2026)
+
+- E1 ở commit `795d22e feat(contract): generate OpenAPI type baseline`: đăng ký Swagger dùng chung, thêm
+  Swashbuckle CLI `7.3.1`, sinh `openapi.json` + `schema.ts`, thêm `gen:api`/`check:api-contract` và CI drift gate.
+- E2 semantic-rename **68** request model backend và toàn bộ reference trong service/controller/validator/tests:
+  `XxxRequestDto -> XxxRequest`, các input `XxxDto -> XxxRequest`. Con số thiết kế lịch sử là 69 nhưng source/spec
+  hiện tại chỉ có 68 type request trong transitive closure; không tạo type giả để khớp số cũ.
+- GitNexus impact trước sửa: **5 CRITICAL, 7 HIGH, 20 MEDIUM, 31 LOW, 5 UNKNOWN**; Kỳ đã cho phép tiếp tục cả
+  CRITICAL. Rename preview cho thấy auth DTO có thể chạm `frontend/src/types/api.ts`, nên phần apply thật dùng Roslyn
+  giới hạn trong `backend/IPCManagement.slnx`; **không file FE viết tay nào bị sửa**.
+- Contract sau regenerate giữ **173 operation / 284 schema**, không còn request schema mang tên cũ và sinh lại
+  deterministic. Giới hạn baseline vẫn còn: **66 operation chưa khai success-response schema**; đây là nợ typed
+  response riêng, không che trong batch rename.
+- Quality gates E2: Release build **0 warning / 0 error**; BE **626 pass / 1 skip**; FE unit **327/327**;
+  lint **0 error / 9 warning baseline**; dependency-cruiser sạch; production build xanh; `git diff --check` sạch.
+- Không chạy seed/reset database, không push. Bước 5 là điểm dừng an toàn đầy đủ trước khi quyết định Bước 6.
+
+### Bước 6 — gỡ chu trình feature `projects↔workflow` và `chef↔workflow` (đã hoàn tất ngày 27/07/2026)
+
+- Di chuyển nguyên trạng `dishCatalogApi.ts` + test từ `features/projects` xuống `src/api`, và
+  `chefServiceDate.ts` + 2 test lịch nghiệp vụ từ `features/chef` xuống `src/lib`; giữ nguyên mọi export,
+  endpoint, RTK Query cache tag và logic ngày Bangkok.
+- Di chuyển `operationalPagePerformanceContracts.test.ts` từ `features/workflow/pages` lên `src/app` vì đây là
+  contract tích hợp đa-feature; chỉ cập nhật đường dẫn `?raw`, giữ nguyên toàn bộ assertion hành vi/performance.
+- Dependency graph sau sửa: `workflow -> projects/chef` từ **12 cạnh xuống 0**; 19 cạnh chiều
+  `projects/chef -> workflow` được giữ lại để không lấn sang Bước 7. Baseline dependency-cruiser co từ
+  **140 xuống 115** known violations, không có vi phạm mới.
+- Impact trước sửa: `dishCatalogApi.ts` **HIGH** (18 direct / 66 total), `chefServiceDate.ts` **MEDIUM**
+  (6 direct / 30 total); Kỳ đã cho phép tiếp tục cả HIGH/CRITICAL. TypeScript file-rename preview và compiler
+  được dùng để cập nhật import; hai chuỗi `vi.mock` không nằm trong semantic edit được sửa tường minh.
+- Quality gates: targeted **29/29**; full FE **327/327**; lint **0 error / 9 warning baseline**;
+  dependency-cruiser sạch; production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**;
+  contract drift gate xanh; `git diff --check` sạch. Không chạy seed/reset database, không push.
 
 ## Quy trình tiếp tục ở phiên mới
 
@@ -414,7 +458,8 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 3. Chạy `node .gitnexus/run.cjs status`. Khi sửa symbol, chạy upstream impact và báo risk/callers; trước commit phải chạy `detect-changes`.
 4. Kiểm tra port `8090`, `3001`, `8001` và trạng thái Shipyard lane. Không khởi tạo database mới nếu lane hiện tại còn evidence cần bảo toàn.
 4b. **Trước khi chạy bất kỳ file `.sql` nào vào MySQL**: `grep -n '^USE\|DROP TABLE\|DROP DATABASE'` file đó trước. `backend/database/IPCmanagement.sql` nay có chốt an toàn nhưng các file khác thì chưa. Muốn biết database có tụt hậu migration không thì gọi `/health/ready` — check `migrations` sẽ báo Degraded kèm danh sách ID còn thiếu.
-5. Mở UI bằng browser headed; đăng nhập demo `admin/admin`. Không chỉ gọi API rồi kết luận FE pass.
+5. Mở UI bằng browser headed; đăng nhập demo `admin` với mật khẩu lấy từ biến môi trường `K6_PASSWORD`
+   (mật khẩu đã xoay, không thử `admin/admin`). Không chỉ gọi API rồi kết luận FE pass.
 6. Khi tiếp tục E2E, dùng tuần ANV 25k làm baseline, kiểm tra toàn bộ tab và đối chiếu FE/BE/DB. Nếu thay đổi dữ liệu test, ghi lại document lineage và correction/audit.
 7. Sau sửa: chạy targeted test, full frontend unit, lint, production build; chạy backend regression khi contract/service thay đổi; chụp lại evidence và cập nhật coverage nếu đã chạy lại coverage.
 8. Cập nhật tài liệu này và E2E audit sau mỗi thay đổi đáng kể; ghi rõ phần đã xác minh và phần chỉ là giả định.

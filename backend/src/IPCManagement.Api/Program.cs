@@ -8,15 +8,14 @@ using IPCManagement.Api.HealthChecks;
 using IPCManagement.Api.Middlewares;
 using IPCManagement.Api;
 using IPCManagement.Api.Helpers;
+using IPCManagement.Api.OpenApi;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
@@ -212,19 +211,7 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers()
-    .AddJsonOptions(opts =>
-    {
-        opts.JsonSerializerOptions.PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
-        opts.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        // DateTime luôn ra ISO-8601 có hậu tố "Z"; enum ra dây dưới dạng chuỗi PascalCase.
-        opts.JsonSerializerOptions.Converters.Add(new UtcDateTimeJsonConverter());
-        opts.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-    });
-builder.Services.Configure<ApiBehaviorOptions>(options =>
-{
-    options.InvalidModelStateResponseFactory = ApiResponseModelStateFactory.CreateInvalidModelStateResponse;
-});
+builder.Services.AddApiContractServices();
 
 // ── Health checks ───────────────────────────────────────────────────────────
 // /health/live  : chỉ khẳng định process còn sống, KHÔNG chạm DB (liveness probe).
@@ -258,38 +245,6 @@ builder.Services.AddResponseCompression(options =>
 // ── FluentValidation ────────────────────────────────────────────────────────
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "IPC Management API",
-        Version = "v1",
-        Description = "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)"
-    });
-
-    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Name = "Authorization",
-        Type = SecuritySchemeType.Http,
-        Scheme = "bearer",
-        BearerFormat = "JWT",
-        In = ParameterLocation.Header,
-        Description = "Nhập JWT token: Bearer {token}"
-    });
-
-    options.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
-            {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            },
-            Array.Empty<string>()
-        }
-    });
-});
 
 // ── Rate Limiting (được tích hợp sẵn trong ASP.NET Core 7+) ──────────────────────
 // PermitLimit đọc từ config để có thể nới tạm khi đo tải (RUNBOOK tools/perf);

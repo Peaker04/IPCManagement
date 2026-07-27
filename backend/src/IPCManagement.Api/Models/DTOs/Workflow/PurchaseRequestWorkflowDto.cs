@@ -1,6 +1,6 @@
 namespace IPCManagement.Api.Models.DTOs.Workflow;
 
-public class GeneratePurchaseRequestFromDemandDto
+public class GeneratePurchaseRequestFromDemandRequest
 {
     public string MaterialRequestId { get; set; } = string.Empty;
 }

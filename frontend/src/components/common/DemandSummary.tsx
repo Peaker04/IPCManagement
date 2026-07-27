@@ -2,8 +2,8 @@ import { cn } from '@/lib/utils';
 import { StatusBadge } from './StatusBadge';
 import { TableViewport } from './TableViewport';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import type { DemandLine } from '@/features/workflow';
-import { formatWorkflowStatus } from '@/features/workflow/workflowConfig';
+import type { DemandLine } from '@/types/workflow';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 
 interface DemandSummaryProps {
   lines: DemandLine[];

@@ -47,13 +47,13 @@ public class DishCatalogTests
                 IsActive = true,
                 Menuitems =
                 [
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 2 },
-                    new Menuitem { DishSlot = "Món mặn", DisplayOrder = 1 },
-                    new Menuitem { DishSlot = "Canh", DisplayOrder = 3 }
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 2 },
+                    new MenuItem { DishSlot = "Món mặn", DisplayOrder = 1 },
+                    new MenuItem { DishSlot = "Canh", DisplayOrder = 3 }
                 ],
                 Dishboms =
                 [
-                    new Dishbom
+                    new DishBom
                     {
                         BomId = GuidHelper.ToBytes(bomId),
                         DishId = GuidHelper.ToBytes(dishId),
@@ -117,7 +117,7 @@ public class DishCatalogTests
         var currentUserService = Substitute.For<ICurrentUserService>();
         var controller = new DishesController(service, currentUserService);
 
-        var actionResult = await controller.GetCatalog();
+        var actionResult = await controller.GetCatalogAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should()
@@ -153,7 +153,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetBomCoverage();
+        var actionResult = await controller.GetBomCoverageAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomCoverageReportDto>>().Subject;
@@ -185,7 +185,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetBomValidation();
+        var actionResult = await controller.GetBomValidationAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomValidationReportDto>>().Subject;
@@ -209,7 +209,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetMenuImportHistory();
+        var actionResult = await controller.GetMenuImportHistoryAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<MenuImportHistoryDto>>().Subject;
@@ -240,7 +240,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetSampleImportStatus();
+        var actionResult = await controller.GetSampleImportStatusAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<SampleImportStatusDto>>().Subject;
@@ -254,7 +254,7 @@ public class DishCatalogTests
     {
         var dishId = Guid.NewGuid().ToString();
         var service = Substitute.For<IDishService>();
-        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineDto>()).Returns(new DishCatalogBomLineDto
+        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineRequest>()).Returns(new DishCatalogBomLineDto
         {
             BomId = Guid.NewGuid().ToString(),
             IngredientId = Guid.NewGuid().ToString(),
@@ -262,7 +262,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.AddBomLine(dishId, new CreateDishBomLineDto());
+        var actionResult = await controller.AddBomLineAsync(dishId, new CreateDishBomLineRequest());
 
         var created = actionResult.Should().BeOfType<ObjectResult>().Subject;
         created.StatusCode.Should().Be(StatusCodes.Status201Created);
@@ -274,7 +274,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -300,7 +300,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -326,7 +326,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -340,7 +340,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var overlappingRequest = new CreateDishBomLineDto
+        var overlappingRequest = new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -362,7 +362,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -376,7 +376,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -396,7 +396,7 @@ public class DishCatalogTests
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,
@@ -411,7 +411,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -433,7 +433,7 @@ public class DishCatalogTests
         var service = CreateDishService(fixture.Context);
         var originalBomId = GuidHelper.NewId();
 
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = originalBomId,
             DishId = fixture.DishId,
@@ -450,7 +450,7 @@ public class DishCatalogTests
         var result = await service.UpdateBomLineAsync(
             GuidHelper.ToGuidString(fixture.DishId),
             GuidHelper.ToGuidString(originalBomId),
-            new UpdateDishBomLineDto
+            new UpdateDishBomLineRequest
             {
                 IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
                 UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -677,7 +677,7 @@ public class DishCatalogTests
     {
         await using var fixture = await CreateCatalogFixtureAsync();
         var service = CreateDishService(fixture.Context);
-        fixture.Context.Dishboms.Add(new Dishbom
+        fixture.Context.Dishboms.Add(new DishBom
         {
             BomId = GuidHelper.NewId(),
             DishId = fixture.DishId,

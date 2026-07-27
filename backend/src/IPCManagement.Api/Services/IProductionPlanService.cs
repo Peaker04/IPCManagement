@@ -9,5 +9,5 @@ public interface IProductionPlanService
     Task<ProductionPlanDto?> GetByIdAsync(string id);
     Task<IReadOnlyList<ProductionPlanDto>> GetFilteredAsync(string? serviceDate, string? dateFrom, string? dateTo, string? customerId, CancellationToken cancellationToken = default);
     Task<DailyProductionPlanDto> GetDailyAsync(string? serviceDate, string? customerId, string? shiftName, CancellationToken cancellationToken = default);
-    Task<DailyProductionPlanDto> SendDailyToKitchenAsync(SendDailyProductionPlanRequestDto request, string? userId, CancellationToken cancellationToken = default);
+    Task<DailyProductionPlanDto> SendDailyToKitchenAsync(SendDailyProductionPlanRequest request, string? userId, CancellationToken cancellationToken = default);
 }

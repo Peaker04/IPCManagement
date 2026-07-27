@@ -5,13 +5,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace IPCManagement.Api.Data.Repositories;
 
-public class InventoryReceiptRepository : GenericRepository<Inventoryreceipt>, IInventoryReceiptRepository
+public class InventoryReceiptRepository : GenericRepository<InventoryReceipt>, IInventoryReceiptRepository
 {
     public InventoryReceiptRepository(IpcManagementContext context) : base(context)
     {
     }
 
-    public async Task<(IEnumerable<Inventoryreceipt> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(IEnumerable<InventoryReceipt> Items, int TotalCount)> GetPagedAsync(
         int pageNumber,
         int pageSize)
     {
@@ -34,7 +34,7 @@ public class InventoryReceiptRepository : GenericRepository<Inventoryreceipt>, I
         return (items, totalCount);
     }
 
-    public async Task<Inventoryreceipt?> GetByIdWithLinesAsync(byte[] id)
+    public async Task<InventoryReceipt?> GetByIdWithLinesAsync(byte[] id)
         => await _context.Inventoryreceipts
             .AsNoTracking()
             .Include(receipt => receipt.Supplier)

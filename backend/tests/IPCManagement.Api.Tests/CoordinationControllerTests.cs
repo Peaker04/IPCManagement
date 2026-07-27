@@ -35,7 +35,7 @@ public class CoordinationControllerTests
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "menu.xlsx");
 
-        var result = await controller.PreviewWeeklyMenuImport(file, "customer-id", null, null, CancellationToken.None);
+        var result = await controller.PreviewWeeklyMenuImportAsync(file, "customer-id", null, null, CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
@@ -66,7 +66,7 @@ public class CoordinationControllerTests
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
 
-        var result = await controller.CommitWeeklyMenuImport(file, "customer-id", null, null, CancellationToken.None);
+        var result = await controller.CommitWeeklyMenuImportAsync(file, "customer-id", null, null, CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
         var response = badRequest.Value.Should().BeOfType<ApiResponse>().Subject;
@@ -80,7 +80,7 @@ public class CoordinationControllerTests
         var coordinationService = Substitute.For<ICoordinationService>();
         coordinationService.UpdateForecastServingsAsync(
                 Arg.Any<string>(),
-                Arg.Any<UpdateForecastServingsRequestDto>(),
+                Arg.Any<UpdateForecastServingsRequest>(),
                 Arg.Any<string?>())
             .Returns(Task.FromException<AdjustServingsResultDto?>(new ArgumentException("Số suất dự kiến phải lớn hơn hoặc bằng 0.")));
         var currentUserService = Substitute.For<ICurrentUserService>();
@@ -91,9 +91,9 @@ public class CoordinationControllerTests
             currentUserService,
             Substitute.For<ISampleDataImportService>());
 
-        var result = await controller.UpdateForecastServings(
+        var result = await controller.UpdateForecastServingsAsync(
             Guid.NewGuid().ToString(),
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = -1,
                 Reason = "Nhập sai"

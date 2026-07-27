@@ -3,7 +3,7 @@ using IPCManagement.Api.Models.DTOs.Supplier;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class CreateSupplierQuotationDtoValidator : AbstractValidator<CreateSupplierQuotationDto>
+public class CreateSupplierQuotationDtoValidator : AbstractValidator<CreateSupplierQuotationRequest>
 {
     public CreateSupplierQuotationDtoValidator()
     {
@@ -15,7 +15,7 @@ public class CreateSupplierQuotationDtoValidator : AbstractValidator<CreateSuppl
     }
 }
 
-public class UpdateSupplierQuotationDtoValidator : AbstractValidator<UpdateSupplierQuotationDto>
+public class UpdateSupplierQuotationDtoValidator : AbstractValidator<UpdateSupplierQuotationRequest>
 {
     public UpdateSupplierQuotationDtoValidator()
     {

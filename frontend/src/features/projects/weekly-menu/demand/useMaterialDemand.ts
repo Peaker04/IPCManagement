@@ -1,15 +1,8 @@
 import { useMemo, useState } from 'react'
 import { useAppDispatch } from '@/app/hooks'
 import { apiSlice } from '@/api/apiSlice'
-import {
-  useGenerateMaterialDemandMutation,
-  useGetApprovalHistoryQuery,
-  useGetIngredientDemandAggregatePageQuery,
-  useGetIngredientDemandQuery,
-  useGetMaterialDemandStalenessQuery,
-  useGetWorkflowDocumentsQuery,
-} from '@/features/workflow'
-import type { DemandLine } from '@/features/workflow'
+import { useGenerateMaterialDemandMutation, useGetApprovalHistoryQuery, useGetIngredientDemandAggregatePageQuery, useGetIngredientDemandQuery, useGetMaterialDemandStalenessQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
+import type { DemandLine } from '@/types/workflow'
 import { useUpsertQuickServingsMutation } from '../../../coordination/coordinationApi'
 import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'

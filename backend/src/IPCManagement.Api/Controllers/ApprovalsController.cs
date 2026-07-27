@@ -28,7 +28,7 @@ public class ApprovalsController : ControllerBase
 
     [HttpGet("inbox")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalInboxPageDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetInbox([FromQuery] ApprovalInboxQueryDto query, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetInboxAsync([FromQuery] ApprovalInboxQueryDto query, CancellationToken cancellationToken)
         => Ok(ApiResponse<ApprovalInboxPageDto>.SuccessResult(
             await _approvalInboxService.GetPendingPageAsync(User, query, cancellationToken)));
 
@@ -36,7 +36,7 @@ public class ApprovalsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Execute([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequestDto request)
+    public async Task<IActionResult> ExecuteAsync([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequest request)
     {
         var actorUserId = _currentUserService.GetUserId(User);
         ApprovalResultDto? result;
