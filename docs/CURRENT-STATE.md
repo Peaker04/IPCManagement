@@ -527,6 +527,30 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Fix phát hiện trong gate: Warehouse chịu được response supplemental page thiếu `items` và có contract test (`55241f4`); 8 Playwright spec import `ROUTES` từ vị trí hiện hành `src/lib/routeConfig` (`e65effa`). Không update snapshot cũ.
 - Full gate sau thay đổi: backend **629 pass / 1 skip**, frontend **329/329**, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi phạm mới, FE production build xanh, Release contract regenerate deterministic, `git diff --check` sạch. Browser desktop runtime thật và DB gate xem mục trên; mobile cố ý chưa test.
 
+### Bước 11 — hợp đồng `f(data, state)` (hoàn tất ngày 27/07/2026)
+
+- Commit `d2a5d62 feat(fe-state): add typed query view contract` thêm `frontend/src/lib/queryView.ts` với
+  discriminated union `QueryView<T>` và adapter thuần `toQueryView`.
+- Contract phân loại `uninitialized`, `loading`, `forbidden`, `error`, `ready`; nhánh `ready` giữ data cũ khi
+  refreshing và mang truncation evidence. Empty được dẫn xuất sau khi đã vào `ready`, không phải default của lỗi/skip.
+- `queryView.test.ts` phủ đủ tám ca: uninitialized, loading, ready-empty, ready-success, refreshing, partial,
+  forbidden và error — **8/8 pass**.
+- ESLint có guardrail kiểu strangler: query đã gọi `toQueryView(query, ...)` bị cấm tiếp tục dùng
+  `query.data ?? []`. Probe cố ý vi phạm đã bị rule chặn; code cũ chưa opt-in không làm tăng warning baseline.
+- Full FE gates: **337/337** unit tests, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi
+  phạm mới và vẫn ignore 54 known violations, production build xanh. Không đổi UI/API/cache/DOM, không chạm
+  backend hay database nên chưa chạy browser/DB gate ở bước nền này.
+- Bước tiếp theo: pilot Material Demand và Warehouse theo Bước 12 của
+  `docs/ARCHITECTURE-AUDIT-2026-07-26.md`; chỉ test desktop 1365×900, 1280×900 và 768×1024, mobile ngoài scope.
+
+**Đính chính workflow sau khi Kỳ làm rõ yêu cầu:** “Bước 11 hoàn tất” ở trên chỉ nói phần nền
+`QueryView<T>`, không có nghĩa toàn workflow mới đã qua Bước 11. Phần F của
+`docs/ARCHITECTURE-AUDIT-2026-07-26.md` hiện là nguồn duy nhất cho thứ tự làm việc, đã hợp nhất
+`f(data, state)` với P0–P3. Theo workflow hợp nhất, Bước 11 còn backend architecture baseline và
+file-growth reporter. Material Demand pilot đã commit `71656bc`; Warehouse pilot đang là thay đổi chưa commit,
+static gates xanh nhưng browser headed dừng ở login vì runtime không có `K6_PASSWORD`. Không tiếp tục rollout
+trước khi các gate 11–12 hoàn tất.
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.

@@ -6,6 +6,7 @@ import type { DemandLine } from '@/types/workflow'
 import { useUpsertQuickServingsMutation } from '../../../coordination/coordinationApi'
 import { aggregateDemandLinesByMaterial, runInBatches } from '../model/scope'
 import { getApiErrorMessage } from '../model/formatters'
+import { toQueryView } from '@/lib/queryView'
 import type { WeeklyPlanRow } from '../model/types'
 import type { QuickServingRow, WeeklyMenuScope, WeeklyScheduleFeedback } from '../schedule/types'
 import { attachDemandDishSources, buildDemandApprovalHref, buildDemandDayPages, buildKhsxDraftDocument, getDemandApprovalPresentation, getDemandDayIndex, getDemandInventoryStatus, getPendingQuickServingRows, getWeekStalenessState, isDemandDocumentForDate, partitionDemandLines } from './demandModel'
@@ -24,6 +25,8 @@ type Options = {
   invalidScheduleMenuPrices: number[]
   quickServingRows: QuickServingRow[]
 }
+
+const EMPTY_QUERY_ROWS: never[] = []
 
 export function useMaterialDemand({
   enabled = true,
@@ -68,8 +71,6 @@ export function useMaterialDemand({
   }), [reportDateFrom, reportDateTo, scope.customerId])
   const demandQuery = useGetIngredientDemandQuery(reportQuery, { skip: !enabled || !scope.customerId })
   const documentsQuery = useGetWorkflowDocumentsQuery(reportQuery, { skip: !enabled || !scope.customerId })
-  const demandLines = useMemo(() => demandQuery.currentData ?? [], [demandQuery.currentData])
-  const workflowDocuments = useMemo(() => documentsQuery.currentData ?? [], [documentsQuery.currentData])
   const stalenessQuery = (serviceDate?: string) => ({
     serviceDate: serviceDate ?? '',
     customerId: scope.customerId,
@@ -102,7 +103,42 @@ export function useMaterialDemand({
     pageNumber: aggregatePageNumber,
     pageSize: 100,
   }, { skip: !enabled || !scope.customerId || !activeDate })
-  const aggregatePage = aggregateQuery.currentData
+  const retryDemand = () => Promise.all([
+    ...(!demandQuery.isUninitialized ? [demandQuery.refetch()] : []),
+    ...(!documentsQuery.isUninitialized ? [documentsQuery.refetch()] : []),
+    ...(!aggregateQuery.isUninitialized ? [aggregateQuery.refetch()] : []),
+  ])
+  const currentDemandData = demandQuery.currentData !== undefined
+    && documentsQuery.currentData !== undefined
+    && aggregateQuery.currentData !== undefined
+    ? {
+        demandLines: demandQuery.currentData,
+        workflowDocuments: documentsQuery.currentData,
+        aggregatePage: aggregateQuery.currentData,
+      }
+    : undefined
+  const demandView = toQueryView({
+    currentData: currentDemandData,
+    error: demandQuery.error ?? documentsQuery.error ?? aggregateQuery.error,
+    isUninitialized: demandQuery.isUninitialized || documentsQuery.isUninitialized || aggregateQuery.isUninitialized,
+    isLoading: demandQuery.isLoading || documentsQuery.isLoading || aggregateQuery.isLoading,
+    isFetching: demandQuery.isFetching || documentsQuery.isFetching || aggregateQuery.isFetching,
+    isSuccess: demandQuery.isSuccess && documentsQuery.isSuccess && aggregateQuery.isSuccess,
+    isError: demandQuery.isError || documentsQuery.isError || aggregateQuery.isError,
+  }, {
+    instruction: !scope.customerId
+      ? 'Chọn khách hàng để xem nhu cầu nguyên liệu.'
+      : !activeDate
+        ? 'Chọn ngày KHSX để xem nhu cầu nguyên liệu.'
+        : 'Mở tab Nhu cầu để tải dữ liệu nguyên liệu.',
+    retry: retryDemand,
+    errorMessage: 'Không tải được nhu cầu nguyên liệu.',
+    forbiddenMessage: 'Bạn không có quyền xem nhu cầu nguyên liệu của phạm vi này.',
+  })
+  const demandData = demandView.phase === 'ready' ? demandView.data : undefined
+  const demandLines = demandData ? demandData.demandLines : EMPTY_QUERY_ROWS
+  const workflowDocuments = demandData ? demandData.workflowDocuments : EMPTY_QUERY_ROWS
+  const aggregatePage = demandData?.aggregatePage
   const isFetchingAggregate = aggregateQuery.isFetching
   const activeDemand = demandLines.find((line) => line.serviceDate === activeDate && line.materialRequestId)
     ?? (activeStaleness?.materialRequestId ? {
@@ -126,28 +162,22 @@ export function useMaterialDemand({
       targetId: demandApprovalStatus.targetId,
     })
     : undefined
-  const aggregateLines = useMemo(
-    () => attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate),
-    [activeDate, aggregatePage?.items, demandLines],
-  )
+  const aggregateLines = attachDemandDishSources(aggregatePage?.items ?? [], demandLines, activeDate)
   const inventoryStatus = getDemandInventoryStatus(aggregateLines, aggregatePage?.totalCount, aggregatePage?.shortageCount)
   const inventoryGroups = partitionDemandLines(aggregateLines)
   const activeQuickServingRows = activeDay ? quickServingRows.filter((row) => row.serviceDate === activeDate) : []
-  const aggregatedDemandLines = useMemo(() => aggregateDemandLinesByMaterial(demandLines), [demandLines])
+  const aggregatedDemandLines = aggregateDemandLinesByMaterial(demandLines)
   const draftDocument = buildKhsxDraftDocument({ activeDay, allRows: weeklyPlanRows, customerCode, customerLabel, hasDemand: Boolean(activeDemand) })
   const backendDocuments = workflowDocuments.filter((document) => ['KHSX', 'Đơn mua', 'Phiếu xuất'].includes(document.type))
   const activeDateDocuments = backendDocuments.filter((document) => isDemandDocumentForDate(document, activeDate))
   const documents = draftDocument ? [draftDocument, ...activeDateDocuments] : activeDateDocuments
   const weeklyDocuments = draftDocument ? [draftDocument, ...backendDocuments] : backendDocuments
-  // Nếu một trong ba nguồn nhu cầu lỗi thì danh sách rỗng KHÔNG có nghĩa là
-  // tuần này không cần mua gì; màn hình phải báo lỗi thay vì báo rỗng.
-  const isDemandError = demandQuery.isError || documentsQuery.isError || aggregateQuery.isError
-  const isDemandRetrying = demandQuery.isFetching || documentsQuery.isFetching || aggregateQuery.isFetching
-  const retryDemand = () => Promise.all([
-    demandQuery.refetch(),
-    documentsQuery.refetch(),
-    aggregateQuery.refetch(),
-  ])
+  // Nếu một trong ba nguồn nhu cầu lỗi/forbidden thì danh sách rỗng KHÔNG có
+  // nghĩa là tuần này không cần mua gì; view state quyết định presentation.
+  const isDemandError = demandView.phase === 'error' || demandView.phase === 'forbidden'
+  const isDemandRetrying = demandView.phase === 'error'
+    ? demandView.isRetrying
+    : demandView.phase === 'ready' && demandView.isRefreshing
 
   const selectDay = (dayKey: string | null) => {
     setNavigation({ scopeKey, selectedDayKey: dayKey, aggregatePageNumber: 1 })
@@ -232,6 +262,7 @@ export function useMaterialDemand({
 
   return {
     scope,
+    dataState: demandView,
     state: { selectedDayKey, aggregatePageNumber, feedback },
     status: {
       isGenerating,

@@ -399,108 +399,157 @@ hàm thuần, có test bảng tám trạng thái và xử lý 403 tường minh.
 
 ---
 
-## Phần F — Roadmap mới sau Bước 10
+## Phần F — Workflow xử lý kiến trúc thống nhất sau Bước 10
 
-Roadmap này nối tiếp Bước 1–10; không làm lại codegen, semantic rename, giải thể `workflow`, cache tag hay
-VSA-lite đã hoàn tất.
+Đây là **một workflow duy nhất**, hợp nhất roadmap `f(data, state)` với P0–P3 của audit kiến trúc. Các bước
+chạy theo đúng thứ tự:
 
-### Bước 11 — Khóa hợp đồng `f(data, state)` (1–2 ngày)
+```text
+Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bước 16 → Bước 17 → Bước 18
+ nền/gate    pilot      BE boundary  BE use case   FE boundary  FE state      persistence  đóng audit
+```
+
+Không mở một roadmap phụ trong lúc thực hiện. Một bước chỉ được chuyển sang bước sau khi gate của nó xanh.
+Mỗi lát nghiệp vụ là một commit nguyên tử; không push, không reset/seed database, không di chuyển migrations
+và không big-bang restructure.
+
+| Nguồn yêu cầu cũ | Đã được hợp nhất vào |
+|---|---|
+| Hợp đồng `f(data, state)` + guardrail | Bước 11 |
+| Pilot Material Demand + Warehouse | Bước 12 |
+| P0 khóa backend boundary | Bước 11 baseline + Bước 13 trả hết cycle |
+| P1 tách controller/service theo use case | Bước 14 |
+| P2 frontend boundary | Bước 15 |
+| Nhân rộng state boundary | Bước 16, sau khi path/ownership ổn định |
+| P3 persistence/reliability | Bước 17 |
+| Test monolith + file-growth thresholds + docs | Bước 18 |
+
+### Bước 11 — Dựng nền và khóa baseline cho toàn workflow
+
+**Mục tiêu:** tạo guardrail trước khi tiếp tục thay đổi cả FE lẫn BE.
 
 - Định nghĩa `QueryView<T>` và adapter thuần từ RTK Query result.
-- Thêm test table-driven cho uninitialized, loading, ready-empty, ready-success, refreshing, partial,
-  forbidden và error.
-- Thêm convention test cấm data-owning section tự dùng `data ?? []` trước khi phân loại query state.
-- Không provider mới, không đổi DOM/CSS, không đổi endpoint/cache tag.
+- Test đủ uninitialized, loading, ready-empty, ready-success, refreshing, partial, forbidden và error.
+- Lint chặn query đã phân loại nhưng vẫn dùng `query.data ?? []`.
+- Thêm backend architecture test ở chế độ baseline: khai dependency direction dự kiến, chặn cạnh/cycle mới
+  trong khi bốn cycle cũ được trả ở Bước 13.
+- Đóng băng baseline 54 dependency violation FE; cấm phát sinh vi phạm mới.
+- Thêm báo cáo kích thước file/action-count ở chế độ warning, chưa block code cũ trong bước nền.
 
-**Nghiệm thu:** TypeScript bắt thiếu case; query `skip` không thể rơi vào empty; response 403 không có nút
-retry; refreshing giữ data cũ.
+**Gate 11:** full BE/FE/contract/dependency gates xanh; migration diff bằng 0; guardrail cố ý vi phạm phải đỏ.
 
-### Bước 12 — Pilot trên hai luồng quyết định thật (3–5 ngày)
+**Trạng thái:** hoàn tất phần `QueryView` tại `d2a5d62`; backend architecture baseline và file-growth reporter
+chưa thực hiện nên **Bước 11 tổng thể chưa hoàn tất**.
 
-- Pilot 1: Material Demand/Weekly Menu — đã có test error và model `state/status/actions/presentation`.
-- Pilot 2: Warehouse stock ledger/current stock — có cursor pagination, refreshing overlay và dữ liệu quyết
-  định xuất kho.
-- Đo lại desktop 1365×900, 1280×900 và 768×1024; mobile vẫn ngoài scope hiện tại.
-- Giữ nguyên request, response, RTK Query cache key/tag, URL và hành vi UI.
+### Bước 12 — Pilot và chốt mẫu `f(data, state)`
 
-**Go/no-go:** chỉ nhân rộng nếu mỗi pilot không quá hai ngày, CLS warm vẫn 0, không tăng fan-out refetch và
-ma trận trạng thái pass trên browser thật.
+**Mục tiêu:** chứng minh state contract hoạt động trên hai luồng quyết định thật trước khi nhân rộng.
 
-### Bước 13 — Nhân rộng state boundary theo rủi ro (1–2 tuần)
+- Pilot Material Demand/Weekly Menu.
+- Pilot Warehouse current stock + stock ledger.
+- Giữ nguyên request/response, endpoint, query args, RTK Query cache key/tag, URL và business behavior.
+- Browser headed kiểm tra đúng 1365×900, 1280×900 và 768×1024; mobile ngoài scope.
+- Evidence phải có screenshot cuối, request API sau action, console/page error, long task và CLS.
 
-Thứ tự: Purchasing → Approvals → Reports → Admin → Chef → Coordination. Mỗi feature là một commit độc lập,
-không di chuyển folder trong bước này. Trả hết bốn warning `no-swallowed-query-error`, render truncation cho
-mọi response có `isTruncated/totalCount`, và thêm query-level forbidden state khi endpoint có permission riêng.
+**Gate 12 — go/no-go:** tám trạng thái render đúng; forbidden không retry; refreshing giữ data cũ; partial
+không bị coi là complete; CLS warm vẫn 0; fan-out refetch không tăng. Nếu một pilot vượt hai ngày hoặc phá
+performance contract thì dừng để sửa mẫu, không nhân rộng.
 
-**Nghiệm thu:** `isUninitialized`/adapter được dùng tại mọi query có `skip`; không còn data-owning page tự
-coerce lỗi thành mảng rỗng; các common leaf component vẫn presentation-only.
+**Trạng thái:** Material Demand đã có commit `71656bc`; Warehouse đang là thay đổi chưa commit và browser gate
+chưa chạy được vì thiếu credential runtime. Vì vậy **Bước 12 chưa hoàn tất**.
 
-### Bước 14 — P0: khóa boundary VSA thật sự (3–5 ngày)
+### Bước 13 — P0: khóa backend boundary thật sự
 
-- Thêm backend architecture test cho feature dependency direction.
-- Chọn dependency DAG rõ ràng và loại bốn cặp hai chiều: `Purchasing↔Reports`, `Planning↔Purchasing`,
-  `Coordination↔SampleData`, `Approvals↔Coordination`.
-- Đưa port/interface về đúng feature sở hữu; chỉ chuyển DTO thực sự dùng chung và ổn định vào
-  `Shared/Contracts`.
+**Mục tiêu:** biến VSA từ cấu trúc folder thành dependency boundary được compiler/test bảo vệ.
+
+- Chốt dependency DAG rõ ràng.
+- Loại bốn cycle: `Purchasing↔Reports`, `Planning↔Purchasing`, `Coordination↔SampleData`,
+  `Approvals↔Coordination`.
+- Chỉ chuyển DTO thực sự dùng chung và ổn định vào `Shared/Contracts`.
+- Đưa interface/port về đúng feature sở hữu.
 - Bỏ direct `IpcManagementContext` khỏi `PurchaseRequestsController` và `ApprovalHistoryController`.
-- Không di chuyển `Migrations`, không big-bang restructure và không đổi schema trong bước khóa boundary.
+- Không di chuyển `Migrations`, không đổi schema và không gom refactor use case vào bước boundary.
 
-**Nghiệm thu:** không còn dependency cycle backend; controller chỉ điều phối use case; migration diff bằng 0.
+**Gate 13:** architecture test không còn baseline cycle; controller không truy cập DbContext trực tiếp;
+namespace/path gate và migration diff đều xanh.
 
-### Bước 15 — P1: tách use case đang phình và functional core (2–4 tuần)
+### Bước 14 — P1: tách backend theo use case và functional core
 
-Thứ tự ưu tiên theo cặp controller/service và use case thực:
+**Mục tiêu:** xử lý controller/service đang phình sau khi dependency direction đã ổn định.
 
-1. `CoordinationController` + `CoordinationService`: tách order, contract, portion rule, weekly menu/import,
-   meal quantity plan và lock/signoff/export.
-2. `WorkflowReportsController` + `WorkflowReportService`: tách inventory report, demand/purchasing report,
-   price variance, audit/data quality/KPI; controller không còn giữ cache/single-flight/CSV command logic.
-3. `PurchaseRequestsController`: đưa EF query/filter/mapping vào query/application service, controller chỉ
-   điều phối request/response.
-4. `DishesController` + `DishService`: tách catalog, BOM và BOM import/validation.
-5. `PurchaseRequestWorkflowService`: tách state transition/policy thuần khỏi EF, transaction và clock.
+Thực hiện tuần tự, mỗi mục là một commit/plan độc lập:
 
-Mỗi phần phải tách theo responsibility/use case thật; không đổi một file lớn thành nhiều partial file vẫn
-chung state và responsibility. Pure policy/projection/state transition là functional core có test không cần
-database; application service giữ imperative shell.
+1. `CoordinationController` + `CoordinationService`: order; customer contract; portion rule; weekly
+   menu/import; meal quantity plan; lock/signoff/export.
+2. `WorkflowReportsController` + `WorkflowReportService`: inventory; demand/purchasing; price variance;
+   audit/data quality/KPI. Controller không giữ cache/single-flight/CSV command logic.
+3. `PurchaseRequestsController`: EF query/filter/mapping đi vào query/application service.
+4. `DishesController` + `DishService`: catalog; BOM; BOM import/validation.
+5. `PurchaseRequestWorkflowService`: state transition/policy thuần tách khỏi EF, transaction và clock.
 
-**Nghiệm thu:** pure core có test không cần DB; controller không quá 400 dòng/20 action; service trên 1.000
-dòng phải có kế hoạch split được kiểm bằng gate.
+Không đổi một file lớn thành nhiều partial file cùng responsibility. Pure policy/projection/state transition
+là functional core có test không cần DB; application service giữ imperative shell.
 
-### Bước 16 — P3a: persistence và reliability (1–2 tuần)
+**Gate 14:** controller chỉ điều phối; pure core chạy không cần DB; API contract không drift; hành vi nghiệp vụ
+và transaction boundary hiện có được characterization test bảo vệ.
 
-- Tách EF mapping sang `IEntityTypeConfiguration<T>` theo feature, giữ `IpcManagementContext` làm
+### Bước 15 — P2a: sửa frontend structural boundary trước khi rollout state
+
+**Mục tiêu:** ổn định ownership/import path để Bước 16 không phải migrate state hai lần.
+
+- Tách `workflowApi.ts` thành endpoint module thuộc từng feature.
+- Giữ đúng một `apiSlice`, base query và cache-tag registry để cache behavior không đổi.
+- Chuyển `MainLayout` sang `app/layout`.
+- Giải quyết `projects→coordination` bằng ownership hoặc shared API/contract rõ ràng; không đổi tên feature
+  trước khi xóa dependency.
+- Xử lý 54 violation thành zero-baseline; ngoại lệ bắt buộc có lý do, owner và ngày hết hạn.
+
+**Gate 15:** endpoint name/query key/cache invalidation không đổi; navigation/cache tests xanh; không còn
+feature cycle hoặc import ngược không có whitelist.
+
+### Bước 16 — P2b: nhân rộng `f(data, state)` trên cây FE đã ổn định
+
+**Mục tiêu:** hoàn tất state boundary mà không chồng lên một đợt di chuyển file khác.
+
+- Thứ tự: Purchasing → Approvals → Reports → Admin → Chef → Coordination.
+- Mỗi feature một commit; mọi query có `skip` phải biểu diễn uninitialized.
+- Trả hết bốn warning `no-swallowed-query-error`.
+- Render partial/truncation cho response có `isTruncated` hoặc limit không có pager đầy đủ.
+- Query-level 403 phải thành forbidden, không retry và không empty.
+- Refreshing giữ stale data đúng cache key; không thay toàn panel bằng skeleton.
+- Sau khi state contract ổn định, tách `useAdminDataPageModel` và `useReportsPageModel` theo panel/use case.
+- Common leaf component tiếp tục presentation-only; không truyền tám boolean xuống mọi table.
+
+**Gate 16:** không còn data-owning page coerce lỗi/skip thành mảng rỗng; component/browser state matrix xanh;
+ba viewport mục tiêu không overflow và CLS warm giữ 0.
+
+### Bước 17 — P3a: persistence và reliability
+
+**Mục tiêu:** trả nợ data/retry sau khi use case và ownership đã ổn định để tránh sửa mapping hai lần.
+
+- Tách EF mapping sang `IEntityTypeConfiguration<T>` theo feature; `IpcManagementContext` chỉ là
   registration root.
 - Chuẩn hóa transaction runner cùng execution strategy trước khi bật retry.
-- Thay `InvalidOperationException` dùng cho nghiệp vụ bằng domain/application exception có mapping rõ.
-- Khôi phục canonical migration lineage, gồm hai migration ID chỉ có trong database, mà không reset/seed dữ liệu.
-- Giữ lịch backup `IPC-DB-Backup`, nhưng bổ sung bản sao khác ổ/máy và restore rehearsal có bằng chứng.
+- Thay `InvalidOperationException` nghiệp vụ bằng domain/application exception có HTTP mapping rõ.
+- Khôi phục canonical migration lineage mà không reset/seed dữ liệu.
+- Giữ `IPC-DB-Backup`, bổ sung bản sao khác ổ/máy và restore rehearsal có evidence.
 
-**Nghiệm thu:** luồng đa bảng chịu transient retry mà không nhân đôi side effect; fresh/install và upgrade lane
-có lineage giải thích được; restore drill đạt RPO/RTO đã chọn.
+**Gate 17:** transient retry không nhân đôi side effect; fresh/install và upgrade lineage giải thích được;
+restore drill đạt RPO/RTO đã chốt; schema/data chính không bị reset.
 
-### Bước 17 — P2: trả nợ frontend boundary và ownership (1–2 tuần)
+### Bước 18 — P3b: đóng test monolith, growth gate và tài liệu
 
-- Tách `workflowApi.ts` thành endpoint module thuộc từng feature nhưng giữ một `apiSlice`, base query và cache
-  tags chung để không đổi cache behavior.
-- Chuyển `MainLayout` sang `app/layout`.
-- Giải quyết cụm `projects→coordination` bằng ownership hoặc shared API/contract rõ ràng, không đổi tên feature
-  trước khi xóa dependency.
-- Xử lý 54 dependency violation thành zero-baseline; ngoại lệ bắt buộc phải có lý do, owner và ngày hết hạn.
-- Tách `useAdminDataPageModel` và `useReportsPageModel` thành model theo panel/use case sau khi state contract ổn định.
+**Mục tiêu:** biến các ngưỡng audit thành quality gate lâu dài và kết thúc workflow bằng evidence đầy đủ.
 
-**Nghiệm thu:** không thêm feature-to-feature edge; endpoint name/cache key không đổi; full navigation/cache test xanh.
+- Tách `WorkflowGenerationTests.cs` theo workflow và fixture builder, giữ nguyên coverage hành vi.
+- Bật growth gate theo hai tầng:
+  - Controller warning khi `>250` dòng hoặc `>12` actions; `>400` dòng hoặc `>20` actions bắt buộc plan split.
+  - Service warning khi `>600` dòng; `>1.000` dòng bắt buộc plan split.
+  - File FE viết tay warning khi `>600` dòng.
+  - Test suite warning khi `>1.500` dòng.
+- Sau một chu kỳ ổn định, chuyển các ngưỡng đã trả nợ từ warning sang blocking gate.
+- Đồng bộ `ARCHITECTURE`, `TESTING`, `CURRENT-STATE` và audit với code/runtime thực tế.
 
-### Bước 18 — P3b: test, file-growth và documentation guardrail (3–5 ngày)
-
-- Tách `WorkflowGenerationTests.cs` theo workflow và fixture builder; giữ nguyên coverage hành vi.
-- Thêm file-size/action-count report vào quality gate ở chế độ warning trước, chỉ block sau một chu kỳ ổn định:
-  - Controller cảnh báo khi `>250` dòng hoặc `>12` actions.
-  - Controller `>400` dòng hoặc `>20` actions bắt buộc có kế hoạch split.
-  - Service cảnh báo khi `>600` dòng; `>1.000` dòng bắt buộc có kế hoạch split.
-  - File frontend viết tay cảnh báo khi `>600` dòng.
-  - Test suite cảnh báo khi `>1.500` dòng.
-- Cập nhật `docs/ARCHITECTURE.md`, `docs/TESTING.md` và `docs/CURRENT-STATE.md` sau từng bước lớn.
-
-**Nghiệm thu cuối:** full backend/frontend/contract/dependency gates xanh; browser desktop thật xác nhận
-state transition, API request/response và render sau reload; không reset/seed database, không push tự động.
+**Gate kết thúc workflow:** full backend/frontend/contract/dependency/migration gates xanh; browser headed
+desktop xác nhận FE state + request/response BE + trạng thái render sau reload; secret scan và
+`detect_changes` sạch; không push tự động.
