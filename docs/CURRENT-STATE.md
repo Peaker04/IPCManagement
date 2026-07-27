@@ -544,21 +544,26 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Hai pilot Material Demand và Warehouse thuộc Bước 12 đã hoàn tất; chỉ test website
   `1365×900`, `1280×900`, `768×1024`, mobile ngoài scope.
 
-**Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn duy nhất,
-hợp nhất `f(data, state)` với P0–P3 theo Bước 11→18; không còn roadmap song song. Bước 11
-tổng thể đã hoàn tất: `QueryView` `d2a5d62`, backend architecture baseline `d877d83`, growth
-reporter `c549bd2` và contract build cô lập `6a5259b`. Gate hiện tại: BE **631 pass / 1 skip**,
-FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm mới, contract
-deterministic, EF migration snapshot sạch và production build xanh.
+**Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn điều
+khiển duy nhất. Phần C chỉ là snapshot audit lịch sử, không chạy P0–P3 song song. Thứ tự đúng là:
+`11 state contract → 12 pilot → 13 state rollout → 14 VSA boundary → 15 functional core →
+16 persistence → 17 FE ownership → 18 guardrail/docs`.
+
+Bước 11 đã hoàn tất bằng `QueryView` `d2a5d62`. Backend architecture baseline `d877d83`,
+growth reporter `c549bd2` và contract build cô lập `6a5259b` là guardrail được làm sớm cho
+Bước 14/18, không có nghĩa hai bước đó đã hoàn tất. Gate đã xác minh gần nhất: BE
+**631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm
+mới, contract deterministic, EF migration snapshot sạch và production build xanh.
 
 Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`.
 Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với ANV tuần 20/07:
 API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
 Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
 `query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
-Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo từng commit nguyên tử.
+Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin → Chef → Coordination
+— chưa bắt đầu.
 
-### Bước 13 — backend boundary (đang thực hiện)
+### Bước 14 — VSA backend boundary (bị thực hiện sớm do numbering cũ)
 
 - Commit `97bb33f refactor(be-boundary): remove purchasing reports cycle` gỡ cycle đầu tiên:
   `Purchasing→Reports` **3 → 0** reference; architecture baseline bỏ hẳn ceiling cạnh này.
@@ -575,10 +580,15 @@ Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo t�
 - Commit `baff911 refactor(be-boundary): move adjustment approval to coordination` gỡ cycle thứ ba:
   `Approvals→Coordination` **1 → 0**; adapter duyệt `QuantityAdjustment` về feature sở hữu state
   transition và tiếp tục implement port Approvals. Targeted approval/coordination **43/43**.
+- Commit `91badde refactor(be-boundary): move weekly menu imports to sample data` gỡ cycle cuối:
+  `Coordination→SampleData` **2 → 0**. Bốn legacy cycle đã về 0 và ceiling tương ứng đã xóa.
 - Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, EF migration snapshot sạch.
-- Còn một cycle: `Coordination→SampleData` 2; sau đó bỏ direct DbContext khỏi hai controller
-  theo Gate 13.
+- Working tree hiện có lát chưa commit đưa query của `PurchaseRequestsController` và
+  `ApprovalHistoryController` vào query service thuộc feature, kèm architecture/characterization test.
+  Lát này chưa được coi là hoàn tất trước khi targeted/full gates và staged `detect_changes` xanh.
+- Để đưa worktree về atomic state, hoàn tất và commit lát direct-DbContext đang dở; sau đó
+  quay lại Bước 13. Không mở thêm lát Bước 14 mới cho tới khi Gate 13 xanh.
 
 ## Quy trình tiếp tục ở phiên mới
 
