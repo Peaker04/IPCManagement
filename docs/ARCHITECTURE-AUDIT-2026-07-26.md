@@ -459,10 +459,13 @@ model change chưa migration và production build xanh. Bốn backend cycle lega
 không bị coi là complete; CLS warm vẫn 0; fan-out refetch không tăng. Nếu một pilot vượt hai ngày hoặc phá
 performance contract thì dừng để sửa mẫu, không nhân rộng.
 
-**Trạng thái:** hai pilot static đã commit: Material Demand `71656bc`, Warehouse `87ad944`.
-Unit/lint/dependency/build đều xanh; browser headed gate chưa chạy được vì runtime không có
-`K6_PASSWORD` và persistent session đã hết hạn. Không thử `admin/admin`. Vì vậy **Bước 12
-chưa hoàn tất** và chưa được chuyển sang Bước 13.
+**Trạng thái: hoàn tất ngày 27/07/2026.** Hai pilot đã commit: Material Demand
+`71656bc`, Warehouse `87ad944`. Browser headed trên `1365×900`, `1280×900`, `768×1024` dùng
+ANV tuần 20/07 và database lane hiện hành: mọi API response đều 2xx, 0 request fail, 0
+console/page error, warm revisit 0 API request/0 long task/CLS 0 và không viewport nào page-overflow.
+Evidence: `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
+`query-view-{material-demand,warehouse-movement}-*.png`. State/component contract **21/21** xanh;
+full static gate kế thừa Gate 11 vẫn xanh.
 
 ### Bước 13 — P0: khóa backend boundary thật sự
 

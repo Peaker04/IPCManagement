@@ -541,8 +541,8 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Full FE gates: **337/337** unit tests, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi
   phạm mới và vẫn ignore 54 known violations, production build xanh. Không đổi UI/API/cache/DOM, không chạm
   backend hay database nên chưa chạy browser/DB gate ở bước nền này.
-- Bước tiếp theo: pilot Material Demand và Warehouse theo Bước 12 của
-  `docs/ARCHITECTURE-AUDIT-2026-07-26.md`; chỉ test desktop 1365×900, 1280×900 và 768×1024, mobile ngoài scope.
+- Hai pilot Material Demand và Warehouse thuộc Bước 12 đã hoàn tất; chỉ test website
+  `1365×900`, `1280×900`, `768×1024`, mobile ngoài scope.
 
 **Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn duy nhất,
 hợp nhất `f(data, state)` với P0–P3 theo Bước 11→18; không còn roadmap song song. Bước 11
@@ -551,10 +551,12 @@ reporter `c549bd2` và contract build cô lập `6a5259b`. Gate hiện tại: BE
 FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm mới, contract
 deterministic, EF migration snapshot sạch và production build xanh.
 
-Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`. Static gates
-xanh; phần còn hở duy nhất là browser headed tại `1365×900`, `1280×900`, `768×1024`. Persistent
-session đã hết hạn và runtime không có `K6_PASSWORD`, nên không thử `admin/admin` và không
-chuyển sang Bước 13 cho tới khi Gate 12 có evidence browser đầy đủ.
+Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`.
+Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với ANV tuần 20/07:
+API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
+Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
+`query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
+Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo từng commit nguyên tử.
 
 ## Quy trình tiếp tục ở phiên mới
 
