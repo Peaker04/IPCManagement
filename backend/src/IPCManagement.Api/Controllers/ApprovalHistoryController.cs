@@ -26,7 +26,7 @@ public class ApprovalHistoryController : ControllerBase
 
     [HttpGet("{documentType}/{documentId}")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalHistoryItemDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetHistory(string documentType, string documentId)
+    public async Task<IActionResult> GetHistoryAsync(string documentType, string documentId)
     {
         var guid = GuidHelper.ParseGuidString(documentId);
         if (guid is null)

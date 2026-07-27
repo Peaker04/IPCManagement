@@ -28,7 +28,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu nhập kho.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _inventoryReceiptService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<InventoryReceiptDto>>.SuccessResult(result));
@@ -36,7 +36,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu nhập kho theo ID (bao gồm các dòng).</summary>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _inventoryReceiptService.GetByIdAsync(id);
         if (result is null)
@@ -47,7 +47,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo mới phiếu nhập kho.</summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateInventoryReceiptDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReceiptDto dto)
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -56,14 +56,14 @@ public class InventoryReceiptsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetById),
+            nameof(GetByIdAsync),
             new { id = result.ReceiptId },
             ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Tạo phiếu nhập kho thành công."));
     }
 
     /// <summary>Tạo phiếu nhập kho từ phiếu mua đã gửi nhà cung cấp.</summary>
     [HttpPost("from-purchase")]
-    public async Task<IActionResult> CreateFromPurchase([FromBody] CreateInventoryReceiptFromPurchaseDto dto)
+    public async Task<IActionResult> CreateFromPurchaseAsync([FromBody] CreateInventoryReceiptFromPurchaseDto dto)
     {
         try
         {
@@ -75,7 +75,7 @@ public class InventoryReceiptsController : ControllerBase
             }
 
             return CreatedAtAction(
-                nameof(GetById),
+                nameof(GetByIdAsync),
                 new { id = result.ReceiptId },
                 ApiResponse<InventoryReceiptCreatedDto>.SuccessResult(result, "Đã nhập kho từ phiếu mua."));
         }

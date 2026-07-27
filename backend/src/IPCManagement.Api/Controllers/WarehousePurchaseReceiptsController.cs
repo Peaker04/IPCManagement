@@ -30,7 +30,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> Record(
+    public async Task<IActionResult> RecordAsync(
         string purchaseOrderId,
         [FromBody] RecordWarehousePurchaseReceiptDto request,
         CancellationToken cancellationToken)

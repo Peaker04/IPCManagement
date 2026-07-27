@@ -29,7 +29,7 @@ public class DishesController : ControllerBase
     [HttpGet("catalog")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCatalog([FromQuery] bool includeInactive = false)
+    public async Task<IActionResult> GetCatalogAsync([FromQuery] bool includeInactive = false)
     {
         var result = await _service.GetCatalogAsync(includeInactive);
         return Ok(ApiResponse<IReadOnlyList<DishCatalogDto>>.SuccessResult(result));
@@ -39,7 +39,7 @@ public class DishesController : ControllerBase
     [HttpGet("bom-coverage")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomCoverageReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBomCoverage()
+    public async Task<IActionResult> GetBomCoverageAsync()
     {
         var result = await _service.GetBomCoverageAsync();
         return Ok(ApiResponse<BomCoverageReportDto>.SuccessResult(result));
@@ -49,7 +49,7 @@ public class DishesController : ControllerBase
     [HttpGet("bom-validation")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<BomValidationReportDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBomValidation()
+    public async Task<IActionResult> GetBomValidationAsync()
     {
         var result = await _service.GetBomValidationAsync();
         return Ok(ApiResponse<BomValidationReportDto>.SuccessResult(result));
@@ -59,7 +59,7 @@ public class DishesController : ControllerBase
     [HttpGet("import-history")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<MenuImportHistoryDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetMenuImportHistory()
+    public async Task<IActionResult> GetMenuImportHistoryAsync()
     {
         var result = await _service.GetMenuImportHistoryAsync();
         return Ok(ApiResponse<MenuImportHistoryDto>.SuccessResult(result));
@@ -69,7 +69,7 @@ public class DishesController : ControllerBase
     [HttpGet("sample-import-status")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<SampleImportStatusDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetSampleImportStatus()
+    public async Task<IActionResult> GetSampleImportStatusAsync()
     {
         var result = await _service.GetSampleImportStatusAsync();
         return Ok(ApiResponse<SampleImportStatusDto>.SuccessResult(result));
@@ -79,7 +79,7 @@ public class DishesController : ControllerBase
     [HttpGet("bom-template")]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(FileContentResult), StatusCodes.Status200OK)]
-    public async Task<IActionResult> DownloadBomTemplate([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
+    public async Task<IActionResult> DownloadBomTemplateAsync([FromQuery] BomTemplateQueryDto query, CancellationToken cancellationToken)
     {
         var bytes = await _service.BuildBomTemplateWorkbookAsync(query, cancellationToken);
         var scope = string.IsNullOrWhiteSpace(query.CustomerId) ? "global" : query.CustomerId;
@@ -103,7 +103,7 @@ public class DishesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<BomImportPreviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
-    public async Task<IActionResult> PreviewBomImport(
+    public async Task<IActionResult> PreviewBomImportAsync(
         [FromForm] BomImportPreviewRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -126,7 +126,7 @@ public class DishesController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<BomImportCommitResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status413PayloadTooLarge)]
-    public async Task<IActionResult> CommitBomImport(
+    public async Task<IActionResult> CommitBomImportAsync(
         [FromForm] BomImportCommitRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -145,7 +145,7 @@ public class DishesController : ControllerBase
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<DishDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _service.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<DishDto>>.SuccessResult(result));
@@ -156,7 +156,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _service.GetByIdAsync(id);
         if (result is null)
@@ -170,7 +170,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogReadAccess)]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<DishCatalogBomLineDto>>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetBomLines(string id)
+    public async Task<IActionResult> GetBomLinesAsync(string id)
     {
         var result = await _service.GetBomLinesAsync(id);
         if (result is null)
@@ -183,10 +183,10 @@ public class DishesController : ControllerBase
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Create([FromBody] CreateDishDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateDishDto dto)
     {
         var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.DishId },
+        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.DishId },
             ApiResponse<DishDto>.SuccessResult(result, "Tạo món ăn thành công."));
     }
 
@@ -195,7 +195,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateDishDto dto)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateDishDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
         if (result is null)
@@ -209,7 +209,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AddBomLine(string id, [FromBody] CreateDishBomLineDto dto)
+    public async Task<IActionResult> AddBomLineAsync(string id, [FromBody] CreateDishBomLineDto dto)
     {
         var result = await _service.AddBomLineAsync(id, dto);
         if (result is null)
@@ -224,7 +224,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateBomLine(string id, string bomId, [FromBody] UpdateDishBomLineDto dto)
+    public async Task<IActionResult> UpdateBomLineAsync(string id, string bomId, [FromBody] UpdateDishBomLineDto dto)
     {
         var userId = _currentUserService.GetUserId(User);
         var result = await _service.UpdateBomLineAsync(id, bomId, dto, userId);
@@ -239,7 +239,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CloseBomLine(string id, string bomId)
+    public async Task<IActionResult> CloseBomLineAsync(string id, string bomId)
     {
         var success = await _service.CloseBomLineAsync(id, bomId);
         if (!success)
@@ -253,7 +253,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> DeleteAsync(string id)
     {
         var success = await _service.DeleteAsync(id);
         if (!success)

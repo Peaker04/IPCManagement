@@ -38,7 +38,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                   StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Login([FromBody] LoginRequestDto request)
+    public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDto request)
     {
         // Lấy device info từ User-Agent header
         var deviceInfo = Request.Headers.UserAgent.ToString();
@@ -70,7 +70,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                   StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> Refresh([FromBody] RefreshTokenRequestDto? request)
+    public async Task<IActionResult> RefreshAsync([FromBody] RefreshTokenRequestDto? request)
     {
         request ??= new RefreshTokenRequestDto();
         request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
@@ -106,7 +106,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("api-general")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Logout([FromBody] RevokeTokenRequestDto? request)
+    public async Task<IActionResult> LogoutAsync([FromBody] RevokeTokenRequestDto? request)
     {
         request ??= new RevokeTokenRequestDto();
         request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
@@ -143,8 +143,8 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("api-general")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> Revoke([FromBody] RevokeTokenRequestDto? request)
-        => Logout(request);
+    public Task<IActionResult> RevokeAsync([FromBody] RevokeTokenRequestDto? request)
+        => LogoutAsync(request);
 
     /// <summary>Lấy thông tin cá nhân của người dùng hiện tại.</summary>
     [HttpGet("profile")]
@@ -153,8 +153,8 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserInfoDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse),             StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetProfile()
-        => await GetProfileInternal();
+    public async Task<IActionResult> GetProfileAsync()
+        => await GetProfileInternalAsync();
 
     /// <summary>Lấy profile đầy đủ cho route/action guard của Frontend.</summary>
     [HttpGet("me")]
@@ -163,10 +163,10 @@ public class AuthController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<UserProfileResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ApiResponse),                     StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetMe()
-        => await GetMeInternal();
+    public async Task<IActionResult> GetMeAsync()
+        => await GetMeInternalAsync();
 
-    private async Task<IActionResult> GetProfileInternal()
+    private async Task<IActionResult> GetProfileInternalAsync()
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -180,7 +180,7 @@ public class AuthController : ControllerBase
         return Ok(ApiResponse<UserInfoDto>.SuccessResult(profile, "Lấy thông tin người dùng thành công."));
     }
 
-    private async Task<IActionResult> GetMeInternal()
+    private async Task<IActionResult> GetMeInternalAsync()
     {
         var userId = _currentUserService.GetUserId(User);
 

@@ -25,7 +25,7 @@ public class IngredientsController : ControllerBase
     /// <summary>Lấy danh sách nguyên liệu có phân trang và tìm kiếm.</summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<IngredientDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _service.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<IngredientDto>>.SuccessResult(result));
@@ -35,7 +35,7 @@ public class IngredientsController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _service.GetByIdAsync(id);
         if (result is null)
@@ -48,10 +48,10 @@ public class IngredientsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Create([FromBody] CreateIngredientDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateIngredientDto dto)
     {
         var result = await _service.CreateAsync(dto);
-        return CreatedAtAction(nameof(GetById), new { id = result.IngredientId },
+        return CreatedAtAction(nameof(GetByIdAsync), new { id = result.IngredientId },
             ApiResponse<IngredientDto>.SuccessResult(result, "Tạo nguyên liệu thành công."));
     }
 
@@ -59,7 +59,7 @@ public class IngredientsController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateIngredientDto dto)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateIngredientDto dto)
     {
         var result = await _service.UpdateAsync(id, dto);
         if (result is null)
@@ -72,7 +72,7 @@ public class IngredientsController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> DeleteAsync(string id)
     {
         var success = await _service.DeleteAsync(id);
         if (!success)

@@ -28,7 +28,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] PagedRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _productionPlanService.GetPagedAsync(request);
         return Ok(ApiResponse<PagedResponseDto<ProductionPlanDto>>.SuccessResult(result));
@@ -36,7 +36,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất theo ngày và khách hàng.</summary>
     [HttpGet("filter")]
-    public async Task<IActionResult> GetFiltered(
+    public async Task<IActionResult> GetFilteredAsync(
         [FromQuery] string? serviceDate,
         [FromQuery] string? dateFrom,
         [FromQuery] string? dateTo,
@@ -49,7 +49,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Kế hoạch sản xuất trong ngày để gửi/hiển thị cho bếp.</summary>
     [HttpGet("daily")]
-    public async Task<IActionResult> GetDaily(
+    public async Task<IActionResult> GetDailyAsync(
         [FromQuery] string? serviceDate,
         [FromQuery] string? customerId,
         [FromQuery] string? shiftName,
@@ -61,7 +61,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Đánh dấu KHSX trong ngày đã gửi bếp.</summary>
     [HttpPost("daily/send-to-kitchen")]
-    public async Task<IActionResult> SendDailyToKitchen(
+    public async Task<IActionResult> SendDailyToKitchenAsync(
         [FromBody] SendDailyProductionPlanRequestDto request,
         CancellationToken cancellationToken)
     {
@@ -72,7 +72,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy chi tiết kế hoạch sản xuất theo ID.</summary>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _productionPlanService.GetByIdAsync(id);
         if (result is null)

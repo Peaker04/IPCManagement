@@ -25,7 +25,7 @@ public class SupplierQuotationsController : ControllerBase
     /// <summary>Lấy toàn bộ báo giá của các nhà cung cấp cho một nguyên liệu, kèm cờ đánh dấu giá tốt nhất hiện hành.</summary>
     [HttpGet("ingredient/{ingredientId}")]
     [ProducesResponseType(typeof(ApiResponse<List<SupplierQuotationDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByIngredient(string ingredientId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByIngredientAsync(string ingredientId, CancellationToken cancellationToken)
     {
         var quotations = await _supplierQuotationService.GetByIngredientAsync(ingredientId, cancellationToken);
         return Ok(ApiResponse<List<SupplierQuotationDto>>.SuccessResult(quotations));
@@ -33,7 +33,7 @@ public class SupplierQuotationsController : ControllerBase
 
     [HttpGet("ingredient/{ingredientId}/page")]
     [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<SupplierQuotationDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByIngredientPage(string ingredientId, [FromQuery] SupplierQuotationPageQueryDto query, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetByIngredientPageAsync(string ingredientId, [FromQuery] SupplierQuotationPageQueryDto query, CancellationToken cancellationToken)
     {
         var quotations = await _supplierQuotationService.GetByIngredientPageAsync(ingredientId, query, cancellationToken);
         return Ok(ApiResponse<PagedResponseDto<SupplierQuotationDto>>.SuccessResult(quotations));
@@ -42,7 +42,7 @@ public class SupplierQuotationsController : ControllerBase
     /// <summary>Lấy toàn bộ báo giá của một nhà cung cấp cho các nguyên liệu.</summary>
     [HttpGet("supplier/{supplierId}")]
     [ProducesResponseType(typeof(ApiResponse<List<SupplierQuotationDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetBySupplier(string supplierId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetBySupplierAsync(string supplierId, CancellationToken cancellationToken)
     {
         var quotations = await _supplierQuotationService.GetBySupplierAsync(supplierId, cancellationToken);
         return Ok(ApiResponse<List<SupplierQuotationDto>>.SuccessResult(quotations));
@@ -53,7 +53,7 @@ public class SupplierQuotationsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SupplierQuotationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Create([FromBody] CreateSupplierQuotationDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplierQuotationDto request, CancellationToken cancellationToken)
     {
         try
         {
@@ -75,7 +75,7 @@ public class SupplierQuotationsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SupplierQuotationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Update(string id, [FromBody] UpdateSupplierQuotationDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateSupplierQuotationDto request, CancellationToken cancellationToken)
     {
         try
         {
@@ -96,7 +96,7 @@ public class SupplierQuotationsController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Deactivate(string id, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeactivateAsync(string id, CancellationToken cancellationToken)
     {
         try
         {

@@ -27,7 +27,7 @@ public class ApprovalRulesController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalRule>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetRules()
+    public async Task<IActionResult> GetRulesAsync()
     {
         var rules = await _routingService.GetAllRulesAsync();
         return Ok(ApiResponse<IReadOnlyList<ApprovalRule>>.SuccessResult(rules));
@@ -36,7 +36,7 @@ public class ApprovalRulesController : ControllerBase
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> GetRuleById([FromRoute] string id)
+    public async Task<IActionResult> GetRuleByIdAsync([FromRoute] string id)
     {
         var ruleId = GuidHelper.ParseGuidString(id);
         if (ruleId == null)
@@ -55,7 +55,7 @@ public class ApprovalRulesController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> CreateRule([FromBody] ApprovalRuleRequestDto request)
+    public async Task<IActionResult> CreateRuleAsync([FromBody] ApprovalRuleRequestDto request)
     {
         if (string.IsNullOrWhiteSpace(request.RuleName) || string.IsNullOrWhiteSpace(request.DocumentType))
         {
@@ -87,7 +87,7 @@ public class ApprovalRulesController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateRule([FromRoute] string id, [FromBody] ApprovalRuleRequestDto request)
+    public async Task<IActionResult> UpdateRuleAsync([FromRoute] string id, [FromBody] ApprovalRuleRequestDto request)
     {
         var ruleId = GuidHelper.ParseGuidString(id);
         if (ruleId == null)
@@ -130,7 +130,7 @@ public class ApprovalRulesController : ControllerBase
     [HttpDelete("{id}")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DeleteRule([FromRoute] string id)
+    public async Task<IActionResult> DeleteRuleAsync([FromRoute] string id)
     {
         var ruleId = GuidHelper.ParseGuidString(id);
         if (ruleId == null)

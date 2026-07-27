@@ -29,7 +29,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Lấy danh sách phiếu trả nguyên liệu dư.</summary>
     [HttpGet]
     [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
-    public async Task<IActionResult> GetAll([FromQuery] InventoryReturnFilterRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] InventoryReturnFilterRequestDto request)
     {
         var scopedWarehouseId = _currentUserService.GetWarehouseId(User);
         if (scopedWarehouseId is not null)
@@ -43,7 +43,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Lấy chi tiết phiếu trả nguyên liệu dư theo ID.</summary>
     [HttpGet("{id}")]
     [Authorize(Policy = AuthorizationPolicies.InventoryIssueAccess)]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _inventoryReturnService.GetByIdAsync(id);
         if (result is null)
@@ -59,7 +59,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Tạo mới phiếu trả nguyên liệu dư sau sản xuất.</summary>
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
-    public async Task<IActionResult> Create([FromBody] CreateInventoryReturnDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReturnDto dto)
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -68,7 +68,7 @@ public class InventoryReturnsController : ControllerBase
             return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
         return CreatedAtAction(
-            nameof(GetById),
+            nameof(GetByIdAsync),
             new { id = result.ReturnId },
             ApiResponse<InventoryReturnCreatedDto>.SuccessResult(result, "Tạo phiếu trả nguyên liệu thành công."));
     }
@@ -76,7 +76,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Thủ kho xác nhận phiếu trả nguyên liệu và cộng tồn kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> ConfirmReceipt(string id, [FromBody] ConfirmInventoryReturnReceiptDto dto)
+    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryReturnReceiptDto dto)
     {
         var userId = _currentUserService.GetUserId(User);
         var existing = await _inventoryReturnService.GetByIdAsync(id);

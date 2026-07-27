@@ -23,8 +23,8 @@ public class WorkflowReportsControllerCacheTests
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var controller = CreateController(service, cache);
 
-        await controller.GetOperationalKpis();
-        var second = await controller.GetOperationalKpis();
+        await controller.GetOperationalKpisAsync();
+        var second = await controller.GetOperationalKpisAsync();
 
         await service.Received(1).GetOperationalKpisAsync(6);
         var response = second.Should().BeOfType<OkObjectResult>().Subject;
@@ -43,14 +43,14 @@ public class WorkflowReportsControllerCacheTests
         var controller = CreateController(service, cache);
         var query = new DataQualityPageQueryDto { PageNumber = 1, PageSize = 8 };
 
-        await controller.GetDataQualityPage(query);
-        await controller.GetDataQualityPage(query);
-        await controller.UpdateDataQualityIssueRemediation(new DataQualityIssueRemediationRequestDto
+        await controller.GetDataQualityPageAsync(query);
+        await controller.GetDataQualityPageAsync(query);
+        await controller.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequestDto
         {
             IssueId = "issue-1",
             Action = "resolve"
         });
-        await controller.GetDataQualityPage(query);
+        await controller.GetDataQualityPageAsync(query);
 
         await service.Received(2).GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>());
     }
@@ -72,7 +72,7 @@ public class WorkflowReportsControllerCacheTests
         var query = new DataQualityPageQueryDto { PageNumber = 1, PageSize = 8 };
 
         var requests = Enumerable.Range(0, 5)
-            .Select(_ => controller.GetDataQualityPage(query))
+            .Select(_ => controller.GetDataQualityPageAsync(query))
             .ToArray();
         await started.Task.WaitAsync(TimeSpan.FromSeconds(2));
         release.SetResult();

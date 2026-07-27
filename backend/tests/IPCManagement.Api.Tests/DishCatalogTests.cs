@@ -117,7 +117,7 @@ public class DishCatalogTests
         var currentUserService = Substitute.For<ICurrentUserService>();
         var controller = new DishesController(service, currentUserService);
 
-        var actionResult = await controller.GetCatalog();
+        var actionResult = await controller.GetCatalogAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should()
@@ -153,7 +153,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetBomCoverage();
+        var actionResult = await controller.GetBomCoverageAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomCoverageReportDto>>().Subject;
@@ -185,7 +185,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetBomValidation();
+        var actionResult = await controller.GetBomValidationAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<BomValidationReportDto>>().Subject;
@@ -209,7 +209,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetMenuImportHistory();
+        var actionResult = await controller.GetMenuImportHistoryAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<MenuImportHistoryDto>>().Subject;
@@ -240,7 +240,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.GetSampleImportStatus();
+        var actionResult = await controller.GetSampleImportStatusAsync();
 
         var ok = actionResult.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<SampleImportStatusDto>>().Subject;
@@ -262,7 +262,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.AddBomLine(dishId, new CreateDishBomLineDto());
+        var actionResult = await controller.AddBomLineAsync(dishId, new CreateDishBomLineDto());
 
         var created = actionResult.Should().BeOfType<ObjectResult>().Subject;
         created.StatusCode.Should().Be(StatusCodes.Status201Created);

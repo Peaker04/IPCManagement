@@ -25,7 +25,7 @@ public class AuthControllerTests
         _authService.LoginAsync(Arg.Any<LoginRequestDto>(), Arg.Any<string>())
             .Returns(BuildLoginResponse("raw-refresh-token"));
 
-        var result = await controller.Login(new LoginRequestDto { Username = "admin", Password = "admin" });
+        var result = await controller.LoginAsync(new LoginRequestDto { Username = "admin", Password = "admin" });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;
@@ -45,7 +45,7 @@ public class AuthControllerTests
                 request.RefreshToken == "old-refresh-token"))
             .Returns(BuildLoginResponse("new-refresh-token"));
 
-        var result = await controller.Refresh(new RefreshTokenRequestDto { AccessToken = "expired-access-token" });
+        var result = await controller.RefreshAsync(new RefreshTokenRequestDto { AccessToken = "expired-access-token" });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<LoginResponseDto>>().Subject;

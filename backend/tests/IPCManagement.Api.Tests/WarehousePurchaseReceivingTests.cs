@@ -45,7 +45,7 @@ public class WarehousePurchaseReceivingTests
             .Cast<RouteAttribute>()
             .Should().ContainSingle(attribute =>
                 attribute.Template == "api/warehouse/purchase-orders/{purchaseOrderId}/receipts");
-        controllerType.GetMethod("Record")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
+        controllerType.GetMethod("RecordAsync")!.GetCustomAttributes(typeof(HttpPostAttribute), inherit: true)
             .Should().ContainSingle();
         typeof(IPurchaseReceivingService).GetMethod("RecordAsync").Should().NotBeNull();
     }
@@ -300,16 +300,16 @@ public class WarehousePurchaseReceivingTests
 
         purchaseOrderReceiptPosts.Should().ContainSingle(route =>
             route.Controller == typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController) &&
-            route.Method.Name == "Record");
+            route.Method.Name == "RecordAsync");
     }
 
     [Fact]
     public void SingleWriter_purchase_progress_reads_and_generic_non_order_receipts_remain_separate()
     {
         var purchaseController = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController);
-        purchaseController.GetMethod("GetList").Should().NotBeNull();
-        purchaseController.GetMethod("GetPage").Should().NotBeNull();
-        purchaseController.GetMethod("GetById").Should().NotBeNull();
+        purchaseController.GetMethod("GetListAsync").Should().NotBeNull();
+        purchaseController.GetMethod("GetPageAsync").Should().NotBeNull();
+        purchaseController.GetMethod("GetByIdAsync").Should().NotBeNull();
         AuthorizationPolicies.PurchaseRoles.Should().Contain(["Manager", "Purchasing"]);
 
         typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptDto)

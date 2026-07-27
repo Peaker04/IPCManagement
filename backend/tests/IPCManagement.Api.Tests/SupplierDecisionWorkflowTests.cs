@@ -848,7 +848,7 @@ public class SupplierDecisionWorkflowTests
     [Fact]
     public void Confirmation_endpoint_uses_purchasing_policy_and_contract_omits_server_fields()
     {
-        var action = typeof(PurchaseWorkflowController).GetMethod(nameof(PurchaseWorkflowController.ConfirmLineSupplier));
+        var action = typeof(PurchaseWorkflowController).GetMethod(nameof(PurchaseWorkflowController.ConfirmLineSupplierAsync));
         action.Should().NotBeNull();
         action!.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .Cast<AuthorizeAttribute>()

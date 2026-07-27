@@ -24,7 +24,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetAll(new InventoryIssueFilterRequestDto());
+        var result = await controller.GetAllAsync(new InventoryIssueFilterRequestDto());
 
         var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);
@@ -44,7 +44,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetAll(new InventoryIssueFilterRequestDto());
+        var result = await controller.GetAllAsync(new InventoryIssueFilterRequestDto());
 
         result.Should().BeOfType<OkObjectResult>();
     }
@@ -67,7 +67,7 @@ public class InventoryIssuesControllerTests
 
         var controller = CreateController();
 
-        var result = await controller.GetById("issue-id");
+        var result = await controller.GetByIdAsync("issue-id");
 
         var forbidden = result.Should().BeOfType<ObjectResult>().Subject;
         forbidden.StatusCode.Should().Be(StatusCodes.Status403Forbidden);

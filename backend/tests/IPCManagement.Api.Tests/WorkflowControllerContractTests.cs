@@ -32,7 +32,7 @@ public class WorkflowControllerContractTests
             .Returns(Task.FromException<MaterialDemandResultDto?>(
                 new InvalidOperationException("Giá ngoài tier cố định.")));
 
-        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -57,7 +57,7 @@ public class WorkflowControllerContractTests
             .Returns(Task.FromException<MaterialDemandResultDto?>(
                 new ArgumentException("Ngày phục vụ không hợp lệ.")));
 
-        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
         {
             ServiceDate = "20-07-2026",
             Scope = "FULLDAY"
@@ -82,7 +82,7 @@ public class WorkflowControllerContractTests
                 Arg.Any<CancellationToken>())
             .Returns((MaterialDemandResultDto?)null);
 
-        var result = await controller.Generate(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -108,7 +108,7 @@ public class WorkflowControllerContractTests
             .Returns(Task.FromException<MaterialDemandApprovalDto?>(
                 new ArgumentException("MaterialRequestId không hợp lệ.")));
 
-        var result = await controller.Approve(
+        var result = await controller.ApproveAsync(
             "bad-id",
             new MaterialDemandApproveRequestDto { Reason = "approve" },
             CancellationToken.None);
@@ -132,7 +132,7 @@ public class WorkflowControllerContractTests
                 Arg.Any<CancellationToken>())
             .Returns((MaterialDemandApprovalDto?)null);
 
-        var result = await controller.Approve("missing-id", null, CancellationToken.None);
+        var result = await controller.ApproveAsync("missing-id", null, CancellationToken.None);
 
         var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var response = notFound.Value.Should().BeAssignableTo<ApiResponse>().Subject;
@@ -146,7 +146,7 @@ public class WorkflowControllerContractTests
         var controller = CreateProductionPlansController();
         _productionPlanService.GetByIdAsync("missing-plan").Returns((ProductionPlanDto?)null);
 
-        var result = await controller.GetById("missing-plan");
+        var result = await controller.GetByIdAsync("missing-plan");
 
         var notFound = result.Should().BeOfType<NotFoundObjectResult>().Subject;
         var response = notFound.Value.Should().BeAssignableTo<ApiResponse>().Subject;
@@ -167,7 +167,7 @@ public class WorkflowControllerContractTests
                 request.PageNumber == 1 && request.PageSize == 20))
             .Returns(page);
 
-        var result = await controller.GetAll(new PagedRequestDto { PageNumber = 1, PageSize = 20 });
+        var result = await controller.GetAllAsync(new PagedRequestDto { PageNumber = 1, PageSize = 20 });
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<PagedResponseDto<ProductionPlanDto>>>().Subject;
@@ -197,7 +197,7 @@ public class WorkflowControllerContractTests
         _productionPlanService.SendDailyToKitchenAsync(request, "sender-id", Arg.Any<CancellationToken>())
             .Returns(daily);
 
-        var result = await controller.SendDailyToKitchen(request, CancellationToken.None);
+        var result = await controller.SendDailyToKitchenAsync(request, CancellationToken.None);
 
         var ok = result.Should().BeOfType<OkObjectResult>().Subject;
         var response = ok.Value.Should().BeAssignableTo<ApiResponse<DailyProductionPlanDto>>().Subject;

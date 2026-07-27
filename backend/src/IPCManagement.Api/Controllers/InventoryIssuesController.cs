@@ -28,7 +28,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu xuất kho.</summary>
     [HttpGet]
-    public async Task<IActionResult> GetAll([FromQuery] InventoryIssueFilterRequestDto request)
+    public async Task<IActionResult> GetAllAsync([FromQuery] InventoryIssueFilterRequestDto request)
     {
         try
         {
@@ -48,7 +48,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu xuất kho theo ID.</summary>
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _inventoryIssueService.GetByIdAsync(id);
         if (result is null)
@@ -62,7 +62,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Tạo mới phiếu xuất kho.</summary>
     [HttpPost]
-    public async Task<IActionResult> Create([FromBody] CreateInventoryIssueDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryIssueDto dto)
     {
         try
         {
@@ -73,7 +73,7 @@ public class InventoryIssuesController : ControllerBase
                 return Unauthorized(ApiResponse.FailResult("Không xác định được người dùng."));
 
             return CreatedAtAction(
-                nameof(GetById),
+                nameof(GetByIdAsync),
                 new { id = result.IssueId },
                 ApiResponse<InventoryIssueCreatedDto>.SuccessResult(result, "Tạo phiếu xuất kho thành công."));
         }
@@ -93,7 +93,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
-    public async Task<IActionResult> ConfirmReceipt(string id, [FromBody] ConfirmInventoryIssueReceiptDto dto)
+    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryIssueReceiptDto dto)
     {
         try
         {
