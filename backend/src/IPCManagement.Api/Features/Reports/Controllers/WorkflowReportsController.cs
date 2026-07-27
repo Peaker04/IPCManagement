@@ -140,62 +140,6 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<PurchasePlanPageDto>.SuccessResult(
             await _workflowReportService.GetPurchasePlanPageAsync(query)));
 
-    [HttpGet("receipt-price-variance")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
-    public async Task<IActionResult> GetReceiptPriceVarianceAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(
-            await _workflowReportService.GetReceiptPriceVarianceAsync(query)));
-
-    [HttpGet("receipt-price-variance/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
-    public async Task<IActionResult> GetReceiptPriceVariancePageAsync([FromQuery] ReceiptPriceVariancePageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>.SuccessResult(
-            await _workflowReportService.GetReceiptPriceVariancePageAsync(query)));
-
-    [HttpGet("price-variance/by-supplier")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceBySupplierAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceBySupplierAsync(query)));
-
-    [HttpGet("price-variance/by-supplier/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceBySupplierPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceBySupplierPageAsync(query)));
-
-    [HttpGet("price-variance/by-period")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceByPeriodAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceByPeriodAsync(query)));
-
-    [HttpGet("price-variance/by-period/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceByPeriodPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceByPeriodPageAsync(query)));
-
-    [HttpGet("price-variance/by-dish-group")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceByDishGroupAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceByDishGroupAsync(query)));
-
-    [HttpGet("price-variance/by-dish-group/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
-    public async Task<IActionResult> GetPriceVarianceByDishGroupPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>.SuccessResult(
-            await _workflowReportService.GetPriceVarianceByDishGroupPageAsync(query)));
-
     [HttpGet("kitchen-issues")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetKitchenIssuesAsync([FromQuery] WorkflowReportQueryDto query)

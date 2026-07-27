@@ -5986,7 +5986,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new PriceVarianceReportService(context);
         var result = await service.GetPriceVarianceByDishGroupAsync(new WorkflowReportQueryDto());
 
         var group = result.Should().ContainSingle(g => g.DishGroup == "Món chính").Subject;
