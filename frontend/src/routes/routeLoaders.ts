@@ -36,8 +36,8 @@ const chefDashboardRoute = createPreloadableRoute(() => import('../features/chef
 const approvalRoute = createPreloadableRoute(() => import('../features/approvals/pages/ApprovalPage'));
 const purchasingRoute = createPreloadableRoute(() => import('../features/purchasing/pages/PurchasingPage'));
 const warehouseRoute = createPreloadableRoute(() => import('../features/warehouse/pages/WarehousePage'));
-const adminDataRoute = createPreloadableRoute(() => import('../features/workflow/pages/AdminDataPage'));
-const approvalRulesRoute = createPreloadableRoute(() => import('../features/workflow/pages/ApprovalRulesPage'));
+const adminDataRoute = createPreloadableRoute(() => import('../app/pages/AdminDataPage'));
+const approvalRulesRoute = createPreloadableRoute(() => import('../features/admin/pages/ApprovalRulesPage'));
 
 export const DashboardPage = dashboardRoute.Component;
 export const WeeklyMenuPage = weeklyMenuRoute.Component;
