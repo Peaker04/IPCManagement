@@ -1,25 +1,21 @@
 import { Pencil, Power, Search, UserPlus, Users } from 'lucide-react';
-import { FieldRow, PaginationBar, PaginatedTableFrame, QueryErrorAlert, SectionPanel, StatusBadge } from '@/components/common';
+import { FieldRow, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminEmployeesPanelProps = { model: AdminDataPageModel };
 
 export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
-  const { canManageEmployees, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, isEmployeeLoading, isRolesLoading, isSavingEmployee, isUpdatingStatus, resetEmployeeForm, setEmployeeForm, setEmployeePage, setEmployeeSearch } = model;
+  const { canManageEmployees, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, isEmployeeLoading, isRolesLoading, isSavingEmployee, isUpdatingStatus, queryViews, resetEmployeeForm, setEmployeeForm, setEmployeePage, setEmployeeSearch } = model;
   return (
     <>
       {canManageEmployees && effectiveActiveView === 'employees' && (
         <div id="admin-employees-panel" role="tabpanel" aria-labelledby="admin-employees-tab" className="flex flex-col gap-4">
-          {(model.queryErrors.employees.isError || model.queryErrors.roles.isError) && (
-            <QueryErrorAlert
-              title="Không tải được dữ liệu nhân viên"
-              isRetrying={isEmployeeLoading || isRolesLoading}
-              onRetry={() => Promise.all([model.queryErrors.employees.refetch(), model.queryErrors.roles.refetch()])}
-            >
-              Không thể coi danh sách tài khoản hoặc vai trò đang trống. Kiểm tra kết nối rồi thử lại.
-            </QueryErrorAlert>
-          )}
+          <AdminQueryBoundary queries={[
+            { label: 'danh sách nhân viên', view: queryViews.employees },
+            { label: 'vai trò nhân viên', view: queryViews.roles },
+          ]}>
           <div className="grid gap-4 xl:grid-cols-[380px_minmax(0,1fr)]">
             <SectionPanel title={editingEmployeeId ? 'Cập nhật nhân viên' : 'Tạo tài khoản nhân viên'} icon={<UserPlus size={18} />}>
               <form className="flex flex-col gap-4" onSubmit={handleEmployeeSubmit}>
@@ -193,6 +189,7 @@ export function AdminEmployeesPanel({ model }: AdminEmployeesPanelProps) {
               </div>
             </SectionPanel>
           </div>
+          </AdminQueryBoundary>
         </div>
       )}
 

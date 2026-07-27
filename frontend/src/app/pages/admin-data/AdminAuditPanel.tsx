@@ -1,26 +1,17 @@
 import { History } from 'lucide-react';
-import { CursorPaginationBar, PaginatedTableFrame, QueryErrorAlert, SectionPanel } from '@/components/common';
+import { CursorPaginationBar, PaginatedTableFrame, SectionPanel } from '@/components/common';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminAuditPanelProps = { model: AdminDataPageModel };
 
 export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
-  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, handleExportAuditCsv, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
+  const { auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, displayLogs, effectiveActiveView, handleExportAuditCsv, queryViews, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField } = model;
   return (
     <>
       {effectiveActiveView === 'audit' && (
         <SectionPanel title="Nhật ký thay đổi hệ thống (Audit Trail)" icon={<History size={18} />}>
           <div id="admin-audit-panel" role="tabpanel" aria-labelledby="admin-audit-tab" className="flex flex-col gap-4">
-            {auditResult.isError && (
-              <QueryErrorAlert
-                title="Không tải được nhật ký thay đổi"
-                isRetrying={auditResult.isFetching}
-                onRetry={auditResult.refetch}
-              >
-                Nhật ký đang trống vì lỗi tải dữ liệu, không phải vì không có thay đổi nào trong bộ lọc này.
-              </QueryErrorAlert>
-            )}
-
             {/* Bộ lọc Audit log */}
             <div className="flex flex-wrap items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-md">
               <div className="flex flex-col gap-1">
@@ -97,7 +88,8 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
               </div>
             </div>
 
-            <PaginatedTableFrame ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">
+            <AdminQueryBoundary queries={[{ label: 'nhật ký thay đổi', view: queryViews.audit }]}>
+              <PaginatedTableFrame ariaLabel="Bảng nhật ký thay đổi hệ thống" className="ipc-admin-audit-shell">
               <table className="ipc-data-table ipc-admin-audit-table text-xs">
                 <thead>
                   <tr>
@@ -128,8 +120,8 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                   ))}
                 </tbody>
               </table>
-            </PaginatedTableFrame>
-            <CursorPaginationBar
+              </PaginatedTableFrame>
+              <CursorPaginationBar
               page={auditCursors.length + 1}
               hasNext={auditResult.data?.hasNext ?? false}
               onPrevious={() => setAuditCursors((current) => current.slice(0, -1))}
@@ -140,7 +132,8 @@ export function AdminAuditPanel({ model }: AdminAuditPanelProps) {
                 }
               }}
               ariaLabel="Phân trang nhật ký thay đổi"
-            />
+              />
+            </AdminQueryBoundary>
           </div>
         </SectionPanel>
       )}

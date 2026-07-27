@@ -3,6 +3,7 @@ import { useCreateInventoryReturnMutation, useCreateSupplementalMaterialRequestM
 import { formatQuantityWithUnit } from '@/lib/formatters'
 import type { ExcessMaterial, ProductionPlan, SupplementalRequest } from '@/lib/types'
 import { getChefMutationErrorMessage, type ChefMaterial } from '../chefDashboardTypes'
+import { toChefView } from '../chefQueryView'
 import type { ChefFeedback, ChefShiftScope } from '../production/useChefProductionPlan'
 
 type RecordedReturn = ExcessMaterial & { serviceDate: string; shift: ChefShiftScope['activeShift'] }
@@ -17,12 +18,18 @@ export function useChefExceptions(
   const [returns, setReturns] = useState<RecordedReturn[]>([])
   const [createReturn, returnState] = useCreateInventoryReturnMutation()
   const [createSupplemental, supplementalState] = useCreateSupplementalMaterialRequestMutation()
-  const { data: persistedReturnPage, isError: isReturnsError } = useGetInventoryReturnsQuery({
+  const returnsQuery = useGetInventoryReturnsQuery({
     returnDate: scope.serviceDate,
     shiftName: scope.activeShift,
     pageNumber: 1,
     pageSize: 100,
   }, { skip: !enabled })
+  const returnsView = toChefView(returnsQuery, 'phiếu trả kho của ca', {
+    getTruncation: (page) => page.items.length < page.totalCount
+      ? { shown: page.items.length, total: page.totalCount }
+      : null,
+  })
+  const persistedReturnPage = returnsView.phase === 'ready' ? returnsView.data : undefined
 
   const requestSupplemental = async (data: SupplementalRequest) => {
     const material = productionPlan.receivedMaterials.find((item) => item.id === data.ingredientId) as ChefMaterial | undefined
@@ -128,8 +135,7 @@ export function useChefExceptions(
       : returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),
     requestSupplemental,
     recordReturn,
-    // Danh sách phiếu trả rỗng vì lỗi tải khác với ca chưa phát sinh phiếu trả nào.
-    isReturnsError,
+    queryView: returnsView,
     isSubmittingSupplemental: supplementalState.isLoading,
     isCreatingReturn: returnState.isLoading,
   }

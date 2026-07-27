@@ -1,32 +1,24 @@
 import { Download, Pencil, PlusCircle, Power, Save, Search, Upload } from 'lucide-react';
-import { ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, QueryErrorAlert, SectionPanel, StatusBadge, DataTableShell, ViewSwitcher } from '@/components/common';
+import { ContextStrip, FieldRow, InlineAlert, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge, DataTableShell, ViewSwitcher } from '@/components/common';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import type { BomFormState } from './adminDataPageTypes';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminBomPanelProps = { model: AdminDataPageModel };
 
 export function AdminBomPanel({ model }: AdminBomPanelProps) {
-  const { bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogError, isDishCatalogFetching, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, refetchDishCatalog, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
+  const { bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, closeDishBomLineState, closingBom, commitBomImportState, currentBomPagination, currentBomRows, customerContracts, dishCatalog, downloadBomTemplateState, editingBom, effectiveActiveView, handleCloseBomLine, handleCommitBomImport, handleDownloadBomTemplate, handlePreviewBomImport, handleSaveBomLine, ingredientCatalog, isBomDialogOpen, isDishCatalogLoading, isIngredientCatalogLoading, isSavingBom, openCreateBomDialog, openEditBomDialog, previewBomImportState, queryViews, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setIsBomDialogOpen } = model;
   return (
     <>
       {effectiveActiveView === 'bom-import' && (
         <div id="admin-bom-import-panel" role="tabpanel" aria-labelledby="admin-bom-import-tab" className="flex flex-col gap-4">
-          {isDishCatalogError && (
-            <QueryErrorAlert
-              title="Không tải được danh mục món và BOM"
-              isRetrying={isDishCatalogFetching}
-              onRetry={refetchDishCatalog}
-            >
-              Không thể coi danh mục đang trống. Kiểm tra kết nối rồi thử tải lại trước khi import hoặc chỉnh BOM.
-            </QueryErrorAlert>
-          )}
-          {model.queryErrors.ingredients.isError && (
-            <QueryErrorAlert title="Không tải được danh mục nguyên liệu" onRetry={model.queryErrors.ingredients.refetch}>
-              Không thể thêm hoặc chỉnh BOM khi danh mục nguyên liệu chưa tải được.
-            </QueryErrorAlert>
-          )}
+          <AdminQueryBoundary queries={[
+            { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
+            { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
+            { label: 'customer contract', view: queryViews.contracts },
+          ]}>
           <SectionPanel title="Import BOM theo đơn giá" icon={<Upload size={18} />}>
             <div className="grid gap-4 xl:grid-cols-[minmax(280px,0.8fr)_minmax(0,1.6fr)]">
               <div className="grid self-start gap-3 rounded-md border border-slate-200 bg-slate-50 p-3">
@@ -318,6 +310,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
               </div>
             </div>
           </SectionPanel>
+          </AdminQueryBoundary>
         </div>
       )}
 
@@ -330,6 +323,10 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
             </DialogDescription>
           </DialogHeader>
 
+          <AdminQueryBoundary queries={[
+            { label: 'danh mục món và BOM', view: queryViews.dishCatalog },
+            { label: 'danh mục nguyên liệu', view: queryViews.ingredientCatalog },
+          ]}>
           <form className="mt-4 grid gap-4" onSubmit={(event) => void handleSaveBomLine(event)}>
             <div className="grid gap-3 sm:grid-cols-2">
               <label className="flex flex-col gap-1 text-sm font-semibold text-slate-700" htmlFor="manual-bom-dish">
@@ -413,6 +410,7 @@ export function AdminBomPanel({ model }: AdminBomPanelProps) {
               </button>
             </DialogFooter>
           </form>
+          </AdminQueryBoundary>
         </DialogContent>
       </Dialog>}
 

@@ -10,6 +10,14 @@ import { useCreateCustomerContractMutation, useGetCustomerContractsQuery, useGet
 import type { ApiShiftName, CreateCustomerContractRequest, CustomerContractDto, MenuScheduleDto, UpdateCustomerContractRequest, UpdateMenuScheduleRulesRequest, UpdateMenuScheduleVersionRequest } from '@/features/coordination/types';
 import { type AdminEmployee, useCreateAdminEmployeeMutation, useGetAdminEmployeesQuery, useGetAdminRolesQuery, useUpdateAdminEmployeeMutation, useUpdateAdminEmployeeStatusMutation } from '@/features/admin/adminApi';
 import { createDefaultBomForm, defaultContractForm, defaultEmployeeForm, defaultScheduleRuleForm, getBomTemplateTypeLabel, getMutationErrorMessage, getNextDayInputValue, getTodayInputValue, isAdminView, type AdminView, type BomFormState, type BomPanelMode, type BomTemplateType, type ContractFormState, type EmployeeFormState, type ScheduleRuleFormState } from './adminDataPageTypes';
+import { toQueryView, type QuerySnapshot } from '@/lib/queryView';
+
+const EMPTY_ADMIN_LIST: never[] = [];
+
+const toAdminView = <T,>(query: QuerySnapshot<T> & { refetch: () => unknown }, label: string) => toQueryView(query, {
+  instruction: `Mở mục ${label} để tải dữ liệu.`, retry: () => query.refetch(),
+  errorMessage: `Không tải được ${label}.`, forbiddenMessage: `Bạn không có quyền xem ${label}.`,
+});
 
 export function useAdminDataPageModel() {
   const { toast } = useToast();
@@ -65,10 +73,17 @@ export function useAdminDataPageModel() {
   const isCleanupView = activeView === 'cleanup';
   const isInventoryView = activeView === 'inventory';
   const isStatisticsView = activeView === 'statistics';
-  const { data: dishCatalog = [], isLoading: isDishCatalogLoading, isFetching: isDishCatalogFetching, isError: isDishCatalogError, refetch: refetchDishCatalog } = useGetAdminDishCatalogQuery(undefined, { skip: !isBomView });
-  const { data: ingredientCatalog = [], isLoading: isIngredientCatalogLoading, isError: isIngredientCatalogError, refetch: refetchIngredientCatalog } = useGetIngredientsQuery(undefined, { skip: !isBomView });
-  const { data: contractResponse, isError: isCustomerContractsError, refetch: refetchCustomerContracts } = useGetCustomerContractsQuery(undefined, { skip: !isContractView });
-  const customerContracts = useMemo(() => contractResponse?.data ?? [], [contractResponse?.data]);
+  const dishCatalogQuery = useGetAdminDishCatalogQuery(undefined, { skip: !isBomView });
+  const dishCatalogView = toAdminView(dishCatalogQuery, 'danh mục BOM');
+  const dishCatalog = dishCatalogView.phase === 'ready' ? dishCatalogView.data : EMPTY_ADMIN_LIST;
+  const isDishCatalogLoading = dishCatalogView.phase === 'uninitialized' || dishCatalogView.phase === 'loading';
+  const ingredientCatalogQuery = useGetIngredientsQuery(undefined, { skip: !isBomView });
+  const ingredientCatalogView = toAdminView(ingredientCatalogQuery, 'danh mục nguyên liệu');
+  const ingredientCatalog = ingredientCatalogView.phase === 'ready' ? ingredientCatalogView.data : EMPTY_ADMIN_LIST;
+  const isIngredientCatalogLoading = ingredientCatalogView.phase === 'uninitialized' || ingredientCatalogView.phase === 'loading';
+  const customerContractsQuery = useGetCustomerContractsQuery(undefined, { skip: !isContractView && !isBomView });
+  const customerContractsView = toAdminView(customerContractsQuery, 'customer contract');
+  const customerContracts = customerContractsView.phase === 'ready' ? customerContractsView.data.data ?? EMPTY_ADMIN_LIST : EMPTY_ADMIN_LIST;
   const selectedContract = useMemo(
     () => customerContracts.find((customer) => customer.customerId === selectedContractCustomerId) ?? customerContracts[0],
     [customerContracts, selectedContractCustomerId],
@@ -88,11 +103,12 @@ export function useAdminDataPageModel() {
       .sort((left, right) => left.dish.name.localeCompare(right.dish.name, 'vi') || left.line.name.localeCompare(right.line.name, 'vi'));
   }, [bomImportCustomerId, bomImportTier, deferredBomSearch, dishCatalog, isBomView]);
   const isSavingBom = addDishBomLineState.isLoading || updateDishBomLineState.isLoading;
-  const { data: scheduleResponse, isError: isMenuSchedulesError, refetch: refetchMenuSchedules } = useGetMenuSchedulesQuery(
+  const menuSchedulesQuery = useGetMenuSchedulesQuery(
     { customerId: selectedContract?.customerId, serviceDate: selectedContract?.latestServiceDate ?? undefined },
     { skip: !isContractView || !selectedContract?.customerId },
   );
-  const menuSchedules = useMemo(() => scheduleResponse?.data ?? [], [scheduleResponse?.data]);
+  const menuSchedulesView = toAdminView(menuSchedulesQuery, 'lịch thực đơn');
+  const menuSchedules = menuSchedulesView.phase === 'ready' ? menuSchedulesView.data.data ?? EMPTY_ADMIN_LIST : EMPTY_ADMIN_LIST;
   const selectedSchedule = useMemo(
     () => menuSchedules.find((schedule) => schedule.menuScheduleId === selectedScheduleId) ?? menuSchedules[0],
     [menuSchedules, selectedScheduleId],
@@ -131,6 +147,7 @@ export function useAdminDataPageModel() {
     limit: 8,
     sortDirection: 'desc',
   }, { skip: activeView !== 'audit' });
+  const auditView = toAdminView(auditResult, 'nhật ký audit');
 
   const handleExportAuditCsv = async () => {
     const params = new URLSearchParams();
@@ -158,16 +175,15 @@ export function useAdminDataPageModel() {
       toast({ title: 'Chưa thể tải file CSV', description: String(err), variant: 'danger', durationMs: 0 });
     }
   };
-  const { data: dataQualityReport, isError: isDataQualityError } = useGetDataQualityPageQuery(
+  const dataQualityQuery = useGetDataQualityPageQuery(
     { pageNumber: qualityPage, pageSize: 8, serviceDate: operationalDate },
     { skip: !isCleanupView },
   );
-  const {
-    data: operationalKpis,
-    isError: isOperationalKpisError,
-    isFetching: isFetchingOperationalKpis,
-    refetch: refetchOperationalKpis,
-  } = useGetOperationalKpisQuery(undefined, { skip: !isStatisticsView });
+  const dataQualityView = toAdminView(dataQualityQuery, 'chất lượng dữ liệu');
+  const dataQualityReport = dataQualityView.phase === 'ready' ? dataQualityView.data : undefined;
+  const operationalKpisQuery = useGetOperationalKpisQuery(undefined, { skip: !isStatisticsView });
+  const operationalKpisView = toAdminView(operationalKpisQuery, 'KPI vận hành');
+  const operationalKpis = operationalKpisView.phase === 'ready' ? operationalKpisView.data : undefined;
   const [updateDataQualityIssueRemediation, updateDataQualityIssueRemediationState] = useUpdateDataQualityIssueRemediationMutation();
   const stockMovementCursor = stockMovementCursors.at(-1);
   const stockMovementResult = useGetStockMovementPageQuery({
@@ -178,27 +194,36 @@ export function useAdminDataPageModel() {
     limit: 8,
     sortDirection: 'desc',
   }, { skip: !isInventoryView });
-  const { data: ingredientDemandPage, isError: isIngredientDemandError } = useGetIngredientDemandAggregatePageQuery({
+  const stockMovementView = toAdminView(stockMovementResult, 'bút toán điều chỉnh kho');
+  const ingredientDemandQuery = useGetIngredientDemandAggregatePageQuery({
     pageNumber: 1,
     pageSize: 8,
     dateFrom: operationalDate,
     dateTo: operationalDate,
   }, { skip: !isStatisticsView });
-  const { data: purchasePlanPage, isError: isPurchasePlanError } = useGetPurchasePlanPageQuery(
+  const ingredientDemandView = toAdminView(ingredientDemandQuery, 'thống kê nhu cầu nguyên liệu');
+  const ingredientDemandPage = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data : undefined;
+  const purchasePlanQuery = useGetPurchasePlanPageQuery(
     { groupBy: 'day', pageNumber: 1, pageSize: 8 },
     { skip: !isStatisticsView },
   );
-  const { data: currentStockPageResponse, isError: isCurrentStockError } = useGetCurrentStockPageQuery(
+  const purchasePlanView = toAdminView(purchasePlanQuery, 'thống kê kế hoạch thu mua');
+  const purchasePlanPage = purchasePlanView.phase === 'ready' ? purchasePlanView.data : undefined;
+  const currentStockQuery = useGetCurrentStockPageQuery(
     { pageNumber: currentStockPage, pageSize: 8 },
-    { skip: !isInventoryView },
+    { skip: !isInventoryView && !isStatisticsView },
   );
-  const { data: priceVariancePage, isError: isPriceVarianceError } = useGetPriceVariancePageQuery({
+  const currentStockView = toAdminView(currentStockQuery, 'tồn kho hiện tại');
+  const currentStockPageResponse = currentStockView.phase === 'ready' ? currentStockView.data : undefined;
+  const priceVarianceQuery = useGetPriceVariancePageQuery({
     pageNumber: priceWarningPage,
     pageSize: 8,
     warningOnly: true,
     dateFrom: operationalDate,
     dateTo: operationalDate,
   }, { skip: !isStatisticsView });
+  const priceVarianceView = toAdminView(priceVarianceQuery, 'thống kê cảnh báo giá');
+  const priceVariancePage = priceVarianceView.phase === 'ready' ? priceVarianceView.data : undefined;
   const deferredEmployeeSearch = useDeferredValue(employeeSearch);
   const employeeQuery = useMemo(
     () => ({
@@ -208,16 +233,22 @@ export function useAdminDataPageModel() {
     }),
     [deferredEmployeeSearch, employeePage],
   );
-  const { data: employeeResponse, isFetching: isEmployeeLoading, isError: isEmployeeError, refetch: refetchEmployees } = useGetAdminEmployeesQuery(employeeQuery, {
+  const employeesQuery = useGetAdminEmployeesQuery(employeeQuery, {
     skip: !canManageEmployees || activeView !== 'employees',
   });
-  const { data: rolesResponse, isFetching: isRolesLoading, isError: isRolesError, refetch: refetchRoles } = useGetAdminRolesQuery(undefined, {
+  const employeesView = toAdminView(employeesQuery, 'danh sách nhân viên');
+  const employeeResponse = employeesView.phase === 'ready' ? employeesView.data : undefined;
+  const isEmployeeLoading = employeesView.phase === 'loading';
+  const rolesQuery = useGetAdminRolesQuery(undefined, {
     skip: !canManageEmployees || activeView !== 'employees',
   });
+  const rolesView = toAdminView(rolesQuery, 'vai trò nhân viên');
+  const rolesResponse = rolesView.phase === 'ready' ? rolesView.data : undefined;
+  const isRolesLoading = rolesView.phase === 'loading';
   const [createEmployee, { isLoading: isCreatingEmployee }] = useCreateAdminEmployeeMutation();
   const [updateEmployee, { isLoading: isUpdatingEmployee }] = useUpdateAdminEmployeeMutation();
   const [updateEmployeeStatus, { isLoading: isUpdatingStatus }] = useUpdateAdminEmployeeStatusMutation();
-  const adjustmentMovements = stockMovementResult.data?.items ?? [];
+  const adjustmentMovements = stockMovementView.phase === 'ready' ? stockMovementView.data.items : [];
   const shortageCount = ingredientDemandPage?.shortageCount ?? 0;
   const priceWarnings = priceVariancePage?.items ?? [];
   const priceWarningCount = priceVariancePage?.totalCount ?? 0;
@@ -226,9 +257,6 @@ export function useAdminDataPageModel() {
   const totalIssuedQty = operationalKpis?.totalKitchenIssuedQty ?? 0;
   const totalUsedQty = operationalKpis?.totalKitchenUsedQty ?? 0;
   const totalReturnedQty = operationalKpis?.totalKitchenReturnedQty ?? 0;
-  // Chỉ số dẫn xuất từ một query chết không được hiển thị `?? 0` kèm badge success:
-  // đó là khẳng định ngược với sự thật, nguy hiểm hơn một empty state sai.
-  const UNKNOWN_KPI_LABEL = 'Chưa xác định';
   const dataQualityIssues = dataQualityReport?.page.items ?? [];
   const dataQualityErrorCount = dataQualityReport?.errorCount ?? 0;
   const currentBomPagination = usePaginatedRows(currentBomRows, 8);
@@ -238,40 +266,40 @@ export function useAdminDataPageModel() {
   const employeeRows = employeeResponse?.data?.items ?? [];
   const employeeMeta = employeeResponse?.data;
   const isSavingEmployee = isCreatingEmployee || isUpdatingEmployee;
-  const displayLogs = auditResult.data?.items ?? [];
+  const displayLogs = auditView.phase === 'ready' ? auditView.data.items : [];
   const effectiveActiveView: AdminView = canManageEmployees ? activeView : activeView === 'employees' ? 'bom-import' : activeView;
   const adminContextItems = effectiveActiveView === 'bom-import'
     ? [
-        { label: 'BOM đang hiển thị', value: `${currentBomRows.length} dòng`, tone: 'neutral' as const },
+        { label: 'BOM đang hiển thị', value: dishCatalogView.phase === 'ready' ? `${currentBomRows.length} dòng` : '—', tone: 'neutral' as const },
         { label: 'Đơn giá', value: `${bomImportTier / 1000}k`, tone: 'info' as const },
         { label: 'Preview', value: bomImportPreview ? `${bomImportPreview.rows?.length ?? 0} dòng` : 'Chưa kiểm tra', tone: bomImportPreview ? 'warning' as const : 'neutral' as const },
       ]
     : effectiveActiveView === 'contracts'
       ? [
-          { label: 'Khách hàng', value: customerContracts.length.toString(), tone: 'neutral' as const },
-          { label: 'Đang dùng', value: customerContracts.filter((item) => item.isActive).length.toString(), tone: 'success' as const },
-          { label: 'Lịch version', value: menuSchedules.length.toString(), tone: 'neutral' as const },
+          { label: 'Khách hàng', value: customerContractsView.phase === 'ready' ? customerContracts.length.toString() : '—', tone: 'neutral' as const },
+          { label: 'Đang dùng', value: customerContractsView.phase === 'ready' ? customerContracts.filter((item) => item.isActive).length.toString() : '—', tone: customerContractsView.phase === 'ready' ? 'success' as const : 'neutral' as const },
+          { label: 'Lịch version', value: menuSchedulesView.phase === 'ready' ? menuSchedules.length.toString() : '—', tone: 'neutral' as const },
         ]
       : effectiveActiveView === 'cleanup'
         ? [
-            { label: 'Dữ liệu lỗi', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityErrorCount} mục`, tone: isDataQualityError || dataQualityErrorCount ? 'danger' as const : 'success' as const },
-            { label: 'SLA gấp', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityReport?.urgentIssueCount ?? 0}`, tone: isDataQualityError || (dataQualityReport?.urgentIssueCount ?? 0) ? 'danger' as const : 'success' as const },
-            { label: 'Đã xử lý', value: isDataQualityError ? UNKNOWN_KPI_LABEL : `${dataQualityReport?.resolvedIssueCount ?? 0}`, tone: isDataQualityError ? 'danger' as const : 'success' as const },
+            { label: 'Dữ liệu lỗi', value: dataQualityView.phase === 'ready' ? `${dataQualityErrorCount} mục` : '—', tone: dataQualityView.phase !== 'ready' ? 'neutral' as const : dataQualityErrorCount ? 'danger' as const : 'success' as const },
+            { label: 'SLA gấp', value: dataQualityView.phase === 'ready' ? `${dataQualityView.data.urgentIssueCount}` : '—', tone: dataQualityView.phase !== 'ready' ? 'neutral' as const : dataQualityView.data.urgentIssueCount ? 'danger' as const : 'success' as const },
+            { label: 'Đã xử lý', value: dataQualityView.phase === 'ready' ? `${dataQualityView.data.resolvedIssueCount}` : '—', tone: dataQualityView.phase === 'ready' ? 'success' as const : 'neutral' as const },
           ]
         : effectiveActiveView === 'inventory'
           ? [
-              { label: 'Tồn kho', value: isCurrentStockError ? UNKNOWN_KPI_LABEL : `${currentStockPageResponse?.totalCount ?? 0} dòng`, tone: isCurrentStockError ? 'danger' as const : 'neutral' as const },
-              { label: 'Điều chỉnh', value: stockMovementResult.isError ? UNKNOWN_KPI_LABEL : `${adjustmentMovements.length} bút toán`, tone: stockMovementResult.isError ? 'danger' as const : adjustmentMovements.length ? 'warning' as const : 'success' as const },
+              { label: 'Tồn kho', value: currentStockView.phase === 'ready' ? `${currentStockView.data.totalCount} dòng` : '—', tone: 'neutral' as const },
+              { label: 'Điều chỉnh', value: stockMovementView.phase === 'ready' ? `${adjustmentMovements.length} bút toán` : '—', tone: stockMovementView.phase !== 'ready' ? 'neutral' as const : adjustmentMovements.length ? 'warning' as const : 'success' as const },
             ]
           : effectiveActiveView === 'statistics'
             ? [
-                { label: 'Thiếu nguyên liệu', value: isIngredientDemandError ? UNKNOWN_KPI_LABEL : shortageCount.toString(), tone: isIngredientDemandError || shortageCount ? 'danger' as const : 'success' as const },
-                { label: 'Cảnh báo giá', value: isPriceVarianceError ? UNKNOWN_KPI_LABEL : priceWarningCount.toString(), tone: isPriceVarianceError ? 'danger' as const : priceWarningCount ? 'warning' as const : 'success' as const },
-                { label: 'Đề xuất mua', value: isPurchasePlanError ? UNKNOWN_KPI_LABEL : totalPurchaseQty.toString(), tone: isPurchasePlanError ? 'danger' as const : totalPurchaseQty ? 'warning' as const : 'success' as const },
+                { label: 'Thiếu nguyên liệu', value: ingredientDemandView.phase === 'ready' ? shortageCount.toString() : '—', tone: ingredientDemandView.phase !== 'ready' ? 'neutral' as const : shortageCount ? 'danger' as const : 'success' as const },
+                { label: 'Cảnh báo giá', value: priceVarianceView.phase === 'ready' ? priceWarningCount.toString() : '—', tone: priceVarianceView.phase !== 'ready' ? 'neutral' as const : priceWarningCount ? 'warning' as const : 'success' as const },
+                { label: 'Đề xuất mua', value: purchasePlanView.phase === 'ready' ? totalPurchaseQty.toString() : '—', tone: purchasePlanView.phase !== 'ready' ? 'neutral' as const : totalPurchaseQty ? 'warning' as const : 'success' as const },
               ]
             : effectiveActiveView === 'audit'
-              ? [{ label: 'Audit', value: auditResult.isError ? UNKNOWN_KPI_LABEL : `${displayLogs.length} thay đổi`, tone: auditResult.isError ? 'danger' as const : 'neutral' as const }]
-              : [{ label: 'Nhân viên', value: `${employeeMeta?.totalCount ?? 0} tài khoản`, tone: 'info' as const }];
+              ? [{ label: 'Audit', value: auditView.phase === 'ready' ? `${displayLogs.length} thay đổi` : '—', tone: 'neutral' as const }]
+              : [{ label: 'Nhân viên', value: employeesView.phase === 'ready' ? `${employeeMeta?.totalCount ?? 0} tài khoản` : '—', tone: employeesView.phase === 'ready' ? 'info' as const : 'neutral' as const }];
   const adminTabs: ViewTab[] = [
     { id: 'admin-bom-import', label: 'BOM theo đơn giá' },
     { id: 'admin-contracts', label: 'Contract' },
@@ -733,15 +761,24 @@ export function useAdminDataPageModel() {
       setEmployeeNotice('Không thể cập nhật trạng thái nhân viên.');
     }
   };
-  const queryErrors = {
-    contracts: { isError: isCustomerContractsError, refetch: refetchCustomerContracts },
-    employees: { isError: isEmployeeError, refetch: refetchEmployees },
-    ingredients: { isError: isIngredientCatalogError, refetch: refetchIngredientCatalog },
-    roles: { isError: isRolesError, refetch: refetchRoles },
-    schedules: { isError: isMenuSchedulesError, refetch: refetchMenuSchedules },
+  const queryViews = {
+    audit: auditView,
+    contracts: customerContractsView,
+    currentStock: currentStockView,
+    dataQuality: dataQualityView,
+    dishCatalog: dishCatalogView,
+    employees: employeesView,
+    ingredientCatalog: ingredientCatalogView,
+    ingredientDemand: ingredientDemandView,
+    menuSchedules: menuSchedulesView,
+    operationalKpis: operationalKpisView,
+    priceVariance: priceVarianceView,
+    purchasePlan: purchasePlanView,
+    roles: rolesView,
+    stockMovements: stockMovementView,
   };
 
-  return { queryErrors, adjustmentMovements, adminContextItems, adminTabs, auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, canManageEmployees, closeDishBomLineState, closingBom, commitBomImportState, contractFeedback, contractForm, currentBomPagination, currentBomRows, currentStockPage, currentStockPageResponse, currentStockRows, customerContracts, dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, dishCatalog, displayLogs, downloadBomTemplateState, editingBom, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleCloseBomLine, handleCommitBomImport, handleDataQualityRemediation, handleDownloadBomTemplate, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, handleExportAuditCsv, handlePreviewBomImport, handleSaveBomLine, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, ingredientCatalog, isBomDialogOpen, isCreatingContract, isDishCatalogError, isDishCatalogFetching, isDishCatalogLoading, isEmployeeLoading, isFetchingOperationalKpis, isIngredientCatalogLoading, isIngredientDemandError, isOperationalKpisError, isPurchasePlanError, isRolesLoading, isSavingBom, isSavingContract, isSavingEmployee, isUpdatingStatus, isViewPending, loadContractForm, loadScheduleRuleForm, menuSchedules, openCreateBomDialog, openEditBomDialog, operationalKpis, previewBomImportState, priceVariancePage, priceWarningCount, priceWarningPage, priceWarnings, qualityPage, refetchDishCatalog, refetchOperationalKpis, resetEmployeeForm, scheduleRuleForm, selectedContract, selectedSchedule, setActiveView, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setContractForm, setCurrentStockPage, setEmployeeForm, setEmployeePage, setEmployeeSearch, setIsBomDialogOpen, setIsCreatingContract, setPriceWarningPage, setQualityPage, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, setStockMovementCursors, shortageCount, startNewContract, startViewTransition, stockMovementCursors, stockMovementResult, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty, updateDataQualityIssueRemediationState };
+  return { queryViews, adjustmentMovements, adminContextItems, adminTabs, auditActor, auditArea, auditCursors, auditEntity, auditField, auditResult, bomForm, bomImportCustomerId, bomImportEffectiveFrom, bomImportFeedback, bomImportFile, bomImportPreview, bomImportTier, bomPanelMode, bomPreviewPagination, bomSearch, bomTemplateDishId, canManageEmployees, closeDishBomLineState, closingBom, commitBomImportState, contractFeedback, contractForm, currentBomPagination, currentBomRows, currentStockPage, currentStockPageResponse, currentStockRows, customerContracts, dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, dishCatalog, displayLogs, downloadBomTemplateState, editingBom, editingEmployeeId, effectiveActiveView, employeeForm, employeeMeta, employeeNotice, employeeRoles, employeeRows, employeeSearch, handleCloseBomLine, handleCommitBomImport, handleDataQualityRemediation, handleDownloadBomTemplate, handleEditEmployee, handleEmployeeStatusToggle, handleEmployeeSubmit, handleExportAuditCsv, handlePreviewBomImport, handleSaveBomLine, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, ingredientCatalog, isBomDialogOpen, isCreatingContract, isDishCatalogLoading, isEmployeeLoading, isIngredientCatalogLoading, isRolesLoading, isSavingBom, isSavingContract, isSavingEmployee, isUpdatingStatus, isViewPending, loadContractForm, loadScheduleRuleForm, menuSchedules, openCreateBomDialog, openEditBomDialog, operationalKpis, previewBomImportState, priceVariancePage, priceWarningCount, priceWarningPage, priceWarnings, qualityPage, resetEmployeeForm, scheduleRuleForm, selectedContract, selectedSchedule, setActiveView, setAuditActor, setAuditArea, setAuditCursors, setAuditEntity, setAuditField, setBomForm, setBomImportCustomerId, setBomImportEffectiveFrom, setBomImportFile, setBomImportPreview, setBomImportTier, setBomPanelMode, setBomSearch, setClosingBom, setContractForm, setCurrentStockPage, setEmployeeForm, setEmployeePage, setEmployeeSearch, setIsBomDialogOpen, setIsCreatingContract, setPriceWarningPage, setQualityPage, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, setStockMovementCursors, shortageCount, startNewContract, startViewTransition, stockMovementCursors, stockMovementResult, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty, updateDataQualityIssueRemediationState };
 }
 
 export type AdminDataPageModel = ReturnType<typeof useAdminDataPageModel>;

@@ -5,14 +5,33 @@ import type { useSupplierQuotations } from './useSupplierQuotations';
 type SupplierQuotationWorkflow = ReturnType<typeof useSupplierQuotations>;
 
 export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuotationWorkflow }) {
+  const retryLookups = () => {
+    if (workflow.ingredientView.phase === 'error') workflow.ingredientView.retry();
+    if (workflow.supplierView.phase === 'error') workflow.supplierView.retry();
+  };
+  const isLookupLoading = workflow.ingredientView.phase === 'loading' || workflow.supplierView.phase === 'loading';
+
   return (
     <SectionPanel title="Quản lý báo giá nhà cung cấp">
       <div id="purchasing-quotation-panel" role="tabpanel" aria-labelledby="purchasing-quotation-tab" className="mt-4 space-y-4">
-        {workflow.isLookupError && (
-          <InlineAlert title="Không tải được danh mục nguyên liệu hoặc nhà cung cấp" variant="danger">
-            <span role="alert">Các ô chọn bên dưới đang rỗng vì lỗi tải dữ liệu, không phải vì hệ thống chưa có nguyên liệu hay nhà cung cấp nào. Hãy tải lại trang trước khi nhập báo giá.</span>
+        {workflow.isLookupForbidden ? (
+          <InlineAlert title="Không có quyền xem danh mục thu mua" variant="danger">
+            <span role="alert">Bạn không có quyền xem nguyên liệu hoặc nhà cung cấp phục vụ quản lý báo giá.</span>
           </InlineAlert>
-        )}
+        ) : workflow.isLookupError ? (
+          <EmptyState
+            variant="error"
+            title="Không tải được danh mục nguyên liệu hoặc nhà cung cấp"
+            description="Các ô chọn đang rỗng vì lỗi tải dữ liệu, không phải vì hệ thống chưa có danh mục. Hãy tải lại trước khi nhập báo giá."
+            onRetry={retryLookups}
+            isRetrying={workflow.ingredientView.phase === 'error' && workflow.ingredientView.isRetrying
+              || workflow.supplierView.phase === 'error' && workflow.supplierView.isRetrying}
+          />
+        ) : isLookupLoading ? (
+          <InlineAlert title="Đang tải danh mục thu mua" variant="info">
+            Danh mục nguyên liệu và nhà cung cấp đang được đồng bộ.
+          </InlineAlert>
+        ) : null}
         <div className="grid gap-3 md:grid-cols-[minmax(220px,0.6fr)_minmax(280px,1fr)]">
           <input
             type="search"
@@ -38,16 +57,31 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
           </div>
         </div>
 
-        {workflow.selectedIngredientId && (
+        {!workflow.selectedIngredientId ? (
+          <InlineAlert title="Chưa chọn nguyên liệu" variant="info">
+            Chọn một nguyên liệu để xem lịch sử báo giá và nhập báo giá mới.
+          </InlineAlert>
+        ) : (
           <>
-            {workflow.isQuotationError && (
+            {workflow.quotationView.phase === 'forbidden' ? (
+              <InlineAlert title="Không có quyền xem báo giá" variant="danger">
+                <span role="alert">{workflow.quotationView.message}</span>
+              </InlineAlert>
+            ) : workflow.quotationView.phase === 'error' ? (
               <EmptyState
                 variant="error"
                 title="Không tải được báo giá của nguyên liệu này"
                 description="Bảng trống bên dưới là do lỗi tải dữ liệu, không phải vì nguyên liệu này chưa có báo giá. Hãy tải lại trước khi chọn nhà cung cấp hoặc nhập giá mới."
-                onRetry={workflow.retryQuotations}
-                isRetrying={workflow.isFetching}
+                onRetry={workflow.quotationView.retry}
+                isRetrying={workflow.quotationView.isRetrying}
               />
+            ) : workflow.quotationView.phase === 'loading' ? (
+              <InlineAlert title="Đang tải báo giá" variant="info">Bảng báo giá đang được đồng bộ.</InlineAlert>
+            ) : null}
+            {workflow.quotationView.phase === 'ready' && workflow.quotationView.isRefreshing && (
+              <InlineAlert title="Đang cập nhật báo giá" variant="info">
+                Dữ liệu hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+              </InlineAlert>
             )}
             <TableViewport className="ipc-table-container" ariaLabel="Bảng báo giá theo nguyên liệu">
               <table className="ipc-table">
@@ -65,10 +99,11 @@ export function SupplierQuotationSection({ workflow }: { workflow: SupplierQuota
                       </td>
                     </tr>
                   ))}
-                  {workflow.rows.length === 0 && !workflow.isFetching && (
-                    workflow.isQuotationError
-                      ? <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không tải được báo giá</td></tr>
-                      : <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
+                  {workflow.quotationView.phase === 'loading' && <tr><td colSpan={7} className="py-4 text-center text-slate-600">Đang tải báo giá...</td></tr>}
+                  {workflow.quotationView.phase === 'forbidden' && <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không có quyền xem báo giá</td></tr>}
+                  {workflow.quotationView.phase === 'error' && <tr><td colSpan={7} className="py-4 text-center font-semibold text-red-700">Không tải được báo giá</td></tr>}
+                  {workflow.quotationView.phase === 'ready' && workflow.rows.length === 0 && !workflow.quotationView.isRefreshing && (
+                    <tr><td colSpan={7} className="py-4 text-center text-slate-500">Chưa có báo giá nào cho nguyên liệu này</td></tr>
                   )}
                 </tbody>
               </table>

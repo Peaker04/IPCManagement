@@ -1,4 +1,4 @@
-import { QueryErrorAlert, ViewSwitcher } from '@/components/common';
+import { ViewSwitcher } from '@/components/common';
 import type { ReportView, ReportsPageModel } from './useReportsPageModel';
 
 type ReportsNavigationProps = {
@@ -7,7 +7,7 @@ type ReportsNavigationProps = {
 
 export function ReportsNavigation({ model }: ReportsNavigationProps) {
   const {
-    activeReportState,
+    activeReportView,
     activeView,
     isViewPending,
     priceSubView,
@@ -40,21 +40,13 @@ export function ReportsNavigation({ model }: ReportsNavigationProps) {
         }}
       />
 
-      {activeReportState.isFetching || isViewPending ? (
+      {activeReportView.phase === 'loading'
+        || activeReportView.phase === 'ready' && activeReportView.isRefreshing
+        || isViewPending ? (
         <div role="status" aria-live="polite" className="sr-only">
           Đang tải dữ liệu báo cáo cho trang đang xem.
         </div>
       ) : null}
-
-      {activeReportState.isError && (
-        <QueryErrorAlert
-          title="Không tải được dữ liệu báo cáo"
-          isRetrying={activeReportState.isFetching}
-          onRetry={activeReportState.refetch}
-        >
-          Không thể kết luận báo cáo đang trống. Vui lòng kiểm tra kết nối hoặc quyền truy cập rồi thử tải lại.
-        </QueryErrorAlert>
-      )}
     </>
   );
 }

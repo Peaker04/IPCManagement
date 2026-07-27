@@ -3,6 +3,7 @@ import { CalendarDays, ChevronLeft, ChevronRight, RotateCcw, ShoppingCart } from
 import { useSearchParams } from 'react-router-dom';
 import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, StatusBadge, ViewSwitcher } from '@/components/common';
 import { Button } from '@/components/ui/button';
+import { toQueryView } from '@/lib/queryView';
 import {
   useGetPurchaseWorkbenchQuery,
   type PurchaseWorkflowStageCounts,
@@ -68,18 +69,22 @@ export default function PurchasingPage() {
   );
   const rawDate = searchParams.get('date') ?? undefined;
   const rawStage = isPurchasingStage(requestedStage) ? requestedStage : undefined;
-  const {
-    data: workbench,
-    isFetching,
-    error,
-    refetch,
-  } = useGetPurchaseWorkbenchQuery({
+  const workbenchQuery = useGetPurchaseWorkbenchQuery({
     week: initialRoute.week,
     date: rawDate,
     stage: rawStage,
     page,
     pageSize: 8,
   }, { skip: activeView !== 'workflow' });
+  const workbenchView = toQueryView(workbenchQuery, {
+    instruction: 'Mở tab Xử lý thu mua để tải quy trình theo tuần.',
+    retry: () => workbenchQuery.refetch(),
+    errorMessage: (error) => `Không tải được quy trình thu mua. ${getPurchasingErrorMessage(error)}`,
+    forbiddenMessage: 'Bạn không có quyền xem quy trình thu mua.',
+  });
+  const workbench = workbenchView.phase === 'ready' ? workbenchView.data : undefined;
+  const isFetching = workbenchView.phase === 'loading'
+    || workbenchView.phase === 'ready' && workbenchView.isRefreshing;
 
   const routeState = useMemo(
     () => resolvePurchasingRouteState(
@@ -94,11 +99,25 @@ export default function PurchasingPage() {
   );
   const activeDate = workbench?.serviceDates.find((item) => item.serviceDate === routeState.date);
   const selectedLine = activeDate?.purchaseLines.find((line) => line.purchaseRequestLineId === selectedLineId);
-  const nextAction = resolveNextPurchasingAction(activeDate, { loadError: Boolean(error) });
+  const nextAction = resolveNextPurchasingAction(activeDate, { loadError: workbenchView.phase === 'error' });
+  const isQuotationFailure = quotationWorkflow.isLookupError
+    || quotationWorkflow.isLookupForbidden
+    || quotationWorkflow.quotationView.phase === 'error'
+    || quotationWorkflow.quotationView.phase === 'forbidden';
+  const isQuotationPending = quotationWorkflow.ingredientView.phase === 'loading'
+    || quotationWorkflow.supplierView.phase === 'loading'
+    || quotationWorkflow.ingredientView.phase === 'ready' && quotationWorkflow.ingredientView.isRefreshing
+    || quotationWorkflow.supplierView.phase === 'ready' && quotationWorkflow.supplierView.isRefreshing
+    || quotationWorkflow.quotationView.phase === 'loading'
+    || quotationWorkflow.quotationView.phase === 'ready' && quotationWorkflow.quotationView.isRefreshing;
+  const isPageFailure = activeView === 'workflow'
+    ? workbenchView.phase === 'error' || workbenchView.phase === 'forbidden'
+    : isQuotationFailure;
+  const isPagePending = activeView === 'workflow' ? isFetching : isQuotationPending;
 
   useEffect(() => {
     if (activeView !== 'workflow') return;
-    if (!workbench && !error) return;
+    if (!workbench && workbenchView.phase !== 'error') return;
 
     const next = new URLSearchParams(searchParams);
     next.set('week', routeState.week);
@@ -112,7 +131,7 @@ export default function PurchasingPage() {
     if (next.toString() !== searchParams.toString()) {
       setSearchParams(next, { replace: true });
     }
-  }, [activeView, error, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench]);
+  }, [activeView, routeState.date, routeState.stage, routeState.week, searchParams, setSearchParams, workbench, workbenchView.phase]);
 
   const changeView = (id: string) => {
     const view: PurchasingView = id === 'purchasing-quotations' ? 'quotations' : 'workflow';
@@ -143,7 +162,7 @@ export default function PurchasingPage() {
   const moveWeek = (days: number) => replaceRouteContext({ week: shiftIsoWeek(routeState.week, days) });
   const focusDecisionPanel = () => {
     if (nextAction.kind === 'recovery') {
-      void refetch();
+      void workbenchQuery.refetch();
       return;
     }
     document.getElementById('purchase-decision-panel')?.focus();
@@ -191,14 +210,14 @@ export default function PurchasingPage() {
       }
       context={
         <ContextStrip items={activeView === 'workflow' ? [
-          { label: 'Ngày cần xử lý', value: workbench?.stageCounts.demand ?? 0, tone: (workbench?.stageCounts.demand ?? 0) > 0 ? 'warning' : 'neutral' },
-          { label: 'Nhu cầu chờ duyệt', value: activeDate && activeDate.approvedDemandCount === 0 ? 1 : 0, tone: activeDate && activeDate.approvedDemandCount === 0 ? 'warning' : 'success' },
-          { label: 'Ngoại lệ giá', value: activeDate?.blockingExceptionCount ?? 0, tone: (activeDate?.blockingExceptionCount ?? 0) > 0 ? 'danger' : 'success' },
-          { label: 'Đơn chờ nhập', value: activeDate ? Math.max(0, activeDate.receivingLineCount - activeDate.fullyReceivedLineCount) : 0, tone: activeDate && activeDate.receivingLineCount > activeDate.fullyReceivedLineCount ? 'warning' : 'success' },
+          { label: 'Ngày cần xử lý', value: workbenchView.phase === 'ready' ? workbenchView.data.stageCounts.demand : '—', tone: workbenchView.phase === 'ready' && workbenchView.data.stageCounts.demand > 0 ? 'warning' : 'neutral' },
+          { label: 'Nhu cầu chờ duyệt', value: workbenchView.phase === 'ready' ? (activeDate && activeDate.approvedDemandCount === 0 ? 1 : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.approvedDemandCount === 0 ? 'warning' : 'neutral' },
+          { label: 'Ngoại lệ giá', value: workbenchView.phase === 'ready' ? activeDate?.blockingExceptionCount ?? 0 : '—', tone: workbenchView.phase === 'ready' && (activeDate?.blockingExceptionCount ?? 0) > 0 ? 'danger' : 'neutral' },
+          { label: 'Đơn chờ nhập', value: workbenchView.phase === 'ready' ? (activeDate ? Math.max(0, activeDate.receivingLineCount - activeDate.fullyReceivedLineCount) : 0) : '—', tone: workbenchView.phase === 'ready' && activeDate && activeDate.receivingLineCount > activeDate.fullyReceivedLineCount ? 'warning' : 'neutral' },
         ] : [
-          { label: 'Nguyên liệu', value: quotationWorkflow.ingredients.length, tone: 'neutral' },
-          { label: 'Nhà cung cấp', value: quotationWorkflow.suppliers.length, tone: 'neutral' },
-          { label: 'Báo giá đang xem', value: quotationWorkflow.response?.totalCount ?? 0, tone: 'info' },
+          { label: 'Nguyên liệu', value: quotationWorkflow.ingredientView.phase === 'ready' ? quotationWorkflow.ingredients.length : '—', tone: 'neutral' },
+          { label: 'Nhà cung cấp', value: quotationWorkflow.supplierView.phase === 'ready' ? quotationWorkflow.suppliers.length : '—', tone: 'neutral' },
+          { label: 'Báo giá đang xem', value: quotationWorkflow.quotationView.phase === 'ready' ? quotationWorkflow.response?.totalCount ?? 0 : quotationWorkflow.quotationView.phase === 'uninitialized' ? 0 : '—', tone: 'info' },
         ]} />
       }
     >
@@ -208,8 +227,8 @@ export default function PurchasingPage() {
             <h1 className="text-[20px] font-semibold leading-[1.2] text-slate-950">{activeView === 'workflow' ? 'Thu mua theo nhu cầu đã duyệt' : 'Quản lý báo giá nhà cung cấp'}</h1>
             <p className="mt-2 text-[14px] leading-[1.5] text-slate-600">{activeView === 'workflow' ? 'Một luồng sáu giai đoạn từ nhu cầu đã duyệt đến tiến độ nhập kho.' : 'Quản lý đơn giá hiệu lực theo nguyên liệu và nhà cung cấp trong một vùng làm việc độc lập.'}</p>
           </div>
-          <StatusBadge variant={error ? 'danger' : isFetching ? 'warning' : 'success'}>
-            {error ? 'Lỗi tải dữ liệu' : isFetching ? 'Đang tải' : 'Đã đồng bộ'}
+          <StatusBadge variant={isPageFailure ? 'danger' : isPagePending ? 'warning' : 'success'}>
+            {isPageFailure ? 'Lỗi tải dữ liệu' : isPagePending ? 'Đang tải' : 'Đã đồng bộ'}
           </StatusBadge>
         </div>
 
@@ -225,15 +244,19 @@ export default function PurchasingPage() {
         />
 
         {activeView === 'workflow' && <div className="min-h-[68px]" aria-live="polite">
-          {error ? (
-            <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
-              <span role="alert">Không tải được quy trình thu mua. Kiểm tra kết nối và thử lại. Các lựa chọn chưa được lưu. {getPurchasingErrorMessage(error)}</span>
+          {workbenchView.phase === 'forbidden' ? (
+            <InlineAlert title="Không có quyền xem quy trình thu mua" variant="danger">
+              <span role="alert">{workbenchView.message}</span>
             </InlineAlert>
-          ) : isFetching && !workbench ? (
+          ) : workbenchView.phase === 'error' ? (
+            <InlineAlert title="Không tải được quy trình thu mua" variant="danger">
+              <span role="alert">{workbenchView.message} Các lựa chọn chưa được lưu.</span>
+            </InlineAlert>
+          ) : workbenchView.phase === 'loading' ? (
             <InlineAlert title="Đang tải quy trình thu mua" variant="info">
               Hệ thống đang lấy dữ liệu tuần mua hàng. Nội dung sẽ được giữ ổn định trong lúc đồng bộ.
             </InlineAlert>
-          ) : nextAction.message ? (
+          ) : workbenchView.phase === 'ready' && nextAction.message ? (
             <InlineAlert title={nextAction.kind === 'complete' ? 'Đã hoàn tất' : 'Hành động tiếp theo'} variant={nextAction.kind === 'blocked' ? 'warning' : 'info'}>
               <span role={nextAction.kind === 'blocked' ? 'alert' : 'status'}>{nextAction.message}</span>
             </InlineAlert>
@@ -244,34 +267,37 @@ export default function PurchasingPage() {
           <SupplierQuotationSection workflow={quotationWorkflow} />
         ) : <>
           <SupplementalPurchasingWorkbench week={routeState.week} />
-          <PurchaseWorkflowGuide
-          currentStage={activeDate?.currentStage}
-          selectedStage={routeState.stage}
-          stageCounts={workbench?.stageCounts ?? emptyStageCounts}
-          onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
-        />
+          {workbenchView.phase === 'ready' ? (
+            <>
+              <PurchaseWorkflowGuide
+                currentStage={activeDate?.currentStage}
+                selectedStage={routeState.stage}
+                stageCounts={workbenchView.data.stageCounts ?? emptyStageCounts}
+                onStageChange={(stage) => replaceRouteContext({ date: routeState.date, stage })}
+              />
 
-          <PurchaseServiceDateWorkbench
-          serviceDates={workbench?.serviceDates ?? []}
-          selectedDate={routeState.date}
-          selectedLineId={selectedLineId}
-          page={workbench?.page ?? page}
-          pageSize={workbench?.pageSize ?? 8}
-          totalItems={workbench?.totalItems ?? 0}
-          isLoading={isFetching && !workbench}
-          errorMessage={error ? getPurchasingErrorMessage(error) : undefined}
-          onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
-          onLineChange={setSelectedLineId}
-          onPageChange={setPage}
-        >
-          <PurchaseDecisionPanel
-            key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
-            week={routeState.week}
-            selectedStage={routeState.stage}
-            serviceDate={activeDate}
-            selectedLine={selectedLine}
-          />
-          </PurchaseServiceDateWorkbench>
+              <PurchaseServiceDateWorkbench
+                serviceDates={workbenchView.data.serviceDates}
+                selectedDate={routeState.date}
+                selectedLineId={selectedLineId}
+                page={workbenchView.data.page}
+                pageSize={workbenchView.data.pageSize}
+                totalItems={workbenchView.data.totalItems}
+                isLoading={false}
+                onDateChange={(date) => replaceRouteContext({ date: date.serviceDate, stage: isPurchasingStage(date.currentStage) ? date.currentStage : 'demand' })}
+                onLineChange={setSelectedLineId}
+                onPageChange={setPage}
+              >
+                <PurchaseDecisionPanel
+                  key={`${routeState.date ?? 'none'}-${selectedLineId ?? 'none'}`}
+                  week={routeState.week}
+                  selectedStage={routeState.stage}
+                  serviceDate={activeDate}
+                  selectedLine={selectedLine}
+                />
+              </PurchaseServiceDateWorkbench>
+            </>
+          ) : <div className="min-h-[420px]" aria-hidden="true" />}
         </>}
       </div>
     </OperationalFrame>

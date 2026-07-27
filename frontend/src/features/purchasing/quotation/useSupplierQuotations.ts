@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useToast } from '@/components/common';
 import { useGetIngredientsQuery } from '@/api/dishCatalogApi';
 import { useCreateSupplierQuotationMutation, useDeactivateSupplierQuotationMutation, useGetSupplierQuotationsByIngredientPageQuery, useGetSuppliersQuery, useUpdateSupplierQuotationMutation, type SupplierQuotationDto } from '@/api/workflowApi';
+import { toQueryView } from '@/lib/queryView';
 import { getPurchasingErrorMessage } from '../purchasingModel';
 
 const EMPTY_FORM = { supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' };
@@ -10,26 +11,42 @@ export function useSupplierQuotations(enabled = true) {
   const { toast } = useToast();
   const [ingredientSearch, setIngredientSearch] = useState('');
   const normalizedIngredientSearch = ingredientSearch.trim();
-  const { data: ingredients = [], isError: isIngredientError } = useGetIngredientsQuery(
+  const ingredientQuery = useGetIngredientsQuery(
     normalizedIngredientSearch ? { searchKeyword: normalizedIngredientSearch } : undefined,
     { skip: !enabled },
   );
-  const { data: suppliers = [], isError: isSupplierError } = useGetSuppliersQuery(undefined, { skip: !enabled });
+  const ingredientView = toQueryView(ingredientQuery, {
+    instruction: 'Mở tab Báo giá nhà cung cấp để tải danh mục nguyên liệu.',
+    retry: () => ingredientQuery.refetch(),
+    errorMessage: 'Không tải được danh mục nguyên liệu.',
+    forbiddenMessage: 'Bạn không có quyền xem danh mục nguyên liệu.',
+  });
+  const supplierQuery = useGetSuppliersQuery(undefined, { skip: !enabled });
+  const supplierView = toQueryView(supplierQuery, {
+    instruction: 'Mở tab Báo giá nhà cung cấp để tải danh mục nhà cung cấp.',
+    retry: () => supplierQuery.refetch(),
+    errorMessage: 'Không tải được danh mục nhà cung cấp.',
+    forbiddenMessage: 'Bạn không có quyền xem danh mục nhà cung cấp.',
+  });
   const [selectedIngredientId, setSelectedIngredientId] = useState('');
   const [page, setPage] = useState(1);
   const [form, setForm] = useState(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [deactivateTargetId, setDeactivateTargetId] = useState<string | null>(null);
-  const {
-    data: response,
-    isFetching,
-    isError: isQuotationError,
-    refetch: refetchQuotations,
-  } = useGetSupplierQuotationsByIngredientPageQuery({
+  const quotationQuery = useGetSupplierQuotationsByIngredientPageQuery({
     ingredientId: selectedIngredientId,
     pageNumber: page,
     pageSize: 8,
   }, { skip: !enabled || !selectedIngredientId });
+  const quotationView = toQueryView(quotationQuery, {
+    instruction: 'Chọn một nguyên liệu để xem báo giá nhà cung cấp.',
+    retry: () => quotationQuery.refetch(),
+    errorMessage: 'Không tải được báo giá của nguyên liệu này.',
+    forbiddenMessage: 'Bạn không có quyền xem báo giá nhà cung cấp.',
+  });
+  const ingredients = ingredientView.phase === 'ready' ? ingredientView.data : [];
+  const suppliers = supplierView.phase === 'ready' ? supplierView.data : [];
+  const response = quotationView.phase === 'ready' ? quotationView.data : undefined;
   const [createQuotation, { isLoading: isCreating }] = useCreateSupplierQuotationMutation();
   const [updateQuotation] = useUpdateSupplierQuotationMutation();
   const [deactivateQuotation] = useDeactivateSupplierQuotationMutation();
@@ -119,12 +136,17 @@ export function useSupplierQuotations(enabled = true) {
     page,
     setPage,
     response,
-    isFetching,
+    ingredientView,
+    supplierView,
+    quotationView,
+    isFetching: quotationQuery.isFetching,
     // Danh mục hoặc bảng báo giá rỗng vì lỗi tải khác hẳn với "nguyên liệu này
     // chưa có báo giá" — nhầm lẫn ở đây dẫn tới chọn sai nhà cung cấp và giá.
-    isLookupError: isIngredientError || isSupplierError,
-    isQuotationError,
-    retryQuotations: () => refetchQuotations(),
+    isLookupError: ingredientView.phase === 'error' || supplierView.phase === 'error',
+    isLookupForbidden: ingredientView.phase === 'forbidden' || supplierView.phase === 'forbidden',
+    isQuotationError: quotationView.phase === 'error',
+    isQuotationForbidden: quotationView.phase === 'forbidden',
+    retryQuotations: () => quotationQuery.refetch(),
     rows: response?.items ?? [],
     form,
     setForm,

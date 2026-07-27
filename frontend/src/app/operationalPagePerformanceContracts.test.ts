@@ -10,6 +10,7 @@ import chefExceptionsSource from '../features/chef/exceptions/useChefExceptions.
 import chefJournalSource from '../features/chef/journal/useChefJournal.ts?raw';
 import reportsSource from '../features/reports/pages/ReportsPage.tsx?raw';
 import reportsModelSource from '../features/reports/pages/useReportsPageModel.ts?raw';
+import reportsPriceSource from '../features/reports/pages/ReportsPricePanel.tsx?raw';
 import weeklyMenuSource from '../features/projects/pages/WeeklyMenuPage.tsx?raw';
 import materialDemandSource from '../features/projects/weekly-menu/demand/useMaterialDemand.ts?raw';
 import warehouseSource from '../features/warehouse/pages/WarehousePage.tsx?raw';
@@ -52,12 +53,12 @@ describe('operational page performance contracts', () => {
   });
 
   it('only fetches and renders the selected price analysis', () => {
-    const reportsContractSource = `${reportsSource}\n${reportsModelSource}`;
+    const reportsContractSource = `${reportsSource}\n${reportsModelSource}\n${reportsPriceSource}`;
     for (const subview of ['lines', 'supplier', 'period', 'dishGroup']) {
       expect(reportsContractSource).toContain(`priceSubView !== '${subview}'`);
     }
     expect(reportsContractSource).toContain("priceSubView === 'lines' && (");
-    expect(reportsContractSource).toContain('price: activePriceResult');
+    expect(reportsContractSource).toContain('price: activePriceView');
   });
 
   it('does not build hidden admin dialogs or query inactive datasets', () => {

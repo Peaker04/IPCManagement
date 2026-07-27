@@ -9,6 +9,64 @@ import type { User } from '@/features/auth/authTypes';
 
 const emptyResult = () => ({ data: undefined, isFetching: false, isError: false, refetch: vi.fn() });
 
+const uninitializedResult = () => ({
+  data: undefined,
+  currentData: undefined,
+  isUninitialized: true,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: false,
+  isError: false,
+  error: undefined,
+  refetch: vi.fn(),
+});
+
+const failedResult = (status: number, refetch = vi.fn()) => ({
+  ...uninitializedResult(),
+  isUninitialized: false,
+  isError: true,
+  error: { status },
+  refetch,
+});
+
+const readyResult = <T,>(data: T, overrides: Record<string, unknown> = {}) => ({
+  data,
+  currentData: data,
+  isUninitialized: false,
+  isLoading: false,
+  isFetching: false,
+  isSuccess: true,
+  isError: false,
+  error: undefined,
+  refetch: vi.fn(),
+  ...overrides,
+});
+
+const emptyReadyPage = {
+  items: [],
+  totalCount: 0,
+  pageNumber: 1,
+  pageSize: 8,
+  totalPages: 0,
+  hasPrev: false,
+  hasNext: false,
+  shortageCount: 0,
+  totalShortageQty: 0,
+  totalEstimatedAmount: 0,
+  page: { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false },
+  totalIssues: 0,
+  errorCount: 0,
+  warningCount: 0,
+  urgentIssueCount: 0,
+  resolvedIssueCount: 0,
+  missingBomCount: 0,
+  missingConversionCount: 0,
+};
+
+const readyWhenActive = (_args: unknown, options?: { skip?: boolean }) => options?.skip
+  ? uninitializedResult()
+  : readyResult(emptyReadyPage);
+
 const mocks = vi.hoisted(() => ({
   auditChangePage: vi.fn(),
   currentStockPage: vi.fn(),
@@ -86,7 +144,7 @@ const ALWAYS_VISIBLE_TABS = ['Nhu cầu nguyên liệu', 'Tồn kho', 'Nhập/xu
 
 describe('ReportsPage tab visibility vs WorkflowReportsController policies', () => {
   beforeEach(() => {
-    Object.values(mocks).forEach((mock) => mock.mockReset().mockReturnValue(emptyResult()));
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
   });
 
   it('hides price-variance, purchase-plan and audit tabs from Bếp trưởng', () => {
@@ -143,7 +201,7 @@ describe('ReportsPage tab visibility vs WorkflowReportsController policies', () 
 
 describe('ReportsPage falls back when the URL points at a forbidden tab', () => {
   beforeEach(() => {
-    Object.values(mocks).forEach((mock) => mock.mockReset().mockReturnValue(emptyResult()));
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockImplementation(readyWhenActive));
   });
 
   it('forces Bếp trưởng from ?view=audit to the first allowed tab without calling the audit query', () => {
@@ -182,5 +240,84 @@ describe('ReportsPage never turns a rejected report query into an empty state', 
 
     expect(screen.getByRole('alert')).toHaveTextContent('Không tải được dữ liệu báo cáo');
     expect(screen.queryByText('Chưa có dữ liệu để hiển thị')).not.toBeInTheDocument();
+  });
+});
+
+describe('ReportsPage query state boundary', () => {
+  beforeEach(() => {
+    Object.values(mocks).forEach((mock) => mock.mockReset().mockReturnValue(emptyResult()));
+  });
+
+  it('keeps an uninitialized active report distinct from a ready-empty report', () => {
+    mocks.purchasePlanPage.mockReturnValue(uninitializedResult());
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByText('Mở báo cáo kế hoạch thu mua để tải dữ liệu.')).toBeInTheDocument();
+    expect(screen.queryByText('Chưa có dữ liệu để hiển thị')).toBeNull();
+  });
+
+  it('renders query-level forbidden without retry or a false empty table', () => {
+    mocks.purchasePlanPage.mockReturnValue(failedResult(403));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByRole('alert')).toHaveTextContent('Bạn không có quyền xem báo cáo kế hoạch thu mua.');
+    expect(screen.queryByRole('button', { name: 'Thử tải lại' })).toBeNull();
+    expect(screen.queryByText('Chưa có dữ liệu để hiển thị')).toBeNull();
+  });
+
+  it('keeps a non-forbidden report failure retryable', () => {
+    const refetch = vi.fn();
+    mocks.purchasePlanPage.mockReturnValue(failedResult(500, refetch));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+    screen.getByRole('button', { name: 'Thử tải lại' }).click();
+
+    expect(refetch).toHaveBeenCalledOnce();
+  });
+
+  it('renders an empty table only after the active report is ready', () => {
+    mocks.purchasePlanPage.mockReturnValue(readyResult({
+      items: [],
+      totalCount: 0,
+      pageNumber: 1,
+      pageSize: 8,
+      totalPages: 0,
+      hasPrev: false,
+      hasNext: false,
+      totalShortageQty: 0,
+      totalEstimatedAmount: 0,
+    }));
+
+    renderReportsPage('thumua', '/reports?view=purchase');
+
+    expect(screen.getByText('Chưa có dữ liệu để hiển thị')).toBeInTheDocument();
+  });
+
+  it('keeps stale price rows visible while refreshing', () => {
+    mocks.priceVariancePage.mockReturnValue(readyResult({
+      items: [{
+        id: 'price-1',
+        name: 'Gạo tẻ',
+        unit: 'kg',
+        pricePrev: 20_000,
+        priceCurrent: 22_000,
+        supplier: 'NCC A',
+        change: 10,
+        warning: true,
+      }],
+      totalCount: 1,
+      pageNumber: 1,
+      pageSize: 6,
+      totalPages: 1,
+      hasPrev: false,
+      hasNext: false,
+    }, { isFetching: true }));
+
+    renderReportsPage('admin');
+
+    expect(screen.getAllByText('Gạo tẻ').length).toBeGreaterThan(0);
+    expect(screen.getByText('Đang cập nhật báo cáo')).toBeInTheDocument();
   });
 });
