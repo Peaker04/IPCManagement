@@ -420,7 +420,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 11 | Hợp đồng `QueryView<T>` và adapter thuần | Khóa `f(data, state)` | **Hoàn tất** |
 | 12 | Hai pilot Material Demand và Warehouse | Pilot state + browser evidence | **Hoàn tất** |
 | 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Chưa bắt đầu** |
-| 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Đang thực hiện sớm do numbering cũ** |
+| 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case lớn và functional core | P1 backend split | Chưa bắt đầu |
 | 16 | Persistence và reliability nhất quán | P3 persistence | Chưa bắt đầu |
 | 17 | FE ownership/import boundary rõ ràng | P2 frontend boundary | Chưa bắt đầu |
@@ -438,9 +438,8 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
   lane/database hiện hành sau khi kiểm tra lineage và evidence cần bảo toàn.
 - Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
-- Do Bước 14 đã bị bắt đầu dưới tên “Bước 13” cũ, không rollback các commit an toàn đã có.
-  Chỉ hoàn tất lát direct-DbContext đang dở để đưa worktree về atomic state, sau đó quay lại
-  Bước 13; không mở lát Bước 14 mới trước khi Gate 13 xanh.
+- Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
+  Luồng active quay lại Bước 13; không mở Bước 15–18 cho tới khi Gate 13 xanh.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -512,10 +511,13 @@ full FE gate xanh; endpoint/cache/DOM không drift; browser ba viewport xanh và
 **Gate 14:** architecture test 0 legacy cycle/0 cạnh cấm; 0 controller truy cập DbContext; namespace/path,
 OpenAPI, full BE/FE và migration-diff gate xanh.
 
-**Trạng thái: đang thực hiện sớm do roadmap trước đây gán nhầm số Bước 13.** Bốn cycle đã
-về 0 tại `97bb33f`, `766fac7`, `baff911`, `91badde`; ceiling tương ứng đã xóa.
-Lát bỏ direct DbContext khỏi `PurchaseRequestsController` và `ApprovalHistoryController` đang ở
-working tree, chưa được coi là hoàn tất cho tới khi targeted/full gates và staged `detect_changes` xanh.
+**Trạng thái: hoàn tất sớm ngày 27/07/2026 do roadmap trước đây gán nhầm số
+Bước 13.** Bốn cycle về 0 tại `97bb33f`, `766fac7`, `baff911`, `91badde`; ceiling
+tương ứng đã xóa. Commit `45d2072` đưa query của `PurchaseRequestsController` và
+`ApprovalHistoryController` vào query service thuộc feature; quét source và architecture test xác nhận
+0 feature controller còn reference `IpcManagementContext`. Gate: architecture **3/3**, characterization
+**2/2**, BE **634 pass / 1 skip**, FE **341/341**, lint 0 error/4 warning baseline, dependency không có
+vi phạm mới, OpenAPI deterministic, EF không có model change chưa migration và production build xanh.
 
 ### Bước 15 — Tách use case và functional core
 

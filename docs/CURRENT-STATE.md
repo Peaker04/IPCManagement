@@ -563,7 +563,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin → Chef → Coordination
 — chưa bắt đầu.
 
-### Bước 14 — VSA backend boundary (bị thực hiện sớm do numbering cũ)
+### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
 - Commit `97bb33f refactor(be-boundary): remove purchasing reports cycle` gỡ cycle đầu tiên:
   `Purchasing→Reports` **3 → 0** reference; architecture baseline bỏ hẳn ceiling cạnh này.
@@ -584,11 +584,15 @@ Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin 
   `Coordination→SampleData` **2 → 0**. Bốn legacy cycle đã về 0 và ceiling tương ứng đã xóa.
 - Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, EF migration snapshot sạch.
-- Working tree hiện có lát chưa commit đưa query của `PurchaseRequestsController` và
-  `ApprovalHistoryController` vào query service thuộc feature, kèm architecture/characterization test.
-  Lát này chưa được coi là hoàn tất trước khi targeted/full gates và staged `detect_changes` xanh.
-- Để đưa worktree về atomic state, hoàn tất và commit lát direct-DbContext đang dở; sau đó
-  quay lại Bước 13. Không mở thêm lát Bước 14 mới cho tới khi Gate 13 xanh.
+- Commit `45d2072 refactor(be-boundary): move controller queries into feature services` đưa query
+  của `PurchaseRequestsController` và `ApprovalHistoryController` vào query service thuộc feature;
+  DTO approval history về `Approvals/Contracts`, DI đăng ký đủ hai service.
+- Architecture gate xác nhận 0 feature controller còn reference `IpcManagementContext`; targeted
+  architecture **3/3**, characterization filter/paging/detail/history **2/2**.
+- Full gate: BE **634 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
+  dependency FE không tăng, production build xanh, OpenAPI regenerate deterministic và EF migration
+  snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
+- Bước active tiếp theo là Bước 13 rollout state; không mở Bước 15–18 trước khi Gate 13 xanh.
 
 ## Quy trình tiếp tục ở phiên mới
 
