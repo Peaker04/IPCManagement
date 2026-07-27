@@ -887,6 +887,11 @@ export default function AdminDataPage() {
   };
 
   const handleEditEmployee = (employee: AdminEmployee) => {
+    if (!employee.userId || !employee.fullName || !employee.username || !employee.roleId || typeof employee.isActive !== 'boolean') {
+      setEmployeeNotice('Dữ liệu nhân viên không đầy đủ để chỉnh sửa.');
+      return;
+    }
+
     setEditingEmployeeId(employee.userId);
     setEmployeeForm({
       fullName: employee.fullName,
@@ -899,6 +904,11 @@ export default function AdminDataPage() {
   };
 
   const handleEmployeeStatusToggle = async (employee: AdminEmployee) => {
+    if (!employee.userId || typeof employee.isActive !== 'boolean') {
+      setEmployeeNotice('Dữ liệu nhân viên không đầy đủ để đổi trạng thái.');
+      return;
+    }
+
     try {
       const response = await updateEmployeeStatus({
         id: employee.userId,
@@ -1997,7 +2007,9 @@ export default function AdminDataPage() {
                                 {employee.isActive ? 'Đang hoạt động' : 'Đã khóa'}
                               </StatusBadge>
                             </td>
-                            <td className="text-slate-500">{new Date(employee.createdAt).toLocaleDateString('vi-VN')}</td>
+                            <td className="text-slate-500">
+                              {employee.createdAt ? new Date(employee.createdAt).toLocaleDateString('vi-VN') : '—'}
+                            </td>
                             <td>
                               <div className="flex flex-wrap justify-center gap-2">
                                 <button
@@ -2028,9 +2040,9 @@ export default function AdminDataPage() {
 
                 {employeeMeta && (
                   <PaginationBar
-                    page={employeeMeta.pageNumber}
-                    pageSize={employeeMeta.pageSize}
-                    totalItems={employeeMeta.totalCount}
+                    page={employeeMeta.pageNumber ?? 1}
+                    pageSize={employeeMeta.pageSize ?? 8}
+                    totalItems={employeeMeta.totalCount ?? 0}
                     onPageChange={setEmployeePage}
                   />
                 )}
