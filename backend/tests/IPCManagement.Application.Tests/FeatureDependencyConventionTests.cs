@@ -25,7 +25,6 @@ public class FeatureDependencyConventionTests
     // Step 13. Their reference count may decrease, but must never increase.
     private static readonly Dictionary<FeatureEdge, int> LegacyCycleReferenceCeilings = new()
     {
-        [new("Coordination", "SampleData")] = 2,
     };
 
     [Fact]
