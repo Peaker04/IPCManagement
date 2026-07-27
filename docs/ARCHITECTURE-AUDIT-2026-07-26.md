@@ -488,8 +488,10 @@ làm architecture test đỏ. `WorkflowReportQueryDto`/`WorkflowReportPageQueryD
 contract sang `Shared/Contracts`; `PurchasePlanReportDto` về Purchasing; price-exception classification
 dùng `PurchasePricePolicy`. Cycle `Planning↔Purchasing` đã gỡ tại `766fac7`:
 `IMaterialDemandService` về Planning và dependency inject chết trong `CoordinationService` đã xóa;
-không nới DAG bằng cạnh giả `Coordination→Planning`. Còn hai cycle và hai controller truy cập
-DbContext trực tiếp.
+không nới DAG bằng cạnh giả `Coordination→Planning`. Cycle `Approvals↔Coordination` đã gỡ
+tại `baff911`: adapter `InventoryAdjustmentApprovalHandler` về Coordination và implement port
+Approvals theo đúng chiều DAG. Còn cycle `Coordination↔SampleData` và hai controller truy cập DbContext
+trực tiếp.
 
 ### Bước 14 — P1: tách backend theo use case và functional core
 

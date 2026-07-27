@@ -572,10 +572,13 @@ Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo t�
   field/constructor dependency không bao giờ được dùng trong `CoordinationService` đã xóa thay vì
   whitelist cạnh `Coordination→Planning` giả.
 - Targeted cycle thứ hai: architecture **2/2**, MaterialDemand/Coordination/controller **98/98**.
+- Commit `baff911 refactor(be-boundary): move adjustment approval to coordination` gỡ cycle thứ ba:
+  `Approvals→Coordination` **1 → 0**; adapter duyệt `QuantityAdjustment` về feature sở hữu state
+  transition và tiếp tục implement port Approvals. Targeted approval/coordination **43/43**.
 - Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, EF migration snapshot sạch.
-- Còn hai cycle: `Approvals→Coordination` 1 và `Coordination→SampleData` 2; sau đó bỏ direct
-  DbContext khỏi hai controller theo Gate 13.
+- Còn một cycle: `Coordination→SampleData` 2; sau đó bỏ direct DbContext khỏi hai controller
+  theo Gate 13.
 
 ## Quy trình tiếp tục ở phiên mới
 
