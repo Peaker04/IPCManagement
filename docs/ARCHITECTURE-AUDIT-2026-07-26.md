@@ -422,7 +422,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 |---|---|---|---|
 | 11 | `QueryView<T>`, adapter thuần, ma trận tám trạng thái và lint guardrail | Bước 10 | **Hoàn tất** |
 | 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
-| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: ba feature đầu đã hoàn tất** |
+| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: bốn feature đầu đã hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | Chưa bắt đầu |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
@@ -540,7 +540,24 @@ capture, mỗi tab/subview action API 200, warm price revisit 0 request, 0 non-2
 console/page error/long task, CLS 0, 0 page overflow. Evidence tại
 `.artifacts/shipyard-live/query-view-reports-performance.json` và ba mươi chín screenshot cùng prefix.
 
-Bước active tiếp theo trong Gate 13 là Admin.
+**Admin hoàn tất tại `0e0279f`.** Mười bốn query owner trong `AdminDataPage`
+và hai query của `ApprovalRulesPage` đều qua `QueryView`. Shared `AdminQueryBoundary`
+phân loại group query, không retry 403, giữ children khi refreshing và không render
+false-empty khi một dependency lỗi. Statistics nay thực sự tải current stock; BOM thực
+sự tải customer contracts; dialog BOM bị chặn khi catalog chưa authoritative; employee
+selector không pager hiển thị truncation `shown/total`. Endpoint, args, cache, URL và mutation
+behavior không đổi. `useAdminDataPageModel` còn **785 dòng**, vẫn là growth warning đã
+được xếp Bước 17; không big-bang split trong state rollout.
+
+Targeted Admin/state **26/26**; full FE **386/386**; BE **634 pass / 1 skip**; lint sạch,
+dependency không tăng, production build, OpenAPI deterministic và migration gate xanh.
+Browser headed ba viewport: **30/30** capture cho 7 tab, BOM warm, Approval Rules và dialog;
+55 API response đều 2xx, warm BOM 0 request, 0 request fail/non-2xx/console/page error/long task,
+CLS 0 và 0 page overflow. Evidence tại `.artifacts/shipyard-live/query-view-admin-performance.json`
+và ba mươi screenshot `query-view-admin-*.png`. Staged GitNexus audit: 13 file/45 symbol/
+11 flow, **HIGH**, đúng blast radius shared Admin boundary đã được phủ gate.
+
+Bước active tiếp theo trong Gate 13 là Chef.
 
 ### Bước 14 — Khóa VSA boundary
 
