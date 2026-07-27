@@ -35,6 +35,8 @@ public static class ApiContractServiceCollectionExtensions
                 Description = "Hệ thống quản lý bếp ăn công nghiệp (IPC Management System)"
             });
 
+            options.SupportNonNullableReferenceTypes();
+
             options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
             {
                 Name = "Authorization",

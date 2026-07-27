@@ -54,21 +54,28 @@ const setLoginData = (
   api: Parameters<BaseQueryFn<string | FetchArgs, unknown, FetchBaseQueryError>>[1],
   data: LoginData
 ) => {
+  const user = data.user;
+  if (!data.accessToken || !user?.userId || !user.username || !user.fullName) {
+    return false;
+  }
+
   api.dispatch(
     setCredentials({
       user: {
-        id: data.user.userId,
-        username: data.user.username,
-        fullName: data.user.fullName,
-        role: normalizeUserRole(data.user.roleCode, data.user.roleName),
-        roleCode: data.user.roleCode,
-        roleName: data.user.roleName,
-        isAdminFullAccess: data.user.isAdminFullAccess ?? false,
-        permissions: data.user.permissions ?? [],
+        id: user.userId,
+        username: user.username,
+        fullName: user.fullName,
+        role: normalizeUserRole(user.roleCode, user.roleName),
+        roleCode: user.roleCode,
+        roleName: user.roleName,
+        isAdminFullAccess: user.isAdminFullAccess ?? false,
+        permissions: [...(user.permissions ?? [])],
       },
       token: data.accessToken,
     })
   );
+
+  return true;
 };
 
 const baseQueryWithAuthHandling: BaseQueryFn<
@@ -109,8 +116,7 @@ const baseQueryWithAuthHandling: BaseQueryFn<
             return false;
           }
 
-          setLoginData(api, data);
-          return true;
+          return setLoginData(api, data);
         } finally {
           devFallbackLoginPromise = null;
         }
@@ -152,7 +158,10 @@ const baseQueryWithAuthHandling: BaseQueryFn<
             return;
           }
 
-          setLoginData(api, data);
+          if (!setLoginData(api, data)) {
+            api.dispatch(logOut());
+            notifySessionExpired();
+          }
         } finally {
           refreshPromise = null;
         }

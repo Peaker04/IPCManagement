@@ -1,3 +1,5 @@
+import type { components } from '@/shared/api/contracts/schema';
+
 /**
  * Chuẩn hóa response format cho tất cả API endpoints.
  * Khớp với ApiResponse<T> ở backend (IPCManagement.Api.Helpers.ApiResponse).
@@ -13,51 +15,28 @@ export interface ApiResponse<T = undefined> {
  * Thông tin user trả về sau login / profile.
  * Khớp với UserInfoDto ở backend.
  */
-export interface UserInfo {
-  userId: string;
-  fullName: string;
-  username: string;
-  roleCode?: string;
-  roleName: string;
-  isActive: boolean;
-  isAdminFullAccess?: boolean;
-  permissions?: string[];
-}
+export type UserInfo = components['schemas']['UserInfoDto'];
 
 /**
  * Payload trả về khi login / refresh thành công.
  * Khớp với LoginResponseDto ở backend.
  */
-export interface LoginData {
-  accessToken: string;
-  refreshToken: string;
-  tokenType: string;
-  expiresIn: number;
-  user: UserInfo;
-}
+export type LoginData = components['schemas']['LoginResponseDto'];
 
 /**
  * Body gửi lên khi đăng nhập.
- * Khớp với LoginRequestDto ở backend.
+ * Khớp với LoginRequest ở backend.
  */
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
+export type LoginRequest = components['schemas']['LoginRequest'];
 
 /**
  * Body gửi lên khi refresh token.
- * Khớp với RefreshTokenRequestDto ở backend.
+ * Khớp với RefreshTokenRequest ở backend.
  */
-export interface RefreshTokenRequest {
-  accessToken: string;
-  refreshToken?: string;
-}
+export type RefreshTokenRequest = components['schemas']['RefreshTokenRequest'];
 
 /**
  * Body gửi lên khi revoke (logout).
- * Khớp với RevokeTokenRequestDto ở backend.
+ * Khớp với RevokeTokenRequest ở backend.
  */
-export interface RevokeTokenRequest {
-  refreshToken?: string;
-}
+export type RevokeTokenRequest = components['schemas']['RevokeTokenRequest'];

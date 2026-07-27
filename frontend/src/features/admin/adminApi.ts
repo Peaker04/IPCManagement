@@ -1,57 +1,25 @@
 import { apiSlice } from '@/api/apiSlice';
+import type { components, paths } from '@/shared/api/contracts/schema';
 import type { ApiResponse } from '@/types/api';
 
-export interface AdminEmployee {
-  userId: string;
-  fullName: string;
-  username: string;
-  roleId: string;
-  roleName: string;
-  isActive: boolean;
-  createdAt: string;
-}
+export type AdminEmployee = components['schemas']['EmployeeDto'];
 
-export interface AdminRole {
-  roleId: string;
-  roleCode: string;
-  roleName: string;
-}
+export type AdminRole = components['schemas']['AdminRoleDto'];
 
-export interface PagedResult<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  hasPrev: boolean;
-  hasNext: boolean;
-}
+type AdminEmployeePage = components['schemas']['EmployeeDtoPagedResponseDto'];
+type GeneratedAdminEmployeeQuery = NonNullable<
+  paths['/api/admin/employees']['get']['parameters']['query']
+>;
 
-export interface AdminEmployeeQuery {
-  pageNumber?: number;
-  pageSize?: number;
-  searchKeyword?: string;
-}
+export type AdminEmployeeQuery = {
+  [Key in keyof GeneratedAdminEmployeeQuery as Uncapitalize<Key & string>]: GeneratedAdminEmployeeQuery[Key];
+};
 
-export interface CreateEmployeeRequest {
-  fullName: string;
-  username: string;
-  password: string;
-  roleId: string;
-  isActive: boolean;
-}
+export type CreateEmployeeRequest = components['schemas']['CreateEmployeeRequest'];
 
-export interface UpdateEmployeeRequest {
-  fullName: string;
-  username: string;
-  password?: string;
-  roleId: string;
-  isActive: boolean;
-}
+export type UpdateEmployeeRequest = components['schemas']['UpdateEmployeeRequest'];
 
-export interface UpdateEmployeeStatusRequest {
-  isActive: boolean;
-}
+export type UpdateEmployeeStatusRequest = components['schemas']['UpdateEmployeeStatusRequest'];
 
 export const adminApi = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
@@ -59,7 +27,7 @@ export const adminApi = apiSlice.injectEndpoints({
       query: () => '/admin/employees/roles',
       providesTags: ['Employee'],
     }),
-    getAdminEmployees: builder.query<ApiResponse<PagedResult<AdminEmployee>>, AdminEmployeeQuery>({
+    getAdminEmployees: builder.query<ApiResponse<AdminEmployeePage>, AdminEmployeeQuery>({
       query: (params) => ({
         url: '/admin/employees',
         params,
@@ -86,7 +54,7 @@ export const adminApi = apiSlice.injectEndpoints({
       query: ({ id, isActive }) => ({
         url: `/admin/employees/${id}/status`,
         method: 'PATCH',
-        body: { isActive } as UpdateEmployeeStatusRequest,
+        body: { isActive } satisfies UpdateEmployeeStatusRequest,
       }),
       invalidatesTags: ['Employee'],
     }),

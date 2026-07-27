@@ -579,92 +579,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/admin/adminApi.ts",
-    "unresolvedTo": "@/features/admin/adminApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/auth/index.ts",
-    "unresolvedTo": "@/features/auth",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/coordination/coordinationApi.ts",
-    "unresolvedTo": "@/features/coordination/coordinationApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/coordination/types.ts",
-    "unresolvedTo": "@/features/coordination/types",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/ApprovalRulesPage.tsx",
-    "to": "src/features/admin/adminApi.ts",
-    "unresolvedTo": "@/features/admin/adminApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/auth/logoutSession.ts",
     "to": "src/app/store.ts",
     "unresolvedTo": "../../app/store",
@@ -899,23 +813,6 @@
   {
     "type": "dependency",
     "from": "src/features/reports/pages/ReportsPage.tsx",
-    "to": "src/app/hooks.ts",
-    "unresolvedTo": "@/app/hooks",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R3-feature-khong-goi-app"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
     "to": "src/app/hooks.ts",
     "unresolvedTo": "@/app/hooks",
     "dependencyTypes": [
