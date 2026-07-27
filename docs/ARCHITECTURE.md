@@ -68,9 +68,10 @@ IPCManagement/
 │   ├── tests/                 xUnit backend tests
 │   └── database/              SQL schema/cleanup/migration hỗ trợ
 ├── frontend/
-│   ├── src/app/               Redux store và hooks
-│   ├── src/api/               RTK Query base API
-│   ├── src/features/          module nghiệp vụ theo màn hình
+│   ├── src/app/               Redux store, hooks và composition page đa-feature
+│   ├── src/api/               RTK Query base API + workflow/dish endpoint modules dùng chung
+│   ├── src/features/          module nghiệp vụ: admin, approvals, chef, coordination, projects,
+│   │                          purchasing, reports và warehouse
 │   ├── src/components/        component dùng chung/layout/UI
 │   ├── src/routes/             route, guard, preload
 │   ├── src/lib/                formatter, pagination, status và utility
@@ -80,3 +81,8 @@ IPCManagement/
 ├── .docs/                     tài liệu tham chiếu nghiệp vụ/demo
 └── scripts/                   script vận hành/quality gate hiện có
 ```
+
+Frontend không còn `src/features/workflow`: core dùng chung nằm ở `src/api/workflowApi.ts`,
+`src/lib/workflowConfig.ts`, `src/lib/actionEligibility.ts` và `src/types/workflow.ts`; page được sở hữu
+bởi feature nghiệp vụ tương ứng. `AdminDataPage` ở tầng `src/app/pages` vì nó composition dữ liệu của
+admin, auth và coordination thay vì thuộc riêng một feature.
