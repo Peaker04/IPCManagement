@@ -3,12 +3,8 @@ using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Warehouse;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -17,6 +13,10 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Controllers;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 

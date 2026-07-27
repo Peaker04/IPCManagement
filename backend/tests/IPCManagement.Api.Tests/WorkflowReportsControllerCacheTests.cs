@@ -1,12 +1,12 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using NSubstitute;
+using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Features.Reports.Controllers;
+using IPCManagement.Api.Features.Reports.Services;
 
 namespace IPCManagement.Api.Tests;
 

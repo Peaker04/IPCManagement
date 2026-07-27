@@ -1,4 +1,5 @@
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Features.Auth.Services;
 
 namespace IPCManagement.Api.Data.Repositories;
 

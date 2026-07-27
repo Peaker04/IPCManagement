@@ -6,14 +6,14 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Models.Validators;
-using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Inventory.Validators;
 
 namespace IPCManagement.Api.Tests;
 

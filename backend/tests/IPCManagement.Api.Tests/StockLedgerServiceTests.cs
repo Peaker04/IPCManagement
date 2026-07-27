@@ -2,10 +2,10 @@ using FluentAssertions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Services;
 
 namespace IPCManagement.Api.Tests;
 

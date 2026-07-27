@@ -1,6 +1,6 @@
 using FluentAssertions;
-using IPCManagement.Api.Models.DTOs.Coordination;
 using Xunit;
+using IPCManagement.Api.Features.Coordination.Contracts;
 
 namespace IPCManagement.Api.Tests;
 
