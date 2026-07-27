@@ -27,7 +27,6 @@ public class FeatureDependencyConventionTests
     {
         [new("Approvals", "Coordination")] = 1,
         [new("Coordination", "SampleData")] = 2,
-        [new("Purchasing", "Planning")] = 1,
     };
 
     [Fact]

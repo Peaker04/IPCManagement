@@ -4166,7 +4166,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var service = new CoordinationService(context);
 
         var contracts = await service.GetCustomerContractsAsync();
         var contract = contracts.Should().ContainSingle().Subject;
@@ -4226,7 +4226,7 @@ public class WorkflowGenerationTests
         await using var fixture = await WorkflowFixture.CreateAsync();
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var service = new CoordinationService(context);
 
         var created = await service.CreateCustomerContractAsync(
             new CreateCustomerContractRequest
@@ -4283,7 +4283,7 @@ public class WorkflowGenerationTests
         string customerId;
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context, new MaterialDemandService(context));
+            var service = new CoordinationService(context);
             var contract = (await service.GetCustomerContractsAsync()).Should().ContainSingle().Subject;
             customerId = contract.CustomerId;
             await service.UpdateCustomerContractAsync(
@@ -4319,7 +4319,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context, new MaterialDemandService(context));
+            var service = new CoordinationService(context);
             Func<Task> act = async () => await service.UpdateCustomerContractAsync(
                 customerId,
                 new UpdateCustomerContractRequest
@@ -4344,7 +4344,7 @@ public class WorkflowGenerationTests
         await fixture.SeedMenuWithDemandAsync(includeMissingDish: false);
 
         await using var context = fixture.CreateContext();
-        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var service = new CoordinationService(context);
         var customerId = GuidHelper.ToGuidString(await context.Customers
             .Select(item => item.CustomerId)
             .SingleAsync());
@@ -4454,7 +4454,7 @@ public class WorkflowGenerationTests
         string portionRuleId;
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context, new MaterialDemandService(context));
+            var service = new CoordinationService(context);
             customerId = GuidHelper.ToGuidString(await context.Customers
                 .Select(item => item.CustomerId)
                 .SingleAsync());
@@ -4799,7 +4799,7 @@ public class WorkflowGenerationTests
             await context.SaveChangesAsync();
 
             customerId = GuidHelper.ToGuidString(schedule.CustomerId);
-            var service = new CoordinationService(context, new MaterialDemandService(context));
+            var service = new CoordinationService(context);
             foreach (var (shiftName, rate) in new[] { ("MORNING", 50m), ("AFTERNOON", 75m) })
             {
                 await service.CreatePortionRuleAsync(
@@ -4863,7 +4863,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var service = new CoordinationService(context, new MaterialDemandService(context));
+            var service = new CoordinationService(context);
             var updated = await service.UpdateMenuScheduleRulesAsync(
                 scheduleId,
                 new UpdateMenuScheduleRulesRequest
@@ -4913,7 +4913,7 @@ public class WorkflowGenerationTests
             Status = "ACTIVE"
         });
         await context.SaveChangesAsync();
-        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var service = new CoordinationService(context);
 
         var updated = await service.UpdateMenuScheduleVersionAsync(
             scheduleId,
@@ -5010,7 +5010,7 @@ public class WorkflowGenerationTests
             fixture.UserIdString);
         purchase.Should().NotBeNull();
 
-        var service = new CoordinationService(context, new MaterialDemandService(context));
+        var service = new CoordinationService(context);
         var result = await service.RollbackMenuVersionAsync(
             new RollbackMenuVersionRequest
             {

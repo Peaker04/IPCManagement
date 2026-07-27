@@ -4,7 +4,6 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Coordination.Contracts;
-using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Features.Coordination.Services;
 
@@ -12,12 +11,10 @@ public class CoordinationService : ICoordinationService
 {
     private const decimal FixedBomRatePercent = 100m;
     private readonly IpcManagementContext _context;
-    private readonly IMaterialDemandService _materialDemandService;
 
-    public CoordinationService(IpcManagementContext context, IMaterialDemandService materialDemandService)
+    public CoordinationService(IpcManagementContext context)
     {
         _context = context;
-        _materialDemandService = materialDemandService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)

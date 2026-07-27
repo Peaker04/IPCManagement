@@ -7,7 +7,6 @@ using NSubstitute;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Features.Planning.Controllers;
 using IPCManagement.Api.Features.Planning.Services;
-using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
