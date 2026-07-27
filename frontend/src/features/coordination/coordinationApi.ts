@@ -1,4 +1,5 @@
 import { apiSlice } from '../../api/apiSlice'
+import { workflowCacheTags } from '../../api/workflowCacheTags'
 import type { components, paths } from '@/shared/api/contracts/schema'
 import type { ApiResponse } from '../../types/api'
 import type {
@@ -148,7 +149,15 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'PATCH',
         body,
       }),
-      invalidatesTags: ['Coordination', 'WorkflowReports'],
+      invalidatesTags: [
+        'Coordination',
+        'MaterialDemandStaleness',
+        workflowCacheTags.documents,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.productionPlans,
+      ],
     }),
     updateMenuScheduleVersion: builder.mutation<ApiResponse<MenuScheduleDto>, { menuScheduleId: string; body: UpdateMenuScheduleVersionRequest }>({
       query: ({ menuScheduleId, body }) => ({
@@ -156,7 +165,15 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'PATCH',
         body,
       }),
-      invalidatesTags: ['Coordination', 'WorkflowReports'],
+      invalidatesTags: [
+        'Coordination',
+        'MaterialDemandStaleness',
+        workflowCacheTags.documents,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.productionPlans,
+      ],
     }),
     rollbackMenuVersion: builder.mutation<ApiResponse<MenuVersionRollbackResult>, RollbackMenuVersionRequest>({
       query: (body) => ({
@@ -164,7 +181,15 @@ export const coordinationApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['Coordination', 'WorkflowReports'],
+      invalidatesTags: [
+        'Coordination',
+        'MaterialDemandStaleness',
+        workflowCacheTags.documents,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.productionPlans,
+      ],
     }),
     getMealQuantityPlans: builder.query<ApiResponse<MealQuantityPlanDto[]>, MealQuantityPlanQuery>({
       query: (params) => ({
@@ -234,7 +259,13 @@ export const coordinationApi = apiSlice.injectEndpoints({
           complete: Boolean(body.complete),
         },
       }),
-      invalidatesTags: ['Coordination', 'WorkflowReports'],
+      invalidatesTags: [
+        'Coordination',
+        workflowCacheTags.documents,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.productionPlans,
+      ],
     }),
     signoffCoordinationOrder: builder.mutation<ApiResponse<SignoffOrderResult>, { id: string; body: SignoffOrderRequest }>({
       query: ({ id, body }) => ({

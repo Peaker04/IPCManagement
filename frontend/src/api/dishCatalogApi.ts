@@ -1,4 +1,5 @@
 import { apiSlice } from '@/api/apiSlice';
+import { workflowCacheTags } from '@/api/workflowCacheTags';
 import type { components } from '@/shared/api/contracts/schema';
 import type { ApiResponse } from '@/types/api';
 
@@ -153,7 +154,13 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
     updateDishBomLine: builder.mutation<DishCatalogBomLineDto, { dishId: string; bomId: string } & UpdateDishBomLineRequest>({
       query: ({ dishId, bomId, ...body }) => ({
@@ -162,14 +169,26 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
     closeDishBomLine: builder.mutation<void, { dishId: string; bomId: string }>({
       query: ({ dishId, bomId }) => ({
         url: `/dishes/${dishId}/bom/${bomId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
     downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
       query: ({ priceTier, customerId, dishId, templateType }) => ({
@@ -193,7 +212,13 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body: buildBomImportFormData(request),
       }),
       transformResponse: (response: ApiResponse<BomImportCommitResult>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
   }),
   overrideExisting: false,

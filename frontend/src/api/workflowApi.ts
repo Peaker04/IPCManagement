@@ -1,4 +1,9 @@
 import { apiSlice } from '@/api/apiSlice';
+import {
+  workflowAuditSourceTags,
+  workflowCacheTags,
+  workflowOperationalKpiSourceTags,
+} from '@/api/workflowCacheTags';
 import { formatPercent, formatQuantityWithUnit } from '@/lib/formatters';
 import type { components, paths } from '@/shared/api/contracts/schema';
 import type { ApiResponse } from '@/types/api';
@@ -985,7 +990,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<WorkflowDocumentDto[]>) => getData(response).map(mapDocument),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.documents],
     }),
     getSuppliers: builder.query<SupplierDto[], void>({
       query: () => '/suppliers',
@@ -1017,6 +1022,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PurchaseWorkbenchWeek>) => getData(response),
       providesTags: (_result, _error, { week }) => [
+        workflowCacheTags.purchaseWorkbench,
         { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
       ],
     }),
@@ -1025,6 +1031,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         `/purchase-workflow/requests/${purchaseRequestId}/lines/${purchaseRequestLineId}/supplier-evidence`,
       transformResponse: (response: ApiResponse<SupplierEvidenceResult>) => getData(response),
       providesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId }) => [
+        workflowCacheTags.supplierEvidence,
         {
           type: 'WorkflowReports',
           id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
@@ -1039,13 +1046,13 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PurchaseLineSupplierDecision>) => getData(response),
       invalidatesTags: (_result, _error, { purchaseRequestId, purchaseRequestLineId, week }) => [
-        { type: 'WorkflowReports', id: 'PurchaseRequests' },
+        workflowCacheTags.purchaseRequests,
         {
           type: 'WorkflowReports',
           id: `SupplierEvidence:${purchaseRequestId}:${purchaseRequestLineId}`,
         },
         { type: 'WorkflowReports', id: `PurchaseWorkbench:${week}` },
-        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        workflowCacheTags.approvalInbox,
       ],
     }),
     recordWarehousePurchaseReceipt: builder.mutation<
@@ -1060,9 +1067,12 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<WarehousePurchaseReceiptResult>) => getData(response),
       invalidatesTags: (_result, _error, { data, week }) => [
         'PurchaseOrders',
-        'WorkflowReports',
         { type: 'PurchaseOrders', id: data.purchaseOrderId },
-        { type: 'WorkflowReports', id: `PurchaseReceipt:${data.purchaseOrderId}` },
+        workflowCacheTags.documents,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.operationalKpis,
         ...(week
           ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
           : []),
@@ -1077,7 +1087,10 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'PATCH',
         body: data,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.purchaseRequests,
+        workflowCacheTags.purchaseWorkbench,
+      ],
     }),
     getSupplierQuotationsByIngredient: builder.query<SupplierQuotationDto[], string>({
       query: (ingredientId) => `/supplier-quotations/ingredient/${ingredientId}`,
@@ -1101,7 +1114,12 @@ export const workflowApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
-      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
+      invalidatesTags: [
+        'SupplierQuotations',
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.supplierEvidence,
+        workflowCacheTags.purchaseWorkbench,
+      ],
     }),
     updateSupplierQuotation: builder.mutation<SupplierQuotationDto, UpdateSupplierQuotationArgs>({
       query: ({ quotationId, data }) => ({
@@ -1110,14 +1128,24 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<SupplierQuotationDto>) => response.data!,
-      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
+      invalidatesTags: [
+        'SupplierQuotations',
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.supplierEvidence,
+        workflowCacheTags.purchaseWorkbench,
+      ],
     }),
     deactivateSupplierQuotation: builder.mutation<ApiResponse<void>, string>({
       query: (quotationId) => ({
         url: `/supplier-quotations/${quotationId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['SupplierQuotations', 'WorkflowReports'],
+      invalidatesTags: [
+        'SupplierQuotations',
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.supplierEvidence,
+        workflowCacheTags.purchaseWorkbench,
+      ],
     }),
     getPurchaseOrders: builder.query<PurchaseOrderDto[], PurchaseOrderQuery | void>({
       query: (query) => ({
@@ -1144,7 +1172,12 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
       }),
       transformResponse: (response: ApiResponse<PurchaseOrderDto[]>) => getData(response),
-      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+      invalidatesTags: [
+        'PurchaseOrders',
+        workflowCacheTags.purchaseRequests,
+        workflowCacheTags.purchaseWorkbench,
+        workflowCacheTags.documents,
+      ],
     }),
     recordPurchaseOrderReceipt: builder.mutation<PurchaseOrderDto, RecordPurchaseOrderReceiptArgs>({
       query: ({ purchaseOrderId, data }) => ({
@@ -1153,7 +1186,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: data,
       }),
       transformResponse: (response: ApiResponse<PurchaseOrderDto>) => response.data!,
-      invalidatesTags: ['PurchaseOrders', 'WorkflowReports'],
+      invalidatesTags: [
+        'PurchaseOrders',
+        workflowCacheTags.documents,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     cancelPurchaseOrder: builder.mutation<PurchaseOrderDto, string>({
       query: (purchaseOrderId) => ({
@@ -1169,7 +1209,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<IngredientDemandReportDto[]>) => getData(response).map(mapDemandLine),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.ingredientDemand],
     }),
     generateMaterialDemand: builder.mutation<ApiResponse<MaterialDemandResultDto>, GenerateMaterialDemandRequest>({
       query: (body) => ({
@@ -1180,7 +1220,14 @@ export const workflowApi = apiSlice.injectEndpoints({
           ...body,
         },
       }),
-      invalidatesTags: ['WorkflowReports', 'MaterialDemandStaleness'],
+      invalidatesTags: [
+        'MaterialDemandStaleness',
+        workflowCacheTags.documents,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     getMaterialDemandStaleness: builder.query<ApiResponse<MaterialDemandStaleness>, MaterialDemandStalenessQuery>({
       query: ({ serviceDate, customerId, scope }) => ({
@@ -1195,14 +1242,24 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.purchaseRequests,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.purchaseWorkbench,
+        workflowCacheTags.documents,
+      ],
     }),
     submitPurchaseRequest: builder.mutation<ApiResponse<PurchaseRequestWorkflowResultDto>, string>({
       query: (purchaseRequestId) => ({
         url: `/purchase-workflow/requests/${purchaseRequestId}/submit`,
         method: 'POST',
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.purchaseRequests,
+        workflowCacheTags.purchaseWorkbench,
+        workflowCacheTags.approvalInbox,
+        workflowCacheTags.documents,
+      ],
     }),
     createInventoryReceiptFromPurchase: builder.mutation<ApiResponse<InventoryReceiptCreatedResult>, CreateInventoryReceiptFromPurchaseRequest>({
       query: (body) => ({
@@ -1210,7 +1267,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        'PurchaseOrders',
+        workflowCacheTags.documents,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.priceVariance,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     createInventoryIssue: builder.mutation<ApiResponse<InventoryIssueCreatedResult>, CreateInventoryIssueRequest>({
       query: (body) => ({
@@ -1218,7 +1282,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.documents,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     createSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, CreateSupplementalMaterialRequest>({
       query: (body) => ({
@@ -1226,7 +1297,11 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.supplementalRequests,
+        workflowCacheTags.documents,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     getSupplementalMaterialRequests: builder.query<PageNumberPage<SupplementalMaterialRequestResult>, SupplementalMaterialRequestPageQuery | void>({
       query: (query) => ({
@@ -1236,7 +1311,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<SupplementalMaterialRequestResult>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.supplementalRequests],
     }),
     fulfillSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, FulfillSupplementalMaterialRequest>({
       query: ({ requestId, quantity }) => ({
@@ -1244,14 +1319,26 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { quantity },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.supplementalRequests,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.documents,
+      ],
     }),
     routeSupplementalMaterialRequestToPurchasing: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, string>({
       query: (requestId) => ({
         url: `/supplemental-material-requests/${requestId}/route-to-purchasing`,
         method: 'POST',
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.supplementalRequests,
+        workflowCacheTags.purchaseRequests,
+        workflowCacheTags.purchaseWorkbench,
+        workflowCacheTags.materialRequestCandidates,
+        workflowCacheTags.documents,
+      ],
     }),
     rejectSupplementalMaterialRequest: builder.mutation<ApiResponse<SupplementalMaterialRequestResult>, RejectSupplementalMaterialRequest>({
       query: ({ requestId, reason }) => ({
@@ -1259,7 +1346,10 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body: { reason },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.supplementalRequests,
+        workflowCacheTags.documents,
+      ],
     }),
     createInventoryReturn: builder.mutation<ApiResponse<InventoryReturnCreatedResult>, CreateInventoryReturnRequest>({
       query: (body) => ({
@@ -1267,7 +1357,14 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.inventoryReturns,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.issueUsage,
+        workflowCacheTags.documents,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     getInventoryReturns: builder.query<PageNumberPage<InventoryReturnResult>, InventoryReturnPageQuery | void>({
       query: (query) => ({
@@ -1277,12 +1374,12 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<InventoryReturnResult>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.inventoryReturns],
     }),
     getInventoryReturnById: builder.query<InventoryReturnResult | undefined, string>({
       query: (returnId) => `/inventory-returns/${returnId}`,
       transformResponse: (response: ApiResponse<InventoryReturnResult>) => response.data,
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.inventoryReturns],
     }),
     confirmInventoryReturnReceipt: builder.mutation<ApiResponse<void>, ConfirmInventoryReturnReceiptRequest>({
       query: ({ returnId, ...body }) => ({
@@ -1290,7 +1387,13 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.inventoryReturns,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.issueUsage,
+        workflowCacheTags.documents,
+      ],
     }),
     confirmInventoryIssueReceipt: builder.mutation<ApiResponse<InventoryIssueResult>, ConfirmInventoryIssueReceiptRequest>({
       query: ({ issueId, hasDiscrepancy = false, discrepancyNote }) => ({
@@ -1301,7 +1404,10 @@ export const workflowApi = apiSlice.injectEndpoints({
           discrepancyNote,
         },
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.documents,
+      ],
     }),
     getPurchasePlan: builder.query<PurchasePlanRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1310,7 +1416,14 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PurchasePlanReportDto[]>) =>
         (response.data ?? []).map(mapPurchasePlanRow),
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        'PurchaseOrders',
+        'SupplierQuotations',
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.purchaseRequests,
+      ],
     }),
     getPurchasePlanPage: builder.query<PageNumberPage<PurchasePlanRow> & { totalShortageQty: number; totalEstimatedAmount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1335,7 +1448,14 @@ export const workflowApi = apiSlice.injectEndpoints({
           totalEstimatedAmount: page?.totalEstimatedAmount ?? 0,
         };
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        'PurchaseOrders',
+        'SupplierQuotations',
+        workflowCacheTags.purchasePlan,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.purchaseRequests,
+      ],
     }),
     getIngredientDemandPage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1359,7 +1479,7 @@ export const workflowApi = apiSlice.injectEndpoints({
           shortageCount: page?.shortageCount ?? 0,
         };
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.ingredientDemand],
     }),
     getMaterialRequestCandidatePage: builder.query<PageNumberPage<MaterialRequestCandidate>, MaterialRequestCandidatePageQuery>({
       query: (query) => ({
@@ -1379,7 +1499,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         hasPrev: false,
         hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.materialRequestCandidates],
     }),
     getIngredientDemandAggregatePage: builder.query<PageNumberPage<DemandLine> & { shortageCount: number }, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1403,7 +1523,7 @@ export const workflowApi = apiSlice.injectEndpoints({
           shortageCount: page?.shortageCount ?? 0,
         };
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.ingredientDemand],
     }),
     getDailyProductionPlan: builder.query<DailyProductionPlan, WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1411,7 +1531,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: query || undefined,
       }),
       transformResponse: normalizeDailyProductionPlan,
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.productionPlans],
     }),
     sendDailyProductionPlanToKitchen: builder.mutation<DailyProductionPlan, SendDailyProductionPlanRequest>({
       query: (body) => ({
@@ -1420,7 +1540,11 @@ export const workflowApi = apiSlice.injectEndpoints({
         body,
       }),
       transformResponse: normalizeDailyProductionPlan,
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.productionPlans,
+        workflowCacheTags.documents,
+        workflowCacheTags.kitchenIssues,
+      ],
     }),
     getApprovalRecords: builder.query<ApprovalInboxPage, ApprovalInboxQuery | void>({
       query: (query) => ({
@@ -1440,7 +1564,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         };
       },
       providesTags: (result) => [
-        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        workflowCacheTags.approvalInbox,
         ...(result?.items ?? []).map((item) => ({
           type: 'WorkflowReports' as const,
           id: `ApprovalTarget:${item.targetType}:${item.targetId}`,
@@ -1454,8 +1578,10 @@ export const workflowApi = apiSlice.injectEndpoints({
         body: { status, reason },
       }),
       invalidatesTags: (_result, _error, { targetType, targetId, week }) => [
-        'WorkflowReports',
-        { type: 'WorkflowReports', id: 'ApprovalInbox' },
+        workflowCacheTags.approvalInbox,
+        workflowCacheTags.documents,
+        workflowCacheTags.operationalKpis,
+        workflowCacheTags.purchaseRequests,
         { type: 'WorkflowReports', id: `ApprovalTarget:${targetType}:${targetId}` },
         ...(week
           ? [{ type: 'WorkflowReports' as const, id: `PurchaseWorkbench:${week}` }]
@@ -1468,7 +1594,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<StockMovementViewDto[]>) => getData(response).map(mapStockMovement),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.stockMovements],
     }),
     getStockMovementPage: builder.query<CursorPage<StockMovement>, WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1477,7 +1603,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<CursorPageDto<StockMovementViewDto>>) =>
         mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false, nextCursorOffset: 0 }, mapStockMovement),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.stockMovements],
     }),
     getPriceVariance: builder.query<PriceVarianceRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1485,7 +1611,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<ReceiptPriceVarianceReportDto[]>) => getData(response).map(mapPriceVariance),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceBySupplier: builder.query<PriceVarianceBySupplierDto[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1493,7 +1619,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<PriceVarianceBySupplierDto[]>) => getData(response),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceBySupplierPage: builder.query<PageNumberPage<PriceVarianceBySupplierDto>, PriceVarianceAggregatePageQuery | void>({
       query: (query) => ({
@@ -1503,7 +1629,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceBySupplierDto>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceByPeriod: builder.query<PriceVarianceByPeriodDto[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1511,7 +1637,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<PriceVarianceByPeriodDto[]>) => getData(response),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceByPeriodPage: builder.query<PageNumberPage<PriceVarianceByPeriodDto>, PriceVarianceAggregatePageQuery | void>({
       query: (query) => ({
@@ -1521,7 +1647,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByPeriodDto>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceByDishGroup: builder.query<PriceVarianceByDishGroupDto[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1529,7 +1655,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<PriceVarianceByDishGroupDto[]>) => getData(response),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getPriceVarianceByDishGroupPage: builder.query<PageNumberPage<PriceVarianceByDishGroupDto>, PriceVarianceAggregatePageQuery | void>({
       query: (query) => ({
@@ -1539,12 +1665,17 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<PriceVarianceByDishGroupDto>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getOperationalKpis: builder.query<OperationalKpiSummaryDto, void>({
       query: () => '/workflow-reports/operational-kpis',
       transformResponse: (response: ApiResponse<OperationalKpiSummaryDto>) => response.data!,
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        'Coordination',
+        'PurchaseOrders',
+        workflowCacheTags.operationalKpis,
+        ...workflowOperationalKpiSourceTags,
+      ],
     }),
     getCurrentStock: builder.query<CurrentStockRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1552,7 +1683,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<CurrentStockSummaryDto[]>) => getData(response).map(mapCurrentStock),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.currentStock],
     }),
     getStockLedgerReconciliation: builder.query<StockLedgerReconciliationRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1560,7 +1691,11 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<StockLedgerReconciliationDto[]>) => getData(response).map(mapStockLedgerReconciliation),
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        workflowCacheTags.stockLedger,
+        workflowCacheTags.stockMovements,
+        workflowCacheTags.currentStock,
+      ],
     }),
     getKitchenIssues: builder.query<KitchenIssueRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1568,7 +1703,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<KitchenIssueReportDto[]>) => getData(response).map(mapKitchenIssue),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.kitchenIssues],
     }),
     getKitchenIssuesPage: builder.query<PageNumberPage<KitchenIssueRow>, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1577,7 +1712,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PageNumberPage<KitchenIssueReportDto>>) =>
         mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapKitchenIssue),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.kitchenIssues],
     }),
     getIssueVsReturnUsage: builder.query<UsageReportRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1585,7 +1720,11 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<IssueVsReturnUsageReportDto[]>) => getData(response).map(mapUsageReport),
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        workflowCacheTags.issueUsage,
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.inventoryReturns,
+      ],
     }),
     getIssueVsReturnUsagePage: builder.query<PageNumberPage<UsageReportRow>, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1594,7 +1733,11 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<PageNumberPage<IssueVsReturnUsageReportDto>>) =>
         mapPageNumberPage(response.data ?? { items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false }, mapUsageReport),
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        workflowCacheTags.issueUsage,
+        workflowCacheTags.kitchenIssues,
+        workflowCacheTags.inventoryReturns,
+      ],
     }),
     getAuditChanges: builder.query<AuditLogRow[], WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1602,7 +1745,7 @@ export const workflowApi = apiSlice.injectEndpoints({
         params: queryWithLimit(query || undefined),
       }),
       transformResponse: (response: ApiResponse<AuditChangeReportDto[]>) => getData(response).map(mapAuditChange),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.auditChanges, ...workflowAuditSourceTags],
     }),
     getPriceVariancePage: builder.query<PageNumberPage<PriceVarianceRow>, ReceiptPriceVariancePageQuery | void>({
       query: (query) => ({
@@ -1623,7 +1766,7 @@ export const workflowApi = apiSlice.injectEndpoints({
           hasPrev: false,
           hasNext: false,
         }, mapPriceVariance),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.priceVariance],
     }),
     getCurrentStockPage: builder.query<PageNumberPage<CurrentStockRow>, CurrentStockPageQuery | void>({
       query: (query) => ({
@@ -1644,7 +1787,7 @@ export const workflowApi = apiSlice.injectEndpoints({
           hasPrev: false,
           hasNext: false,
         }, mapCurrentStock),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.currentStock],
     }),
     getAuditChangePage: builder.query<CursorPage<AuditLogRow>, WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1653,7 +1796,7 @@ export const workflowApi = apiSlice.injectEndpoints({
       }),
       transformResponse: (response: ApiResponse<CursorPageDto<AuditChangeReportDto>>) =>
         mapCursorPage(response.data ?? { items: [], limit: 20, hasNext: false, nextCursorOffset: 0 }, mapAuditChange),
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.auditChanges, ...workflowAuditSourceTags],
     }),
     getDataQuality: builder.query<DataQualityReport, WorkflowReportQuery | void>({
       query: (query) => ({
@@ -1677,7 +1820,12 @@ export const workflowApi = apiSlice.injectEndpoints({
           orphanDocumentCount: 0,
           issues: [],
         },
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.stockLedger,
+      ],
     }),
     getDataQualityPage: builder.query<DataQualityPageReport, WorkflowReportPageQuery | void>({
       query: (query) => ({
@@ -1715,7 +1863,12 @@ export const workflowApi = apiSlice.injectEndpoints({
           page: mapPageNumberPage(report.page ?? emptyPage, mapDataQualityIssue),
         };
       },
-      providesTags: ['WorkflowReports'],
+      providesTags: [
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.currentStock,
+        workflowCacheTags.stockLedger,
+      ],
     }),
     updateDataQualityIssueRemediation: builder.mutation<ApiResponse<DataQualityIssueRemediationResult>, DataQualityIssueRemediationRequest>({
       query: (body) => ({
@@ -1723,14 +1876,17 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.operationalKpis,
+      ],
     }),
     getPurchaseRequests: builder.query<ApiResponse<PurchaseRequestResult[]>, PurchaseRequestQuery | void>({
       query: (query) => ({
         url: '/purchase-requests',
         params: query || undefined,
       }),
-      providesTags: [{ type: 'WorkflowReports', id: 'PurchaseRequests' }],
+      providesTags: [workflowCacheTags.purchaseRequests],
     }),
     getPurchaseRequestsPage: builder.query<PageNumberPage<PurchaseRequestResult>, PurchaseRequestQuery | void>({
       query: (query) => ({
@@ -1740,15 +1896,15 @@ export const workflowApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<PageNumberPage<PurchaseRequestResult>>) => response.data ?? {
         items: [], totalCount: 0, pageNumber: 1, pageSize: 8, totalPages: 0, hasPrev: false, hasNext: false,
       },
-      providesTags: [{ type: 'WorkflowReports', id: 'PurchaseRequests' }],
+      providesTags: [workflowCacheTags.purchaseRequests],
     }),
     getApprovalHistory: builder.query<ApiResponse<ApprovalHistoryItem[]>, ApprovalHistoryQuery>({
       query: ({ documentType, documentId }) => `/approval-history/${documentType}/${documentId}`,
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.approvalHistory],
     }),
     getApprovalRules: builder.query<ApiResponse<ApprovalRuleDto[]>, void>({
       query: () => '/approval-rules',
-      providesTags: ['WorkflowReports'],
+      providesTags: [workflowCacheTags.approvalRules],
     }),
     createApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, ApprovalRuleRequestDto>({
       query: (body) => ({
@@ -1756,7 +1912,10 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'POST',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.approvalRules,
+        workflowCacheTags.approvalInbox,
+      ],
     }),
     updateApprovalRule: builder.mutation<ApiResponse<ApprovalRuleDto>, UpdateApprovalRuleArgs>({
       query: ({ id, body }) => ({
@@ -1764,14 +1923,20 @@ export const workflowApi = apiSlice.injectEndpoints({
         method: 'PUT',
         body,
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.approvalRules,
+        workflowCacheTags.approvalInbox,
+      ],
     }),
     deleteApprovalRule: builder.mutation<ApiResponse<void>, string>({
       query: (id) => ({
         url: `/approval-rules/${id}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['WorkflowReports'],
+      invalidatesTags: [
+        workflowCacheTags.approvalRules,
+        workflowCacheTags.approvalInbox,
+      ],
     }),
   }),
   overrideExisting: false,
