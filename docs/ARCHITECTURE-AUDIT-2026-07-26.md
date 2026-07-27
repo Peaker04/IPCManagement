@@ -406,25 +406,33 @@ hàm thuần, có test bảng tám trạng thái và xử lý 403 tường minh.
 
 ## Phần F — Workflow kiến trúc duy nhất sau Bước 10
 
-Đây là **plan thực thi duy nhất**. Nó gộp roadmap `f(data, state)`, backend boundary,
-tách use case/functional core, frontend ownership, persistence/reliability và guardrail test thành
-một chuỗi có dependency và gate chung. Không tiếp tục P0–P3 ở Phần C như một workflow khác.
+Đây là **plan thực thi duy nhất**, không phải roadmap `f(data, state)` kèm thêm
+một roadmap P0–P3. Toàn bộ việc của hai danh sách cũ được nhập trực tiếp thành work
+package của Bước 11→18, dùng chung dependency, gate và trạng thái. Từ đây không giao việc,
+commit hay báo tiến độ bằng nhãn P0/P1/P2/P3 nữa; chỉ dùng số Bước 11–18 bên dưới.
 
 ```text
 Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bước 16 → Bước 17 → Bước 18
  state core    pilot      state rollout VSA boundary  functional   persistence  FE ownership  close/gates
 ```
 
-| Bước | Kết quả bắt buộc | Hấp thụ hạng mục cũ | Trạng thái |
+### Hàng đợi thực thi đã hợp nhất
+
+| Bước | Work package thuộc chính bước này | Dependency | Trạng thái |
 |---|---|---|---|
-| 11 | Hợp đồng `QueryView<T>` và adapter thuần | Khóa `f(data, state)` | **Hoàn tất** |
-| 12 | Hai pilot Material Demand và Warehouse | Pilot state + browser evidence | **Hoàn tất** |
-| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Đang thực hiện: Purchasing + Approvals + Reports hoàn tất** |
-| 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Hoàn tất sớm do numbering cũ** |
-| 15 | Tách use case lớn và functional core | P1 backend split | Chưa bắt đầu |
-| 16 | Persistence và reliability nhất quán | P3 persistence | Chưa bắt đầu |
-| 17 | FE ownership/import boundary rõ ràng | P2 frontend boundary | Chưa bắt đầu |
-| 18 | Test/growth gate/tài liệu khóa workflow | P3 test + guardrail | Chưa bắt đầu |
+| 11 | `QueryView<T>`, adapter thuần, ma trận tám trạng thái và lint guardrail | Bước 10 | **Hoàn tất** |
+| 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
+| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: ba feature đầu đã hoàn tất** |
+| 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
+| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | Chưa bắt đầu |
+| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
+| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
+| 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
+
+Như vậy, bốn nhãn cũ đã biến mất khỏi execution queue: boundary cũ nằm trong
+Bước 14; tách use case trong Bước 15; persistence trong Bước 16; frontend boundary
+trong Bước 17; test/growth/documentation trong Bước 18. Các mục chi tiết dưới đây là
+acceptance criteria của chính hàng đợi này, không phải một plan thứ hai.
 
 ### Quy tắc chạy chung cho Bước 11→18
 
