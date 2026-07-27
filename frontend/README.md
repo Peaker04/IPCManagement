@@ -88,17 +88,19 @@ npm run test:visual:update  # Update visual snapshots
 
 ```
 frontend/src/
-├── app/                    # Redux store, hooks
+├── app/                    # Redux store, hooks và composition pages đa-feature
+├── api/                    # RTK Query base API và endpoint modules dùng chung
 ├── features/               # Feature modules
 │   ├── auth/              # Authentication
 │   ├── admin/             # Admin panel
-│   ├── projects/          # Project management
-│   │   └── weeklyMenu/    # Weekly menu planning
+│   ├── approvals/         # Approval workflow
 │   ├── coordination/       # Coordination operations
 │   ├── chef/              # Kitchen operations
-│   ├── workflow/          # Purchase workflow
-│   └── reports/           # Reporting
-├── lib/                    # Utilities
+│   ├── projects/          # Project and weekly-menu planning
+│   ├── purchasing/        # Purchasing workflow
+│   ├── reports/           # Reporting
+│   └── warehouse/         # Warehouse workflow
+├── lib/                    # Utilities, route/workflow configuration
 ├── routes/                # Router configuration
 ├── styles/                # Global styles
 ├── types/                 # TypeScript types
@@ -125,7 +127,7 @@ import { RoleGuard } from './routes/RoleGuard';
 ### API
 
 ```typescript
-import { workflowApi } from './features/workflow/workflowApi';
+import { workflowApi } from './api/workflowApi';
 import { coordinationApi } from './features/coordination/coordinationApi';
 ```
 

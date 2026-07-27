@@ -370,8 +370,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 29** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 6, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 35** so với
+`origin/feature/production-plan`, working tree sạch sau Bước 7, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -450,6 +450,26 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Quality gates: targeted **29/29**; full FE **327/327**; lint **0 error / 9 warning baseline**;
   dependency-cruiser sạch; production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**;
   contract drift gate xanh; `git diff --check` sạch. Không chạy seed/reset database, không push.
+
+### Bước 7 — giải thể God-feature `workflow` (đã hoàn tất ngày 27/07/2026)
+
+- `features/workflow` từ **34 file thực tế xuống 0**; số 45 file trong bản thiết kế là snapshot trước các đợt xóa
+  code chết. Không còn import/reference tới đường dẫn `features/workflow`.
+- Commit nền `b0a093f` chuyển `workflowApi` xuống `src/api`, route/workflow config + action eligibility xuống
+  `src/lib`, types xuống `src/types`, bỏ barrel `workflow/index.ts`. `routeConfig` cũng xuống `src/lib` để core
+  shared không import ngược tầng routes.
+- Bốn lát nghiệp vụ: `1a45fd1` purchasing, `b6c8b75` warehouse, `7f77594` approvals, `b185b12` admin.
+  `AdminDataPage` nằm ở `src/app/pages` vì composition auth + coordination + admin; `ApprovalRulesPage` thuộc
+  `features/admin`. Test tích hợp purchasing + warehouse cũng chuyển lên `src/app`.
+- Ba contract `?raw` được giữ và cập nhật cùng các lát liên quan; phần assertion ngoài import path không đổi.
+  Endpoint, RTK Query cache key/tag, route URL và DOM không đổi. Baseline dependency-cruiser tiếp tục co
+  **115 -> 61 -> 60 -> 54**, không thêm violation mới.
+- Impact lớn nhất trước sửa: barrel `workflow/index.ts` **CRITICAL** (35 direct / 98 total), `workflowApi.ts`
+  **HIGH** (18 / 73), `workflowConfig.ts` **HIGH** (18 / 103), `routeConfig.ts` **HIGH** (28 / 89);
+  Kỳ đã cho phép tiếp tục cả HIGH/CRITICAL.
+- Full quality gates: FE **327/327**, lint **0 error / 9 warning baseline**, dependency-cruiser sạch,
+  production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**; contract drift gate
+  và `git diff --check` xanh. Không chạy seed/reset database, không push.
 
 ## Quy trình tiếp tục ở phiên mới
 

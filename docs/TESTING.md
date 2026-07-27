@@ -129,7 +129,7 @@ Browser performance regression cho các workbench theo tab dùng probe `Performa
 `.artifacts/shipyard-live/live-visual-performance.json`; yêu cầu cốt lõi là sub-tab Biến động giá
 chỉ gọi đúng endpoint aggregate đang active và tab Quản trị dữ liệu không dựng dialog BOM khi đóng.
 
-Regression contract `src/features/workflow/pages/operationalPagePerformanceContracts.test.ts` còn khóa query gating cho Weekly Menu, Chef và Warehouse, controlled idle preload của các panel Weekly, cùng panel shell chống layout jump. Browser-use live phải kiểm tra selected tab cập nhật ngay trong khi panel cũ còn hiện với `aria-busy`, không có API của tab ẩn, vòng chuyển lại dùng cache, CLS dưới `0.02` và reduced motion làm transition về `0s`. Evidence gần nhất: `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json`.
+Regression contract `src/app/operationalPagePerformanceContracts.test.ts` còn khóa query gating cho Weekly Menu, Chef và Warehouse, controlled idle preload của các panel Weekly, cùng panel shell chống layout jump. Browser-use live phải kiểm tra selected tab cập nhật ngay trong khi panel cũ còn hiện với `aria-busy`, không có API của tab ẩn, vòng chuyển lại dùng cache, CLS dưới `0.02` và reduced motion làm transition về `0s`. Evidence gần nhất: `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json`.
 
 ### Browser-use headed và chụp evidence
 
