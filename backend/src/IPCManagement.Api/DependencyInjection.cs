@@ -91,6 +91,7 @@ public static class DependencyInjection
         services.AddScoped<IProductionPlanService, ProductionPlanService>();
         services.AddScoped<IStockLedgerService, StockLedgerService>();
         services.AddScoped<ICoordinationService, CoordinationService>();
+        services.AddScoped<ICustomerContractService, CustomerContractService>();
         services.AddScoped<ISampleDataImportService, SampleDataImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();

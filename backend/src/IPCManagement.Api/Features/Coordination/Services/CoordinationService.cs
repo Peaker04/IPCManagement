@@ -11,10 +11,19 @@ public class CoordinationService : ICoordinationService
 {
     private const decimal FixedBomRatePercent = 100m;
     private readonly IpcManagementContext _context;
+    private readonly ICustomerContractService _customerContractService;
 
     public CoordinationService(IpcManagementContext context)
+        : this(context, new CustomerContractService(context))
+    {
+    }
+
+    public CoordinationService(
+        IpcManagementContext context,
+        ICustomerContractService customerContractService)
     {
         _context = context;
+        _customerContractService = customerContractService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -93,185 +102,19 @@ public class CoordinationService : ICoordinationService
         return schedules.Select(schedule => MapMenuSchedule(schedule, ResolveMenuVersion(versions, schedule))).ToList();
     }
 
-    public async Task<IReadOnlyList<CustomerContractDto>> GetCustomerContractsAsync()
-    {
-        var customers = await _context.Customers
-            .Include(customer => customer.Customercontracts)
-            .Include(customer => customer.Menuschedules)
-            .AsNoTracking()
-            .OrderBy(customer => customer.CustomerCode)
-            .ToListAsync();
+    public Task<IReadOnlyList<CustomerContractDto>> GetCustomerContractsAsync()
+        => _customerContractService.GetCustomerContractsAsync();
 
-        return customers.Select(MapCustomerContract).ToList();
-    }
-
-    public async Task<CustomerContractDto> CreateCustomerContractAsync(
+    public Task<CustomerContractDto> CreateCustomerContractAsync(
         CreateCustomerContractRequest request,
         string? userId)
-    {
-        var customerCode = NormalizeCustomerCode(request.CustomerCode);
-        if (string.IsNullOrWhiteSpace(customerCode))
-        {
-            throw new ArgumentException("Mã khách hàng không được trống.");
-        }
+        => _customerContractService.CreateCustomerContractAsync(request, userId);
 
-        var customerName = request.CustomerName.Trim();
-        if (string.IsNullOrWhiteSpace(customerName))
-        {
-            throw new ArgumentException("Tên khách hàng không được trống.");
-        }
-
-        var exists = await _context.Customers
-            .AsNoTracking()
-            .AnyAsync(item => item.CustomerCode == customerCode);
-        if (exists)
-        {
-            throw new ArgumentException("Mã khách hàng đã tồn tại.");
-        }
-
-        var actorId = ResolveActorId(userId);
-        var changedAt = DateTime.UtcNow;
-        var customer = new Customer
-        {
-            CustomerId = GuidHelper.NewId(),
-            CustomerCode = customerCode,
-            CustomerName = customerName,
-            Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim(),
-            IsActive = request.IsActive ?? true
-        };
-
-        _context.Customers.Add(customer);
-        AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
-            "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
-
-        var contractRequest = new UpdateCustomerContractRequest
-        {
-            EffectiveFrom = request.EffectiveFrom,
-            EffectiveTo = request.EffectiveTo,
-            ActiveWeekDays = request.ActiveWeekDays,
-            ShiftNames = request.ShiftNames,
-            DefaultMenuPrice = request.DefaultMenuPrice,
-            DefaultBomRatePercent = request.DefaultBomRatePercent
-        };
-        var contract = ResolveMutableContract(customer, [], contractRequest, actorId, changedAt);
-        ValidateNoOverlappingContract(customer.Customercontracts, contract);
-
-        await _context.SaveChangesAsync();
-        return MapCustomerContract(customer);
-    }
-
-    public async Task<CustomerContractDto?> UpdateCustomerContractAsync(
+    public Task<CustomerContractDto?> UpdateCustomerContractAsync(
         string customerId,
         UpdateCustomerContractRequest request,
         string? userId)
-    {
-        var customerIdBytes = GuidHelper.ParseGuidString(customerId);
-        if (customerIdBytes is null)
-        {
-            return null;
-        }
-
-        var customer = await _context.Customers
-            .Include(item => item.Customercontracts)
-            .Include(item => item.Menuschedules)
-            .FirstOrDefaultAsync(item => item.CustomerId == customerIdBytes);
-        if (customer is null)
-        {
-            return null;
-        }
-
-        var actorId = ResolveActorId(userId);
-        var changedAt = DateTime.UtcNow;
-
-        if (!string.IsNullOrWhiteSpace(request.CustomerName) &&
-            !string.Equals(customer.CustomerName, request.CustomerName.Trim(), StringComparison.Ordinal))
-        {
-            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
-                nameof(Customer.CustomerName), customer.CustomerName, request.CustomerName.Trim(),
-                "Cập nhật tên khách hàng/contract");
-            customer.CustomerName = request.CustomerName.Trim();
-        }
-
-        if (request.Note is not null &&
-            !string.Equals(customer.Note ?? string.Empty, request.Note.Trim(), StringComparison.Ordinal))
-        {
-            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
-                nameof(Customer.Note), customer.Note, request.Note.Trim(),
-                "Cập nhật ghi chú/ràng buộc khách hàng");
-            customer.Note = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        }
-
-        if (request.IsActive is not null && customer.IsActive != request.IsActive.Value)
-        {
-            AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
-                nameof(Customer.IsActive), customer.IsActive.ToString(), request.IsActive.Value.ToString(),
-                "Cập nhật trạng thái khách hàng");
-            customer.IsActive = request.IsActive.Value;
-        }
-
-        var schedules = customer.Menuschedules
-            .OrderBy(schedule => schedule.ServiceDate)
-            .ThenBy(schedule => schedule.ShiftName)
-            .ToList();
-        var contract = ResolveMutableContract(customer, schedules, request, actorId, changedAt);
-
-        if (request.EffectiveFrom is not null || request.EffectiveTo is not null)
-        {
-            var nextEffectiveFrom = ParseDateOnly(request.EffectiveFrom, "Ngày bắt đầu hiệu lực") ?? contract.EffectiveFrom;
-            var nextEffectiveTo = ParseDateOnly(request.EffectiveTo, "Ngày kết thúc hiệu lực");
-            if (nextEffectiveTo is not null && nextEffectiveTo.Value < nextEffectiveFrom)
-            {
-                throw new ArgumentException("Ngày kết thúc hiệu lực không được trước ngày bắt đầu.");
-            }
-
-            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveFrom),
-                contract.EffectiveFrom.ToString("yyyy-MM-dd"), nextEffectiveFrom.ToString("yyyy-MM-dd"),
-                () => contract.EffectiveFrom = nextEffectiveFrom);
-            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.EffectiveTo),
-                contract.EffectiveTo?.ToString("yyyy-MM-dd"), nextEffectiveTo?.ToString("yyyy-MM-dd"),
-                () => contract.EffectiveTo = nextEffectiveTo);
-        }
-
-        if (request.ActiveWeekDays is not null)
-        {
-            var nextWeekDays = NormalizeWeekDays(request.ActiveWeekDays, schedules);
-            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ActiveWeekDays),
-                contract.ActiveWeekDays, string.Join(",", nextWeekDays),
-                () => contract.ActiveWeekDays = string.Join(",", nextWeekDays));
-        }
-
-        if (request.ShiftNames is not null)
-        {
-            var nextShifts = NormalizeShiftNames(request.ShiftNames, schedules);
-            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.ShiftNames),
-                contract.ShiftNames, string.Join(",", nextShifts),
-                () => contract.ShiftNames = string.Join(",", nextShifts));
-        }
-
-        if (request.DefaultMenuPrice is not null)
-        {
-            var nextPrice = DecimalPolicy.RoundMoney(request.DefaultMenuPrice.Value);
-            if (nextPrice < 0)
-            {
-                throw new ArgumentException("Đơn giá menu mặc định không được âm.");
-            }
-
-            UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultMenuPrice),
-                contract.DefaultMenuPrice.ToString(), nextPrice.ToString(),
-                () => contract.DefaultMenuPrice = nextPrice);
-        }
-
-        UpdateContractField(actorId, changedAt, contract, nameof(CustomerContract.DefaultBomRatePercent),
-            contract.DefaultBomRatePercent.ToString(), FixedBomRatePercent.ToString(),
-            () => contract.DefaultBomRatePercent = FixedBomRatePercent);
-
-        contract.UpdatedAt = changedAt;
-        ValidateNoOverlappingContract(customer.Customercontracts, contract);
-        ApplyContractToUnlockedSchedules(contract, schedules, actorId, changedAt);
-
-        await _context.SaveChangesAsync();
-        return MapCustomerContract(customer);
-    }
+        => _customerContractService.UpdateCustomerContractAsync(customerId, request, userId);
 
     public async Task<IReadOnlyList<PortionRuleDto>> GetPortionRulesAsync(PortionRuleQueryDto query)
     {
