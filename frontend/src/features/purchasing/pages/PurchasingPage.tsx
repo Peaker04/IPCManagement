@@ -7,19 +7,19 @@ import {
   useGetPurchaseWorkbenchQuery,
   type PurchaseWorkflowStageCounts,
 } from '@/api/workflowApi';
-import { PurchaseDecisionPanel } from '../purchasing/PurchaseDecisionPanel';
-import { SupplementalPurchasingWorkbench } from '../purchasing/SupplementalPurchasingWorkbench';
-import { PurchaseServiceDateWorkbench } from '../purchasing/PurchaseServiceDateWorkbench';
-import { PurchaseWorkflowGuide } from '../purchasing/PurchaseWorkflowGuide';
-import { SupplierQuotationSection } from '../purchasing/quotation/SupplierQuotationSection';
-import { useSupplierQuotations } from '../purchasing/quotation/useSupplierQuotations';
+import { PurchaseDecisionPanel } from '../PurchaseDecisionPanel';
+import { SupplementalPurchasingWorkbench } from '../SupplementalPurchasingWorkbench';
+import { PurchaseServiceDateWorkbench } from '../PurchaseServiceDateWorkbench';
+import { PurchaseWorkflowGuide } from '../PurchaseWorkflowGuide';
+import { SupplierQuotationSection } from '../quotation/SupplierQuotationSection';
+import { useSupplierQuotations } from '../quotation/useSupplierQuotations';
 import {
   getPurchasingErrorMessage,
   isPurchasingStage,
   resolveNextPurchasingAction,
   resolvePurchasingRouteState,
   type PurchasingStageId,
-} from '../purchasing/purchasingModel';
+} from '../purchasingModel';
 
 const emptyStageCounts: PurchaseWorkflowStageCounts = {
   demand: 0,

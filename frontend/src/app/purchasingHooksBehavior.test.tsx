@@ -32,8 +32,8 @@ vi.mock('@/api/dishCatalogApi', () => ({
 
 vi.mock('@/api/workflowApi', () => ({
   useCancelPurchaseOrderMutation: () => [vi.fn(), { isLoading: false }],
-  useCreatePurchaseOrdersFromRequestMutation: () => [vi.fn(), { isLoading: false }],
-  useCreatePurchaseRequestFromDemandMutation: () => [vi.fn(), { isLoading: false }],
+  useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
+  useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
   useCreateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
   useDeactivateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
   useGetMaterialRequestCandidatePageQuery: mocks.getCandidates,
@@ -43,25 +43,19 @@ vi.mock('@/api/workflowApi', () => ({
   useGetStockMovementPageQuery: mocks.getStockMovements,
   useGetSupplierQuotationsByIngredientPageQuery: mocks.getQuotations,
   useGetSuppliersQuery: mocks.getSuppliers,
+  useGetWarehouseSelectorQuery: mocks.getWarehouses,
+  useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
+  useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
+  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
   useRecordPurchaseOrderReceiptMutation: () => [vi.fn(), { isLoading: false }],
   useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
   useUpdatePurchaseRequestLineSupplierMutation: () => [vi.fn(), { isLoading: false }],
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
-vi.mock('@/api/workflowApi', () => ({
-  useGetWarehouseSelectorQuery: mocks.getWarehouses,
-  useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
-  useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],
-  useRecordWarehousePurchaseReceiptMutation: () => [mocks.recordWarehouseReceipt, { isLoading: false }],
-  useCreatePurchaseRequestFromDemandMutation: () => [mocks.createFromDemand, { isLoading: false }],
-  useSubmitPurchaseRequestMutation: () => [mocks.submitRequest, { isLoading: false }],
-  useCreatePurchaseOrdersFromRequestMutation: () => [mocks.createOrders, { isLoading: false }],
-}))
-
-import { useSupplierQuotations } from './quotation/useSupplierQuotations'
-import { PurchaseDecisionPanel } from './PurchaseDecisionPanel'
-import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog'
+import { useSupplierQuotations } from '@/features/purchasing/quotation/useSupplierQuotations'
+import { PurchaseDecisionPanel } from '@/features/purchasing/PurchaseDecisionPanel'
+import { WarehousePurchaseReceiptDialog } from '@/features/workflow/warehouse/WarehousePurchaseReceiptDialog'
 
 describe('purchasing hook behavior', () => {
   beforeEach(() => {

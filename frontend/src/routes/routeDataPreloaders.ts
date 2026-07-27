@@ -59,7 +59,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   [ROUTES.PURCHASING]: async () => {
     const [{ workflowApi }, { resolvePurchasingRouteState }] = await Promise.all([
       import('@/api/workflowApi'),
-      import('../features/workflow/purchasing/purchasingModel'),
+      import('../features/purchasing/purchasingModel'),
     ]);
     const { week } = resolvePurchasingRouteState({}, []);
     store.dispatch(workflowApi.util.prefetch('getPurchaseWorkbench', {

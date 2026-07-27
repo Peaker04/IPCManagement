@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import purchasingSource from '../features/workflow/pages/PurchasingPage.tsx?raw';
+import purchasingSource from '../features/purchasing/pages/PurchasingPage.tsx?raw';
 import adminSource from '../features/workflow/pages/AdminDataPage.tsx?raw';
 import chefSource from '../features/chef/pages/ChefDashboardPage.tsx?raw';
 import chefReceiptsSource from '../features/chef/receipts/useKitchenReceipts.ts?raw';
