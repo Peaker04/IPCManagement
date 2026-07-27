@@ -44,7 +44,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
             new IngredientDemandAggregatePageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -105,7 +105,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandAggregatePageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandAggregatePageAsync(
             new IngredientDemandAggregatePageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -145,7 +145,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetIngredientDemandPageAsync(
+        var page = await new DemandReportService(reportContext).GetIngredientDemandPageAsync(
             new IngredientDemandPageQueryDto
             {
                 DateFrom = "2026-06-15",
@@ -209,7 +209,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+        var page = await new DemandReportService(reportContext).GetMaterialRequestCandidatePageAsync(
             new MaterialRequestCandidatePageQueryDto
             {
                 Purpose = "purchase",
@@ -241,7 +241,7 @@ public class WorkflowGenerationTests
         }
 
         await using var reportContext = fixture.CreateContext();
-        var page = await new WorkflowReportService(reportContext).GetMaterialRequestCandidatePageAsync(
+        var page = await new DemandReportService(reportContext).GetMaterialRequestCandidatePageAsync(
             new MaterialRequestCandidatePageQueryDto
             {
                 Purpose = "issue",
@@ -1328,7 +1328,7 @@ public class WorkflowGenerationTests
 
         await using (var context = fixture.CreateContext())
         {
-            var reportLine = (await new WorkflowReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
+            var reportLine = (await new PurchasingReportService(context).GetPurchaseDemandAsync(new WorkflowReportQueryDto
             {
                 Limit = 100
             })).Single();
@@ -1866,7 +1866,7 @@ public class WorkflowGenerationTests
             }, fixture.UserIdString);
             issueId = created!.IssueId;
 
-            var beforeConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var beforeConfirm = await new InventoryOperationsReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
             beforeConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
                 row.MaterialRequestId == materialRequestId &&
                 row.IsReceivedByKitchen == false &&
@@ -1902,7 +1902,7 @@ public class WorkflowGenerationTests
                 .ToListAsync();
             auditFields.Should().BeEquivalentTo(["KitchenReceived", "KitchenReceiptDiscrepancy"]);
 
-            var afterConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var afterConfirm = await new InventoryOperationsReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
             afterConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
                 row.IsReceivedByKitchen &&
                 row.ReceivedBy == fixture.UserIdString &&
@@ -2023,7 +2023,7 @@ public class WorkflowGenerationTests
             varianceAudit.NewValue.Should().Be("20");
             varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
 
-            var usage = await new WorkflowReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var usage = await new InventoryOperationsReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
             var row = usage.Should().ContainSingle().Subject;
             row.IssuedQty.Should().Be(200m);
             row.ReturnedQty.Should().Be(30m);
@@ -3224,13 +3224,13 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var dayRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-06-15",
             DateTo = "2026-06-16",
             GroupBy = "day"
         });
-        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var weekRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-06-15",
             DateTo = "2026-06-16",
@@ -3340,13 +3340,13 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var dayRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var dayRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2027-12-31",
             DateTo = "2028-01-01",
             GroupBy = "day"
         });
-        var weekRows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var weekRows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2027-12-31",
             DateTo = "2028-01-01",
@@ -3428,7 +3428,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var rows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var rows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-01-01",
             DateTo = "2026-12-31",
@@ -3970,7 +3970,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new StockSnapshotReportService(context);
         var snapshots = await service.GenerateMonthlyStockSnapshotAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-07-01",
@@ -4495,7 +4495,7 @@ public class WorkflowGenerationTests
             savedLine.AppliedPortionRatePercent.Should().Be(50m);
             savedLine.BomRatePercent.Should().Be(100m);
 
-            var reportLine = (await new WorkflowReportService(context).GetIngredientDemandAsync(new WorkflowReportQueryDto
+            var reportLine = (await new DemandReportService(context).GetIngredientDemandAsync(new WorkflowReportQueryDto
             {
                 CustomerId = customerId,
                 DateFrom = "2026-06-15",
@@ -5986,7 +5986,7 @@ public class WorkflowGenerationTests
 
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new PriceVarianceReportService(context);
         var result = await service.GetPriceVarianceByDishGroupAsync(new WorkflowReportQueryDto());
 
         var group = result.Should().ContainSingle(g => g.DishGroup == "Món chính").Subject;
@@ -6426,7 +6426,7 @@ public class WorkflowGenerationTests
 
         queryCounter.Reset();
         var stopwatch = Stopwatch.StartNew();
-        var rows = await new WorkflowReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
+        var rows = await new PurchasingReportService(context).GetPurchasePlanAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2028-06-01",
             DateTo = "2028-06-30",

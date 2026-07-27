@@ -1,5 +1,5 @@
 import { CalendarDays, Scale } from 'lucide-react'
-import { EmptyState, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
+import { EmptyState, InlineAlert, PageStepper, SectionPanel, StatusBadge, TableViewport } from '@/components/common'
 import { getWorkflowStatusPresentation } from '@/lib/workflowConfig'
 import { getShiftLabel } from '../model/formatters'
 import type { WeeklyProductionPlanWorkflow } from './useWeeklyProductionPlan'
@@ -9,7 +9,12 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
   const activePage = presentation.activePage
   return (
     <SectionPanel title="Kế hoạch sản xuất" headingLevel={2} icon={<Scale size={18} color="var(--ipc-slate-600)" />}>
-      <div className="flex flex-col gap-3">
+      <div className="relative flex flex-col gap-3">
+        {status.isRefreshing && (
+          <span className="pointer-events-none absolute right-3 top-3 z-10 rounded-sm bg-white/95 px-2 py-1 text-xs font-medium text-slate-600 shadow-sm" role="status">
+            Đang cập nhật kế hoạch sản xuất
+          </span>
+        )}
         <section className="ipc-fiori-command" aria-label="Phạm vi kế hoạch sản xuất đang xem">
           <div className="ipc-fiori-object">
             <CalendarDays size={18} aria-hidden="true" />
@@ -31,11 +36,19 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
           </div>
         </section>
 
-        {status.isError ? (
+        {status.isForbidden ? (
+          <InlineAlert title="Không có quyền xem kế hoạch sản xuất" variant="danger">
+            <span role="alert">{status.forbiddenMessage}</span>
+          </InlineAlert>
+        ) : status.isUninitialized ? (
+          <InlineAlert title="Chưa khởi tạo kế hoạch sản xuất" variant="info">
+            {status.instruction}
+          </InlineAlert>
+        ) : status.isError ? (
           <EmptyState
             variant="error"
             title="Không tải được kế hoạch sản xuất"
-            description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này chưa có kế hoạch sản xuất. Hãy tải lại trước khi kết luận."
+            description={status.errorMessage ?? 'Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì tuần này chưa có kế hoạch sản xuất. Hãy tải lại trước khi kết luận.'}
             onRetry={actions.retry}
             isRetrying={status.isRetrying}
           />

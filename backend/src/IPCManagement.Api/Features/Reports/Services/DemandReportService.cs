@@ -1,0 +1,362 @@
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Shared.Contracts;
+using Microsoft.EntityFrameworkCore;
+
+namespace IPCManagement.Api.Features.Reports.Services;
+
+public class DemandReportService : IDemandReportService
+{
+    private readonly IpcManagementContext _context;
+
+    public DemandReportService(IpcManagementContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IReadOnlyList<IngredientDemandReportDto>> GetIngredientDemandAsync(WorkflowReportQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(item => item.Request)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Customer)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Dish)
+            .AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        return await lines
+            .OrderByDescending(item => item.Request.RequestDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Take(NormalizeLimit(query.Limit))
+            .Select(item => new IngredientDemandReportDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                RequestLineId = GuidHelper.ToGuidString(item.RequestLineId),
+                MaterialRequestCode = item.Request.RequestCode,
+                RequestDate = item.Request.RequestDate,
+                Status = item.Request.Status,
+                ShiftName = item.PlanLine.ShiftName,
+                CustomerName = item.PlanLine.Customer.CustomerName,
+                DishName = item.PlanLine.Dish.DishName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                BomId = item.BomId == null ? null : GuidHelper.ToGuidString(item.BomId),
+                PriceTierAmount = item.PriceTierAmount,
+                BomScope = item.BomScope,
+                TotalServings = item.TotalServings,
+                BomRatePercent = item.BomRatePercent,
+                AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
+                AppliedPortionRuleSource = item.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = item.AppliedPortionRatePercent,
+                YieldLossPercent = item.YieldLossPercent,
+                TotalRequiredQty = item.TotalRequiredQty,
+                CurrentStockQty = item.CurrentStockQty,
+                SuggestedPurchaseQty = item.SuggestedPurchaseQty
+            })
+            .ToListAsync();
+    }
+
+    public async Task<IngredientDemandPageDto> GetIngredientDemandPageAsync(IngredientDemandPageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines
+            .AsNoTracking()
+            .Include(item => item.Request)
+            .Include(item => item.Ingredient)
+            .Include(item => item.Unit)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Customer)
+            .Include(item => item.PlanLine)
+                .ThenInclude(item => item.Dish)
+            .AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var totalCount = await lines.CountAsync();
+        var shortageCount = await lines.CountAsync(item =>
+            item.Request.Status != "CANCELLED" &&
+            item.SuggestedPurchaseQty > 0 &&
+            (item.Purchaserequestlines
+                 .Where(purchaseLine =>
+                     purchaseLine.PurchaseRequest.Status != "CANCELLED" &&
+                     purchaseLine.PurchaseRequest.Status != "REJECTED")
+                 .Sum(purchaseLine => (decimal?)purchaseLine.PurchaseQty) ?? 0m) < item.SuggestedPurchaseQty);
+        var items = await lines
+            .OrderByDescending(item => item.Request.RequestDate)
+            .ThenBy(item => item.Ingredient.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new IngredientDemandReportDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                RequestLineId = GuidHelper.ToGuidString(item.RequestLineId),
+                MaterialRequestCode = item.Request.RequestCode,
+                RequestDate = item.Request.RequestDate,
+                Status = item.Request.Status,
+                ShiftName = item.PlanLine.ShiftName,
+                CustomerName = item.PlanLine.Customer.CustomerName,
+                DishName = item.PlanLine.Dish.DishName,
+                IngredientId = GuidHelper.ToGuidString(item.IngredientId),
+                IngredientName = item.Ingredient.IngredientName,
+                UnitId = GuidHelper.ToGuidString(item.UnitId),
+                UnitName = item.Unit.UnitName,
+                BomId = item.BomId == null ? null : GuidHelper.ToGuidString(item.BomId),
+                PriceTierAmount = item.PriceTierAmount,
+                BomScope = item.BomScope,
+                TotalServings = item.TotalServings,
+                BomRatePercent = item.BomRatePercent,
+                AppliedPortionRuleId = item.AppliedPortionRuleId == null ? null : GuidHelper.ToGuidString(item.AppliedPortionRuleId),
+                AppliedPortionRuleSource = item.AppliedPortionRuleSource,
+                AppliedPortionRatePercent = item.AppliedPortionRatePercent,
+                YieldLossPercent = item.YieldLossPercent,
+                TotalRequiredQty = item.TotalRequiredQty,
+                CurrentStockQty = item.CurrentStockQty,
+                SuggestedPurchaseQty = item.SuggestedPurchaseQty
+            })
+            .ToListAsync();
+
+        return new IngredientDemandPageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
+    public async Task<IngredientDemandAggregatePageDto> GetIngredientDemandAggregatePageAsync(IngredientDemandAggregatePageQueryDto query)
+    {
+        var ingredientId = GuidHelper.ParseFilterIdOrThrow(query.IngredientId, "nguyên liệu");
+        var customerId = ParseCustomerId(query.CustomerId);
+        var shiftName = NormalizeShiftName(query.ShiftName);
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+
+        var lines = _context.Materialrequestlines.AsNoTracking().AsQueryable();
+
+        if (ingredientId is not null)
+        {
+            lines = lines.Where(item => item.IngredientId == ingredientId);
+        }
+
+        if (dateFrom is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            lines = lines.Where(item => item.Request.RequestDate <= dateTo);
+        }
+
+        if (!string.IsNullOrWhiteSpace(shiftName))
+        {
+            lines = lines.Where(item => item.PlanLine.ShiftName == shiftName);
+        }
+
+        if (customerId is not null)
+        {
+            lines = lines.Where(item => item.PlanLine.CustomerId.SequenceEqual(customerId));
+        }
+
+        var grouped = lines.GroupBy(item => new
+        {
+            item.Request.RequestDate,
+            item.IngredientId,
+            IngredientName = item.Ingredient.IngredientName,
+            item.UnitId,
+            UnitName = item.Unit.UnitName,
+        });
+
+        var activeGrouped = grouped.Where(group => group.Any(item => item.Request.Status != "CANCELLED"));
+        var totalCount = await activeGrouped.CountAsync();
+        var shortageCount = await activeGrouped.CountAsync(group =>
+            group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m) > 0);
+        var items = await activeGrouped
+            .OrderByDescending(group => group.Key.RequestDate)
+            .ThenBy(group => group.Key.IngredientName)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(group => new IngredientDemandAggregateDto
+            {
+                RequestDate = group.Key.RequestDate,
+                IngredientId = GuidHelper.ToGuidString(group.Key.IngredientId),
+                IngredientName = group.Key.IngredientName,
+                UnitId = GuidHelper.ToGuidString(group.Key.UnitId),
+                UnitName = group.Key.UnitName,
+                TotalRequiredQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.TotalRequiredQty : 0m),
+                CurrentStockQty = (decimal)group
+                    .Where(item => item.Request.Status != "CANCELLED")
+                    .Max(item => (double)item.CurrentStockQty),
+                SuggestedPurchaseQty = group.Sum(item => item.Request.Status != "CANCELLED" ? item.SuggestedPurchaseQty : 0m),
+                LineCount = group.Count(item => item.Request.Status != "CANCELLED"),
+                // Cancelled history must not mark a successfully regenerated active group as stale.
+                HasCancelledLine = false,
+            })
+            .ToListAsync();
+
+        return new IngredientDemandAggregatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+            ShortageCount = shortageCount,
+        };
+    }
+
+    public async Task<MaterialRequestCandidatePageDto> GetMaterialRequestCandidatePageAsync(MaterialRequestCandidatePageQueryDto query)
+    {
+        var purpose = query.Purpose.Trim().ToLowerInvariant();
+        if (purpose is not ("purchase" or "issue"))
+        {
+            throw new ArgumentException("Mục đích danh sách nhu cầu phải là purchase hoặc issue.");
+        }
+
+        var dateFrom = ParseDateOnly(query.DateFrom);
+        var dateTo = ParseDateOnly(query.DateTo);
+        var requests = _context.Materialrequests.AsNoTracking().AsQueryable();
+
+        if (dateFrom is not null)
+        {
+            requests = requests.Where(item => item.RequestDate >= dateFrom);
+        }
+
+        if (dateTo is not null)
+        {
+            requests = requests.Where(item => item.RequestDate <= dateTo);
+        }
+
+        if (purpose == "purchase")
+        {
+            requests = requests.Where(item =>
+                item.Status != "CANCELLED" &&
+                item.Status != "EXPORTED" &&
+                item.Materialrequestlines.Any(line => line.SuggestedPurchaseQty > 0));
+        }
+        else
+        {
+            requests = requests.Where(item =>
+                (item.Status == "MANAGERAPPROVED" || item.Status == "APPROVED" || item.Status == "SENTTOWAREHOUSE") &&
+                item.Materialrequestlines.Sum(line => line.TotalRequiredQty) >
+                item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty));
+        }
+
+        var totalCount = await requests.CountAsync();
+        var items = await requests
+            .OrderByDescending(item => item.RequestDate)
+            .ThenBy(item => item.RequestCode)
+            .Skip((query.PageNumber - 1) * query.PageSize)
+            .Take(query.PageSize)
+            .Select(item => new MaterialRequestCandidateDto
+            {
+                MaterialRequestId = GuidHelper.ToGuidString(item.RequestId),
+                MaterialRequestCode = item.RequestCode,
+                RequestDate = item.RequestDate,
+                RequestScope = item.RequestScope,
+                Status = item.Status,
+                ActionableLineCount = purpose == "purchase"
+                    ? item.Materialrequestlines.Count(line => line.SuggestedPurchaseQty > 0)
+                    : item.Materialrequestlines.Count,
+                ActionableQuantity = purpose == "purchase"
+                    ? item.Materialrequestlines.Sum(line => line.SuggestedPurchaseQty)
+                    : item.Materialrequestlines.Sum(line => line.TotalRequiredQty) -
+                      item.Inventoryissues.SelectMany(issue => issue.Inventoryissuelines).Sum(line => line.IssuedQty),
+                HasExistingPurchaseRequest = item.Materialrequestlines.Any(line =>
+                    line.Purchaserequestlines.Any(purchaseLine => purchaseLine.PurchaseRequest.Status != "CANCELLED")),
+            })
+            .ToListAsync();
+
+        return new MaterialRequestCandidatePageDto
+        {
+            Items = items,
+            TotalCount = totalCount,
+            PageNumber = query.PageNumber,
+            PageSize = query.PageSize,
+        };
+    }
+
+    private static byte[]? ParseCustomerId(string? value)
+        => GuidHelper.ParseFilterIdOrThrow(value, "khách hàng");
+
+    private static DateOnly? ParseDateOnly(string? value)
+        => DateOnly.TryParse(value, out var parsed) ? parsed : null;
+
+    private static int NormalizeLimit(int limit)
+        => Math.Clamp(limit <= 0 ? 100 : limit, 1, 500);
+
+    private static string? NormalizeShiftName(string? shift)
+        => (shift ?? string.Empty).Trim().ToUpperInvariant() switch
+        {
+            "MORNING" or "CA SANG" or "CA SÁNG" => "MORNING",
+            "AFTERNOON" or "CA CHIEU" or "CA CHIỀU" => "AFTERNOON",
+            _ => null
+        };
+}

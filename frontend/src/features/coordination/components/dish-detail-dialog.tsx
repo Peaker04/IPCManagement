@@ -3,6 +3,8 @@ import type { OrderRow } from '../types'
 import { getMenuDishSlotLabel, groupMenuDishes, type MenuDishRole } from '../dishRole'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useLazyGetMenuSchedulesQuery } from '../coordinationApi'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
+import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
 
 interface DishDetailDialogProps {
   order: OrderRow
@@ -35,9 +37,19 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
     }, true)
   }, [loadMenuSchedules, needsMenuMetadata, order.customerId, order.dayOfWeek, order.serviceDate, order.shiftName])
 
-  const matchingSchedule = menuSchedulesQuery.currentData?.data?.find(
+  const menuSchedulesView = toLabeledQueryView(menuSchedulesQuery, 'cấu trúc món từ thực đơn', {
+    instruction: 'Mở chi tiết món để tải cấu trúc thực đơn.',
+    retry: () => loadMenuSchedules({
+      serviceDate: order.serviceDate,
+      dayOfWeek: order.dayOfWeek,
+      shiftName: order.shiftName,
+      customerId: order.customerId,
+    }, false),
+  })
+  const menuSchedules = menuSchedulesView.phase === 'ready' ? menuSchedulesView.data.data ?? [] : []
+  const matchingSchedule = menuSchedules.find(
     (schedule) => schedule.menuScheduleId === order.menuScheduleId || schedule.menuId === order.menuId,
-  ) ?? menuSchedulesQuery.currentData?.data?.[0]
+  ) ?? menuSchedules[0]
   const scheduleDishes = new Map<string, NonNullable<typeof matchingSchedule>['dishes'][number]>()
   for (const dish of matchingSchedule?.dishes ?? []) {
     if (!scheduleDishes.has(dish.dishId)) scheduleDishes.set(dish.dishId, dish)
@@ -54,7 +66,8 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
       }
     })
   const groups = groupMenuDishes(dishes)
-  const isResolvingMenu = needsMenuMetadata && menuSchedulesQuery.isFetching && !matchingSchedule
+  const preserveMenuFallback = dishes.length > 0
+    && (menuSchedulesView.phase === 'error' || menuSchedulesView.phase === 'forbidden')
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
@@ -71,43 +84,45 @@ export function DishDetailDialog({ order, onClose }: DishDetailDialogProps) {
               </h3>
               <span className="text-xs font-medium text-slate-500">{dishes.length} món · {groups.length} nhóm</span>
             </div>
-            {isResolvingMenu ? (
-              <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-4 text-sm font-medium text-blue-800" role="status">
-                Đang đọc cấu trúc món từ thực đơn…
-              </div>
-            ) : dishes.length > 0 ? (
-              <div className="grid grid-cols-2 gap-3">
-                {groups.map((group) => {
-                  const style = dishRoleStyles[group.key]
-                  const headingId = `coordination-dish-group-${group.key}`
-                  return (
-                    <section key={group.key} className="overflow-hidden rounded-md border border-slate-200 bg-white" aria-labelledby={headingId}>
-                      <div className={`flex items-center gap-2 border-b px-3 py-2 ${style.header}`}>
-                        <h4 id={headingId} className="text-sm font-semibold">{group.label}</h4>
-                        <span className={`ml-auto inline-flex min-w-5 justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${style.badge}`}>
-                          {group.dishes.length}
-                        </span>
-                      </div>
-                      <ul className="divide-y divide-slate-200">
-                        {group.dishes.map((dish) => {
-                          const slotLabel = getMenuDishSlotLabel(dish)
-                          return (
-                            <li key={dish.dishId} className="flex items-center justify-between gap-3 px-3 py-2.5">
-                              <span className="text-sm font-medium text-slate-800">{dish.dishName}</span>
-                              {slotLabel !== group.label && (
-                                <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{slotLabel}</span>
-                              )}
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </section>
-                  )
-                })}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">Chưa có món trong thực đơn.</p>
-            )}
+            <QueryViewBoundary
+              preserveFallback={preserveMenuFallback}
+              queries={needsMenuMetadata ? [{ label: 'cấu trúc món từ thực đơn', view: menuSchedulesView }] : []}
+              refreshLabel="Đang cập nhật cấu trúc món"
+            >
+              {dishes.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {groups.map((group) => {
+                    const style = dishRoleStyles[group.key]
+                    const headingId = `coordination-dish-group-${group.key}`
+                    return (
+                      <section key={group.key} className="overflow-hidden rounded-md border border-slate-200 bg-white" aria-labelledby={headingId}>
+                        <div className={`flex items-center gap-2 border-b px-3 py-2 ${style.header}`}>
+                          <h4 id={headingId} className="text-sm font-semibold">{group.label}</h4>
+                          <span className={`ml-auto inline-flex min-w-5 justify-center rounded-full px-1.5 py-0.5 text-xs font-bold ${style.badge}`}>
+                            {group.dishes.length}
+                          </span>
+                        </div>
+                        <ul className="divide-y divide-slate-200">
+                          {group.dishes.map((dish) => {
+                            const slotLabel = getMenuDishSlotLabel(dish)
+                            return (
+                              <li key={dish.dishId} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                                <span className="text-sm font-medium text-slate-800">{dish.dishName}</span>
+                                {slotLabel !== group.label && (
+                                  <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">{slotLabel}</span>
+                                )}
+                              </li>
+                            )
+                          })}
+                        </ul>
+                      </section>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-slate-500">Chưa có món trong thực đơn.</p>
+              )}
+            </QueryViewBoundary>
           </section>
           {order.specialNotes && (
             <section className="rounded-md border border-slate-200 bg-slate-50 p-3">
