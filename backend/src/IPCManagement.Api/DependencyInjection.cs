@@ -108,6 +108,7 @@ public static class DependencyInjection
         services.AddScoped<IStockLedgerReportService, StockLedgerReportService>();
         services.AddScoped<IDataQualityReportService, DataQualityReportService>();
         services.AddScoped<IDataQualityCommandService, DataQualityCommandService>();
+        services.AddScoped<IOperationalKpiReportService, OperationalKpiReportService>();
         services.AddScoped<IWorkflowReportService, WorkflowReportService>();
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<ISupplierQuotationService, SupplierQuotationService>();
