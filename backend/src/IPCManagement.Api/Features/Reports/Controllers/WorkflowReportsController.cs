@@ -67,19 +67,6 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>.SuccessResult(
             await _workflowReportService.GetStockLedgerReconciliationAsync(query)));
 
-    [HttpGet("stock-snapshots")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockSnapshotDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStockSnapshotsAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<StockSnapshotDto>>.SuccessResult(
-            await _workflowReportService.GetStockSnapshotsAsync(query)));
-
-    [HttpPost("stock-snapshots/generate")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockSnapshotDto>>), StatusCodes.Status200OK)]
-    [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
-    public async Task<IActionResult> GenerateStockSnapshotsAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<StockSnapshotDto>>.SuccessResult(
-            await _workflowReportService.GenerateMonthlyStockSnapshotAsync(query)));
-
     [HttpGet("workflow-documents")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWorkflowDocumentsAsync([FromQuery] WorkflowReportQueryDto query)

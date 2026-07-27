@@ -101,6 +101,7 @@ public static class DependencyInjection
         services.AddScoped<IDemandReportService, DemandReportService>();
         services.AddScoped<IPriceVarianceReportService, PriceVarianceReportService>();
         services.AddScoped<IPurchasingReportService, PurchasingReportService>();
+        services.AddScoped<IStockSnapshotReportService, StockSnapshotReportService>();
         services.AddScoped<IWorkflowReportService, WorkflowReportService>();
         services.AddScoped<ISupplierService, SupplierService>();
         services.AddScoped<ISupplierQuotationService, SupplierQuotationService>();

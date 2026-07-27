@@ -3970,7 +3970,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new StockSnapshotReportService(context);
         var snapshots = await service.GenerateMonthlyStockSnapshotAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-07-01",
