@@ -370,8 +370,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 42** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 8, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 44** so với
+`origin/feature/production-plan`, working tree sạch sau Bước 9, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -491,6 +491,29 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - GitNexus staged audit của lát cuối: **14 file / 118 symbol / 73 execution flow, CRITICAL** do `workflowApi`
   là hub và contract sinh thay đổi rộng; toàn bộ blast radius đã được phép và phủ bằng full gates. Sau commit đã
   re-index thành công: **9.445 node / 26.543 edge / 300 flow**. Không reset/seed database, không push.
+
+### Bước 9 — thu hẹp RTK Query cache invalidation (đã hoàn tất ngày 27/07/2026)
+
+- Commit `11042f4 perf(fe-cache): scope workflow invalidation tags`. Tạo `workflowCacheTags.ts` làm nguồn chung
+  cho 22 cache ID theo domain và các tập dependency của dashboard KPI/audit; không thêm tag type mới, không đổi
+  endpoint name, query argument, request/response, RTK Query cache key hoặc DOM.
+- Baseline trước sửa: **35** query `providesTags: ['WorkflowReports']`, **31** mutation invalidation trơn trong
+  `workflowApi`/coordination/dish catalog và **85** literal `WorkflowReports`. Sau sửa: **0 provides trơn / 0
+  invalidation trơn**; còn 10 literal là khai báo tag type hoặc tag có ID động theo week/target/line.
+- Test `workflowApi.cacheInvalidation.test.ts` dựng 10 query đang subscribe. Cùng mutation remediation data-quality
+  trước sửa làm **10/10** query refetch; sau sửa chỉ **2/10** (`data-quality`, `audit`) và store có đúng **2 query
+  pending**, đạt tiêu chí không quá 3 panel `isFetching`.
+- Query dẫn xuất khai cả tag domain riêng và tag nguồn thật: purchase plan theo demand/current stock/PO/quotation,
+  stock ledger theo movement/current stock, usage theo issue/return, KPI theo demand/purchase/inventory/data-quality,
+  audit theo toàn bộ domain workflow. Cache không refetch toàn hệ thống nhưng vẫn bị invalidated khi nguồn thay đổi.
+- Bundle entry gần như giữ nguyên: **307,16 kB / 96,67 kB gzip -> 307,22 kB / 96,69 kB gzip**. Module tag dùng
+  chung là 1,43 kB / 0,51 kB gzip; không phát sinh dependency violation mới.
+- Full quality gates: FE **328/328**, lint **0 error / 9 warning baseline**, dependency-cruiser sạch với **54 known
+  violation**, production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**; contract
+  regenerate deterministic và `git diff --check` xanh.
+- GitNexus staged audit: **6 file / 11 symbol / 9 execution flow, HIGH** do cache tag là quan hệ động ngoài call
+  graph; blast radius đã được phủ bằng test fan-out và full regression. Sau commit đã re-index up-to-date. Không
+  reset/seed database, không push.
 
 ## Quy trình tiếp tục ở phiên mới
 
