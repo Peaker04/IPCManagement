@@ -73,6 +73,9 @@ jobs:
       - name: Build backend
         run: npm run build:be
 
+      - name: Check generated API contract
+        run: npm run check:api-contract
+
       - name: Install EF Core CLI
         run: dotnet tool install --tool-path ./.dotnet-tools dotnet-ef --version 9.0.16
 

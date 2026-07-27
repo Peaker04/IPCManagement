@@ -74,7 +74,17 @@ module.exports = {
       comment:
         'File không ai import. Để mức warn vì có dương tính giả thật: barrel index.ts được ' +
         'import theo đường thư mục, và test/setup.ts do vitest config gọi chứ không qua import.',
-      from: { orphan: true, pathNot: ['\\.d\\.ts$', '(^|/)(main|App)\\.tsx$', '\\.test\\.', '(^|/)index\\.ts$', '^src/test/'] },
+      from: {
+        orphan: true,
+        pathNot: [
+          '\\.d\\.ts$',
+          '(^|/)(main|App)\\.tsx$',
+          '\\.test\\.',
+          '(^|/)index\\.ts$',
+          '^src/test/',
+          '^src/shared/api/contracts/',
+        ],
+      },
       to: {},
     },
     {
