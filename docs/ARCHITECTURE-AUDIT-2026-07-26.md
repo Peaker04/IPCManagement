@@ -657,7 +657,14 @@ port inventory, demand, purchasing, price variance, audit, stock ledger, data-qu
 15 giây, data-quality version invalidation và single-flight nằm trong singleton cache service không
 capture scoped dependency. Pure policy/exporter có test không DB. Gate cuối: BE 648 pass/1 skip,
 FE 416/416, lint/dependency/build xanh, OpenAPI canonical 152 path/396 schema không drift và EF
-pending-model gate xanh. Bước 15 tiếp tục với Coordination.
+pending-model gate xanh.
+
+Coordination đã tách customer contract `fe8b720`, portion rule `a8c9a14`, menu
+schedule/version/rollback `055c611` và meal quantity plan/quick servings `a92410b` thành
+application service + pure policy có test không DB. Bốn service mới lần lượt 545/408/511/255
+dòng; `CoordinationService` giảm 2.728 → 1.524 dòng. Gate mới nhất: BE 668 pass/1 skip,
+FE 416/416, lint/dependency/build/contract/EF xanh. Coordination còn Order Lifecycle, controller
+split và xóa facade/helper chết; sau đó Bước 15 mới chuyển sang Purchasing.
 
 ### Bước 16 — Persistence và reliability
 
