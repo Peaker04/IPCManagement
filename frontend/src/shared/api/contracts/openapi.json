@@ -14318,24 +14318,20 @@
         "type": "object",
         "properties": {
           "orderId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "quantityPlanLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "field": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "newValue": {
             "type": "integer",
             "format": "int32"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -14354,16 +14350,13 @@
             "type": "boolean"
           },
           "approvalStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approvalTargetType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approvalTargetId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldValue": {
             "type": "integer",
@@ -14374,8 +14367,7 @@
             "format": "int32"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -14387,8 +14379,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/AdjustOrderAfterLockResultDto"
@@ -14407,8 +14398,7 @@
             "format": "int32"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -14420,8 +14410,7 @@
             "type": "boolean"
           },
           "orderId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldServings": {
             "type": "integer",
@@ -14436,8 +14425,7 @@
             "format": "date-time"
           },
           "auditId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warning": {
             "type": "string",
@@ -14453,8 +14441,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/AdjustServingsResultDto"
@@ -14469,16 +14456,13 @@
         "type": "object",
         "properties": {
           "roleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -14490,8 +14474,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -14513,8 +14496,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "errors": {
             "nullable": true
@@ -14527,21 +14509,18 @@
         "properties": {
           "assignmentId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ruleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "sequence": {
             "type": "integer",
             "format": "int32"
           },
           "approverRole": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approverUserId": {
             "type": "string",
@@ -14568,8 +14547,7 @@
             "format": "int32"
           },
           "approverRole": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approverUserId": {
             "type": "string",
@@ -14592,20 +14570,16 @@
         "type": "object",
         "properties": {
           "historyId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "decision": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldStatus": {
             "type": "string",
@@ -14620,12 +14594,10 @@
             "nullable": true
           },
           "actionBy": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actionByName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actionAt": {
             "type": "string",
@@ -14641,8 +14613,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -14661,40 +14632,31 @@
         "type": "object",
         "properties": {
           "inboxItemId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "itemType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "title": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "source": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ownerRole": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "submittedBy": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dueDate": {
             "type": "string",
@@ -14702,24 +14664,19 @@
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "nextAction": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "tone": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "route": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
             "type": "string",
@@ -14814,8 +14771,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalInboxMaterialDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -14824,16 +14780,14 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "quantity": {
             "type": "number",
             "format": "double"
           },
           "unit": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -14845,8 +14799,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalInboxItemDto"
-            },
-            "nullable": true
+            }
           },
           "limit": {
             "type": "integer",
@@ -14869,8 +14822,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/ApprovalInboxPageDto"
@@ -14898,16 +14850,13 @@
         "type": "object",
         "properties": {
           "targetType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldStatus": {
             "type": "string",
@@ -14918,8 +14867,7 @@
             "nullable": true
           },
           "historyId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actionAt": {
             "type": "string",
@@ -14935,8 +14883,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/ApprovalResultDto"
@@ -14952,16 +14899,13 @@
         "properties": {
           "ruleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ruleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "documentType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "minAmount": {
             "type": "number",
@@ -14989,8 +14933,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalAssignment"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15002,8 +14945,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/ApprovalRule"
@@ -15021,8 +14963,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -15041,12 +14982,10 @@
         "type": "object",
         "properties": {
           "ruleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "documentType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "minAmount": {
             "type": "number",
@@ -15070,8 +15009,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovalAssignmentRequest"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15080,32 +15018,26 @@
         "type": "object",
         "properties": {
           "materialRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shortageLineCount": {
             "type": "integer",
             "format": "int32"
           },
           "currentStage": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestId": {
             "type": "string",
@@ -15127,8 +15059,7 @@
         "properties": {
           "auditId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "changedAt": {
             "type": "string",
@@ -15136,16 +15067,13 @@
           },
           "changedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "businessArea": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "entityName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "entityId": {
             "type": "string",
@@ -15205,13 +15133,11 @@
         "properties": {
           "bomAdjustmentId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "bomId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "oldGrossQtyPerServing": {
             "type": "number",
@@ -15235,8 +15161,7 @@
           },
           "adjustedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "adjustedAt": {
             "type": "string",
@@ -15255,16 +15180,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishType": {
             "type": "string",
@@ -15282,12 +15204,10 @@
             "type": "boolean"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "statusLabel": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -15319,8 +15239,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomCoverageDishDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15332,8 +15251,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/BomCoverageReportDto"
@@ -15360,8 +15278,7 @@
             "nullable": true
           },
           "bomScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalRows": {
             "type": "integer",
@@ -15386,15 +15303,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomImportPreviewRowDto"
-            },
-            "nullable": true
+            }
           },
           "warnings": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "createdRows": {
             "type": "integer",
@@ -15409,8 +15324,7 @@
             "format": "int32"
           },
           "auditBatchCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -15422,8 +15336,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/BomImportCommitResultDto"
@@ -15450,8 +15363,7 @@
             "nullable": true
           },
           "bomScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalRows": {
             "type": "integer",
@@ -15476,15 +15388,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomImportPreviewRowDto"
-            },
-            "nullable": true
+            }
           },
           "warnings": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15496,8 +15406,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/BomImportPreviewDto"
@@ -15516,24 +15425,19 @@
             "format": "int32"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "grossQtyPerServing": {
             "type": "number",
@@ -15553,26 +15457,22 @@
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "action": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "errors": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "warnings": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15581,16 +15481,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "bomId": {
             "type": "string",
@@ -15605,16 +15502,13 @@
             "nullable": true
           },
           "issueCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "severity": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -15654,8 +15548,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomValidationIssueDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15667,8 +15560,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/BomValidationReportDto"
@@ -15683,15 +15575,13 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "slots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WeeklyMenuSlotUpdateRequest"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15744,8 +15634,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ConfirmInventoryReturnLineRequest"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -15757,20 +15646,17 @@
             "$ref": "#/components/schemas/SupplierEvidenceType"
           },
           "evidenceId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "proposedUnitPrice": {
             "type": "number",
             "format": "double"
           },
           "proposedDeliveryDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "expectedDecisionVersion": {
             "type": "integer",
@@ -15787,16 +15673,13 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -15808,8 +15691,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -15828,16 +15710,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishSlot": {
             "type": "string",
@@ -15862,36 +15741,28 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "quantityPlanLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "quantityPlanId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuScheduleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "mealType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "forecastQuantity": {
             "type": "integer",
@@ -15910,47 +15781,37 @@
             "format": "double"
           },
           "specialNotes": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dayOfWeek": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shift": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CoordinationDishDto"
-            },
-            "nullable": true
+            }
           },
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -15962,8 +15823,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -16011,12 +15871,10 @@
             "type": "boolean"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "affectedPlanCount": {
             "type": "integer",
@@ -16026,12 +15884,10 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "newStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "changedAt": {
             "type": "string",
@@ -16047,8 +15903,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/CoordinationScopeActionResultDto"
@@ -16063,12 +15918,10 @@
         "type": "object",
         "properties": {
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "note": {
             "type": "string",
@@ -16205,20 +16058,16 @@
         "type": "object",
         "properties": {
           "fullName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "password": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "isActive": {
             "type": "boolean"
@@ -16324,8 +16173,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CreateInventoryIssueLineRequest"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -16527,8 +16375,7 @@
             "nullable": true
           },
           "returnType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseId": {
             "minLength": 1,
@@ -16556,16 +16403,14 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishId": {
             "type": "string",
             "nullable": true
           },
           "effectiveFrom": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveTo": {
             "type": "string",
@@ -16660,12 +16505,10 @@
         "type": "object",
         "properties": {
           "issueId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "issueLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requestedQty": {
             "type": "number",
@@ -16682,20 +16525,17 @@
         "type": "object",
         "properties": {
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitPrice": {
             "type": "number",
             "format": "double"
           },
           "effectiveFrom": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveTo": {
             "type": "string",
@@ -16713,18 +16553,15 @@
         "properties": {
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "currentQty": {
             "type": "number",
@@ -16755,23 +16592,19 @@
         "properties": {
           "lotStockId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "lotNumber": {
             "type": "string",
@@ -16812,16 +16645,13 @@
         "properties": {
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "note": {
             "type": "string",
@@ -16835,57 +16665,49 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CustomerImportMapping"
-            },
-            "nullable": true
+            }
           },
           "mealquantityplanlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlanLine"
-            },
-            "nullable": true
+            }
           },
           "customercontracts": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CustomerContract"
-            },
-            "nullable": true
+            }
           },
           "dishboms": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishBom"
-            },
-            "nullable": true
+            }
           },
           "menuversions": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuVersion"
-            },
-            "nullable": true
+            }
           },
           "menuschedules": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuSchedule"
-            },
-            "nullable": true
+            }
           },
           "portionrules": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PortionRule"
-            },
-            "nullable": true
+            }
           },
           "productionplanlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -16895,13 +16717,11 @@
         "properties": {
           "contractId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "effectiveFrom": {
             "type": "string",
@@ -16913,12 +16733,10 @@
             "nullable": true
           },
           "activeWeekDays": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftNames": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "defaultMenuPrice": {
             "type": "number",
@@ -16929,8 +16747,7 @@
             "format": "double"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -16954,16 +16771,13 @@
             "nullable": true
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "note": {
             "type": "string",
@@ -16981,8 +16795,7 @@
             "nullable": true
           },
           "contractStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuScheduleCount": {
             "type": "integer",
@@ -16992,15 +16805,13 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "shiftNames": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "defaultMenuPrice": {
             "type": "number",
@@ -17026,8 +16837,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/CustomerContractDto"
@@ -17045,8 +16855,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -17066,13 +16875,11 @@
         "properties": {
           "mappingId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "sheetNameHint": {
             "type": "string",
@@ -17100,8 +16907,7 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sheetNameHint": {
             "type": "string",
@@ -17121,8 +16927,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/CustomerImportMappingDto"
@@ -17161,12 +16966,10 @@
         "type": "object",
         "properties": {
           "issueId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "action": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "note": {
             "type": "string",
@@ -17180,16 +16983,13 @@
         "properties": {
           "dishId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishGroup": {
             "type": "string",
@@ -17207,29 +17007,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishBom"
-            },
-            "nullable": true
+            }
           },
           "menuitems": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuItem"
-            },
-            "nullable": true
+            }
           },
           "portionrules": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PortionRule"
-            },
-            "nullable": true
+            }
           },
           "productionplanlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -17239,23 +17035,19 @@
         "properties": {
           "bomId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
@@ -17275,8 +17067,7 @@
             "format": "double"
           },
           "bomStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveFrom": {
             "type": "string",
@@ -17291,8 +17082,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomAdjustment"
-            },
-            "nullable": true
+            }
           },
           "customer": {
             "$ref": "#/components/schemas/Customer"
@@ -17313,32 +17103,25 @@
         "type": "object",
         "properties": {
           "bomId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
             "type": "string",
@@ -17357,8 +17140,7 @@
             "format": "double"
           },
           "bomScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "grossQtyPerServing": {
             "type": "number",
@@ -17369,12 +17151,10 @@
             "format": "double"
           },
           "bomStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "bomStatusLabel": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveFrom": {
             "type": "string",
@@ -17399,8 +17179,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/DishCatalogBomLineDto"
@@ -17418,8 +17197,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -17438,16 +17216,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishType": {
             "type": "string",
@@ -17464,15 +17239,13 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "bomLines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishCatalogBomLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -17484,8 +17257,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -17504,16 +17276,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishType": {
             "type": "string",
@@ -17536,8 +17305,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/DishDto"
@@ -17555,8 +17323,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -17593,8 +17360,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/DishDtoPagedResponseDto"
@@ -17609,24 +17375,19 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fullName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "isActive": {
             "type": "boolean"
@@ -17645,8 +17406,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/EmployeeDto"
@@ -17664,8 +17424,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/EmployeeDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -17702,8 +17461,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/EmployeeDtoPagedResponseDto"
@@ -17734,8 +17492,7 @@
             "nullable": true
           },
           "format": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -17747,8 +17504,7 @@
             "type": "boolean"
           },
           "downloadUrl": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -17760,8 +17516,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/ExportOrderReportResultDto"
@@ -17786,8 +17541,7 @@
         "type": "object",
         "properties": {
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
             "type": "string",
@@ -17798,8 +17552,7 @@
             "nullable": true
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -17808,8 +17561,7 @@
         "type": "object",
         "properties": {
           "materialRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -17870,8 +17622,7 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "portions": {
             "type": "integer",
@@ -17888,26 +17639,21 @@
         "properties": {
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "referencePrice": {
             "type": "number",
@@ -17924,85 +17670,73 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishBom"
-            },
-            "nullable": true
+            }
           },
           "inventoryissuelines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssueLine"
-            },
-            "nullable": true
+            }
           },
           "inventoryreceiptlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceiptLine"
-            },
-            "nullable": true
+            }
           },
           "inventoryreturnlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturnLine"
-            },
-            "nullable": true
+            }
           },
           "materialrequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequestLine"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
-            },
-            "nullable": true
+            }
           },
           "stockmovements": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockMovement"
-            },
-            "nullable": true
+            }
           },
           "currentstocks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStock"
-            },
-            "nullable": true
+            }
           },
           "currentstocklots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStockLot"
-            },
-            "nullable": true
+            }
           },
           "stocksnapshots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockSnapshot"
-            },
-            "nullable": true
+            }
           },
           "supplierquotations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SupplierQuotation"
-            },
-            "nullable": true
+            }
           },
           "purchaseorderlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderLine"
-            },
-            "nullable": true
+            }
           },
           "unit": {
             "$ref": "#/components/schemas/Unit"
@@ -18014,8 +17748,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StocktakeLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -18024,16 +17757,13 @@
         "type": "object",
         "properties": {
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "isActive": {
             "type": "boolean"
@@ -18047,16 +17777,14 @@
             "format": "double"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
             "type": "string",
             "nullable": true
           },
           "warehouseId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseName": {
             "type": "string",
@@ -18072,8 +17800,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/IngredientDto"
@@ -18091,8 +17818,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/IngredientDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -18129,8 +17855,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/IngredientDtoPagedResponseDto"
@@ -18146,12 +17871,10 @@
         "properties": {
           "issueId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "issueCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "issueDate": {
             "type": "string",
@@ -18163,18 +17886,15 @@
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "materialRequestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "issuedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "receivedBy": {
             "type": "string",
@@ -18194,15 +17914,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssueLine"
-            },
-            "nullable": true
+            }
           },
           "inventoryreturns": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturn"
-            },
-            "nullable": true
+            }
           },
           "issuedByNavigation": {
             "$ref": "#/components/schemas/User"
@@ -18224,23 +17942,19 @@
         "properties": {
           "issueLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "issueId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requestedQty": {
             "type": "number",
@@ -18267,12 +17981,10 @@
         "properties": {
           "receiptId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "receiptCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "receiptDate": {
             "type": "string",
@@ -18280,13 +17992,11 @@
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestId": {
             "type": "string",
@@ -18295,8 +18005,7 @@
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "createdAt": {
             "type": "string",
@@ -18309,8 +18018,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceiptLine"
-            },
-            "nullable": true
+            }
           },
           "purchaseRequest": {
             "$ref": "#/components/schemas/PurchaseRequest"
@@ -18329,13 +18037,11 @@
         "properties": {
           "receiptLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "receiptId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestLineId": {
             "type": "string",
@@ -18344,13 +18050,11 @@
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "quantity": {
             "type": "number",
@@ -18416,12 +18120,10 @@
         "properties": {
           "returnId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "returnCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "returnDate": {
             "type": "string",
@@ -18432,18 +18134,15 @@
             "nullable": true
           },
           "returnType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "issueId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "reason": {
             "type": "string",
@@ -18451,8 +18150,7 @@
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "createdAt": {
             "type": "string",
@@ -18478,8 +18176,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturnLine"
-            },
-            "nullable": true
+            }
           },
           "issue": {
             "$ref": "#/components/schemas/InventoryIssue"
@@ -18495,23 +18192,19 @@
         "properties": {
           "returnLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "returnId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "quantity": {
             "type": "number",
@@ -18533,12 +18226,10 @@
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "orderId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actualQuantity": {
             "type": "integer",
@@ -18573,15 +18264,13 @@
             "nullable": true
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "lines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LockOrderPlanLineRequest"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -18597,19 +18286,16 @@
             "format": "date-time"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "lockedShiftNames": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "lockedLineCount": {
             "type": "integer",
@@ -18625,8 +18311,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/LockOrderPlanResultDto"
@@ -18659,16 +18344,13 @@
         "type": "object",
         "properties": {
           "accessToken": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "refreshToken": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "tokenType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "expiresIn": {
             "type": "integer",
@@ -18687,8 +18369,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/LoginResponseDto"
@@ -18703,20 +18384,16 @@
         "type": "object",
         "properties": {
           "materialRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "newStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approvedAt": {
             "type": "string",
@@ -18732,8 +18409,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MaterialDemandApprovalDto"
@@ -18758,24 +18434,19 @@
         "type": "object",
         "properties": {
           "materialRequestLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "bomId": {
             "type": "string",
@@ -18786,20 +18457,16 @@
             "format": "double"
           },
           "bomScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalServings": {
             "type": "integer",
@@ -18818,8 +18485,7 @@
             "nullable": true
           },
           "appliedPortionRuleSource": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "appliedPortionRatePercent": {
             "type": "number",
@@ -18849,24 +18515,19 @@
         "type": "object",
         "properties": {
           "materialRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "productionPlanLineCount": {
             "type": "integer",
@@ -18876,22 +18537,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialDemandLineDto"
-            },
-            "nullable": true
+            }
           },
           "missingBomDishes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MissingBomDishDto"
-            },
-            "nullable": true
+            }
           },
           "missingConversionIssues": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MissingUnitConversionIssueDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -18903,8 +18561,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MaterialDemandResultDto"
@@ -18951,8 +18608,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -18964,8 +18620,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MaterialDemandStalenessDto"
@@ -18981,34 +18636,28 @@
         "properties": {
           "requestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "planId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requestDate": {
             "type": "string",
             "format": "date"
           },
           "requestScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "approvedBy": {
             "type": "string",
@@ -19030,15 +18679,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssue"
-            },
-            "nullable": true
+            }
           },
           "materialrequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequestLine"
-            },
-            "nullable": true
+            }
           },
           "plan": {
             "$ref": "#/components/schemas/ProductionPlan"
@@ -19051,28 +18698,23 @@
         "properties": {
           "requestLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "planLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "bomId": {
             "type": "string",
@@ -19084,8 +18726,7 @@
             "format": "double"
           },
           "bomScope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalServings": {
             "type": "integer",
@@ -19105,8 +18746,7 @@
             "nullable": true
           },
           "appliedPortionRuleSource": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "appliedPortionRatePercent": {
             "type": "number",
@@ -19142,8 +18782,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
-            },
-            "nullable": true
+            }
           },
           "request": {
             "$ref": "#/components/schemas/MaterialRequest"
@@ -19159,8 +18798,7 @@
         "properties": {
           "quantityPlanId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "importBatchId": {
             "type": "string",
@@ -19168,16 +18806,14 @@
             "nullable": true
           },
           "planCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
             "type": "string",
             "format": "date"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "forecastReceivedAt": {
             "type": "string",
@@ -19225,8 +18861,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlanLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19235,24 +18870,19 @@
         "type": "object",
         "properties": {
           "quantityPlanId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "planCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dayOfWeek": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "forecastReceivedAt": {
             "type": "string",
@@ -19268,8 +18898,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlanLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19281,8 +18910,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MealQuantityPlanDto"
@@ -19300,8 +18928,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -19321,32 +18948,26 @@
         "properties": {
           "quantityPlanLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "quantityPlanId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuScheduleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "forecastServings": {
             "type": "integer",
@@ -19381,8 +19002,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
-            },
-            "nullable": true
+            }
           },
           "quantityPlan": {
             "$ref": "#/components/schemas/MealQuantityPlan"
@@ -19391,8 +19011,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuantityAdjustment"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19401,44 +19020,34 @@
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuScheduleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shift": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "forecastServings": {
             "type": "integer",
@@ -19464,16 +19073,13 @@
         "properties": {
           "menuId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fromDate": {
             "type": "string",
@@ -19493,29 +19099,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlanLine"
-            },
-            "nullable": true
+            }
           },
           "menuitems": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuItem"
-            },
-            "nullable": true
+            }
           },
           "menuschedules": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuSchedule"
-            },
-            "nullable": true
+            }
           },
           "productionplanlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19587,8 +19189,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19600,8 +19201,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MenuImportHistoryDto"
@@ -19617,18 +19217,15 @@
         "properties": {
           "menuItemId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishSlot": {
             "type": "string",
@@ -19652,18 +19249,15 @@
         "properties": {
           "menuScheduleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "serviceDate": {
             "type": "string",
@@ -19674,8 +19268,7 @@
             "format": "date"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuPrice": {
             "type": "number",
@@ -19686,8 +19279,7 @@
             "format": "double"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuVersionId": {
             "type": "string",
@@ -19701,8 +19293,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlanLine"
-            },
-            "nullable": true
+            }
           },
           "menu": {
             "$ref": "#/components/schemas/Menu"
@@ -19717,16 +19308,13 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishGroup": {
             "type": "string",
@@ -19747,52 +19335,40 @@
         "type": "object",
         "properties": {
           "menuScheduleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shift": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dayOfWeek": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuPrice": {
             "type": "number",
@@ -19803,8 +19379,7 @@
             "format": "double"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuVersionId": {
             "type": "string",
@@ -19835,8 +19410,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuScheduleDishDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19848,8 +19422,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MenuScheduleDto"
@@ -19867,8 +19440,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -19888,13 +19460,11 @@
         "properties": {
           "menuVersionId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "weekStartDate": {
             "type": "string",
@@ -19905,8 +19475,7 @@
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceFileName": {
             "type": "string",
@@ -19962,8 +19531,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MenuSchedule"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -19972,24 +19540,20 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "activeMenuVersionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "activeVersionNo": {
             "type": "integer",
             "format": "int32"
           },
           "rolledBackFromMenuVersionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "rolledBackFromVersionNo": {
             "type": "integer",
@@ -20004,8 +19568,7 @@
             "format": "int32"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20017,8 +19580,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/MenuVersionRollbackResultDto"
@@ -20033,48 +19595,38 @@
         "type": "object",
         "properties": {
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalServings": {
             "type": "integer",
             "format": "int32"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20083,36 +19635,28 @@
         "type": "object",
         "properties": {
           "issueId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceUnitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceUnitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetUnitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetUnitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20122,13 +19666,11 @@
         "properties": {
           "portionRuleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishId": {
             "type": "string",
@@ -20187,12 +19729,10 @@
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -20215,20 +19755,16 @@
         "type": "object",
         "properties": {
           "portionRuleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishId": {
             "type": "string",
@@ -20243,8 +19779,7 @@
             "nullable": true
           },
           "effectiveFrom": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveTo": {
             "type": "string",
@@ -20254,15 +19789,13 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "shiftNames": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "menuVariant": {
             "type": "string",
@@ -20299,16 +19832,13 @@
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ruleSource": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20320,8 +19850,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PortionRuleDto"
@@ -20339,8 +19868,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -20387,12 +19915,10 @@
         "properties": {
           "planId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "planCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "planDate": {
             "type": "string",
@@ -20414,13 +19940,11 @@
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "createdAt": {
             "type": "string",
@@ -20456,15 +19980,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequest"
-            },
-            "nullable": true
+            }
           },
           "productionplanlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlanLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -20474,37 +19996,30 @@
         "properties": {
           "planLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "planId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "quantityPlanLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "customerId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "menuId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "dishId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "totalServings": {
             "type": "integer",
@@ -20520,8 +20035,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequestLine"
-            },
-            "nullable": true
+            }
           },
           "menu": {
             "$ref": "#/components/schemas/Menu"
@@ -20539,52 +20053,41 @@
         "type": "object",
         "properties": {
           "actionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actionType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceKey": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "businessKey": {
             "type": "string",
             "nullable": true
           },
           "targetType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "reasonCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "beforeEvidence": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "beforeHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "afterEvidence": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "afterHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "actionHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20610,8 +20113,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "backupRestoreEvidence": {
             "$ref": "#/components/schemas/BackupRestoreEvidenceRequest"
@@ -20623,16 +20125,13 @@
         "type": "object",
         "properties": {
           "manifestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "runId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "auditReference": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "applied": {
             "type": "boolean"
@@ -20648,8 +20147,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseHistoryBlockerDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -20661,8 +20159,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseHistoryApplyResultDto"
@@ -20677,24 +20174,19 @@
         "type": "object",
         "properties": {
           "blockerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "code": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "field": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "rawValue": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceSheet": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceRow": {
             "type": "integer",
@@ -20704,8 +20196,7 @@
             "type": "object",
             "additionalProperties": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -20714,28 +20205,22 @@
         "type": "object",
         "properties": {
           "manifestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "manifestHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceSha256": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "policyVersion": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "databaseFingerprint": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "asOfDate": {
             "type": "string",
@@ -20766,8 +20251,7 @@
             "additionalProperties": {
               "type": "integer",
               "format": "int32"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -20782,19 +20266,16 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseHistoryActionDto"
-            },
-            "nullable": true
+            }
           },
           "blockers": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseHistoryBlockerDto"
-            },
-            "nullable": true
+            }
           },
           "previewedBy": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -20806,8 +20287,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseHistoryPreviewDto"
@@ -20827,27 +20307,22 @@
         "properties": {
           "purchaseLineSupplierDecisionId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "evidenceType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "evidenceDate": {
             "type": "string",
@@ -20867,24 +20342,21 @@
           },
           "confirmedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "confirmedAt": {
             "type": "string",
             "format": "date-time"
           },
           "decisionFingerprint": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "version": {
             "type": "integer",
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "currentDecisionKey": {
             "type": "string",
@@ -20916,15 +20388,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseLineSupplierDecision"
-            },
-            "nullable": true
+            }
           },
           "purchasepriceexceptions": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchasePriceException"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -20933,23 +20403,19 @@
         "type": "object",
         "properties": {
           "purchaseLineSupplierDecisionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceType": {
             "$ref": "#/components/schemas/SupplierEvidenceType"
           },
           "evidenceId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceReferencePrice": {
             "type": "number",
@@ -20960,28 +20426,23 @@
             "format": "double"
           },
           "proposedDeliveryDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "confirmedBy": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "confirmedAt": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "decisionFingerprint": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "version": {
             "type": "integer",
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supersededByDecisionId": {
             "type": "string",
@@ -21001,8 +20462,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseLineSupplierDecisionDto"
@@ -21018,35 +20478,29 @@
         "properties": {
           "purchaseOrderId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseOrderCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "orderDate": {
             "type": "string",
             "format": "date"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "createdAt": {
             "type": "string",
@@ -21069,8 +20523,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21079,43 +20532,34 @@
         "type": "object",
         "properties": {
           "purchaseOrderId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseOrderCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "orderDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "lines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21127,8 +20571,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseOrderDto"
@@ -21146,8 +20589,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -21169,8 +20611,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -21205,28 +20646,23 @@
         "properties": {
           "purchaseOrderLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseOrderId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "orderedQty": {
             "type": "number",
@@ -21259,28 +20695,22 @@
         "type": "object",
         "properties": {
           "purchaseOrderLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "orderedQty": {
             "type": "number",
@@ -21321,8 +20751,7 @@
             "additionalProperties": {
               "type": "integer",
               "format": "int32"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21334,8 +20763,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseOrderPageDto"
@@ -21351,13 +20779,11 @@
         "properties": {
           "purchasePriceExceptionId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseLineSupplierDecisionId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "referencePrice": {
             "type": "number",
@@ -21372,25 +20798,21 @@
             "format": "double"
           },
           "evidenceType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "evidenceDate": {
             "type": "string",
             "format": "date"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "proposalFingerprint": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "proposalVersion": {
             "type": "integer",
@@ -21398,16 +20820,14 @@
           },
           "requestedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requestedAt": {
             "type": "string",
             "format": "date-time"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "decidedBy": {
             "type": "string",
@@ -21448,8 +20868,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchasePriceException"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21458,16 +20877,13 @@
         "type": "object",
         "properties": {
           "purchaseOrderLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "lotNumberRequired": {
             "type": "boolean"
@@ -21490,12 +20906,10 @@
         "properties": {
           "purchaseRequestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requestDate": {
             "type": "string",
@@ -21510,13 +20924,11 @@
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "approvedBy": {
             "type": "string",
@@ -21538,22 +20950,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceipt"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
-            },
-            "nullable": true
+            }
           },
           "purchaseorders": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrder"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21563,23 +20972,19 @@
         "properties": {
           "purchaseRequestLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "purchaseRequestId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "materialRequestLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierId": {
             "type": "string",
@@ -21588,8 +20993,7 @@
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "requiredQty": {
             "type": "number",
@@ -21626,8 +21030,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceiptLine"
-            },
-            "nullable": true
+            }
           },
           "materialRequestLine": {
             "$ref": "#/components/schemas/MaterialRequestLine"
@@ -21648,8 +21051,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseLineSupplierDecision"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21658,20 +21060,16 @@
         "type": "object",
         "properties": {
           "purchaseRequestLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "materialRequestLineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
             "type": "string",
@@ -21682,12 +21080,10 @@
             "nullable": true
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "requiredQty": {
             "type": "number",
@@ -21714,8 +21110,7 @@
             "nullable": true
           },
           "supplierDecisionStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "currentSupplierDecision": {
             "$ref": "#/components/schemas/PurchaseLineSupplierDecisionDto"
@@ -21724,8 +21119,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseLineSupplierDecisionDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21734,35 +21128,29 @@
         "type": "object",
         "properties": {
           "purchaseRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseRequestCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "materialRequestId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseForDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
             "type": "string",
             "nullable": true
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "lines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestWorkflowLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21774,8 +21162,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseRequestWorkflowResultDto"
@@ -21793,8 +21180,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -21816,8 +21202,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestWorkflowResultDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -21854,8 +21239,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseRequestWorkflowResultDtoPagedResponseDto"
@@ -21870,16 +21254,13 @@
         "type": "object",
         "properties": {
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "scope": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "currentStage": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "approvedDemandCount": {
             "type": "integer",
@@ -21925,15 +21306,13 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ApprovedDemandSummaryDto"
-            },
-            "nullable": true
+            }
           },
           "purchaseLines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestWorkflowLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21942,12 +21321,10 @@
         "type": "object",
         "properties": {
           "weekStart": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekEnd": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "selectedDate": {
             "type": "string",
@@ -21980,8 +21357,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseWorkbenchServiceDateDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -21993,8 +21369,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/PurchaseWorkbenchWeekDto"
@@ -22040,13 +21415,11 @@
         "properties": {
           "adjustmentId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "quantityPlanLineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "oldServings": {
             "type": "integer",
@@ -22062,8 +21435,7 @@
           },
           "adjustedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "adjustedAt": {
             "type": "string",
@@ -22083,20 +21455,17 @@
         "properties": {
           "importBatchId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "batchCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceCompanyName": {
             "type": "string",
             "nullable": true
           },
           "sourceType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "importedBy": {
             "type": "string",
@@ -22108,8 +21477,7 @@
             "format": "date-time"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "importedByNavigation": {
             "$ref": "#/components/schemas/User"
@@ -22118,8 +21486,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlan"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -22167,21 +21534,17 @@
         "properties": {
           "tokenId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "userId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "tokenHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "deviceInfo": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdAt": {
             "type": "string",
@@ -22216,12 +21579,10 @@
         "type": "object",
         "properties": {
           "accessToken": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "refreshToken": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22230,8 +21591,7 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22240,8 +21600,7 @@
         "type": "object",
         "properties": {
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22250,12 +21609,10 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
             "type": "string",
@@ -22292,8 +21649,7 @@
             "nullable": true
           },
           "source": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "portionRatePercent": {
             "type": "number",
@@ -22313,8 +21669,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -22326,8 +21681,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/ResolvedPortionRuleDto"
@@ -22342,8 +21696,7 @@
         "type": "object",
         "properties": {
           "refreshToken": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22353,23 +21706,19 @@
         "properties": {
           "roleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "roleCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "users": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/User"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -22378,12 +21727,10 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "targetVersionNo": {
             "type": "integer",
@@ -22395,8 +21742,7 @@
             "nullable": true
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22405,8 +21751,7 @@
         "type": "object",
         "properties": {
           "menuVersionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "menuSchedulesRemoved": {
             "type": "integer",
@@ -22422,8 +21767,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/RollbackWeeklyMenuImportResultDto"
@@ -22438,16 +21782,13 @@
         "type": "object",
         "properties": {
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "domain": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "rowsScanned": {
             "type": "integer",
@@ -22630,15 +21971,13 @@
             "type": "boolean"
           },
           "sourceDirectory": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "files": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SampleDataFileResultDto"
-            },
-            "nullable": true
+            }
           },
           "counts": {
             "$ref": "#/components/schemas/SampleDataImportCountsDto"
@@ -22647,15 +21986,13 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "importedWeeklyMenu": {
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/ImportedDayMenuDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -22667,8 +22004,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SampleDataImportResultDto"
@@ -22683,12 +22019,10 @@
         "type": "object",
         "properties": {
           "domain": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "displayName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "rowCount": {
             "type": "integer",
@@ -22698,12 +22032,10 @@
             "type": "boolean"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "notes": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -22716,15 +22048,13 @@
             "format": "date-time"
           },
           "overallStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "domains": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SampleImportDomainStatusDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -22736,8 +22066,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SampleImportStatusDto"
@@ -22766,8 +22095,7 @@
         "type": "object",
         "properties": {
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
             "type": "string",
@@ -22801,20 +22129,16 @@
             "type": "boolean"
           },
           "quantityPlanId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "oldStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "newStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "signedOffAt": {
             "type": "string",
@@ -22830,8 +22154,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SignoffOrderResultDto"
@@ -22847,8 +22170,7 @@
         "properties": {
           "movementId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "movementDate": {
             "type": "string",
@@ -22856,22 +22178,18 @@
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "movementType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "refTable": {
             "type": "string",
@@ -22922,8 +22240,7 @@
           },
           "performedBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredient": {
             "$ref": "#/components/schemas/Ingredient"
@@ -22945,23 +22262,19 @@
         "properties": {
           "snapshotId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "periodMonth": {
             "type": "string",
@@ -23004,21 +22317,17 @@
         "properties": {
           "stocktakeId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "stocktakeCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "notes": {
             "type": "string",
@@ -23026,8 +22335,7 @@
           },
           "createdBy": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "createdAt": {
             "type": "string",
@@ -23047,8 +22355,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StocktakeLine"
-            },
-            "nullable": true
+            }
           },
           "warehouse": {
             "$ref": "#/components/schemas/Warehouse"
@@ -23066,32 +22373,26 @@
         "type": "object",
         "properties": {
           "stocktakeId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "stocktakeCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "notes": {
             "type": "string",
             "nullable": true
           },
           "createdBy": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "createdByName": {
             "type": "string",
@@ -23118,8 +22419,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StocktakeLineDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -23131,8 +22431,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/StocktakeDto"
@@ -23150,8 +22449,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StocktakeDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -23188,8 +22486,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/StocktakeDtoPagedResponseDto"
@@ -23205,23 +22502,19 @@
         "properties": {
           "lineId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "stocktakeId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "systemQty": {
             "type": "number",
@@ -23257,24 +22550,19 @@
         "type": "object",
         "properties": {
           "lineId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "systemQty": {
             "type": "number",
@@ -23304,8 +22592,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -23327,8 +22614,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "object",
@@ -23349,16 +22635,13 @@
         "properties": {
           "supplierId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "debtPolicy": {
             "type": "string",
@@ -23388,29 +22671,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceipt"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
-            },
-            "nullable": true
+            }
           },
           "supplierquotations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SupplierQuotation"
-            },
-            "nullable": true
+            }
           },
           "purchaseorders": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrder"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -23419,8 +22698,7 @@
         "type": "object",
         "properties": {
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierCode": {
             "type": "string",
@@ -23440,8 +22718,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -23463,32 +22740,25 @@
             "$ref": "#/components/schemas/SupplierEvidenceType"
           },
           "evidenceId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitPrice": {
             "type": "number",
@@ -23512,8 +22782,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SupplierEvidenceCandidateDto"
-            },
-            "nullable": true
+            }
           },
           "blocker": {
             "type": "string",
@@ -23523,8 +22792,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -23536,8 +22804,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SupplierEvidenceResultDto"
@@ -23560,18 +22827,15 @@
         "properties": {
           "quotationId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "supplierId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "ingredientId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitPrice": {
             "type": "number",
@@ -23615,32 +22879,26 @@
         "type": "object",
         "properties": {
           "quotationId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "supplierName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "ingredientName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitPrice": {
             "type": "number",
             "format": "double"
           },
           "effectiveFrom": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveTo": {
             "type": "string",
@@ -23666,8 +22924,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SupplierQuotationDto"
@@ -23685,8 +22942,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -23708,8 +22964,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SupplierQuotationDto"
-            },
-            "nullable": true
+            }
           },
           "totalCount": {
             "type": "integer",
@@ -23746,8 +23001,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/SupplierQuotationDtoPagedResponseDto"
@@ -23763,16 +23017,13 @@
         "properties": {
           "unitId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "unitCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "unitName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "baseUnitCode": {
             "type": "string",
@@ -23786,85 +23037,73 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/DishBom"
-            },
-            "nullable": true
+            }
           },
           "ingredients": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Ingredient"
-            },
-            "nullable": true
+            }
           },
           "inventoryissuelines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssueLine"
-            },
-            "nullable": true
+            }
           },
           "inventoryreceiptlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceiptLine"
-            },
-            "nullable": true
+            }
           },
           "inventoryreturnlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturnLine"
-            },
-            "nullable": true
+            }
           },
           "materialrequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequestLine"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequestLine"
-            },
-            "nullable": true
+            }
           },
           "stockmovements": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockMovement"
-            },
-            "nullable": true
+            }
           },
           "currentstocks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStock"
-            },
-            "nullable": true
+            }
           },
           "currentstocklots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStockLot"
-            },
-            "nullable": true
+            }
           },
           "stocksnapshots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockSnapshot"
-            },
-            "nullable": true
+            }
           },
           "purchaseorderlines": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrderLine"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24005,20 +23244,17 @@
         "type": "object",
         "properties": {
           "fullName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "password": {
             "type": "string",
             "nullable": true
           },
           "roleId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "isActive": {
             "type": "boolean"
@@ -24043,8 +23279,7 @@
             "format": "int32"
           },
           "reason": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -24110,8 +23345,7 @@
         "type": "object",
         "properties": {
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "reason": {
             "type": "string",
@@ -24243,8 +23477,7 @@
             "format": "double"
           },
           "effectiveFrom": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "effectiveTo": {
             "type": "string",
@@ -24264,16 +23497,13 @@
         "type": "object",
         "properties": {
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "servings": {
             "type": "integer",
@@ -24290,25 +23520,20 @@
         "properties": {
           "userId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "fullName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "passwordHash": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "isActive": {
             "type": "boolean",
@@ -24322,106 +23547,91 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/AuditLog"
-            },
-            "nullable": true
+            }
           },
           "bomadjustments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/BomAdjustment"
-            },
-            "nullable": true
+            }
           },
           "inventoryissueIssuedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssue"
-            },
-            "nullable": true
+            }
           },
           "inventoryissueReceivedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssue"
-            },
-            "nullable": true
+            }
           },
           "inventoryreceipts": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceipt"
-            },
-            "nullable": true
+            }
           },
           "inventoryreturns": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturn"
-            },
-            "nullable": true
+            }
           },
           "materialrequestApprovedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequest"
-            },
-            "nullable": true
+            }
           },
           "materialrequestCreatedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MaterialRequest"
-            },
-            "nullable": true
+            }
           },
           "mealquantityplans": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/MealQuantityPlan"
-            },
-            "nullable": true
+            }
           },
           "productionplans": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/ProductionPlan"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestApprovedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequest"
-            },
-            "nullable": true
+            }
           },
           "purchaserequestCreatedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseRequest"
-            },
-            "nullable": true
+            }
           },
           "purchaseorders": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseOrder"
-            },
-            "nullable": true
+            }
           },
           "quantityadjustments": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuantityAdjustment"
-            },
-            "nullable": true
+            }
           },
           "quantityimportbatches": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/QuantityImportBatch"
-            },
-            "nullable": true
+            }
           },
           "role": {
             "$ref": "#/components/schemas/Role"
@@ -24430,29 +23640,25 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockMovement"
-            },
-            "nullable": true
+            }
           },
           "refreshtokens": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/RefreshToken"
-            },
-            "nullable": true
+            }
           },
           "stocktakesCreatedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Stocktake"
-            },
-            "nullable": true
+            }
           },
           "stocktakesApprovedByNavigations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Stocktake"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24461,24 +23667,19 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "fullName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "username": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "roleName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "isActive": {
             "type": "boolean"
@@ -24490,8 +23691,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24503,8 +23703,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/UserInfoDto"
@@ -24525,8 +23724,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "isAdmin": {
             "type": "boolean"
@@ -24541,8 +23739,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/UserProfileResponseDto"
@@ -24558,20 +23755,16 @@
         "properties": {
           "warehouseId": {
             "type": "string",
-            "format": "byte",
-            "nullable": true
+            "format": "byte"
           },
           "warehouseCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "warehouseType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "note": {
             "type": "string",
@@ -24581,64 +23774,55 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Ingredient"
-            },
-            "nullable": true
+            }
           },
           "inventoryissues": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryIssue"
-            },
-            "nullable": true
+            }
           },
           "inventoryreceipts": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReceipt"
-            },
-            "nullable": true
+            }
           },
           "inventoryreturns": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/InventoryReturn"
-            },
-            "nullable": true
+            }
           },
           "stockmovements": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockMovement"
-            },
-            "nullable": true
+            }
           },
           "currentstocks": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStock"
-            },
-            "nullable": true
+            }
           },
           "currentstocklots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/CurrentStockLot"
-            },
-            "nullable": true
+            }
           },
           "stocksnapshots": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/StockSnapshot"
-            },
-            "nullable": true
+            }
           },
           "stocktakes": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Stocktake"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24705,27 +23889,22 @@
         "type": "object",
         "properties": {
           "receiptId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseOrderId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "idempotencyKey": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "purchaseOrderStatus": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "evidenceRequirements": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/PurchaseReceiptEvidenceRequirementsDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24737,8 +23916,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/WarehousePurchaseReceiptResultDto"
@@ -24753,16 +23931,14 @@
         "type": "object",
         "properties": {
           "column": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "serviceDate": {
             "type": "string",
             "format": "date"
           },
           "label": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -24790,8 +23966,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WeeklyMenuImportDiffRowDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -24800,20 +23975,16 @@
         "type": "object",
         "properties": {
           "serviceDate": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "variant": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "slot": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "currentDishName": {
             "type": "string",
@@ -24824,8 +23995,7 @@
             "nullable": true
           },
           "changeType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -24834,20 +24004,16 @@
         "type": "object",
         "properties": {
           "menuVersionId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
             "type": "string",
@@ -24858,8 +24024,7 @@
             "format": "int32"
           },
           "status": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceFileName": {
             "type": "string",
@@ -24902,8 +24067,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "type": "array",
@@ -24922,26 +24086,22 @@
         "type": "object",
         "properties": {
           "sheetName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "labelColumn": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dayColumns": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WeeklyMenuImportColumnDto"
-            },
-            "nullable": true
+            }
           },
           "sections": {
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "rowsScanned": {
             "type": "integer",
@@ -24965,20 +24125,16 @@
             "type": "boolean"
           },
           "fileName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerCode": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "customerName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "weekStartDate": {
             "type": "string",
@@ -25025,8 +24181,7 @@
             "type": "array",
             "items": {
               "type": "string"
-            },
-            "nullable": true
+            }
           },
           "validation": {
             "$ref": "#/components/schemas/WeeklyMenuImportValidationDto"
@@ -25035,8 +24190,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WeeklyMenuImportRowDto"
-            },
-            "nullable": true
+            }
           },
           "previewDiff": {
             "$ref": "#/components/schemas/WeeklyMenuImportDiffDto"
@@ -25045,8 +24199,7 @@
             "type": "object",
             "additionalProperties": {
               "$ref": "#/components/schemas/ImportedDayMenuDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -25058,8 +24211,7 @@
             "type": "boolean"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "data": {
             "$ref": "#/components/schemas/WeeklyMenuImportResultDto"
@@ -25078,44 +24230,35 @@
             "format": "date"
           },
           "dayKey": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceRowNumber": {
             "type": "integer",
             "format": "int32"
           },
           "sourceColumn": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceSection": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sourceShift": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dbShiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "variant": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "slot": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "slotLabel": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "rowSpan": {
             "type": "integer",
@@ -25155,8 +24298,7 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/WeeklyMenuImportValidationIssueDto"
-            },
-            "nullable": true
+            }
           }
         },
         "additionalProperties": false
@@ -25165,16 +24307,13 @@
         "type": "object",
         "properties": {
           "severity": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "code": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "message": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "sheetName": {
             "type": "string",
@@ -25208,16 +24347,13 @@
             "format": "date"
           },
           "shiftName": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "slotType": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           },
           "dishId": {
-            "type": "string",
-            "nullable": true
+            "type": "string"
           }
         },
         "additionalProperties": false
