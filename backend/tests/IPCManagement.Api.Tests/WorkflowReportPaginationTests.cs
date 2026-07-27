@@ -79,7 +79,7 @@ public class WorkflowReportPaginationTests
         await context.SaveChangesAsync();
         (await context.Currentstocks.CountAsync()).Should().Be(3);
 
-        var result = await new WorkflowReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
+        var result = await new StockMovementReportService(context).GetCurrentStockPageAsync(new CurrentStockPageQueryDto
         {
             PageNumber = 1,
             PageSize = 2,
