@@ -558,6 +558,20 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 `query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
 Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo từng commit nguyên tử.
 
+### Bước 13 — backend boundary (đang thực hiện)
+
+- Commit `97bb33f refactor(be-boundary): remove purchasing reports cycle` gỡ cycle đầu tiên:
+  `Purchasing→Reports` **3 → 0** reference; architecture baseline bỏ hẳn ceiling cạnh này.
+- `WorkflowReportQueryDto` và `WorkflowReportPageQueryDto` là transport contract thực sự dùng chung,
+  đã chuyển nguyên shape/default/clamp sang `Shared/Contracts`; `PurchasePlanReportDto` về feature
+  Purchasing. Contract Swagger/TypeScript regenerate deterministic, không drift.
+- `PurchaseRequestWorkflowService.HasPriceException` dùng `PurchasePricePolicy` thuộc Purchasing thay
+  `WorkflowReportCalculator`; purchase-plan/candidate/workbench targeted **12/12**.
+- Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
+  dependency FE không tăng, production build xanh, EF migration snapshot sạch.
+- Còn ba cycle: `Approvals→Coordination` 1, `Coordination→SampleData` 2,
+  `Purchasing→Planning` 1; sau đó bỏ direct DbContext khỏi hai controller theo Gate 13.
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.

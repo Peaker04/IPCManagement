@@ -482,6 +482,12 @@ full static gate kế thừa Gate 11 vẫn xanh.
 **Gate 13:** architecture test không còn baseline cycle; controller không truy cập DbContext trực tiếp;
 namespace/path gate và migration diff đều xanh.
 
+**Trạng thái:** đang thực hiện. Cycle `Purchasing↔Reports` đã gỡ tại `97bb33f`:
+`Purchasing→Reports` từ 3 reference về 0 và ceiling legacy đã bỏ, nên tái xuất hiện sẽ
+làm architecture test đỏ. `WorkflowReportQueryDto`/`WorkflowReportPageQueryDto` chuyển nguyên
+contract sang `Shared/Contracts`; `PurchasePlanReportDto` về Purchasing; price-exception classification
+dùng `PurchasePricePolicy`. Còn ba cycle và hai controller truy cập DbContext trực tiếp.
+
 ### Bước 14 — P1: tách backend theo use case và functional core
 
 **Mục tiêu:** xử lý controller/service đang phình sau khi dependency direction đã ổn định.
