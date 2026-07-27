@@ -5,18 +5,27 @@ import type { WeeklyMenuScope } from './types'
 
 const plans = [{
   quantityPlanId: 'plan-1',
+  planCode: 'QTY-001',
   serviceDate: '2026-07-20T00:00:00',
+  dayOfWeek: 't2',
   status: 'COMPLETED',
   lines: [{
     quantityPlanLineId: 'line-1',
+    menuScheduleId: 'schedule-1',
     customerId: 'customer-1',
+    customerCode: 'KH001',
+    customerName: 'Khách hàng 1',
+    menuId: 'menu-1',
+    menuCode: 'MENU001',
+    menuName: 'Menu 1',
     shiftName: 'MORNING',
+    shift: 'Ca Sáng',
     forecastServings: 120,
     confirmedServings: 100,
     adjustedServings: 40,
     finalServings: 0,
   }],
-}] as MealQuantityPlanDto[]
+}] satisfies MealQuantityPlanDto[]
 
 describe('weekly schedule model', () => {
   it('preserves an authoritative zero final serving instead of falling back to older values', () => {

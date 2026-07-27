@@ -25,6 +25,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy danh sách tất cả kho.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<WarehouseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _warehouseService.GetPagedAsync(request);
@@ -33,6 +34,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy toàn bộ kho cho các bộ chọn nghiệp vụ.</summary>
     [HttpGet("selector")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WarehouseDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetSelectorAsync()
     {
         var warehouses = new List<WarehouseDto>();
@@ -56,6 +58,7 @@ public class WarehousesController : ControllerBase
 
     /// <summary>Lấy chi tiết kho theo ID.</summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<WarehouseDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _warehouseService.GetByIdAsync(id);

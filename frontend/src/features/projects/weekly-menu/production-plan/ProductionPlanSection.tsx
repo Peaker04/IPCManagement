@@ -46,7 +46,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
         ) : (
           <>
             {activePage?.plans.map((plan) => {
-              const planStatus = getWorkflowStatusPresentation(plan.status)
+              const planStatus = getWorkflowStatusPresentation(plan.status ?? undefined)
               return <article key={plan.planId} className="ipc-fiori-object-card">
                 <div className="ipc-fiori-object-card__header">
                   <div><span>Mã KHSX</span><h3>{plan.planCode}</h3></div>
@@ -66,7 +66,7 @@ export function ProductionPlanSection({ workflow }: { workflow: WeeklyProduction
                 >
                   <table className="ipc-data-table">
                     <thead><tr><th className="w-[20%] text-left">Ca</th><th className="w-[50%] text-left">Món ăn</th><th className="w-[30%] text-right">Số lượng (suất)</th></tr></thead>
-                    <tbody>{plan.lines.map((line) => <tr key={line.planLineId}><td>{getShiftLabel(line.shiftName)}</td><td>{line.dishName ?? '-'}</td><td className="text-right font-medium">{line.totalServings}</td></tr>)}</tbody>
+                    <tbody>{plan.lines.map((line) => <tr key={line.planLineId}><td>{getShiftLabel(line.shiftName ?? undefined)}</td><td>{line.dishName ?? '-'}</td><td className="text-right font-medium">{line.totalServings}</td></tr>)}</tbody>
                   </table>
                 </TableViewport>
               </article>

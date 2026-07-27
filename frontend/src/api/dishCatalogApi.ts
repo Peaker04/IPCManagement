@@ -1,57 +1,12 @@
 import { apiSlice } from '@/api/apiSlice';
+import { workflowCacheTags } from '@/api/workflowCacheTags';
+import type { components } from '@/shared/api/contracts/schema';
 import type { ApiResponse } from '@/types/api';
 
-interface PagedResponse<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  hasPrev: boolean;
-  hasNext: boolean;
-}
-
-export interface DishCatalogBomLineDto {
-  bomId: string;
-  ingredientId: string;
-  ingredientCode: string;
-  ingredientName: string;
-  unitId: string;
-  unitCode: string;
-  unitName: string;
-  customerId?: string | null;
-  customerCode?: string | null;
-  customerName?: string | null;
-  priceTierAmount: number;
-  bomScope: string;
-  grossQtyPerServing: number;
-  wasteRatePercent: number;
-  bomStatus: string;
-  bomStatusLabel: string;
-  effectiveFrom: string;
-  effectiveTo?: string | null;
-  referencePrice: number;
-}
-
-export interface DishCatalogDto {
-  dishId: string;
-  dishCode: string;
-  dishName: string;
-  dishType?: string | null;
-  dishGroup?: string | null;
-  isActive: boolean;
-  menuSlots: string[];
-  bomLines: DishCatalogBomLineDto[];
-}
-
-export interface DishDto {
-  dishId: string;
-  dishCode: string;
-  dishName: string;
-  dishType?: string | null;
-  dishGroup?: string | null;
-  isActive: boolean;
-}
+type IngredientPage = components['schemas']['IngredientDtoPagedResponseDto'];
+export type DishCatalogBomLineDto = components['schemas']['DishCatalogBomLineDto'];
+export type DishCatalogDto = components['schemas']['DishCatalogDto'];
+export type DishDto = components['schemas']['DishDto'];
 
 export interface CatalogIngredient {
   bomId: string;
@@ -84,76 +39,14 @@ export interface CatalogDish {
   ingredients: CatalogIngredient[];
 }
 
-export interface DishUpsertRequest {
-  dishCode?: string;
-  dishName: string;
-  dishType?: string | null;
-  dishGroup?: string | null;
-  isActive?: boolean;
-}
-
-export interface IngredientLookup {
-  ingredientId: string;
-  ingredientCode: string;
-  ingredientName: string;
-  unitId: string;
-  unitName?: string | null;
-  referencePrice: number;
-  isActive: boolean;
-}
-
-export interface UpsertDishBomLineRequest {
-  dishId: string;
-  bomId?: string;
-  ingredientId: string;
-  unitId?: string;
-  customerId?: string | null;
-  priceTierAmount?: number;
-  grossQtyPerServing: number;
-  wasteRatePercent: number;
-  bomStatus?: string;
-  effectiveFrom?: string;
-  effectiveTo?: string | null;
-  reason?: string;
-}
-
-export interface BomImportPreviewRow {
-  rowNumber: number;
-  dishCode: string;
-  dishName: string;
-  ingredientCode: string;
-  ingredientName: string;
-  unitCode: string;
-  grossQtyPerServing: number;
-  wasteRatePercent: number;
-  effectiveFrom: string;
-  effectiveTo?: string | null;
-  status: 'valid' | 'warning' | 'error';
-  action: string;
-  errors: string[];
-  warnings: string[];
-}
-
-export interface BomImportPreview {
-  generatedAt: string;
-  priceTier: number;
-  customerId?: string | null;
-  bomScope: string;
-  totalRows: number;
-  validRows: number;
-  errorRows: number;
-  warningRows: number;
-  canCommit: boolean;
-  rows: BomImportPreviewRow[];
-  warnings: string[];
-}
-
-export interface BomImportCommitResult extends BomImportPreview {
-  createdRows: number;
-  updatedRows: number;
-  archivedRows: number;
-  auditBatchCode: string;
-}
+export type CreateDishRequest = components['schemas']['CreateDishRequest'];
+export type UpdateDishRequest = components['schemas']['UpdateDishRequest'];
+export type IngredientLookup = components['schemas']['IngredientDto'];
+export type CreateDishBomLineRequest = components['schemas']['CreateDishBomLineRequest'];
+export type UpdateDishBomLineRequest = components['schemas']['UpdateDishBomLineRequest'];
+export type BomImportPreviewRow = components['schemas']['BomImportPreviewRowDto'];
+export type BomImportPreview = components['schemas']['BomImportPreviewDto'];
+export type BomImportCommitResult = components['schemas']['BomImportCommitResultDto'];
 
 export interface BomImportFileRequest {
   file: File;
@@ -172,30 +65,30 @@ export function buildBomImportFormData({ file, priceTier, customerId, effectiveF
 }
 
 const mapCatalogDish = (dish: DishCatalogDto): CatalogDish => ({
-  id: dish.dishId,
-  code: dish.dishCode,
-  name: dish.dishName,
+  id: dish.dishId ?? '',
+  code: dish.dishCode ?? '',
+  name: dish.dishName ?? '',
   dishType: dish.dishType,
   dishGroup: dish.dishGroup,
-  isActive: dish.isActive,
-  menuSlots: dish.menuSlots ?? [],
+  isActive: dish.isActive ?? false,
+  menuSlots: [...(dish.menuSlots ?? [])],
   ingredients: (dish.bomLines ?? []).map((line) => ({
-    bomId: line.bomId,
-    ingredientId: line.ingredientId,
-    ingredientCode: line.ingredientCode,
-    unitId: line.unitId,
+    bomId: line.bomId ?? '',
+    ingredientId: line.ingredientId ?? '',
+    ingredientCode: line.ingredientCode ?? '',
+    unitId: line.unitId ?? '',
     customerId: line.customerId,
     customerCode: line.customerCode,
-    priceTierAmount: line.priceTierAmount,
-    bomScope: line.bomScope,
-    name: line.ingredientName,
-    unit: line.unitName || line.unitCode,
-    grossQtyPerServing: line.grossQtyPerServing,
-    wasteRatePercent: line.wasteRatePercent,
-    bomStatus: line.bomStatus,
-    bomStatusLabel: line.bomStatusLabel,
-    referencePrice: line.referencePrice,
-    effectiveFrom: line.effectiveFrom,
+    priceTierAmount: line.priceTierAmount ?? 0,
+    bomScope: line.bomScope ?? '',
+    name: line.ingredientName ?? '',
+    unit: line.unitName || line.unitCode || '',
+    grossQtyPerServing: line.grossQtyPerServing ?? 0,
+    wasteRatePercent: line.wasteRatePercent ?? 0,
+    bomStatus: line.bomStatus ?? '',
+    bomStatusLabel: line.bomStatusLabel ?? '',
+    referencePrice: line.referencePrice ?? 0,
+    effectiveFrom: line.effectiveFrom ?? '',
     effectiveTo: line.effectiveTo,
   })),
 });
@@ -216,7 +109,7 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         (response.data ?? []).map(mapCatalogDish),
       providesTags: ['DishCatalog'],
     }),
-    createDish: builder.mutation<DishDto, DishUpsertRequest>({
+    createDish: builder.mutation<DishDto, CreateDishRequest>({
       query: (body) => ({
         url: '/dishes',
         method: 'POST',
@@ -225,7 +118,7 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
       transformResponse: (response: ApiResponse<DishDto>) => response.data!,
       invalidatesTags: ['DishCatalog'],
     }),
-    updateDish: builder.mutation<DishDto, { dishId: string; body: DishUpsertRequest }>({
+    updateDish: builder.mutation<DishDto, { dishId: string; body: UpdateDishRequest }>({
       query: ({ dishId, body }) => ({
         url: `/dishes/${dishId}`,
         method: 'PUT',
@@ -250,34 +143,52 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
           ...(args?.searchKeyword ? { searchKeyword: args.searchKeyword } : {}),
         },
       }),
-      transformResponse: (response: ApiResponse<PagedResponse<IngredientLookup>>) =>
+      transformResponse: (response: ApiResponse<IngredientPage>) =>
         (response.data?.items ?? []).filter((ingredient) => ingredient.isActive),
       providesTags: ['Ingredients'],
     }),
-    addDishBomLine: builder.mutation<DishCatalogBomLineDto, UpsertDishBomLineRequest>({
+    addDishBomLine: builder.mutation<DishCatalogBomLineDto, { dishId: string } & CreateDishBomLineRequest>({
       query: ({ dishId, ...body }) => ({
         url: `/dishes/${dishId}/bom`,
         method: 'POST',
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
-    updateDishBomLine: builder.mutation<DishCatalogBomLineDto, UpsertDishBomLineRequest>({
+    updateDishBomLine: builder.mutation<DishCatalogBomLineDto, { dishId: string; bomId: string } & UpdateDishBomLineRequest>({
       query: ({ dishId, bomId, ...body }) => ({
         url: `/dishes/${dishId}/bom/${bomId}`,
         method: 'PUT',
         body,
       }),
       transformResponse: (response: ApiResponse<DishCatalogBomLineDto>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
     closeDishBomLine: builder.mutation<void, { dishId: string; bomId: string }>({
       query: ({ dishId, bomId }) => ({
         url: `/dishes/${dishId}/bom/${bomId}`,
         method: 'DELETE',
       }),
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
     downloadBomTemplate: builder.mutation<Blob, { priceTier: number; customerId?: string; dishId?: string; templateType?: 'missing' | 'blank' | 'dish' }>({
       query: ({ priceTier, customerId, dishId, templateType }) => ({
@@ -301,7 +212,13 @@ export const dishCatalogApi = apiSlice.injectEndpoints({
         body: buildBomImportFormData(request),
       }),
       transformResponse: (response: ApiResponse<BomImportCommitResult>) => response.data!,
-      invalidatesTags: ['DishCatalog', 'WorkflowReports'],
+      invalidatesTags: [
+        'DishCatalog',
+        'MaterialDemandStaleness',
+        workflowCacheTags.dataQuality,
+        workflowCacheTags.ingredientDemand,
+        workflowCacheTags.purchasePlan,
+      ],
     }),
   }),
   overrideExisting: false,

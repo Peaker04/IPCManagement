@@ -28,6 +28,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu nhập kho.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<InventoryReceiptDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _inventoryReceiptService.GetPagedAsync(request);
@@ -36,6 +37,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu nhập kho theo ID (bao gồm các dòng).</summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReceiptDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _inventoryReceiptService.GetByIdAsync(id);
@@ -47,6 +49,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo mới phiếu nhập kho.</summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReceiptCreatedDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReceiptRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);
@@ -63,6 +66,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo phiếu nhập kho từ phiếu mua đã gửi nhà cung cấp.</summary>
     [HttpPost("from-purchase")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryReceiptCreatedDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateFromPurchaseAsync([FromBody] CreateInventoryReceiptFromPurchaseRequest dto)
     {
         try

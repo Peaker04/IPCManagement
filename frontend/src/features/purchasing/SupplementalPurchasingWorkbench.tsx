@@ -56,7 +56,7 @@ export function SupplementalPurchasingWorkbench({ week }: { week: string }) {
     return {
       ...line,
       supplierDecisionStatus: line.supplierDecisionStatus ?? (isSupplierReady(line) ? 'READY' : 'BLOCKED'),
-      currentSupplierDecision: line.currentSupplierDecision ?? null,
+      currentSupplierDecision: line.currentSupplierDecision ?? undefined,
       supplierDecisionHistory: line.supplierDecisionHistory ?? [],
     };
   }, [selectedPurchaseRequest]);

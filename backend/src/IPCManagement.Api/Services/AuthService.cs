@@ -67,6 +67,12 @@ public class AuthService : IAuthService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(request.AccessToken) ||
+                string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return null;
+            }
+
             // 1. Validate chữ ký + claims của access token (bỏ qua expired)
             var principal = _tokenService.GetPrincipalFromExpiredToken(request.AccessToken);
             if (principal is null)
@@ -143,6 +149,11 @@ public class AuthService : IAuthService
     {
         try
         {
+            if (string.IsNullOrWhiteSpace(request.RefreshToken))
+            {
+                return false;
+            }
+
             var tokenHash = _tokenService.HashRefreshToken(request.RefreshToken);
             var stored    = await _refreshTokenRepository.FindByHashAsync(tokenHash);
 
