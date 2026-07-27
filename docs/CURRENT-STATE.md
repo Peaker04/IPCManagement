@@ -13,7 +13,8 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 - Thay đổi UI phải giữ cấu trúc SAP Fiori: work object tách bằng tab, trạng thái/action rõ ràng, không ẩn lỗi dependency thành empty state, layout ổn định khi refetch và có evidence Chrome/Playwright.
 - Button/action và dữ liệu hiển thị phải được đối chiếu với permission, eligibility và terminal state do server trả về. Action không hợp lệ phải ẩn hoặc disable kèm lý do; không được chỉ ẩn trên FE trong khi BE vẫn cho phép mutation sai.
 - Không tự gộp nguyên liệu theo tên. Chứng từ chi tiết giữ document/line grain; báo cáo aggregate theo ID, unit và phạm vi nghiệp vụ.
-- Kiểm thử UI/visual hiện chỉ bao phủ website desktop. Dùng viewport desktop (hiện chọn `1365×900` và `1440×900`); mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
+- Kiểm thử UI/visual hiện chỉ bao phủ website desktop/tablet web. Dùng `1365×900`,
+  `1280×900` và `768×1024`; mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
 - Không dùng mock API, mock login, snapshot/baseline visual cũ hoặc tự update snapshot để kết luận UI hiện tại pass. Phải boot đúng working tree/source hiện tại, xác minh database qua runtime health và chạy Chrome headed trực tiếp vào URL thật.
 
 ## Môi trường Shipyard hiện tại
@@ -374,8 +375,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 44** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 9, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` đang ahead
+`origin/feature/production-plan`, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -527,7 +528,7 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Fix phát hiện trong gate: Warehouse chịu được response supplemental page thiếu `items` và có contract test (`55241f4`); 8 Playwright spec import `ROUTES` từ vị trí hiện hành `src/lib/routeConfig` (`e65effa`). Không update snapshot cũ.
 - Full gate sau thay đổi: backend **629 pass / 1 skip**, frontend **329/329**, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi phạm mới, FE production build xanh, Release contract regenerate deterministic, `git diff --check` sạch. Browser desktop runtime thật và DB gate xem mục trên; mobile cố ý chưa test.
 
-### Bước 11 — hợp đồng `f(data, state)` (hoàn tất ngày 27/07/2026)
+### Nền `QueryView` của Bước 11 (hoàn tất ngày 27/07/2026)
 
 - Commit `d2a5d62 feat(fe-state): add typed query view contract` thêm `frontend/src/lib/queryView.ts` với
   discriminated union `QueryView<T>` và adapter thuần `toQueryView`.
@@ -543,13 +544,17 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Bước tiếp theo: pilot Material Demand và Warehouse theo Bước 12 của
   `docs/ARCHITECTURE-AUDIT-2026-07-26.md`; chỉ test desktop 1365×900, 1280×900 và 768×1024, mobile ngoài scope.
 
-**Đính chính workflow sau khi Kỳ làm rõ yêu cầu:** “Bước 11 hoàn tất” ở trên chỉ nói phần nền
-`QueryView<T>`, không có nghĩa toàn workflow mới đã qua Bước 11. Phần F của
-`docs/ARCHITECTURE-AUDIT-2026-07-26.md` hiện là nguồn duy nhất cho thứ tự làm việc, đã hợp nhất
-`f(data, state)` với P0–P3. Theo workflow hợp nhất, Bước 11 còn backend architecture baseline và
-file-growth reporter. Material Demand pilot đã commit `71656bc`; Warehouse pilot đang là thay đổi chưa commit,
-static gates xanh nhưng browser headed dừng ở login vì runtime không có `K6_PASSWORD`. Không tiếp tục rollout
-trước khi các gate 11–12 hoàn tất.
+**Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn duy nhất,
+hợp nhất `f(data, state)` với P0–P3 theo Bước 11→18; không còn roadmap song song. Bước 11
+tổng thể đã hoàn tất: `QueryView` `d2a5d62`, backend architecture baseline `d877d83`, growth
+reporter `c549bd2` và contract build cô lập `6a5259b`. Gate hiện tại: BE **631 pass / 1 skip**,
+FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm mới, contract
+deterministic, EF migration snapshot sạch và production build xanh.
+
+Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`. Static gates
+xanh; phần còn hở duy nhất là browser headed tại `1365×900`, `1280×900`, `768×1024`. Persistent
+session đã hết hạn và runtime không có `K6_PASSWORD`, nên không thử `admin/admin` và không
+chuyển sang Bước 13 cho tới khi Gate 12 có evidence browser đầy đủ.
 
 ## Quy trình tiếp tục ở phiên mới
 

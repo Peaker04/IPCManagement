@@ -438,8 +438,12 @@ và không big-bang restructure.
 
 **Gate 11:** full BE/FE/contract/dependency gates xanh; migration diff bằng 0; guardrail cố ý vi phạm phải đỏ.
 
-**Trạng thái:** hoàn tất phần `QueryView` tại `d2a5d62`; backend architecture baseline và file-growth reporter
-chưa thực hiện nên **Bước 11 tổng thể chưa hoàn tất**.
+**Trạng thái: hoàn tất ngày 27/07/2026.** `QueryView` + lint guardrail tại `d2a5d62`;
+backend dependency baseline tại `d877d83`; growth reporter tại `c549bd2`; contract build cô lập khỏi
+binary API Release đang chạy tại `6a5259b`. Gate: BE **631 pass / 1 skip**, FE **341/341**, lint
+**0 error / 4 warning baseline**, không có dependency violation mới, contract deterministic, EF không có
+model change chưa migration và production build xanh. Bốn backend cycle legacy được ceiling hóa, chỉ
+được giảm trong Bước 13.
 
 ### Bước 12 — Pilot và chốt mẫu `f(data, state)`
 
@@ -455,8 +459,10 @@ chưa thực hiện nên **Bước 11 tổng thể chưa hoàn tất**.
 không bị coi là complete; CLS warm vẫn 0; fan-out refetch không tăng. Nếu một pilot vượt hai ngày hoặc phá
 performance contract thì dừng để sửa mẫu, không nhân rộng.
 
-**Trạng thái:** Material Demand đã có commit `71656bc`; Warehouse đang là thay đổi chưa commit và browser gate
-chưa chạy được vì thiếu credential runtime. Vì vậy **Bước 12 chưa hoàn tất**.
+**Trạng thái:** hai pilot static đã commit: Material Demand `71656bc`, Warehouse `87ad944`.
+Unit/lint/dependency/build đều xanh; browser headed gate chưa chạy được vì runtime không có
+`K6_PASSWORD` và persistent session đã hết hạn. Không thử `admin/admin`. Vì vậy **Bước 12
+chưa hoàn tất** và chưa được chuyển sang Bước 13.
 
 ### Bước 13 — P0: khóa backend boundary thật sự
 
