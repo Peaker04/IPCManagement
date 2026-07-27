@@ -11,9 +11,9 @@ public interface ISupplierQuotationService
 
     Task<List<SupplierQuotationDto>> GetBySupplierAsync(string supplierId, CancellationToken cancellationToken = default);
 
-    Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationDto request, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationRequest request, CancellationToken cancellationToken = default);
 
-    Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationDto request, CancellationToken cancellationToken = default);
+    Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationRequest request, CancellationToken cancellationToken = default);
 
     Task DeactivateAsync(string quotationId, CancellationToken cancellationToken = default);
 

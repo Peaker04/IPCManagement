@@ -54,8 +54,8 @@ public class WarehousePurchaseReceivingTests
     public void Validation_Warehouse_receipt_contract_contains_only_actual_receipt_evidence()
     {
         var dtoAssembly = typeof(PurchaseOrderDto).Assembly;
-        var requestType = GetRequiredType(dtoAssembly, "RecordWarehousePurchaseReceiptDto");
-        var lineType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptLineDto");
+        var requestType = GetRequiredType(dtoAssembly, "RecordWarehousePurchaseReceiptRequest");
+        var lineType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptLineRequest");
         var requirementsType = GetRequiredType(dtoAssembly, "PurchaseReceiptEvidenceRequirementsDto");
         var resultType = GetRequiredType(dtoAssembly, "WarehousePurchaseReceiptResultDto");
 
@@ -89,7 +89,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void Validation_Warehouse_receipt_line_rejects_invalid_dates_values_and_partial_package_snapshot()
     {
-        var lineType = GetRequiredType(typeof(PurchaseOrderDto).Assembly, "WarehousePurchaseReceiptLineDto");
+        var lineType = GetRequiredType(typeof(PurchaseOrderDto).Assembly, "WarehousePurchaseReceiptLineRequest");
         var line = Activator.CreateInstance(lineType)!;
         SetProperty(line, "PurchaseOrderLineId", Guid.NewGuid().ToString());
         SetProperty(line, "ActualQuantity", 0m);
@@ -312,10 +312,10 @@ public class WarehousePurchaseReceivingTests
         purchaseController.GetMethod("GetByIdAsync").Should().NotBeNull();
         AuthorizationPolicies.PurchaseRoles.Should().Contain(["Manager", "Purchasing"]);
 
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptDto)
+        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("generic inventory receipts cannot attach to a purchase order");
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptFromPurchaseDto)
+        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptFromPurchaseRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("legacy purchase-request receipts cannot attach to a purchase order");
     }
@@ -347,7 +347,7 @@ public class WarehousePurchaseReceivingTests
 
     private static async Task<WarehousePurchaseReceiptResultDto> InvokeRecordAsync(
         object service,
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         string userId)
     {
         var method = service.GetType().GetMethod("RecordAsync");
@@ -547,7 +547,7 @@ public class WarehousePurchaseReceivingTests
             return CreateReceivingService(Context, ledger, faultInjector);
         }
 
-        public RecordWarehousePurchaseReceiptDto CreateRequest(string idempotencyKey, decimal quantity)
+        public RecordWarehousePurchaseReceiptRequest CreateRequest(string idempotencyKey, decimal quantity)
             => new()
             {
                 PurchaseOrderId = PurchaseOrderId,
@@ -556,7 +556,7 @@ public class WarehousePurchaseReceivingTests
                 ReceiptDate = new DateOnly(2026, 7, 22),
                 Lines =
                 [
-                    new WarehousePurchaseReceiptLineDto
+                    new WarehousePurchaseReceiptLineRequest
                     {
                         PurchaseOrderLineId = PurchaseOrderLineId,
                         ActualQuantity = quantity,

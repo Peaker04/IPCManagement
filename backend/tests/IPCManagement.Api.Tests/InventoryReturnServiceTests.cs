@@ -56,14 +56,14 @@ public class InventoryReturnServiceTests
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ShiftName = "MORNING",
             WarehouseId = warehouseId,
             IssueId = issueId,
             Reason = "Nguyên liệu dư sau nấu",
-            Lines = new List<CreateInventoryReturnLineDto>
+            Lines = new List<CreateInventoryReturnLineRequest>
             {
                 new()
                 {
@@ -117,13 +117,13 @@ public class InventoryReturnServiceTests
                 [BuildKey(ingredientId, unitId)] = 3
             });
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             WarehouseId = warehouseId,
             IssueId = issueId,
             Reason = "Trả vượt còn lại",
-            Lines = new List<CreateInventoryReturnLineDto>
+            Lines = new List<CreateInventoryReturnLineRequest>
             {
                 new()
                 {
@@ -175,7 +175,7 @@ public class InventoryReturnServiceTests
         _returnRepository.GetReturnedQuantitiesByIssueAsync(Arg.Any<byte[]>())
             .Returns(new Dictionary<string, decimal>());
 
-        var dto = new CreateInventoryReturnDto
+        var dto = new CreateInventoryReturnRequest
         {
             ReturnDate = DateOnly.FromDateTime(DateTime.UtcNow),
             ReturnType = "WASTE",
@@ -184,7 +184,7 @@ public class InventoryReturnServiceTests
             Reason = "Hao hụt sơ chế",
             Lines =
             [
-                new CreateInventoryReturnLineDto
+                new CreateInventoryReturnLineRequest
                 {
                     IngredientId = ingredientId,
                     Quantity = 1,

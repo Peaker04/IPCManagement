@@ -36,7 +36,7 @@ public class StocktakeLineDto
     public string? Reason { get; set; }
 }
 
-public class CreateStocktakeDto
+public class CreateStocktakeRequest
 {
     [Required]
     public string WarehouseId { get; set; } = string.Empty;
@@ -51,13 +51,13 @@ public class CreateStocktakeDto
     public List<string> IngredientIds { get; set; } = new();
 }
 
-public class UpdateStocktakeLinesDto
+public class UpdateStocktakeLinesRequest
 {
     [Required]
-    public List<UpdateStocktakeLineItemDto> Lines { get; set; } = new();
+    public List<UpdateStocktakeLineItemRequest> Lines { get; set; } = new();
 }
 
-public class UpdateStocktakeLineItemDto
+public class UpdateStocktakeLineItemRequest
 {
     [Required]
     public string LineId { get; set; } = string.Empty;

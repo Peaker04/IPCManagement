@@ -62,7 +62,7 @@ public class ProductionPlansController : ControllerBase
     /// <summary>Đánh dấu KHSX trong ngày đã gửi bếp.</summary>
     [HttpPost("daily/send-to-kitchen")]
     public async Task<IActionResult> SendDailyToKitchenAsync(
-        [FromBody] SendDailyProductionPlanRequestDto request,
+        [FromBody] SendDailyProductionPlanRequest request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);

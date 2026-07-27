@@ -2,7 +2,7 @@
 
 namespace IPCManagement.Api.Models.DTOs.Auth;
 
-public class LoginRequestDto
+public class LoginRequest
 {
     [Required(ErrorMessage = "Username không được để trống")]
     public string Username { get; set; } = string.Empty;

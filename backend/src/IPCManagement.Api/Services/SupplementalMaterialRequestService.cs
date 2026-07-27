@@ -99,7 +99,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     }
 
     public async Task<SupplementalMaterialRequestDto> CreateAsync(
-        CreateSupplementalMaterialRequestDto request,
+        CreateSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null)
     {
@@ -158,7 +158,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
     public async Task<SupplementalMaterialRequestDto> FulfillAsync(
         string id,
-        FulfillSupplementalMaterialRequestDto request,
+        FulfillSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null)
     {
@@ -336,7 +336,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
     public async Task<SupplementalMaterialRequestDto> RejectAsync(
         string id,
-        RejectSupplementalMaterialRequestDto request,
+        RejectSupplementalMaterialRequest request,
         string actorUserId,
         string? scopedWarehouseId = null)
     {

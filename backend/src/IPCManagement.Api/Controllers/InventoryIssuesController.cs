@@ -62,7 +62,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Tạo mới phiếu xuất kho.</summary>
     [HttpPost]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryIssueDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryIssueRequest dto)
     {
         try
         {
@@ -93,7 +93,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
-    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryIssueReceiptDto dto)
+    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryIssueReceiptRequest dto)
     {
         try
         {

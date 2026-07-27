@@ -53,7 +53,7 @@ public class SupplierQuotationsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SupplierQuotationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplierQuotationDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplierQuotationRequest request, CancellationToken cancellationToken)
     {
         try
         {
@@ -75,7 +75,7 @@ public class SupplierQuotationsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SupplierQuotationDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateSupplierQuotationDto request, CancellationToken cancellationToken)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateSupplierQuotationRequest request, CancellationToken cancellationToken)
     {
         try
         {

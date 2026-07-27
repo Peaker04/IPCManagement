@@ -82,7 +82,7 @@ public partial class SampleDataImportService : ISampleDataImportService
     }
 
     public async Task<SampleDataImportResultDto> ImportAsync(
-        SampleDataImportRequestDto request,
+        SampleDataImportRequest request,
         CancellationToken cancellationToken = default)
     {
         var sourceDirectory = ResolveSourceDirectory(request.SourceDirectory);
@@ -101,7 +101,7 @@ public partial class SampleDataImportService : ISampleDataImportService
 
     private async Task ImportBomDataAsync(
         DirectoryInfo sourceDirectory,
-        SampleDataImportRequestDto request,
+        SampleDataImportRequest request,
         SampleDataImportResultDto result,
         Dictionary<string, List<int>> servingHints,
         CancellationToken cancellationToken)
@@ -215,7 +215,7 @@ public partial class SampleDataImportService : ISampleDataImportService
 
     private async Task<Dictionary<string, SupplierPolicy>> ImportSupplierPoliciesAsync(
         string workbookPath,
-        SampleDataImportRequestDto request,
+        SampleDataImportRequest request,
         SampleDataImportResultDto result,
         CancellationToken cancellationToken)
     {

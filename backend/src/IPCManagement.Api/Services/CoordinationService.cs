@@ -109,7 +109,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CustomerContractDto> CreateCustomerContractAsync(
-        CreateCustomerContractDto request,
+        CreateCustomerContractRequest request,
         string? userId)
     {
         var customerCode = NormalizeCustomerCode(request.CustomerCode);
@@ -147,7 +147,7 @@ public class CoordinationService : ICoordinationService
         AddAudit(actorId, changedAt, "CustomerContract", nameof(Customer), customer.CustomerId,
             "CustomerCreated", null, customer.CustomerCode, "Tạo khách hàng từ màn contract");
 
-        var contractRequest = new UpdateCustomerContractDto
+        var contractRequest = new UpdateCustomerContractRequest
         {
             EffectiveFrom = request.EffectiveFrom,
             EffectiveTo = request.EffectiveTo,
@@ -165,7 +165,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<CustomerContractDto?> UpdateCustomerContractAsync(
         string customerId,
-        UpdateCustomerContractDto request,
+        UpdateCustomerContractRequest request,
         string? userId)
     {
         var customerIdBytes = GuidHelper.ParseGuidString(customerId);
@@ -343,7 +343,7 @@ public class CoordinationService : ICoordinationService
             .ToList();
     }
 
-    public async Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleDto request, string? userId)
+    public async Task<PortionRuleDto> CreatePortionRuleAsync(CreatePortionRuleRequest request, string? userId)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId)
             ?? throw new ArgumentException("Khách hàng không hợp lệ.");
@@ -394,7 +394,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<PortionRuleDto?> UpdatePortionRuleAsync(
         string portionRuleId,
-        UpdatePortionRuleDto request,
+        UpdatePortionRuleRequest request,
         string? userId)
     {
         var portionRuleIdBytes = GuidHelper.ParseGuidString(portionRuleId);
@@ -493,7 +493,7 @@ public class CoordinationService : ICoordinationService
         return MapPortionRule(rule);
     }
 
-    public async Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleDto request)
+    public async Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId);
         if (customerId is null)
@@ -580,7 +580,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
-        UpdateMenuScheduleRulesDto request,
+        UpdateMenuScheduleRulesRequest request,
         string? userId)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
@@ -633,7 +633,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
         string menuScheduleId,
-        UpdateMenuScheduleVersionDto request,
+        UpdateMenuScheduleVersionRequest request,
         string? userId)
     {
         var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
@@ -718,7 +718,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
-        RollbackMenuVersionDto request,
+        RollbackMenuVersionRequest request,
         string? userId)
     {
         var customerId = GuidHelper.ParseGuidString(request.CustomerId)
@@ -933,7 +933,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<MealQuantityPlanDto?> UpsertQuickServingsAsync(
-        UpsertQuickServingsRequestDto request,
+        UpsertQuickServingsRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1076,7 +1076,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<LockOrderPlanResultDto?> LockOrderPlanAsync(
-        LockOrderPlanRequestDto request,
+        LockOrderPlanRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1177,7 +1177,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
-        AdjustOrderAfterLockRequestDto request,
+        AdjustOrderAfterLockRequest request,
         string? userId)
     {
         if (request.NewValue < 0)
@@ -1274,7 +1274,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<AdjustServingsResultDto?> AdjustServingsAsync(
         string orderId,
-        AdjustServingsRequestDto request,
+        AdjustServingsRequest request,
         string? userId)
     {
         var lineId = GuidHelper.ParseGuidString(orderId);
@@ -1298,7 +1298,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<AdjustServingsResultDto?> UpdateForecastServingsAsync(
         string orderId,
-        UpdateForecastServingsRequestDto request,
+        UpdateForecastServingsRequest request,
         string? userId)
     {
         if (request.ServingsQuantity < 0)
@@ -1375,7 +1375,7 @@ public class CoordinationService : ICoordinationService
 
     public async Task<SignoffOrderResultDto?> SignoffOrderAsync(
         string quantityPlanId,
-        SignoffOrderRequestDto request,
+        SignoffOrderRequest request,
         string? userId)
     {
         var planIdBytes = GuidHelper.ParseGuidString(quantityPlanId);
@@ -1442,7 +1442,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CoordinationScopeActionResultDto?> SignoffOrderScopeAsync(
-        CoordinationScopeActionRequestDto request,
+        CoordinationScopeActionRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1611,7 +1611,7 @@ public class CoordinationService : ICoordinationService
     }
 
     public async Task<CoordinationScopeActionResultDto?> UnlockOrderPlanScopeAsync(
-        CoordinationScopeActionRequestDto request,
+        CoordinationScopeActionRequest request,
         string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
@@ -1712,7 +1712,7 @@ public class CoordinationService : ICoordinationService
         };
     }
 
-    public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequestDto request)
+    public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequest request)
     {
         var serviceDate = ResolveServiceDate(request.ServiceDate, request.DayOfWeek);
         var shiftName = NormalizeShiftName(request.ShiftName ?? request.Shift);
@@ -1754,7 +1754,7 @@ public class CoordinationService : ICoordinationService
     private CustomerContract ResolveMutableContract(
         Customer customer,
         IReadOnlyList<MenuSchedule> schedules,
-        UpdateCustomerContractDto request,
+        UpdateCustomerContractRequest request,
         byte[] actorId,
         DateTime changedAt)
     {
@@ -2143,7 +2143,7 @@ public class CoordinationService : ICoordinationService
     private static MenuVersion? ResolveRollbackTarget(
         IReadOnlyList<MenuVersion> versions,
         MenuVersion current,
-        RollbackMenuVersionDto request)
+        RollbackMenuVersionRequest request)
     {
         // Id phiên bản sai định dạng phải báo lỗi: rơi xuống nhánh dưới sẽ rollback về **phiên bản khác**
         // với phiên bản người dùng chọn, kéo theo hủy nhu cầu và đơn mua của tuần đó.

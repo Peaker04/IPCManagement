@@ -47,7 +47,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo mới phiếu nhập kho.</summary>
     [HttpPost]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReceiptDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReceiptRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -63,7 +63,7 @@ public class InventoryReceiptsController : ControllerBase
 
     /// <summary>Tạo phiếu nhập kho từ phiếu mua đã gửi nhà cung cấp.</summary>
     [HttpPost("from-purchase")]
-    public async Task<IActionResult> CreateFromPurchaseAsync([FromBody] CreateInventoryReceiptFromPurchaseDto dto)
+    public async Task<IActionResult> CreateFromPurchaseAsync([FromBody] CreateInventoryReceiptFromPurchaseRequest dto)
     {
         try
         {

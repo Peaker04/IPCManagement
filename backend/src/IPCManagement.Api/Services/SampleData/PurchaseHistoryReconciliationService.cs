@@ -317,7 +317,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     }
 
     public async Task<PurchaseHistoryApplyResultDto> ApplyAsync(
-        PurchaseHistoryApplyRequestDto request,
+        PurchaseHistoryApplyRequest request,
         byte[] appliedBy,
         CancellationToken cancellationToken = default)
     {
@@ -424,7 +424,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     }
 
     internal async Task<ValidatedPurchaseHistoryApply> ValidateAcceptedManifestAsync(
-        PurchaseHistoryApplyRequestDto request,
+        PurchaseHistoryApplyRequest request,
         byte[] appliedBy,
         CancellationToken cancellationToken = default)
     {
@@ -500,7 +500,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     }
 
     private async Task<PurchaseHistoryApplyResultDto?> TryBuildReplayResultAsync(
-        PurchaseHistoryApplyRequestDto request,
+        PurchaseHistoryApplyRequest request,
         byte[] appliedBy,
         string databaseIdentity,
         PurchaseHistoryApplySafetyEvidence safetyEvidence,

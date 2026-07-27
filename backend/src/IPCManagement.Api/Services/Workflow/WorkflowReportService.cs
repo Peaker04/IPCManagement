@@ -2748,7 +2748,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     public async Task<DataQualityIssueRemediationDto> UpdateDataQualityIssueRemediationAsync(
-        DataQualityIssueRemediationRequestDto request,
+        DataQualityIssueRemediationRequest request,
         string actorUserId)
     {
         var issueId = request.IssueId.Trim();
@@ -2788,7 +2788,7 @@ public class WorkflowReportService : IWorkflowReportService
     }
 
     public async Task<DataQualityCleanupResultDto> CleanupDataQualityAsync(
-        DataQualityCleanupRequestDto request,
+        DataQualityCleanupRequest request,
         string actorUserId)
     {
         var actorId = GuidHelper.ParseGuidString(actorUserId)

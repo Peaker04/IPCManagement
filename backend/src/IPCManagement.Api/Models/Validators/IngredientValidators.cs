@@ -3,7 +3,7 @@ using IPCManagement.Api.Models.DTOs.Ingredient;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class CreateIngredientDtoValidator : AbstractValidator<CreateIngredientDto>
+public class CreateIngredientDtoValidator : AbstractValidator<CreateIngredientRequest>
 {
     public CreateIngredientDtoValidator()
     {
@@ -31,7 +31,7 @@ public class CreateIngredientDtoValidator : AbstractValidator<CreateIngredientDt
         => Guid.TryParse(value, out _);
 }
 
-public class UpdateIngredientDtoValidator : AbstractValidator<UpdateIngredientDto>
+public class UpdateIngredientDtoValidator : AbstractValidator<UpdateIngredientRequest>
 {
     public UpdateIngredientDtoValidator()
     {

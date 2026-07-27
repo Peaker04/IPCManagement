@@ -31,7 +31,7 @@ public class SupplierEvidenceCandidateDto
     public string? EffectiveTo { get; set; }
 }
 
-public class ConfirmPurchaseLineSupplierDto
+public class ConfirmPurchaseLineSupplierRequest
 {
     public SupplierEvidenceType EvidenceType { get; set; }
     public string EvidenceId { get; set; } = string.Empty;

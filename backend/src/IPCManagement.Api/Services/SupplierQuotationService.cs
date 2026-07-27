@@ -85,7 +85,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         return MapWithBestPrice(quotations);
     }
 
-    public async Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationDto request, CancellationToken cancellationToken = default)
+    public async Task<SupplierQuotationDto> CreateAsync(CreateSupplierQuotationRequest request, CancellationToken cancellationToken = default)
     {
         var supplierIdBytes = GuidHelper.ParseGuidString(request.SupplierId)
             ?? throw new ArgumentException("Nhà cung cấp không hợp lệ.");
@@ -131,7 +131,7 @@ public class SupplierQuotationService : ISupplierQuotationService
         return await MapSingleWithBestPriceAsync(quotation, cancellationToken);
     }
 
-    public async Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationDto request, CancellationToken cancellationToken = default)
+    public async Task<SupplierQuotationDto> UpdateAsync(string quotationId, UpdateSupplierQuotationRequest request, CancellationToken cancellationToken = default)
     {
         var quotationIdBytes = GuidHelper.ParseGuidString(quotationId)
             ?? throw new ArgumentException("Báo giá không hợp lệ.");

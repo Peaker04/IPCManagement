@@ -48,17 +48,17 @@ public class CoordinationOrdersQueryDto
     public string? Shift { get; set; }
 }
 
-public class LockOrderPlanRequestDto
+public class LockOrderPlanRequest
 {
     public string? ServiceDate { get; set; }
     public string? DayOfWeek { get; set; }
     public string? ShiftName { get; set; }
     public string? Shift { get; set; }
     public string Scope { get; set; } = "FULLDAY";
-    public List<LockOrderPlanLineDto> Lines { get; set; } = [];
+    public List<LockOrderPlanLineRequest> Lines { get; set; } = [];
 }
 
-public class LockOrderPlanLineDto
+public class LockOrderPlanLineRequest
 {
     public string QuantityPlanLineId { get; set; } = string.Empty;
     public string OrderId { get; set; } = string.Empty;
@@ -76,7 +76,7 @@ public class LockOrderPlanResultDto
     public int LockedLineCount { get; set; }
 }
 
-public class UpsertQuickServingsRequestDto
+public class UpsertQuickServingsRequest
 {
     public string CustomerId { get; set; } = string.Empty;
     public string ServiceDate { get; set; } = string.Empty;
@@ -85,7 +85,7 @@ public class UpsertQuickServingsRequestDto
     public bool Complete { get; set; }
 }
 
-public class AdjustOrderAfterLockRequestDto
+public class AdjustOrderAfterLockRequest
 {
     public string OrderId { get; set; } = string.Empty;
     public string QuantityPlanLineId { get; set; } = string.Empty;
@@ -107,7 +107,7 @@ public class AdjustOrderAfterLockResultDto
     public string Reason { get; set; } = string.Empty;
 }
 
-public class ExportOrderReportRequestDto
+public class ExportOrderReportRequest
 {
     public string? ServiceDate { get; set; }
     public string? DayOfWeek { get; set; }

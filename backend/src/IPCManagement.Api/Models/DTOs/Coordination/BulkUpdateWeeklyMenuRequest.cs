@@ -3,13 +3,13 @@ using System.Collections.Generic;
 
 namespace IPCManagement.Api.Models.DTOs.Coordination;
 
-public class BulkUpdateWeeklyMenuRequestDto
+public class BulkUpdateWeeklyMenuRequest
 {
     public string CustomerId { get; set; } = null!;
-    public List<WeeklyMenuSlotUpdateDto> Slots { get; set; } = new();
+    public List<WeeklyMenuSlotUpdateRequest> Slots { get; set; } = new();
 }
 
-public class WeeklyMenuSlotUpdateDto
+public class WeeklyMenuSlotUpdateRequest
 {
     public DateOnly ServiceDate { get; set; }
     public string ShiftName { get; set; } = null!;

@@ -3,7 +3,7 @@ using IPCManagement.Api.Models.DTOs.Coordination;
 
 namespace IPCManagement.Api.Models.Validators;
 
-public class AdjustServingsRequestDtoValidator : AbstractValidator<AdjustServingsRequestDto>
+public class AdjustServingsRequestDtoValidator : AbstractValidator<AdjustServingsRequest>
 {
     public AdjustServingsRequestDtoValidator()
     {
@@ -17,7 +17,7 @@ public class AdjustServingsRequestDtoValidator : AbstractValidator<AdjustServing
     }
 }
 
-public class UpdateForecastServingsRequestDtoValidator : AbstractValidator<UpdateForecastServingsRequestDto>
+public class UpdateForecastServingsRequestDtoValidator : AbstractValidator<UpdateForecastServingsRequest>
 {
     public UpdateForecastServingsRequestDtoValidator()
     {
@@ -31,7 +31,7 @@ public class UpdateForecastServingsRequestDtoValidator : AbstractValidator<Updat
     }
 }
 
-public class AdjustOrderAfterLockRequestDtoValidator : AbstractValidator<AdjustOrderAfterLockRequestDto>
+public class AdjustOrderAfterLockRequestDtoValidator : AbstractValidator<AdjustOrderAfterLockRequest>
 {
     public AdjustOrderAfterLockRequestDtoValidator()
     {

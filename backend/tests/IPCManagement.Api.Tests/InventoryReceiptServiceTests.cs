@@ -47,12 +47,12 @@ public class InventoryReceiptServiceTests
         var ingredientId = Guid.NewGuid().ToString();
         var unitId = Guid.NewGuid().ToString();
 
-        var dto = new CreateInventoryReceiptDto
+        var dto = new CreateInventoryReceiptRequest
         {
             ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow),
             SupplierId = supplierId,
             WarehouseId = warehouseId,
-            Lines = new List<CreateInventoryReceiptLineDto>
+            Lines = new List<CreateInventoryReceiptLineRequest>
             {
                 new()
                 {
@@ -183,7 +183,7 @@ public class InventoryReceiptServiceTests
     [Fact]
     public async Task CreateFromPurchaseRequestAsync_Should_Throw_When_ContextIsNull()
     {
-        var dto = new CreateInventoryReceiptFromPurchaseDto();
+        var dto = new CreateInventoryReceiptFromPurchaseRequest();
         var action = () => _service.CreateFromPurchaseRequestAsync(dto, Guid.NewGuid().ToString());
         await action.Should().ThrowAsync<InvalidOperationException>().WithMessage("Chưa cấu hình dữ liệu để nhập kho từ phiếu mua.");
     }
@@ -194,12 +194,12 @@ public class InventoryReceiptServiceTests
         using var context = CreateInMemoryContext();
         var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = Guid.NewGuid().ToString(),
             SupplierId = Guid.NewGuid().ToString(),
             WarehouseId = Guid.NewGuid().ToString(),
-            Lines = new List<CreateInventoryReceiptFromPurchaseLineDto> { new() }
+            Lines = new List<CreateInventoryReceiptFromPurchaseLineRequest> { new() }
         };
 
         var action = () => service.CreateFromPurchaseRequestAsync(dto, Guid.NewGuid().ToString());
@@ -247,13 +247,13 @@ public class InventoryReceiptServiceTests
         context.Purchaserequests.Add(pr);
         await context.SaveChangesAsync();
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(purchaseRequestId),
             SupplierId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(supplierId),
             WarehouseId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(warehouseId),
             ReceiptDate = DateOnly.FromDateTime(DateTime.UtcNow),
-            Lines = new List<CreateInventoryReceiptFromPurchaseLineDto>
+            Lines = new List<CreateInventoryReceiptFromPurchaseLineRequest>
             {
                 new()
                 {
@@ -352,7 +352,7 @@ public class InventoryReceiptServiceTests
         context.Purchaserequests.Add(request);
         await context.SaveChangesAsync();
 
-        var dto = new CreateInventoryReceiptFromPurchaseDto
+        var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
             PurchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(purchaseRequestId),
             SupplierId = IPCManagement.Api.Helpers.GuidHelper.ToGuidString(supplierId),

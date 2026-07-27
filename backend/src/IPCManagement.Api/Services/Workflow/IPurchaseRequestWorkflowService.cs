@@ -9,7 +9,7 @@ public interface IPurchaseRequestWorkflowService
         CancellationToken cancellationToken = default);
 
     Task<PurchaseRequestWorkflowResultDto?> GenerateFromDemandAsync(
-        GeneratePurchaseRequestFromDemandDto request,
+        GeneratePurchaseRequestFromDemandRequest request,
         string? userId,
         CancellationToken cancellationToken = default);
 
@@ -21,7 +21,7 @@ public interface IPurchaseRequestWorkflowService
     Task<PurchaseLineSupplierDecisionDto> ConfirmLineSupplierAsync(
         string requestId,
         string lineId,
-        ConfirmPurchaseLineSupplierDto request,
+        ConfirmPurchaseLineSupplierRequest request,
         string? userId,
         CancellationToken cancellationToken = default);
 

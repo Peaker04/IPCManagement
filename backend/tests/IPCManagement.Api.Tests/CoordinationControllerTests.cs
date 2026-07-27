@@ -80,7 +80,7 @@ public class CoordinationControllerTests
         var coordinationService = Substitute.For<ICoordinationService>();
         coordinationService.UpdateForecastServingsAsync(
                 Arg.Any<string>(),
-                Arg.Any<UpdateForecastServingsRequestDto>(),
+                Arg.Any<UpdateForecastServingsRequest>(),
                 Arg.Any<string?>())
             .Returns(Task.FromException<AdjustServingsResultDto?>(new ArgumentException("Số suất dự kiến phải lớn hơn hoặc bằng 0.")));
         var currentUserService = Substitute.For<ICurrentUserService>();
@@ -93,7 +93,7 @@ public class CoordinationControllerTests
 
         var result = await controller.UpdateForecastServingsAsync(
             Guid.NewGuid().ToString(),
-            new UpdateForecastServingsRequestDto
+            new UpdateForecastServingsRequest
             {
                 ServingsQuantity = -1,
                 Reason = "Nhập sai"

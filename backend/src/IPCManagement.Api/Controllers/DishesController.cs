@@ -183,7 +183,7 @@ public class DishesController : ControllerBase
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateDishDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateDishRequest dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetByIdAsync), new { id = result.DishId },
@@ -195,7 +195,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateDishDto dto)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateDishRequest dto)
     {
         var result = await _service.UpdateAsync(id, dto);
         if (result is null)
@@ -209,7 +209,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AddBomLineAsync(string id, [FromBody] CreateDishBomLineDto dto)
+    public async Task<IActionResult> AddBomLineAsync(string id, [FromBody] CreateDishBomLineRequest dto)
     {
         var result = await _service.AddBomLineAsync(id, dto);
         if (result is null)
@@ -224,7 +224,7 @@ public class DishesController : ControllerBase
     [Authorize(Policy = AuthorizationPolicies.CatalogAccess)]
     [ProducesResponseType(typeof(ApiResponse<DishCatalogBomLineDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateBomLineAsync(string id, string bomId, [FromBody] UpdateDishBomLineDto dto)
+    public async Task<IActionResult> UpdateBomLineAsync(string id, string bomId, [FromBody] UpdateDishBomLineRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);
         var result = await _service.UpdateBomLineAsync(id, bomId, dto, userId);

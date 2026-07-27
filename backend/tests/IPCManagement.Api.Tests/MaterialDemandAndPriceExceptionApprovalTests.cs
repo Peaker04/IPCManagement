@@ -254,7 +254,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Nhu cầu hợp lệ" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Nhu cầu hợp lệ" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -288,7 +288,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await fixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Thiếu dữ liệu" },
+            new ApprovalRequest { Status = ApprovalDecision.Reject, Reason = "Thiếu dữ liệu" },
             fixture.ActorIdString,
             BuildPrincipal("Quản lý"));
 
@@ -306,7 +306,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         await using var fixture = await MaterialDemandApprovalFixture.CreateAsync();
         var requestId = await fixture.SeedRequestAsync("DRAFT");
         var service = fixture.CreateWorkflowService();
-        var decision = new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Đồng ý" };
+        var decision = new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Đồng ý" };
 
         var first = await service.ExecuteAsync(
             "material-demand", requestId, decision, fixture.ActorIdString, BuildPrincipal("Manager"));
@@ -329,14 +329,14 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Đủ điều kiện" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
         var act = async () => await service.ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Reject, Reason = "Đổi quyết định" },
+            new ApprovalRequest { Status = ApprovalDecision.Reject, Reason = "Đổi quyết định" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -355,7 +355,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = async () => await fixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Replay không có history" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Replay không có history" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -420,7 +420,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = async () => await approvalFixture.CreateWorkflowService().ExecuteAsync(
             "material-demand",
             requestId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve },
+            new ApprovalRequest { Status = ApprovalDecision.Approve },
             approvalFixture.ActorIdString,
             BuildPrincipal("Purchasing"));
         await act.Should().ThrowAsync<UnauthorizedAccessException>();
@@ -484,7 +484,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var result = await fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Báo giá hợp lệ" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Báo giá hợp lệ" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -511,7 +511,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = () => fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được dùng" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Không được dùng" },
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
@@ -532,7 +532,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         var act = () => fixture.CreateWorkflowService().ExecuteAsync(
             "purchase-price-exception",
             targetId,
-            new ApprovalRequestDto { Status = ApprovalDecision.Approve, Reason = "Không được phép" },
+            new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Không được phép" },
             fixture.ActorIdString,
             BuildPrincipal(role));
 
@@ -619,7 +619,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     private static ClaimsPrincipal BuildPrincipal(string role)
         => new(new ClaimsIdentity([new Claim(ClaimTypes.Role, role)], "test"));
 
-    private static ConfirmPurchaseLineSupplierDto BuildConfirmation(
+    private static ConfirmPurchaseLineSupplierRequest BuildConfirmation(
         PriceExceptionConfirmationSetup setup,
         decimal proposedPrice,
         string reason,

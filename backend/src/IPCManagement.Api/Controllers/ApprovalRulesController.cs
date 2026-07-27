@@ -55,7 +55,7 @@ public class ApprovalRulesController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> CreateRuleAsync([FromBody] ApprovalRuleRequestDto request)
+    public async Task<IActionResult> CreateRuleAsync([FromBody] ApprovalRuleRequest request)
     {
         if (string.IsNullOrWhiteSpace(request.RuleName) || string.IsNullOrWhiteSpace(request.DocumentType))
         {
@@ -87,7 +87,7 @@ public class ApprovalRulesController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<ApprovalRule>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateRuleAsync([FromRoute] string id, [FromBody] ApprovalRuleRequestDto request)
+    public async Task<IActionResult> UpdateRuleAsync([FromRoute] string id, [FromBody] ApprovalRuleRequest request)
     {
         var ruleId = GuidHelper.ParseGuidString(id);
         if (ruleId == null)

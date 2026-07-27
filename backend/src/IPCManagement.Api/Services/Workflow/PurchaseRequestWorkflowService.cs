@@ -288,7 +288,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     }
 
     public async Task<PurchaseRequestWorkflowResultDto?> GenerateFromDemandAsync(
-        GeneratePurchaseRequestFromDemandDto request,
+        GeneratePurchaseRequestFromDemandRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {
@@ -603,7 +603,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
     public async Task<PurchaseLineSupplierDecisionDto> ConfirmLineSupplierAsync(
         string requestId,
         string lineId,
-        ConfirmPurchaseLineSupplierDto request,
+        ConfirmPurchaseLineSupplierRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {

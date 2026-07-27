@@ -26,13 +26,13 @@ public class WorkflowControllerContractTests
         _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
             .Returns("user-id");
         _materialDemandService.GenerateAsync(
-                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                Arg.Any<GenerateMaterialDemandRequest>(),
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<MaterialDemandResultDto?>(
                 new InvalidOperationException("Giá ngoài tier cố định.")));
 
-        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -51,13 +51,13 @@ public class WorkflowControllerContractTests
         _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
             .Returns("user-id");
         _materialDemandService.GenerateAsync(
-                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                Arg.Any<GenerateMaterialDemandRequest>(),
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<MaterialDemandResultDto?>(
                 new ArgumentException("Ngày phục vụ không hợp lệ.")));
 
-        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {
             ServiceDate = "20-07-2026",
             Scope = "FULLDAY"
@@ -77,12 +77,12 @@ public class WorkflowControllerContractTests
         _currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>())
             .Returns("user-id");
         _materialDemandService.GenerateAsync(
-                Arg.Any<GenerateMaterialDemandRequestDto>(),
+                Arg.Any<GenerateMaterialDemandRequest>(),
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns((MaterialDemandResultDto?)null);
 
-        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequestDto
+        var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {
             ServiceDate = "2026-07-10",
             Scope = "FULLDAY"
@@ -110,7 +110,7 @@ public class WorkflowControllerContractTests
 
         var result = await controller.ApproveAsync(
             "bad-id",
-            new MaterialDemandApproveRequestDto { Reason = "approve" },
+            new MaterialDemandApproveRequest { Reason = "approve" },
             CancellationToken.None);
 
         var badRequest = result.Should().BeOfType<BadRequestObjectResult>().Subject;
@@ -179,7 +179,7 @@ public class WorkflowControllerContractTests
     public async Task ProductionPlansSendDailyToKitchen_Should_UseCurrentUser_AndReturnSuccessMessage()
     {
         var controller = CreateProductionPlansController();
-        var request = new SendDailyProductionPlanRequestDto
+        var request = new SendDailyProductionPlanRequest
         {
             ServiceDate = "2026-07-10",
             CustomerId = "customer-id",

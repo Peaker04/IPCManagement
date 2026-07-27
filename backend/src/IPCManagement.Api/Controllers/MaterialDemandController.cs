@@ -32,7 +32,7 @@ public class MaterialDemandController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> GenerateAsync(
-        [FromBody] GenerateMaterialDemandRequestDto request,
+        [FromBody] GenerateMaterialDemandRequest request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
@@ -77,7 +77,7 @@ public class MaterialDemandController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ApproveAsync(
         string id,
-        [FromBody] MaterialDemandApproveRequestDto? request,
+        [FromBody] MaterialDemandApproveRequest? request,
         CancellationToken cancellationToken)
     {
         try

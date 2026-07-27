@@ -350,7 +350,7 @@ public partial class SampleDataImportService
 
     public async Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
         string customerId,
-        SaveCustomerImportMappingDto request,
+        SaveCustomerImportMappingRequest request,
         CancellationToken cancellationToken = default)
     {
         var customer = await ResolveImportCustomerAsync(customerId, cancellationToken);
@@ -2163,7 +2163,7 @@ public partial class SampleDataImportService
     }
 
     public async Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
-        BulkUpdateWeeklyMenuRequestDto request,
+        BulkUpdateWeeklyMenuRequest request,
         CancellationToken cancellationToken = default)
     {
         var customerBytes = GuidHelper.ParseGuidString(request.CustomerId);

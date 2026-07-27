@@ -20,7 +20,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
 
     public abstract ApprovalTargetType TargetType { get; }
 
-    public async Task<ApprovalResultDto?> HandleAsync(string targetId, ApprovalRequestDto request, byte[] actorId)
+    public async Task<ApprovalResultDto?> HandleAsync(string targetId, ApprovalRequest request, byte[] actorId)
     {
         var entityId = GuidHelper.ParseGuidString(targetId);
         if (entityId is null)
@@ -50,12 +50,12 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
         }
     }
 
-    protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId);
+    protected abstract Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId);
 
     protected async Task<ApprovalResultDto> SaveHistoryAsync(
         string targetType,
         byte[] targetId,
-        ApprovalRequestDto request,
+        ApprovalRequest request,
         byte[] actorId,
         string? oldStatus,
         string? newStatus)
@@ -103,7 +103,7 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.PurchaseRequest;
 
-    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
+    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var entity = await Context.Purchaserequests
             .Include(item => item.Purchaserequestlines)
@@ -168,7 +168,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(
         byte[] targetId,
-        ApprovalRequestDto request,
+        ApprovalRequest request,
         byte[] actorId)
     {
         var priceException = await Context.Purchasepriceexceptions
@@ -256,7 +256,7 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
     protected override async Task<ApprovalResultDto?> HandleCoreAsync(
         byte[] targetId,
-        ApprovalRequestDto request,
+        ApprovalRequest request,
         byte[] actorId)
     {
         var demand = await Context.Materialrequests
@@ -323,7 +323,7 @@ public sealed class InventoryReceiptApprovalHandler : ApprovalHandlerBase<Invent
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryReceipt;
 
-    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
+    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var receipt = await Context.Inventoryreceipts
             .Include(item => item.PurchaseRequest)
@@ -351,7 +351,7 @@ public sealed class InventoryIssueApprovalHandler : ApprovalHandlerBase<Inventor
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryIssue;
 
-    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
+    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var issue = await Context.Inventoryissues
             .Include(item => item.MaterialRequest)
@@ -376,7 +376,7 @@ public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Qua
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryAdjustment;
 
-    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequestDto request, byte[] actorId)
+    protected override async Task<ApprovalResultDto?> HandleCoreAsync(byte[] targetId, ApprovalRequest request, byte[] actorId)
     {
         var adjustment = await Context.Quantityadjustments
             .Include(item => item.QuantityPlanLine)

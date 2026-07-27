@@ -36,7 +36,7 @@ public class ApprovalsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ApprovalResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ExecuteAsync([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequestDto request)
+    public async Task<IActionResult> ExecuteAsync([FromRoute] string targetType, [FromRoute] string id, [FromBody] ApprovalRequest request)
     {
         var actorUserId = _currentUserService.GetUserId(User);
         ApprovalResultDto? result;

@@ -77,7 +77,7 @@ public class CoordinationController : ControllerBase
     [HttpPost("customers/contract")]
     [ProducesResponseType(typeof(ApiResponse<CustomerContractDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateCustomerContractAsync([FromBody] CreateCustomerContractDto request)
+    public async Task<IActionResult> CreateCustomerContractAsync([FromBody] CreateCustomerContractRequest request)
     {
         try
         {
@@ -97,7 +97,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<CustomerContractDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateCustomerContractAsync(string id, [FromBody] UpdateCustomerContractDto request)
+    public async Task<IActionResult> UpdateCustomerContractAsync(string id, [FromBody] UpdateCustomerContractRequest request)
     {
         try
         {
@@ -127,7 +127,7 @@ public class CoordinationController : ControllerBase
     [HttpPost("portion-rules")]
     [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreatePortionRuleAsync([FromBody] CreatePortionRuleDto request)
+    public async Task<IActionResult> CreatePortionRuleAsync([FromBody] CreatePortionRuleRequest request)
     {
         try
         {
@@ -147,7 +147,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PortionRuleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdatePortionRuleAsync(string id, [FromBody] UpdatePortionRuleDto request)
+    public async Task<IActionResult> UpdatePortionRuleAsync(string id, [FromBody] UpdatePortionRuleRequest request)
     {
         try
         {
@@ -170,7 +170,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<ResolvedPortionRuleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> ResolvePortionRuleAsync([FromBody] ResolvePortionRuleDto request)
+    public async Task<IActionResult> ResolvePortionRuleAsync([FromBody] ResolvePortionRuleRequest request)
     {
         try
         {
@@ -224,7 +224,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateMenuScheduleRulesAsync(string id, [FromBody] UpdateMenuScheduleRulesDto request)
+    public async Task<IActionResult> UpdateMenuScheduleRulesAsync(string id, [FromBody] UpdateMenuScheduleRulesRequest request)
     {
         try
         {
@@ -247,7 +247,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MenuScheduleDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateMenuScheduleVersionAsync(string id, [FromBody] UpdateMenuScheduleVersionDto request)
+    public async Task<IActionResult> UpdateMenuScheduleVersionAsync(string id, [FromBody] UpdateMenuScheduleVersionRequest request)
     {
         try
         {
@@ -269,7 +269,7 @@ public class CoordinationController : ControllerBase
     [HttpPost("menu-versions/rollback")]
     [ProducesResponseType(typeof(ApiResponse<MenuVersionRollbackResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> RollbackMenuVersionAsync([FromBody] RollbackMenuVersionDto request)
+    public async Task<IActionResult> RollbackMenuVersionAsync([FromBody] RollbackMenuVersionRequest request)
     {
         try
         {
@@ -295,7 +295,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<MealQuantityPlanDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpsertQuickServingsAsync([FromBody] UpsertQuickServingsRequestDto request)
+    public async Task<IActionResult> UpsertQuickServingsAsync([FromBody] UpsertQuickServingsRequest request)
     {
         try
         {
@@ -323,7 +323,7 @@ public class CoordinationController : ControllerBase
     [HttpPost("orders/lock")]
     [ProducesResponseType(typeof(ApiResponse<LockOrderPlanResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> LockOrderPlanAsync([FromBody] LockOrderPlanRequestDto request)
+    public async Task<IActionResult> LockOrderPlanAsync([FromBody] LockOrderPlanRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         LockOrderPlanResultDto? result;
@@ -352,7 +352,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<CoordinationScopeActionResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SignoffOrderScopeAsync([FromBody] CoordinationScopeActionRequestDto request)
+    public async Task<IActionResult> SignoffOrderScopeAsync([FromBody] CoordinationScopeActionRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         try
@@ -377,7 +377,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<CoordinationScopeActionResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> UnlockOrderPlanScopeAsync([FromBody] CoordinationScopeActionRequestDto request)
+    public async Task<IActionResult> UnlockOrderPlanScopeAsync([FromBody] CoordinationScopeActionRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         try
@@ -565,7 +565,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<CustomerImportMappingDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SaveCustomerImportMappingAsync(
         string customerId,
-        [FromBody] SaveCustomerImportMappingDto request,
+        [FromBody] SaveCustomerImportMappingRequest request,
         CancellationToken cancellationToken)
     {
         var mapping = await _sampleDataImportService.SaveCustomerImportMappingAsync(customerId, request, cancellationToken);
@@ -576,7 +576,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> BulkUpdateWeeklyMenuAsync(
-        [FromBody] BulkUpdateWeeklyMenuRequestDto request,
+        [FromBody] BulkUpdateWeeklyMenuRequest request,
         CancellationToken cancellationToken)
     {
         if (request == null || string.IsNullOrWhiteSpace(request.CustomerId))
@@ -596,7 +596,7 @@ public class CoordinationController : ControllerBase
     [HttpPost("orders/adjust")]
     [ProducesResponseType(typeof(ApiResponse<AdjustOrderAfterLockResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AdjustOrderAfterLockAsync([FromBody] AdjustOrderAfterLockRequestDto request)
+    public async Task<IActionResult> AdjustOrderAfterLockAsync([FromBody] AdjustOrderAfterLockRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         AdjustOrderAfterLockResultDto? result;
@@ -625,7 +625,7 @@ public class CoordinationController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SignoffOrderResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
-    public async Task<IActionResult> SignoffOrderAsync(string id, [FromBody] SignoffOrderRequestDto request)
+    public async Task<IActionResult> SignoffOrderAsync(string id, [FromBody] SignoffOrderRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -677,7 +677,7 @@ public class CoordinationController : ControllerBase
     [HttpPatch("orders/{id}/servings")]
     [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AdjustServingsAsync([FromRoute] string id, [FromBody] AdjustServingsRequestDto request)
+    public async Task<IActionResult> AdjustServingsAsync([FromRoute] string id, [FromBody] AdjustServingsRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         AdjustServingsResultDto? result;
@@ -702,7 +702,7 @@ public class CoordinationController : ControllerBase
     [HttpPatch("orders/{id}/forecast")]
     [ProducesResponseType(typeof(ApiResponse<AdjustServingsResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateForecastServingsAsync([FromRoute] string id, [FromBody] UpdateForecastServingsRequestDto request)
+    public async Task<IActionResult> UpdateForecastServingsAsync([FromRoute] string id, [FromBody] UpdateForecastServingsRequest request)
     {
         var userId = _currentUserService.GetUserId(User);
         AdjustServingsResultDto? result;
@@ -729,7 +729,7 @@ public class CoordinationController : ControllerBase
 
     [HttpPost("orders/export")]
     [ProducesResponseType(typeof(ApiResponse<ExportOrderReportResultDto>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> ExportOrderReportAsync([FromBody] ExportOrderReportRequestDto request)
+    public async Task<IActionResult> ExportOrderReportAsync([FromBody] ExportOrderReportRequest request)
     {
         var result = await _coordinationService.ExportOrderReportAsync(request);
         return Ok(ApiResponse<ExportOrderReportResultDto>.SuccessResult(result, "Tạo báo cáo thành công."));

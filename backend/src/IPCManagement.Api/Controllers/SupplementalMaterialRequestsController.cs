@@ -57,7 +57,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateSupplementalMaterialRequest request)
     {
         try
         {
@@ -88,7 +88,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
 
     [HttpPost("{id}/fulfill")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> FulfillAsync(string id, [FromBody] FulfillSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> FulfillAsync(string id, [FromBody] FulfillSupplementalMaterialRequest request)
         => await ExecuteActionAsync(
             (userId, warehouseId) => _service.FulfillAsync(id, request, userId, warehouseId),
             "Đã tạo phiếu xuất bổ sung và trừ tồn kho.");
@@ -102,7 +102,7 @@ public sealed class SupplementalMaterialRequestsController : ControllerBase
 
     [HttpPost("{id}/reject")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> RejectAsync(string id, [FromBody] RejectSupplementalMaterialRequestDto request)
+    public async Task<IActionResult> RejectAsync(string id, [FromBody] RejectSupplementalMaterialRequest request)
         => await ExecuteActionAsync(
             (userId, warehouseId) => _service.RejectAsync(id, request, userId, warehouseId),
             "Đã từ chối yêu cầu bổ sung.");

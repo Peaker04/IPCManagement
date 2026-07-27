@@ -51,7 +51,7 @@ public class PurchaseWorkflowController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PurchaseRequestWorkflowResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GenerateFromDemandAsync(
-        [FromBody] GeneratePurchaseRequestFromDemandDto request,
+        [FromBody] GeneratePurchaseRequestFromDemandRequest request,
         CancellationToken cancellationToken)
     {
         var userId = _currentUserService.GetUserId(User);
@@ -107,7 +107,7 @@ public class PurchaseWorkflowController : ControllerBase
     public async Task<IActionResult> ConfirmLineSupplierAsync(
         string id,
         string lineId,
-        [FromBody] ConfirmPurchaseLineSupplierDto request,
+        [FromBody] ConfirmPurchaseLineSupplierRequest request,
         CancellationToken cancellationToken)
     {
         try

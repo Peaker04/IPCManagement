@@ -578,7 +578,7 @@ public class DishService : IDishService
         return entity is null ? null : MapToDto(entity);
     }
 
-    public async Task<DishDto> CreateAsync(CreateDishDto dto)
+    public async Task<DishDto> CreateAsync(CreateDishRequest dto)
     {
         if (await _dishRepo.IsCodeExistsAsync(dto.DishCode))
             throw new InvalidOperationException($"Mã món ăn '{dto.DishCode}' đã tồn tại.");
@@ -598,7 +598,7 @@ public class DishService : IDishService
         return MapToDto(entity);
     }
 
-    public async Task<DishDto?> UpdateAsync(string id, UpdateDishDto dto)
+    public async Task<DishDto?> UpdateAsync(string id, UpdateDishRequest dto)
     {
         var bytes  = GuidHelper.ParseGuidString(id);
         if (bytes is null) return null;
@@ -631,7 +631,7 @@ public class DishService : IDishService
         return true;
     }
 
-    public async Task<DishCatalogBomLineDto?> AddBomLineAsync(string dishId, CreateDishBomLineDto dto)
+    public async Task<DishCatalogBomLineDto?> AddBomLineAsync(string dishId, CreateDishBomLineRequest dto)
     {
         var dishBytes = GuidHelper.ParseGuidString(dishId);
         var ingredientBytes = GuidHelper.ParseGuidString(dto.IngredientId);
@@ -710,7 +710,7 @@ public class DishService : IDishService
     public async Task<DishCatalogBomLineDto?> UpdateBomLineAsync(
         string dishId,
         string bomId,
-        UpdateDishBomLineDto dto,
+        UpdateDishBomLineRequest dto,
         string? userId)
     {
         var dishBytes = GuidHelper.ParseGuidString(dishId);

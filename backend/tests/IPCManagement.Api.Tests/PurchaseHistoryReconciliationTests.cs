@@ -558,8 +558,8 @@ public class PurchaseHistoryReconciliationTests
     {
         var requestTypes = new[]
         {
-            typeof(PurchaseHistoryPreviewRequestDto),
-            typeof(PurchaseHistoryApplyRequestDto)
+            typeof(PurchaseHistoryPreviewRequest),
+            typeof(PurchaseHistoryApplyRequest)
         };
         var forbiddenFragments = new[]
         {
@@ -573,15 +573,15 @@ public class PurchaseHistoryReconciliationTests
             .NotContain(name => forbiddenFragments.Any(fragment =>
                 name.Contains(fragment, StringComparison.OrdinalIgnoreCase)));
 
-        var invalid = new PurchaseHistoryApplyRequestDto();
+        var invalid = new PurchaseHistoryApplyRequest();
         var errors = new List<ValidationResult>();
         Validator.TryValidateObject(invalid, new ValidationContext(invalid), errors, validateAllProperties: true)
             .Should().BeFalse();
         errors.Select(error => error.MemberNames.Single()).Should().Contain(
-            nameof(PurchaseHistoryApplyRequestDto.ManifestId),
-            nameof(PurchaseHistoryApplyRequestDto.ManifestHash),
-            nameof(PurchaseHistoryApplyRequestDto.AcceptedActionIds),
-            nameof(PurchaseHistoryApplyRequestDto.BackupRestoreEvidence));
+            nameof(PurchaseHistoryApplyRequest.ManifestId),
+            nameof(PurchaseHistoryApplyRequest.ManifestHash),
+            nameof(PurchaseHistoryApplyRequest.AcceptedActionIds),
+            nameof(PurchaseHistoryApplyRequest.BackupRestoreEvidence));
     }
 
     [Fact]
@@ -1026,7 +1026,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var payload = await response.Content.ReadFromJsonAsync<ApiResponse<PurchaseHistoryPreviewDto>>();
@@ -1052,7 +1052,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(expectedStatus);
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
@@ -1068,7 +1068,7 @@ public class PurchaseHistoryReconciliationTests
 
         var response = await client.PostAsJsonAsync(
             "/api/sample-data/purchase-history/preview",
-            new PurchaseHistoryPreviewRequestDto());
+            new PurchaseHistoryPreviewRequest());
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         await service.DidNotReceive().PreviewAsync(Arg.Any<CancellationToken>());
@@ -1081,7 +1081,7 @@ public class PurchaseHistoryReconciliationTests
         var request = EndpointApplyRequest();
         var service = Substitute.For<IPurchaseHistoryReconciliationService>();
         service.ApplyAsync(
-                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<PurchaseHistoryApplyRequest>(),
                 Arg.Any<byte[]>(),
                 Arg.Any<CancellationToken>())
             .Returns(
@@ -1119,7 +1119,7 @@ public class PurchaseHistoryReconciliationTests
             !result.Applied && result.NoOp && result.AuditReference == firstPayload.Data!.AuditReference);
         firstPayload.Data!.AuditReference.Should().NotContain("\\").And.NotContain(":\\");
         await service.Received(2).ApplyAsync(
-            Arg.Is<PurchaseHistoryApplyRequestDto>(accepted =>
+            Arg.Is<PurchaseHistoryApplyRequest>(accepted =>
                 accepted.ManifestId == request.ManifestId &&
                 accepted.ManifestHash == request.ManifestHash &&
                 accepted.AcceptedActionIds.SequenceEqual(request.AcceptedActionIds)),
@@ -1132,7 +1132,7 @@ public class PurchaseHistoryReconciliationTests
     {
         var service = Substitute.For<IPurchaseHistoryReconciliationService>();
         service.ApplyAsync(
-                Arg.Any<PurchaseHistoryApplyRequestDto>(),
+                Arg.Any<PurchaseHistoryApplyRequest>(),
                 Arg.Any<byte[]>(),
                 Arg.Any<CancellationToken>())
             .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new InvalidOperationException("Manifest drifted."));
@@ -1172,7 +1172,7 @@ public class PurchaseHistoryReconciliationTests
 
         response.StatusCode.Should().Be(expectedStatus);
         await service.DidNotReceive().ApplyAsync(
-            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<PurchaseHistoryApplyRequest>(),
             Arg.Any<byte[]>(),
             Arg.Any<CancellationToken>());
     }
@@ -1191,7 +1191,7 @@ public class PurchaseHistoryReconciliationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
         await service.DidNotReceive().ApplyAsync(
-            Arg.Any<PurchaseHistoryApplyRequestDto>(),
+            Arg.Any<PurchaseHistoryApplyRequest>(),
             Arg.Any<byte[]>(),
             Arg.Any<CancellationToken>());
     }
@@ -1806,13 +1806,13 @@ public class PurchaseHistoryReconciliationTests
                 ? new InvalidOperationException($"Injected action failure at boundary {index}.")
                 : null);
 
-    private static PurchaseHistoryApplyRequestDto AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
+    private static PurchaseHistoryApplyRequest AcceptedApplyRequest(PurchaseHistoryPreviewDto preview)
         => new()
         {
             ManifestId = preview.Manifest.ManifestId,
             ManifestHash = preview.Manifest.ManifestHash,
             AcceptedActionIds = preview.Actions.Select(action => action.ActionId).ToList(),
-            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            BackupRestoreEvidence = new BackupRestoreEvidenceRequest
             {
                 BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
                 TargetFingerprint = new string('C', 64),
@@ -1821,13 +1821,13 @@ public class PurchaseHistoryReconciliationTests
             }
         };
 
-    private static PurchaseHistoryApplyRequestDto EndpointApplyRequest()
+    private static PurchaseHistoryApplyRequest EndpointApplyRequest()
         => new()
         {
             ManifestId = "manifest-1",
             ManifestHash = new string('C', 64),
             AcceptedActionIds = ["action-1"],
-            BackupRestoreEvidence = new BackupRestoreEvidenceDto
+            BackupRestoreEvidence = new BackupRestoreEvidenceRequest
             {
                 BackupIdentifier = "wave0-ipc_lane1-to-ipc_e2e_template-20260722",
                 TargetFingerprint = new string('D', 64),

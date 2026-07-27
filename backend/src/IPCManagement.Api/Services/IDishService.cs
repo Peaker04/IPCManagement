@@ -16,10 +16,10 @@ public interface IDishService
     Task<BomImportCommitResultDto> CommitBomImportAsync(Stream fileStream, BomImportCommitRequestDto request, string? userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<DishCatalogBomLineDto>?> GetBomLinesAsync(string dishId);
     Task<DishDto?>                  GetByIdAsync(string id);
-    Task<DishDto>                   CreateAsync(CreateDishDto dto);
-    Task<DishDto?>                  UpdateAsync(string id, UpdateDishDto dto);
+    Task<DishDto>                   CreateAsync(CreateDishRequest dto);
+    Task<DishDto?>                  UpdateAsync(string id, UpdateDishRequest dto);
     Task<bool>                      DeleteAsync(string id);
-    Task<DishCatalogBomLineDto?>    AddBomLineAsync(string dishId, CreateDishBomLineDto dto);
-    Task<DishCatalogBomLineDto?>    UpdateBomLineAsync(string dishId, string bomId, UpdateDishBomLineDto dto, string? userId);
+    Task<DishCatalogBomLineDto?>    AddBomLineAsync(string dishId, CreateDishBomLineRequest dto);
+    Task<DishCatalogBomLineDto?>    UpdateBomLineAsync(string dishId, string bomId, UpdateDishBomLineRequest dto, string? userId);
     Task<bool>                      CloseBomLineAsync(string dishId, string bomId);
 }

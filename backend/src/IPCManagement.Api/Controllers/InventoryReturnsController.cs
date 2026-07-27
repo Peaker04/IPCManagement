@@ -59,7 +59,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Tạo mới phiếu trả nguyên liệu dư sau sản xuất.</summary>
     [HttpPost]
     [Authorize(Policy = AuthorizationPolicies.ProductionAccess)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReturnDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryReturnRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);
 
@@ -76,7 +76,7 @@ public class InventoryReturnsController : ControllerBase
     /// <summary>Thủ kho xác nhận phiếu trả nguyên liệu và cộng tồn kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
     [Authorize(Policy = AuthorizationPolicies.InventoryAccess)]
-    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryReturnReceiptDto dto)
+    public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryReturnReceiptRequest dto)
     {
         var userId = _currentUserService.GetUserId(User);
         var existing = await _inventoryReturnService.GetByIdAsync(id);

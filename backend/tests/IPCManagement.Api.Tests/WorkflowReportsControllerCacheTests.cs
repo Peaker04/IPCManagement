@@ -37,7 +37,7 @@ public class WorkflowReportsControllerCacheTests
         var service = Substitute.For<IWorkflowReportService>();
         service.GetDataQualityAsync(Arg.Any<WorkflowReportQueryDto>())
             .Returns(new DataQualityReportDto { TotalIssues = 6 });
-        service.UpdateDataQualityIssueRemediationAsync(Arg.Any<DataQualityIssueRemediationRequestDto>(), "admin-user")
+        service.UpdateDataQualityIssueRemediationAsync(Arg.Any<DataQualityIssueRemediationRequest>(), "admin-user")
             .Returns(new DataQualityIssueRemediationDto { IssueId = "issue-1" });
         using var cache = new MemoryCache(new MemoryCacheOptions());
         var controller = CreateController(service, cache);
@@ -45,7 +45,7 @@ public class WorkflowReportsControllerCacheTests
 
         await controller.GetDataQualityPageAsync(query);
         await controller.GetDataQualityPageAsync(query);
-        await controller.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequestDto
+        await controller.UpdateDataQualityIssueRemediationAsync(new DataQualityIssueRemediationRequest
         {
             IssueId = "issue-1",
             Action = "resolve"

@@ -143,7 +143,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,
@@ -227,7 +227,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequestDto
+        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,

@@ -276,7 +276,7 @@ public class WorkflowReportsController : ControllerBase
 
     [HttpPost("data-quality/issues/remediation")]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
-    public async Task<IActionResult> UpdateDataQualityIssueRemediationAsync([FromBody] DataQualityIssueRemediationRequestDto request)
+    public async Task<IActionResult> UpdateDataQualityIssueRemediationAsync([FromBody] DataQualityIssueRemediationRequest request)
     {
         try
         {
@@ -302,7 +302,7 @@ public class WorkflowReportsController : ControllerBase
 
     [HttpPost("data-quality/cleanup")]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
-    public async Task<IActionResult> CleanupDataQualityAsync([FromBody] DataQualityCleanupRequestDto request)
+    public async Task<IActionResult> CleanupDataQualityAsync([FromBody] DataQualityCleanupRequest request)
     {
         try
         {

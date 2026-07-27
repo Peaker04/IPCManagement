@@ -51,7 +51,7 @@ public class InventoryReceiptService : IInventoryReceiptService
         return receipt is null ? null : InventoryMapper.MapReceipt(receipt, includeLines: true);
     }
 
-    public async Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptDto dto, string? userId)
+    public async Task<InventoryReceiptCreatedDto?> CreateAsync(CreateInventoryReceiptRequest dto, string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
@@ -132,7 +132,7 @@ public class InventoryReceiptService : IInventoryReceiptService
     }
 
     public async Task<InventoryReceiptCreatedDto?> CreateFromPurchaseRequestAsync(
-        CreateInventoryReceiptFromPurchaseDto dto,
+        CreateInventoryReceiptFromPurchaseRequest dto,
         string? userId)
     {
         if (_context is null)

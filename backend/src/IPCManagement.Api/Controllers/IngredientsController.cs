@@ -48,7 +48,7 @@ public class IngredientsController : ControllerBase
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateIngredientDto dto)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateIngredientRequest dto)
     {
         var result = await _service.CreateAsync(dto);
         return CreatedAtAction(nameof(GetByIdAsync), new { id = result.IngredientId },
@@ -59,7 +59,7 @@ public class IngredientsController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<IngredientDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateIngredientDto dto)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateIngredientRequest dto)
     {
         var result = await _service.UpdateAsync(id, dto);
         if (result is null)

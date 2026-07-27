@@ -32,7 +32,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> RecordAsync(
         string purchaseOrderId,
-        [FromBody] RecordWarehousePurchaseReceiptDto request,
+        [FromBody] RecordWarehousePurchaseReceiptRequest request,
         CancellationToken cancellationToken)
     {
         if (!string.Equals(purchaseOrderId, request.PurchaseOrderId, StringComparison.OrdinalIgnoreCase))

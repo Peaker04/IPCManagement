@@ -49,9 +49,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateEmployeeDto"];
-                    readonly "application/json": components["schemas"]["CreateEmployeeDto"];
-                    readonly "text/json": components["schemas"]["CreateEmployeeDto"];
+                    readonly "application/*+json": components["schemas"]["CreateEmployeeRequest"];
+                    readonly "application/json": components["schemas"]["CreateEmployeeRequest"];
+                    readonly "text/json": components["schemas"]["CreateEmployeeRequest"];
                 };
             };
             readonly responses: {
@@ -127,9 +127,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateEmployeeDto"];
-                    readonly "application/json": components["schemas"]["UpdateEmployeeDto"];
-                    readonly "text/json": components["schemas"]["UpdateEmployeeDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateEmployeeRequest"];
+                    readonly "application/json": components["schemas"]["UpdateEmployeeRequest"];
+                    readonly "text/json": components["schemas"]["UpdateEmployeeRequest"];
                 };
             };
             readonly responses: {
@@ -188,9 +188,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateEmployeeStatusDto"];
-                    readonly "application/json": components["schemas"]["UpdateEmployeeStatusDto"];
-                    readonly "text/json": components["schemas"]["UpdateEmployeeStatusDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateEmployeeStatusRequest"];
+                    readonly "application/json": components["schemas"]["UpdateEmployeeStatusRequest"];
+                    readonly "text/json": components["schemas"]["UpdateEmployeeStatusRequest"];
                 };
             };
             readonly responses: {
@@ -384,9 +384,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ApprovalRuleRequestDto"];
-                    readonly "application/json": components["schemas"]["ApprovalRuleRequestDto"];
-                    readonly "text/json": components["schemas"]["ApprovalRuleRequestDto"];
+                    readonly "application/*+json": components["schemas"]["ApprovalRuleRequest"];
+                    readonly "application/json": components["schemas"]["ApprovalRuleRequest"];
+                    readonly "text/json": components["schemas"]["ApprovalRuleRequest"];
                 };
             };
             readonly responses: {
@@ -462,9 +462,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ApprovalRuleRequestDto"];
-                    readonly "application/json": components["schemas"]["ApprovalRuleRequestDto"];
-                    readonly "text/json": components["schemas"]["ApprovalRuleRequestDto"];
+                    readonly "application/*+json": components["schemas"]["ApprovalRuleRequest"];
+                    readonly "application/json": components["schemas"]["ApprovalRuleRequest"];
+                    readonly "text/json": components["schemas"]["ApprovalRuleRequest"];
                 };
             };
             readonly responses: {
@@ -554,9 +554,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ApprovalRequestDto"];
-                    readonly "application/json": components["schemas"]["ApprovalRequestDto"];
-                    readonly "text/json": components["schemas"]["ApprovalRequestDto"];
+                    readonly "application/*+json": components["schemas"]["ApprovalRequest"];
+                    readonly "application/json": components["schemas"]["ApprovalRequest"];
+                    readonly "text/json": components["schemas"]["ApprovalRequest"];
                 };
             };
             readonly responses: {
@@ -659,9 +659,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["LoginRequestDto"];
-                    readonly "application/json": components["schemas"]["LoginRequestDto"];
-                    readonly "text/json": components["schemas"]["LoginRequestDto"];
+                    readonly "application/*+json": components["schemas"]["LoginRequest"];
+                    readonly "application/json": components["schemas"]["LoginRequest"];
+                    readonly "text/json": components["schemas"]["LoginRequest"];
                 };
             };
             readonly responses: {
@@ -713,9 +713,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RevokeTokenRequestDto"];
-                    readonly "application/json": components["schemas"]["RevokeTokenRequestDto"];
-                    readonly "text/json": components["schemas"]["RevokeTokenRequestDto"];
+                    readonly "application/*+json": components["schemas"]["RevokeTokenRequest"];
+                    readonly "application/json": components["schemas"]["RevokeTokenRequest"];
+                    readonly "text/json": components["schemas"]["RevokeTokenRequest"];
                 };
             };
             readonly responses: {
@@ -885,9 +885,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RefreshTokenRequestDto"];
-                    readonly "application/json": components["schemas"]["RefreshTokenRequestDto"];
-                    readonly "text/json": components["schemas"]["RefreshTokenRequestDto"];
+                    readonly "application/*+json": components["schemas"]["RefreshTokenRequest"];
+                    readonly "application/json": components["schemas"]["RefreshTokenRequest"];
+                    readonly "text/json": components["schemas"]["RefreshTokenRequest"];
                 };
             };
             readonly responses: {
@@ -939,9 +939,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RevokeTokenRequestDto"];
-                    readonly "application/json": components["schemas"]["RevokeTokenRequestDto"];
-                    readonly "text/json": components["schemas"]["RevokeTokenRequestDto"];
+                    readonly "application/*+json": components["schemas"]["RevokeTokenRequest"];
+                    readonly "application/json": components["schemas"]["RevokeTokenRequest"];
+                    readonly "text/json": components["schemas"]["RevokeTokenRequest"];
                 };
             };
             readonly responses: {
@@ -1091,9 +1091,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["SaveCustomerImportMappingDto"];
-                    readonly "application/json": components["schemas"]["SaveCustomerImportMappingDto"];
-                    readonly "text/json": components["schemas"]["SaveCustomerImportMappingDto"];
+                    readonly "application/*+json": components["schemas"]["SaveCustomerImportMappingRequest"];
+                    readonly "application/json": components["schemas"]["SaveCustomerImportMappingRequest"];
+                    readonly "text/json": components["schemas"]["SaveCustomerImportMappingRequest"];
                 };
             };
             readonly responses: {
@@ -1136,9 +1136,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateCustomerContractDto"];
-                    readonly "application/json": components["schemas"]["UpdateCustomerContractDto"];
-                    readonly "text/json": components["schemas"]["UpdateCustomerContractDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateCustomerContractRequest"];
+                    readonly "application/json": components["schemas"]["UpdateCustomerContractRequest"];
+                    readonly "text/json": components["schemas"]["UpdateCustomerContractRequest"];
                 };
             };
             readonly responses: {
@@ -1202,9 +1202,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateCustomerContractDto"];
-                    readonly "application/json": components["schemas"]["CreateCustomerContractDto"];
-                    readonly "text/json": components["schemas"]["CreateCustomerContractDto"];
+                    readonly "application/*+json": components["schemas"]["CreateCustomerContractRequest"];
+                    readonly "application/json": components["schemas"]["CreateCustomerContractRequest"];
+                    readonly "text/json": components["schemas"]["CreateCustomerContractRequest"];
                 };
             };
             readonly responses: {
@@ -1300,9 +1300,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpsertQuickServingsRequestDto"];
-                    readonly "application/json": components["schemas"]["UpsertQuickServingsRequestDto"];
-                    readonly "text/json": components["schemas"]["UpsertQuickServingsRequestDto"];
+                    readonly "application/*+json": components["schemas"]["UpsertQuickServingsRequest"];
+                    readonly "application/json": components["schemas"]["UpsertQuickServingsRequest"];
+                    readonly "text/json": components["schemas"]["UpsertQuickServingsRequest"];
                 };
             };
             readonly responses: {
@@ -1414,9 +1414,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateMenuScheduleRulesDto"];
-                    readonly "application/json": components["schemas"]["UpdateMenuScheduleRulesDto"];
-                    readonly "text/json": components["schemas"]["UpdateMenuScheduleRulesDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateMenuScheduleRulesRequest"];
+                    readonly "application/json": components["schemas"]["UpdateMenuScheduleRulesRequest"];
+                    readonly "text/json": components["schemas"]["UpdateMenuScheduleRulesRequest"];
                 };
             };
             readonly responses: {
@@ -1481,9 +1481,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateMenuScheduleVersionDto"];
-                    readonly "application/json": components["schemas"]["UpdateMenuScheduleVersionDto"];
-                    readonly "text/json": components["schemas"]["UpdateMenuScheduleVersionDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateMenuScheduleVersionRequest"];
+                    readonly "application/json": components["schemas"]["UpdateMenuScheduleVersionRequest"];
+                    readonly "text/json": components["schemas"]["UpdateMenuScheduleVersionRequest"];
                 };
             };
             readonly responses: {
@@ -1542,9 +1542,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RollbackMenuVersionDto"];
-                    readonly "application/json": components["schemas"]["RollbackMenuVersionDto"];
-                    readonly "text/json": components["schemas"]["RollbackMenuVersionDto"];
+                    readonly "application/*+json": components["schemas"]["RollbackMenuVersionRequest"];
+                    readonly "application/json": components["schemas"]["RollbackMenuVersionRequest"];
+                    readonly "text/json": components["schemas"]["RollbackMenuVersionRequest"];
                 };
             };
             readonly responses: {
@@ -1644,9 +1644,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateForecastServingsRequestDto"];
-                    readonly "application/json": components["schemas"]["UpdateForecastServingsRequestDto"];
-                    readonly "text/json": components["schemas"]["UpdateForecastServingsRequestDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateForecastServingsRequest"];
+                    readonly "application/json": components["schemas"]["UpdateForecastServingsRequest"];
+                    readonly "text/json": components["schemas"]["UpdateForecastServingsRequest"];
                 };
             };
             readonly responses: {
@@ -1700,9 +1700,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["AdjustServingsRequestDto"];
-                    readonly "application/json": components["schemas"]["AdjustServingsRequestDto"];
-                    readonly "text/json": components["schemas"]["AdjustServingsRequestDto"];
+                    readonly "application/*+json": components["schemas"]["AdjustServingsRequest"];
+                    readonly "application/json": components["schemas"]["AdjustServingsRequest"];
+                    readonly "text/json": components["schemas"]["AdjustServingsRequest"];
                 };
             };
             readonly responses: {
@@ -1752,9 +1752,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["SignoffOrderRequestDto"];
-                    readonly "application/json": components["schemas"]["SignoffOrderRequestDto"];
-                    readonly "text/json": components["schemas"]["SignoffOrderRequestDto"];
+                    readonly "application/*+json": components["schemas"]["SignoffOrderRequest"];
+                    readonly "application/json": components["schemas"]["SignoffOrderRequest"];
+                    readonly "text/json": components["schemas"]["SignoffOrderRequest"];
                 };
             };
             readonly responses: {
@@ -1878,9 +1878,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["AdjustOrderAfterLockRequestDto"];
-                    readonly "application/json": components["schemas"]["AdjustOrderAfterLockRequestDto"];
-                    readonly "text/json": components["schemas"]["AdjustOrderAfterLockRequestDto"];
+                    readonly "application/*+json": components["schemas"]["AdjustOrderAfterLockRequest"];
+                    readonly "application/json": components["schemas"]["AdjustOrderAfterLockRequest"];
+                    readonly "text/json": components["schemas"]["AdjustOrderAfterLockRequest"];
                 };
             };
             readonly responses: {
@@ -1932,9 +1932,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ExportOrderReportRequestDto"];
-                    readonly "application/json": components["schemas"]["ExportOrderReportRequestDto"];
-                    readonly "text/json": components["schemas"]["ExportOrderReportRequestDto"];
+                    readonly "application/*+json": components["schemas"]["ExportOrderReportRequest"];
+                    readonly "application/json": components["schemas"]["ExportOrderReportRequest"];
+                    readonly "text/json": components["schemas"]["ExportOrderReportRequest"];
                 };
             };
             readonly responses: {
@@ -1975,9 +1975,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["LockOrderPlanRequestDto"];
-                    readonly "application/json": components["schemas"]["LockOrderPlanRequestDto"];
-                    readonly "text/json": components["schemas"]["LockOrderPlanRequestDto"];
+                    readonly "application/*+json": components["schemas"]["LockOrderPlanRequest"];
+                    readonly "application/json": components["schemas"]["LockOrderPlanRequest"];
+                    readonly "text/json": components["schemas"]["LockOrderPlanRequest"];
                 };
             };
             readonly responses: {
@@ -2029,9 +2029,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CoordinationScopeActionRequestDto"];
-                    readonly "application/json": components["schemas"]["CoordinationScopeActionRequestDto"];
-                    readonly "text/json": components["schemas"]["CoordinationScopeActionRequestDto"];
+                    readonly "application/*+json": components["schemas"]["CoordinationScopeActionRequest"];
+                    readonly "application/json": components["schemas"]["CoordinationScopeActionRequest"];
+                    readonly "text/json": components["schemas"]["CoordinationScopeActionRequest"];
                 };
             };
             readonly responses: {
@@ -2094,9 +2094,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CoordinationScopeActionRequestDto"];
-                    readonly "application/json": components["schemas"]["CoordinationScopeActionRequestDto"];
-                    readonly "text/json": components["schemas"]["CoordinationScopeActionRequestDto"];
+                    readonly "application/*+json": components["schemas"]["CoordinationScopeActionRequest"];
+                    readonly "application/json": components["schemas"]["CoordinationScopeActionRequest"];
+                    readonly "text/json": components["schemas"]["CoordinationScopeActionRequest"];
                 };
             };
             readonly responses: {
@@ -2188,9 +2188,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreatePortionRuleDto"];
-                    readonly "application/json": components["schemas"]["CreatePortionRuleDto"];
-                    readonly "text/json": components["schemas"]["CreatePortionRuleDto"];
+                    readonly "application/*+json": components["schemas"]["CreatePortionRuleRequest"];
+                    readonly "application/json": components["schemas"]["CreatePortionRuleRequest"];
+                    readonly "text/json": components["schemas"]["CreatePortionRuleRequest"];
                 };
             };
             readonly responses: {
@@ -2243,9 +2243,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdatePortionRuleDto"];
-                    readonly "application/json": components["schemas"]["UpdatePortionRuleDto"];
-                    readonly "text/json": components["schemas"]["UpdatePortionRuleDto"];
+                    readonly "application/*+json": components["schemas"]["UpdatePortionRuleRequest"];
+                    readonly "application/json": components["schemas"]["UpdatePortionRuleRequest"];
+                    readonly "text/json": components["schemas"]["UpdatePortionRuleRequest"];
                 };
             };
             readonly responses: {
@@ -2309,9 +2309,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ResolvePortionRuleDto"];
-                    readonly "application/json": components["schemas"]["ResolvePortionRuleDto"];
-                    readonly "text/json": components["schemas"]["ResolvePortionRuleDto"];
+                    readonly "application/*+json": components["schemas"]["ResolvePortionRuleRequest"];
+                    readonly "application/json": components["schemas"]["ResolvePortionRuleRequest"];
+                    readonly "text/json": components["schemas"]["ResolvePortionRuleRequest"];
                 };
             };
             readonly responses: {
@@ -2424,9 +2424,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["BulkUpdateWeeklyMenuRequestDto"];
-                    readonly "application/json": components["schemas"]["BulkUpdateWeeklyMenuRequestDto"];
-                    readonly "text/json": components["schemas"]["BulkUpdateWeeklyMenuRequestDto"];
+                    readonly "application/*+json": components["schemas"]["BulkUpdateWeeklyMenuRequest"];
+                    readonly "application/json": components["schemas"]["BulkUpdateWeeklyMenuRequest"];
+                    readonly "text/json": components["schemas"]["BulkUpdateWeeklyMenuRequest"];
                 };
             };
             readonly responses: {
@@ -2830,9 +2830,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateDishDto"];
-                    readonly "application/json": components["schemas"]["CreateDishDto"];
-                    readonly "text/json": components["schemas"]["CreateDishDto"];
+                    readonly "application/*+json": components["schemas"]["CreateDishRequest"];
+                    readonly "application/json": components["schemas"]["CreateDishRequest"];
+                    readonly "text/json": components["schemas"]["CreateDishRequest"];
                 };
             };
             readonly responses: {
@@ -2908,9 +2908,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateDishDto"];
-                    readonly "application/json": components["schemas"]["UpdateDishDto"];
-                    readonly "text/json": components["schemas"]["UpdateDishDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateDishRequest"];
+                    readonly "application/json": components["schemas"]["UpdateDishRequest"];
+                    readonly "text/json": components["schemas"]["UpdateDishRequest"];
                 };
             };
             readonly responses: {
@@ -3029,9 +3029,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateDishBomLineDto"];
-                    readonly "application/json": components["schemas"]["CreateDishBomLineDto"];
-                    readonly "text/json": components["schemas"]["CreateDishBomLineDto"];
+                    readonly "application/*+json": components["schemas"]["CreateDishBomLineRequest"];
+                    readonly "application/json": components["schemas"]["CreateDishBomLineRequest"];
+                    readonly "text/json": components["schemas"]["CreateDishBomLineRequest"];
                 };
             };
             readonly responses: {
@@ -3085,9 +3085,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateDishBomLineDto"];
-                    readonly "application/json": components["schemas"]["UpdateDishBomLineDto"];
-                    readonly "text/json": components["schemas"]["UpdateDishBomLineDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateDishBomLineRequest"];
+                    readonly "application/json": components["schemas"]["UpdateDishBomLineRequest"];
+                    readonly "text/json": components["schemas"]["UpdateDishBomLineRequest"];
                 };
             };
             readonly responses: {
@@ -3572,9 +3572,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateIngredientDto"];
-                    readonly "application/json": components["schemas"]["CreateIngredientDto"];
-                    readonly "text/json": components["schemas"]["CreateIngredientDto"];
+                    readonly "application/*+json": components["schemas"]["CreateIngredientRequest"];
+                    readonly "application/json": components["schemas"]["CreateIngredientRequest"];
+                    readonly "text/json": components["schemas"]["CreateIngredientRequest"];
                 };
             };
             readonly responses: {
@@ -3661,9 +3661,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateIngredientDto"];
-                    readonly "application/json": components["schemas"]["UpdateIngredientDto"];
-                    readonly "text/json": components["schemas"]["UpdateIngredientDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateIngredientRequest"];
+                    readonly "application/json": components["schemas"]["UpdateIngredientRequest"];
+                    readonly "text/json": components["schemas"]["UpdateIngredientRequest"];
                 };
             };
             readonly responses: {
@@ -3773,9 +3773,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateInventoryIssueDto"];
-                    readonly "application/json": components["schemas"]["CreateInventoryIssueDto"];
-                    readonly "text/json": components["schemas"]["CreateInventoryIssueDto"];
+                    readonly "application/*+json": components["schemas"]["CreateInventoryIssueRequest"];
+                    readonly "application/json": components["schemas"]["CreateInventoryIssueRequest"];
+                    readonly "text/json": components["schemas"]["CreateInventoryIssueRequest"];
                 };
             };
             readonly responses: {
@@ -3849,9 +3849,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ConfirmInventoryIssueReceiptDto"];
-                    readonly "application/json": components["schemas"]["ConfirmInventoryIssueReceiptDto"];
-                    readonly "text/json": components["schemas"]["ConfirmInventoryIssueReceiptDto"];
+                    readonly "application/*+json": components["schemas"]["ConfirmInventoryIssueReceiptRequest"];
+                    readonly "application/json": components["schemas"]["ConfirmInventoryIssueReceiptRequest"];
+                    readonly "text/json": components["schemas"]["ConfirmInventoryIssueReceiptRequest"];
                 };
             };
             readonly responses: {
@@ -3911,9 +3911,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateInventoryReceiptDto"];
-                    readonly "application/json": components["schemas"]["CreateInventoryReceiptDto"];
-                    readonly "text/json": components["schemas"]["CreateInventoryReceiptDto"];
+                    readonly "application/*+json": components["schemas"]["CreateInventoryReceiptRequest"];
+                    readonly "application/json": components["schemas"]["CreateInventoryReceiptRequest"];
+                    readonly "text/json": components["schemas"]["CreateInventoryReceiptRequest"];
                 };
             };
             readonly responses: {
@@ -3985,9 +3985,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateInventoryReceiptFromPurchaseDto"];
-                    readonly "application/json": components["schemas"]["CreateInventoryReceiptFromPurchaseDto"];
-                    readonly "text/json": components["schemas"]["CreateInventoryReceiptFromPurchaseDto"];
+                    readonly "application/*+json": components["schemas"]["CreateInventoryReceiptFromPurchaseRequest"];
+                    readonly "application/json": components["schemas"]["CreateInventoryReceiptFromPurchaseRequest"];
+                    readonly "text/json": components["schemas"]["CreateInventoryReceiptFromPurchaseRequest"];
                 };
             };
             readonly responses: {
@@ -4051,9 +4051,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateInventoryReturnDto"];
-                    readonly "application/json": components["schemas"]["CreateInventoryReturnDto"];
-                    readonly "text/json": components["schemas"]["CreateInventoryReturnDto"];
+                    readonly "application/*+json": components["schemas"]["CreateInventoryReturnRequest"];
+                    readonly "application/json": components["schemas"]["CreateInventoryReturnRequest"];
+                    readonly "text/json": components["schemas"]["CreateInventoryReturnRequest"];
                 };
             };
             readonly responses: {
@@ -4127,9 +4127,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ConfirmInventoryReturnReceiptDto"];
-                    readonly "application/json": components["schemas"]["ConfirmInventoryReturnReceiptDto"];
-                    readonly "text/json": components["schemas"]["ConfirmInventoryReturnReceiptDto"];
+                    readonly "application/*+json": components["schemas"]["ConfirmInventoryReturnReceiptRequest"];
+                    readonly "application/json": components["schemas"]["ConfirmInventoryReturnReceiptRequest"];
+                    readonly "text/json": components["schemas"]["ConfirmInventoryReturnReceiptRequest"];
                 };
             };
             readonly responses: {
@@ -4168,9 +4168,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["MaterialDemandApproveRequestDto"];
-                    readonly "application/json": components["schemas"]["MaterialDemandApproveRequestDto"];
-                    readonly "text/json": components["schemas"]["MaterialDemandApproveRequestDto"];
+                    readonly "application/*+json": components["schemas"]["MaterialDemandApproveRequest"];
+                    readonly "application/json": components["schemas"]["MaterialDemandApproveRequest"];
+                    readonly "text/json": components["schemas"]["MaterialDemandApproveRequest"];
                 };
             };
             readonly responses: {
@@ -4233,9 +4233,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["GenerateMaterialDemandRequestDto"];
-                    readonly "application/json": components["schemas"]["GenerateMaterialDemandRequestDto"];
-                    readonly "text/json": components["schemas"]["GenerateMaterialDemandRequestDto"];
+                    readonly "application/*+json": components["schemas"]["GenerateMaterialDemandRequest"];
+                    readonly "application/json": components["schemas"]["GenerateMaterialDemandRequest"];
+                    readonly "text/json": components["schemas"]["GenerateMaterialDemandRequest"];
                 };
             };
             readonly responses: {
@@ -4461,9 +4461,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["SendDailyProductionPlanRequestDto"];
-                    readonly "application/json": components["schemas"]["SendDailyProductionPlanRequestDto"];
-                    readonly "text/json": components["schemas"]["SendDailyProductionPlanRequestDto"];
+                    readonly "application/*+json": components["schemas"]["SendDailyProductionPlanRequest"];
+                    readonly "application/json": components["schemas"]["SendDailyProductionPlanRequest"];
+                    readonly "text/json": components["schemas"]["SendDailyProductionPlanRequest"];
                 };
             };
             readonly responses: {
@@ -4926,9 +4926,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["GeneratePurchaseRequestFromDemandDto"];
-                    readonly "application/json": components["schemas"]["GeneratePurchaseRequestFromDemandDto"];
-                    readonly "text/json": components["schemas"]["GeneratePurchaseRequestFromDemandDto"];
+                    readonly "application/*+json": components["schemas"]["GeneratePurchaseRequestFromDemandRequest"];
+                    readonly "application/json": components["schemas"]["GeneratePurchaseRequestFromDemandRequest"];
+                    readonly "text/json": components["schemas"]["GeneratePurchaseRequestFromDemandRequest"];
                 };
             };
             readonly responses: {
@@ -4983,9 +4983,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["ConfirmPurchaseLineSupplierDto"];
-                    readonly "application/json": components["schemas"]["ConfirmPurchaseLineSupplierDto"];
-                    readonly "text/json": components["schemas"]["ConfirmPurchaseLineSupplierDto"];
+                    readonly "application/*+json": components["schemas"]["ConfirmPurchaseLineSupplierRequest"];
+                    readonly "application/json": components["schemas"]["ConfirmPurchaseLineSupplierRequest"];
+                    readonly "text/json": components["schemas"]["ConfirmPurchaseLineSupplierRequest"];
                 };
             };
             readonly responses: {
@@ -5236,9 +5236,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["SampleDataImportRequestDto"];
-                    readonly "application/json": components["schemas"]["SampleDataImportRequestDto"];
-                    readonly "text/json": components["schemas"]["SampleDataImportRequestDto"];
+                    readonly "application/*+json": components["schemas"]["SampleDataImportRequest"];
+                    readonly "application/json": components["schemas"]["SampleDataImportRequest"];
+                    readonly "text/json": components["schemas"]["SampleDataImportRequest"];
                 };
             };
             readonly responses: {
@@ -5290,9 +5290,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["PurchaseHistoryApplyRequestDto"];
-                    readonly "application/json": components["schemas"]["PurchaseHistoryApplyRequestDto"];
-                    readonly "text/json": components["schemas"]["PurchaseHistoryApplyRequestDto"];
+                    readonly "application/*+json": components["schemas"]["PurchaseHistoryApplyRequest"];
+                    readonly "application/json": components["schemas"]["PurchaseHistoryApplyRequest"];
+                    readonly "text/json": components["schemas"]["PurchaseHistoryApplyRequest"];
                 };
             };
             readonly responses: {
@@ -5366,9 +5366,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["PurchaseHistoryPreviewRequestDto"];
-                    readonly "application/json": components["schemas"]["PurchaseHistoryPreviewRequestDto"];
-                    readonly "text/json": components["schemas"]["PurchaseHistoryPreviewRequestDto"];
+                    readonly "application/*+json": components["schemas"]["PurchaseHistoryPreviewRequest"];
+                    readonly "application/json": components["schemas"]["PurchaseHistoryPreviewRequest"];
+                    readonly "text/json": components["schemas"]["PurchaseHistoryPreviewRequest"];
                 };
             };
             readonly responses: {
@@ -5451,9 +5451,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateStocktakeDto"];
-                    readonly "application/json": components["schemas"]["CreateStocktakeDto"];
-                    readonly "text/json": components["schemas"]["CreateStocktakeDto"];
+                    readonly "application/*+json": components["schemas"]["CreateStocktakeRequest"];
+                    readonly "application/json": components["schemas"]["CreateStocktakeRequest"];
+                    readonly "text/json": components["schemas"]["CreateStocktakeRequest"];
                 };
             };
             readonly responses: {
@@ -5534,9 +5534,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateStocktakeLinesDto"];
-                    readonly "application/json": components["schemas"]["UpdateStocktakeLinesDto"];
-                    readonly "text/json": components["schemas"]["UpdateStocktakeLinesDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateStocktakeLinesRequest"];
+                    readonly "application/json": components["schemas"]["UpdateStocktakeLinesRequest"];
+                    readonly "text/json": components["schemas"]["UpdateStocktakeLinesRequest"];
                 };
             };
             readonly responses: {
@@ -5619,9 +5619,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RejectDto"];
-                    readonly "application/json": components["schemas"]["RejectDto"];
-                    readonly "text/json": components["schemas"]["RejectDto"];
+                    readonly "application/*+json": components["schemas"]["RejectRequest"];
+                    readonly "application/json": components["schemas"]["RejectRequest"];
+                    readonly "text/json": components["schemas"]["RejectRequest"];
                 };
             };
             readonly responses: {
@@ -5726,9 +5726,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateSupplementalMaterialRequestDto"];
-                    readonly "application/json": components["schemas"]["CreateSupplementalMaterialRequestDto"];
-                    readonly "text/json": components["schemas"]["CreateSupplementalMaterialRequestDto"];
+                    readonly "application/*+json": components["schemas"]["CreateSupplementalMaterialRequest"];
+                    readonly "application/json": components["schemas"]["CreateSupplementalMaterialRequest"];
+                    readonly "text/json": components["schemas"]["CreateSupplementalMaterialRequest"];
                 };
             };
             readonly responses: {
@@ -5802,9 +5802,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["FulfillSupplementalMaterialRequestDto"];
-                    readonly "application/json": components["schemas"]["FulfillSupplementalMaterialRequestDto"];
-                    readonly "text/json": components["schemas"]["FulfillSupplementalMaterialRequestDto"];
+                    readonly "application/*+json": components["schemas"]["FulfillSupplementalMaterialRequest"];
+                    readonly "application/json": components["schemas"]["FulfillSupplementalMaterialRequest"];
+                    readonly "text/json": components["schemas"]["FulfillSupplementalMaterialRequest"];
                 };
             };
             readonly responses: {
@@ -5843,9 +5843,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RejectSupplementalMaterialRequestDto"];
-                    readonly "application/json": components["schemas"]["RejectSupplementalMaterialRequestDto"];
-                    readonly "text/json": components["schemas"]["RejectSupplementalMaterialRequestDto"];
+                    readonly "application/*+json": components["schemas"]["RejectSupplementalMaterialRequest"];
+                    readonly "application/json": components["schemas"]["RejectSupplementalMaterialRequest"];
+                    readonly "text/json": components["schemas"]["RejectSupplementalMaterialRequest"];
                 };
             };
             readonly responses: {
@@ -5917,9 +5917,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["CreateSupplierQuotationDto"];
-                    readonly "application/json": components["schemas"]["CreateSupplierQuotationDto"];
-                    readonly "text/json": components["schemas"]["CreateSupplierQuotationDto"];
+                    readonly "application/*+json": components["schemas"]["CreateSupplierQuotationRequest"];
+                    readonly "application/json": components["schemas"]["CreateSupplierQuotationRequest"];
+                    readonly "text/json": components["schemas"]["CreateSupplierQuotationRequest"];
                 };
             };
             readonly responses: {
@@ -5983,9 +5983,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["UpdateSupplierQuotationDto"];
-                    readonly "application/json": components["schemas"]["UpdateSupplierQuotationDto"];
-                    readonly "text/json": components["schemas"]["UpdateSupplierQuotationDto"];
+                    readonly "application/*+json": components["schemas"]["UpdateSupplierQuotationRequest"];
+                    readonly "application/json": components["schemas"]["UpdateSupplierQuotationRequest"];
+                    readonly "text/json": components["schemas"]["UpdateSupplierQuotationRequest"];
                 };
             };
             readonly responses: {
@@ -6242,9 +6242,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["RecordWarehousePurchaseReceiptDto"];
-                    readonly "application/json": components["schemas"]["RecordWarehousePurchaseReceiptDto"];
-                    readonly "text/json": components["schemas"]["RecordWarehousePurchaseReceiptDto"];
+                    readonly "application/*+json": components["schemas"]["RecordWarehousePurchaseReceiptRequest"];
+                    readonly "application/json": components["schemas"]["RecordWarehousePurchaseReceiptRequest"];
+                    readonly "text/json": components["schemas"]["RecordWarehousePurchaseReceiptRequest"];
                 };
             };
             readonly responses: {
@@ -6763,9 +6763,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["DataQualityCleanupRequestDto"];
-                    readonly "application/json": components["schemas"]["DataQualityCleanupRequestDto"];
-                    readonly "text/json": components["schemas"]["DataQualityCleanupRequestDto"];
+                    readonly "application/*+json": components["schemas"]["DataQualityCleanupRequest"];
+                    readonly "application/json": components["schemas"]["DataQualityCleanupRequest"];
+                    readonly "text/json": components["schemas"]["DataQualityCleanupRequest"];
                 };
             };
             readonly responses: {
@@ -6802,9 +6802,9 @@ export interface paths {
             };
             readonly requestBody?: {
                 readonly content: {
-                    readonly "application/*+json": components["schemas"]["DataQualityIssueRemediationRequestDto"];
-                    readonly "application/json": components["schemas"]["DataQualityIssueRemediationRequestDto"];
-                    readonly "text/json": components["schemas"]["DataQualityIssueRemediationRequestDto"];
+                    readonly "application/*+json": components["schemas"]["DataQualityIssueRemediationRequest"];
+                    readonly "application/json": components["schemas"]["DataQualityIssueRemediationRequest"];
+                    readonly "text/json": components["schemas"]["DataQualityIssueRemediationRequest"];
                 };
             };
             readonly responses: {
@@ -8395,7 +8395,7 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        readonly AdjustOrderAfterLockRequestDto: {
+        readonly AdjustOrderAfterLockRequest: {
             readonly field?: string | null;
             /** Format: int32 */
             readonly newValue?: number;
@@ -8423,7 +8423,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly AdjustServingsRequestDto: {
+        readonly AdjustServingsRequest: {
             readonly reason?: string | null;
             /** Format: int32 */
             readonly servingsQuantity?: number;
@@ -8476,7 +8476,7 @@ export interface components {
             /** Format: int32 */
             readonly sequence?: number;
         };
-        readonly ApprovalAssignmentRequestDto: {
+        readonly ApprovalAssignmentRequest: {
             readonly approverRole?: string | null;
             readonly approverUserId?: string | null;
             readonly isRequired?: boolean;
@@ -8574,7 +8574,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly ApprovalRequestDto: {
+        readonly ApprovalRequest: {
             readonly reason?: string | null;
             readonly status?: components["schemas"]["ApprovalDecision"];
         };
@@ -8622,8 +8622,8 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly ApprovalRuleRequestDto: {
-            readonly assignments?: readonly components["schemas"]["ApprovalAssignmentRequestDto"][] | null;
+        readonly ApprovalRuleRequest: {
+            readonly assignments?: readonly components["schemas"]["ApprovalAssignmentRequest"][] | null;
             readonly documentType?: string | null;
             readonly isActive?: boolean;
             /** Format: double */
@@ -8664,7 +8664,7 @@ export interface components {
             readonly oldValue?: string | null;
             readonly reason?: string | null;
         };
-        readonly BackupRestoreEvidenceDto: {
+        readonly BackupRestoreEvidenceRequest: {
             readonly backupIdentifier: string;
             readonly restoreFingerprint: string;
             readonly restoreVerified?: boolean;
@@ -8834,25 +8834,25 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly BulkUpdateWeeklyMenuRequestDto: {
+        readonly BulkUpdateWeeklyMenuRequest: {
             readonly customerId?: string | null;
-            readonly slots?: readonly components["schemas"]["WeeklyMenuSlotUpdateDto"][] | null;
+            readonly slots?: readonly components["schemas"]["WeeklyMenuSlotUpdateRequest"][] | null;
         };
-        readonly ConfirmInventoryIssueReceiptDto: {
+        readonly ConfirmInventoryIssueReceiptRequest: {
             readonly discrepancyNote?: string | null;
             readonly hasDiscrepancy?: boolean;
         };
-        readonly ConfirmInventoryReturnLineDto: {
+        readonly ConfirmInventoryReturnLineRequest: {
             /** Format: double */
             readonly newQuantity: number;
             readonly returnLineId: string;
         };
-        readonly ConfirmInventoryReturnReceiptDto: {
-            readonly adjustedLines?: readonly components["schemas"]["ConfirmInventoryReturnLineDto"][] | null;
+        readonly ConfirmInventoryReturnReceiptRequest: {
+            readonly adjustedLines?: readonly components["schemas"]["ConfirmInventoryReturnLineRequest"][] | null;
             readonly discrepancyNote?: string | null;
             readonly hasDiscrepancy?: boolean;
         };
-        readonly ConfirmPurchaseLineSupplierDto: {
+        readonly ConfirmPurchaseLineSupplierRequest: {
             readonly evidenceId?: string | null;
             readonly evidenceType?: components["schemas"]["SupplierEvidenceType"];
             /** Format: int32 */
@@ -8918,7 +8918,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly CoordinationScopeActionRequestDto: {
+        readonly CoordinationScopeActionRequest: {
             readonly dayOfWeek?: string | null;
             readonly note?: string | null;
             readonly serviceDate?: string | null;
@@ -8942,7 +8942,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly CreateCustomerContractDto: {
+        readonly CreateCustomerContractRequest: {
             readonly activeWeekDays?: readonly string[] | null;
             readonly customerCode?: string | null;
             readonly customerName?: string | null;
@@ -8956,7 +8956,7 @@ export interface components {
             readonly note?: string | null;
             readonly shiftNames?: readonly string[] | null;
         };
-        readonly CreateDishBomLineDto: {
+        readonly CreateDishBomLineRequest: {
             readonly bomStatus?: string | null;
             readonly customerId?: string | null;
             /** Format: date */
@@ -8973,20 +8973,20 @@ export interface components {
             /** Format: double */
             readonly wasteRatePercent?: number;
         };
-        readonly CreateDishDto: {
+        readonly CreateDishRequest: {
             readonly dishCode: string;
             readonly dishGroup?: string | null;
             readonly dishName: string;
             readonly dishType?: string | null;
         };
-        readonly CreateEmployeeDto: {
+        readonly CreateEmployeeRequest: {
             readonly fullName?: string | null;
             readonly isActive?: boolean;
             readonly password?: string | null;
             readonly roleId?: string | null;
             readonly username?: string | null;
         };
-        readonly CreateIngredientDto: {
+        readonly CreateIngredientRequest: {
             readonly ingredientCode: string;
             readonly ingredientName: string;
             readonly isFreshDaily?: boolean;
@@ -8995,16 +8995,7 @@ export interface components {
             readonly unitId: string;
             readonly warehouseId: string;
         };
-        readonly CreateInventoryIssueDto: {
-            /** Format: date */
-            readonly issueDate: string;
-            readonly lines?: readonly components["schemas"]["CreateInventoryIssueLineDto"][] | null;
-            readonly materialRequestId: string;
-            readonly receivedBy?: string | null;
-            readonly shiftName?: string | null;
-            readonly warehouseId: string;
-        };
-        readonly CreateInventoryIssueLineDto: {
+        readonly CreateInventoryIssueLineRequest: {
             readonly ingredientId: string;
             /** Format: double */
             readonly issuedQty: number;
@@ -9012,23 +9003,16 @@ export interface components {
             readonly requestedQty: number;
             readonly unitId: string;
         };
-        readonly CreateInventoryReceiptDto: {
-            readonly lines: readonly components["schemas"]["CreateInventoryReceiptLineDto"][];
-            readonly purchaseRequestId?: string | null;
+        readonly CreateInventoryIssueRequest: {
             /** Format: date */
-            readonly receiptDate: string;
-            readonly supplierId: string;
+            readonly issueDate: string;
+            readonly lines?: readonly components["schemas"]["CreateInventoryIssueLineRequest"][] | null;
+            readonly materialRequestId: string;
+            readonly receivedBy?: string | null;
+            readonly shiftName?: string | null;
             readonly warehouseId: string;
         };
-        readonly CreateInventoryReceiptFromPurchaseDto: {
-            readonly lines: readonly components["schemas"]["CreateInventoryReceiptFromPurchaseLineDto"][];
-            readonly purchaseRequestId: string;
-            /** Format: date */
-            readonly receiptDate: string;
-            readonly supplierId: string;
-            readonly warehouseId: string;
-        };
-        readonly CreateInventoryReceiptFromPurchaseLineDto: {
+        readonly CreateInventoryReceiptFromPurchaseLineRequest: {
             /** Format: date */
             readonly expiredDate?: string | null;
             readonly lotNumber?: string | null;
@@ -9041,7 +9025,15 @@ export interface components {
             /** Format: double */
             readonly unitPrice?: number | null;
         };
-        readonly CreateInventoryReceiptLineDto: {
+        readonly CreateInventoryReceiptFromPurchaseRequest: {
+            readonly lines: readonly components["schemas"]["CreateInventoryReceiptFromPurchaseLineRequest"][];
+            readonly purchaseRequestId: string;
+            /** Format: date */
+            readonly receiptDate: string;
+            readonly supplierId: string;
+            readonly warehouseId: string;
+        };
+        readonly CreateInventoryReceiptLineRequest: {
             /** Format: date */
             readonly expiredDate?: string | null;
             readonly ingredientId: string;
@@ -9054,9 +9046,23 @@ export interface components {
             /** Format: double */
             readonly unitPrice: number;
         };
-        readonly CreateInventoryReturnDto: {
+        readonly CreateInventoryReceiptRequest: {
+            readonly lines: readonly components["schemas"]["CreateInventoryReceiptLineRequest"][];
+            readonly purchaseRequestId?: string | null;
+            /** Format: date */
+            readonly receiptDate: string;
+            readonly supplierId: string;
+            readonly warehouseId: string;
+        };
+        readonly CreateInventoryReturnLineRequest: {
+            readonly ingredientId: string;
+            /** Format: double */
+            readonly quantity: number;
+            readonly unitId: string;
+        };
+        readonly CreateInventoryReturnRequest: {
             readonly issueId: string;
-            readonly lines: readonly components["schemas"]["CreateInventoryReturnLineDto"][];
+            readonly lines: readonly components["schemas"]["CreateInventoryReturnLineRequest"][];
             readonly reason?: string | null;
             /** Format: date */
             readonly returnDate: string;
@@ -9064,13 +9070,7 @@ export interface components {
             readonly shiftName?: string | null;
             readonly warehouseId: string;
         };
-        readonly CreateInventoryReturnLineDto: {
-            readonly ingredientId: string;
-            /** Format: double */
-            readonly quantity: number;
-            readonly unitId: string;
-        };
-        readonly CreatePortionRuleDto: {
+        readonly CreatePortionRuleRequest: {
             readonly activeWeekDays?: readonly string[] | null;
             /** Format: double */
             readonly bomRatePercent?: number | null;
@@ -9092,19 +9092,19 @@ export interface components {
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
-        readonly CreateStocktakeDto: {
+        readonly CreateStocktakeRequest: {
             readonly ingredientIds: readonly string[];
             readonly notes?: string | null;
             readonly warehouseId: string;
         };
-        readonly CreateSupplementalMaterialRequestDto: {
+        readonly CreateSupplementalMaterialRequest: {
             readonly issueId?: string | null;
             readonly issueLineId?: string | null;
             readonly reason?: string | null;
             /** Format: double */
             readonly requestedQty?: number;
         };
-        readonly CreateSupplierQuotationDto: {
+        readonly CreateSupplierQuotationRequest: {
             readonly effectiveFrom?: string | null;
             readonly effectiveTo?: string | null;
             readonly ingredientId?: string | null;
@@ -9246,14 +9246,14 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly DataQualityCleanupRequestDto: {
+        readonly DataQualityCleanupRequest: {
             readonly categories?: readonly string[] | null;
             readonly dryRun?: boolean;
             /** Format: int32 */
             readonly limit?: number;
             readonly note?: string | null;
         };
-        readonly DataQualityIssueRemediationRequestDto: {
+        readonly DataQualityIssueRemediationRequest: {
             readonly action?: string | null;
             readonly issueId?: string | null;
             readonly note?: string | null;
@@ -9422,7 +9422,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly ExportOrderReportRequestDto: {
+        readonly ExportOrderReportRequest: {
             readonly dayOfWeek?: string | null;
             readonly format?: string | null;
             readonly serviceDate?: string | null;
@@ -9439,17 +9439,17 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly FulfillSupplementalMaterialRequestDto: {
+        readonly FulfillSupplementalMaterialRequest: {
             /** Format: double */
             readonly quantity?: number;
         };
-        readonly GenerateMaterialDemandRequestDto: {
+        readonly GenerateMaterialDemandRequest: {
             readonly customerId?: string | null;
             readonly scope?: string | null;
             readonly serviceDate?: string | null;
             readonly shiftName?: string | null;
         };
-        readonly GeneratePurchaseRequestFromDemandDto: {
+        readonly GeneratePurchaseRequestFromDemandRequest: {
             readonly materialRequestId?: string | null;
         };
         readonly ImportedCustomComponentsDto: {
@@ -9680,7 +9680,7 @@ export interface components {
             /** Format: byte */
             readonly unitId?: string | null;
         };
-        readonly LockOrderPlanLineDto: {
+        readonly LockOrderPlanLineRequest: {
             /** Format: int32 */
             readonly actualQuantity?: number | null;
             /** Format: int32 */
@@ -9688,9 +9688,9 @@ export interface components {
             readonly orderId?: string | null;
             readonly quantityPlanLineId?: string | null;
         };
-        readonly LockOrderPlanRequestDto: {
+        readonly LockOrderPlanRequest: {
             readonly dayOfWeek?: string | null;
-            readonly lines?: readonly components["schemas"]["LockOrderPlanLineDto"][] | null;
+            readonly lines?: readonly components["schemas"]["LockOrderPlanLineRequest"][] | null;
             readonly scope?: string | null;
             readonly serviceDate?: string | null;
             readonly shift?: string | null;
@@ -9712,7 +9712,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly LoginRequestDto: {
+        readonly LoginRequest: {
             readonly password: string;
             readonly username: string;
         };
@@ -9744,7 +9744,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly MaterialDemandApproveRequestDto: {
+        readonly MaterialDemandApproveRequest: {
             readonly reason?: string | null;
         };
         readonly MaterialDemandLineDto: {
@@ -10342,9 +10342,9 @@ export interface components {
             readonly targetId?: string | null;
             readonly targetType?: string | null;
         };
-        readonly PurchaseHistoryApplyRequestDto: {
+        readonly PurchaseHistoryApplyRequest: {
             readonly acceptedActionIds?: readonly string[] | null;
-            readonly backupRestoreEvidence: components["schemas"]["BackupRestoreEvidenceDto"];
+            readonly backupRestoreEvidence: components["schemas"]["BackupRestoreEvidenceRequest"];
             readonly manifestHash: string;
             readonly manifestId: string;
         };
@@ -10411,7 +10411,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly PurchaseHistoryPreviewRequestDto: Record<string, never>;
+        readonly PurchaseHistoryPreviewRequest: Record<string, never>;
         readonly PurchaseLineSupplierDecision: {
             /** Format: int32 */
             readonly concurrencyVersion?: number;
@@ -10847,9 +10847,9 @@ export interface components {
             readonly sourceType?: string | null;
             readonly status?: string | null;
         };
-        readonly RecordWarehousePurchaseReceiptDto: {
+        readonly RecordWarehousePurchaseReceiptRequest: {
             readonly idempotencyKey: string;
-            readonly lines: readonly components["schemas"]["WarehousePurchaseReceiptLineDto"][];
+            readonly lines: readonly components["schemas"]["WarehousePurchaseReceiptLineRequest"][];
             readonly purchaseOrderId: string;
             /** Format: date */
             readonly receiptDate?: string;
@@ -10873,14 +10873,14 @@ export interface components {
             /** Format: byte */
             readonly userId?: string | null;
         };
-        readonly RefreshTokenRequestDto: {
+        readonly RefreshTokenRequest: {
             readonly accessToken?: string | null;
             readonly refreshToken?: string | null;
         };
-        readonly RejectDto: {
+        readonly RejectRequest: {
             readonly reason?: string | null;
         };
-        readonly RejectSupplementalMaterialRequestDto: {
+        readonly RejectSupplementalMaterialRequest: {
             readonly reason?: string | null;
         };
         readonly ResolvedPortionRuleDto: {
@@ -10900,7 +10900,7 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly ResolvePortionRuleDto: {
+        readonly ResolvePortionRuleRequest: {
             readonly customerId?: string | null;
             readonly dishCategory?: string | null;
             readonly dishId?: string | null;
@@ -10910,7 +10910,7 @@ export interface components {
             readonly shiftName?: string | null;
             readonly slotName?: string | null;
         };
-        readonly RevokeTokenRequestDto: {
+        readonly RevokeTokenRequest: {
             readonly refreshToken?: string | null;
         };
         readonly Role: {
@@ -10920,7 +10920,7 @@ export interface components {
             readonly roleName?: string | null;
             readonly users?: readonly components["schemas"]["User"][] | null;
         };
-        readonly RollbackMenuVersionDto: {
+        readonly RollbackMenuVersionRequest: {
             readonly customerId?: string | null;
             readonly reason?: string | null;
             readonly targetMenuVersionId?: string | null;
@@ -11018,7 +11018,7 @@ export interface components {
             /** Format: int32 */
             readonly warehousesCreated?: number;
         };
-        readonly SampleDataImportRequestDto: {
+        readonly SampleDataImportRequest: {
             readonly dryRun?: boolean;
             /** Format: int32 */
             readonly maxRows?: number | null;
@@ -11062,17 +11062,17 @@ export interface components {
             readonly message?: string | null;
             readonly success?: boolean;
         };
-        readonly SaveCustomerImportMappingDto: {
+        readonly SaveCustomerImportMappingRequest: {
             readonly labelColumn?: string | null;
             readonly sheetNameHint?: string | null;
         };
-        readonly SendDailyProductionPlanRequestDto: {
+        readonly SendDailyProductionPlanRequest: {
             readonly customerId?: string | null;
             readonly reason?: string | null;
             readonly serviceDate?: string | null;
             readonly shiftName?: string | null;
         };
-        readonly SignoffOrderRequestDto: {
+        readonly SignoffOrderRequest: {
             readonly note?: string | null;
         };
         readonly SignoffOrderResultDto: {
@@ -11405,7 +11405,7 @@ export interface components {
             readonly unitId?: string | null;
             readonly unitName?: string | null;
         };
-        readonly UpdateCustomerContractDto: {
+        readonly UpdateCustomerContractRequest: {
             readonly activeWeekDays?: readonly string[] | null;
             readonly customerName?: string | null;
             /** Format: double */
@@ -11418,7 +11418,7 @@ export interface components {
             readonly note?: string | null;
             readonly shiftNames?: readonly string[] | null;
         };
-        readonly UpdateDishBomLineDto: {
+        readonly UpdateDishBomLineRequest: {
             readonly bomStatus?: string | null;
             readonly customerId?: string | null;
             /** Format: date */
@@ -11435,28 +11435,28 @@ export interface components {
             /** Format: double */
             readonly wasteRatePercent?: number | null;
         };
-        readonly UpdateDishDto: {
+        readonly UpdateDishRequest: {
             readonly dishGroup?: string | null;
             readonly dishName?: string | null;
             readonly dishType?: string | null;
             readonly isActive?: boolean | null;
         };
-        readonly UpdateEmployeeDto: {
+        readonly UpdateEmployeeRequest: {
             readonly fullName?: string | null;
             readonly isActive?: boolean;
             readonly password?: string | null;
             readonly roleId?: string | null;
             readonly username?: string | null;
         };
-        readonly UpdateEmployeeStatusDto: {
+        readonly UpdateEmployeeStatusRequest: {
             readonly isActive?: boolean;
         };
-        readonly UpdateForecastServingsRequestDto: {
+        readonly UpdateForecastServingsRequest: {
             readonly reason?: string | null;
             /** Format: int32 */
             readonly servingsQuantity?: number;
         };
-        readonly UpdateIngredientDto: {
+        readonly UpdateIngredientRequest: {
             readonly ingredientName?: string | null;
             readonly isActive?: boolean | null;
             readonly isFreshDaily?: boolean | null;
@@ -11465,7 +11465,7 @@ export interface components {
             readonly unitId?: string | null;
             readonly warehouseId?: string | null;
         };
-        readonly UpdateMenuScheduleRulesDto: {
+        readonly UpdateMenuScheduleRulesRequest: {
             /** Format: double */
             readonly bomRatePercent?: number | null;
             /** Format: double */
@@ -11473,11 +11473,11 @@ export interface components {
             readonly reason?: string | null;
             readonly status?: string | null;
         };
-        readonly UpdateMenuScheduleVersionDto: {
+        readonly UpdateMenuScheduleVersionRequest: {
             readonly reason?: string | null;
             readonly status?: string | null;
         };
-        readonly UpdatePortionRuleDto: {
+        readonly UpdatePortionRuleRequest: {
             readonly activeWeekDays?: readonly string[] | null;
             /** Format: double */
             readonly bomRatePercent?: number | null;
@@ -11498,16 +11498,16 @@ export interface components {
             /** Format: double */
             readonly yieldLossPercent?: number | null;
         };
-        readonly UpdateStocktakeLineItemDto: {
+        readonly UpdateStocktakeLineItemRequest: {
             /** Format: double */
             readonly actualQty: number;
             readonly lineId: string;
             readonly reason?: string | null;
         };
-        readonly UpdateStocktakeLinesDto: {
-            readonly lines: readonly components["schemas"]["UpdateStocktakeLineItemDto"][];
+        readonly UpdateStocktakeLinesRequest: {
+            readonly lines: readonly components["schemas"]["UpdateStocktakeLineItemRequest"][];
         };
-        readonly UpdateSupplierQuotationDto: {
+        readonly UpdateSupplierQuotationRequest: {
             readonly effectiveFrom?: string | null;
             readonly effectiveTo?: string | null;
             readonly isActive?: boolean;
@@ -11515,7 +11515,7 @@ export interface components {
             /** Format: double */
             readonly unitPrice?: number;
         };
-        readonly UpsertQuickServingsRequestDto: {
+        readonly UpsertQuickServingsRequest: {
             readonly complete?: boolean;
             readonly customerId?: string | null;
             readonly serviceDate?: string | null;
@@ -11599,7 +11599,7 @@ export interface components {
             readonly warehouseName?: string | null;
             readonly warehouseType?: string | null;
         };
-        readonly WarehousePurchaseReceiptLineDto: {
+        readonly WarehousePurchaseReceiptLineRequest: {
             /** Format: double */
             readonly actualQuantity?: number;
             readonly actualUnitId: string;
@@ -11769,7 +11769,7 @@ export interface components {
             readonly severity?: string | null;
             readonly sheetName?: string | null;
         };
-        readonly WeeklyMenuSlotUpdateDto: {
+        readonly WeeklyMenuSlotUpdateRequest: {
             readonly dishId?: string | null;
             /** Format: date */
             readonly serviceDate?: string;

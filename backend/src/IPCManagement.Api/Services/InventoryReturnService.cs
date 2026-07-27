@@ -57,7 +57,7 @@ public class InventoryReturnService : IInventoryReturnService
             : InventoryMapper.MapReturn(inventoryReturn, includeLines: true);
     }
 
-    public async Task<InventoryReturnCreatedDto?> CreateAsync(CreateInventoryReturnDto dto, string? userId)
+    public async Task<InventoryReturnCreatedDto?> CreateAsync(CreateInventoryReturnRequest dto, string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
@@ -168,7 +168,7 @@ public class InventoryReturnService : IInventoryReturnService
         }
     }
 
-    public async Task<bool> ConfirmReceiptAsync(string id, ConfirmInventoryReturnReceiptDto dto, string? userId)
+    public async Task<bool> ConfirmReceiptAsync(string id, ConfirmInventoryReturnReceiptRequest dto, string? userId)
     {
         var bytes = GuidHelper.ParseGuidString(id);
         var userIdBytes = GuidHelper.ParseGuidString(userId);

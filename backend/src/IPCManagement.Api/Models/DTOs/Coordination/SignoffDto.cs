@@ -1,6 +1,6 @@
 namespace IPCManagement.Api.Models.DTOs.Coordination;
 
-public class SignoffOrderRequestDto
+public class SignoffOrderRequest
 {
     public string? Note { get; set; }
 }
@@ -15,7 +15,7 @@ public class SignoffOrderResultDto
     public DateTime SignedOffAt { get; set; }
 }
 
-public class CoordinationScopeActionRequestDto
+public class CoordinationScopeActionRequest
 {
     public string? ServiceDate { get; set; }
     public string? DayOfWeek { get; set; }

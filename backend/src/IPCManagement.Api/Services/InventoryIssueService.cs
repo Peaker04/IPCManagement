@@ -57,7 +57,7 @@ public class InventoryIssueService : IInventoryIssueService
         return issue is null ? null : InventoryMapper.MapIssue(issue, includeLines: true);
     }
 
-    public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueDto dto, string? userId)
+    public async Task<InventoryIssueCreatedDto?> CreateAsync(CreateInventoryIssueRequest dto, string? userId)
     {
         var userIdBytes = GuidHelper.ParseGuidString(userId);
         if (userIdBytes is null) return null;
@@ -148,7 +148,7 @@ public class InventoryIssueService : IInventoryIssueService
 
     public async Task<InventoryIssueDto?> ConfirmReceiptAsync(
         string id,
-        ConfirmInventoryIssueReceiptDto dto,
+        ConfirmInventoryIssueReceiptRequest dto,
         string? userId)
     {
         if (_context is null)
@@ -406,7 +406,7 @@ public class InventoryIssueService : IInventoryIssueService
     }
 
     private static IReadOnlyList<ResolvedIssueLine> ResolveIssueLines(
-        CreateInventoryIssueDto dto,
+        CreateInventoryIssueRequest dto,
         MaterialRequest materialRequest,
         IReadOnlyList<InventoryIssueLine> issuedLines)
     {
@@ -463,7 +463,7 @@ public class InventoryIssueService : IInventoryIssueService
     }
 
     private static List<ResolvedIssueLine> BuildLinesFromRequest(
-        IReadOnlyList<CreateInventoryIssueLineDto> inputLines,
+        IReadOnlyList<CreateInventoryIssueLineRequest> inputLines,
         IReadOnlyDictionary<string, DemandLineSummary> demandByItem,
         IReadOnlyDictionary<string, decimal> alreadyIssuedByItem)
     {

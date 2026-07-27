@@ -93,7 +93,7 @@ public class ProductionPlanService : IProductionPlanService
     }
 
     public async Task<DailyProductionPlanDto> SendDailyToKitchenAsync(
-        SendDailyProductionPlanRequestDto request,
+        SendDailyProductionPlanRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {

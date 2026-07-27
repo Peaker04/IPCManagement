@@ -21,7 +21,7 @@ public class MaterialDemandService : IMaterialDemandService
     }
 
     public async Task<MaterialDemandResultDto?> GenerateAsync(
-        GenerateMaterialDemandRequestDto request,
+        GenerateMaterialDemandRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {

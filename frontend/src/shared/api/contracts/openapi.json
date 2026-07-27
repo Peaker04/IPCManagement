@@ -110,17 +110,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEmployeeDto"
+                "$ref": "#/components/schemas/CreateEmployeeRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEmployeeDto"
+                "$ref": "#/components/schemas/CreateEmployeeRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateEmployeeDto"
+                "$ref": "#/components/schemas/CreateEmployeeRequest"
               }
             }
           }
@@ -225,17 +225,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeDto"
+                "$ref": "#/components/schemas/UpdateEmployeeRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeDto"
+                "$ref": "#/components/schemas/UpdateEmployeeRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeDto"
+                "$ref": "#/components/schemas/UpdateEmployeeRequest"
               }
             }
           }
@@ -303,17 +303,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeStatusDto"
+                "$ref": "#/components/schemas/UpdateEmployeeStatusRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeStatusDto"
+                "$ref": "#/components/schemas/UpdateEmployeeStatusRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateEmployeeStatusDto"
+                "$ref": "#/components/schemas/UpdateEmployeeStatusRequest"
               }
             }
           }
@@ -494,17 +494,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             }
           }
@@ -609,17 +609,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRuleRequestDto"
+                "$ref": "#/components/schemas/ApprovalRuleRequest"
               }
             }
           }
@@ -798,17 +798,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestDto"
+                "$ref": "#/components/schemas/ApprovalRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestDto"
+                "$ref": "#/components/schemas/ApprovalRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ApprovalRequestDto"
+                "$ref": "#/components/schemas/ApprovalRequest"
               }
             }
           }
@@ -886,17 +886,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/LoginRequestDto"
+                "$ref": "#/components/schemas/LoginRequest"
               }
             }
           }
@@ -954,17 +954,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequestDto"
+                "$ref": "#/components/schemas/RefreshTokenRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequestDto"
+                "$ref": "#/components/schemas/RefreshTokenRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RefreshTokenRequestDto"
+                "$ref": "#/components/schemas/RefreshTokenRequest"
               }
             }
           }
@@ -1022,17 +1022,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             }
           }
@@ -1090,17 +1090,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RevokeTokenRequestDto"
+                "$ref": "#/components/schemas/RevokeTokenRequest"
               }
             }
           }
@@ -1413,17 +1413,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerContractDto"
+                "$ref": "#/components/schemas/CreateCustomerContractRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerContractDto"
+                "$ref": "#/components/schemas/CreateCustomerContractRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateCustomerContractDto"
+                "$ref": "#/components/schemas/CreateCustomerContractRequest"
               }
             }
           }
@@ -1491,17 +1491,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerContractDto"
+                "$ref": "#/components/schemas/UpdateCustomerContractRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerContractDto"
+                "$ref": "#/components/schemas/UpdateCustomerContractRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateCustomerContractDto"
+                "$ref": "#/components/schemas/UpdateCustomerContractRequest"
               }
             }
           }
@@ -1657,17 +1657,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePortionRuleDto"
+                "$ref": "#/components/schemas/CreatePortionRuleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePortionRuleDto"
+                "$ref": "#/components/schemas/CreatePortionRuleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreatePortionRuleDto"
+                "$ref": "#/components/schemas/CreatePortionRuleRequest"
               }
             }
           }
@@ -1735,17 +1735,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePortionRuleDto"
+                "$ref": "#/components/schemas/UpdatePortionRuleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePortionRuleDto"
+                "$ref": "#/components/schemas/UpdatePortionRuleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdatePortionRuleDto"
+                "$ref": "#/components/schemas/UpdatePortionRuleRequest"
               }
             }
           }
@@ -1823,17 +1823,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResolvePortionRuleDto"
+                "$ref": "#/components/schemas/ResolvePortionRuleRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResolvePortionRuleDto"
+                "$ref": "#/components/schemas/ResolvePortionRuleRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ResolvePortionRuleDto"
+                "$ref": "#/components/schemas/ResolvePortionRuleRequest"
               }
             }
           }
@@ -2052,17 +2052,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleRulesDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleRulesRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleRulesDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleRulesRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleRulesDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleRulesRequest"
               }
             }
           }
@@ -2150,17 +2150,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleVersionDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleVersionRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleVersionDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleVersionRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateMenuScheduleVersionDto"
+                "$ref": "#/components/schemas/UpdateMenuScheduleVersionRequest"
               }
             }
           }
@@ -2238,17 +2238,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RollbackMenuVersionDto"
+                "$ref": "#/components/schemas/RollbackMenuVersionRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RollbackMenuVersionDto"
+                "$ref": "#/components/schemas/RollbackMenuVersionRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RollbackMenuVersionDto"
+                "$ref": "#/components/schemas/RollbackMenuVersionRequest"
               }
             }
           }
@@ -2379,17 +2379,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpsertQuickServingsRequestDto"
+                "$ref": "#/components/schemas/UpsertQuickServingsRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpsertQuickServingsRequestDto"
+                "$ref": "#/components/schemas/UpsertQuickServingsRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpsertQuickServingsRequestDto"
+                "$ref": "#/components/schemas/UpsertQuickServingsRequest"
               }
             }
           }
@@ -2467,17 +2467,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LockOrderPlanRequestDto"
+                "$ref": "#/components/schemas/LockOrderPlanRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/LockOrderPlanRequestDto"
+                "$ref": "#/components/schemas/LockOrderPlanRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/LockOrderPlanRequestDto"
+                "$ref": "#/components/schemas/LockOrderPlanRequest"
               }
             }
           }
@@ -2535,17 +2535,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             }
           }
@@ -2623,17 +2623,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CoordinationScopeActionRequestDto"
+                "$ref": "#/components/schemas/CoordinationScopeActionRequest"
               }
             }
           }
@@ -3188,17 +3188,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveCustomerImportMappingDto"
+                "$ref": "#/components/schemas/SaveCustomerImportMappingRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveCustomerImportMappingDto"
+                "$ref": "#/components/schemas/SaveCustomerImportMappingRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SaveCustomerImportMappingDto"
+                "$ref": "#/components/schemas/SaveCustomerImportMappingRequest"
               }
             }
           }
@@ -3236,17 +3236,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequestDto"
+                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequestDto"
+                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequestDto"
+                "$ref": "#/components/schemas/BulkUpdateWeeklyMenuRequest"
               }
             }
           }
@@ -3304,17 +3304,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustOrderAfterLockRequestDto"
+                "$ref": "#/components/schemas/AdjustOrderAfterLockRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustOrderAfterLockRequestDto"
+                "$ref": "#/components/schemas/AdjustOrderAfterLockRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustOrderAfterLockRequestDto"
+                "$ref": "#/components/schemas/AdjustOrderAfterLockRequest"
               }
             }
           }
@@ -3382,17 +3382,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignoffOrderRequestDto"
+                "$ref": "#/components/schemas/SignoffOrderRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SignoffOrderRequestDto"
+                "$ref": "#/components/schemas/SignoffOrderRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SignoffOrderRequestDto"
+                "$ref": "#/components/schemas/SignoffOrderRequest"
               }
             }
           }
@@ -3559,17 +3559,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustServingsRequestDto"
+                "$ref": "#/components/schemas/AdjustServingsRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustServingsRequestDto"
+                "$ref": "#/components/schemas/AdjustServingsRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/AdjustServingsRequestDto"
+                "$ref": "#/components/schemas/AdjustServingsRequest"
               }
             }
           }
@@ -3637,17 +3637,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateForecastServingsRequestDto"
+                "$ref": "#/components/schemas/UpdateForecastServingsRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateForecastServingsRequestDto"
+                "$ref": "#/components/schemas/UpdateForecastServingsRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateForecastServingsRequestDto"
+                "$ref": "#/components/schemas/UpdateForecastServingsRequest"
               }
             }
           }
@@ -3705,17 +3705,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExportOrderReportRequestDto"
+                "$ref": "#/components/schemas/ExportOrderReportRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ExportOrderReportRequestDto"
+                "$ref": "#/components/schemas/ExportOrderReportRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ExportOrderReportRequestDto"
+                "$ref": "#/components/schemas/ExportOrderReportRequest"
               }
             }
           }
@@ -4286,17 +4286,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishDto"
+                "$ref": "#/components/schemas/CreateDishRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishDto"
+                "$ref": "#/components/schemas/CreateDishRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishDto"
+                "$ref": "#/components/schemas/CreateDishRequest"
               }
             }
           }
@@ -4401,17 +4401,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishDto"
+                "$ref": "#/components/schemas/UpdateDishRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishDto"
+                "$ref": "#/components/schemas/UpdateDishRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishDto"
+                "$ref": "#/components/schemas/UpdateDishRequest"
               }
             }
           }
@@ -4576,17 +4576,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishBomLineDto"
+                "$ref": "#/components/schemas/CreateDishBomLineRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishBomLineDto"
+                "$ref": "#/components/schemas/CreateDishBomLineRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateDishBomLineDto"
+                "$ref": "#/components/schemas/CreateDishBomLineRequest"
               }
             }
           }
@@ -4662,17 +4662,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishBomLineDto"
+                "$ref": "#/components/schemas/UpdateDishBomLineRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishBomLineDto"
+                "$ref": "#/components/schemas/UpdateDishBomLineRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateDishBomLineDto"
+                "$ref": "#/components/schemas/UpdateDishBomLineRequest"
               }
             }
           }
@@ -4844,17 +4844,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateIngredientDto"
+                "$ref": "#/components/schemas/CreateIngredientRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateIngredientDto"
+                "$ref": "#/components/schemas/CreateIngredientRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateIngredientDto"
+                "$ref": "#/components/schemas/CreateIngredientRequest"
               }
             }
           }
@@ -4979,17 +4979,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateIngredientDto"
+                "$ref": "#/components/schemas/UpdateIngredientRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateIngredientDto"
+                "$ref": "#/components/schemas/UpdateIngredientRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateIngredientDto"
+                "$ref": "#/components/schemas/UpdateIngredientRequest"
               }
             }
           }
@@ -5165,17 +5165,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryIssueDto"
+                "$ref": "#/components/schemas/CreateInventoryIssueRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryIssueDto"
+                "$ref": "#/components/schemas/CreateInventoryIssueRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryIssueDto"
+                "$ref": "#/components/schemas/CreateInventoryIssueRequest"
               }
             }
           }
@@ -5228,17 +5228,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryIssueReceiptRequest"
               }
             }
           }
@@ -5308,17 +5308,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptRequest"
               }
             }
           }
@@ -5361,17 +5361,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseDto"
+                "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseRequest"
               }
             }
           }
@@ -5470,17 +5470,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReturnDto"
+                "$ref": "#/components/schemas/CreateInventoryReturnRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReturnDto"
+                "$ref": "#/components/schemas/CreateInventoryReturnRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateInventoryReturnDto"
+                "$ref": "#/components/schemas/CreateInventoryReturnRequest"
               }
             }
           }
@@ -5533,17 +5533,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptDto"
+                "$ref": "#/components/schemas/ConfirmInventoryReturnReceiptRequest"
               }
             }
           }
@@ -5564,17 +5564,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateMaterialDemandRequestDto"
+                "$ref": "#/components/schemas/GenerateMaterialDemandRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateMaterialDemandRequestDto"
+                "$ref": "#/components/schemas/GenerateMaterialDemandRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/GenerateMaterialDemandRequestDto"
+                "$ref": "#/components/schemas/GenerateMaterialDemandRequest"
               }
             }
           }
@@ -5734,17 +5734,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MaterialDemandApproveRequestDto"
+                "$ref": "#/components/schemas/MaterialDemandApproveRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/MaterialDemandApproveRequestDto"
+                "$ref": "#/components/schemas/MaterialDemandApproveRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/MaterialDemandApproveRequestDto"
+                "$ref": "#/components/schemas/MaterialDemandApproveRequest"
               }
             }
           }
@@ -5950,17 +5950,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendDailyProductionPlanRequestDto"
+                "$ref": "#/components/schemas/SendDailyProductionPlanRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SendDailyProductionPlanRequestDto"
+                "$ref": "#/components/schemas/SendDailyProductionPlanRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SendDailyProductionPlanRequestDto"
+                "$ref": "#/components/schemas/SendDailyProductionPlanRequest"
               }
             }
           }
@@ -6595,17 +6595,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandDto"
+                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandDto"
+                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandDto"
+                "$ref": "#/components/schemas/GeneratePurchaseRequestFromDemandRequest"
               }
             }
           }
@@ -6768,17 +6768,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierDto"
+                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierDto"
+                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierDto"
+                "$ref": "#/components/schemas/ConfirmPurchaseLineSupplierRequest"
               }
             }
           }
@@ -6955,17 +6955,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/SampleDataImportRequestDto"
+                "$ref": "#/components/schemas/SampleDataImportRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/SampleDataImportRequestDto"
+                "$ref": "#/components/schemas/SampleDataImportRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/SampleDataImportRequestDto"
+                "$ref": "#/components/schemas/SampleDataImportRequest"
               }
             }
           }
@@ -7023,17 +7023,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryPreviewRequest"
               }
             }
           }
@@ -7091,17 +7091,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryApplyRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryApplyRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryApplyRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryApplyRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/PurchaseHistoryApplyRequestDto"
+                "$ref": "#/components/schemas/PurchaseHistoryApplyRequest"
               }
             }
           }
@@ -7295,17 +7295,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStocktakeDto"
+                "$ref": "#/components/schemas/CreateStocktakeRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStocktakeDto"
+                "$ref": "#/components/schemas/CreateStocktakeRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateStocktakeDto"
+                "$ref": "#/components/schemas/CreateStocktakeRequest"
               }
             }
           }
@@ -7392,17 +7392,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStocktakeLinesDto"
+                "$ref": "#/components/schemas/UpdateStocktakeLinesRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStocktakeLinesDto"
+                "$ref": "#/components/schemas/UpdateStocktakeLinesRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateStocktakeLinesDto"
+                "$ref": "#/components/schemas/UpdateStocktakeLinesRequest"
               }
             }
           }
@@ -7528,17 +7528,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectDto"
+                "$ref": "#/components/schemas/RejectRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectDto"
+                "$ref": "#/components/schemas/RejectRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectDto"
+                "$ref": "#/components/schemas/RejectRequest"
               }
             }
           }
@@ -7639,17 +7639,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/CreateSupplementalMaterialRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/CreateSupplementalMaterialRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/CreateSupplementalMaterialRequest"
               }
             }
           }
@@ -7702,17 +7702,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/FulfillSupplementalMaterialRequest"
               }
             }
           }
@@ -7765,17 +7765,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/RejectSupplementalMaterialRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/RejectSupplementalMaterialRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RejectSupplementalMaterialRequestDto"
+                "$ref": "#/components/schemas/RejectSupplementalMaterialRequest"
               }
             }
           }
@@ -7929,17 +7929,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplierQuotationDto"
+                "$ref": "#/components/schemas/CreateSupplierQuotationRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplierQuotationDto"
+                "$ref": "#/components/schemas/CreateSupplierQuotationRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateSupplierQuotationDto"
+                "$ref": "#/components/schemas/CreateSupplierQuotationRequest"
               }
             }
           }
@@ -8027,17 +8027,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateSupplierQuotationDto"
+                "$ref": "#/components/schemas/UpdateSupplierQuotationRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateSupplierQuotationDto"
+                "$ref": "#/components/schemas/UpdateSupplierQuotationRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateSupplierQuotationDto"
+                "$ref": "#/components/schemas/UpdateSupplierQuotationRequest"
               }
             }
           }
@@ -8211,17 +8211,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptDto"
+                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptDto"
+                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptDto"
+                "$ref": "#/components/schemas/RecordWarehousePurchaseReceiptRequest"
               }
             }
           }
@@ -14087,17 +14087,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityIssueRemediationRequestDto"
+                "$ref": "#/components/schemas/DataQualityIssueRemediationRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityIssueRemediationRequestDto"
+                "$ref": "#/components/schemas/DataQualityIssueRemediationRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityIssueRemediationRequestDto"
+                "$ref": "#/components/schemas/DataQualityIssueRemediationRequest"
               }
             }
           }
@@ -14118,17 +14118,17 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityCleanupRequestDto"
+                "$ref": "#/components/schemas/DataQualityCleanupRequest"
               }
             },
             "text/json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityCleanupRequestDto"
+                "$ref": "#/components/schemas/DataQualityCleanupRequest"
               }
             },
             "application/*+json": {
               "schema": {
-                "$ref": "#/components/schemas/DataQualityCleanupRequestDto"
+                "$ref": "#/components/schemas/DataQualityCleanupRequest"
               }
             }
           }
@@ -14314,7 +14314,7 @@
   },
   "components": {
     "schemas": {
-      "AdjustOrderAfterLockRequestDto": {
+      "AdjustOrderAfterLockRequest": {
         "type": "object",
         "properties": {
           "orderId": {
@@ -14399,7 +14399,7 @@
         },
         "additionalProperties": false
       },
-      "AdjustServingsRequestDto": {
+      "AdjustServingsRequest": {
         "type": "object",
         "properties": {
           "servingsQuantity": {
@@ -14560,7 +14560,7 @@
         },
         "additionalProperties": false
       },
-      "ApprovalAssignmentRequestDto": {
+      "ApprovalAssignmentRequest": {
         "type": "object",
         "properties": {
           "sequence": {
@@ -14881,7 +14881,7 @@
         },
         "additionalProperties": false
       },
-      "ApprovalRequestDto": {
+      "ApprovalRequest": {
         "type": "object",
         "properties": {
           "status": {
@@ -15037,7 +15037,7 @@
         },
         "additionalProperties": false
       },
-      "ApprovalRuleRequestDto": {
+      "ApprovalRuleRequest": {
         "type": "object",
         "properties": {
           "ruleName": {
@@ -15069,7 +15069,7 @@
           "assignments": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ApprovalAssignmentRequestDto"
+              "$ref": "#/components/schemas/ApprovalAssignmentRequest"
             },
             "nullable": true
           }
@@ -15174,7 +15174,7 @@
         },
         "additionalProperties": false
       },
-      "BackupRestoreEvidenceDto": {
+      "BackupRestoreEvidenceRequest": {
         "required": [
           "backupIdentifier",
           "restoreFingerprint",
@@ -15679,7 +15679,7 @@
         },
         "additionalProperties": false
       },
-      "BulkUpdateWeeklyMenuRequestDto": {
+      "BulkUpdateWeeklyMenuRequest": {
         "type": "object",
         "properties": {
           "customerId": {
@@ -15689,14 +15689,14 @@
           "slots": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WeeklyMenuSlotUpdateDto"
+              "$ref": "#/components/schemas/WeeklyMenuSlotUpdateRequest"
             },
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "ConfirmInventoryIssueReceiptDto": {
+      "ConfirmInventoryIssueReceiptRequest": {
         "type": "object",
         "properties": {
           "hasDiscrepancy": {
@@ -15710,7 +15710,7 @@
         },
         "additionalProperties": false
       },
-      "ConfirmInventoryReturnLineDto": {
+      "ConfirmInventoryReturnLineRequest": {
         "required": [
           "newQuantity",
           "returnLineId"
@@ -15729,7 +15729,7 @@
         },
         "additionalProperties": false
       },
-      "ConfirmInventoryReturnReceiptDto": {
+      "ConfirmInventoryReturnReceiptRequest": {
         "type": "object",
         "properties": {
           "hasDiscrepancy": {
@@ -15743,14 +15743,14 @@
           "adjustedLines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/ConfirmInventoryReturnLineDto"
+              "$ref": "#/components/schemas/ConfirmInventoryReturnLineRequest"
             },
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "ConfirmPurchaseLineSupplierDto": {
+      "ConfirmPurchaseLineSupplierRequest": {
         "type": "object",
         "properties": {
           "evidenceType": {
@@ -15978,7 +15978,7 @@
         },
         "additionalProperties": false
       },
-      "CoordinationScopeActionRequestDto": {
+      "CoordinationScopeActionRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -16059,7 +16059,7 @@
         },
         "additionalProperties": false
       },
-      "CreateCustomerContractDto": {
+      "CreateCustomerContractRequest": {
         "type": "object",
         "properties": {
           "customerCode": {
@@ -16113,7 +16113,7 @@
         },
         "additionalProperties": false
       },
-      "CreateDishBomLineDto": {
+      "CreateDishBomLineRequest": {
         "required": [
           "ingredientId"
         ],
@@ -16171,7 +16171,7 @@
         },
         "additionalProperties": false
       },
-      "CreateDishDto": {
+      "CreateDishRequest": {
         "required": [
           "dishCode",
           "dishName"
@@ -16201,7 +16201,7 @@
         },
         "additionalProperties": false
       },
-      "CreateEmployeeDto": {
+      "CreateEmployeeRequest": {
         "type": "object",
         "properties": {
           "fullName": {
@@ -16226,7 +16226,7 @@
         },
         "additionalProperties": false
       },
-      "CreateIngredientDto": {
+      "CreateIngredientRequest": {
         "required": [
           "ingredientCode",
           "ingredientName",
@@ -16264,7 +16264,35 @@
         },
         "additionalProperties": false
       },
-      "CreateInventoryIssueDto": {
+      "CreateInventoryIssueLineRequest": {
+        "required": [
+          "ingredientId",
+          "issuedQty",
+          "requestedQty",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "ingredientId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "requestedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "issuedQty": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInventoryIssueRequest": {
         "required": [
           "issueDate",
           "materialRequestId",
@@ -16295,113 +16323,14 @@
           "lines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateInventoryIssueLineDto"
+              "$ref": "#/components/schemas/CreateInventoryIssueLineRequest"
             },
             "nullable": true
           }
         },
         "additionalProperties": false
       },
-      "CreateInventoryIssueLineDto": {
-        "required": [
-          "ingredientId",
-          "issuedQty",
-          "requestedQty",
-          "unitId"
-        ],
-        "type": "object",
-        "properties": {
-          "ingredientId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "requestedQty": {
-            "type": "number",
-            "format": "double"
-          },
-          "issuedQty": {
-            "type": "number",
-            "format": "double"
-          },
-          "unitId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateInventoryReceiptDto": {
-        "required": [
-          "lines",
-          "receiptDate",
-          "supplierId",
-          "warehouseId"
-        ],
-        "type": "object",
-        "properties": {
-          "receiptDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "supplierId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "warehouseId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "purchaseRequestId": {
-            "type": "string",
-            "nullable": true
-          },
-          "lines": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateInventoryReceiptLineDto"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateInventoryReceiptFromPurchaseDto": {
-        "required": [
-          "lines",
-          "purchaseRequestId",
-          "receiptDate",
-          "supplierId",
-          "warehouseId"
-        ],
-        "type": "object",
-        "properties": {
-          "purchaseRequestId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "receiptDate": {
-            "type": "string",
-            "format": "date"
-          },
-          "supplierId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "warehouseId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "lines": {
-            "minItems": 1,
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseLineDto"
-            }
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreateInventoryReceiptFromPurchaseLineDto": {
+      "CreateInventoryReceiptFromPurchaseLineRequest": {
         "required": [
           "purchaseRequestLineId",
           "receivedQty",
@@ -16443,7 +16372,43 @@
         },
         "additionalProperties": false
       },
-      "CreateInventoryReceiptLineDto": {
+      "CreateInventoryReceiptFromPurchaseRequest": {
+        "required": [
+          "lines",
+          "purchaseRequestId",
+          "receiptDate",
+          "supplierId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "purchaseRequestId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "receiptDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "supplierId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "warehouseId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateInventoryReceiptFromPurchaseLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInventoryReceiptLineRequest": {
         "required": [
           "ingredientId",
           "quantity",
@@ -16486,7 +16451,65 @@
         },
         "additionalProperties": false
       },
-      "CreateInventoryReturnDto": {
+      "CreateInventoryReceiptRequest": {
+        "required": [
+          "lines",
+          "receiptDate",
+          "supplierId",
+          "warehouseId"
+        ],
+        "type": "object",
+        "properties": {
+          "receiptDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "supplierId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "warehouseId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "purchaseRequestId": {
+            "type": "string",
+            "nullable": true
+          },
+          "lines": {
+            "minItems": 1,
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreateInventoryReceiptLineRequest"
+            }
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInventoryReturnLineRequest": {
+        "required": [
+          "ingredientId",
+          "quantity",
+          "unitId"
+        ],
+        "type": "object",
+        "properties": {
+          "ingredientId": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "quantity": {
+            "type": "number",
+            "format": "double"
+          },
+          "unitId": {
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "CreateInventoryReturnRequest": {
         "required": [
           "issueId",
           "lines",
@@ -16523,36 +16546,13 @@
             "minItems": 1,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/CreateInventoryReturnLineDto"
+              "$ref": "#/components/schemas/CreateInventoryReturnLineRequest"
             }
           }
         },
         "additionalProperties": false
       },
-      "CreateInventoryReturnLineDto": {
-        "required": [
-          "ingredientId",
-          "quantity",
-          "unitId"
-        ],
-        "type": "object",
-        "properties": {
-          "ingredientId": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "quantity": {
-            "type": "number",
-            "format": "double"
-          },
-          "unitId": {
-            "minLength": 1,
-            "type": "string"
-          }
-        },
-        "additionalProperties": false
-      },
-      "CreatePortionRuleDto": {
+      "CreatePortionRuleRequest": {
         "type": "object",
         "properties": {
           "customerId": {
@@ -16631,7 +16631,7 @@
         },
         "additionalProperties": false
       },
-      "CreateStocktakeDto": {
+      "CreateStocktakeRequest": {
         "required": [
           "ingredientIds",
           "warehouseId"
@@ -16656,7 +16656,7 @@
         },
         "additionalProperties": false
       },
-      "CreateSupplementalMaterialRequestDto": {
+      "CreateSupplementalMaterialRequest": {
         "type": "object",
         "properties": {
           "issueId": {
@@ -16678,7 +16678,7 @@
         },
         "additionalProperties": false
       },
-      "CreateSupplierQuotationDto": {
+      "CreateSupplierQuotationRequest": {
         "type": "object",
         "properties": {
           "supplierId": {
@@ -17133,7 +17133,7 @@
         },
         "additionalProperties": false
       },
-      "DataQualityCleanupRequestDto": {
+      "DataQualityCleanupRequest": {
         "type": "object",
         "properties": {
           "dryRun": {
@@ -17157,7 +17157,7 @@
         },
         "additionalProperties": false
       },
-      "DataQualityIssueRemediationRequestDto": {
+      "DataQualityIssueRemediationRequest": {
         "type": "object",
         "properties": {
           "issueId": {
@@ -17714,7 +17714,7 @@
         },
         "additionalProperties": false
       },
-      "ExportOrderReportRequestDto": {
+      "ExportOrderReportRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -17772,7 +17772,7 @@
         },
         "additionalProperties": false
       },
-      "FulfillSupplementalMaterialRequestDto": {
+      "FulfillSupplementalMaterialRequest": {
         "type": "object",
         "properties": {
           "quantity": {
@@ -17782,7 +17782,7 @@
         },
         "additionalProperties": false
       },
-      "GenerateMaterialDemandRequestDto": {
+      "GenerateMaterialDemandRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -17804,7 +17804,7 @@
         },
         "additionalProperties": false
       },
-      "GeneratePurchaseRequestFromDemandDto": {
+      "GeneratePurchaseRequestFromDemandRequest": {
         "type": "object",
         "properties": {
           "materialRequestId": {
@@ -18529,7 +18529,7 @@
         },
         "additionalProperties": false
       },
-      "LockOrderPlanLineDto": {
+      "LockOrderPlanLineRequest": {
         "type": "object",
         "properties": {
           "quantityPlanLineId": {
@@ -18553,7 +18553,7 @@
         },
         "additionalProperties": false
       },
-      "LockOrderPlanRequestDto": {
+      "LockOrderPlanRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -18579,7 +18579,7 @@
           "lines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/LockOrderPlanLineDto"
+              "$ref": "#/components/schemas/LockOrderPlanLineRequest"
             },
             "nullable": true
           }
@@ -18637,7 +18637,7 @@
         },
         "additionalProperties": false
       },
-      "LoginRequestDto": {
+      "LoginRequest": {
         "required": [
           "password",
           "username"
@@ -18744,7 +18744,7 @@
         },
         "additionalProperties": false
       },
-      "MaterialDemandApproveRequestDto": {
+      "MaterialDemandApproveRequest": {
         "type": "object",
         "properties": {
           "reason": {
@@ -20589,7 +20589,7 @@
         },
         "additionalProperties": false
       },
-      "PurchaseHistoryApplyRequestDto": {
+      "PurchaseHistoryApplyRequest": {
         "required": [
           "backupRestoreEvidence",
           "manifestHash",
@@ -20614,7 +20614,7 @@
             "nullable": true
           },
           "backupRestoreEvidence": {
-            "$ref": "#/components/schemas/BackupRestoreEvidenceDto"
+            "$ref": "#/components/schemas/BackupRestoreEvidenceRequest"
           }
         },
         "additionalProperties": false
@@ -20818,7 +20818,7 @@
         },
         "additionalProperties": false
       },
-      "PurchaseHistoryPreviewRequestDto": {
+      "PurchaseHistoryPreviewRequest": {
         "type": "object",
         "additionalProperties": false
       },
@@ -22124,7 +22124,7 @@
         },
         "additionalProperties": false
       },
-      "RecordWarehousePurchaseReceiptDto": {
+      "RecordWarehousePurchaseReceiptRequest": {
         "required": [
           "idempotencyKey",
           "lines",
@@ -22156,7 +22156,7 @@
             "minItems": 1,
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/WarehousePurchaseReceiptLineDto"
+              "$ref": "#/components/schemas/WarehousePurchaseReceiptLineRequest"
             }
           }
         },
@@ -22212,7 +22212,7 @@
         },
         "additionalProperties": false
       },
-      "RefreshTokenRequestDto": {
+      "RefreshTokenRequest": {
         "type": "object",
         "properties": {
           "accessToken": {
@@ -22226,7 +22226,7 @@
         },
         "additionalProperties": false
       },
-      "RejectDto": {
+      "RejectRequest": {
         "type": "object",
         "properties": {
           "reason": {
@@ -22236,7 +22236,7 @@
         },
         "additionalProperties": false
       },
-      "RejectSupplementalMaterialRequestDto": {
+      "RejectSupplementalMaterialRequest": {
         "type": "object",
         "properties": {
           "reason": {
@@ -22246,7 +22246,7 @@
         },
         "additionalProperties": false
       },
-      "ResolvePortionRuleDto": {
+      "ResolvePortionRuleRequest": {
         "type": "object",
         "properties": {
           "customerId": {
@@ -22338,7 +22338,7 @@
         },
         "additionalProperties": false
       },
-      "RevokeTokenRequestDto": {
+      "RevokeTokenRequest": {
         "type": "object",
         "properties": {
           "refreshToken": {
@@ -22374,7 +22374,7 @@
         },
         "additionalProperties": false
       },
-      "RollbackMenuVersionDto": {
+      "RollbackMenuVersionRequest": {
         "type": "object",
         "properties": {
           "customerId": {
@@ -22602,7 +22602,7 @@
         },
         "additionalProperties": false
       },
-      "SampleDataImportRequestDto": {
+      "SampleDataImportRequest": {
         "type": "object",
         "properties": {
           "sourceDirectory": {
@@ -22748,7 +22748,7 @@
         },
         "additionalProperties": false
       },
-      "SaveCustomerImportMappingDto": {
+      "SaveCustomerImportMappingRequest": {
         "type": "object",
         "properties": {
           "sheetNameHint": {
@@ -22762,7 +22762,7 @@
         },
         "additionalProperties": false
       },
-      "SendDailyProductionPlanRequestDto": {
+      "SendDailyProductionPlanRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {
@@ -22784,7 +22784,7 @@
         },
         "additionalProperties": false
       },
-      "SignoffOrderRequestDto": {
+      "SignoffOrderRequest": {
         "type": "object",
         "properties": {
           "note": {
@@ -23869,7 +23869,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateCustomerContractDto": {
+      "UpdateCustomerContractRequest": {
         "type": "object",
         "properties": {
           "customerName": {
@@ -23919,7 +23919,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateDishBomLineDto": {
+      "UpdateDishBomLineRequest": {
         "type": "object",
         "properties": {
           "ingredientId": {
@@ -23976,7 +23976,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateDishDto": {
+      "UpdateDishRequest": {
         "type": "object",
         "properties": {
           "dishName": {
@@ -24001,7 +24001,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateEmployeeDto": {
+      "UpdateEmployeeRequest": {
         "type": "object",
         "properties": {
           "fullName": {
@@ -24026,7 +24026,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateEmployeeStatusDto": {
+      "UpdateEmployeeStatusRequest": {
         "type": "object",
         "properties": {
           "isActive": {
@@ -24035,7 +24035,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateForecastServingsRequestDto": {
+      "UpdateForecastServingsRequest": {
         "type": "object",
         "properties": {
           "servingsQuantity": {
@@ -24049,7 +24049,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateIngredientDto": {
+      "UpdateIngredientRequest": {
         "type": "object",
         "properties": {
           "ingredientName": {
@@ -24082,7 +24082,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateMenuScheduleRulesDto": {
+      "UpdateMenuScheduleRulesRequest": {
         "type": "object",
         "properties": {
           "menuPrice": {
@@ -24106,7 +24106,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateMenuScheduleVersionDto": {
+      "UpdateMenuScheduleVersionRequest": {
         "type": "object",
         "properties": {
           "status": {
@@ -24120,7 +24120,7 @@
         },
         "additionalProperties": false
       },
-      "UpdatePortionRuleDto": {
+      "UpdatePortionRuleRequest": {
         "type": "object",
         "properties": {
           "dishId": {
@@ -24196,7 +24196,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateStocktakeLineItemDto": {
+      "UpdateStocktakeLineItemRequest": {
         "required": [
           "actualQty",
           "lineId"
@@ -24220,7 +24220,7 @@
         },
         "additionalProperties": false
       },
-      "UpdateStocktakeLinesDto": {
+      "UpdateStocktakeLinesRequest": {
         "required": [
           "lines"
         ],
@@ -24229,13 +24229,13 @@
           "lines": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/UpdateStocktakeLineItemDto"
+              "$ref": "#/components/schemas/UpdateStocktakeLineItemRequest"
             }
           }
         },
         "additionalProperties": false
       },
-      "UpdateSupplierQuotationDto": {
+      "UpdateSupplierQuotationRequest": {
         "type": "object",
         "properties": {
           "unitPrice": {
@@ -24260,7 +24260,7 @@
         },
         "additionalProperties": false
       },
-      "UpsertQuickServingsRequestDto": {
+      "UpsertQuickServingsRequest": {
         "type": "object",
         "properties": {
           "customerId": {
@@ -24643,7 +24643,7 @@
         },
         "additionalProperties": false
       },
-      "WarehousePurchaseReceiptLineDto": {
+      "WarehousePurchaseReceiptLineRequest": {
         "required": [
           "actualUnitId",
           "purchaseOrderLineId"
@@ -25200,7 +25200,7 @@
         },
         "additionalProperties": false
       },
-      "WeeklyMenuSlotUpdateDto": {
+      "WeeklyMenuSlotUpdateRequest": {
         "type": "object",
         "properties": {
           "serviceDate": {

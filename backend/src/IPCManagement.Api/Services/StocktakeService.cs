@@ -87,7 +87,7 @@ public class StocktakeService : IStocktakeService
         return entity == null ? null : MapStocktake(entity, true);
     }
 
-    public async Task<StocktakeDto> CreateAsync(CreateStocktakeDto dto, string userId)
+    public async Task<StocktakeDto> CreateAsync(CreateStocktakeRequest dto, string userId)
     {
         if (_context == null) throw new InvalidOperationException("DbContext is null.");
 
@@ -206,7 +206,7 @@ public class StocktakeService : IStocktakeService
         return false;
     }
 
-    public async Task<StocktakeDto> UpdateActualQtyAsync(string id, UpdateStocktakeLinesDto dto, string userId)
+    public async Task<StocktakeDto> UpdateActualQtyAsync(string id, UpdateStocktakeLinesRequest dto, string userId)
     {
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");

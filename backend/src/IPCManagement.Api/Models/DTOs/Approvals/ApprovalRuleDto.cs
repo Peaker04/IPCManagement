@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace IPCManagement.Api.Models.DTOs.Approvals;
 
-public class ApprovalRuleRequestDto
+public class ApprovalRuleRequest
 {
     public string RuleName { get; set; } = null!;
     public string DocumentType { get; set; } = null!;
@@ -10,10 +10,10 @@ public class ApprovalRuleRequestDto
     public decimal? MaxAmount { get; set; }
     public int? SlaHours { get; set; }
     public bool IsActive { get; set; }
-    public List<ApprovalAssignmentRequestDto> Assignments { get; set; } = new();
+    public List<ApprovalAssignmentRequest> Assignments { get; set; } = new();
 }
 
-public class ApprovalAssignmentRequestDto
+public class ApprovalAssignmentRequest
 {
     public int Sequence { get; set; }
     public string ApproverRole { get; set; } = null!;

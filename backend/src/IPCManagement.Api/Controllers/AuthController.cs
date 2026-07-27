@@ -38,7 +38,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                   StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> LoginAsync([FromBody] LoginRequestDto request)
+    public async Task<IActionResult> LoginAsync([FromBody] LoginRequest request)
     {
         // Lấy device info từ User-Agent header
         var deviceInfo = Request.Headers.UserAgent.ToString();
@@ -70,9 +70,9 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("auth-strict")]
     [ProducesResponseType(typeof(ApiResponse<LoginResponseDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse),                   StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> RefreshAsync([FromBody] RefreshTokenRequestDto? request)
+    public async Task<IActionResult> RefreshAsync([FromBody] RefreshTokenRequest? request)
     {
-        request ??= new RefreshTokenRequestDto();
+        request ??= new RefreshTokenRequest();
         request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
 
         if (string.IsNullOrWhiteSpace(request.AccessToken) ||
@@ -106,9 +106,9 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("api-general")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> LogoutAsync([FromBody] RevokeTokenRequestDto? request)
+    public async Task<IActionResult> LogoutAsync([FromBody] RevokeTokenRequest? request)
     {
-        request ??= new RevokeTokenRequestDto();
+        request ??= new RevokeTokenRequest();
         request.RefreshToken = ResolveRefreshToken(request.RefreshToken);
 
         if (string.IsNullOrWhiteSpace(request.RefreshToken))
@@ -143,7 +143,7 @@ public class AuthController : ControllerBase
     [EnableRateLimiting("api-general")]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status400BadRequest)]
-    public Task<IActionResult> RevokeAsync([FromBody] RevokeTokenRequestDto? request)
+    public Task<IActionResult> RevokeAsync([FromBody] RevokeTokenRequest? request)
         => LogoutAsync(request);
 
     /// <summary>Lấy thông tin cá nhân của người dùng hiện tại.</summary>

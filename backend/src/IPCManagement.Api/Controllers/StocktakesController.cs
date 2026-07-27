@@ -37,7 +37,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> CreateAsync([FromBody] CreateStocktakeDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> CreateAsync([FromBody] CreateStocktakeRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.CreateAsync(dto, userId);
@@ -45,7 +45,7 @@ public class StocktakesController : ControllerBase
     }
 
     [HttpPut("{id}/actual-qty")]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> UpdateActualQtyAsync(string id, [FromBody] UpdateStocktakeLinesDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> UpdateActualQtyAsync(string id, [FromBody] UpdateStocktakeLinesRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.UpdateActualQtyAsync(id, dto, userId);
@@ -71,7 +71,7 @@ public class StocktakesController : ControllerBase
 
     [HttpPost("{id}/reject")]
     [Authorize(Policy = AuthorizationPolicies.InventoryApproveAccess)]
-    public async Task<ActionResult<ApiResponse<StocktakeDto>>> RejectAsync(string id, [FromBody] RejectDto dto)
+    public async Task<ActionResult<ApiResponse<StocktakeDto>>> RejectAsync(string id, [FromBody] RejectRequest dto)
     {
         var userId = User.FindFirst("id")?.Value ?? string.Empty;
         var result = await _stocktakeService.RejectAsync(id, userId, dto.Reason);
@@ -79,7 +79,7 @@ public class StocktakesController : ControllerBase
     }
 }
 
-public class RejectDto
+public class RejectRequest
 {
     public string Reason { get; set; } = string.Empty;
 }

@@ -1,6 +1,6 @@
 namespace IPCManagement.Api.Models.DTOs.Workflow;
 
-public class GenerateMaterialDemandRequestDto
+public class GenerateMaterialDemandRequest
 {
     public string ServiceDate { get; set; } = string.Empty;
     public string? CustomerId { get; set; }
@@ -34,7 +34,7 @@ public class MaterialDemandStalenessDto
     public List<string> Reasons { get; set; } = [];
 }
 
-public class MaterialDemandApproveRequestDto
+public class MaterialDemandApproveRequest
 {
     public string? Reason { get; set; }
 }

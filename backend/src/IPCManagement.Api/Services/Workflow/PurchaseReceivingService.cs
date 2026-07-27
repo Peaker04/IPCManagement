@@ -34,7 +34,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     }
 
     public async Task<WarehousePurchaseReceiptResultDto> RecordAsync(
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
     {
@@ -79,7 +79,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     }
 
     private async Task<WarehousePurchaseReceiptResultDto> RecordCoreAsync(
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         string normalizedKey,
         byte[] purchaseOrderId,
         byte[] warehouseId,
@@ -254,7 +254,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     private async Task<IReadOnlyList<ValidatedReceiptLine>> ValidateActualReceiptAsync(
         PurchaseOrder order,
         IReadOnlyList<PurchaseReceiptEvidenceRequirementsDto> requirements,
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         CancellationToken cancellationToken)
     {
         if (request.Lines.Count == 0)
@@ -341,7 +341,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
     private static void ValidateRequiredEvidence(
         PurchaseReceiptEvidenceRequirementsDto requirement,
-        WarehousePurchaseReceiptLineDto input)
+        WarehousePurchaseReceiptLineRequest input)
     {
         if (requirement.LotNumberRequired && string.IsNullOrWhiteSpace(input.LotNumber))
         {
@@ -362,7 +362,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
     private static void ValidateIdempotentReplay(
         InventoryReceipt existingReceipt,
         PurchaseOrder order,
-        RecordWarehousePurchaseReceiptDto request,
+        RecordWarehousePurchaseReceiptRequest request,
         byte[] warehouseId)
     {
         var existingByPurchaseLine = existingReceipt.Inventoryreceiptlines.ToDictionary(
@@ -532,5 +532,5 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
     private sealed record ValidatedReceiptLine(
         PurchaseOrderLine OrderLine,
-        WarehousePurchaseReceiptLineDto Input);
+        WarehousePurchaseReceiptLineRequest Input);
 }

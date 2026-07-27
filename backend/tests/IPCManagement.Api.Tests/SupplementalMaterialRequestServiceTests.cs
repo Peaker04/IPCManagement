@@ -20,7 +20,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         await context.SaveChangesAsync();
 
         var result = await CreateService(context).CreateAsync(
-            new CreateSupplementalMaterialRequestDto
+            new CreateSupplementalMaterialRequest
             {
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
@@ -46,7 +46,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         await context.SaveChangesAsync();
 
         var action = () => CreateService(context).CreateAsync(
-            new CreateSupplementalMaterialRequestDto
+            new CreateSupplementalMaterialRequest
             {
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
@@ -105,7 +105,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             });
         var service = CreateService(context, stockLedger);
         var created = await service.CreateAsync(
-            new CreateSupplementalMaterialRequestDto
+            new CreateSupplementalMaterialRequest
             {
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),
@@ -116,7 +116,7 @@ public sealed class SupplementalMaterialRequestServiceTests
 
         var result = await service.FulfillAsync(
             created.RequestId,
-            new FulfillSupplementalMaterialRequestDto { Quantity = 2.5m },
+            new FulfillSupplementalMaterialRequest { Quantity = 2.5m },
             GuidHelper.ToGuidString(seed.UserId),
             GuidHelper.ToGuidString(seed.WarehouseId));
 
@@ -152,7 +152,7 @@ public sealed class SupplementalMaterialRequestServiceTests
         await context.SaveChangesAsync();
         var service = CreateService(context);
         var created = await service.CreateAsync(
-            new CreateSupplementalMaterialRequestDto
+            new CreateSupplementalMaterialRequest
             {
                 IssueId = GuidHelper.ToGuidString(seed.IssueId),
                 IssueLineId = GuidHelper.ToGuidString(seed.IssueLineId),

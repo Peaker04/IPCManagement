@@ -254,7 +254,7 @@ public class DishCatalogTests
     {
         var dishId = Guid.NewGuid().ToString();
         var service = Substitute.For<IDishService>();
-        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineDto>()).Returns(new DishCatalogBomLineDto
+        service.AddBomLineAsync(dishId, Arg.Any<CreateDishBomLineRequest>()).Returns(new DishCatalogBomLineDto
         {
             BomId = Guid.NewGuid().ToString(),
             IngredientId = Guid.NewGuid().ToString(),
@@ -262,7 +262,7 @@ public class DishCatalogTests
         });
         var controller = new DishesController(service, Substitute.For<ICurrentUserService>());
 
-        var actionResult = await controller.AddBomLineAsync(dishId, new CreateDishBomLineDto());
+        var actionResult = await controller.AddBomLineAsync(dishId, new CreateDishBomLineRequest());
 
         var created = actionResult.Should().BeOfType<ObjectResult>().Subject;
         created.StatusCode.Should().Be(StatusCodes.Status201Created);
@@ -340,7 +340,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var overlappingRequest = new CreateDishBomLineDto
+        var overlappingRequest = new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -376,7 +376,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -411,7 +411,7 @@ public class DishCatalogTests
         });
         await fixture.Context.SaveChangesAsync();
 
-        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineDto
+        var result = await service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), new CreateDishBomLineRequest
         {
             IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
             UnitId = GuidHelper.ToGuidString(fixture.UnitId),
@@ -450,7 +450,7 @@ public class DishCatalogTests
         var result = await service.UpdateBomLineAsync(
             GuidHelper.ToGuidString(fixture.DishId),
             GuidHelper.ToGuidString(originalBomId),
-            new UpdateDishBomLineDto
+            new UpdateDishBomLineRequest
             {
                 IngredientId = GuidHelper.ToGuidString(fixture.IngredientId),
                 UnitId = GuidHelper.ToGuidString(fixture.UnitId),

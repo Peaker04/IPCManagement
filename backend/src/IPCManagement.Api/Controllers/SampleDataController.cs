@@ -34,7 +34,7 @@ public class SampleDataController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<SampleDataImportResultDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> ImportAsync(
-        [FromBody] SampleDataImportRequestDto request,
+        [FromBody] SampleDataImportRequest request,
         CancellationToken cancellationToken)
     {
         if (!_environment.IsDevelopment())
@@ -57,7 +57,7 @@ public class SampleDataController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<PurchaseHistoryPreviewDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> PreviewPurchaseHistoryAsync(
-        [FromBody] PurchaseHistoryPreviewRequestDto request,
+        [FromBody] PurchaseHistoryPreviewRequest request,
         CancellationToken cancellationToken)
     {
         _ = request;
@@ -85,7 +85,7 @@ public class SampleDataController : ControllerBase
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ApplyPurchaseHistoryAsync(
-        [FromBody] PurchaseHistoryApplyRequestDto request,
+        [FromBody] PurchaseHistoryApplyRequest request,
         CancellationToken cancellationToken)
     {
         if (!_environment.IsDevelopment())

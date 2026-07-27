@@ -347,7 +347,7 @@ public class DataQualityIssueDto
     public string? RemediationNote { get; set; }
 }
 
-public class DataQualityIssueRemediationRequestDto
+public class DataQualityIssueRemediationRequest
 {
     public string IssueId { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
@@ -385,7 +385,7 @@ public class DataQualityIssueRemediationDto
     public string? Note { get; set; }
 }
 
-public class DataQualityCleanupRequestDto
+public class DataQualityCleanupRequest
 {
     public bool DryRun { get; set; } = true;
     public int Limit { get; set; } = 100;

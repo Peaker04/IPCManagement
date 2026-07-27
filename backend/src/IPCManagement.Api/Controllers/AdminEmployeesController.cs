@@ -52,7 +52,7 @@ public class AdminEmployeesController : ControllerBase
 
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status201Created)]
-    public async Task<IActionResult> CreateAsync([FromBody] CreateEmployeeDto request)
+    public async Task<IActionResult> CreateAsync([FromBody] CreateEmployeeRequest request)
     {
         var created = await _employeeService.CreateAsync(request);
         return CreatedAtAction(
@@ -64,7 +64,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpPut("{id}")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateEmployeeDto request, [FromServices] ICurrentUserService currentUserService)
+    public async Task<IActionResult> UpdateAsync(string id, [FromBody] UpdateEmployeeRequest request, [FromServices] ICurrentUserService currentUserService)
     {
         var adminId = currentUserService.GetUserId(User);
         var updated = await _employeeService.UpdateAsync(id, request, adminId);
@@ -77,7 +77,7 @@ public class AdminEmployeesController : ControllerBase
     [HttpPatch("{id}/status")]
     [ProducesResponseType(typeof(ApiResponse<EmployeeDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateStatusAsync(string id, [FromBody] UpdateEmployeeStatusDto request, [FromServices] ICurrentUserService currentUserService)
+    public async Task<IActionResult> UpdateStatusAsync(string id, [FromBody] UpdateEmployeeStatusRequest request, [FromServices] ICurrentUserService currentUserService)
     {
         var adminId = currentUserService.GetUserId(User);
         var updated = await _employeeService.UpdateStatusAsync(id, request, adminId);
