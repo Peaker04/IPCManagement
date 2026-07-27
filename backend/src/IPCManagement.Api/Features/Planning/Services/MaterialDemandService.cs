@@ -3,7 +3,6 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Planning.Contracts;
-using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Features.Planning.Services;
 

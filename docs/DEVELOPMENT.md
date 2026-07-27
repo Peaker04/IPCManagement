@@ -21,6 +21,8 @@ Các script root trong `package.json`:
 | `npm run fe` | Chạy Vite frontend workspace. |
 | `npm run be` | Chạy ASP.NET Core API. |
 | `npm run build:be` | Build project backend. |
+| `npm run gen:api` | Build API và regenerate OpenAPI + TypeScript contract. Binary tạm nằm trong `.artifacts/contract-build/api` để không xung đột với API Release đang chạy. |
+| `npm run check:api-contract` | Regenerate contract và fail nếu `openapi.json` hoặc `schema.ts` bị drift. |
 | `npm run test:be` | Chạy toàn bộ solution test backend. |
 | `npm run test:be:coverage` | Chạy backend test với coverage. |
 | `npm run coverage:be` | Xóa kết quả cũ, test backend và tạo report. |
@@ -29,7 +31,8 @@ Các script root trong `package.json`:
 | `npm run coverage:fe` | Chạy frontend unit test với coverage. |
 | `npm run lint:fe` | Chạy ESLint cho frontend. |
 | `npm run build:fe` | Type-check và build frontend Vite. |
-| `npm run verify` | Build/test backend, unit test/lint/build frontend. |
+| `npm run check:architecture-growth` | Báo controller/service/FE/test file vượt ngưỡng; hiện là warning baseline. |
+| `npm run verify` | Growth report, build/test backend, unit test/lint/dependency/build frontend. |
 | `npm run verify:coverage` | Chạy coverage cho backend và frontend. |
 | `npm run benchmark:workflow` | Chạy backend test có category `Performance`. |
 | `npm run verify:release` | Gọi quality-gate PowerShell script được khai báo trong `package.json`; kiểm tra script đích trước khi chạy. |

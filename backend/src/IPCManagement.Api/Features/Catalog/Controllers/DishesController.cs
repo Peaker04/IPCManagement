@@ -93,7 +93,7 @@ public class DishesController : ControllerBase
     /// <summary>Preview import BOM nhiều món trước khi commit.</summary>
     /// <remarks>
     /// Hạn mức tải lên dùng chung <see cref="XlsxSecurityLimits.MaxUploadBytes"/> (10 MB) —
-    /// cùng mức với 3 action upload thực đơn tuần ở <c>CoordinationController</c>.
+    /// cùng mức với 3 action upload thực đơn tuần ở <c>WeeklyMenuImportsController</c>.
     /// Không có chặn này thì buffer trong <c>DishService.ReadBomImportSourceRowsAsync</c>
     /// nạp trọn file vào RAM rồi nhân đôi bằng <c>ToArray()</c> → DoS bộ nhớ.
     /// </remarks>

@@ -13,7 +13,8 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 - Thay đổi UI phải giữ cấu trúc SAP Fiori: work object tách bằng tab, trạng thái/action rõ ràng, không ẩn lỗi dependency thành empty state, layout ổn định khi refetch và có evidence Chrome/Playwright.
 - Button/action và dữ liệu hiển thị phải được đối chiếu với permission, eligibility và terminal state do server trả về. Action không hợp lệ phải ẩn hoặc disable kèm lý do; không được chỉ ẩn trên FE trong khi BE vẫn cho phép mutation sai.
 - Không tự gộp nguyên liệu theo tên. Chứng từ chi tiết giữ document/line grain; báo cáo aggregate theo ID, unit và phạm vi nghiệp vụ.
-- Kiểm thử UI/visual hiện chỉ bao phủ website desktop. Dùng viewport desktop (hiện chọn `1365×900` và `1440×900`); mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
+- Kiểm thử UI/visual hiện chỉ bao phủ website desktop/tablet web. Dùng `1365×900`,
+  `1280×900` và `768×1024`; mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
 - Không dùng mock API, mock login, snapshot/baseline visual cũ hoặc tự update snapshot để kết luận UI hiện tại pass. Phải boot đúng working tree/source hiện tại, xác minh database qua runtime health và chạy Chrome headed trực tiếp vào URL thật.
 
 ## Môi trường Shipyard hiện tại
@@ -374,8 +375,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 44** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 9, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` đang ahead
+`origin/feature/production-plan`, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -527,7 +528,7 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Fix phát hiện trong gate: Warehouse chịu được response supplemental page thiếu `items` và có contract test (`55241f4`); 8 Playwright spec import `ROUTES` từ vị trí hiện hành `src/lib/routeConfig` (`e65effa`). Không update snapshot cũ.
 - Full gate sau thay đổi: backend **629 pass / 1 skip**, frontend **329/329**, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi phạm mới, FE production build xanh, Release contract regenerate deterministic, `git diff --check` sạch. Browser desktop runtime thật và DB gate xem mục trên; mobile cố ý chưa test.
 
-### Bước 11 — hợp đồng `f(data, state)` (hoàn tất ngày 27/07/2026)
+### Nền `QueryView` của Bước 11 (hoàn tất ngày 27/07/2026)
 
 - Commit `d2a5d62 feat(fe-state): add typed query view contract` thêm `frontend/src/lib/queryView.ts` với
   discriminated union `QueryView<T>` và adapter thuần `toQueryView`.
@@ -540,16 +541,54 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Full FE gates: **337/337** unit tests, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi
   phạm mới và vẫn ignore 54 known violations, production build xanh. Không đổi UI/API/cache/DOM, không chạm
   backend hay database nên chưa chạy browser/DB gate ở bước nền này.
-- Bước tiếp theo: pilot Material Demand và Warehouse theo Bước 12 của
-  `docs/ARCHITECTURE-AUDIT-2026-07-26.md`; chỉ test desktop 1365×900, 1280×900 và 768×1024, mobile ngoài scope.
+- Hai pilot Material Demand và Warehouse thuộc Bước 12 đã hoàn tất; chỉ test website
+  `1365×900`, `1280×900`, `768×1024`, mobile ngoài scope.
 
-**Đính chính workflow sau khi Kỳ làm rõ yêu cầu:** “Bước 11 hoàn tất” ở trên chỉ nói phần nền
-`QueryView<T>`, không có nghĩa toàn workflow mới đã qua Bước 11. Phần F của
-`docs/ARCHITECTURE-AUDIT-2026-07-26.md` hiện là nguồn duy nhất cho thứ tự làm việc, đã hợp nhất
-`f(data, state)` với P0–P3. Theo workflow hợp nhất, Bước 11 còn backend architecture baseline và
-file-growth reporter. Material Demand pilot đã commit `71656bc`; Warehouse pilot đang là thay đổi chưa commit,
-static gates xanh nhưng browser headed dừng ở login vì runtime không có `K6_PASSWORD`. Không tiếp tục rollout
-trước khi các gate 11–12 hoàn tất.
+**Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn điều
+khiển duy nhất. Phần C chỉ là snapshot audit lịch sử, không chạy P0–P3 song song. Thứ tự đúng là:
+`11 state contract → 12 pilot → 13 state rollout → 14 VSA boundary → 15 functional core →
+16 persistence → 17 FE ownership → 18 guardrail/docs`.
+
+Bước 11 đã hoàn tất bằng `QueryView` `d2a5d62`. Backend architecture baseline `d877d83`,
+growth reporter `c549bd2` và contract build cô lập `6a5259b` là guardrail được làm sớm cho
+Bước 14/18, không có nghĩa hai bước đó đã hoàn tất. Gate đã xác minh gần nhất: BE
+**631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**, dependency không có vi phạm
+mới, contract deterministic, EF migration snapshot sạch và production build xanh.
+
+Bước 12 có hai pilot đã commit: Material Demand `71656bc` và Warehouse `87ad944`.
+Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với ANV tuần 20/07:
+API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
+Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
+`query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
+Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin → Chef → Coordination
+— chưa bắt đầu.
+
+### Bước 14 — VSA backend boundary (bị thực hiện sớm do numbering cũ)
+
+- Commit `97bb33f refactor(be-boundary): remove purchasing reports cycle` gỡ cycle đầu tiên:
+  `Purchasing→Reports` **3 → 0** reference; architecture baseline bỏ hẳn ceiling cạnh này.
+- `WorkflowReportQueryDto` và `WorkflowReportPageQueryDto` là transport contract thực sự dùng chung,
+  đã chuyển nguyên shape/default/clamp sang `Shared/Contracts`; `PurchasePlanReportDto` về feature
+  Purchasing. Contract Swagger/TypeScript regenerate deterministic, không drift.
+- `PurchaseRequestWorkflowService.HasPriceException` dùng `PurchasePricePolicy` thuộc Purchasing thay
+  `WorkflowReportCalculator`; purchase-plan/candidate/workbench targeted **12/12**.
+- Commit `766fac7 refactor(be-boundary): move material demand port to planning` gỡ cycle thứ hai:
+  `Purchasing→Planning` **1 → 0**. Interface `IMaterialDemandService` về feature có implementation/controller;
+  field/constructor dependency không bao giờ được dùng trong `CoordinationService` đã xóa thay vì
+  whitelist cạnh `Coordination→Planning` giả.
+- Targeted cycle thứ hai: architecture **2/2**, MaterialDemand/Coordination/controller **98/98**.
+- Commit `baff911 refactor(be-boundary): move adjustment approval to coordination` gỡ cycle thứ ba:
+  `Approvals→Coordination` **1 → 0**; adapter duyệt `QuantityAdjustment` về feature sở hữu state
+  transition và tiếp tục implement port Approvals. Targeted approval/coordination **43/43**.
+- Commit `91badde refactor(be-boundary): move weekly menu imports to sample data` gỡ cycle cuối:
+  `Coordination→SampleData` **2 → 0**. Bốn legacy cycle đã về 0 và ceiling tương ứng đã xóa.
+- Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
+  dependency FE không tăng, production build xanh, EF migration snapshot sạch.
+- Working tree hiện có lát chưa commit đưa query của `PurchaseRequestsController` và
+  `ApprovalHistoryController` vào query service thuộc feature, kèm architecture/characterization test.
+  Lát này chưa được coi là hoàn tất trước khi targeted/full gates và staged `detect_changes` xanh.
+- Để đưa worktree về atomic state, hoàn tất và commit lát direct-DbContext đang dở; sau đó
+  quay lại Bước 13. Không mở thêm lát Bước 14 mới cho tới khi Gate 13 xanh.
 
 ## Quy trình tiếp tục ở phiên mới
 

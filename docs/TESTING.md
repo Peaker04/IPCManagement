@@ -9,6 +9,20 @@ Sau khi chạy `npm ci` và `dotnet restore`, có thể chạy test theo workspa
 
 ## Chạy tests
 
+Gate tĩnh từ project root:
+
+```bash
+npm run check:architecture-growth
+npm run check:api-contract
+npm run verify
+```
+
+`FeatureDependencyConventionTests` khóa dependency DAG backend và ceiling cho bốn cạnh legacy;
+ceiling chỉ được giảm, không được tăng. Growth gate hiện báo warning/`PLAN_REQUIRED` để
+khóa baseline trước khi Bước 18 chuyển phần nợ đã xử lý sang blocking. Contract gate build vào
+`.artifacts/contract-build/api`, nên có thể chạy trong khi lane API Release vẫn listen mà không dừng
+process hoặc khóa DLL của lane.
+
 Backend từ root:
 
 ```bash

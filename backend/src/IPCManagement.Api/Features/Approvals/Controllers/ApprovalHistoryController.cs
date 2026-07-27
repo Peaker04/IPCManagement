@@ -1,14 +1,8 @@
+using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace IPCManagement.Api.Features.Approvals.Controllers;
 
@@ -17,60 +11,25 @@ namespace IPCManagement.Api.Features.Approvals.Controllers;
 [Authorize]
 public class ApprovalHistoryController : ControllerBase
 {
-    private readonly Data.IpcManagementContext _context;
+    private readonly IApprovalHistoryQueryService _queryService;
 
-    public ApprovalHistoryController(Data.IpcManagementContext context)
+    public ApprovalHistoryController(IApprovalHistoryQueryService queryService)
     {
-        _context = context;
+        _queryService = queryService;
     }
 
     [HttpGet("{documentType}/{documentId}")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ApprovalHistoryItemDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetHistoryAsync(string documentType, string documentId)
     {
-        var guid = GuidHelper.ParseGuidString(documentId);
-        if (guid is null)
+        var targetId = GuidHelper.ParseGuidString(documentId);
+        if (targetId is null)
         {
             return BadRequest(ApiResponse.FailResult("Mã tài liệu không hợp lệ."));
         }
 
-        var normalizedType = documentType.Trim().ToLowerInvariant();
-
-        var history = await _context.Approvalhistories
-            .Include(h => h.ActionByNavigation)
-            .AsNoTracking()
-            .Where(h => h.TargetType == normalizedType && h.TargetId == guid)
-            .OrderBy(h => h.ActionAt)
-            .ToListAsync();
-
-        var result = history.Select(h => new ApprovalHistoryItemDto
-        {
-            HistoryId = GuidHelper.ToGuidString(h.ApprovalHistoryId),
-            TargetType = h.TargetType,
-            TargetId = GuidHelper.ToGuidString(h.TargetId),
-            Decision = h.Decision,
-            OldStatus = h.OldStatus,
-            NewStatus = h.NewStatus,
-            Reason = h.Reason,
-            ActionBy = GuidHelper.ToGuidString(h.ActionBy),
-            ActionByName = h.ActionByNavigation?.FullName ?? "Unknown",
-            ActionAt = h.ActionAt
-        }).ToList();
-
+        var targetType = documentType.Trim().ToLowerInvariant();
+        var result = await _queryService.GetHistoryAsync(targetType, targetId);
         return Ok(ApiResponse<IReadOnlyList<ApprovalHistoryItemDto>>.SuccessResult(result));
     }
-}
-
-public class ApprovalHistoryItemDto
-{
-    public string HistoryId { get; set; } = string.Empty;
-    public string TargetType { get; set; } = string.Empty;
-    public string TargetId { get; set; } = string.Empty;
-    public string Decision { get; set; } = string.Empty;
-    public string? OldStatus { get; set; }
-    public string? NewStatus { get; set; }
-    public string? Reason { get; set; }
-    public string ActionBy { get; set; } = string.Empty;
-    public string ActionByName { get; set; } = string.Empty;
-    public DateTime ActionAt { get; set; }
 }

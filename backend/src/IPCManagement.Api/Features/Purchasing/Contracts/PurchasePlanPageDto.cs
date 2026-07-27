@@ -1,10 +1,33 @@
 
-using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.Purchasing.Contracts;
 
 public sealed class PurchasePlanPageQueryDto : WorkflowReportPageQueryDto
 {
+}
+
+public class PurchasePlanReportDto
+{
+    public string PeriodKey { get; set; } = string.Empty;
+    public string GroupBy { get; set; } = "day";
+    public DateOnly PeriodStart { get; set; }
+    public DateOnly PeriodEnd { get; set; }
+    public string IngredientId { get; set; } = string.Empty;
+    public string? IngredientName { get; set; }
+    public string UnitId { get; set; } = string.Empty;
+    public string? UnitName { get; set; }
+    public decimal RequiredQty { get; set; }
+    public decimal CurrentStockQty { get; set; }
+    public decimal PendingReceiptQty { get; set; }
+    public decimal ShortageQty { get; set; }
+    public decimal SuggestedPurchaseQty { get; set; }
+    public decimal EstimatedUnitPrice { get; set; }
+    public decimal EstimatedAmount { get; set; }
+    public string? SupplierId { get; set; }
+    public string? SupplierName { get; set; }
+    public DateOnly? ExpectedDeliveryDate { get; set; }
+    public IReadOnlyList<string> Warnings { get; set; } = [];
 }
 
 public sealed class PurchasePlanPageDto

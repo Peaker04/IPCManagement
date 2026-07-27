@@ -1,36 +1,5 @@
 namespace IPCManagement.Api.Features.Reports.Contracts;
 
-public class WorkflowReportQueryDto
-{
-    public string? ServiceDate { get; set; }
-    public string? DateFrom { get; set; }
-    public string? DateTo { get; set; }
-    public string? CustomerId { get; set; }
-    public string? WarehouseId { get; set; }
-    public string? IngredientId { get; set; }
-    public string? SupplierId { get; set; }
-    public string? ShiftName { get; set; }
-    public string? Format { get; set; }
-    public string? CursorDate { get; set; }
-    public string? CursorId { get; set; }
-    /// <summary>
-    /// Số dòng đã trả ở cùng mốc thời gian <see cref="CursorDate"/>. Bắt buộc để phân trang không nhảy dòng:
-    /// cột thời gian là <c>datetime</c> theo giây nên một mốc có thể chứa hàng chục dòng, nhiều hơn một trang.
-    /// Null nghĩa là client cũ — server giữ nguyên hành vi so sánh chặt để hai bản deploy không lệch nhau.
-    /// </summary>
-    public int? CursorOffset { get; set; }
-    public int Limit { get; set; } = 100;
-    public string? SortDirection { get; set; }
-    public string? Actor { get; set; }
-    public string? BusinessArea { get; set; }
-    public string? EntityName { get; set; }
-    public string? FieldName { get; set; }
-    public string? MovementType { get; set; }
-    public string? GroupBy { get; set; }
-    public decimal? PriceTier { get; set; }
-    public bool WarningOnly { get; set; }
-}
-
 public class CursorPageDto<T>
 {
     public IReadOnlyList<T> Items { get; set; } = [];
@@ -352,29 +321,6 @@ public class DataQualityIssueRemediationRequest
     public string IssueId { get; set; } = string.Empty;
     public string Action { get; set; } = string.Empty;
     public string? Note { get; set; }
-}
-
-public class PurchasePlanReportDto
-{
-    public string PeriodKey { get; set; } = string.Empty;
-    public string GroupBy { get; set; } = "day";
-    public DateOnly PeriodStart { get; set; }
-    public DateOnly PeriodEnd { get; set; }
-    public string IngredientId { get; set; } = string.Empty;
-    public string? IngredientName { get; set; }
-    public string UnitId { get; set; } = string.Empty;
-    public string? UnitName { get; set; }
-    public decimal RequiredQty { get; set; }
-    public decimal CurrentStockQty { get; set; }
-    public decimal PendingReceiptQty { get; set; }
-    public decimal ShortageQty { get; set; }
-    public decimal SuggestedPurchaseQty { get; set; }
-    public decimal EstimatedUnitPrice { get; set; }
-    public decimal EstimatedAmount { get; set; }
-    public string? SupplierId { get; set; }
-    public string? SupplierName { get; set; }
-    public DateOnly? ExpectedDeliveryDate { get; set; }
-    public IReadOnlyList<string> Warnings { get; set; } = [];
 }
 
 public class DataQualityIssueRemediationDto

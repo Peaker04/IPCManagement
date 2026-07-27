@@ -1,5 +1,5 @@
 
-using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Features.Purchasing.Contracts;
 

@@ -72,6 +72,7 @@ public static class DependencyInjection
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IAdminEmployeeService, AdminEmployeeService>();
         services.AddScoped<IApprovalInboxService, ApprovalInboxService>();
+        services.AddScoped<IApprovalHistoryQueryService, ApprovalHistoryQueryService>();
         services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
         services.AddScoped<IApprovalRoutingService, ApprovalRoutingService>();
         services.AddScoped<IApprovalTargetHandler, MaterialDemandApprovalHandler>();
@@ -93,6 +94,7 @@ public static class DependencyInjection
         services.AddScoped<ISampleDataImportService, SampleDataImportService>();
         services.AddScoped<IPurchaseHistoryReconciliationService, PurchaseHistoryReconciliationService>();
         services.AddScoped<IMaterialDemandService, MaterialDemandService>();
+        services.AddScoped<IPurchaseRequestQueryService, PurchaseRequestQueryService>();
         services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
         services.AddScoped<IPurchaseReceivingService, PurchaseReceivingService>();

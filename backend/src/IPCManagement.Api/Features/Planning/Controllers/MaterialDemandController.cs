@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using IPCManagement.Api.Features.Planning.Contracts;
-using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Features.Planning.Services;
 
 namespace IPCManagement.Api.Features.Planning.Controllers;
 

@@ -11,12 +11,10 @@ using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
-using NSubstitute;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
-using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -34,8 +32,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
         var request = new LockOrderPlanRequest
         {
             ServiceDate = "2026-06-15",
@@ -85,8 +82,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var request = new AdjustServingsRequest
         {
@@ -124,8 +120,7 @@ public class CoordinationTransactionTests
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
 
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var request = new UpdateForecastServingsRequest
         {
@@ -168,8 +163,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var act = async () => await service.UpdateForecastServingsAsync(
             lineId,
@@ -203,8 +197,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: false);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var lockResult = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
@@ -264,9 +257,7 @@ public class CoordinationTransactionTests
             await arrangeContext.SaveChangesAsync();
         }
 
-        var service = new CoordinationService(
-            new IpcManagementContext(options),
-            Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
         var act = async () => await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
             {
@@ -302,7 +293,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -328,7 +319,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var act = async () => await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -349,7 +340,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var morning = SeedAdjustServingsFixture(options, false, suffix: "101", shiftName: "MORNING");
         SeedAdjustServingsFixture(options, false, suffix: "102", shiftName: "AFTERNOON", planStatus: OrderStatus.Forecasted);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.LockOrderPlanAsync(
             new LockOrderPlanRequest
@@ -386,7 +377,7 @@ public class CoordinationTransactionTests
         await connection.OpenAsync();
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         (await service.LockOrderPlanAsync(
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
@@ -413,8 +404,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var first = await service.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
@@ -461,8 +451,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
@@ -502,8 +491,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var coordinationService = new CoordinationService(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
             {
@@ -546,7 +534,6 @@ public class CoordinationTransactionTests
         history.TargetType.Should().Be("order-adjustment");
         history.Decision.Should().Be("APPROVE");
 
-        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
     }
 
     [Fact]
@@ -560,8 +547,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var lineId = GuidHelper.ToGuidString(fixture.LineId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var coordinationService = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var coordinationService = new CoordinationService(new IpcManagementContext(options));
         var pending = await coordinationService.AdjustOrderAfterLockAsync(
             new AdjustOrderAfterLockRequest
             {
@@ -599,7 +585,6 @@ public class CoordinationTransactionTests
         persistedLine.FinalServings.Should().Be(100);
         history.Decision.Should().Be("REJECT");
         (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
-        await materialDemandService.DidNotReceiveWithAnyArgs().GenerateAsync(default!, default);
     }
 
     [Fact]
@@ -613,8 +598,7 @@ public class CoordinationTransactionTests
 
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
         var planId = GuidHelper.ToGuidString(fixture.PlanId);
-        var materialDemandService = Substitute.For<IMaterialDemandService>();
-        var service = new CoordinationService(new IpcManagementContext(options), materialDemandService);
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderAsync(
             planId,
@@ -648,9 +632,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
-        var service = new CoordinationService(
-            new IpcManagementContext(options),
-            Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest
@@ -682,9 +664,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, confirmedPlan: true);
-        var service = new CoordinationService(
-            new IpcManagementContext(options),
-            Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest
@@ -717,7 +697,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -741,7 +721,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var act = async () => await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -763,7 +743,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var result = await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -787,7 +767,7 @@ public class CoordinationTransactionTests
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(options, false, planStatus: sourceStatus);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var act = async () => await service.UnlockOrderPlanScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -809,7 +789,7 @@ public class CoordinationTransactionTests
         var morning = SeedAdjustServingsFixture(options, false, suffix: "201", planStatus: OrderStatus.Confirmed);
         SeedAdjustServingsFixture(options, false, suffix: "202", planStatus: OrderStatus.Adjusted);
         SeedAdjustServingsFixture(options, false, suffix: "203", shiftName: "AFTERNOON", planStatus: OrderStatus.Confirmed);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var signoff = await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -840,7 +820,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var first = SeedAdjustServingsFixture(options, false, suffix: "301", planStatus: OrderStatus.Confirmed);
         SeedAdjustServingsFixture(options, false, suffix: "302", planStatus: OrderStatus.Draft);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
 
         var act = async () => await service.SignoffOrderScopeAsync(
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
@@ -860,7 +840,7 @@ public class CoordinationTransactionTests
         await connection.OpenAsync();
         var options = BuildOptions(connection);
         await CreateMinimalSchemaAsync(connection);
-        var service = new CoordinationService(new IpcManagementContext(options), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(options));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         (await service.SignoffOrderScopeAsync(request, null)).Should().BeNull();
@@ -895,7 +875,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowOnAuditlogSaveChangesInterceptor());
-        var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(failingOptions));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
 
         Func<Task> act = action == "signoff"
@@ -924,7 +904,7 @@ public class CoordinationTransactionTests
         await CreateMinimalSchemaAsync(connection);
         var fixture = SeedAdjustServingsFixture(seedOptions, true);
         var failingOptions = BuildOptions(connection, new ThrowConcurrencyOnPlanSaveChangesInterceptor());
-        var service = new CoordinationService(new IpcManagementContext(failingOptions), Substitute.For<IMaterialDemandService>());
+        var service = new CoordinationService(new IpcManagementContext(failingOptions));
         var request = new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" };
         Func<Task> act = action == "signoff"
             ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
