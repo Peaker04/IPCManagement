@@ -1,6 +1,6 @@
 import { Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { ROUTES } from './routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import { ProtectedRoute } from './ProtectedRoute';
 import { RoleGuard } from './RoleGuard';
 import { MainLayout } from '../components/layout/MainLayout';

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import type { PurchaseWorkbenchServiceDate } from '../workflowApi';
+import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 import { PurchaseServiceDateWorkbench } from './PurchaseServiceDateWorkbench';
 
 describe('PurchaseServiceDateWorkbench terminal state', () => {

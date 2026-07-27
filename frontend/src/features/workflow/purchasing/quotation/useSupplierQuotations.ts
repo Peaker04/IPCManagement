@@ -1,14 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { useToast } from '@/components/common';
 import { useGetIngredientsQuery } from '@/api/dishCatalogApi';
-import {
-  useCreateSupplierQuotationMutation,
-  useDeactivateSupplierQuotationMutation,
-  useGetSupplierQuotationsByIngredientPageQuery,
-  useGetSuppliersQuery,
-  useUpdateSupplierQuotationMutation,
-  type SupplierQuotationDto,
-} from '@/features/workflow';
+import { useCreateSupplierQuotationMutation, useDeactivateSupplierQuotationMutation, useGetSupplierQuotationsByIngredientPageQuery, useGetSuppliersQuery, useUpdateSupplierQuotationMutation, type SupplierQuotationDto } from '@/api/workflowApi';
 import { getPurchasingErrorMessage } from '../purchasingModel';
 
 const EMPTY_FORM = { supplierId: '', unitPrice: '', effectiveFrom: '', effectiveTo: '', note: '' };

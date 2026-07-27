@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import type { ApprovalRecord, WorkflowLane } from './types';
+import type { ApprovalRecord, WorkflowLane } from '@/types/workflow';
 import {
   resolveApprovalAvailability,
   resolveIssueCreationAvailability,
   resolveDemandLinePresentation,
   resolveWorkflowGateAction,
-} from './actionEligibility';
+} from '@/lib/actionEligibility';
 
 const lane = (overrides: Partial<WorkflowLane> = {}): WorkflowLane => ({
   id: 'warehouse',

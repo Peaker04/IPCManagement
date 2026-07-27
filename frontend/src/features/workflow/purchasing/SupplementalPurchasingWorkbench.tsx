@@ -3,14 +3,14 @@ import { ChefHat } from 'lucide-react';
 import { InlineAlert, SectionPanel, StatusBadge, TableViewport } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import { formatWorkflowStatus } from '../workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
   useGetPurchaseOrdersQuery,
   useGetPurchaseRequestsQuery,
   useGetSupplementalMaterialRequestsQuery,
   type PurchaseRequestWorkflowLine,
   type PurchaseWorkbenchServiceDate,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import { PurchaseDecisionPanel } from './PurchaseDecisionPanel';
 import type { PurchasingStageId } from './purchasingModel';
 

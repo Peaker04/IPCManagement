@@ -1,7 +1,7 @@
 import { fireEvent, render, renderHook, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { PurchaseWorkbenchServiceDate } from '../workflowApi'
+import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi'
 
 const mocks = vi.hoisted(() => ({
   getIngredients: vi.fn(),
@@ -30,7 +30,7 @@ vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.getIngredients,
 }))
 
-vi.mock('@/features/workflow', () => ({
+vi.mock('@/api/workflowApi', () => ({
   useCancelPurchaseOrderMutation: () => [vi.fn(), { isLoading: false }],
   useCreatePurchaseOrdersFromRequestMutation: () => [vi.fn(), { isLoading: false }],
   useCreatePurchaseRequestFromDemandMutation: () => [vi.fn(), { isLoading: false }],
@@ -49,7 +49,7 @@ vi.mock('@/features/workflow', () => ({
   useUpdateSupplierQuotationMutation: () => [vi.fn(), { isLoading: false }],
 }))
 
-vi.mock('../workflowApi', () => ({
+vi.mock('@/api/workflowApi', () => ({
   useGetWarehouseSelectorQuery: mocks.getWarehouses,
   useGetSupplierEvidenceQuery: mocks.getSupplierEvidence,
   useConfirmLineSupplierMutation: () => [mocks.confirmLineSupplier, { isLoading: false }],

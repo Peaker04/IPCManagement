@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import {
   useGetPurchaseWorkbenchQuery,
   type PurchaseWorkflowStageCounts,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import { PurchaseDecisionPanel } from '../purchasing/PurchaseDecisionPanel';
 import { SupplementalPurchasingWorkbench } from '../purchasing/SupplementalPurchasingWorkbench';
 import { PurchaseServiceDateWorkbench } from '../purchasing/PurchaseServiceDateWorkbench';

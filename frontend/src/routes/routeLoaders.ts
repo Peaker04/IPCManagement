@@ -1,5 +1,5 @@
 import { createElement, lazy, type ComponentType } from 'react';
-import { ROUTES } from './routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 
 type PageModule = { default: ComponentType };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { DemandLine } from '@/features/workflow'
+import type { DemandLine } from '@/types/workflow'
 import {
   formatImportDate,
   formatMenuDishName,

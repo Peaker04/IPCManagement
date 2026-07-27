@@ -7,7 +7,7 @@ import {
   StatusBadge,
   TableViewport,
 } from '@/components/common';
-import type { PurchaseWorkbenchServiceDate } from '../workflowApi';
+import type { PurchaseWorkbenchServiceDate } from '@/api/workflowApi';
 
 interface PurchaseServiceDateWorkbenchProps {
   serviceDates: PurchaseWorkbenchServiceDate[];

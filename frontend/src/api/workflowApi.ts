@@ -6,7 +6,7 @@ import {
   routeByLaneId,
   toneFromStatus,
   workflowLaneDefinitions,
-} from './workflowConfig';
+} from '@/lib/workflowConfig';
 import type {
   ApprovalRecord,
   DemandLine,
@@ -17,8 +17,8 @@ import type {
   WorkflowDocumentType,
   WorkflowLane,
   WorkflowTone,
-} from './types';
-import { resolveDemandLinePresentation } from './actionEligibility';
+} from '@/types/workflow';
+import { resolveDemandLinePresentation } from '@/lib/actionEligibility';
 
 export interface WorkflowReportQuery {
   serviceDate?: string;

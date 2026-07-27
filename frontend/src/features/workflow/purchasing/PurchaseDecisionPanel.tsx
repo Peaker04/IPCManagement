@@ -13,19 +13,19 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
-import { ROUTES } from '@/routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import type {
   PurchaseRequestWorkflowLine,
   PurchaseWorkbenchServiceDate,
   SupplierEvidenceCandidate,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import {
   useConfirmLineSupplierMutation,
   useCreatePurchaseOrdersFromRequestMutation,
   useCreatePurchaseRequestFromDemandMutation,
   useGetSupplierEvidenceQuery,
   useSubmitPurchaseRequestMutation,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import { getPurchasingErrorMessage, type PurchasingStageId } from './purchasingModel';
 
 interface PurchaseDecisionPanelProps {

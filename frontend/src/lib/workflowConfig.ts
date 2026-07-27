@@ -1,6 +1,6 @@
-import { ROUTES } from '@/routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import type { StatusPresentation } from '@/lib/statusPresentation';
-import type { WorkflowLane, WorkflowLaneId, WorkflowTone } from './types';
+import type { WorkflowLane, WorkflowLaneId, WorkflowTone } from '@/types/workflow';
 
 type WorkflowStatusPresentation = Omit<StatusPresentation, 'tone'> & { tone: WorkflowTone };
 

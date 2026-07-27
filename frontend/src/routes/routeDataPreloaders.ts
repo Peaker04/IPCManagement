@@ -1,11 +1,11 @@
 import { store } from '../app/store';
-import { ROUTES } from './routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 
 const dataPrefetchOptions = { ifOlderThan: 5 * 60 } as const;
 
 const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   [ROUTES.DASHBOARD]: async () => {
-    const { workflowApi } = await import('../features/workflow/workflowApi');
+    const { workflowApi } = await import('@/api/workflowApi');
     store.dispatch(workflowApi.util.prefetch('getWorkflowDocuments', { limit: 100 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getIngredientDemand', { limit: 100 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getPriceVariance', { limit: 100 }, dataPrefetchOptions));
@@ -23,7 +23,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     store.dispatch(coordinationApi.util.prefetch('getWeeklyMenuImportHistory', undefined, dataPrefetchOptions));
   },
   [ROUTES.REPORTS]: async () => {
-    const { workflowApi } = await import('../features/workflow/workflowApi');
+    const { workflowApi } = await import('@/api/workflowApi');
     store.dispatch(workflowApi.util.prefetch('getPriceVariancePage', {
       limit: 20,
       pageNumber: 1,
@@ -48,7 +48,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     }, dataPrefetchOptions));
   },
   [ROUTES.APPROVALS]: async () => {
-    const { workflowApi } = await import('../features/workflow/workflowApi');
+    const { workflowApi } = await import('@/api/workflowApi');
     store.dispatch(workflowApi.util.prefetch('getApprovalRecords', { limit: 20 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getWorkflowDocuments', { limit: 20 }, dataPrefetchOptions));
     store.dispatch(workflowApi.util.prefetch('getPurchaseRequestsPage', {
@@ -58,7 +58,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
   [ROUTES.PURCHASING]: async () => {
     const [{ workflowApi }, { resolvePurchasingRouteState }] = await Promise.all([
-      import('../features/workflow/workflowApi'),
+      import('@/api/workflowApi'),
       import('../features/workflow/purchasing/purchasingModel'),
     ]);
     const { week } = resolvePurchasingRouteState({}, []);
@@ -69,7 +69,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
     }, dataPrefetchOptions));
   },
   [ROUTES.WAREHOUSE]: async () => {
-    const { workflowApi } = await import('../features/workflow/workflowApi');
+    const { workflowApi } = await import('@/api/workflowApi');
     store.dispatch(workflowApi.util.prefetch('getPurchaseOrdersPage', {
       pageNumber: 1,
       pageSize: 8,
@@ -79,7 +79,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   },
   [ROUTES.APPROVAL_RULES]: async () => {
     const [{ workflowApi }, { adminApi }] = await Promise.all([
-      import('../features/workflow/workflowApi'),
+      import('@/api/workflowApi'),
       import('../features/admin/adminApi'),
     ]);
     store.dispatch(workflowApi.util.prefetch('getApprovalRules', undefined, dataPrefetchOptions));

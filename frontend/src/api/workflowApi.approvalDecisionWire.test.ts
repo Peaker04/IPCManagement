@@ -1,7 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { workflowApi } from './workflowApi';
+import { workflowApi } from '@/api/workflowApi';
 
 const createWorkflowApiStore = () => configureStore({
   reducer: {

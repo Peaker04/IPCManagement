@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PurchasePlanRow } from '@/features/workflow';
+import type { PurchasePlanRow } from '@/api/workflowApi';
 import { normalizePurchasePlanGroupBy, summarizePurchasePlan } from './reportPlanning';
 
 const baseRow: PurchasePlanRow = {

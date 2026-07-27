@@ -19,32 +19,21 @@ import {
   TableViewport,
   ViewSwitcher,
 } from '@/components/common';
-import { ROUTES } from '@/routes/routeConfig';
-import {
-  useCreateInventoryIssueMutation,
-  useGetCurrentStockQuery,
-  useGetCurrentStockPageQuery,
-  useGetIngredientDemandQuery,
-  useGetIngredientDemandPageQuery,
-  useGetMaterialRequestCandidatePageQuery,
-  useGetKitchenIssuesQuery,
-  useGetStockMovementPageQuery,
-  useGetWorkflowDocumentsQuery,
-  useWorkflowOverview,
-} from '@/features/workflow';
-import { toNextReportCursor, type ReportCursor } from '@/features/workflow';
+import { ROUTES } from '@/lib/routeConfig';
+import { useCreateInventoryIssueMutation, useGetCurrentStockQuery, useGetCurrentStockPageQuery, useGetIngredientDemandQuery, useGetIngredientDemandPageQuery, useGetMaterialRequestCandidatePageQuery, useGetKitchenIssuesQuery, useGetStockMovementPageQuery, useGetWorkflowDocumentsQuery, useWorkflowOverview } from '@/api/workflowApi';
+import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
 import { formatCurrency, formatQuantityWithUnit } from '@/lib/formatters';
-import { formatWorkflowStatus } from '../workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
   useGetPurchaseOrdersPageQuery,
   useGetSupplementalMaterialRequestsQuery,
   useGetWarehouseSelectorQuery,
   type PurchaseOrderLineDto,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import { WarehousePurchaseReceiptDialog } from '../warehouse/WarehousePurchaseReceiptDialog';
 import { buildWarehouseIssueAllocation } from '../warehouse/warehouseIssueAllocation';
 import { WarehouseExceptionsWorkbench } from '../warehouse/WarehouseExceptionsWorkbench';
-import { resolveIssueCreationAvailability } from '../actionEligibility';
+import { resolveIssueCreationAvailability } from '@/lib/actionEligibility';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useAppSelector } from '@/app/hooks'
 import { useGetDishesCatalogQuery } from '@/api/dishCatalogApi'
-import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/features/workflow'
+import { useGetDailyProductionPlanQuery, useSendDailyProductionPlanToKitchenMutation, type KitchenIssueRow } from '@/api/workflowApi'
 import type { ShiftType } from '../../coordination/types'
 import { getChefMutationErrorMessage } from '../chefDashboardTypes'
 import { buildChefProductionPlan, mapDailyPlanLines } from './chefProductionModel'

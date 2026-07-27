@@ -2,8 +2,8 @@ import type {
   CreateInventoryIssueLineRequest,
   CurrentStockRow,
   KitchenIssueRow,
-} from '../workflowApi';
-import type { DemandLine } from '../types';
+} from '@/api/workflowApi';
+import type { DemandLine } from '@/types/workflow';
 
 const QUANTITY_EPSILON = 0.000001;
 

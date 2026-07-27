@@ -52,7 +52,7 @@ const inventoryReturn = {
   lines: [{ returnLineId: 'return-line-1', ingredientId: 'ingredient-1', ingredientName: 'Gạo', quantity: 2, unitId: 'unit-1', unitName: 'kg' }],
 };
 
-vi.mock('../workflowApi', () => ({
+vi.mock('@/api/workflowApi', () => ({
   useGetSupplementalMaterialRequestsQuery: () => ({
     data: { items: [supplemental], totalCount: 1, pageNumber: 1, pageSize: 8, totalPages: 1, hasPrev: false, hasNext: false },
     isFetching: false,

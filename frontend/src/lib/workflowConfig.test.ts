@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { ROUTES } from '@/routes/routeConfig';
-import { formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from './workflowConfig';
+import { ROUTES } from '@/lib/routeConfig';
+import { formatWorkflowStatus, getWorkflowContextForPath, ownerToLaneId, routeByLaneId, toneFromStatus } from '@/lib/workflowConfig';
 
 describe('workflowConfig', () => {
   it('maps Vietnamese operational status text to alert tones', () => {

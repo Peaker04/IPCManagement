@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { getWorkflowStatusPresentation, toneFromStatus } from './workflowConfig'
+import { getWorkflowStatusPresentation, toneFromStatus } from '@/lib/workflowConfig'
 
 describe('workflow status presentation', () => {
   it.each([

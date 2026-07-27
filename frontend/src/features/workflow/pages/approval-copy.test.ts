@@ -2,7 +2,7 @@ import { render, screen, within } from '@testing-library/react';
 import { createElement } from 'react';
 import { describe, expect, it } from 'vitest';
 import { ApprovalQueue } from '@/components/common/ApprovalQueue';
-import type { ApprovalRecord } from '@/features/workflow';
+import type { ApprovalRecord } from '@/types/workflow';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 
 describe('ApprovalPage history copy', () => {

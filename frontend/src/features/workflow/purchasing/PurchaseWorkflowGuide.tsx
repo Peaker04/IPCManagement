@@ -1,7 +1,7 @@
 import { Check, CircleAlert, CircleDot } from 'lucide-react';
 import { StatusBadge } from '@/components/common';
 import { cn } from '@/lib/utils';
-import type { PurchaseWorkflowStageCounts } from '../workflowApi';
+import type { PurchaseWorkflowStageCounts } from '@/api/workflowApi';
 import {
   PURCHASING_STAGES,
   isPurchasingStage,

@@ -1,4 +1,4 @@
-import type { ApprovalRecord, WorkflowLane } from './types';
+import type { ApprovalRecord, WorkflowLane } from '@/types/workflow';
 
 export const resolveWorkflowGateAction = (lanes: WorkflowLane[]): string => {
   if (lanes.length === 0) return 'Mở công đoạn';

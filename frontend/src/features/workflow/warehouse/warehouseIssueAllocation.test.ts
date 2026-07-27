@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DemandLine } from '../types';
-import type { CurrentStockRow, KitchenIssueRow } from '../workflowApi';
+import type { DemandLine } from '@/types/workflow';
+import type { CurrentStockRow, KitchenIssueRow } from '@/api/workflowApi';
 import { buildWarehouseIssueAllocation } from './warehouseIssueAllocation';
 
 const demand = (ingredientId: string, required: number): DemandLine => ({

@@ -6,7 +6,7 @@ import {
   type PurchaseRequestResult,
   type WarehouseDto,
   type WarehousePurchaseReceiptRequest,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 import {
   PURCHASING_STAGES,
   formatPurchaseRequestCandidate,

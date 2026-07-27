@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatQuantityWithUnit } from '@/lib/formatters';
-import { formatWorkflowStatus } from '../workflowConfig';
+import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import {
   useConfirmInventoryReturnReceiptMutation,
   useFulfillSupplementalMaterialRequestMutation,
@@ -28,7 +28,7 @@ import {
   useRejectSupplementalMaterialRequestMutation,
   useRouteSupplementalMaterialRequestToPurchasingMutation,
   type SupplementalMaterialRequestResult,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 
 type Feedback = { title: string; message: string; variant: 'info' | 'warning' | 'danger' };
 

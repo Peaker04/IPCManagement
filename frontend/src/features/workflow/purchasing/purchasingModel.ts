@@ -1,11 +1,11 @@
 import { getBangkokToday } from '@/lib/chefServiceDate';
-import type { DemandLine } from '@/features/workflow';
+import type { DemandLine } from '@/types/workflow';
 import type {
   PurchaseRequestResult,
   PurchaseWorkbenchServiceDate,
   PurchaseWorkflowStageCounts,
   WarehouseDto,
-} from '../workflowApi';
+} from '@/api/workflowApi';
 
 export type PurchasingStageId =
   | 'demand'

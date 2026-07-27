@@ -10,7 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { ROUTES } from '../../../routes/routeConfig';
+import { ROUTES } from '@/lib/routeConfig';
 import { subscribeSessionExpired } from '../sessionEvents';
 
 const AUTO_REDIRECT_MS = 1800;
