@@ -593,7 +593,23 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   CLS 0, 0 page overflow. Evidence: `.artifacts/shipyard-live/query-view-approvals-performance.json`
   và mười hai screenshot `query-view-approvals-{queue,role,history,history-warm}-*.png`.
 - GitNexus staged audit: 3 file/5 symbol/1 flow, **MEDIUM**, đúng scope Approvals.
-- Bước active tiếp theo là **Reports**; Gate 13 chưa đóng cho tới khi đủ sáu feature xanh.
+- **Reports đã hoàn tất** tại `e4d24bb refactor(fe-state): classify report query views`.
+  Mười hai query owner (bốn price subview và tám report view còn lại) đều qua
+  `QueryView`; giữ nguyên endpoint, args, skip, cache key/tag, URL và export behavior.
+  Uninitialized/loading/forbidden/error không còn render false-empty; forbidden không retry,
+  lỗi khác có retry, refreshing giữ stale table. Metric của query chưa authoritative hiển thị `—`.
+- Price presentation tách sang `ReportsPricePanel.tsx`, active state qua `ReportQueryBoundary.tsx`,
+  CSV helper sang `reportCsv.ts` với BOM/escaping test. `ReportsPage.tsx` **800 → 515 dòng**,
+  price panel 352 và page model 594 dòng; không file Reports nào vượt growth warning 600.
+- Targeted Reports/contracts **25/25**; full FE **368/368**; BE **634 pass / 1 skip**; lint
+  0 error/1 warning baseline còn lại ở `ApprovalRulesPage` thuộc Admin; dependency không có
+  vi phạm mới, production build xanh, OpenAPI deterministic và EF migration snapshot sạch.
+- Browser headed `1365×900`, `1280×900`, `768×1024`: **39/39** capture cho 12 query view
+  và warm revisit; action API 200, warm price 0 request, 0 non-2xx/request fail/console/page error/
+  long task, CLS 0, 0 page overflow. Evidence: `.artifacts/shipyard-live/query-view-reports-performance.json`
+  và ba mươi chín screenshot `query-view-reports-*.png`.
+- GitNexus staged audit: 9 file/16 symbol/3 flow, **MEDIUM**, đúng scope Reports.
+- Bước active tiếp theo là **Admin**; Gate 13 chưa đóng cho tới khi đủ sáu feature xanh.
 
 ### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
