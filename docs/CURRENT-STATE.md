@@ -686,6 +686,29 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
 - Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
+### Bước 15 — Tách use case và functional core (Reports đã hoàn tất)
+
+- Reports đã tách theo mười hai lát commit nguyên tử: price variance `92b7bf3`, demand
+  `354b920`, purchasing `ffdab86`, stock snapshot `92c64dd`, inventory operations `7db54c5`,
+  current stock/stock movement `f998066`, audit/CSV `b3b6276`, stock ledger `79095fc`,
+  data-quality query `bd350f2`, data-quality command `d4fade1`, KPI `01defd9` và aggregate cache
+  `363c898`.
+- `WorkflowReportService` và `IWorkflowReportService` đã xóa. Controller còn điều phối các port
+  use-case; CSV, EF query, cleanup transaction, KPI policy và cache/single-flight không còn nằm
+  trong controller/facade chung.
+- Các service Reports mới không vượt ngưỡng 600 dòng. Functional core có test không DB:
+  `PriceVarianceReportPolicy`, `PurchasingReportPolicy`, `AuditCsvExporter`, `DataQualityPolicy`
+  và `OperationalKpiPolicy`.
+- Cache aggregate được đăng ký singleton nhưng không giữ scoped service/DbContext; giữ duration
+  15 giây, key KPI cũ, data-quality version invalidation xuyên controller instance và single-flight
+  cho concurrent cold request.
+- Gate Reports cuối: BE **648 pass / 1 skip**, FE **416/416**, backend build 0 warning,
+  lint sạch, dependency-cruiser không có violation mới (vẫn ignore 54 baseline), production build xanh,
+  OpenAPI canonical **152 path / 396 schema** và generated TypeScript không đổi, EF không có
+  model change chưa migration. Không reset/seed database và không push.
+- Bước 15 chưa đóng: thứ tự tiếp theo là **Coordination → Purchasing → Catalog →
+  SampleData**.
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.
