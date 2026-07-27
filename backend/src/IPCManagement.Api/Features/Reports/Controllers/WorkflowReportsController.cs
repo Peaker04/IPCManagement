@@ -67,24 +67,6 @@ public class WorkflowReportsController : ControllerBase
         => Ok(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>.SuccessResult(
             await _workflowReportService.GetStockLedgerReconciliationAsync(query)));
 
-    [HttpGet("workflow-documents")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetWorkflowDocumentsAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>.SuccessResult(
-            await _workflowReportService.GetWorkflowDocumentsAsync(query)));
-
-    [HttpGet("kitchen-issues")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetKitchenIssuesAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
-            await _workflowReportService.GetKitchenIssuesAsync(query)));
-
-    [HttpGet("kitchen-issues/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetKitchenIssuesPageAsync([FromQuery] KitchenIssuePageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>.SuccessResult(
-            await _workflowReportService.GetKitchenIssuesPageAsync(query)));
-
     [HttpGet("operational-kpis")]
     [ProducesResponseType(typeof(ApiResponse<OperationalKpiSummaryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOperationalKpisAsync()
@@ -97,18 +79,6 @@ public class WorkflowReportsController : ControllerBase
 
         return Ok(ApiResponse<OperationalKpiSummaryDto>.SuccessResult(result));
     }
-
-    [HttpGet("issue-vs-return")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIssueVsReturnAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>.SuccessResult(
-            await _workflowReportService.GetIssueVsReturnAsync(query)));
-
-    [HttpGet("issue-vs-return/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetIssueVsReturnPageAsync([FromQuery] IssueVsReturnPageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>.SuccessResult(
-            await _workflowReportService.GetIssueVsReturnPageAsync(query)));
 
     [HttpGet("audit-changes")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<AuditChangeReportDto>>), StatusCodes.Status200OK)]

@@ -1866,7 +1866,7 @@ public class WorkflowGenerationTests
             }, fixture.UserIdString);
             issueId = created!.IssueId;
 
-            var beforeConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var beforeConfirm = await new InventoryOperationsReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
             beforeConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
                 row.MaterialRequestId == materialRequestId &&
                 row.IsReceivedByKitchen == false &&
@@ -1902,7 +1902,7 @@ public class WorkflowGenerationTests
                 .ToListAsync();
             auditFields.Should().BeEquivalentTo(["KitchenReceived", "KitchenReceiptDiscrepancy"]);
 
-            var afterConfirm = await new WorkflowReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var afterConfirm = await new InventoryOperationsReportService(context).GetKitchenIssuesAsync(new WorkflowReportQueryDto { Limit = 10 });
             afterConfirm.Should().ContainSingle().Which.Should().Match<KitchenIssueReportDto>(row =>
                 row.IsReceivedByKitchen &&
                 row.ReceivedBy == fixture.UserIdString &&
@@ -2023,7 +2023,7 @@ public class WorkflowGenerationTests
             varianceAudit.NewValue.Should().Be("20");
             varianceAudit.Reason.Should().Contain("Hao hụt sơ chế thực tế");
 
-            var usage = await new WorkflowReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
+            var usage = await new InventoryOperationsReportService(context).GetIssueVsReturnAsync(new WorkflowReportQueryDto { Limit = 10 });
             var row = usage.Should().ContainSingle().Subject;
             row.IssuedQty.Should().Be(200m);
             row.ReturnedQty.Should().Be(30m);
