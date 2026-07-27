@@ -419,7 +419,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 |---|---|---|---|
 | 11 | Hợp đồng `QueryView<T>` và adapter thuần | Khóa `f(data, state)` | **Hoàn tất** |
 | 12 | Hai pilot Material Demand và Warehouse | Pilot state + browser evidence | **Hoàn tất** |
-| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Đang thực hiện: Purchasing hoàn tất** |
+| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Đang thực hiện: Purchasing + Approvals hoàn tất** |
 | 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case lớn và functional core | P1 backend split | Chưa bắt đầu |
 | 16 | Persistence và reliability nhất quán | P3 persistence | Chưa bắt đầu |
@@ -506,7 +506,20 @@ OpenAPI và migration gate xanh. Browser headed trên `1365×900`, `1280×900`, 
 9/9 capture workflow/quotation/warm, API 2xx, warm switch 0 request, 0 console/page/request error,
 0 long task, CLS 0, 0 page overflow. Evidence tại
 `.artifacts/shipyard-live/query-view-purchasing-performance.json` và chín screenshot cùng prefix.
-Bước active tiếp theo trong Gate 13 là Approvals.
+
+**Approvals hoàn tất tại `c0cf976`.** Bốn query owner (approval inbox, workflow documents,
+purchase-request page và approval history có `skip`) đều đi qua `QueryView`; forbidden không
+retry, lỗi khác có retry, refreshing giữ stale rows và history chưa chọn chứng từ giữ
+uninitialized instruction. Query ownership vẫn ở `ApprovalPage`; ba presentation-state panel được
+tách theo responsibility, đưa page từ 625 xuống **491 dòng** mà không đổi endpoint,
+args, skip, cache hay mutation behavior. Targeted state/component **22/22**; full FE **362/362**,
+BE **634 pass / 1 skip**, lint 0 error/1 warning baseline thuộc Admin, dependency không tăng,
+production build, OpenAPI và migration gate xanh. Browser headed trên ba viewport: **12/12**
+queue/role/history/warm capture, API và history action 200, warm revisit 0 request,
+0 console/page/request error, 0 long task, CLS 0, 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-approvals-performance.json` và mười hai screenshot cùng prefix.
+
+Bước active tiếp theo trong Gate 13 là Reports.
 
 ### Bước 14 — Khóa VSA boundary
 

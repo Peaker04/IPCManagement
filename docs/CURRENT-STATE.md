@@ -578,7 +578,22 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   `query-view-purchasing-{workflow,quotations,quotations-warm}-*.png`. File
   `query-view-purchasing-error.*` là attempt selector-wait thất bại trước final run, không phải kết quả cuối.
 - GitNexus staged audit: 9 file/14 symbol/5 flow, **MEDIUM**, đúng scope Purchasing.
-- Bước active tiếp theo là **Approvals**; Gate 13 chưa đóng cho tới khi đủ sáu feature xanh.
+- **Approvals đã hoàn tất** tại `c0cf976 refactor(fe-state): classify approval query views`.
+  Bốn query owner (approval inbox, workflow documents, purchase-request page và approval history có
+  `skip`) đều qua `QueryView`; không đổi endpoint, args, cache key/tag, URL hay mutation behavior.
+  Forbidden không retry, lỗi khác có retry, refreshing giữ stale rows và history chưa chọn
+  purchase request giữ uninitialized instruction.
+- Ba presentation-state panel được tách sang `ApprovalQueryPanels.tsx` nhưng query ownership vẫn
+  ở `ApprovalPage.tsx`; page giảm **625 → 491 dòng**, không vượt growth warning 600.
+- Targeted Approvals **22/22**; full FE **362/362**; BE **634 pass / 1 skip**; lint 0 error/1 warning
+  baseline còn lại ở `ApprovalRulesPage` thuộc Admin; dependency không có vi phạm mới,
+  production build xanh, OpenAPI deterministic và EF migration snapshot sạch.
+- Browser headed `1365×900`, `1280×900`, `768×1024`: **12/12** queue/role/history/warm capture,
+  API và history action 200, warm revisit 0 request, 0 console/page/request error, 0 long task,
+  CLS 0, 0 page overflow. Evidence: `.artifacts/shipyard-live/query-view-approvals-performance.json`
+  và mười hai screenshot `query-view-approvals-{queue,role,history,history-warm}-*.png`.
+- GitNexus staged audit: 3 file/5 symbol/1 flow, **MEDIUM**, đúng scope Approvals.
+- Bước active tiếp theo là **Reports**; Gate 13 chưa đóng cho tới khi đủ sáu feature xanh.
 
 ### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
