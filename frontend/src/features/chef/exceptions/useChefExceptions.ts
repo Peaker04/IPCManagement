@@ -122,7 +122,7 @@ export function useChefExceptions(
           unit: line.unitName || '',
           returnedQty: line.quantity,
           condition: item.returnType === 'WASTE' ? 'damaged' as const : 'intact' as const,
-          notes: item.reason,
+          notes: item.reason ?? undefined,
           returnedAt: item.createdAt,
         })))
       : returns.filter((item) => item.serviceDate === scope.serviceDate && item.shift === scope.activeShift),

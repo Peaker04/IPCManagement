@@ -28,6 +28,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ProductionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] PagedRequestDto request)
     {
         var result = await _productionPlanService.GetPagedAsync(request);
@@ -36,6 +37,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy danh sách kế hoạch sản xuất theo ngày và khách hàng.</summary>
     [HttpGet("filter")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ProductionPlanDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetFilteredAsync(
         [FromQuery] string? serviceDate,
         [FromQuery] string? dateFrom,
@@ -49,6 +51,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Kế hoạch sản xuất trong ngày để gửi/hiển thị cho bếp.</summary>
     [HttpGet("daily")]
+    [ProducesResponseType(typeof(ApiResponse<DailyProductionPlanDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDailyAsync(
         [FromQuery] string? serviceDate,
         [FromQuery] string? customerId,
@@ -61,6 +64,7 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Đánh dấu KHSX trong ngày đã gửi bếp.</summary>
     [HttpPost("daily/send-to-kitchen")]
+    [ProducesResponseType(typeof(ApiResponse<DailyProductionPlanDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> SendDailyToKitchenAsync(
         [FromBody] SendDailyProductionPlanRequest request,
         CancellationToken cancellationToken)
@@ -72,6 +76,8 @@ public class ProductionPlansController : ControllerBase
 
     /// <summary>Lấy chi tiết kế hoạch sản xuất theo ID.</summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<ProductionPlanDto>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _productionPlanService.GetByIdAsync(id);

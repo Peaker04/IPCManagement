@@ -48,13 +48,13 @@ describe('material demand model', () => {
       reasons: ['2026-07-22: Số suất đã thay đổi'],
     })
     expect(aggregateWeekStaleness([
-      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, reasons: [] } },
+      { serviceDate: '2026-07-20', staleness: { hasExistingPlan: true, isStale: false, canRegenerate: false, reasons: [] } },
     ], 2)).toBeUndefined()
   })
 
   it('keeps partial week staleness loading and exposes a failed day instead of treating the week as clean', () => {
     const dates = ['2026-07-20', '2026-07-21']
-    const cleanResult = { data: { data: { hasExistingPlan: true, isStale: false, reasons: [] } } }
+    const cleanResult = { data: { data: { hasExistingPlan: true, isStale: false, canRegenerate: false, reasons: [] } } }
 
     expect(getWeekStalenessState(dates, [cleanResult, { isFetching: true }])).toEqual({
       status: 'loading',

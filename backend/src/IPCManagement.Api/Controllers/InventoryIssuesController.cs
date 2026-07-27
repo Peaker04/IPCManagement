@@ -28,6 +28,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Lấy danh sách phiếu xuất kho.</summary>
     [HttpGet]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<InventoryIssueDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllAsync([FromQuery] InventoryIssueFilterRequestDto request)
     {
         try
@@ -48,6 +49,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Lấy chi tiết phiếu xuất kho theo ID.</summary>
     [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryIssueDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByIdAsync(string id)
     {
         var result = await _inventoryIssueService.GetByIdAsync(id);
@@ -62,6 +64,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Tạo mới phiếu xuất kho.</summary>
     [HttpPost]
+    [ProducesResponseType(typeof(ApiResponse<InventoryIssueCreatedDto>), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateAsync([FromBody] CreateInventoryIssueRequest dto)
     {
         try
@@ -93,6 +96,7 @@ public class InventoryIssuesController : ControllerBase
 
     /// <summary>Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất kho.</summary>
     [HttpPost("{id}/confirm-receipt")]
+    [ProducesResponseType(typeof(ApiResponse<InventoryIssueDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> ConfirmReceiptAsync(string id, [FromBody] ConfirmInventoryIssueReceiptRequest dto)
     {
         try

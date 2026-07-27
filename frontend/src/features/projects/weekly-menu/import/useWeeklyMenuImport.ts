@@ -126,7 +126,7 @@ export const useWeeklyMenuImport = ({
       if (!response.success || !response.data) throw new Error(response.message || 'Không đọc được file thực đơn.')
       const result = response.data
       const blocking = getBlockingImportIssues(result)
-      dispatch({ type: 'update-job', jobId, changes: { status: blocking.length ? 'failed' : 'previewed', previewResult: result, warnings: result.warnings, error: blocking[0] ?? null } })
+      dispatch({ type: 'update-job', jobId, changes: { status: blocking.length ? 'failed' : 'previewed', previewResult: result, warnings: [...result.warnings], error: blocking[0] ?? null } })
       setFeedback(blocking.length ? 'File có lỗi cần sửa' : 'File đã kiểm tra xong', blocking[0] ?? `${result.customerCode}: tìm thấy ${result.detectedLayout.rowsImported} dòng món hợp lệ, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`, blocking.length ? 'danger' : result.warnings.length ? 'warning' : 'info')
       return !blocking.length
     } catch (error) {
@@ -152,7 +152,7 @@ export const useWeeklyMenuImport = ({
       const response = await commitImport({ file: job.file, customerId: job.customerId, weekStartDate: job.weekStartDate || undefined, priceTierAmount: job.priceTierAmount }).unwrap()
       if (!response.success || !response.data) throw new Error(response.message || 'Không lưu được thực đơn.')
       const result = response.data
-      dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: result.warnings, error: null } })
+      dispatch({ type: 'update-job', jobId, changes: { status: 'committed', previewResult: result, warnings: [...result.warnings], error: null } })
       if (state.jobs.length === 1 || result.customerId === customerId) onMenuCommitted(result)
       setFeedback(result.warnings.length ? 'Đã lưu thực đơn (có cảnh báo)' : 'Đã lưu thực đơn', `${result.customerCode}: đã lưu ${result.detectedLayout.rowsImported} dòng món, bỏ qua ${result.detectedLayout.rowsSkipped} dòng không phải món.`, result.warnings.length ? 'warning' : 'info')
       if (closeOnSuccess) close()

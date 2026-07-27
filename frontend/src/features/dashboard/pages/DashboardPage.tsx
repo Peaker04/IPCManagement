@@ -5,6 +5,7 @@ import { CommandBar, OperationalFrame, QueryErrorAlert } from '@/components/comm
 import { useGetOperationalKpisQuery, useWorkflowOverview } from '@/api/workflowApi';
 import { type RoleInboxItem, type WorkflowLane, type WorkflowTone } from '@/types/workflow';
 import { workflowApi } from '@/api/workflowApi';
+import { workflowOverviewCacheTags } from '@/api/workflowCacheTags';
 import { resolveWorkflowGateAction } from '@/lib/actionEligibility';
 import { ROUTES } from '@/lib/routeConfig';
 
@@ -246,7 +247,7 @@ const DashboardPage = () => {
           title="Không tải được dữ liệu workflow"
           isRetrying={isKpiFetching}
           onRetry={() => {
-            dispatch(workflowApi.util.invalidateTags(['WorkflowReports']));
+            dispatch(workflowApi.util.invalidateTags([...workflowOverviewCacheTags]));
             return refetchKpis();
           }}
         >

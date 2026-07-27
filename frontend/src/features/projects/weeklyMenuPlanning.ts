@@ -20,7 +20,7 @@ interface ProductionPlanLineLike {
 
 interface ProductionPlanLike {
   planDate: string;
-  lines: ProductionPlanLineLike[];
+  lines: readonly ProductionPlanLineLike[];
 }
 
 interface ProductionDisplayDayLike {
@@ -40,8 +40,8 @@ export interface ProductionPlanPage<TPlan extends ProductionPlanLike> {
 export const getProductionPlanDateKey = (planDate: string) => planDate.split('T')[0];
 
 export function filterProductionPlansForSelection<TPlan extends ProductionPlanLike>(
-  plans: TPlan[],
-  weekDates: string[],
+  plans: readonly TPlan[],
+  weekDates: readonly string[],
   selectedServiceDate?: string,
 ): TPlan[] {
   const weekDateSet = new Set(weekDates);
@@ -66,7 +66,7 @@ export function buildProductionDisplayDayByDate<TDay extends ProductionDisplayDa
 }
 
 export function buildProductionPlanPages<TPlan extends ProductionPlanLike>(
-  productionPlans: TPlan[],
+  productionPlans: readonly TPlan[],
   productionDisplayDayByDate: Map<string, ProductionDisplayDayLike>,
 ): ProductionPlanPage<TPlan>[] {
   const pageMap = new Map<string, ProductionPlanPage<TPlan>>();

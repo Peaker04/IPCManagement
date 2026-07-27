@@ -38,62 +38,74 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpGet("current-stock")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrentStockAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
             await _workflowReportService.GetCurrentStockAsync(query)));
 
     [HttpGet("current-stock/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCurrentStockPageAsync([FromQuery] CurrentStockPageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>.SuccessResult(
             await _workflowReportService.GetCurrentStockPageAsync(query)));
 
     [HttpGet("stock-movements")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockMovementViewDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockMovementsAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockMovementViewDto>>.SuccessResult(
             await _workflowReportService.GetStockMovementsAsync(query)));
 
     [HttpGet("stock-movements/page")]
+    [ProducesResponseType(typeof(ApiResponse<CursorPageDto<StockMovementViewDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockMovementPageAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<CursorPageDto<StockMovementViewDto>>.SuccessResult(
             await _workflowReportService.GetStockMovementPageAsync(query)));
 
     [HttpGet("stock-ledger-reconciliation")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockLedgerReconciliationAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>.SuccessResult(
             await _workflowReportService.GetStockLedgerReconciliationAsync(query)));
 
     [HttpGet("stock-snapshots")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockSnapshotDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockSnapshotsAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockSnapshotDto>>.SuccessResult(
             await _workflowReportService.GetStockSnapshotsAsync(query)));
 
     [HttpPost("stock-snapshots/generate")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockSnapshotDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GenerateStockSnapshotsAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<StockSnapshotDto>>.SuccessResult(
             await _workflowReportService.GenerateMonthlyStockSnapshotAsync(query)));
 
     [HttpGet("workflow-documents")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetWorkflowDocumentsAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<WorkflowDocumentDto>>.SuccessResult(
             await _workflowReportService.GetWorkflowDocumentsAsync(query)));
 
     [HttpGet("ingredient-demand")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIngredientDemandAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<IngredientDemandReportDto>>.SuccessResult(
             await _workflowReportService.GetIngredientDemandAsync(query)));
 
     [HttpGet("ingredient-demand/page")]
+    [ProducesResponseType(typeof(ApiResponse<IngredientDemandPageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIngredientDemandPageAsync([FromQuery] IngredientDemandPageQueryDto query)
         => Ok(ApiResponse<IngredientDemandPageDto>.SuccessResult(
             await _workflowReportService.GetIngredientDemandPageAsync(query)));
 
     [HttpGet("ingredient-demand/aggregate/page")]
+    [ProducesResponseType(typeof(ApiResponse<IngredientDemandAggregatePageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIngredientDemandAggregatePageAsync([FromQuery] IngredientDemandAggregatePageQueryDto query)
         => Ok(ApiResponse<IngredientDemandAggregatePageDto>.SuccessResult(
             await _workflowReportService.GetIngredientDemandAggregatePageAsync(query)));
 
     [HttpGet("material-request-candidates/page")]
+    [ProducesResponseType(typeof(ApiResponse<MaterialRequestCandidatePageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetMaterialRequestCandidatePageAsync([FromQuery] MaterialRequestCandidatePageQueryDto query)
     {
         try
@@ -108,81 +120,95 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpGet("purchase-demand")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetPurchaseDemandAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchaseDemandReportDto>>.SuccessResult(
             await _workflowReportService.GetPurchaseDemandAsync(query)));
 
     [HttpGet("purchase-plan")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPurchasePlanAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PurchasePlanReportDto>>.SuccessResult(
             await _workflowReportService.GetPurchasePlanAsync(query)));
 
     [HttpGet("purchase-plan/page")]
+    [ProducesResponseType(typeof(ApiResponse<PurchasePlanPageDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPurchasePlanPageAsync([FromQuery] PurchasePlanPageQueryDto query)
         => Ok(ApiResponse<PurchasePlanPageDto>.SuccessResult(
             await _workflowReportService.GetPurchasePlanPageAsync(query)));
 
     [HttpGet("receipt-price-variance")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     public async Task<IActionResult> GetReceiptPriceVarianceAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVarianceAsync(query)));
 
     [HttpGet("receipt-price-variance/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseOrderReadAccess)]
     public async Task<IActionResult> GetReceiptPriceVariancePageAsync([FromQuery] ReceiptPriceVariancePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<ReceiptPriceVarianceReportDto>>.SuccessResult(
             await _workflowReportService.GetReceiptPriceVariancePageAsync(query)));
 
     [HttpGet("price-variance/by-supplier")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceBySupplierAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceBySupplierDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceBySupplierAsync(query)));
 
     [HttpGet("price-variance/by-supplier/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceBySupplierPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceBySupplierDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceBySupplierPageAsync(query)));
 
     [HttpGet("price-variance/by-period")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByPeriodAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByPeriodDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByPeriodAsync(query)));
 
     [HttpGet("price-variance/by-period/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByPeriodPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceByPeriodDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByPeriodPageAsync(query)));
 
     [HttpGet("price-variance/by-dish-group")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByDishGroupAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<PriceVarianceByDishGroupDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByDishGroupAsync(query)));
 
     [HttpGet("price-variance/by-dish-group/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.PurchaseAccess)]
     public async Task<IActionResult> GetPriceVarianceByDishGroupPageAsync([FromQuery] PriceVarianceAggregatePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<PriceVarianceByDishGroupDto>>.SuccessResult(
             await _workflowReportService.GetPriceVarianceByDishGroupPageAsync(query)));
 
     [HttpGet("kitchen-issues")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetKitchenIssuesAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesAsync(query)));
 
     [HttpGet("kitchen-issues/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetKitchenIssuesPageAsync([FromQuery] KitchenIssuePageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<KitchenIssueReportDto>>.SuccessResult(
             await _workflowReportService.GetKitchenIssuesPageAsync(query)));
 
     [HttpGet("operational-kpis")]
+    [ProducesResponseType(typeof(ApiResponse<OperationalKpiSummaryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOperationalKpisAsync()
     {
         var result = await GetOrCreateAggregateAsync(OperationalKpisCacheKey, async () =>
@@ -195,22 +221,26 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpGet("issue-vs-return")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIssueVsReturnAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<IssueVsReturnUsageReportDto>>.SuccessResult(
             await _workflowReportService.GetIssueVsReturnAsync(query)));
 
     [HttpGet("issue-vs-return/page")]
+    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetIssueVsReturnPageAsync([FromQuery] IssueVsReturnPageQueryDto query)
         => Ok(ApiResponse<PagedResponseDto<IssueVsReturnUsageReportDto>>.SuccessResult(
             await _workflowReportService.GetIssueVsReturnPageAsync(query)));
 
     [HttpGet("audit-changes")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<AuditChangeReportDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GetAuditChangesAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<AuditChangeReportDto>>.SuccessResult(
             await _workflowReportService.GetAuditChangesAsync(query)));
 
     [HttpGet("audit-changes/page")]
+    [ProducesResponseType(typeof(ApiResponse<CursorPageDto<AuditChangeReportDto>>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> GetAuditChangePageAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<CursorPageDto<AuditChangeReportDto>>.SuccessResult(
@@ -236,11 +266,13 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpGet("data-quality")]
+    [ProducesResponseType(typeof(ApiResponse<DataQualityReportDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDataQualityAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<DataQualityReportDto>.SuccessResult(
             await _workflowReportService.GetDataQualityAsync(query)));
 
     [HttpGet("data-quality/page")]
+    [ProducesResponseType(typeof(ApiResponse<DataQualityPageDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetDataQualityPageAsync([FromQuery] DataQualityPageQueryDto query)
     {
         var snapshot = await GetDataQualitySnapshotAsync(query);
@@ -275,6 +307,7 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpPost("data-quality/issues/remediation")]
+    [ProducesResponseType(typeof(ApiResponse<DataQualityIssueRemediationDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> UpdateDataQualityIssueRemediationAsync([FromBody] DataQualityIssueRemediationRequest request)
     {
@@ -301,6 +334,7 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpPost("data-quality/cleanup")]
+    [ProducesResponseType(typeof(ApiResponse<DataQualityCleanupResultDto>), StatusCodes.Status200OK)]
     [Authorize(Policy = AuthorizationPolicies.AdminAccess)]
     public async Task<IActionResult> CleanupDataQualityAsync([FromBody] DataQualityCleanupRequest request)
     {
@@ -334,6 +368,7 @@ public class WorkflowReportsController : ControllerBase
     }
 
     [HttpGet("order-export")]
+    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOrderExportAsync([FromQuery] WorkflowReportQueryDto query)
         => Ok(ApiResponse<IReadOnlyList<OrderExportReportRowDto>>.SuccessResult(
             await _workflowReportService.GetOrderExportAsync(query)));
