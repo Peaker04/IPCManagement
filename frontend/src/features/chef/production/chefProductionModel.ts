@@ -1,4 +1,4 @@
-import type { CatalogDish } from '@/features/projects/dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { DailyProductionPlan, KitchenIssueRow, ProductionPlanLine } from '@/features/workflow'
 import type { ProductionPlan } from '@/lib/types'
 import type { ShiftType } from '../../coordination/types'

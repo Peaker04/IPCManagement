@@ -1,5 +1,5 @@
 import { ConfirmDialog, EmptyState, InlineAlert, PaginationBar, SectionPanel, TableViewport } from '@/components/common';
-import type { IngredientLookup } from '@/features/projects/dishCatalogApi';
+import type { IngredientLookup } from '@/api/dishCatalogApi';
 import type { useSupplierQuotations } from './useSupplierQuotations';
 
 type SupplierQuotationWorkflow = ReturnType<typeof useSupplierQuotations>;

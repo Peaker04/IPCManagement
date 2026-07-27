@@ -24,7 +24,7 @@ import {
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ROUTES } from '@/routes/routeConfig';
 import { usePaginatedRows } from '@/lib/usePaginatedRows';
-import { addCalendarDays, getBangkokToday } from '@/features/chef/chefServiceDate';
+import { addCalendarDays, getBangkokToday } from '@/lib/chefServiceDate';
 import { selectCurrentUser } from '@/features/auth';
 import {
   useGetAuditChangePageQuery,
@@ -50,7 +50,7 @@ import {
   useUpdateDishBomLineMutation,
   type BomImportPreview,
   type CatalogIngredient,
-} from '@/features/projects/dishCatalogApi';
+} from '@/api/dishCatalogApi';
 import {
   useCreateCustomerContractMutation,
   useGetCustomerContractsQuery,

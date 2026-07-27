@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import purchasingSource from './PurchasingPage.tsx?raw';
-import adminSource from './AdminDataPage.tsx?raw';
-import chefSource from '../../chef/pages/ChefDashboardPage.tsx?raw';
-import chefReceiptsSource from '../../chef/receipts/useKitchenReceipts.ts?raw';
-import chefProductionSource from '../../chef/production/useChefProductionPlan.ts?raw';
-import chefExceptionsSource from '../../chef/exceptions/useChefExceptions.ts?raw';
-import chefJournalSource from '../../chef/journal/useChefJournal.ts?raw';
-import reportsSource from '../../reports/pages/ReportsPage.tsx?raw';
-import weeklyMenuSource from '../../projects/pages/WeeklyMenuPage.tsx?raw';
-import materialDemandSource from '../../projects/weekly-menu/demand/useMaterialDemand.ts?raw';
-import warehouseSource from './WarehousePage.tsx?raw';
+import purchasingSource from '../features/workflow/pages/PurchasingPage.tsx?raw';
+import adminSource from '../features/workflow/pages/AdminDataPage.tsx?raw';
+import chefSource from '../features/chef/pages/ChefDashboardPage.tsx?raw';
+import chefReceiptsSource from '../features/chef/receipts/useKitchenReceipts.ts?raw';
+import chefProductionSource from '../features/chef/production/useChefProductionPlan.ts?raw';
+import chefExceptionsSource from '../features/chef/exceptions/useChefExceptions.ts?raw';
+import chefJournalSource from '../features/chef/journal/useChefJournal.ts?raw';
+import reportsSource from '../features/reports/pages/ReportsPage.tsx?raw';
+import weeklyMenuSource from '../features/projects/pages/WeeklyMenuPage.tsx?raw';
+import materialDemandSource from '../features/projects/weekly-menu/demand/useMaterialDemand.ts?raw';
+import warehouseSource from '../features/workflow/pages/WarehousePage.tsx?raw';
 
 describe('operational page performance contracts', () => {
   it('keeps supplier quotations as an isolated purchasing work object', () => {

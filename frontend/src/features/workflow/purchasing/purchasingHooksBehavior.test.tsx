@@ -26,7 +26,7 @@ vi.mock('@/components/common', async (importOriginal) => ({
   useToast: () => ({ toast: vi.fn() }),
 }))
 
-vi.mock('@/features/projects/dishCatalogApi', () => ({
+vi.mock('@/api/dishCatalogApi', () => ({
   useGetIngredientsQuery: mocks.getIngredients,
 }))
 

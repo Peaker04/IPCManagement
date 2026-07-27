@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { CatalogDish } from '@/features/projects/dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import type { KitchenIssueRow } from '@/features/workflow'
 import { buildChefProductionPlan, filterKitchenIssues, mapDailyPlanLines } from './chefProductionModel'
 

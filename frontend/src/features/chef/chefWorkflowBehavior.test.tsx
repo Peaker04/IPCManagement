@@ -22,7 +22,7 @@ vi.mock('@/app/hooks', () => ({
   }),
 }))
 
-vi.mock('@/features/projects/dishCatalogApi', () => ({
+vi.mock('@/api/dishCatalogApi', () => ({
   useGetDishesCatalogQuery: mocks.getCatalog,
 }))
 

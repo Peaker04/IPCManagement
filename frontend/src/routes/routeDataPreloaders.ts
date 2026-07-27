@@ -15,7 +15,7 @@ const routeDataPreloaders: Partial<Record<string, () => Promise<void>>> = {
   [ROUTES.WEEKLY_MENU]: async () => {
     const [{ coordinationApi }, { dishCatalogApi }] = await Promise.all([
       import('../features/coordination/coordinationApi'),
-      import('../features/projects/dishCatalogApi'),
+      import('../api/dishCatalogApi'),
     ]);
     store.dispatch(dishCatalogApi.util.prefetch('getDishCatalog', undefined, dataPrefetchOptions));
     store.dispatch(coordinationApi.util.prefetch('getCoordinationCustomers', undefined, dataPrefetchOptions));

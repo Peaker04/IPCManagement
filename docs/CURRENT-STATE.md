@@ -370,8 +370,8 @@ Ngày 26/07/2026 Kỳ giao làm lại kiến trúc dữ liệu/trạng thái. **
 `docs/ARCHITECTURE-REDESIGN-2026-07-26.md`** (commit `72e3129`) — 11 phần, tổng hợp 17 mũi khảo sát
 song song + 3 lăng kính phản biện, mọi khẳng định có `file:dòng`. **Đọc file đó, đừng khảo sát lại.**
 
-Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 28** so với
-`origin/feature/production-plan`, working tree sạch sau Bước 5 E2, **chưa push**.
+Trạng thái ngày 27/07/2026: nhánh `feature/production-plan` **ahead 29** so với
+`origin/feature/production-plan`, working tree sạch sau Bước 6, **chưa push**.
 Quality gates: BE **626 pass / 0 fail / 1 skip** · FE **327/327** · build 0 warning ·
 schema migration == model 723/723 · `has-pending-model-changes` exit 0 · ma trận P1.9 36/36 trên
 browser thật · long task 0/9 trang · CLS warm 0.
@@ -433,6 +433,23 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - Quality gates E2: Release build **0 warning / 0 error**; BE **626 pass / 1 skip**; FE unit **327/327**;
   lint **0 error / 9 warning baseline**; dependency-cruiser sạch; production build xanh; `git diff --check` sạch.
 - Không chạy seed/reset database, không push. Bước 5 là điểm dừng an toàn đầy đủ trước khi quyết định Bước 6.
+
+### Bước 6 — gỡ chu trình feature `projects↔workflow` và `chef↔workflow` (đã hoàn tất ngày 27/07/2026)
+
+- Di chuyển nguyên trạng `dishCatalogApi.ts` + test từ `features/projects` xuống `src/api`, và
+  `chefServiceDate.ts` + 2 test lịch nghiệp vụ từ `features/chef` xuống `src/lib`; giữ nguyên mọi export,
+  endpoint, RTK Query cache tag và logic ngày Bangkok.
+- Di chuyển `operationalPagePerformanceContracts.test.ts` từ `features/workflow/pages` lên `src/app` vì đây là
+  contract tích hợp đa-feature; chỉ cập nhật đường dẫn `?raw`, giữ nguyên toàn bộ assertion hành vi/performance.
+- Dependency graph sau sửa: `workflow -> projects/chef` từ **12 cạnh xuống 0**; 19 cạnh chiều
+  `projects/chef -> workflow` được giữ lại để không lấn sang Bước 7. Baseline dependency-cruiser co từ
+  **140 xuống 115** known violations, không có vi phạm mới.
+- Impact trước sửa: `dishCatalogApi.ts` **HIGH** (18 direct / 66 total), `chefServiceDate.ts` **MEDIUM**
+  (6 direct / 30 total); Kỳ đã cho phép tiếp tục cả HIGH/CRITICAL. TypeScript file-rename preview và compiler
+  được dùng để cập nhật import; hai chuỗi `vi.mock` không nằm trong semantic edit được sửa tường minh.
+- Quality gates: targeted **29/29**; full FE **327/327**; lint **0 error / 9 warning baseline**;
+  dependency-cruiser sạch; production build xanh; BE **626 pass / 1 skip**, Release build **0 warning / 0 error**;
+  contract drift gate xanh; `git diff --check` sạch. Không chạy seed/reset database, không push.
 
 ## Quy trình tiếp tục ở phiên mới
 

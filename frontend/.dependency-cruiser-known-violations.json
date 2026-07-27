@@ -367,23 +367,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/lib/dateUtils.ts",
-    "to": "src/features/chef/chefServiceDate.ts",
-    "unresolvedTo": "@/features/chef/chefServiceDate",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R1-shared-khong-goi-nguoc"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/chef/chefReadiness.ts",
     "to": "src/features/workflow/index.ts",
     "unresolvedTo": "@/features/workflow",
@@ -488,24 +471,6 @@
   {
     "type": "dependency",
     "from": "src/features/chef/production/chefProductionModel.test.ts",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/chef/production/chefProductionModel.test.ts",
     "to": "src/features/workflow/index.ts",
     "unresolvedTo": "@/features/workflow",
     "dependencyTypes": [
@@ -527,24 +492,6 @@
     "to": "src/features/coordination/types.ts",
     "unresolvedTo": "../../coordination/types",
     "dependencyTypes": [
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/chef/production/chefProductionModel.ts",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
       "local",
       "type-only",
       "import"
@@ -580,23 +527,6 @@
     "dependencyTypes": [
       "local",
       "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/chef/production/useChefProductionPlan.ts",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
       "import"
     ],
     "rule": {
@@ -1379,23 +1309,6 @@
   {
     "type": "dependency",
     "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/chef/chefServiceDate.ts",
-    "unresolvedTo": "@/features/chef/chefServiceDate",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
     "to": "src/features/coordination/coordinationApi.ts",
     "unresolvedTo": "@/features/coordination/coordinationApi",
     "dependencyTypes": [
@@ -1430,190 +1343,9 @@
   },
   {
     "type": "dependency",
-    "from": "src/features/workflow/pages/AdminDataPage.tsx",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/features/workflow/pages/ApprovalRulesPage.tsx",
     "to": "src/features/admin/adminApi.ts",
     "unresolvedTo": "@/features/admin/adminApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/exceptions/useChefExceptions.ts",
-    "unresolvedTo": "../../chef/exceptions/useChefExceptions.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/journal/useChefJournal.ts",
-    "unresolvedTo": "../../chef/journal/useChefJournal.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/pages/ChefDashboardPage.tsx",
-    "unresolvedTo": "../../chef/pages/ChefDashboardPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/production/useChefProductionPlan.ts",
-    "unresolvedTo": "../../chef/production/useChefProductionPlan.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/receipts/useKitchenReceipts.ts",
-    "unresolvedTo": "../../chef/receipts/useKitchenReceipts.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/projects/pages/WeeklyMenuPage.tsx",
-    "unresolvedTo": "../../projects/pages/WeeklyMenuPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/projects/weekly-menu/demand/useMaterialDemand.ts",
-    "unresolvedTo": "../../projects/weekly-menu/demand/useMaterialDemand.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/reports/pages/ReportsPage.tsx",
-    "unresolvedTo": "../../reports/pages/ReportsPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/purchasing/purchasingModel.ts",
-    "to": "src/features/chef/chefServiceDate.ts",
-    "unresolvedTo": "@/features/chef/chefServiceDate",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/purchasing/quotation/SupplierQuotationSection.tsx",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
-    "dependencyTypes": [
-      "aliased",
-      "aliased-tsconfig",
-      "aliased-tsconfig-paths",
-      "local",
-      "type-only",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R2-feature-khong-goi-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/purchasing/quotation/useSupplierQuotations.ts",
-    "to": "src/features/projects/dishCatalogApi.ts",
-    "unresolvedTo": "@/features/projects/dishCatalogApi",
     "dependencyTypes": [
       "aliased",
       "aliased-tsconfig",
@@ -2134,118 +1866,6 @@
     "rule": {
       "severity": "error",
       "name": "R3-feature-khong-goi-app"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/exceptions/useChefExceptions.ts",
-    "unresolvedTo": "../../chef/exceptions/useChefExceptions.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/journal/useChefJournal.ts",
-    "unresolvedTo": "../../chef/journal/useChefJournal.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/pages/ChefDashboardPage.tsx",
-    "unresolvedTo": "../../chef/pages/ChefDashboardPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/production/useChefProductionPlan.ts",
-    "unresolvedTo": "../../chef/production/useChefProductionPlan.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/chef/receipts/useKitchenReceipts.ts",
-    "unresolvedTo": "../../chef/receipts/useKitchenReceipts.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/projects/pages/WeeklyMenuPage.tsx",
-    "unresolvedTo": "../../projects/pages/WeeklyMenuPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/projects/weekly-menu/demand/useMaterialDemand.ts",
-    "unresolvedTo": "../../projects/weekly-menu/demand/useMaterialDemand.ts?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/features/workflow/pages/operationalPagePerformanceContracts.test.ts",
-    "to": "src/features/reports/pages/ReportsPage.tsx",
-    "unresolvedTo": "../../reports/pages/ReportsPage.tsx?raw",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "R6-khong-import-sau-vao-ruot-feature"
     }
   }
 ]

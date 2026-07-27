@@ -8,7 +8,7 @@ import {
   parseDisplayDateToIso,
   summarizeImportWarnings,
 } from './formatters'
-import type { CatalogDish } from '../../dishCatalogApi'
+import type { CatalogDish } from '@/api/dishCatalogApi'
 import { aggregateDemandLinesByMaterial, buildPlanRowsMaterialSummary, getQuickServingKey, resolveDishIngredients } from './scope'
 import type { WeeklyPlanRow } from './types'
 

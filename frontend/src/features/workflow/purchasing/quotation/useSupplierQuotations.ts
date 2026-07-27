@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { useToast } from '@/components/common';
-import { useGetIngredientsQuery } from '@/features/projects/dishCatalogApi';
+import { useGetIngredientsQuery } from '@/api/dishCatalogApi';
 import {
   useCreateSupplierQuotationMutation,
   useDeactivateSupplierQuotationMutation,
