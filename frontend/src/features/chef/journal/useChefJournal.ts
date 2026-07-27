@@ -1,24 +1,35 @@
 import { useMemo } from 'react'
 import { useGetStockMovementsQuery, useGetWorkflowDocumentsQuery } from '@/api/workflowApi'
+import { toChefView } from '../chefQueryView'
+
+const EMPTY_CHEF_LIST: never[] = []
 
 export function useChefJournal(enabled = true) {
   const documentsQuery = useGetWorkflowDocumentsQuery({ limit: 20 }, { skip: !enabled })
   const movementsQuery = useGetStockMovementsQuery({ limit: 20 }, { skip: !enabled })
+  const documentsView = toChefView(documentsQuery, 'chứng từ bếp', {
+    getTruncation: (documents) => documents.length >= 20 ? { shown: documents.length } : null,
+  })
+  const movementsView = toChefView(movementsQuery, 'luân chuyển kho của bếp', {
+    getTruncation: (movements) => movements.length >= 20 ? { shown: movements.length } : null,
+  })
+  const documents = documentsView.phase === 'ready' ? documentsView.data : EMPTY_CHEF_LIST
+  const movements = movementsView.phase === 'ready' ? movementsView.data : EMPTY_CHEF_LIST
   const returnDocuments = useMemo(
-    () => (documentsQuery.data ?? []).filter((document) => document.type === 'Phiếu trả'),
-    [documentsQuery.data],
+    () => documents.filter((document) => document.type === 'Phiếu trả'),
+    [documents],
   )
   const kitchenMovements = useMemo(
-    () => (movementsQuery.data ?? []).filter((movement) =>
+    () => movements.filter((movement) =>
       movement.type === 'issue' || movement.type === 'supplemental' || movement.type === 'return'),
-    [movementsQuery.data],
+    [movements],
   )
   return {
     returnDocuments,
     kitchenMovements,
-    // Sổ chứng từ rỗng vì lỗi tải khác hẳn với ca chưa phát sinh chứng từ nào.
-    isError: documentsQuery.isError || movementsQuery.isError,
-    isRetrying: documentsQuery.isFetching || movementsQuery.isFetching,
-    retry: () => Promise.all([documentsQuery.refetch(), movementsQuery.refetch()]),
+    queryViews: {
+      documents: documentsView,
+      movements: movementsView,
+    },
   }
 }
