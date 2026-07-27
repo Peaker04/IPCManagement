@@ -191,7 +191,7 @@ export default function WarehousePage() {
     ?? (selectedPurchaseOrderId === null
       ? purchaseOrders.find((order) => order.purchaseRequestId === requestedPurchaseRequestId)
       : undefined);
-  const linkedSupplementalRequest = supplementalRequests?.items.find(
+  const linkedSupplementalRequest = supplementalRequests?.items?.find(
     (request) => request.purchaseRequestId === selectedPurchaseOrder?.purchaseRequestId,
   );
 

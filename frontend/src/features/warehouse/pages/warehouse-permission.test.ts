@@ -6,4 +6,8 @@ describe('WarehousePage permission contract', () => {
     expect(warehousePageSource).toContain("useHasRole(['thukho'])");
     expect(warehousePageSource).not.toContain("useHasRole(['warehouse'])");
   });
+
+  it('does not crash when supplemental request data is missing its page items', () => {
+    expect(warehousePageSource).toContain('supplementalRequests?.items?.find(');
+  });
 });
