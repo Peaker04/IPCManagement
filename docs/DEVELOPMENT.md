@@ -48,6 +48,13 @@ Shipyard bằng `bin/dashboard.sh start 8090` và `bin/lane-up.sh 1 --qc`; chạ
 `ipc_lane1` theo cấu hình Shipyard local. Khi chỉ cần làm sạch dữ liệu E2E, gọi hook reset
 của profile; không chạy `lane-reset.sh` vì lệnh đó còn reset Git của lane.
 
+Trước khi test, đối chiếu commit/working tree của checkout lane với source thật và gọi
+`/health/ready` để xác nhận database/migration. Không coi lane cũ là runtime đúng chỉ vì
+port đang listen. Nếu checkout lane có thay đổi chưa commit, không reset/ghi đè; xem
+`docs/CURRENT-STATE.md` để biết lane hiện boot từ checkout nào và DB nào. Mọi lần đồng bộ
+database lane từ database chính phải backup cả source/target và so exact row count + checksum
+trước khi chạy app; không dùng seed/reset để che schema hoặc dữ liệu cũ.
+
 ## Code style
 
 - TypeScript dùng strict-like checks trong `frontend/tsconfig.app.json`, gồm `noUnusedLocals`, `noUnusedParameters` và `noFallthroughCasesInSwitch`.
@@ -84,15 +91,23 @@ Khi task UI liên quan SAP Fiori/template/range/diagnostics, dùng `sketch-findi
 
 ## Browser-use trên lane local
 
-Helper trực quan đã dùng trong phiên E2E nằm tại `.artifacts/shipyard-live/live-visual-audit.mjs`. Chạy từ project root:
+Helper hiện hành nằm tại `.artifacts/shipyard-live/current-runtime-desktop-audit.mjs`.
+Chạy từ project root sau khi FE/API/Shipyard và `/health/ready` đã xanh:
 
 ```powershell
-node .artifacts/shipyard-live/live-visual-audit.mjs
+$env:K6_PASSWORD = '<credential hien tai; khong commit>'
+node .artifacts/shipyard-live/current-runtime-desktop-audit.mjs
+Remove-Item Env:K6_PASSWORD
 ```
 
-Helper dùng Playwright từ `node_modules/@playwright/test`, mở Google Chrome headed với persistent profile `.artifacts/browser-use-visual-audit`, đăng nhập `admin/admin`, thao tác Purchasing/Chef/Reports/Admin, chụp ảnh và ghi `.artifacts/shipyard-live/live-visual-performance.json`. Nó giữ browser mở sau run để người dùng quan sát.
+Helper dùng Playwright từ `node_modules/@playwright/test`, mở Google Chrome `headless: false`,
+đi thẳng vào FE lane thật, đăng nhập bằng credential đã xoay và ghi evidence cho 10 route.
+Ma trận hiện chỉ gồm website desktop `1365×900` và `1440×900`; không test mobile cho
+tới khi Kỳ yêu cầu. Không dùng mock login/API hoặc snapshot visual cũ để kết luận runtime pass.
 
-`agent-browser` executable không có trong PATH ở lần kiểm tra ngày 25/07/2026 nên helper Playwright là fallback đã xác minh. Helper tạo controlled Chrome context riêng; Chrome bình thường đang mở không thể attach nếu không được khởi động với remote-debugging/CDP.
+`agent-browser` executable không có trong PATH ở lần kiểm tra ngày 27/07/2026 nên helper
+Playwright là fallback đã xác minh. Helper tạo controlled Chrome context riêng; Chrome bình thường
+đang mở không thể attach nếu không được khởi động với remote-debugging/CDP.
 
 ## Branch conventions
 

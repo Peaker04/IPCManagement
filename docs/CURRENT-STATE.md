@@ -1,7 +1,7 @@
 <!-- generated-by: gsd-doc-writer -->
 # Trạng thái làm việc hiện tại
 
-Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở sau chuỗi kiểm thử E2E ngày 25/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 27/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
 
 ## Phạm vi người dùng đã chốt
 
@@ -13,22 +13,26 @@ Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm 
 - Thay đổi UI phải giữ cấu trúc SAP Fiori: work object tách bằng tab, trạng thái/action rõ ràng, không ẩn lỗi dependency thành empty state, layout ổn định khi refetch và có evidence Chrome/Playwright.
 - Button/action và dữ liệu hiển thị phải được đối chiếu với permission, eligibility và terminal state do server trả về. Action không hợp lệ phải ẩn hoặc disable kèm lý do; không được chỉ ẩn trên FE trong khi BE vẫn cho phép mutation sai.
 - Không tự gộp nguyên liệu theo tên. Chứng từ chi tiết giữ document/line grain; báo cáo aggregate theo ID, unit và phạm vi nghiệp vụ.
+- Kiểm thử UI/visual hiện chỉ bao phủ website desktop. Dùng viewport desktop (hiện chọn `1365×900` và `1440×900`); mobile chưa nằm trong phạm vi cho tới khi Kỳ yêu cầu.
+- Không dùng mock API, mock login, snapshot/baseline visual cũ hoặc tự update snapshot để kết luận UI hiện tại pass. Phải boot đúng working tree/source hiện tại, xác minh database qua runtime health và chạy Chrome headed trực tiếp vào URL thật.
 
 ## Môi trường Shipyard hiện tại
 
-| Thành phần | Giá trị đã kiểm tra ngày 25/07/2026 |
+| Thành phần | Giá trị đã kiểm tra ngày 27/07/2026 |
 |---|---|
 | Git branch | `feature/production-plan` |
 | Shipyard UI | `http://localhost:8090` |
-| Frontend lane 1 | `http://localhost:3001` |
-| API lane 1 | `http://localhost:8001` |
-| Database | `ipc_lane1` |
-| Tài khoản demo | `admin / admin` |
+| Frontend lane 1 | `http://localhost:3001` — source-backed từ working tree hiện tại |
+| API lane 1 | `http://localhost:8001` — source-backed từ working tree hiện tại |
+| Database | `ipc_lane1`, đã đồng bộ từ `ipcmanagement` sau khôi phục |
+| Tài khoản demo | username `admin`; mật khẩu phải lấy từ credential đã xoay, không dùng giá trị mặc định |
 | Template happy path | `C:\Users\Administrator\Pictures\weekly-menu-template-ANV-default.xlsx` |
 
-Ba port `8090`, `3001`, `8001` đang listen tại thời điểm cập nhật. Không giả định trạng thái này còn đúng ở phiên sau; phải kiểm tra lại trước khi mở browser hoặc chạy test.
+Ba port `8090`, `3001`, `8001` đang listen tại thời điểm cập nhật. `/health/ready` trả `Healthy` cho cả `database` và `migrations`. Không giả định trạng thái này còn đúng ở phiên sau; phải kiểm tra lại trước khi mở browser hoặc chạy test.
 
-`ipc_lane1` hiện không phải database trống. Lane đang chứa dữ liệu và audit evidence của E2E bổ sung đã hoàn tất. Không chạy reset/seed hoặc sửa trực tiếp DB chỉ để làm test pass trước khi xác minh chứng từ cần bảo toàn và đọc `shipyard/profiles/IPCManagement/hooks/reset.sh`.
+Ngày 27/07, `ipc_lane1` cũ được xác nhận chỉ có 38 migration và cũ hơn database chính đã khôi phục. Theo lệnh của Kỳ, đã backup cả hai DB vào `D:\Backups\ipc-lane-sync-20260727`, ghi migration no-op `20260726203853_RenameEntitiesToPascalCase` vào database chính, rồi restore `ipcmanagement` sang `ipc_lane1`. Gate sau restore: **61/61 bảng, 53.416/53.416 dòng, 0 row-count mismatch, 0 checksum mismatch, 41/41 migration**. Từ mốc này, lane là bản sao của database chính sau khôi phục; lineage E2E cũ của lane không còn là baseline hiện hành, nhưng vẫn có trong file backup lane trước đồng bộ.
+
+Checkout `shipyard-lanes/lane1` vẫn ở commit cũ `e025d13` và có nhiều thay đổi chưa commit; không reset hoặc ghi đè nó. Stack hiện tại được Shipyard quản lý PID/log nhưng boot source-backed từ checkout chính sau các commit Bước 10, nên UI tại `3001` phản ánh đúng working tree đang kiểm tra.
 
 Re-audit hiệu năng ngày 2026-07-26 đã chuyển sang đúng database ứng dụng `ipcmanagement` (read-only). P0 ledger
 đã được sửa để aggregate ở MySQL, bảo toàn khóa current-only/movement-only, chọn movement mới nhất ổn định và
@@ -88,7 +92,7 @@ Evidence before/after của toàn bộ sidebar nằm trong `.artifacts/shipyard-
 
 ## Kiểm thử hiệu năng NFR bằng k6 ngày 26/07/2026
 
-Kit đo nằm ở `tools/perf/` (untracked, giữ local): `k6/smoke.js|load.js|stress.js|lib.js` + `RUNBOOK.md` + `sql/`. Điều kiện đo: backend Release cổng `8001` (`dotnet run -c Release --no-launch-profile`, env Development), database chính `ipcmanagement` read-only, tài khoản `admin/admin`, k6 cài qua winget (`C:\Program Files\k6\k6.exe`).
+Kit đo nằm ở `tools/perf/` (untracked, giữ local): `k6/smoke.js|load.js|stress.js|lib.js` + `RUNBOOK.md` + `sql/`. Điều kiện đo lịch sử: backend Release cổng `8001` (`dotnet run -c Release --no-launch-profile`, env Development), database chính `ipcmanagement` read-only và tài khoản `admin` với credential tại thời điểm đó; hiện phải truyền mật khẩu đã xoay qua `K6_PASSWORD`. k6 cài qua winget (`C:\Program Files\k6\k6.exe`).
 
 Kết quả theo trình tự RUNBOOK:
 
@@ -109,13 +113,13 @@ Ghi chú vận hành:
 - KPI `/operational-kpis` đã có cache controller TTL 15 s + single-flight + invalidate theo remediation (khối P0); đo tay: cold 123 ms → cache hit 4–5 ms. Điểm nóng KPI coi như đã xử lý ở tầng cache, phần fan-out ~12 query chỉ còn chạy mỗi 15 s.
 - Evidence trước/sau giữ tại `tools/perf/k6/results-{smoke,stress}-before-fix.json` và `results-{smoke,load,stress}.json`.
 
-## Cách browser-use đã dùng trong phiên này
+## Browser runtime và quy ước evidence hiện tại
 
-- Dùng trực tiếp `uvx browser-use` từ project root; không dùng hoặc tìm `agent-browser`.
-- `ensure_real_tab()`, `goto_url()`, `js()` và `cdp()` điều khiển Chrome hiện có trên lane `http://localhost:3001`; đăng nhập demo vẫn là `admin/admin` khi session chưa có.
-- `PerformanceObserver` thu long task/layout shift; resource timing được reset trước từng click để tách endpoint của đúng tab. Probe còn lấy selected tab, panel ID, `aria-busy`, chiều cao trang và trạng thái giữ panel cũ.
-- Reduced motion được kiểm bằng CDP `Emulation.setEmulatedMedia`; viewport mobile 390 px không tràn ngang và transition đo được `0s`.
-- Evidence đã rút gọn, không chứa token hoặc dữ liệu cá nhân, nằm ở `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json`.
+- Evidence cũ ngày 25–26/07 chỉ là lịch sử, không được dùng để kết luận Bước 10 hiện tại pass. `frontend/playwright.config.ts` vẫn bật `VITE_ENABLE_MOCK_LOGIN=true`, nên các visual snapshot spec cũ không phải gate runtime cho lượt này.
+- Helper mới `.artifacts/shipyard-live/current-runtime-desktop-audit.mjs` mở Google Chrome headed trực tiếp vào FE `3001`, chỉ chạy `1365×900` và `1440×900`, ghi screenshot, API response, console/page error, request failure, CLS và long task. Không có mobile viewport trong ma trận.
+- `SEED_USER_PASSWORD` trong Shipyard local config đã được Kỳ cập nhật sau khi probe đầu phát hiện credential cũ trả `401`. Audit chỉ dùng giá trị runtime qua environment, không ghi password/token vào script, JSON hay docs.
+- Audit headed trên runtime thật đã đi hết **10 route × 2 viewport = 20/20 PASS**: 20 screenshot route, 179 API response không có status `>=400`, 0 console error, 0 page error, 0 horizontal overflow và 0 long task. Tám `ERR_ABORTED` là request bị navigation/context close hủy (một KPI và bảy Vite idle preload), không phải response lỗi.
+- Full sweep có một CLS outlier `0,0474` ở Warehouse cold `1365×900`; retry có capture shift-source cho kết quả cold `0,00531`, warm `0,00518`, đều dưới gate `0,02`. Evidence hiện hành: `.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/current-runtime-desktop-audit.json`, 20 screenshot route và `warehouse-desktop-cls-probe.json`. File `*-error.json`/`fatal-error.png` chỉ lưu attempt credential cũ, không phải kết quả cuối.
 
 ## Duplicate ingredient và data grain
 
@@ -514,6 +518,14 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
 - GitNexus staged audit: **6 file / 11 symbol / 9 execution flow, HIGH** do cache tag là quan hệ động ngoài call
   graph; blast radius đã được phủ bằng test fan-out và full regression. Sau commit đã re-index up-to-date. Không
   reset/seed database, không push.
+
+### Bước 10 — A1 VSA-lite, giữ cây FE (hoàn tất ngày 27/07/2026)
+
+- Giữ nguyên cây FE hiện tại theo quyết định A1; không đổi `components/lib/types/api` sang `shared`. `ReportsPage.tsx` giảm **1.295 → 799 dòng** (`38627a8`); `AdminDataPage.tsx` giảm **2.305 → 74 dòng** với page model 747 dòng và 7 panel đều dưới 440 dòng (`dbb99a3`).
+- Backend giữ một project: 138 file vào 10 vertical slice `Features/{Admin,Approvals,Auth,Catalog,Coordination,Inventory,Planning,Purchasing,Reports,SampleData}` và 2 contract dùng chung vào `Shared/Contracts`; `Data`, entities, resources và migrations giữ nguyên (`d56eb86`). Gate convention xác nhận 0 namespace/path mismatch, 0 legacy namespace reference, 0 migration diff.
+- Hai stylesheet khổng lồ 6.607 dòng được tách thành 13 file, mỗi file không quá 636 dòng; xóa 197 selector/101 rule của 39 class không còn dùng. CSS production giảm **195.850 → 182.745 byte**, gzip **32,70 → 30,65 kB** (`b23551e`).
+- Fix phát hiện trong gate: Warehouse chịu được response supplemental page thiếu `items` và có contract test (`55241f4`); 8 Playwright spec import `ROUTES` từ vị trí hiện hành `src/lib/routeConfig` (`e65effa`). Không update snapshot cũ.
+- Full gate sau thay đổi: backend **629 pass / 1 skip**, frontend **329/329**, lint **0 error / 4 warning baseline**, dependency-cruiser không có vi phạm mới, FE production build xanh, Release contract regenerate deterministic, `git diff --check` sạch. Browser desktop runtime thật và DB gate xem mục trên; mobile cố ý chưa test.
 
 ## Quy trình tiếp tục ở phiên mới
 
