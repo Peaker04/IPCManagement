@@ -37,12 +37,6 @@ public class WorkflowReportsController : ControllerBase
         _cache = cache;
     }
 
-    [HttpGet("stock-ledger-reconciliation")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStockLedgerReconciliationAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>.SuccessResult(
-            await _workflowReportService.GetStockLedgerReconciliationAsync(query)));
-
     [HttpGet("operational-kpis")]
     [ProducesResponseType(typeof(ApiResponse<OperationalKpiSummaryDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetOperationalKpisAsync()

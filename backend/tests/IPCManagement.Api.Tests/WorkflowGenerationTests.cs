@@ -2357,7 +2357,7 @@ public class WorkflowGenerationTests
             (await context.Currentstocks.AsNoTracking().AnyAsync(item => item.CurrentQty < 0))
                 .Should().BeFalse();
 
-            var reconciliation = await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+            var reconciliation = await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
                 new WorkflowReportQueryDto
                 {
                     WarehouseId = GuidHelper.ToGuidString(fixture.WarehouseId),
@@ -3746,7 +3746,8 @@ public class WorkflowGenerationTests
         (await context.Currentstocks.SingleAsync(stock => stock.IngredientId == zeroIngredientId))
             .UnitId.Should().Equal(fixture.UnitId);
 
-        var ledger = await service.GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 20 });
+        var ledger = await new StockLedgerReportService(context)
+            .GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 20 });
         ledger.Single(row => row.IngredientId == fixture.IngredientIdString).IsMatched.Should().BeTrue();
     }
 
@@ -3782,15 +3783,16 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
-        var rows = await service.GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 10 });
+        var ledgerService = new StockLedgerReportService(context);
+        var rows = await ledgerService.GetStockLedgerReconciliationAsync(new WorkflowReportQueryDto { Limit = 10 });
         var mismatch = rows.Should().ContainSingle().Subject;
         mismatch.CurrentQty.Should().Be(8m);
         mismatch.LedgerQty.Should().Be(10m);
         mismatch.DifferenceQty.Should().Be(-2m);
         mismatch.IsMatched.Should().BeFalse();
 
-        var report = await service.GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
+        var report = await new WorkflowReportService(context)
+            .GetDataQualityAsync(new WorkflowReportQueryDto { Limit = 20 });
         report.Issues.Should().Contain(issue =>
             issue.Category == "inventory_ledger_mismatch" &&
             issue.Message.Contains("Current stock 8"));
@@ -3814,7 +3816,7 @@ public class WorkflowGenerationTests
         });
         await context.SaveChangesAsync();
 
-        var row = (await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+        var row = (await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
             new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
 
         row.CurrentQty.Should().Be(4m);
@@ -3865,7 +3867,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var row = (await new WorkflowReportService(context).GetStockLedgerReconciliationAsync(
+        var row = (await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
             new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
 
         row.CurrentQty.Should().Be(0m);
@@ -3908,7 +3910,7 @@ public class WorkflowGenerationTests
         await context.SaveChangesAsync();
 
         var service = new WorkflowReportService(context);
-        var row = (await service.GetStockLedgerReconciliationAsync(
+        var row = (await new StockLedgerReportService(context).GetStockLedgerReconciliationAsync(
             new WorkflowReportQueryDto { Limit = 10 })).Should().ContainSingle().Subject;
 
         row.DifferenceQty.Should().Be(0.000001m);
