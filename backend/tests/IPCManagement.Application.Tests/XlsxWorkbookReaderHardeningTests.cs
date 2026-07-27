@@ -3,7 +3,7 @@ using System.IO.Compression;
 using System.Text;
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Services.SampleData;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Application.Tests;
 

@@ -12,8 +12,8 @@ Browser
   -> React routes + feature pages
   -> Redux Toolkit store / RTK Query (`frontend/src/api/apiSlice.ts`)
   -> ASP.NET Core middleware pipeline (`backend/src/IPCManagement.Api/Program.cs`)
-  -> Controllers (`backend/src/IPCManagement.Api/Controllers`)
-  -> Domain services (`backend/src/IPCManagement.Api/Services`)
+  -> Feature controller (`backend/src/IPCManagement.Api/Features/*/Controllers`)
+  -> Feature service (`backend/src/IPCManagement.Api/Features/*/Services`)
   -> Repositories + Unit of Work (`backend/src/IPCManagement.Api/Data`)
   -> EF Core `IpcManagementContext`
   -> MySQL
@@ -35,10 +35,10 @@ Browser
 | `Program` | `backend/src/IPCManagement.Api/Program.cs` | Cấu hình host, middleware, JWT, CORS, Swagger và rate limit. |
 | `AddBackendServices` | `backend/src/IPCManagement.Api/DependencyInjection.cs` | Đăng ký DbContext, repository, service và security dependency. |
 | `IpcManagementContext` | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` | EF Core DbContext cho MySQL và các entity nghiệp vụ. |
-| `CoordinationService` | `backend/src/IPCManagement.Api/Services/CoordinationService.cs` | Điều phối customer, menu, số suất và sign-off. |
-| `MaterialDemandService` | `backend/src/IPCManagement.Api/Services/Workflow/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
-| `PurchaseRequestWorkflowService` | `backend/src/IPCManagement.Api/Services/Workflow/PurchaseRequestWorkflowService.cs` | Chuyển demand thiếu hụt thành quy trình đề xuất mua. |
-| `WorkflowReportService` | `backend/src/IPCManagement.Api/Services/Workflow/WorkflowReportService.cs` | Tổng hợp tồn kho, demand, mua hàng, biến động và audit. |
+| `CoordinationService` | `backend/src/IPCManagement.Api/Features/Coordination/Services/CoordinationService.cs` | Điều phối customer, menu, số suất và sign-off. |
+| `MaterialDemandService` | `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` | Tạo nhu cầu nguyên liệu từ kế hoạch sản xuất/BOM. |
+| `PurchaseRequestWorkflowService` | `backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestWorkflowService.cs` | Chuyển demand thiếu hụt thành quy trình đề xuất mua. |
+| `WorkflowReportService` | `backend/src/IPCManagement.Api/Features/Reports/Services/WorkflowReportService.cs` | Tổng hợp tồn kho, demand, mua hàng, biến động và audit. |
 | `JwtTokenService` | `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` | Tạo và xác thực access/refresh token. |
 | `apiSlice` | `frontend/src/api/apiSlice.ts` | Base query, auth header, refresh session và RTK Query cache. |
 | `AppRouter` / `routeLoaders` / `RoleGuard` | `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx` | Routing, route-level lazy loading, cache module đã resolve và giới hạn truy cập theo permission. |
@@ -47,9 +47,20 @@ Sau khi shell đăng nhập ổn định, `MainLayout` preload tuần tự modul
 
 Trong các workbench nhiều tab, query RTK Query được gate theo panel cần dữ liệu thay vì chạy toàn bộ ở page parent. Weekly Menu split Demand, Production Plan, Purchase Summary, Cost và Dish Materials thành chunk riêng; sau khi route ổn định, các chunk này được preload tuần tự trong idle slot mà không preload API. Weekly, Chef và Warehouse dùng selected view riêng với deferred rendered view: tab strip phản hồi ngay, còn panel cũ được giữ trong boundary cục bộ cho tới frame mới. Shell/sidebar/header không remount; trạng thái pending là overlay tuyệt đối nên không chiếm layout, và transition tôn trọng `prefers-reduced-motion`.
 
+Frontend giữ cây module hiện tại thay vì đổi tên hàng loạt sang `shared/`. Hai composition
+lớn đã được tách theo page model/panel: Reports page còn 799 dòng; Admin Data page chỉ
+là shell 74 dòng với model và bảy panel riêng. CSS global được nạp theo thứ tự tường minh
+từ `main.tsx`: `styles/index.css` giữ token/base, `styles/components/*` chứa shell/table/document/
+operation/domain/responsive, còn `styles/ui-redesign.css` + `styles/redesign/*` giữ lớp Fiori/demand/
+dashboard/responsive. Việc tách file không đổi selector order hay DOM contract.
+
 ## Phạm vi API
 
-Các controller được nhóm theo nghiệp vụ trong `backend/src/IPCManagement.Api/Controllers`: auth, coordination, menu/dish/catalog, material demand, production plan, approvals, purchasing, inventory/warehouse, sample data và workflow reports. Route dùng prefix `api/`; `MaterialDemandController` công bố action generate cho luồng tạo demand, còn frontend gọi API qua RTK Query.
+Các controller/service/DTO/validator được nhóm theo VSA-lite trong 10 slice
+`backend/src/IPCManagement.Api/Features/{Admin,Approvals,Auth,Catalog,Coordination,Inventory,Planning,Purchasing,Reports,SampleData}`.
+Route dùng prefix `api/`; `MaterialDemandController` công bố action generate cho luồng tạo demand,
+còn frontend gọi API qua RTK Query. Contract dùng chung nằm ở `Shared/Contracts`; `Data`, entity,
+resource và migration được giữ ngoài feature slice để không làm nhiễu EF history.
 
 ## Cấu trúc thư mục
 
@@ -57,14 +68,15 @@ Các controller được nhóm theo nghiệp vụ trong `backend/src/IPCManageme
 IPCManagement/
 ├── backend/
 │   ├── src/IPCManagement.Api/
-│   │   ├── Controllers/       HTTP boundary và policy
+│   │   ├── Features/          10 vertical slice; controller/service/contract/validator
+│   │   ├── Shared/Contracts/  contract dùng chéo slice
 │   │   ├── Data/              DbContext, repository, Unit of Work
 │   │   ├── Helpers/           mapping, response, validation hỗ trợ
 │   │   ├── Middlewares/       exception, correlation, production guard
 │   │   ├── Migrations/        EF Core migrations
-│   │   ├── Models/            entity, DTO, validator
+│   │   ├── Models/Entities/   entity EF giữ ngoài feature slice
 │   │   ├── Security/          JWT và current-user context
-│   │   └── Services/          nghiệp vụ và workflow
+│   │   └── Resources/         resource dùng chung
 │   ├── tests/                 xUnit backend tests
 │   └── database/              SQL schema/cleanup/migration hỗ trợ
 ├── frontend/
@@ -75,7 +87,7 @@ IPCManagement/
 │   ├── src/components/        component dùng chung/layout/UI
 │   ├── src/routes/             route, guard, preload
 │   ├── src/lib/                formatter, pagination, status và utility
-│   ├── src/styles/             CSS toàn cục
+│   ├── src/styles/             base CSS + component/redesign slices theo thứ tự import
 │   └── tests/                 Playwright smoke/UI/performance/visual tests
 ├── docs/                      tài liệu kỹ thuật và MVP flow
 ├── .docs/                     tài liệu tham chiếu nghiệp vụ/demo

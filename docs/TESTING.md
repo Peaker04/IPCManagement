@@ -126,36 +126,42 @@ approval/confirmation, duplicate grain và số đo performance được lưu tr
 
 Browser performance regression cho các workbench theo tab dùng probe `PerformanceObserver`
 để ghi long task, CLS, DOM rows và endpoint phát sinh sau click. Evidence gần nhất nằm ở
-`.artifacts/shipyard-live/live-visual-performance.json`; yêu cầu cốt lõi là sub-tab Biến động giá
-chỉ gọi đúng endpoint aggregate đang active và tab Quản trị dữ liệu không dựng dialog BOM khi đóng.
+`.artifacts/shipyard-live/current-runtime-desktop-2026-07-27/`; yêu cầu cốt lõi là sub-tab
+Biến động giá chỉ gọi đúng endpoint aggregate đang active và tab Quản trị dữ liệu
+không dựng dialog BOM khi đóng.
 
 Regression contract `src/app/operationalPagePerformanceContracts.test.ts` còn khóa query gating cho Weekly Menu, Chef và Warehouse, controlled idle preload của các panel Weekly, cùng panel shell chống layout jump. Browser-use live phải kiểm tra selected tab cập nhật ngay trong khi panel cũ còn hiện với `aria-busy`, không có API của tab ẩn, vòng chuyển lại dùng cache, CLS dưới `0.02` và reduced motion làm transition về `0s`. Evidence gần nhất: `.artifacts/shipyard-live/tab-performance-controlled-lazy-2026-07-25.json`.
 
 ### Browser-use headed và chụp evidence
 
-Từ project root, sau khi xác nhận các port `3001`, `8001`, `8090` đang listen:
+Từ project root, sau khi xác nhận các port `3001`, `8001`, `8090` đang listen và
+`/health/ready` xanh cho cả database/migration, chạy helper runtime hiện tại:
 
 ```powershell
-$env:PYTHONUTF8='1'
-@'
-ensure_real_tab()
-goto_url('http://localhost:3001/weekly-menu')
-wait_for_load()
-print(page_info())
-'@ | uvx browser-use
+$env:K6_PASSWORD = '<credential hien tai; khong commit>'
+node .artifacts/shipyard-live/current-runtime-desktop-audit.mjs
+Remove-Item Env:K6_PASSWORD
 ```
 
-Không dùng hoặc tìm `agent-browser` cho repo này. Với audit tab, dùng `js()` để cài `PerformanceObserver`, xóa resource timing trước mỗi click và ghi selected tab/panel ID/`aria-busy` trước và sau khi ổn định.
+`agent-browser` không có trong PATH ở lần kiểm tra 27/07 nên helper Playwright là fallback.
+Helper dùng Google Chrome headed, truy cập trực tiếp FE/API lane thật và không route/mock request.
+Credential phải lấy từ environment hoặc Shipyard local config đã xoay; không thử `admin/admin`.
 
-Script dùng Chrome executable `C:/Program Files/Google/Chrome/Application/chrome.exe`, persistent profile `.artifacts/browser-use-visual-audit` và `headless: false`. Nó truy cập trực tiếp FE lane 1, đăng nhập demo, click các tab bằng accessible role/name rồi lưu:
+Phạm vi visual hiện tại chỉ là website desktop: `1365×900` và `1440×900`.
+Mobile chưa nằm trong gate. Helper đi 10 route, reset resource/performance probe trước mỗi
+navigation và lưu:
 
-- `purchasing-tabs.png`
-- `chef-summary-above-plan.png`
-- `report-price-tabs.png`
-- `admin-data-tabs.png`
-- `live-visual-performance.json`
+- `current-runtime-desktop-audit.json`
+- 20 screenshot theo `{viewport}-{route}.png`
+- `warehouse-desktop-cls-probe.json` cùng screenshot cold/warm khi cần xác minh CLS outlier
 
-Performance probe xóa resource timing trước từng click và thu API request, long task, CLS, DOM node và table row. `elapsedMs` có chứa khoảng chờ ổn định `450 ms`, vì vậy không dùng trực tiếp giá trị này làm navigation latency budget.
+Performance probe thu API response, request failure, console/page error, long task, CLS, DOM/table rows
+và horizontal overflow. `elapsedMs` có chứa khoảng chờ ổn định nên không dùng trực tiếp
+làm navigation latency budget.
+
+`frontend/playwright.config.ts` bật `VITE_ENABLE_MOCK_LOGIN=true`; các spec visual/snapshot dưới
+`frontend/tests` hữu ích cho contract cục bộ nhưng không được thay thế gate runtime thật. Không tự
+update snapshot cũ để làm Bước 10 xanh.
 
 Nếu muốn điều khiển Chrome đã mở sẵn, Chrome đó phải expose remote-debugging và test phải kết nối bằng CDP. Persistent helper hiện tại mở context riêng; không được mô tả nó là attach vào tab Chrome bình thường của người dùng.
 

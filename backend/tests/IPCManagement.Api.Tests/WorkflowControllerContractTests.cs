@@ -1,15 +1,14 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.ProductionPlan;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Planning.Contracts;
+using IPCManagement.Api.Features.Planning.Controllers;
+using IPCManagement.Api.Features.Planning.Services;
+using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 

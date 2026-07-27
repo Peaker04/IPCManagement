@@ -5,12 +5,12 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
 using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using Xunit;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
 
 namespace IPCManagement.Api.Tests;
 

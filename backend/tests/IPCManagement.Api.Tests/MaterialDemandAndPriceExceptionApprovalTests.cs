@@ -1,19 +1,18 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Approvals;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Approvals;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using System.Security.Claims;
+using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -1054,7 +1053,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
         public IApprovalWorkflowService CreateWorkflowService()
         {
             var handlerType = typeof(IApprovalTargetHandler).Assembly.GetType(
-                "IPCManagement.Api.Services.Approvals.MaterialDemandApprovalHandler");
+                "IPCManagement.Api.Features.Approvals.Services.MaterialDemandApprovalHandler");
             handlerType.Should().NotBeNull("material demand must be a first-class approval target handler");
             var handler = (IApprovalTargetHandler)Activator.CreateInstance(handlerType!, CreateContext())!;
             return new ApprovalWorkflowService([handler]);

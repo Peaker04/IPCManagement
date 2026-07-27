@@ -1,10 +1,10 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Reports.Contracts;
+using IPCManagement.Api.Features.Reports.Services;
 
 namespace IPCManagement.Api.Tests;
 

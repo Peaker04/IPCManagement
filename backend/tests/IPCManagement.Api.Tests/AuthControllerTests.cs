@@ -1,12 +1,12 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Auth;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Auth.Contracts;
+using IPCManagement.Api.Features.Auth.Controllers;
+using IPCManagement.Api.Features.Auth.Services;
 
 namespace IPCManagement.Api.Tests;
 

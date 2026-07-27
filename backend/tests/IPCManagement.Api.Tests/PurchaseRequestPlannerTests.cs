@@ -1,5 +1,5 @@
 using FluentAssertions;
-using IPCManagement.Api.Services.Workflow;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 

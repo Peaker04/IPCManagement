@@ -6,18 +6,17 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Approvals;
-using IPCManagement.Api.Models.DTOs.Coordination;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Approvals;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 using NSubstitute;
-using IPCManagement.Api.Services.Workflow;
+using IPCManagement.Api.Features.Approvals.Contracts;
+using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 

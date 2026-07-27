@@ -1,13 +1,13 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Controllers;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 

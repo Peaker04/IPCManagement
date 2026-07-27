@@ -1,0 +1,1681 @@
+using System.Globalization;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.RegularExpressions;
+using IPCManagement.Api.Data;
+using IPCManagement.Api.Helpers;
+using IPCManagement.Api.Models.Entities;
+using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.SampleData.Contracts;
+
+namespace IPCManagement.Api.Features.SampleData.Services;
+
+public partial class SampleDataImportService : ISampleDataImportService
+{
+    private const string SampleCustomerCode = "DAV";
+    private const string SampleCustomerName = "Draxlmaier";
+    private const string SampleWarehouseCode = "WH-SAMPLE";
+    private const string SampleUserName = "sample.importer";
+
+    private static readonly string[] BomRequiredHeaders =
+    [
+        "Món",
+        "Nguyên liệu chính",
+        "Khối lượng ( kg)",
+        "Giá nhập (kg)",
+        "Số lượng suất ăn",
+        "Định lượng (gram) / khay"
+    ];
+
+    private static readonly IReadOnlyList<(string SheetName, decimal PriceTier)> PresetBomSheets =
+    [
+        ("định lượng suất 25k", 25000m),
+        ("định lượng suất 30k", 30000m),
+        ("định lượng suất 34k", 34000m)
+    ];
+
+    private static readonly IReadOnlyDictionary<string, (string Code, string Name)> PresetBomUnitByIngredient =
+        new Dictionary<string, (string Code, string Name)>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Bánh mì"] = ("O", "Ổ"),
+            ["Chuối"] = ("QUA", "Quả"),
+            ["Chả cá"] = ("MIENG", "Miếng"),
+            ["Căn cuộn"] = ("CAY", "Cây"),
+            ["Sữa chua"] = ("HOP", "Hộp"),
+            ["Trứng cút"] = ("CAI", "Cái"),
+            ["Trứng cút lột sẵn"] = ("CAI", "Cái"),
+            ["trứng cút lọt sẵn"] = ("CAI", "Cái"),
+            ["Trứng gà"] = ("CAI", "Cái"),
+            ["Trứng gà (cái)"] = ("CAI", "Cái"),
+            ["Trứng gà trung"] = ("CAI", "Cái"),
+            ["Đậu khuôn"] = ("LAT", "Lát"),
+            ["Đậu khuôn chiên"] = ("LAT", "Lát"),
+            ["Đậu khuôn chiên lát nhỏ"] = ("LAT", "Lát")
+        };
+
+    private static readonly string[] OrderRequiredHeaders =
+    [
+        "Row Labels",
+        "Ca sáng",
+        "Ca chiều"
+    ];
+
+    private static readonly string[] PurchaseRequiredHeaders =
+    [
+        "Ngày Giao hàng",
+        "Tên hàng",
+        "Đơn vị tính",
+        "Số lượng",
+        "Đơn giá"
+    ];
+
+    private static readonly string[] MenuDayColumns = ["D", "E", "F", "G", "H", "I"];
+
+    private readonly IpcManagementContext _context;
+    private readonly IHostEnvironment _environment;
+    private readonly XlsxWorkbookReader _reader = new();
+
+    public SampleDataImportService(IpcManagementContext context, IHostEnvironment environment)
+    {
+        _context = context;
+        _environment = environment;
+    }
+
+    public async Task<SampleDataImportResultDto> ImportAsync(
+        SampleDataImportRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var sourceDirectory = ResolveSourceDirectory(request.SourceDirectory);
+        var result = new SampleDataImportResultDto
+        {
+            DryRun = request.DryRun,
+            SourceDirectory = sourceDirectory.FullName
+        };
+        var servingHints = new Dictionary<string, List<int>>(StringComparer.OrdinalIgnoreCase);
+
+        await ImportBomDataAsync(sourceDirectory, request, result, servingHints, cancellationToken);
+        await SaveCheckpointAsync(request.DryRun, cancellationToken);
+
+        return result;
+    }
+
+    private async Task ImportBomDataAsync(
+        DirectoryInfo sourceDirectory,
+        SampleDataImportRequest request,
+        SampleDataImportResultDto result,
+        Dictionary<string, List<int>> servingHints,
+        CancellationToken cancellationToken)
+    {
+        var bomFile = sourceDirectory.GetFiles("IPC. Định lượng 07.2026.xlsx").FirstOrDefault();
+        if (bomFile is null)
+        {
+            AddMissingFile(result, "IPC. Định lượng 07.2026.xlsx", "BOM tiers 25k/30k/34k");
+            return;
+        }
+
+        var sourceRows = PresetBomSheets
+            .SelectMany(sheet => _reader
+                .ReadTable(bomFile.FullName, sheet.SheetName, BomRequiredHeaders, request.MaxRows)
+                .Select(row => new PresetBomSourceRow(sheet.SheetName, sheet.PriceTier, row)))
+            .ToList();
+        var rows = ValidateAndDeduplicatePresetBomRows(sourceRows, result);
+        var fileResult = AddFileResult(
+            result,
+            bomFile.FullName,
+            "Dishes/BOM tiers 25k/30k/34k/Ingredients/Suppliers",
+            request.DryRun,
+            sourceRows.Count);
+
+        var warehouse = await EnsureWarehouseAsync(request.DryRun, result.Counts, cancellationToken);
+        var existingUnits = await _context.Units.ToListAsync(cancellationToken);
+        var kgUnit = EnsureUnit("KG", "Kilogram", existingUnits, request.DryRun, result.Counts);
+        var presetUnits = PresetBomUnitByIngredient.Values
+            .Distinct()
+            .ToDictionary(
+                definition => definition.Code,
+                definition => EnsureUnit(definition.Code, definition.Name, existingUnits, request.DryRun, result.Counts),
+                StringComparer.OrdinalIgnoreCase);
+        var existingSuppliers = await _context.Suppliers.ToListAsync(cancellationToken);
+        var existingIngredients = await _context.Ingredients.ToListAsync(cancellationToken);
+        var existingDishes = await _context.Dishes.ToListAsync(cancellationToken);
+        var existingBomLines = await _context.Dishboms.ToListAsync(cancellationToken);
+
+        if (request.ReplaceBomCatalog)
+        {
+            result.Warnings.Add(
+                $"Thay catalog BOM: loại bỏ {existingBomLines.Count} dòng BOM cũ trước khi nạp ba tier cố định.");
+            if (!request.DryRun)
+            {
+                var existingAdjustments = await _context.Bomadjustments.ToListAsync(cancellationToken);
+                _context.Bomadjustments.RemoveRange(existingAdjustments);
+                _context.Dishboms.RemoveRange(existingBomLines);
+            }
+
+            existingBomLines.Clear();
+        }
+
+        foreach (var sourceRow in rows)
+        {
+            var row = sourceRow.Row;
+            var dishName = Get(row, "Món");
+            var ingredientName = Get(row, "Nguyên liệu chính");
+            if (string.IsNullOrWhiteSpace(dishName) || string.IsNullOrWhiteSpace(ingredientName))
+            {
+                fileResult.RowsSkipped++;
+                continue;
+            }
+
+            var grossQty = ParsePresetGrossQtyPerServing(row);
+            if (grossQty <= 0)
+            {
+                fileResult.RowsSkipped++;
+                AddWarning(result, $"Bỏ qua BOM '{dishName}'/'{ingredientName}' vì định lượng không hợp lệ.");
+                continue;
+            }
+
+            AddServingHint(servingHints, dishName, ParseInt(Get(row, "Số lượng suất ăn")));
+            EnsureSupplier(Get(row, "Supplier"), existingSuppliers, request.DryRun, result.Counts);
+
+            var unit = ResolvePresetBomUnit(ingredientName, kgUnit, presetUnits);
+
+            // The tiered BOM workbook describes a recipe unit, not the storage unit of
+            // historical receipts/stock. Preserve an existing warehouse unit here;
+            // cross-unit conversion requires ingredient-specific provenance and review.
+            var ingredient = EnsureIngredient(
+                ingredientName,
+                unit,
+                warehouse,
+                ParseDecimal(Get(row, "Giá nhập (kg)")),
+                existingIngredients,
+                request.DryRun,
+                result.Counts,
+                updateUnit: false);
+
+            var dish = EnsureDish(
+                dishName,
+                Get(row, "Loại món"),
+                Get(row, "Menu"),
+                existingDishes,
+                request.DryRun,
+                result.Counts);
+
+            EnsureBomLine(
+                dish,
+                ingredient,
+                unit,
+                grossQty,
+                sourceRow.PriceTier,
+                existingBomLines,
+                request.DryRun,
+                result.Counts);
+
+            fileResult.RowsImported++;
+        }
+    }
+
+    private async Task<Dictionary<string, SupplierPolicy>> ImportSupplierPoliciesAsync(
+        string workbookPath,
+        SampleDataImportRequest request,
+        SampleDataImportResultDto result,
+        CancellationToken cancellationToken)
+    {
+        var rows = _reader.ReadRows(workbookPath, "SUMMARY", request.MaxRows);
+        var policies = new Dictionary<string, SupplierPolicy>(StringComparer.OrdinalIgnoreCase);
+        var suppliers = await _context.Suppliers.ToListAsync(cancellationToken);
+
+        foreach (var row in rows)
+        {
+            var sheetCode = GetColumn(row, "C");
+            var supplierName = GetColumn(row, "D");
+            if (string.IsNullOrWhiteSpace(sheetCode) || string.IsNullOrWhiteSpace(supplierName))
+            {
+                continue;
+            }
+
+            var policy = new SupplierPolicy(
+                sheetCode.Trim(),
+                supplierName.Trim(),
+                GetColumn(row, "E"),
+                GetColumn(row, "F"));
+            policies[NormalizeSheetKey(sheetCode)] = policy;
+
+            var supplier = EnsureSupplier(supplierName, suppliers, request.DryRun, result.Counts);
+            if (supplier is not null)
+            {
+                ApplySupplierPolicy(supplier, policy);
+            }
+        }
+
+        return policies;
+    }
+
+    private Dictionary<string, int> ReadOrderWorkbookShiftFallbacks(
+        string workbookPath,
+        int? maxRows,
+        SampleDataFileResultDto fileResult,
+        SampleDataImportResultDto result)
+    {
+        var totals = new Dictionary<string, List<decimal>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["MORNING"] = [],
+            ["AFTERNOON"] = []
+        };
+
+        foreach (var sheetName in _reader.GetSheetNames(workbookPath))
+        {
+            IReadOnlyList<IReadOnlyDictionary<string, string>> rows;
+            try
+            {
+                rows = _reader.ReadTable(workbookPath, sheetName, OrderRequiredHeaders, maxRows);
+            }
+            catch (InvalidOperationException)
+            {
+                continue;
+            }
+
+            fileResult.RowsScanned += rows.Count;
+            foreach (var row in rows)
+            {
+                var label = Get(row, "Row Labels");
+                if (string.IsNullOrWhiteSpace(label) || label.StartsWith("NCC", StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var morning = ParseDecimal(Get(row, "Ca sáng"));
+                var afternoon = ParseDecimal(Get(row, "Ca chiều"));
+                if (morning > 0)
+                {
+                    totals["MORNING"].Add(morning);
+                }
+
+                if (afternoon > 0)
+                {
+                    totals["AFTERNOON"].Add(afternoon);
+                }
+            }
+        }
+
+        var fallbacks = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (shift, values) in totals)
+        {
+            if (values.Count == 0)
+            {
+                continue;
+            }
+
+            // Order workbook rows are material quantities, not exact servings. Use them only
+            // as a bounded fallback when BOM serving hints are absent.
+            var average = values.Average();
+            fallbacks[shift] = Math.Clamp((int)Math.Round(average * 10, MidpointRounding.AwayFromZero), 80, 800);
+        }
+
+        if (fallbacks.Count == 0)
+        {
+            AddWarning(result, "Không đọc được fallback số suất từ workbook Đơn đặt hàng.");
+        }
+
+        return fallbacks;
+    }
+
+    private async Task<Warehouse> EnsureWarehouseAsync(
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CancellationToken cancellationToken)
+    {
+        var warehouse = await _context.Warehouses
+            .FirstOrDefaultAsync(item => item.WarehouseCode == SampleWarehouseCode, cancellationToken);
+        if (warehouse is not null)
+        {
+            return warehouse;
+        }
+
+        counts.WarehousesCreated++;
+        warehouse = new Warehouse
+        {
+            WarehouseId = GuidHelper.NewId(),
+            WarehouseCode = SampleWarehouseCode,
+            WarehouseName = "Kho mẫu IPC",
+            WarehouseType = "KHAC",
+            Note = "Kho mặc định cho dữ liệu mẫu Phase 02"
+        };
+
+        if (!dryRun)
+        {
+            _context.Warehouses.Add(warehouse);
+        }
+
+        return warehouse;
+    }
+
+    private async Task<Customer> EnsureCustomerAsync(
+        string customerCode,
+        string customerName,
+        string note,
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CancellationToken cancellationToken)
+    {
+        var customer = await _context.Customers
+            .FirstOrDefaultAsync(item => item.CustomerCode == customerCode, cancellationToken);
+        if (customer is not null)
+        {
+            customer.CustomerName = customerName;
+            customer.Note = string.IsNullOrWhiteSpace(customer.Note) ? note : customer.Note;
+            customer.IsActive = true;
+            counts.CustomersUpdated++;
+            return customer;
+        }
+
+        counts.CustomersCreated++;
+        customer = new Customer
+        {
+            CustomerId = GuidHelper.NewId(),
+            CustomerCode = customerCode,
+            CustomerName = customerName,
+            Note = note,
+            IsActive = true
+        };
+
+        if (!dryRun)
+        {
+            _context.Customers.Add(customer);
+        }
+
+        return customer;
+    }
+
+    private async Task<Unit> EnsureUnitAsync(
+        string code,
+        string name,
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CancellationToken cancellationToken)
+    {
+        var unit = await _context.Units
+            .FirstOrDefaultAsync(item => item.UnitCode == code, cancellationToken);
+        if (unit is not null)
+        {
+            return unit;
+        }
+
+        var units = await _context.Units.ToListAsync(cancellationToken);
+        return EnsureUnit(code, name, units, dryRun, counts);
+    }
+
+    private Unit EnsureUnit(
+        string code,
+        string name,
+        List<Unit> units,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var unitCode = string.IsNullOrWhiteSpace(code) ? "UNIT" : code.Trim().ToUpperInvariant();
+        var existing = units.FirstOrDefault(item =>
+            string.Equals(item.UnitCode, unitCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            return existing;
+        }
+
+        counts.UnitsCreated++;
+        var unit = new Unit
+        {
+            UnitId = GuidHelper.NewId(),
+            UnitCode = unitCode,
+            UnitName = string.IsNullOrWhiteSpace(name) ? unitCode : name.Trim(),
+            BaseUnitCode = unitCode,
+            ConvertRateToBase = 1
+        };
+
+        if (!dryRun)
+        {
+            _context.Units.Add(unit);
+        }
+
+        units.Add(unit);
+        return unit;
+    }
+
+    private async Task<User> EnsureSampleUserAsync(
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CancellationToken cancellationToken)
+    {
+        var role = await _context.Roles.FirstOrDefaultAsync(item => item.RoleCode == "ADMIN", cancellationToken);
+        if (role is null)
+        {
+            counts.RolesCreated++;
+            role = new Role
+            {
+                RoleId = GuidHelper.NewId(),
+                RoleCode = "ADMIN",
+                RoleName = "Quản trị"
+            };
+
+            if (!dryRun)
+            {
+                _context.Roles.Add(role);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+        }
+
+        var user = await _context.Users.FirstOrDefaultAsync(item => item.Username == SampleUserName, cancellationToken);
+        if (user is not null)
+        {
+            return user;
+        }
+
+        counts.UsersCreated++;
+        user = new User
+        {
+            UserId = GuidHelper.NewId(),
+            FullName = "Sample Data Importer",
+            Username = SampleUserName,
+            PasswordHash = "sample-data-importer",
+            RoleId = role.RoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        if (!dryRun)
+        {
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+
+        return user;
+    }
+
+    private async Task<QuantityImportBatch> EnsureQuantityImportBatchAsync(
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CancellationToken cancellationToken)
+    {
+        const string batchCode = "BATCH-SAMPLE-DON-DAT-HANG-T5-2026";
+        var batch = await _context.Quantityimportbatches
+            .FirstOrDefaultAsync(item => item.BatchCode == batchCode, cancellationToken);
+        if (batch is not null)
+        {
+            return batch;
+        }
+
+        counts.QuantityImportBatchesCreated++;
+        batch = new QuantityImportBatch
+        {
+            ImportBatchId = GuidHelper.NewId(),
+            BatchCode = batchCode,
+            SourceCompanyName = SampleCustomerName,
+            SourceType = "EXCEL",
+            ImportedAt = DateTime.UtcNow,
+            Status = "VALIDATED"
+        };
+
+        if (!dryRun)
+        {
+            _context.Quantityimportbatches.Add(batch);
+        }
+
+        return batch;
+    }
+
+    private Supplier? EnsureSupplier(
+        string supplierName,
+        List<Supplier> suppliers,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        if (string.IsNullOrWhiteSpace(supplierName))
+        {
+            return null;
+        }
+
+        var normalized = NormalizeName(supplierName);
+        var existing = suppliers.FirstOrDefault(item =>
+            string.Equals(NormalizeName(item.SupplierName), normalized, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.IsActive = true;
+            counts.SuppliersUpdated++;
+            return existing;
+        }
+
+        counts.SuppliersCreated++;
+        var supplierCode = BuildUniqueSupplierCode(supplierName, suppliers);
+        var supplier = new Supplier
+        {
+            SupplierId = GuidHelper.NewId(),
+            SupplierCode = supplierCode,
+            SupplierName = supplierName.Trim(),
+            IsActive = true
+        };
+
+        if (!dryRun)
+        {
+            _context.Suppliers.Add(supplier);
+        }
+
+        suppliers.Add(supplier);
+        return supplier;
+    }
+
+    private string BuildUniqueSupplierCode(string supplierName, List<Supplier> suppliers)
+    {
+        var knownSuppliers = suppliers
+            .Concat(_context.Suppliers.Local)
+            .DistinctBy(item => Convert.ToBase64String(item.SupplierId))
+            .ToList();
+        var baseCode = StableCode("SUP", supplierName);
+        if (!knownSuppliers.Any(item => string.Equals(item.SupplierCode, baseCode, StringComparison.OrdinalIgnoreCase)))
+        {
+            return baseCode;
+        }
+
+        for (var suffix = 2; suffix < 1000; suffix++)
+        {
+            var candidate = $"{baseCode}-{suffix}";
+            if (!knownSuppliers.Any(item => string.Equals(item.SupplierCode, candidate, StringComparison.OrdinalIgnoreCase)))
+            {
+                return candidate;
+            }
+        }
+
+        return StableCode("SUP", $"{supplierName}-{Guid.NewGuid():N}");
+    }
+
+    private Ingredient EnsureIngredient(
+        string ingredientName,
+        Unit unit,
+        Warehouse warehouse,
+        decimal referencePrice,
+        List<Ingredient> ingredients,
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        bool updateUnit = false)
+    {
+        referencePrice = DecimalPolicy.RoundMoney(referencePrice);
+        var normalized = NormalizeName(ingredientName);
+        var stableCode = StableCode("ING", ingredientName);
+        var existing = ingredients.FirstOrDefault(item =>
+            string.Equals(NormalizeName(item.IngredientName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.IngredientCode, stableCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.IngredientName = ingredientName.Trim();
+            if (updateUnit && !existing.UnitId.SequenceEqual(unit.UnitId))
+            {
+                existing.UnitId = unit.UnitId;
+            }
+
+            if (referencePrice > 0 && existing.ReferencePrice != referencePrice)
+            {
+                existing.ReferencePrice = referencePrice;
+            }
+
+            existing.IsActive = true;
+            counts.IngredientsUpdated++;
+            return existing;
+        }
+
+        counts.IngredientsCreated++;
+        var ingredient = new Ingredient
+        {
+            IngredientId = GuidHelper.NewId(),
+            IngredientCode = stableCode,
+            IngredientName = ingredientName.Trim(),
+            UnitId = unit.UnitId,
+            WarehouseId = warehouse.WarehouseId,
+            ReferencePrice = referencePrice,
+            IsFreshDaily = true,
+            IsActive = true
+        };
+
+        if (!dryRun)
+        {
+            _context.Ingredients.Add(ingredient);
+        }
+
+        ingredients.Add(ingredient);
+        return ingredient;
+    }
+
+    private static Unit ResolvePresetBomUnit(
+        string ingredientName,
+        Unit kgUnit,
+        IReadOnlyDictionary<string, Unit> presetUnits)
+    {
+        var normalizedName = NormalizeName(ingredientName);
+        if (!PresetBomUnitByIngredient.TryGetValue(normalizedName, out var definition))
+        {
+            return kgUnit;
+        }
+
+        return presetUnits[definition.Code];
+    }
+
+    private Dish EnsureDish(
+        string dishName,
+        string dishGroup,
+        string dishType,
+        List<Dish> dishes,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var normalized = NormalizeName(dishName);
+        var stableCode = StableCode("DISH", dishName);
+        var existing = dishes.FirstOrDefault(item =>
+            string.Equals(NormalizeName(item.DishName), normalized, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(item.DishCode, stableCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.DishName = dishName.Trim();
+            existing.DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? existing.DishGroup : dishGroup.Trim();
+            existing.DishType = string.IsNullOrWhiteSpace(dishType) ? existing.DishType : dishType.Trim();
+            existing.IsActive = true;
+            counts.DishesUpdated++;
+            return existing;
+        }
+
+        counts.DishesCreated++;
+        var dish = new Dish
+        {
+            DishId = GuidHelper.NewId(),
+            DishCode = stableCode,
+            DishName = dishName.Trim(),
+            DishGroup = string.IsNullOrWhiteSpace(dishGroup) ? null : dishGroup.Trim(),
+            DishType = string.IsNullOrWhiteSpace(dishType) ? null : dishType.Trim(),
+            IsActive = true
+        };
+
+        if (!dryRun)
+        {
+            _context.Dishes.Add(dish);
+        }
+
+        dishes.Add(dish);
+        return dish;
+    }
+
+    private Menu EnsureMenu(
+        DateOnly serviceDate,
+        string shiftName,
+        Customer customer,
+        DateOnly weekStart,
+        DateOnly weekEnd,
+        List<Menu> menus,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var menuCode = $"MENU-{customer.CustomerCode}-{serviceDate:yyyyMMdd}-{shiftName}";
+        var existing = menus.FirstOrDefault(item =>
+            string.Equals(item.MenuCode, menuCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.MenuName = $"Thực đơn {customer.CustomerCode} {ToVietnameseShift(shiftName)} {serviceDate:dd/MM/yyyy}";
+            existing.FromDate = weekStart;
+            existing.ToDate = weekEnd;
+            existing.IsActive = true;
+            counts.MenusUpdated++;
+            return existing;
+        }
+
+        counts.MenusCreated++;
+        var menu = new Menu
+        {
+            MenuId = GuidHelper.NewId(),
+            MenuCode = menuCode,
+            MenuName = $"Thực đơn {customer.CustomerCode} {ToVietnameseShift(shiftName)} {serviceDate:dd/MM/yyyy}",
+            FromDate = weekStart,
+            ToDate = weekEnd,
+            IsActive = true
+        };
+
+        if (!dryRun)
+        {
+            _context.Menus.Add(menu);
+        }
+
+        menus.Add(menu);
+        return menu;
+    }
+
+    private void EnsureMenuItem(
+        Menu menu,
+        Dish dish,
+        string dishSlot,
+        int displayOrder,
+        List<MenuItem> menuItems,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var existing = menuItems.FirstOrDefault(item =>
+            item.MenuId.SequenceEqual(menu.MenuId) &&
+            item.DishId.SequenceEqual(dish.DishId) &&
+            string.Equals(item.DishSlot, dishSlot, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.DisplayOrder = displayOrder;
+            counts.MenuItemsUpdated++;
+            return;
+        }
+
+        counts.MenuItemsCreated++;
+        var menuItem = new MenuItem
+        {
+            MenuItemId = GuidHelper.NewId(),
+            MenuId = menu.MenuId,
+            DishId = dish.DishId,
+            DishSlot = dishSlot,
+            DisplayOrder = displayOrder
+        };
+
+        if (!dryRun)
+        {
+            _context.Menuitems.Add(menuItem);
+        }
+
+        menuItems.Add(menuItem);
+    }
+
+    private void EnsureMenuSchedule(
+        Customer customer,
+        Menu menu,
+        DateOnly serviceDate,
+        DateOnly weekStart,
+        string shiftName,
+        List<MenuSchedule> schedules,
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        CustomerContractPolicy? contractPolicy = null,
+        byte[]? menuVersionId = null)
+    {
+        contractPolicy ??= ResolveCustomerContractPolicy(customer, serviceDate, shiftName);
+        var existing = schedules.FirstOrDefault(item =>
+            item.CustomerId.SequenceEqual(customer.CustomerId) &&
+            item.ServiceDate == serviceDate &&
+            string.Equals(item.ShiftName, shiftName, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.MenuId = menu.MenuId;
+            existing.WeekStartDate = weekStart;
+            existing.MenuPrice = contractPolicy.MenuPrice;
+            existing.BomRatePercent = contractPolicy.BomRatePercent;
+            existing.Status = "DRAFT";
+            existing.MenuVersionId = menuVersionId;
+            counts.MenuSchedulesUpdated++;
+            return;
+        }
+
+        counts.MenuSchedulesCreated++;
+        var schedule = new MenuSchedule
+        {
+            MenuScheduleId = GuidHelper.NewId(),
+            CustomerId = customer.CustomerId,
+            MenuId = menu.MenuId,
+            ServiceDate = serviceDate,
+            WeekStartDate = weekStart,
+            ShiftName = shiftName,
+            MenuPrice = contractPolicy.MenuPrice,
+            BomRatePercent = contractPolicy.BomRatePercent,
+            Status = "DRAFT",
+            MenuVersionId = menuVersionId
+        };
+
+        if (!dryRun)
+        {
+            _context.Menuschedules.Add(schedule);
+        }
+
+        schedules.Add(schedule);
+    }
+
+    private CustomerContractPolicy ResolveCustomerContractPolicy(
+        Customer customer,
+        DateOnly serviceDate,
+        string shiftName)
+    {
+        var dayCode = ToDayCode(serviceDate);
+        var contract = _context.Customercontracts
+            .AsNoTracking()
+            .Where(item =>
+                item.CustomerId.SequenceEqual(customer.CustomerId) &&
+                item.Status == "ACTIVE" &&
+                item.EffectiveFrom <= serviceDate &&
+                (item.EffectiveTo == null || item.EffectiveTo >= serviceDate))
+            .AsEnumerable()
+            .Where(item =>
+                SplitCsv(item.ActiveWeekDays).Contains(dayCode, StringComparer.OrdinalIgnoreCase) &&
+                SplitCsv(item.ShiftNames).Contains(shiftName, StringComparer.OrdinalIgnoreCase))
+            .OrderByDescending(item => item.EffectiveFrom)
+            .FirstOrDefault();
+
+        if (contract is null)
+        {
+            return new CustomerContractPolicy(
+                DecimalPolicy.RoundMoney(25000),
+                DecimalPolicy.RoundPercent(100),
+                UsedFallback: true);
+        }
+
+        return new CustomerContractPolicy(
+            DecimalPolicy.RoundMoney(contract.DefaultMenuPrice),
+            DecimalPolicy.RoundPercent(100),
+            UsedFallback: false);
+    }
+
+    private static string MissingCustomerContractWarning(Customer customer, DateOnly serviceDate, string shiftName)
+        => $"Không có hợp đồng hiệu lực cho {customer.CustomerCode} ngày {serviceDate:dd/MM/yyyy} {ToVietnameseShift(shiftName)}; dùng giá mặc định 25.000 và BOM 100%.";
+
+    private static string ToDayCode(DateOnly date)
+        => date.DayOfWeek switch
+        {
+            DayOfWeek.Monday => "t2",
+            DayOfWeek.Tuesday => "t3",
+            DayOfWeek.Wednesday => "t4",
+            DayOfWeek.Thursday => "t5",
+            DayOfWeek.Friday => "t6",
+            DayOfWeek.Saturday => "t7",
+            _ => "cn"
+        };
+
+    private static IReadOnlyList<string> SplitCsv(string value)
+        => value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    private MealQuantityPlan EnsureMealQuantityPlan(
+        DateOnly serviceDate,
+        QuantityImportBatch batch,
+        List<MealQuantityPlan> plans,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var planCode = $"QTY-{SampleCustomerCode}-{serviceDate:yyyyMMdd}";
+        var existing = plans.FirstOrDefault(item =>
+            string.Equals(item.PlanCode, planCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.ImportBatchId = batch.ImportBatchId;
+            existing.Status = string.Equals(existing.Status, "CONFIRMED", StringComparison.OrdinalIgnoreCase)
+                ? existing.Status
+                : "FORECASTED";
+            counts.MealQuantityPlansUpdated++;
+            return existing;
+        }
+
+        counts.MealQuantityPlansCreated++;
+        var plan = new MealQuantityPlan
+        {
+            QuantityPlanId = GuidHelper.NewId(),
+            ImportBatchId = batch.ImportBatchId,
+            PlanCode = planCode,
+            ServiceDate = serviceDate,
+            Status = "FORECASTED",
+            ForecastReceivedAt = DateTime.UtcNow,
+            ConfirmationTime = new TimeOnly(8, 30)
+        };
+
+        if (!dryRun)
+        {
+            _context.Mealquantityplans.Add(plan);
+        }
+
+        plans.Add(plan);
+        return plan;
+    }
+
+    private void EnsureMealQuantityPlanLine(
+        MealQuantityPlan plan,
+        MenuSchedule schedule,
+        int servings,
+        List<MealQuantityPlanLine> planLines,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var existing = planLines.FirstOrDefault(item =>
+            item.QuantityPlanId.SequenceEqual(plan.QuantityPlanId) &&
+            item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
+        if (existing is not null)
+        {
+            existing.ForecastServings = servings;
+            existing.FinalServings = string.Equals(plan.Status, "CONFIRMED", StringComparison.OrdinalIgnoreCase)
+                ? existing.FinalServings
+                : servings;
+            counts.MealQuantityPlanLinesUpdated++;
+            return;
+        }
+
+        counts.MealQuantityPlanLinesCreated++;
+        var line = new MealQuantityPlanLine
+        {
+            QuantityPlanLineId = GuidHelper.NewId(),
+            QuantityPlanId = plan.QuantityPlanId,
+            MenuScheduleId = schedule.MenuScheduleId,
+            CustomerId = schedule.CustomerId,
+            MenuId = schedule.MenuId,
+            ShiftName = schedule.ShiftName,
+            ForecastServings = servings,
+            ConfirmedServings = 0,
+            AdjustedServings = 0,
+            FinalServings = servings
+        };
+
+        if (!dryRun)
+        {
+            _context.Mealquantityplanlines.Add(line);
+        }
+
+        planLines.Add(line);
+    }
+
+    private void EnsureBomLine(
+        Dish dish,
+        Ingredient ingredient,
+        Unit unit,
+        decimal grossQty,
+        decimal priceTier,
+        List<DishBom> bomLines,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        grossQty = DecimalPolicy.RoundQuantity(grossQty);
+        var existing = bomLines.FirstOrDefault(item =>
+            item.EffectiveTo is null &&
+            item.DishId.SequenceEqual(dish.DishId) &&
+            item.IngredientId.SequenceEqual(ingredient.IngredientId) &&
+            item.CustomerId is null &&
+            item.PriceTierAmount == priceTier);
+
+        if (existing is not null)
+        {
+            existing.GrossQtyPerServing = grossQty;
+            existing.UnitId = unit.UnitId;
+            counts.BomLinesUpdated++;
+            return;
+        }
+
+        counts.BomLinesCreated++;
+        var bom = new DishBom
+        {
+            BomId = GuidHelper.NewId(),
+            DishId = dish.DishId,
+            IngredientId = ingredient.IngredientId,
+            UnitId = unit.UnitId,
+            CustomerId = null,
+            PriceTierAmount = priceTier,
+            GrossQtyPerServing = grossQty,
+            WasteRatePercent = DecimalPolicy.RoundPercent(0),
+            BomStatus = "PUBLISHED",
+            EffectiveFrom = new DateOnly(2026, 1, 1),
+            EffectiveTo = null
+        };
+
+        if (!dryRun)
+        {
+            _context.Dishboms.Add(bom);
+        }
+
+        bomLines.Add(bom);
+    }
+
+    private static IReadOnlyList<PresetBomSourceRow> ValidateAndDeduplicatePresetBomRows(
+        IReadOnlyList<PresetBomSourceRow> sourceRows,
+        SampleDataImportResultDto result)
+    {
+        var groups = sourceRows
+            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Món")))
+            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Nguyên liệu chính")))
+            .GroupBy(
+                item => $"{item.PriceTier:0}|{NormalizeName(Get(item.Row, "Món"))}|{NormalizeName(Get(item.Row, "Nguyên liệu chính"))}",
+                StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        return groups
+            .Select(group =>
+            {
+                var rows = group.ToList();
+                var quantities = rows
+                    .Select(item => ParsePresetGrossQtyPerServing(item.Row))
+                    .Distinct()
+                    .ToList();
+                if (quantities.Count <= 1)
+                {
+                    return rows[0];
+                }
+
+                var weightedQuantity = CalculateWeightedGrossQty(rows.Select(item => item.Row).ToList());
+                var first = rows[0];
+                var mergedRow = new Dictionary<string, string>(first.Row, StringComparer.OrdinalIgnoreCase)
+                {
+                    ["Định lượng (gram) / khay"] = weightedQuantity.ToString("0.######", CultureInfo.InvariantCulture)
+                };
+                AddWarning(
+                    result,
+                    $"{first.SheetName}: gộp {rows.Count} dòng '{Get(first.Row, "Món")}/{Get(first.Row, "Nguyên liệu chính")}' " +
+                    $"theo bình quân gia quyền thành {weightedQuantity:0.######} đơn vị BOM/suất.");
+                return new PresetBomSourceRow(first.SheetName, first.PriceTier, mergedRow);
+            })
+            .ToList();
+    }
+
+    private static decimal CalculateWeightedGrossQty(
+        IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+    {
+        var weightedRows = rows
+            .Select(row => new
+            {
+                Quantity = ParsePresetGrossQtyPerServing(row),
+                Servings = ParseInt(Get(row, "Số lượng suất ăn"))
+            })
+            .Where(item => item.Quantity > 0)
+            .ToList();
+        var totalServings = weightedRows.Where(item => item.Servings > 0).Sum(item => item.Servings);
+        if (totalServings > 0)
+        {
+            var weightedTotal = weightedRows
+                .Where(item => item.Servings > 0)
+                .Sum(item => item.Quantity * item.Servings);
+            return DecimalPolicy.RoundQuantity(weightedTotal / totalServings);
+        }
+
+        return weightedRows.Count == 0
+            ? 0
+            : DecimalPolicy.RoundQuantity(weightedRows.Average(item => item.Quantity));
+    }
+
+    private sealed record PresetBomSourceRow(
+        string SheetName,
+        decimal PriceTier,
+        IReadOnlyDictionary<string, string> Row);
+
+    private InventoryReceipt EnsureReceipt(
+        Supplier supplier,
+        Warehouse warehouse,
+        User sampleUser,
+        DateOnly receiptDate,
+        List<InventoryReceipt> receipts,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        var receiptCode = $"RCP-SAMPLE-{receiptDate:yyyyMMdd}-{supplier.SupplierCode.Replace("SUP-", "", StringComparison.Ordinal)}";
+        if (receiptCode.Length > 50)
+        {
+            receiptCode = receiptCode[..50];
+        }
+
+        var existing = receipts.FirstOrDefault(item =>
+            string.Equals(item.ReceiptCode, receiptCode, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            existing.SupplierId = supplier.SupplierId;
+            existing.WarehouseId = warehouse.WarehouseId;
+            existing.CreatedBy = sampleUser.UserId;
+            counts.InventoryReceiptsUpdated++;
+            return existing;
+        }
+
+        counts.InventoryReceiptsCreated++;
+        var receipt = new InventoryReceipt
+        {
+            ReceiptId = GuidHelper.NewId(),
+            ReceiptCode = receiptCode,
+            ReceiptDate = receiptDate,
+            WarehouseId = warehouse.WarehouseId,
+            SupplierId = supplier.SupplierId,
+            CreatedBy = sampleUser.UserId,
+            CreatedAt = receiptDate.ToDateTime(new TimeOnly(8, 0))
+        };
+
+        if (!dryRun)
+        {
+            _context.Inventoryreceipts.Add(receipt);
+        }
+
+        receipts.Add(receipt);
+        return receipt;
+    }
+
+    private InventoryReceiptLine EnsureReceiptLine(
+        InventoryReceipt receipt,
+        Ingredient ingredient,
+        Unit unit,
+        decimal quantity,
+        decimal unitPrice,
+        string sourceSheet,
+        DateOnly receiptDate,
+        List<InventoryReceiptLine> receiptLines,
+        bool dryRun,
+        SampleDataImportCountsDto counts,
+        out decimal quantityDelta)
+    {
+        quantity = DecimalPolicy.RoundQuantity(quantity);
+        unitPrice = DecimalPolicy.RoundMoney(unitPrice);
+        var lotNumber = StableLotNumber(sourceSheet, receiptDate, ingredient.IngredientName);
+        var existing = receiptLines.FirstOrDefault(item =>
+            item.ReceiptId.SequenceEqual(receipt.ReceiptId) &&
+            string.Equals(item.LotNumber, lotNumber, StringComparison.OrdinalIgnoreCase));
+        if (existing is not null)
+        {
+            quantityDelta = DecimalPolicy.RoundQuantity(quantity - existing.Quantity);
+            existing.IngredientId = ingredient.IngredientId;
+            existing.UnitId = unit.UnitId;
+            existing.Quantity = quantity;
+            existing.UnitPrice = unitPrice;
+            counts.InventoryReceiptLinesUpdated++;
+            return existing;
+        }
+
+        quantityDelta = quantity;
+        counts.InventoryReceiptLinesCreated++;
+        var line = new InventoryReceiptLine
+        {
+            ReceiptLineId = GuidHelper.NewId(),
+            ReceiptId = receipt.ReceiptId,
+            IngredientId = ingredient.IngredientId,
+            UnitId = unit.UnitId,
+            Quantity = quantity,
+            UnitPrice = unitPrice,
+            LotNumber = lotNumber
+        };
+
+        if (!dryRun)
+        {
+            _context.Inventoryreceiptlines.Add(line);
+        }
+
+        receiptLines.Add(line);
+        return line;
+    }
+
+    private void EnsureStockMovement(
+        Warehouse warehouse,
+        Ingredient ingredient,
+        Unit unit,
+        User sampleUser,
+        InventoryReceiptLine receiptLine,
+        DateOnly receiptDate,
+        decimal quantity,
+        List<StockMovement> stockMovements,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        quantity = DecimalPolicy.RoundQuantity(quantity);
+        var existing = stockMovements.FirstOrDefault(item =>
+            string.Equals(item.MovementType, "RECEIPT", StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(item.RefTable, "inventoryreceiptlines", StringComparison.OrdinalIgnoreCase) &&
+            item.RefId is not null &&
+            item.RefId.SequenceEqual(receiptLine.ReceiptLineId));
+        if (existing is not null)
+        {
+            existing.QuantityIn = quantity;
+            existing.QuantityOut = 0;
+            existing.BeforeQty = 0;
+            existing.AfterQty = quantity;
+            existing.UnitId = unit.UnitId;
+            existing.IngredientId = ingredient.IngredientId;
+            counts.StockMovementsUpdated++;
+            return;
+        }
+
+        counts.StockMovementsCreated++;
+        var movement = new StockMovement
+        {
+            MovementId = GuidHelper.NewId(),
+            MovementDate = receiptDate.ToDateTime(new TimeOnly(8, 5)),
+            WarehouseId = warehouse.WarehouseId,
+            IngredientId = ingredient.IngredientId,
+            UnitId = unit.UnitId,
+            MovementType = "RECEIPT",
+            RefTable = "inventoryreceiptlines",
+            RefId = receiptLine.ReceiptLineId,
+            QuantityIn = quantity,
+            QuantityOut = 0,
+            BeforeQty = 0,
+            AfterQty = quantity,
+            Reason = "Import dữ liệu mẫu từ workbook theo dõi đặt hàng",
+            Note = "Sample data import",
+            PerformedBy = sampleUser.UserId
+        };
+
+        if (!dryRun)
+        {
+            _context.Stockmovements.Add(movement);
+        }
+
+        stockMovements.Add(movement);
+    }
+
+    private void EnsureCurrentStock(
+        Warehouse warehouse,
+        Ingredient ingredient,
+        Unit unit,
+        decimal quantityDelta,
+        List<CurrentStock> currentStocks,
+        bool dryRun,
+        SampleDataImportCountsDto counts)
+    {
+        quantityDelta = DecimalPolicy.RoundQuantity(quantityDelta);
+        if (quantityDelta == 0)
+        {
+            return;
+        }
+
+        var existing = currentStocks.FirstOrDefault(item =>
+            item.WarehouseId.SequenceEqual(warehouse.WarehouseId) &&
+            item.IngredientId.SequenceEqual(ingredient.IngredientId));
+        if (existing is not null)
+        {
+            existing.UnitId = unit.UnitId;
+            existing.CurrentQty = DecimalPolicy.RoundQuantity(existing.CurrentQty + quantityDelta);
+            existing.LastUpdated = DateTime.UtcNow;
+            counts.CurrentStockRowsUpdated++;
+            return;
+        }
+
+        counts.CurrentStockRowsCreated++;
+        var stock = new CurrentStock
+        {
+            WarehouseId = warehouse.WarehouseId,
+            IngredientId = ingredient.IngredientId,
+            UnitId = unit.UnitId,
+            CurrentQty = quantityDelta,
+            LastUpdated = DateTime.UtcNow
+        };
+
+        if (!dryRun)
+        {
+            _context.Currentstocks.Add(stock);
+        }
+
+        currentStocks.Add(stock);
+    }
+
+    private DirectoryInfo ResolveSourceDirectory(string? configuredPath)
+    {
+        if (!string.IsNullOrWhiteSpace(configuredPath))
+        {
+            var explicitDirectory = new DirectoryInfo(configuredPath);
+            if (explicitDirectory.Exists)
+            {
+                return explicitDirectory;
+            }
+
+            throw new DirectoryNotFoundException($"Không tìm thấy thư mục dữ liệu mẫu: {configuredPath}");
+        }
+
+        var current = new DirectoryInfo(_environment.ContentRootPath);
+        while (current is not null)
+        {
+            var docs = new DirectoryInfo(Path.Combine(current.FullName, ".docs"));
+            if (docs.Exists)
+            {
+                return docs;
+            }
+
+            current = current.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Không tìm thấy thư mục .docs từ ContentRootPath.");
+    }
+
+    private async Task SaveCheckpointAsync(bool dryRun, CancellationToken cancellationToken)
+    {
+        if (!dryRun)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
+    private static int EstimateServings(
+        MenuSchedule schedule,
+        Dictionary<string, List<int>> servingHints,
+        Dictionary<string, int> shiftFallbacks)
+    {
+        var candidates = schedule.Menu.Menuitems
+            .Select(item => item.Dish.DishName)
+            .SelectMany(dishName => servingHints.GetValueOrDefault(NormalizeName(dishName)) ?? [])
+            .Where(value => value > 0)
+            .Distinct()
+            .ToList();
+        if (candidates.Count > 0)
+        {
+            return Math.Clamp((int)Math.Round(candidates.Average(), MidpointRounding.AwayFromZero), 1, 2000);
+        }
+
+        return shiftFallbacks.GetValueOrDefault(schedule.ShiftName, 408);
+    }
+
+    private static DateOnly? ExtractMenuWeekStart(IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+    {
+        foreach (var row in rows)
+        {
+            foreach (var value in row.Values)
+            {
+                var match = Regex.Match(value, @"(\d{1,2})/(\d{1,2})/(\d{4}).*?(\d{1,2})/(\d{1,2})/(\d{4})");
+                if (!match.Success)
+                {
+                    continue;
+                }
+
+                return new DateOnly(
+                    int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture),
+                    int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture),
+                    int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+            }
+        }
+
+        return null;
+    }
+
+    private static DateOnly? ExtractFirstDateFromMenuRows(IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
+    {
+        foreach (var row in rows)
+        {
+            foreach (var column in MenuDayColumns)
+            {
+                var parsed = ParseDate(GetColumn(row, column));
+                if (parsed is not null)
+                {
+                    return parsed;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static bool TryParseMenuSection(string label, out string variant, out string shiftName)
+    {
+        variant = string.Empty;
+        shiftName = string.Empty;
+        var normalized = RemoveDiacritics(label).ToUpperInvariant();
+        if (!normalized.Contains("MENU", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        if (normalized.Contains("CHIEU", StringComparison.OrdinalIgnoreCase))
+        {
+            shiftName = "AFTERNOON";
+        }
+        else if (normalized.Contains("SANG", StringComparison.OrdinalIgnoreCase))
+        {
+            shiftName = "MORNING";
+        }
+        else
+        {
+            return false;
+        }
+
+        variant = normalized.Contains("CHAY", StringComparison.OrdinalIgnoreCase) ? "Chay" : "Mặn";
+        return true;
+    }
+
+    private static void ApplySupplierPolicy(Supplier supplier, SupplierPolicy? policy)
+    {
+        if (policy is null)
+        {
+            return;
+        }
+
+        supplier.DebtPolicy = string.IsNullOrWhiteSpace(policy.DebtPolicy)
+            ? supplier.DebtPolicy
+            : policy.DebtPolicy;
+        supplier.InvoicePolicy = string.IsNullOrWhiteSpace(policy.InvoicePolicy)
+            ? supplier.InvoicePolicy
+            : policy.InvoicePolicy;
+    }
+
+    private static string ResolveSupplierName(string sheetName, Dictionary<string, SupplierPolicy> policies)
+    {
+        var key = NormalizeSheetKey(sheetName);
+        if (policies.TryGetValue(key, out var policy))
+        {
+            return policy.SupplierName;
+        }
+
+        var stripped = Regex.Replace(sheetName.Trim(), @"^\d+\.\s*", string.Empty);
+        return stripped.Trim();
+    }
+
+    private static void ValidateAmount(
+        IReadOnlyDictionary<string, string> row,
+        decimal quantity,
+        decimal unitPrice,
+        SampleDataImportResultDto result,
+        string itemName,
+        DateOnly deliveryDate)
+    {
+        var amount = ParseDecimal(Get(row, "Thành tiền"));
+        if (amount <= 0)
+        {
+            return;
+        }
+
+        var expected = DecimalPolicy.CalculateLineAmount(quantity, unitPrice);
+        if (Math.Abs(expected - DecimalPolicy.RoundMoney(amount)) > 1)
+        {
+            AddWarning(result, $"Thành tiền lệch ở '{itemName}' ngày {deliveryDate:dd/MM/yyyy}: {amount} != {expected}.");
+        }
+    }
+
+    private static void AddServingHint(Dictionary<string, List<int>> servingHints, string dishName, int servings)
+    {
+        var key = NormalizeName(dishName);
+        if (!servingHints.TryGetValue(key, out var values))
+        {
+            values = [];
+            servingHints[key] = values;
+        }
+
+        if (servings > 0)
+        {
+            values.Add(servings);
+        }
+    }
+
+    private static SampleDataFileResultDto AddFileResult(
+        SampleDataImportResultDto result,
+        string workbookPath,
+        string domain,
+        bool dryRun,
+        int rowsScanned)
+    {
+        var fileResult = new SampleDataFileResultDto
+        {
+            FileName = Path.GetFileName(workbookPath),
+            Domain = domain,
+            Status = dryRun ? "DryRun" : "Imported",
+            RowsScanned = rowsScanned
+        };
+        result.Files.Add(fileResult);
+        return fileResult;
+    }
+
+    private static void AddMissingFile(SampleDataImportResultDto result, string fileName, string domain)
+    {
+        result.Warnings.Add($"Không tìm thấy file {fileName}.");
+        result.Files.Add(new SampleDataFileResultDto
+        {
+            FileName = fileName,
+            Domain = domain,
+            Status = "Missing"
+        });
+    }
+
+    private static string Get(IReadOnlyDictionary<string, string> row, string key)
+        => row.TryGetValue(key, out var value) ? value.Trim() : string.Empty;
+
+    private static string GetColumn(IReadOnlyDictionary<string, string> row, string column)
+        => row.TryGetValue(column, out var value) ? value.Trim() : string.Empty;
+
+    private static decimal ParseGrossQtyPerServing(string value)
+    {
+        var parsed = ParsePresetDecimal(value);
+        if (parsed <= 0)
+        {
+            return 0;
+        }
+
+        return DecimalPolicy.RoundQuantity(parsed > 5 ? parsed / 1000 : parsed);
+    }
+
+    private static decimal ParsePresetGrossQtyPerServing(IReadOnlyDictionary<string, string> row)
+    {
+        var workbookQuantity = ParseGrossQtyPerServing(Get(row, "Định lượng (gram) / khay"));
+        if (workbookQuantity > 0)
+        {
+            return workbookQuantity;
+        }
+
+        var totalWeight = ParsePresetDecimal(Get(row, "Khối lượng ( kg)"));
+        var servings = ParseInt(Get(row, "Số lượng suất ăn"));
+        return totalWeight > 0 && servings > 0
+            ? DecimalPolicy.RoundQuantity(totalWeight / servings)
+            : 0;
+    }
+
+    private static decimal ParsePresetDecimal(string value)
+    {
+        var parsed = ParseDecimal(value);
+        if (parsed != 0 || string.IsNullOrWhiteSpace(value))
+        {
+            return parsed;
+        }
+
+        var normalized = value.Trim().Replace(",", ".", StringComparison.Ordinal);
+        return decimal.TryParse(
+            normalized,
+            NumberStyles.Float,
+            CultureInfo.InvariantCulture,
+            out var scientificValue)
+            ? scientificValue
+            : 0;
+    }
+
+    private static int ParseInt(string value)
+        => (int)Math.Round(ParseDecimal(value), MidpointRounding.AwayFromZero);
+
+    private static decimal ParseDecimal(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return 0;
+        }
+
+        var normalized = value.Trim().Replace(",", ".", StringComparison.Ordinal);
+        return decimal.TryParse(
+            normalized,
+            NumberStyles.Number,
+            CultureInfo.InvariantCulture,
+            out var parsed)
+            ? parsed
+            : 0;
+    }
+
+    private static DateOnly? ParseDate(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        if (double.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out var serial) &&
+            serial > 30000 &&
+            serial < 60000)
+        {
+            return DateOnly.FromDateTime(DateTime.FromOADate(serial));
+        }
+
+        if (DateTime.TryParse(value, CultureInfo.GetCultureInfo("vi-VN"), DateTimeStyles.None, out var viDate) ||
+            DateTime.TryParse(value, CultureInfo.InvariantCulture, DateTimeStyles.None, out viDate))
+        {
+            return DateOnly.FromDateTime(viDate);
+        }
+
+        var match = Regex.Match(value, @"(\d{1,2})/(\d{1,2})/(\d{4})");
+        if (match.Success)
+        {
+            return new DateOnly(
+                int.Parse(match.Groups[3].Value, CultureInfo.InvariantCulture),
+                int.Parse(match.Groups[2].Value, CultureInfo.InvariantCulture),
+                int.Parse(match.Groups[1].Value, CultureInfo.InvariantCulture));
+        }
+
+        return null;
+    }
+
+    private static string NormalizeName(string value)
+        => Regex.Replace(value.Trim(), @"\s+", " ");
+
+    private static string NormalizeUnitCode(string value)
+    {
+        var normalized = RemoveDiacritics(value).Trim().ToUpperInvariant();
+        return normalized switch
+        {
+            "" => "UNIT",
+            "KG" or "KGS" or "KILOGRAM" or "KY" => "KG",
+            "THUNG" => "THUNG",
+            "BICH" => "BICH",
+            "CAI" => "CAI",
+            "CHAI" => "CHAI",
+            "GOI" => "GOI",
+            _ => Regex.Replace(normalized, @"\s+", "-")
+        };
+    }
+
+    private static string NormalizeUnitName(string value)
+        => string.IsNullOrWhiteSpace(value) ? "Đơn vị" : value.Trim();
+
+    private static string NormalizeSheetKey(string value)
+        => Regex.Replace(RemoveDiacritics(value).Trim().ToUpperInvariant(), @"\s+", "");
+
+    private static string StableCode(string prefix, string name)
+    {
+        var hash = SHA1.HashData(Encoding.UTF8.GetBytes(NormalizeName(name).ToUpperInvariant()));
+        var suffix = Convert.ToHexString(hash)[..10];
+        return $"{prefix}-{suffix}";
+    }
+
+    private static string StableLotNumber(string sheetName, DateOnly date, string ingredientName)
+    {
+        var hash = SHA1.HashData(Encoding.UTF8.GetBytes($"{sheetName}|{date:yyyyMMdd}|{NormalizeName(ingredientName)}"));
+        return $"SAMPLE-{Convert.ToHexString(hash)[..16]}";
+    }
+
+    private static string ToVietnameseShift(string shiftName)
+        => string.Equals(shiftName, "MORNING", StringComparison.OrdinalIgnoreCase) ? "Ca sáng" : "Ca chiều";
+
+    private static string RemoveDiacritics(string value)
+    {
+        var normalized = value.Normalize(NormalizationForm.FormD);
+        var builder = new StringBuilder(capacity: normalized.Length);
+        foreach (var character in normalized)
+        {
+            var category = CharUnicodeInfo.GetUnicodeCategory(character);
+            if (category != UnicodeCategory.NonSpacingMark)
+            {
+                builder.Append(character);
+            }
+        }
+
+        return builder.ToString().Normalize(NormalizationForm.FormC);
+    }
+
+    private static void AddWarning(SampleDataImportResultDto result, string warning)
+    {
+        if (result.Warnings.Count < 100)
+        {
+            result.Warnings.Add(warning);
+        }
+    }
+
+    private sealed record SupplierPolicy(
+        string SheetCode,
+        string SupplierName,
+        string DebtPolicy,
+        string InvoicePolicy);
+
+    private sealed record CustomerContractPolicy(
+        decimal MenuPrice,
+        decimal BomRatePercent,
+        bool UsedFallback);
+}

@@ -5,10 +5,10 @@ using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
 using NSubstitute;
 using Microsoft.Extensions.Logging;
 using Xunit;
+using IPCManagement.Api.Features.Auth.Services;
 
 namespace IPCManagement.Api.Tests;
 

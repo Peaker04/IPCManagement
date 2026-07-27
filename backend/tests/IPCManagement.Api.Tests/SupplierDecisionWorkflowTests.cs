@@ -1,13 +1,9 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data.Repositories;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Workflow;
 using IPCManagement.DatabaseTool;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Authorization;
@@ -20,6 +16,10 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Data.Common;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Controllers;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 

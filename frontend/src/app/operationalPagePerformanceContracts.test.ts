@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import purchasingSource from '../features/purchasing/pages/PurchasingPage.tsx?raw';
 import adminSource from './pages/AdminDataPage.tsx?raw';
+import adminBomSource from './pages/admin-data/AdminBomPanel.tsx?raw';
+import adminModelSource from './pages/admin-data/useAdminDataPageModel.ts?raw';
 import chefSource from '../features/chef/pages/ChefDashboardPage.tsx?raw';
 import chefReceiptsSource from '../features/chef/receipts/useKitchenReceipts.ts?raw';
 import chefProductionSource from '../features/chef/production/useChefProductionPlan.ts?raw';
@@ -59,10 +61,11 @@ describe('operational page performance contracts', () => {
   });
 
   it('does not build hidden admin dialogs or query inactive datasets', () => {
-    expect(adminSource).toContain('{ skip: !isContractView || !selectedContract?.customerId }');
-    expect(adminSource).toContain('if (!isBomView) return [];');
-    expect(adminSource).toContain('{isBomDialogOpen && <Dialog open');
-    expect(adminSource).toContain('{closingBom && <Dialog open');
-    expect(adminSource).not.toContain('useWorkflowOverview(');
+    const adminContractSource = `${adminSource}\n${adminModelSource}\n${adminBomSource}`;
+    expect(adminContractSource).toContain('{ skip: !isContractView || !selectedContract?.customerId }');
+    expect(adminContractSource).toContain('if (!isBomView) return [];');
+    expect(adminContractSource).toContain('{isBomDialogOpen && <Dialog open');
+    expect(adminContractSource).toContain('{closingBom && <Dialog open');
+    expect(adminContractSource).not.toContain('useWorkflowOverview(');
   });
 });

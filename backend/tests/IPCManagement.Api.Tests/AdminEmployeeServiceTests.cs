@@ -5,12 +5,12 @@ using System.Threading.Tasks;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Admin;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.Admin;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
+using IPCManagement.Api.Features.Admin.Contracts;
+using IPCManagement.Api.Features.Admin.Services;
 
 namespace IPCManagement.Api.Tests;
 

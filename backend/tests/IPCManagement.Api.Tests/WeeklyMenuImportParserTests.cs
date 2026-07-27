@@ -6,10 +6,10 @@ using System.Xml.Linq;
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.SampleData;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -139,7 +139,7 @@ public class WeeklyMenuImportParserTests
     public void WeeklyMenuTemplateBuilder_Should_CreateDistinctCustomerLayouts_ForAnvAndDav()
     {
         var buildMethod = typeof(SampleDataImportService).Assembly
-            .GetType("IPCManagement.Api.Services.SampleData.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         buildMethod.Should().NotBeNull();
 
@@ -217,7 +217,7 @@ public class WeeklyMenuImportParserTests
     public void WeeklyMenuTemplateBuilder_Should_BorderEveryCellInMergedFruitRows()
     {
         var buildMethod = typeof(SampleDataImportService).Assembly
-            .GetType("IPCManagement.Api.Services.SampleData.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var bytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
 
@@ -243,7 +243,7 @@ public class WeeklyMenuImportParserTests
     public void ParseWeeklyMenuWorkbook_Should_AcceptPopulatedGeneratedSharedLayout()
     {
         var buildMethod = typeof(SampleDataImportService).Assembly
-            .GetType("IPCManagement.Api.Services.SampleData.WeeklyMenuTemplateWorkbookBuilder")!
+            .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var generatedBytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
         var populatedBytes = PopulateGeneratedTemplate(generatedBytes, new Dictionary<string, string>
