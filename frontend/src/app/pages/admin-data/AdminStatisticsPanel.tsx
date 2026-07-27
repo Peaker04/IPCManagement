@@ -1,40 +1,37 @@
 import { BarChart3, PackageCheck, TrendingUp } from 'lucide-react';
-import { TableViewport, PaginationBar, PaginatedTableFrame, QueryErrorAlert, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, PaginationBar, PaginatedTableFrame, SectionPanel, StatusBadge } from '@/components/common';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
-const UNKNOWN_KPI_LABEL = 'Chưa xác định';
 const renderKpiStatus = (
-  hasError: boolean,
   isAlert: boolean,
   alertLabel: string,
   okLabel: string,
   alertTone: 'danger' | 'warning' | 'neutral' = 'danger',
 ) => (
-  <StatusBadge variant={hasError ? 'danger' : isAlert ? alertTone : 'success'}>
-    {hasError ? UNKNOWN_KPI_LABEL : isAlert ? alertLabel : okLabel}
+  <StatusBadge variant={isAlert ? alertTone : 'success'}>
+    {isAlert ? alertLabel : okLabel}
   </StatusBadge>
 );
 
 type AdminStatisticsPanelProps = { model: AdminDataPageModel };
 
 export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
-  const { currentStockPage, currentStockPageResponse, currentStockRows, effectiveActiveView, isFetchingOperationalKpis, isIngredientDemandError, isOperationalKpisError, isPurchasePlanError, operationalKpis, priceVariancePage, priceWarningCount, priceWarningPage, priceWarnings, refetchOperationalKpis, setCurrentStockPage, setPriceWarningPage, shortageCount, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty } = model;
+  const { currentStockPage, currentStockPageResponse, currentStockRows, effectiveActiveView, operationalKpis, priceVariancePage, priceWarningCount, priceWarningPage, priceWarnings, queryViews, setCurrentStockPage, setPriceWarningPage, shortageCount, totalIssuedQty, totalPurchaseQty, totalReturnedQty, totalUsedQty } = model;
   return (
     <>
       {effectiveActiveView === 'statistics' && (
         <div id="admin-statistics-panel" role="tabpanel" aria-labelledby="admin-statistics-tab" className="flex flex-col gap-4">
-          {isOperationalKpisError && (
-            <QueryErrorAlert
-              title="Không tải được chỉ số vận hành"
-              isRetrying={isFetchingOperationalKpis}
-              onRetry={refetchOperationalKpis}
-            >
-              Các chỉ số lấy từ API này đang hiển thị “{UNKNOWN_KPI_LABEL}”. Không được đọc chúng như số 0 thật.
-            </QueryErrorAlert>
-          )}
+          <AdminQueryBoundary queries={[
+            { label: 'KPI vận hành', view: queryViews.operationalKpis },
+            { label: 'nhu cầu nguyên liệu', view: queryViews.ingredientDemand },
+            { label: 'kế hoạch thu mua', view: queryViews.purchasePlan },
+            { label: 'tồn kho hiện tại', view: queryViews.currentStock },
+            { label: 'cảnh báo giá', view: queryViews.priceVariance },
+          ]}>
           <SectionPanel title="Thống kê vận hành cho Admin" icon={<BarChart3 size={18} />}>
             <TableViewport caption="Chỉ số thống kê vận hành cho Admin" ariaLabel="Bảng chỉ số thống kê vận hành">
               <table className="ipc-data-table ipc-status-action-table">
@@ -50,65 +47,65 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
                 <tbody>
                   <tr>
                     <td className="font-semibold">Workflow thất bại</td>
-                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.failedWorkflowCount ?? 0} bản ghi`}</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.failedWorkflowCount ?? 0} bản ghi</td>
                     <td className="text-left">Import, nhu cầu hoặc mua hàng đang ở trạng thái FAILED/IMPORT_FAILED.</td>
                     <td className="ipc-badge-cell">
-                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
+                      {renderKpiStatus(Boolean(operationalKpis?.failedWorkflowCount), 'Cần điều tra', 'Ổn định')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.REPORTS}>Mở báo cáo</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Data quality critical</td>
-                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.criticalDataQualityCount ?? 0} lỗi`}</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.criticalDataQualityCount ?? 0} lỗi</td>
                     <td className="text-left">Issue mức error cần xử lý trước khi tiếp tục luồng production.</td>
                     <td className="ipc-badge-cell">
-                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
+                      {renderKpiStatus(Boolean(operationalKpis?.criticalDataQualityCount), 'Đang chặn', 'Đạt')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={`${ROUTES.ADMIN_DATA}?view=cleanup`}>Mở data quality</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Approval chờ lâu</td>
-                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${operationalKpis?.overdueApprovalCount ?? 0} phiếu`}</td>
+                    <td className="ipc-numeric-cell">{operationalKpis?.overdueApprovalCount ?? 0} phiếu</td>
                     <td className="text-left">Phiếu chưa có quyết định sau 24 giờ hoặc đã qua ngày yêu cầu.</td>
                     <td className="ipc-badge-cell">
-                      {renderKpiStatus(isOperationalKpisError, Boolean(operationalKpis?.overdueApprovalCount), 'Quá SLA', 'Trong SLA', 'warning')}
+                      {renderKpiStatus(Boolean(operationalKpis?.overdueApprovalCount), 'Quá SLA', 'Trong SLA', 'warning')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.APPROVALS}>Mở phê duyệt</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Nhu cầu nguyên liệu</td>
-                    <td className="ipc-numeric-cell">{isIngredientDemandError ? UNKNOWN_KPI_LABEL : `${shortageCount} dòng thiếu`}</td>
+                    <td className="ipc-numeric-cell">{shortageCount} dòng thiếu</td>
                     <td className="text-left">Tổng hợp sau bước hệ thống tính nhu cầu trước khi kiểm tồn.</td>
                     <td className="ipc-badge-cell">
-                      {renderKpiStatus(isIngredientDemandError, shortageCount > 0, 'Cần xử lý', 'Đủ tồn')}
+                      {renderKpiStatus(shortageCount > 0, 'Cần xử lý', 'Đủ tồn')}
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Mở mua thêm</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Mua hàng</td>
-                    <td className="ipc-numeric-cell">{isPurchasePlanError ? UNKNOWN_KPI_LABEL : `${totalPurchaseQty.toLocaleString('vi-VN')} đơn vị`}</td>
+                    <td className="ipc-numeric-cell">{totalPurchaseQty.toLocaleString('vi-VN')} đơn vị</td>
                     <td className="text-left">Kế hoạch thu mua dự kiến theo ngày từ demand, tồn kho và pending receipt.</td>
-                    <td className="ipc-badge-cell">{renderKpiStatus(isPurchasePlanError, totalPurchaseQty > 0, 'Có phát sinh', 'Không phát sinh', 'warning')}</td>
+                    <td className="ipc-badge-cell">{renderKpiStatus(totalPurchaseQty > 0, 'Có phát sinh', 'Không phát sinh', 'warning')}</td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.PURCHASING}>Theo dõi thu mua</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Xuất bếp</td>
-                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${totalIssuedQty.toLocaleString('vi-VN')} đơn vị`}</td>
+                    <td className="ipc-numeric-cell">{totalIssuedQty.toLocaleString('vi-VN')} đơn vị</td>
                     <td className="text-left">Theo phiếu xuất kho cho bếp, phục vụ kiểm tra luồng thủ kho.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={isOperationalKpisError ? 'danger' : totalIssuedQty > 0 ? 'neutral' : 'warning'}>
-                        {isOperationalKpisError ? UNKNOWN_KPI_LABEL : totalIssuedQty > 0 ? 'Đã ghi nhận' : 'Chưa có phiếu'}
+                      <StatusBadge variant={totalIssuedQty > 0 ? 'neutral' : 'warning'}>
+                        {totalIssuedQty > 0 ? 'Đã ghi nhận' : 'Chưa có phiếu'}
                       </StatusBadge>
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.WAREHOUSE}>Mở kho</Link></td>
                   </tr>
                   <tr>
                     <td className="font-semibold">Sử dụng thực tế</td>
-                    <td className="ipc-numeric-cell">{isOperationalKpisError ? UNKNOWN_KPI_LABEL : `${totalUsedQty.toLocaleString('vi-VN')} dùng / ${totalReturnedQty.toLocaleString('vi-VN')} hoàn`}</td>
+                    <td className="ipc-numeric-cell">{totalUsedQty.toLocaleString('vi-VN')} dùng / {totalReturnedQty.toLocaleString('vi-VN')} hoàn</td>
                     <td className="text-left">Ghép xuất kho và hoàn kho để tránh tách trùng bước kiểm nguyên liệu dư.</td>
                     <td className="ipc-badge-cell">
-                      <StatusBadge variant={isOperationalKpisError ? 'danger' : totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>
-                        {isOperationalKpisError ? UNKNOWN_KPI_LABEL : totalUsedQty > 0 || totalReturnedQty > 0 ? 'Có đối chiếu' : 'Chưa có dữ liệu'}
+                      <StatusBadge variant={totalUsedQty > 0 || totalReturnedQty > 0 ? 'success' : 'neutral'}>
+                        {totalUsedQty > 0 || totalReturnedQty > 0 ? 'Có đối chiếu' : 'Chưa có dữ liệu'}
                       </StatusBadge>
                     </td>
                     <td><Link className="ipc-button ipc-button-ghost ipc-button-bounded" to={ROUTES.CHEF_DASHBOARD}>Mở bếp trưởng</Link></td>
@@ -188,6 +185,7 @@ export function AdminStatisticsPanel({ model }: AdminStatisticsPanelProps) {
               onPageChange={setPriceWarningPage}
             />
           </SectionPanel>
+          </AdminQueryBoundary>
         </div>
       )}
 

@@ -1,26 +1,21 @@
 import { CalendarCheck, Pencil, PlusCircle, Save } from 'lucide-react';
-import { TableViewport, ContextStrip, QueryErrorAlert, SectionPanel, StatusBadge } from '@/components/common';
+import { TableViewport, ContextStrip, SectionPanel, StatusBadge } from '@/components/common';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminContractsPanelProps = { model: AdminDataPageModel };
 
 export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
-  const { contractFeedback, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
+  const { contractFeedback, contractForm, customerContracts, effectiveActiveView, handleSaveCustomerContract, handleSaveScheduleRules, handleUpdateScheduleVersion, isCreatingContract, isSavingContract, loadContractForm, loadScheduleRuleForm, menuSchedules, queryViews, scheduleRuleForm, selectedContract, selectedSchedule, setContractForm, setIsCreatingContract, setScheduleRuleForm, setSelectedContractCustomerId, setSelectedScheduleId, startNewContract } = model;
   return (
     <>
       {effectiveActiveView === 'contracts' && (
         <div id="admin-contracts-panel" role="tabpanel" aria-labelledby="admin-contracts-tab" className="flex flex-col gap-4">
-          {model.queryErrors.contracts.isError && (
-            <QueryErrorAlert title="Không tải được customer contract" onRetry={model.queryErrors.contracts.refetch}>
-              Không thể coi danh sách contract đang trống. Kiểm tra kết nối rồi thử lại.
-            </QueryErrorAlert>
-          )}
-          {model.queryErrors.schedules.isError && (
-            <QueryErrorAlert title="Không tải được lịch thực đơn" onRetry={model.queryErrors.schedules.refetch}>
-              Không thể chỉnh quy tắc hoặc trạng thái version khi lịch thực đơn chưa tải được.
-            </QueryErrorAlert>
-          )}
+          <AdminQueryBoundary queries={[
+            { label: 'customer contract', view: queryViews.contracts },
+            ...(selectedContract ? [{ label: 'lịch thực đơn', view: queryViews.menuSchedules }] : []),
+          ]}>
           <SectionPanel title="Customer contract và quy tắc suất ăn" icon={<CalendarCheck size={18} />}>
             <ContextStrip
               items={[
@@ -313,6 +308,7 @@ export function AdminContractsPanel({ model }: AdminContractsPanelProps) {
               </div>
             </div>
           </SectionPanel>
+          </AdminQueryBoundary>
         </div>
       )}
 

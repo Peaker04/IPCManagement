@@ -4,16 +4,18 @@ import { Link } from 'react-router-dom';
 import { ROUTES } from '@/lib/routeConfig';
 import { AdminEmptyRow as EmptyRow } from './AdminEmptyRow';
 import type { AdminDataPageModel } from './useAdminDataPageModel';
+import { AdminQueryBoundary } from './AdminQueryBoundary';
 
 type AdminCleanupPanelProps = { model: AdminDataPageModel };
 
 export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
-  const { dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
+  const { dataQualityErrorCount, dataQualityFeedback, dataQualityIssues, dataQualityReport, effectiveActiveView, handleDataQualityRemediation, qualityPage, queryViews, setActiveView, setQualityPage, updateDataQualityIssueRemediationState } = model;
   return (
     <>
       {effectiveActiveView === 'cleanup' && (
         <div id="admin-cleanup-panel" role="tabpanel" aria-labelledby="admin-cleanup-tab" className="flex flex-col gap-4">
           <SectionPanel title="Kiểm tra dữ liệu lỗi" icon={<XCircle size={18} />}>
+            <AdminQueryBoundary queries={[{ label: 'chất lượng dữ liệu', view: queryViews.dataQuality }]}>
             <ContextStrip
               items={[
                 { label: 'Tổng lỗi', value: `${dataQualityErrorCount}`, tone: dataQualityErrorCount ? 'danger' : 'success' },
@@ -114,6 +116,7 @@ export function AdminCleanupPanel({ model }: AdminCleanupPanelProps) {
               totalItems={dataQualityReport?.page.totalCount ?? 0}
               onPageChange={setQualityPage}
             />
+            </AdminQueryBoundary>
           </SectionPanel>
         </div>
       )}

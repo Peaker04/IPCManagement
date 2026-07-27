@@ -4,6 +4,7 @@ import {
   OperationalFrame,
   SectionPanel,
   CommandBar,
+  InlineAlert,
   QueryErrorAlert,
   StatusBadge,
   useToast,
@@ -13,6 +14,7 @@ import { useGetAdminEmployeesQuery, type AdminEmployee } from '@/features/admin/
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toQueryView } from '@/lib/queryView';
 
 interface RuleAssignmentForm {
   sequence: number;
@@ -54,11 +56,29 @@ const formatApproverRole = (value: string) => approverRoleLabels[value] ?? value
 
 export default function ApprovalRulesPage() {
   const { toast } = useToast();
-  const { data: rulesResponse, isLoading: isLoadingRules, isFetching: isFetchingRules, isError: isRulesError, refetch: refetchRules } = useGetApprovalRulesQuery();
-  const rules = rulesResponse?.data ?? [];
+  const rulesQuery = useGetApprovalRulesQuery();
+  const rulesView = toQueryView(rulesQuery, {
+    instruction: 'Mở trang thiết lập duyệt để tải quy tắc phê duyệt.',
+    retry: () => rulesQuery.refetch(),
+    errorMessage: 'Không tải được quy tắc phê duyệt.',
+    forbiddenMessage: 'Bạn không có quyền xem quy tắc phê duyệt.',
+  });
+  const rules = rulesView.phase === 'ready' ? rulesView.data.data ?? [] : [];
 
-  const { data: employeesResponse } = useGetAdminEmployeesQuery({ pageNumber: 1, pageSize: 200 });
-  const employees = employeesResponse?.data?.items ?? [];
+  const employeesQuery = useGetAdminEmployeesQuery({ pageNumber: 1, pageSize: 200 });
+  const employeesView = toQueryView(employeesQuery, {
+    instruction: 'Mở biểu mẫu quy tắc để tải danh sách nhân viên.',
+    retry: () => employeesQuery.refetch(),
+    errorMessage: 'Không tải được danh sách nhân viên chỉ định.',
+    forbiddenMessage: 'Bạn không có quyền xem danh sách nhân viên chỉ định.',
+    getTruncation: (response) => {
+      const page = response.data;
+      return page && page.items.length < page.totalCount
+        ? { shown: page.items.length, total: page.totalCount }
+        : null;
+    },
+  });
+  const employees = employeesView.phase === 'ready' ? employeesView.data.data?.items ?? [] : [];
 
   const [createRule, { isLoading: isCreating }] = useCreateApprovalRuleMutation();
   const [updateRule, { isLoading: isUpdating }] = useUpdateApprovalRuleMutation();
@@ -217,20 +237,33 @@ export default function ApprovalRulesPage() {
     >
       <div className="p-4 space-y-6">
         <SectionPanel title="Danh sách các quy tắc phê duyệt" icon={<Layers size={18} />}>
-          {isLoadingRules ? (
-            <div className="p-8 text-center text-slate-500">Đang tải cấu hình...</div>
-          ) : isRulesError ? (
+          {rulesView.phase === 'forbidden' ? (
+            <InlineAlert title="Không có quyền xem quy tắc phê duyệt" variant="danger">
+              <span role="alert">{rulesView.message}</span>
+            </InlineAlert>
+          ) : rulesView.phase === 'error' ? (
             <QueryErrorAlert
               title="Không tải được quy tắc phê duyệt"
-              isRetrying={isFetchingRules}
-              onRetry={refetchRules}
+              isRetrying={rulesView.isRetrying}
+              onRetry={rulesView.retry}
             >
               Chưa thể phân biệt lỗi kết nối với trường hợp chưa cấu hình quy tắc. Hãy thử tải lại trước khi tạo hoặc sửa luồng duyệt.
             </QueryErrorAlert>
-          ) : rules.length === 0 ? (
-            <div className="p-8 text-center text-slate-500 italic">Chưa có quy tắc phê duyệt nào được thiết lập.</div>
+          ) : rulesView.phase === 'uninitialized' ? (
+            <InlineAlert title="Chưa khởi tạo quy tắc phê duyệt" variant="info">{rulesView.instruction}</InlineAlert>
+          ) : rulesView.phase === 'loading' ? (
+            <div className="p-8 text-center text-slate-500">Đang tải cấu hình...</div>
           ) : (
-            <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
+            <>
+              {rulesView.isRefreshing && (
+                <InlineAlert title="Đang cập nhật quy tắc phê duyệt" variant="info">
+                  Danh sách hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+                </InlineAlert>
+              )}
+              {rules.length === 0 ? (
+                <div className="p-8 text-center text-slate-500 italic">Chưa có quy tắc phê duyệt nào được thiết lập.</div>
+              ) : (
+                <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
               {rules.map((rule: ApprovalRuleDto) => (
                 <div key={rule.ruleId ?? rule.ruleName} className="border border-slate-200 rounded-lg p-4 bg-white shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
                   <div className="space-y-2">
@@ -282,7 +315,9 @@ export default function ApprovalRulesPage() {
                   </div>
                 </div>
               ))}
-            </div>
+                </div>
+              )}
+            </>
           )}
         </SectionPanel>
       </div>
@@ -357,6 +392,35 @@ export default function ApprovalRulesPage() {
                 </button>
               </div>
 
+              {employeesView.phase === 'forbidden' ? (
+                <InlineAlert title="Không có quyền xem nhân viên chỉ định" variant="danger">
+                  <span role="alert">{employeesView.message}</span>
+                </InlineAlert>
+              ) : employeesView.phase === 'error' ? (
+                <QueryErrorAlert
+                  title="Không tải được nhân viên chỉ định"
+                  isRetrying={employeesView.isRetrying}
+                  onRetry={employeesView.retry}
+                >
+                  Vẫn có thể chọn vai trò chung, nhưng chưa thể chọn một nhân viên cụ thể.
+                </QueryErrorAlert>
+              ) : employeesView.phase === 'uninitialized' ? (
+                <InlineAlert title="Chưa khởi tạo danh sách nhân viên" variant="info">{employeesView.instruction}</InlineAlert>
+              ) : employeesView.phase === 'loading' ? (
+                <InlineAlert title="Đang tải nhân viên chỉ định" variant="info">Danh sách nhân viên đang được đồng bộ.</InlineAlert>
+              ) : employeesView.phase === 'ready' ? (
+                <>
+                  {employeesView.isRefreshing && (
+                    <InlineAlert title="Đang cập nhật nhân viên" variant="info">Các lựa chọn hiện tại vẫn được giữ.</InlineAlert>
+                  )}
+                  {employeesView.truncation && (
+                    <InlineAlert title="Danh sách nhân viên bị giới hạn" variant="warning">
+                      Đang hiển thị {employeesView.truncation.shown}/{employeesView.truncation.total ?? '?'} nhân viên. Hãy thu hẹp phạm vi trước khi chỉ định.
+                    </InlineAlert>
+                  )}
+                </>
+              ) : null}
+
               <div className="space-y-3">
                 {assignments.map((assignment, idx) => (
                   <div key={idx} className="flex flex-col items-stretch gap-3 rounded-md border border-slate-100 bg-slate-50/50 p-3 sm:flex-row sm:items-center">
@@ -382,6 +446,7 @@ export default function ApprovalRulesPage() {
                         <select
                           value={assignment.approverUserId}
                           onChange={e => handleAssignmentChange(idx, 'approverUserId', e.target.value)}
+                          disabled={employeesView.phase !== 'ready'}
                           className="w-full h-8 px-2 rounded border border-slate-200 text-xs bg-white focus:outline-none focus:ring-1 focus:ring-slate-900"
                         >
                           <option value="">Gửi chung cho cả vai trò</option>
