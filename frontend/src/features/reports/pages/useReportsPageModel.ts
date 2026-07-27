@@ -6,6 +6,8 @@ import { type StockMovement } from '@/types/workflow';
 import { toNextReportCursor, type ReportCursor } from '@/api/workflowApi';
 import { uiCopy } from '@/lib/uiCopy';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
+import { toQueryView, type QuerySnapshot } from '@/lib/queryView';
+import { buildCsv, downloadCsv } from './reportCsv';
 
 export type ReportView = 'price' | 'demand' | 'purchase' | 'stock' | 'movement' | 'kitchen' | 'usage' | 'audit' | 'data-quality';
 
@@ -27,29 +29,6 @@ export const movementTypeLabel: Record<StockMovement['type'], string> = {
   supplemental: 'Xuất bổ sung',
   return: 'Trả kho',
   adjustment: 'Điều chỉnh',
-};
-
-const escapeCsvValue = (value: unknown) => {
-  const text = value == null ? '' : String(value);
-  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
-};
-
-const buildCsv = <T,>(rows: T[], columns: Array<[string, (row: T) => unknown]>) => {
-  const headerLine = columns.map(([label]) => escapeCsvValue(label)).join(',');
-  const rowLines = rows.map((row) => columns.map(([, getValue]) => escapeCsvValue(getValue(row))).join(','));
-  return ['﻿' + headerLine, ...rowLines].join('\r\n');
-};
-
-const downloadCsv = (csv: string, filename: string) => {
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
 };
 
 export type PriceSubView = 'lines' | 'supplier' | 'period' | 'dishGroup';
@@ -74,6 +53,11 @@ const readPageSize = (value: string | null, fallback: number, options: readonly 
   const parsed = readPositiveInteger(value, fallback);
   return options.includes(parsed) ? parsed : fallback;
 };
+
+const toReportView = <T,>(query: QuerySnapshot<T> & { refetch: () => unknown }, label: string) => toQueryView(query, {
+  instruction: `Mở báo cáo ${label} để tải dữ liệu.`, retry: () => query.refetch(),
+  errorMessage: `Không tải được báo cáo ${label}.`, forbiddenMessage: `Bạn không có quyền xem báo cáo ${label}.`,
+});
 
 type ReportsPagePermissions = {
   canReadAuditChanges: boolean;
@@ -228,9 +212,6 @@ export const useReportsPageModel = ({
   const priceVarianceBySupplierResult = useGetPriceVarianceBySupplierPageQuery({ ...reportQuery, pageNumber: supplierPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'supplier' });
   const priceVarianceByPeriodResult = useGetPriceVarianceByPeriodPageQuery({ ...reportQuery, pageNumber: periodPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'period' });
   const priceVarianceByDishGroupResult = useGetPriceVarianceByDishGroupPageQuery({ ...reportQuery, pageNumber: dishGroupPage, pageSize: priceAggregatePageSize }, { skip: activeView !== 'price' || priceSubView !== 'dishGroup' });
-  const priceVarianceBySupplierRows = priceVarianceBySupplierResult.data?.items ?? [];
-  const priceVarianceByPeriodRows = priceVarianceByPeriodResult.data?.items ?? [];
-  const priceVarianceByDishGroupRows = priceVarianceByDishGroupResult.data?.items ?? [];
   const ingredientDemandResult = useGetIngredientDemandPageQuery({
     ...reportQuery,
     pageNumber: demandPage,
@@ -269,45 +250,61 @@ export const useReportsPageModel = ({
   }, { skip: activeView !== 'audit' });
   const dataQualityResult = useGetDataQualityPageQuery({ ...reportQuery, pageNumber: dataQualityPage, pageSize: operationalPageSize }, { skip: activeView !== 'data-quality' });
 
-  const priceVarianceRows = activeView === 'price' && priceSubView === 'lines' ? priceVarianceResult.data?.items ?? [] : [];
-  const ingredientDemandRows = ingredientDemandResult.data?.items ?? [];
-  const purchasePlanRows = purchasePlanResult.data?.items ?? [];
+  const priceVarianceView = toReportView(priceVarianceResult, 'biến động giá theo dòng nhập');
+  const priceVarianceBySupplierView = toReportView(priceVarianceBySupplierResult, 'biến động giá theo nhà cung cấp');
+  const priceVarianceByPeriodView = toReportView(priceVarianceByPeriodResult, 'biến động giá theo thời gian');
+  const priceVarianceByDishGroupView = toReportView(priceVarianceByDishGroupResult, 'biến động giá theo nhóm món');
+  const ingredientDemandView = toReportView(ingredientDemandResult, 'nhu cầu nguyên liệu');
+  const purchasePlanView = toReportView(purchasePlanResult, 'kế hoạch thu mua');
+  const currentStockView = toReportView(currentStockResult, 'tồn kho hiện tại');
+  const stockMovementView = toReportView(stockMovementResult, 'nhập xuất kho');
+  const kitchenIssueView = toReportView(kitchenIssueResult, 'xuất kho cho bếp');
+  const usageView = toReportView(usageResult, 'sử dụng thực tế');
+  const auditView = toReportView(auditResult, 'nhật ký thay đổi');
+  const dataQualityView = toReportView(dataQualityResult, 'chất lượng dữ liệu');
+
+  const priceVarianceBySupplierRows = priceVarianceBySupplierView.phase === 'ready' ? priceVarianceBySupplierView.data.items : [];
+  const priceVarianceByPeriodRows = priceVarianceByPeriodView.phase === 'ready' ? priceVarianceByPeriodView.data.items : [];
+  const priceVarianceByDishGroupRows = priceVarianceByDishGroupView.phase === 'ready' ? priceVarianceByDishGroupView.data.items : [];
+  const priceVarianceRows = priceVarianceView.phase === 'ready' ? priceVarianceView.data.items : [];
+  const ingredientDemandRows = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data.items : [];
+  const purchasePlanRows = purchasePlanView.phase === 'ready' ? purchasePlanView.data.items : [];
   const purchasePlanSummary = {
-    rowCount: purchasePlanResult.data?.totalCount ?? 0,
-    totalShortageQty: purchasePlanResult.data?.totalShortageQty ?? 0,
-    totalEstimatedAmount: purchasePlanResult.data?.totalEstimatedAmount ?? 0,
-    shortageTone: (purchasePlanResult.data?.totalShortageQty ?? 0) > 0 ? 'danger' as const : 'success' as const,
+    rowCount: purchasePlanView.phase === 'ready' ? purchasePlanView.data.totalCount : 0,
+    totalShortageQty: purchasePlanView.phase === 'ready' ? purchasePlanView.data.totalShortageQty : 0,
+    totalEstimatedAmount: purchasePlanView.phase === 'ready' ? purchasePlanView.data.totalEstimatedAmount : 0,
+    shortageTone: purchasePlanView.phase === 'ready' && purchasePlanView.data.totalShortageQty > 0 ? 'danger' as const : 'success' as const,
   };
-  const currentStockRows = currentStockResult.data?.items ?? [];
-  const stockMovementRows = stockMovementResult.data?.items ?? [];
-  const kitchenIssueRows = kitchenIssueResult.data?.items ?? [];
-  const usageRows = usageResult.data?.items ?? [];
-  const auditRows = auditResult.data?.items ?? [];
-  const dataQualityReport = dataQualityResult.data;
+  const currentStockRows = currentStockView.phase === 'ready' ? currentStockView.data.items : [];
+  const stockMovementRows = stockMovementView.phase === 'ready' ? stockMovementView.data.items : [];
+  const kitchenIssueRows = kitchenIssueView.phase === 'ready' ? kitchenIssueView.data.items : [];
+  const usageRows = usageView.phase === 'ready' ? usageView.data.items : [];
+  const auditRows = auditView.phase === 'ready' ? auditView.data.items : [];
+  const dataQualityReport = dataQualityView.phase === 'ready' ? dataQualityView.data : undefined;
   const dataQualityRows = dataQualityReport?.page.items ?? [];
 
   const warningItems = priceVarianceRows.filter((item) => item.warning);
   const selectedWarning = warningItems[0];
-  const shortageCount = ingredientDemandResult.data?.shortageCount ?? 0;
-  const activePriceResult = priceSubView === 'supplier'
-    ? priceVarianceBySupplierResult
+  const shortageCount = ingredientDemandView.phase === 'ready' ? ingredientDemandView.data.shortageCount : 0;
+  const activePriceView = priceSubView === 'supplier'
+    ? priceVarianceBySupplierView
     : priceSubView === 'period'
-      ? priceVarianceByPeriodResult
+      ? priceVarianceByPeriodView
       : priceSubView === 'dishGroup'
-        ? priceVarianceByDishGroupResult
-        : priceVarianceResult;
-  const reportStates: Record<ReportView, { isFetching: boolean; isError: boolean; refetch: () => unknown }> = {
-    price: activePriceResult,
-    demand: ingredientDemandResult,
-    purchase: purchasePlanResult,
-    stock: currentStockResult,
-    movement: stockMovementResult,
-    kitchen: kitchenIssueResult,
-    usage: usageResult,
-    audit: auditResult,
-    'data-quality': dataQualityResult,
+        ? priceVarianceByDishGroupView
+        : priceVarianceView;
+  const reportViews = {
+    price: activePriceView,
+    demand: ingredientDemandView,
+    purchase: purchasePlanView,
+    stock: currentStockView,
+    movement: stockMovementView,
+    kitchen: kitchenIssueView,
+    usage: usageView,
+    audit: auditView,
+    'data-quality': dataQualityView,
   };
-  const activeReportState = reportStates[activeView];
+  const activeReportView = reportViews[activeView];
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any -- each entry's rows/columns are paired per report view; a shared row type would be unsound here.
   const exportConfig: Record<ReportView, { filename: string; rows: unknown[]; columns: Array<[string, (row: any) => unknown]> }> = {
@@ -448,12 +445,16 @@ export const useReportsPageModel = ({
   };
 
   const openNextMovementPage = () => {
-    const nextCursor = stockMovementResult.data?.hasNext ? toNextReportCursor(stockMovementResult.data) : null;
+    const nextCursor = stockMovementView.phase === 'ready' && stockMovementView.data.hasNext
+      ? toNextReportCursor(stockMovementView.data)
+      : null;
     if (nextCursor) setMovementCursors((current) => [...current, nextCursor]);
   };
 
   const openNextAuditPage = () => {
-    const nextCursor = auditResult.data?.hasNext ? toNextReportCursor(auditResult.data) : null;
+    const nextCursor = auditView.phase === 'ready' && auditView.data.hasNext
+      ? toNextReportCursor(auditView.data)
+      : null;
     if (nextCursor) setAuditCursors((current) => [...current, nextCursor]);
   };
 
@@ -461,20 +462,20 @@ export const useReportsPageModel = ({
   // không được đọc dữ liệu đó là đánh lừa người dùng, không phải trạng thái thật.
   const reportContextItems: ContextStripItem[] = [
     ...(canReadReceiptPriceVariance
-      ? [{ label: 'Cảnh báo giá', value: warningItems.length.toString(), tone: warningItems.length ? 'danger' as const : 'success' as const }]
+      ? [{ label: 'Cảnh báo giá', value: priceVarianceView.phase === 'ready' ? warningItems.length.toString() : '—', tone: priceVarianceView.phase !== 'ready' ? 'neutral' as const : warningItems.length ? 'danger' as const : 'success' as const }]
       : []),
-    { label: 'Thiếu nguyên liệu', value: shortageCount.toString(), tone: shortageCount ? 'danger' : 'success' },
-    { label: 'Dòng tồn kho', value: (currentStockResult.data?.totalCount ?? currentStockRows.length).toString(), tone: 'neutral' },
+    { label: 'Thiếu nguyên liệu', value: ingredientDemandView.phase === 'ready' ? shortageCount.toString() : '—', tone: ingredientDemandView.phase !== 'ready' ? 'neutral' : shortageCount ? 'danger' : 'success' },
+    { label: 'Dòng tồn kho', value: currentStockView.phase === 'ready' ? currentStockView.data.totalCount.toString() : '—', tone: 'neutral' },
     ...(canReadAuditChanges
-      ? [{ label: uiCopy.reports.audit, value: auditRows.length.toString(), tone: 'neutral' as const }]
+      ? [{ label: uiCopy.reports.audit, value: auditView.phase === 'ready' ? auditRows.length.toString() : '—', tone: 'neutral' as const }]
       : []),
-    { label: uiCopy.reports.dataQuality, value: (dataQualityReport?.totalIssues ?? 0).toString(), tone: dataQualityRows.length ? 'warning' : 'success' },
+    { label: uiCopy.reports.dataQuality, value: dataQualityView.phase === 'ready' ? dataQualityView.data.totalIssues.toString() : '—', tone: dataQualityView.phase !== 'ready' ? 'neutral' : dataQualityRows.length ? 'warning' : 'success' },
   ];
 
 
   return {
-    activePriceResult,
-    activeReportState,
+    activePriceView,
+    activeReportView,
     activeView,
     auditCursor,
     auditCursors,
@@ -533,7 +534,7 @@ export const useReportsPageModel = ({
     reportContextItems,
     reportPageSize,
     reportQuery,
-    reportStates,
+    reportViews,
     requestedPriceSubView,
     requestedView,
     resetCursorPages,
