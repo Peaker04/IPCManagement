@@ -1,7 +1,6 @@
-
 using IPCManagement.Api.Features.Planning.Contracts;
 
-namespace IPCManagement.Api.Features.Purchasing.Services;
+namespace IPCManagement.Api.Features.Planning.Services;
 
 public interface IMaterialDemandService
 {

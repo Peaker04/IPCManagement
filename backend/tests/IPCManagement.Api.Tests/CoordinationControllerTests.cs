@@ -9,6 +9,7 @@ using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Controllers;
 using IPCManagement.Api.Features.Coordination.Services;
 using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Controllers;
 using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
@@ -28,10 +29,9 @@ public class CoordinationControllerTests
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.")));
 
-        var controller = new CoordinationController(
-            Substitute.For<ICoordinationService>(),
-            Substitute.For<ICurrentUserService>(),
-            sampleDataImportService);
+        var controller = new WeeklyMenuImportsController(
+            sampleDataImportService,
+            Substitute.For<ICurrentUserService>());
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "menu.xlsx");
 
@@ -59,10 +59,9 @@ public class CoordinationControllerTests
         var currentUserService = Substitute.For<ICurrentUserService>();
         currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
 
-        var controller = new CoordinationController(
-            Substitute.For<ICoordinationService>(),
-            currentUserService,
-            sampleDataImportService);
+        var controller = new WeeklyMenuImportsController(
+            sampleDataImportService,
+            currentUserService);
 
         var file = new FormFile(new MemoryStream(Encoding.UTF8.GetBytes("test")), 0, 4, "file", "broken.xlsx");
 
@@ -88,8 +87,7 @@ public class CoordinationControllerTests
 
         var controller = new CoordinationController(
             coordinationService,
-            currentUserService,
-            Substitute.For<ISampleDataImportService>());
+            currentUserService);
 
         var result = await controller.UpdateForecastServingsAsync(
             Guid.NewGuid().ToString(),
