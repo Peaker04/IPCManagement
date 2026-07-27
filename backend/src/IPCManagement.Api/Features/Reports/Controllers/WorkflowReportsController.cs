@@ -37,30 +37,6 @@ public class WorkflowReportsController : ControllerBase
         _cache = cache;
     }
 
-    [HttpGet("current-stock")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCurrentStockAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<CurrentStockSummaryDto>>.SuccessResult(
-            await _workflowReportService.GetCurrentStockAsync(query)));
-
-    [HttpGet("current-stock/page")]
-    [ProducesResponseType(typeof(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetCurrentStockPageAsync([FromQuery] CurrentStockPageQueryDto query)
-        => Ok(ApiResponse<PagedResponseDto<CurrentStockSummaryDto>>.SuccessResult(
-            await _workflowReportService.GetCurrentStockPageAsync(query)));
-
-    [HttpGet("stock-movements")]
-    [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockMovementViewDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStockMovementsAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<IReadOnlyList<StockMovementViewDto>>.SuccessResult(
-            await _workflowReportService.GetStockMovementsAsync(query)));
-
-    [HttpGet("stock-movements/page")]
-    [ProducesResponseType(typeof(ApiResponse<CursorPageDto<StockMovementViewDto>>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetStockMovementPageAsync([FromQuery] WorkflowReportQueryDto query)
-        => Ok(ApiResponse<CursorPageDto<StockMovementViewDto>>.SuccessResult(
-            await _workflowReportService.GetStockMovementPageAsync(query)));
-
     [HttpGet("stock-ledger-reconciliation")]
     [ProducesResponseType(typeof(ApiResponse<IReadOnlyList<StockLedgerReconciliationDto>>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetStockLedgerReconciliationAsync([FromQuery] WorkflowReportQueryDto query)

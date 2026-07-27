@@ -4033,7 +4033,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new StockMovementReportService(context);
         var defaultRows = await service.GetStockMovementsAsync(new WorkflowReportQueryDto { Limit = 10 });
 
         defaultRows.Should().ContainSingle(row => row.Note == "recent");
@@ -4114,7 +4114,7 @@ public class WorkflowGenerationTests
             });
         await context.SaveChangesAsync();
 
-        var service = new WorkflowReportService(context);
+        var service = new StockMovementReportService(context);
         var firstPage = await service.GetStockMovementsAsync(new WorkflowReportQueryDto
         {
             DateFrom = "2026-07-01",
