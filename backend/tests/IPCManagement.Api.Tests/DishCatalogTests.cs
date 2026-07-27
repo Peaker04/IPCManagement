@@ -1,14 +1,10 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Middlewares;
-using IPCManagement.Api.Models.DTOs.Dish;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.SampleData;
 using Microsoft.Data.Sqlite;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Hosting;
@@ -21,6 +17,10 @@ using System.IO.Compression;
 using System.Text;
 using System.Xml.Linq;
 using Xunit;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Controllers;
+using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 

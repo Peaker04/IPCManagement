@@ -1,6 +1,6 @@
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Ingredient;
 using IPCManagement.Api.Models.Entities;
+using IPCManagement.Api.Features.Catalog.Contracts;
 
 namespace IPCManagement.Api.Helpers.Mappers;
 

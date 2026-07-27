@@ -1,105 +1,108 @@
 # Technology Stack
 
-**Analysis Date:** 2026-07-08 (updated)
+**Analysis Date:** 2026-07-27
 
 ## Languages
 
 **Primary:**
-- C# 13 / .NET 9 target - Backend Web API in `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`.
-- TypeScript 6.0 - Frontend React application in `frontend/src/**/*.ts` and `frontend/src/**/*.tsx`.
+- C# 13 / .NET 9 - ASP.NET Core API, domain logic, EF Core persistence, migrations, database tooling, and xUnit tests in `backend/src/IPCManagement.Api/`, `backend/tools/IPCManagement.DatabaseTool/`, and `backend/tests/`.
+- TypeScript 6.0 - React application, Redux/RTK Query data layer, generated OpenAPI types, Vitest tests, and Playwright tests in `frontend/src/` and `frontend/tests/`.
 
 **Secondary:**
-- JavaScript ES modules - Root tooling in `package.json`, `commitlint.config.js`, and frontend build config in `frontend/vite.config.ts`.
-- CSS - Application styles in `frontend/src/styles/index.css` and `frontend/src/styles/App.css`.
-- JSON - Runtime/configuration files including `backend/src/IPCManagement.Api/appsettings.json`, `backend/src/IPCManagement.Api/appsettings.json.example`, `backend/src/IPCManagement.Api/Properties/launchSettings.json`, `frontend/tsconfig.json`, and package manifests.
+- JavaScript (ES modules) - root tooling and frontend lint/build configuration in `package.json`, `commitlint.config.js`, `frontend/eslint.config.js`, and `frontend/vite.config.ts`.
+- CSS - Tailwind CSS 4 entry point plus application styles in `frontend/src/styles/` and `frontend/src/index.css`.
+- SQL/MySQL dialect - baseline and migration support scripts in `backend/database/` plus SQL emitted by EF migrations in `backend/src/IPCManagement.Api/Migrations/`.
+- PowerShell - local E2E and maintenance automation in `scripts/`.
+- Bash/YAML - Shipyard lifecycle hooks in `shipyard/profiles/IPCManagement/hooks/` and GitHub Actions in `.github/workflows/`.
 
 ## Runtime
 
 **Environment:**
-- .NET 9 runtime / ASP.NET Core - `backend/src/IPCManagement.Api/IPCManagement.Api.csproj` targets `net9.0`; `README.md` lists .NET 9 SDK as a requirement.
-- Node.js 18+ - `README.md` lists Node.js 18+ for frontend development and root workspace scripts in `package.json`.
-- Browser runtime - React SPA bootstraps through `frontend/src/main.tsx` and `frontend/index.html`.
-- MySQL 8+ server - `README.md` lists MySQL 8+ and backend EF Core uses Pomelo MySQL in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
+- .NET SDK/runtime 9.0; all backend projects target `net9.0` in `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`, `backend/tools/IPCManagement.DatabaseTool/IPCManagement.DatabaseTool.csproj`, and `backend/tests/*/*.csproj`.
+- Node.js 20 in CI, configured by `.github/workflows/verify.yml`; use Node 20 locally to match CI even though `README.md` only states Node 18+.
+- Browser runtime for the SPA; Vite development server defaults to port 5173 in `frontend/vite.config.ts`.
+- MySQL 8.0 service in CI via `.github/workflows/verify.yml`; production requires MySQL 8 or a Pomelo-compatible server.
 
 **Package Manager:**
-- npm workspaces - Root `package.json` declares `workspaces: ["frontend"]`.
-- Lockfile: present at `package-lock.json`.
-- NuGet - Backend dependencies are declared in `backend/src/IPCManagement.Api/IPCManagement.Api.csproj` and test project files under `backend/tests/**`.
+- npm workspaces, with root workspace `frontend` declared in `package.json`.
+- Lockfile: present at `package-lock.json` (lockfileVersion 3); use `npm ci` for reproducible installs.
+- NuGet packages are resolved through project files; no central package-management file is detected.
+- Local .NET tools are pinned in `dotnet-tools.json`.
 
 ## Frameworks
 
 **Core:**
-- ASP.NET Core 9.0 - HTTP API host, controllers, middleware, auth, CORS, rate limiting, and Swagger setup in `backend/src/IPCManagement.Api/Program.cs`.
-- Entity Framework Core 9.0.16 - ORM and DbContext in `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`.
-- Pomelo.EntityFrameworkCore.MySql 9.0.0 - MySQL EF provider configured in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
-- React 19.2.6 - Frontend UI runtime declared in `frontend/package.json`.
-- Vite 8.0.12 - Frontend dev server and build tool declared in `frontend/package.json` and configured in `frontend/vite.config.ts`.
-- Redux Toolkit 2.12.0 / RTK Query - App state and API calls in `frontend/src/app/store.ts` and `frontend/src/api/apiSlice.ts`.
-- React Router DOM 7.17.0 - Client routing declared in `frontend/package.json` and route files under `frontend/src/routes/`.
+- ASP.NET Core 9 (`Microsoft.NET.Sdk.Web`, `Microsoft.AspNetCore.*` 9.0.16) - REST API, middleware, JWT bearer authentication, authorization policies, rate limiting, health checks, response compression, and OpenAPI in `backend/src/IPCManagement.Api/Program.cs`.
+- Entity Framework Core 9.0.16 with Pomelo.EntityFrameworkCore.MySql 9.0.0 - MySQL ORM, schema model, and migrations in `backend/src/IPCManagement.Api/Data/` and `backend/src/IPCManagement.Api/Migrations/`.
+- React 19.2.6 and React DOM 19.2.6 - SPA UI rooted at `frontend/src/main.tsx`.
+- Redux Toolkit 2.12.0, React Redux 9.3.0, and RTK Query - global/session state and API cache through `frontend/src/app/store.ts` and `frontend/src/api/apiSlice.ts`.
+- React Router DOM 7.17.0 - client-side routing in `frontend/src/app/`.
+- Tailwind CSS 4.3.0 with `@tailwindcss/vite` 4.3.0 - build-time styling integration in `frontend/vite.config.ts`.
+- Base UI 1.5.0, shadcn 4.11.0, class-variance-authority 0.7.1, clsx 2.1.1, tailwind-merge 3.6.0, tw-animate-css 1.4.0, and lucide-react 1.17.0 - UI primitives, variants, class composition, animation utilities, and icons in `frontend/src/components/`.
 
 **Testing:**
-- xUnit 2.9.2 - Backend test runner in `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`.
-- FluentAssertions 8.10.0 - Backend assertion library in `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`.
-- NSubstitute 5.3.0 - Backend mocking library in `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`.
-- Microsoft.AspNetCore.Mvc.Testing 9.0.16 - ASP.NET integration test support in `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`.
-- coverlet.collector 6.0.2 - Coverage collector in `backend/tests/IPCManagement.Api.Tests/IPCManagement.Api.Tests.csproj`.
-- Playwright 1.60.0 - Frontend E2E/smoke/visual test runner in `frontend/playwright.config.ts`; test files in `frontend/tests/`.
+- xUnit 2.9.2 with Microsoft.NET.Test.Sdk 17.12.0 - backend unit and integration tests in `backend/tests/`.
+- FluentAssertions 8.10.0 and NSubstitute 5.3.0 - backend assertions and test doubles.
+- Microsoft.AspNetCore.Mvc.Testing 9.0.16 - in-process API integration hosting in `backend/tests/IPCManagement.Api.Tests/`.
+- EF Core InMemory and SQLite 9.0.16 - test persistence substitutes in `backend/tests/IPCManagement.Api.Tests/`.
+- Vitest 4.1.10, jsdom 29.1.1, and Testing Library - frontend unit/component tests co-located under `frontend/src/**/*.test.{ts,tsx}`.
+- Playwright 1.60.0 - Chromium E2E, control-surface, performance, smoke, and visual suites under `frontend/tests/`, configured by `frontend/playwright.config.ts`.
+- coverlet.collector 6.0.2, Vitest V8 coverage 4.1.10, and ReportGenerator 5.5.10 - coverage collection/reporting through `backend/coverage.runsettings`, `frontend/vite.config.ts`, and `dotnet-tools.json`.
 
 **Build/Dev:**
-- TypeScript project references - Root frontend config in `frontend/tsconfig.json`; app/node configs in `frontend/tsconfig.app.json` and `frontend/tsconfig.node.json`.
-- ESLint 10.3.0 with TypeScript ESLint 8.59.2 - Frontend linting in `frontend/eslint.config.js`.
-- Tailwind CSS 4.3.0 with `@tailwindcss/vite` 4.3.0 - Vite plugin registered in `frontend/vite.config.ts`.
-- shadcn 4.11.0, Base UI, class-variance-authority, clsx, tailwind-merge, lucide-react - UI component and styling support declared in `frontend/package.json`.
-- Husky 9.1.7 and Commitlint 21.0.2 - Git hook and commit message tooling declared in root `package.json` and `commitlint.config.js`.
+- Vite 8.0.12 with `@vitejs/plugin-react` 6.0.1 - frontend dev server and production bundler via `frontend/vite.config.ts`.
+- TypeScript project references - frontend type-check/build settings in `frontend/tsconfig.json`, `frontend/tsconfig.app.json`, and `frontend/tsconfig.node.json`.
+- ESLint 10.3.0, typescript-eslint 8.59.2, React Hooks plugin 7.1.1, and React Refresh plugin 0.5.2 - frontend static analysis via `frontend/eslint.config.js`.
+- dependency-cruiser 18.1.0 - frontend dependency-boundary enforcement via `frontend/.dependency-cruiser.cjs` and `frontend/.dependency-cruiser-known-violations.json`.
+- Swashbuckle.AspNetCore/CLI 7.3.1 and openapi-typescript 7.13.0 - deterministic `openapi.json` and TypeScript contract generation through root scripts `gen:api` and `check:api-contract` in `package.json`.
+- Husky 9.1.7 and Commitlint 21.0.2 - Git hooks and Conventional Commit validation via `.husky/` and `commitlint.config.js`.
 
 ## Key Dependencies
 
 **Critical:**
-- `Microsoft.AspNetCore.Authentication.JwtBearer` 9.0.16 - JWT authentication middleware configured in `backend/src/IPCManagement.Api/Program.cs`.
-- `System.IdentityModel.Tokens.Jwt` 8.12.1 - Token generation/validation used by `backend/src/IPCManagement.Api/Security/JwtTokenService.cs`.
-- `BCrypt.Net-Next` 4.2.0 - Password hashing support used by the auth domain in `backend/src/IPCManagement.Api/Services/AuthService.cs`.
-- `Microsoft.EntityFrameworkCore` 9.0.16 and `Pomelo.EntityFrameworkCore.MySql` 9.0.0 - Database access path for repositories and services under `backend/src/IPCManagement.Api/Data/`.
-- `@reduxjs/toolkit` 2.12.0 and `react-redux` 9.3.0 - State/API infrastructure in `frontend/src/app/store.ts` and `frontend/src/api/apiSlice.ts`.
-- `react` 19.2.6 and `react-dom` 19.2.6 - Main frontend render stack in `frontend/src/main.tsx`.
+- `Pomelo.EntityFrameworkCore.MySql` 9.0.0 - maps the EF Core domain model to MySQL; configured in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
+- `Microsoft.AspNetCore.Authentication.JwtBearer` 9.0.16 and `System.IdentityModel.Tokens.Jwt` 8.12.1 - access-token validation and JWT generation in `backend/src/IPCManagement.Api/Program.cs` and `backend/src/IPCManagement.Api/Security/`.
+- `BCrypt.Net-Next` 4.2.0 - password hashing for the custom authentication system.
+- `FluentValidation.AspNetCore` 11.3.0 - automatic request validation; validators are assembly-scanned in `backend/src/IPCManagement.Api/Program.cs`.
+- `@reduxjs/toolkit` 2.12.0 - shared HTTP/cache layer and endpoint injection in `frontend/src/api/apiSlice.ts` and `frontend/src/api/`.
+- `date-fns` 4.4.0 - frontend date calculations and formatting.
 
 **Infrastructure:**
-- `Serilog.AspNetCore` 8.0.3 - Console and rolling file logging configured in `backend/src/IPCManagement.Api/Program.cs`; logs write under `backend/src/IPCManagement.Api/logs/` at runtime.
-- `Swashbuckle.AspNetCore` 7.3.1 and `Microsoft.AspNetCore.OpenApi` 9.0.16 - Swagger/OpenAPI endpoints configured in `backend/src/IPCManagement.Api/Program.cs`.
-- `FluentValidation.AspNetCore` 11.3.0 - Automatic model validation registered in `backend/src/IPCManagement.Api/Program.cs`; validators live in `backend/src/IPCManagement.Api/Models/Validators/`.
-- `date-fns` 4.4.0 - Frontend date utility dependency declared in `frontend/package.json`.
-- `lucide-react` 1.17.0 - Frontend icon library declared in `frontend/package.json`.
+- `Serilog.AspNetCore` 8.0.3 and `Serilog.Sinks.Async` 1.5.0 - structured request/application logging to console and rolling JSONL files in `backend/src/IPCManagement.Api/Program.cs`.
+- ASP.NET Core in-memory cache - report/cache acceleration registered with `AddMemoryCache` in `backend/src/IPCManagement.Api/Program.cs`; this is process-local, not distributed.
+- ASP.NET Core response compression - Brotli/HTTPS responses configured in `backend/src/IPCManagement.Api/Program.cs`.
+- `MySqlConnector` 2.4.0 - direct database access for `backend/tools/IPCManagement.DatabaseTool/`.
 
 ## Configuration
 
 **Environment:**
-- Backend runtime config uses ASP.NET Core configuration providers with JSON files in `backend/src/IPCManagement.Api/appsettings.json`, `backend/src/IPCManagement.Api/appsettings.Development.json`, and sample keys in `backend/src/IPCManagement.Api/appsettings.json.example`.
-- Required backend sections are `ConnectionStrings:DefaultConnection`, `JwtSettings:SecretKey`, `JwtSettings:Issuer`, `JwtSettings:Audience`, `JwtSettings:ExpiryMinutes`, `JwtSettings:RefreshExpiryDays`, `Cors:AllowedOrigins`, and `Pagination:MaxPageSize`.
-- Launch profiles in `backend/src/IPCManagement.Api/Properties/launchSettings.json` set `ASPNETCORE_ENVIRONMENT=Development` and serve HTTP on `http://localhost:5262` plus HTTPS on `https://localhost:7004`.
-- Frontend API calls use a relative `/api` base URL in `frontend/src/api/apiSlice.ts`; Vite proxies `/api` to `http://localhost:5262` in `frontend/vite.config.ts`.
-- No `.env`, `.env.*`, or `*.env` files were detected during the scan.
+- Backend configuration uses ASP.NET Core configuration binding: JSON runtime files plus double-underscore environment overrides. Required production keys are documented in `docs/CONFIGURATION.md`: `ConnectionStrings__DefaultConnection`, `JwtSettings__SecretKey`, `JwtSettings__Issuer`, `JwtSettings__Audience`, `JwtSettings__ExpiryMinutes`, `JwtSettings__RefreshExpiryDays`, `Cors__AllowedOrigins__0`, and `AllowedHosts`.
+- Optional backend settings include `ASPNETCORE_ENVIRONMENT`/`DOTNET_ENVIRONMENT`, `ForwardedHeaders__KnownProxies`, `RateLimiting__ApiPermitLimit`, and pagination settings used by `backend/src/IPCManagement.Api/Program.cs` and options classes.
+- Frontend build/runtime keys are `VITE_API_BASE_URL`, `VITE_PROXY_TARGET`, and development-only `VITE_ENABLE_MOCK_LOGIN`, referenced in `frontend/src/api/apiSlice.ts`, `frontend/src/features/auth/`, `frontend/vite.config.ts`, and `frontend/playwright.config.ts`.
+- Test/automation-only keys include `IPC_TEST_CONNECTION_STRING`, `IPC_RUN_MYSQL_MIGRATION_TESTS`, `IPC_E2E_USERNAME`, `IPC_E2E_PASSWORD`, `IPC_E2E_TEMPLATE_PATH`, and `K6_PASSWORD`, referenced by `.github/workflows/verify.yml`, backend integration tests, `scripts/`, and `docs/DEVELOPMENT.md`.
+- `.env.example` is present at repository root; its contents must not be copied into generated documentation. Real secrets belong in environment variables or the hosting secret manager, per `docs/CONFIGURATION.md`.
 
 **Build:**
-- Root npm scripts in `package.json`: `npm run fe` (Vite), `npm run be` (.NET API), `npm run build:be`, `npm run test:be` (xUnit), `npm run lint:fe`, `npm run build:fe`, `npm run verify` (full build+test+lint chain), `npm run commitlint`.
-- Frontend scripts in `frontend/package.json`: `npm run dev`, `npm run build`, `npm run lint`, `npm run preview`, `npm run test:smoke`, `npm run test:visual`, `npm run test:visual:update`.
-- Backend commands: `dotnet restore backend/src/IPCManagement.Api/IPCManagement.Api.csproj`, `dotnet build`, `dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj`.
-- Backend solution file is `backend/IPCManagement.slnx`; project file is `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`.
-- Deployment manifests: `vercel.json` at repo root (API rewrites) and `frontend/vercel.json` (SPA routing).
-- Frontend Vite config is `frontend/vite.config.ts`; frontend TypeScript configs are `frontend/tsconfig.json`, `frontend/tsconfig.app.json`, and `frontend/tsconfig.node.json`.
+- Root orchestration and workspace scripts: `package.json`.
+- Frontend bundling/test configuration: `frontend/vite.config.ts`.
+- TypeScript configuration: `frontend/tsconfig.json`, `frontend/tsconfig.app.json`, `frontend/tsconfig.node.json`.
+- Backend project configuration: `backend/src/IPCManagement.Api/IPCManagement.Api.csproj` and `backend/IPCManagement.slnx`.
+- CI quality/security gates: `.github/workflows/verify.yml` and `.github/workflows/codeql.yml`.
+- Frontend deployment: root `vercel.json`; backend has no Dockerfile or provider-specific deployment manifest.
 
 ## Platform Requirements
 
 **Development:**
-- Install .NET 9 SDK, Node.js 18+, npm, and MySQL 8+ as documented in `README.md`.
-- Start backend on `http://localhost:5262` using `npm run be` from root or `dotnet run --project backend/src/IPCManagement.Api/IPCManagement.Api.csproj`.
-- Start frontend on `http://localhost:5173` using `npm run fe` from root or `npm run dev` from `frontend/`.
-- Configure `backend/src/IPCManagement.Api/appsettings.json` from `backend/src/IPCManagement.Api/appsettings.json.example` before running database-backed API features.
+- Git, .NET 9 SDK, Node.js 20 with npm, and MySQL 8.0 as specified in `docs/GETTING-STARTED.md` and `.github/workflows/verify.yml`.
+- Run `npm ci`, restore/build the backend, configure a non-secret local backend runtime file or environment variables, then use `npm run be` and `npm run fe` from `package.json`.
+- Default local endpoints are API `http://localhost:5262`, HTTPS API `https://localhost:7004`, Swagger `http://localhost:5262/swagger`, and frontend `http://localhost:5173`, per `backend/src/IPCManagement.Api/Properties/launchSettings.json` and `docs/GETTING-STARTED.md`.
+- Shipyard uses per-lane API/frontend/database settings and hooks under `shipyard/profiles/IPCManagement/`; it builds .NET Release plus the Vite frontend, then runs source-backed processes.
 
 **Production:**
-- Deployment: `vercel.json` manifests present at root and `frontend/`.
-- ASP.NET Core production mode restricts CORS, rejects sample passwords/secrets, và disallows wildcard `AllowedHosts`.
-- Frontend production build: `npm run build:fe`; Vite outputs to `frontend/dist/`.
-- **No mock data**: Frontend không còn mock arrays hay seed data; mọi dữ liệu đều từ live API.
+- Frontend targets Vercel as a static Vite SPA, built from repository root into `frontend/dist` with SPA rewrites and security headers in `vercel.json`.
+- Backend requires a separate .NET 9-capable host plus reachable MySQL, TLS/reverse proxy configuration, forwarded-header proxy allowlisting, production CORS origins, JWT settings, and host validation; no backend hosting provider is selected in `docs/DEPLOYMENT.md`.
+- Generated API contracts in `frontend/src/shared/api/contracts/openapi.json` and `frontend/src/shared/api/contracts/schema.ts` must remain synchronized through `npm run check:api-contract`.
 
 ---
 
-*Stack analysis: refreshed 2026-07-19. See `INTEGRATIONS.md`, `TESTING.md` and `CONCERNS.md` for current workflow/runtime evidence.*
+*Stack analysis: 2026-07-27*

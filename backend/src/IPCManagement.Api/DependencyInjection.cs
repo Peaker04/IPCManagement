@@ -2,12 +2,17 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Admin;
-using IPCManagement.Api.Services.Approvals;
-using IPCManagement.Api.Services.SampleData;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Admin.Services;
+using IPCManagement.Api.Features.Approvals.Services;
+using IPCManagement.Api.Features.Auth.Services;
+using IPCManagement.Api.Features.Catalog.Services;
+using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Planning.Services;
+using IPCManagement.Api.Features.Purchasing.Services;
+using IPCManagement.Api.Features.Reports.Services;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api;
 

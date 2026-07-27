@@ -3,13 +3,13 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
-using IPCManagement.Api.Models.DTOs.Admin;
-using IPCManagement.Api.Models.DTOs.Auth;
-using IPCManagement.Api.Services.Admin;
 using IPCManagement.Api.Tests.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Xunit;
 using Xunit.Abstractions;
+using IPCManagement.Api.Features.Admin.Contracts;
+using IPCManagement.Api.Features.Admin.Services;
+using IPCManagement.Api.Features.Auth.Contracts;
 
 namespace IPCManagement.Api.Tests.Integration;
 

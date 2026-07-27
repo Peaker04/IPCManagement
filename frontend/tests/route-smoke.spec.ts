@@ -1,6 +1,6 @@
 import { expect, type Page, test } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import { PHASE09_DATE, PHASE09_STAGE_LABELS, PHASE09_WEEK, phase09Workbench, stubPhase09Api } from './phase9-test-fixture';
 
 const protectedRoutes = [

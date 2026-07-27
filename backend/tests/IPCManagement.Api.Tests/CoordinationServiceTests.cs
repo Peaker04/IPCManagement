@@ -2,10 +2,10 @@ using System;
 using System.Reflection;
 using FluentAssertions;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Coordination;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services;
 using Xunit;
+using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Services;
 
 namespace IPCManagement.Api.Tests;
 

@@ -1,8 +1,9 @@
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Authorization;
 using Xunit;
+using IPCManagement.Api.Features.Catalog.Controllers;
+using IPCManagement.Api.Features.Purchasing.Controllers;
 
 namespace IPCManagement.Api.Tests;
 

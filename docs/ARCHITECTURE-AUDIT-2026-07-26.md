@@ -1,6 +1,7 @@
 # Audit kiến trúc & Plan chỉnh sửa — IPCManagement
 
-Ngày: 26/07/2026 · Nhánh: `feature/production-plan` · HEAD khi audit: `110e3c0`
+Ngày audit gốc: 26/07/2026 · Nhánh: `feature/production-plan` · HEAD khi audit gốc: `110e3c0`
+Re-audit sau Bước 10: 27/07/2026 · HEAD code được kiểm: `24338e0` · xem Phần E–F; roadmap tại Phần F thay thế roadmap lịch sử ở Phần C cho các đợt tiếp theo.
 Phạm vi: Frontend (React 19 + Vite + RTK Query) · Backend (ASP.NET Core 9 + EF Core) · Database (MySQL 9.5, schema `ipcmanagement`)
 Phương pháp: đọc mã nguồn + cấu hình + lịch sử git, chạy SQL read-only trên DB thật, đo bundle từ `dist/` đã build, đối chiếu với kết quả k6 cùng ngày. Mọi phát hiện đều có `file:dòng` hoặc câu SQL kèm theo.
 
@@ -264,3 +265,242 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 - Các con số contrast tính từ hex token trong `styles/index.css` với nền giả định — hàng bảng cần kiểm lại trên pixel thật vì `nth-child(even)` đổi nền.
 - Nhận định "focus ring hiện vẫn thấy nhờ `index.css:197` không bọc `@layer`" dựa trên đọc cascade, chưa verify trên trình duyệt.
 - Branch protection của GitHub không kiểm tra được từ repo — chỉ kết luận được phần nằm trong mã nguồn.
+
+---
+
+## Phần E — Re-audit sau Bước 10: mức hoàn chỉnh của `f(data, state)`
+
+### E1. Kết luận
+
+**Chưa hoàn chỉnh.** Dự án đã hoàn thành phần nền quan trọng của `f(data, state)` — contract sinh từ
+OpenAPI, model thuần ở một số workflow, error state an toàn hơn và giữ dữ liệu cũ khi refetch trên các
+trang trọng yếu — nhưng chưa có một hợp đồng trạng thái thống nhất từ query boundary tới view.
+
+Mức hoàn chỉnh hợp lý theo code hiện tại là **khoảng 55–60%**, không phải 100%. Đây là đánh giá về
+kiến trúc trình bày dữ liệu, không phủ nhận việc Bước 1–10 đã hoàn tất đúng phạm vi. Bước 10 chủ yếu sửa
+placement, dependency và kích thước file; nó không được thiết kế để hoàn tất ma trận tám trạng thái.
+
+Định nghĩa đích cần dùng từ đây:
+
+```text
+renderedView = f(authoritativeData, queryState, localUiState, permissions)
+```
+
+Trong đó `f` phải là phép dẫn xuất kiểm thử được và không tự gọi API. Hook/page model là imperative shell
+thực hiện I/O; model/presenter là functional core; component trình bày chỉ render kết quả đã phân loại.
+Không yêu cầu EF Core, controller hoặc mọi component lá phải trở thành hàm thuần.
+
+### E2. Scorecard theo từng lớp
+
+| Lớp | Hiện trạng sau Bước 10 | Mức hoàn chỉnh |
+|---|---|---:|
+| Contract dữ liệu BE→FE | 5 API module đã derive wire type từ OpenAPI; regenerate deterministic | **85%** |
+| Pure model/presentation | Weekly Menu có mẫu `state/status/actions/presentation`; purchasing và chef có model thuần cục bộ | **65%** |
+| Query-state contract | Chưa có `QueryView<T>`/`ViewState<T>` chung; hook trả các boolean rời rạc | **35%** |
+| Tám trạng thái | Error/refreshing có pilot; uninitialized, success và partial chưa được biểu diễn có hệ thống | **35%** |
+| Component boundary | 8/8 component dữ liệu chung vẫn chỉ nhận mảng; 3/3 table shell chỉ là layout | **25%** |
+| Guardrail/test | Có lint chống nuốt query error và test lỗi cục bộ; chưa có convention bắt exhaustiveness của state union | **50%** |
+
+Phần contract chưa đạt 100% vì còn bốn success response không có JSON schema và hai legacy hook đang giữ
+public surface cho route backend không tồn tại. Đây là nợ contract riêng, không phải lý do viết lại type FE
+bằng tay.
+
+### E3. Bằng chứng định lượng hiện tại
+
+Quét `frontend/src` tại HEAD `24338e0`:
+
+| Tín hiệu RTK Query | Số lượt xuất hiện |
+|---|---:|
+| `isLoading` | 138 |
+| `isFetching` | 142 |
+| `isError` | 163 |
+| `skip:` | 80 |
+| `isUninitialized` | **0** |
+| `isSuccess` | **0** |
+
+Điều này có nghĩa 80 query có khả năng ở trạng thái “chưa đủ điều kiện chạy”, nhưng view không đọc trạng
+thái canonical của RTK Query để phân biệt nó với dữ liệu rỗng. `success` hiện là nhánh mặc định ngầm, không
+phải một state được kiểm tra exhaustively.
+
+Tám component dùng chung sau vẫn nhận collection thuần và tự suy luận `length === 0`:
+`DemandSummary`, `WorkQueue`, `RoleInbox`, `DocumentRail`, `ApprovalQueue`, `ExceptionLane`,
+`StockMovementTable`, `ContextStrip`. Ba shell `DataTableShell`, `TableViewport`,
+`PaginatedTableFrame` chỉ sở hữu layout/scroll và không nên bị ép sở hữu API state.
+
+`isTruncated` đã tồn tại trong contract và mapper của `workflowApi.ts`, nhưng chưa có presentation state
+“đang xem N/M” tương ứng. Forbidden hiện được xử lý tốt ở route guard `/403`, nhưng chưa có query-level
+classification dùng chung cho response 403. Vì vậy `partial` và `forbidden` vẫn có thể bị diễn giải thành
+empty ở các data panel riêng lẻ.
+
+### E4. Phần đã làm đúng và phải giữ
+
+- `EmptyState` đã dùng discriminated union để bắt `onRetry` cho `variant="error"`; không đổi ngược về
+  component props tùy chọn mơ hồ.
+- Weekly Menu đã có các workflow trả `state/status/actions/presentation`; đây là mẫu gần đích nhất.
+- Material Demand, Production Plan, Warehouse, Approval, Reports và các panel Admin quan trọng đã phân biệt
+  nhiều lỗi tải dữ liệu với empty state; lint hiện chỉ còn bốn warning baseline ở hai trang approvals.
+- Weekly Menu, Chef và Warehouse giữ panel cũ khi `isFetching`, dùng overlay `Đang cập nhật`; phải giữ
+  hành vi này để không phá CLS warm 0 và cache/navigation performance.
+- Contract OpenAPI và view/domain model FE là hai lớp khác nhau. Chỉ wire type được sinh; view model tiếp tục
+  do frontend sở hữu.
+- `TableViewport`/`PaginatedTableFrame` tiếp tục chỉ làm layout. State boundary nên nằm ở section/container
+  sở hữu query, không đẩy tám trạng thái vào mọi `<table>` lá.
+
+### E5. Khoảng trống kiến trúc còn lại
+
+1. **Không có state algebra dùng chung.** Mỗi hook tự trả một tập boolean khác nhau; page phải tự quyết thứ
+   tự ưu tiên giữa loading/error/empty/refetch.
+2. **`uninitialized` vẫn bị mất.** Query `skip` vì chưa chọn khách hàng/ngày/tab có thể render giống empty.
+3. **`partial` chưa tới UI.** Server có `isTruncated`, nhưng view chưa buộc cảnh báo dữ liệu bị cắt.
+4. **`success` là default fall-through.** Thêm một state mới không làm TypeScript báo thiếu nhánh.
+5. **Forbidden chỉ chắc ở route level.** Panel gọi nhiều endpoint có permission khác nhau chưa có quy ước
+   chung cho 403.
+6. **Refreshing chưa nhất quán.** Một số trang giữ stale data đúng, số khác chỉ expose `isFetching` hoặc thay
+   nội dung cục bộ.
+7. **Page model lớn vẫn là imperative bag.** `useAdminDataPageModel` trả hơn một trăm field phẳng;
+   `useReportsPageModel` và một số hook chef/purchasing trộn data, query flags, form state và action.
+8. **Backend chưa có functional-core boundary rộng.** Parser/reconciliation và một số policy đã deterministic,
+   nhưng các god service vẫn trộn EF query, quyết định nghiệp vụ, transaction, mapping và response assembly.
+
+### E6. Quyết định kiến trúc cập nhật
+
+Không sửa bằng một `QueryProvider` toàn cục và không truyền tám boolean qua mọi component. Dùng một
+discriminated union nhỏ ở query-owning boundary:
+
+```ts
+type QueryView<T> =
+  | { phase: 'uninitialized'; instruction: string }
+  | { phase: 'loading' }
+  | { phase: 'forbidden'; message: string }
+  | { phase: 'error'; message: string; retry: () => void; isRetrying: boolean }
+  | {
+      phase: 'ready';
+      data: T;
+      isRefreshing: boolean;
+      truncation: { shown: number; total?: number } | null;
+    };
+```
+
+`empty` được dẫn xuất duy nhất từ `phase === 'ready'` và collection rỗng. `refreshing` tiếp tục là trục
+riêng của `ready`; không thay stale data bằng skeleton. Adapter từ RTK Query result sang `QueryView<T>` là
+hàm thuần, có test bảng tám trạng thái và xử lý 403 tường minh.
+
+### E7. Các finding lịch sử không còn được dùng như hiện trạng
+
+- R1 “không có backup” trong audit gốc đã stale: Scheduled Task `IPC-DB-Backup` đang `Ready`, chạy bốn giờ
+  một lần; lần chạy 27/07/2026 17:00:01 có result `0`. Rủi ro còn lại là backup cùng ổ D, phụ thuộc
+  task/user Windows và chưa có bản sao off-site được diễn tập restore định kỳ.
+- Contract viết tay, enum ordinal, timestamp UTC converter, migration replay CI, health/readiness và phần lớn
+  lỗ hổng G0 đã được xử lý trong Bước 1–9; không đưa lại vào roadmap mới như việc chưa bắt đầu.
+- `AdminDataPage.tsx` không còn là file 2.305 dòng trong `features/workflow`; shell hiện ở
+  `src/app/pages/AdminDataPage.tsx`, còn page model tại `src/app/pages/admin-data/useAdminDataPageModel.ts`.
+- Con số file/dòng và dependency ở Phần B–C là snapshot 26/07. Khi xung đột, dùng Phần E–F, bản đồ
+  `.planning/codebase/*` và source hiện tại làm nguồn sự thật.
+
+---
+
+## Phần F — Roadmap mới sau Bước 10
+
+Roadmap này nối tiếp Bước 1–10; không làm lại codegen, semantic rename, giải thể `workflow`, cache tag hay
+VSA-lite đã hoàn tất.
+
+### Bước 11 — Khóa hợp đồng `f(data, state)` (1–2 ngày)
+
+- Định nghĩa `QueryView<T>` và adapter thuần từ RTK Query result.
+- Thêm test table-driven cho uninitialized, loading, ready-empty, ready-success, refreshing, partial,
+  forbidden và error.
+- Thêm convention test cấm data-owning section tự dùng `data ?? []` trước khi phân loại query state.
+- Không provider mới, không đổi DOM/CSS, không đổi endpoint/cache tag.
+
+**Nghiệm thu:** TypeScript bắt thiếu case; query `skip` không thể rơi vào empty; response 403 không có nút
+retry; refreshing giữ data cũ.
+
+### Bước 12 — Pilot trên hai luồng quyết định thật (3–5 ngày)
+
+- Pilot 1: Material Demand/Weekly Menu — đã có test error và model `state/status/actions/presentation`.
+- Pilot 2: Warehouse stock ledger/current stock — có cursor pagination, refreshing overlay và dữ liệu quyết
+  định xuất kho.
+- Đo lại desktop 1365×900, 1280×900 và 768×1024; mobile vẫn ngoài scope hiện tại.
+- Giữ nguyên request, response, RTK Query cache key/tag, URL và hành vi UI.
+
+**Go/no-go:** chỉ nhân rộng nếu mỗi pilot không quá hai ngày, CLS warm vẫn 0, không tăng fan-out refetch và
+ma trận trạng thái pass trên browser thật.
+
+### Bước 13 — Nhân rộng state boundary theo rủi ro (1–2 tuần)
+
+Thứ tự: Purchasing → Approvals → Reports → Admin → Chef → Coordination. Mỗi feature là một commit độc lập,
+không di chuyển folder trong bước này. Trả hết bốn warning `no-swallowed-query-error`, render truncation cho
+mọi response có `isTruncated/totalCount`, và thêm query-level forbidden state khi endpoint có permission riêng.
+
+**Nghiệm thu:** `isUninitialized`/adapter được dùng tại mọi query có `skip`; không còn data-owning page tự
+coerce lỗi thành mảng rỗng; các common leaf component vẫn presentation-only.
+
+### Bước 14 — P0: khóa boundary VSA thật sự (3–5 ngày)
+
+- Thêm backend architecture test cho feature dependency direction.
+- Chọn dependency DAG rõ ràng và loại bốn cặp hai chiều: `Purchasing↔Reports`, `Planning↔Purchasing`,
+  `Coordination↔SampleData`, `Approvals↔Coordination`.
+- Đưa port/interface về đúng feature sở hữu; chỉ chuyển DTO thực sự dùng chung và ổn định vào
+  `Shared/Contracts`.
+- Bỏ direct `IpcManagementContext` khỏi `PurchaseRequestsController` và `ApprovalHistoryController`.
+- Không di chuyển `Migrations`, không big-bang restructure và không đổi schema trong bước khóa boundary.
+
+**Nghiệm thu:** không còn dependency cycle backend; controller chỉ điều phối use case; migration diff bằng 0.
+
+### Bước 15 — P1: tách use case đang phình và functional core (2–4 tuần)
+
+Thứ tự ưu tiên theo cặp controller/service và use case thực:
+
+1. `CoordinationController` + `CoordinationService`: tách order, contract, portion rule, weekly menu/import,
+   meal quantity plan và lock/signoff/export.
+2. `WorkflowReportsController` + `WorkflowReportService`: tách inventory report, demand/purchasing report,
+   price variance, audit/data quality/KPI; controller không còn giữ cache/single-flight/CSV command logic.
+3. `PurchaseRequestsController`: đưa EF query/filter/mapping vào query/application service, controller chỉ
+   điều phối request/response.
+4. `DishesController` + `DishService`: tách catalog, BOM và BOM import/validation.
+5. `PurchaseRequestWorkflowService`: tách state transition/policy thuần khỏi EF, transaction và clock.
+
+Mỗi phần phải tách theo responsibility/use case thật; không đổi một file lớn thành nhiều partial file vẫn
+chung state và responsibility. Pure policy/projection/state transition là functional core có test không cần
+database; application service giữ imperative shell.
+
+**Nghiệm thu:** pure core có test không cần DB; controller không quá 400 dòng/20 action; service trên 1.000
+dòng phải có kế hoạch split được kiểm bằng gate.
+
+### Bước 16 — P3a: persistence và reliability (1–2 tuần)
+
+- Tách EF mapping sang `IEntityTypeConfiguration<T>` theo feature, giữ `IpcManagementContext` làm
+  registration root.
+- Chuẩn hóa transaction runner cùng execution strategy trước khi bật retry.
+- Thay `InvalidOperationException` dùng cho nghiệp vụ bằng domain/application exception có mapping rõ.
+- Khôi phục canonical migration lineage, gồm hai migration ID chỉ có trong database, mà không reset/seed dữ liệu.
+- Giữ lịch backup `IPC-DB-Backup`, nhưng bổ sung bản sao khác ổ/máy và restore rehearsal có bằng chứng.
+
+**Nghiệm thu:** luồng đa bảng chịu transient retry mà không nhân đôi side effect; fresh/install và upgrade lane
+có lineage giải thích được; restore drill đạt RPO/RTO đã chọn.
+
+### Bước 17 — P2: trả nợ frontend boundary và ownership (1–2 tuần)
+
+- Tách `workflowApi.ts` thành endpoint module thuộc từng feature nhưng giữ một `apiSlice`, base query và cache
+  tags chung để không đổi cache behavior.
+- Chuyển `MainLayout` sang `app/layout`.
+- Giải quyết cụm `projects→coordination` bằng ownership hoặc shared API/contract rõ ràng, không đổi tên feature
+  trước khi xóa dependency.
+- Xử lý 54 dependency violation thành zero-baseline; ngoại lệ bắt buộc phải có lý do, owner và ngày hết hạn.
+- Tách `useAdminDataPageModel` và `useReportsPageModel` thành model theo panel/use case sau khi state contract ổn định.
+
+**Nghiệm thu:** không thêm feature-to-feature edge; endpoint name/cache key không đổi; full navigation/cache test xanh.
+
+### Bước 18 — P3b: test, file-growth và documentation guardrail (3–5 ngày)
+
+- Tách `WorkflowGenerationTests.cs` theo workflow và fixture builder; giữ nguyên coverage hành vi.
+- Thêm file-size/action-count report vào quality gate ở chế độ warning trước, chỉ block sau một chu kỳ ổn định:
+  - Controller cảnh báo khi `>250` dòng hoặc `>12` actions.
+  - Controller `>400` dòng hoặc `>20` actions bắt buộc có kế hoạch split.
+  - Service cảnh báo khi `>600` dòng; `>1.000` dòng bắt buộc có kế hoạch split.
+  - File frontend viết tay cảnh báo khi `>600` dòng.
+  - Test suite cảnh báo khi `>1.500` dòng.
+- Cập nhật `docs/ARCHITECTURE.md`, `docs/TESTING.md` và `docs/CURRENT-STATE.md` sau từng bước lớn.
+
+**Nghiệm thu cuối:** full backend/frontend/contract/dependency gates xanh; browser desktop thật xác nhận
+state transition, API request/response và render sau reload; không reset/seed database, không push tự động.

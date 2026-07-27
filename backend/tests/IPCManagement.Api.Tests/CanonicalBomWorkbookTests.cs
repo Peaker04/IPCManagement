@@ -1,6 +1,6 @@
 using System.Globalization;
 using FluentAssertions;
-using IPCManagement.Api.Services.SampleData;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 

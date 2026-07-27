@@ -3,10 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Inventory.Contracts;
 
 namespace IPCManagement.Api.Data.Repositories;
 

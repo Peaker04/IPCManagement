@@ -1,5 +1,5 @@
 import { expect, type Page, test } from '@playwright/test';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import { phase09PurchaseOrdersPage, phase09Workbench } from './phase9-test-fixture';
 
 const protectedRoutes = [

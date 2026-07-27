@@ -5,9 +5,10 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Services.SampleData;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -51,7 +52,7 @@ public class SampleDataImportServiceTests
         };
         var unit = new Unit { UnitId = GuidHelper.NewId(), UnitCode = "KG", UnitName = "Kilogram" };
         var bomLines = new List<DishBom>();
-        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
 
         method!.Invoke(service, [dish, ingredient, unit, 0.10m, 25000m, bomLines, true, counts]);
         method.Invoke(service, [dish, ingredient, unit, 0.12m, 30000m, bomLines, true, counts]);
@@ -78,7 +79,7 @@ public class SampleDataImportServiceTests
             IsActive = false
         };
         var dishes = new List<Dish> { existing };
-        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
         var service = new SampleDataImportService(null!, null!);
         var method = typeof(SampleDataImportService).GetMethod(
             "EnsureDish",
@@ -112,7 +113,7 @@ public class SampleDataImportServiceTests
             IsActive = false
         };
         var ingredients = new List<Ingredient> { existing };
-        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
         var service = new SampleDataImportService(null!, null!);
         var method = typeof(SampleDataImportService).GetMethod(
             "EnsureIngredient",
@@ -143,7 +144,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
+        var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,
@@ -200,7 +201,7 @@ public class SampleDataImportServiceTests
             IsActive = true
         };
         var ingredients = new List<Ingredient> { ingredient };
-        var counts = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportCountsDto();
+        var counts = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportCountsDto();
         var service = new SampleDataImportService(null!, null!);
         var method = typeof(SampleDataImportService).GetMethod(
             "EnsureIngredient",
@@ -227,7 +228,7 @@ public class SampleDataImportServiceTests
         await context.Database.EnsureCreatedAsync();
         var service = new SampleDataImportService(context, null!);
         using var fixture = CreateSampleImportFixture();
-        var request = new IPCManagement.Api.Models.DTOs.SampleData.SampleDataImportRequest
+        var request = new IPCManagement.Api.Features.SampleData.Contracts.SampleDataImportRequest
         {
             SourceDirectory = fixture.SourceDirectory,
             DryRun = false,

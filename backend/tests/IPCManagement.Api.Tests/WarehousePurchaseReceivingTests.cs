@@ -2,11 +2,8 @@ using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Workflow;
 using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.Workflow;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,6 +11,11 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using NSubstitute;
 using System.ComponentModel.DataAnnotations;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Services;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Controllers;
+using IPCManagement.Api.Features.Purchasing.Services;
 
 namespace IPCManagement.Api.Tests;
 
@@ -37,7 +39,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void Authorization_Warehouse_receipt_controller_uses_dedicated_writer_policy()
     {
-        var controllerType = typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController);
+        var controllerType = typeof(IPCManagement.Api.Features.Purchasing.Controllers.WarehousePurchaseReceiptsController);
         controllerType.GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
             .Cast<AuthorizeAttribute>()
             .Should().ContainSingle(attribute => attribute.Policy == AuthorizationPolicies.WarehousePurchaseReceive);
@@ -264,7 +266,7 @@ public class WarehousePurchaseReceivingTests
     [Fact]
     public void SingleWriter_old_purchase_receipt_route_and_service_contract_are_retired()
     {
-        typeof(IPCManagement.Api.Controllers.PurchaseOrdersController)
+        typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController)
             .GetMethod("RecordReceipt")
             .Should().BeNull();
         typeof(IPurchaseOrderService)
@@ -274,7 +276,7 @@ public class WarehousePurchaseReceivingTests
             .GetMethod("RecordReceiptAsync")
             .Should().BeNull();
 
-        var purchaseOrderReceiptPosts = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController).Assembly
+        var purchaseOrderReceiptPosts = typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController).Assembly
             .GetTypes()
             .Where(type => typeof(ControllerBase).IsAssignableFrom(type))
             .SelectMany(type => type.GetMethods().Select(method => new
@@ -299,30 +301,30 @@ public class WarehousePurchaseReceivingTests
             .ToList();
 
         purchaseOrderReceiptPosts.Should().ContainSingle(route =>
-            route.Controller == typeof(IPCManagement.Api.Controllers.WarehousePurchaseReceiptsController) &&
+            route.Controller == typeof(IPCManagement.Api.Features.Purchasing.Controllers.WarehousePurchaseReceiptsController) &&
             route.Method.Name == "RecordAsync");
     }
 
     [Fact]
     public void SingleWriter_purchase_progress_reads_and_generic_non_order_receipts_remain_separate()
     {
-        var purchaseController = typeof(IPCManagement.Api.Controllers.PurchaseOrdersController);
+        var purchaseController = typeof(IPCManagement.Api.Features.Purchasing.Controllers.PurchaseOrdersController);
         purchaseController.GetMethod("GetListAsync").Should().NotBeNull();
         purchaseController.GetMethod("GetPageAsync").Should().NotBeNull();
         purchaseController.GetMethod("GetByIdAsync").Should().NotBeNull();
         AuthorizationPolicies.PurchaseRoles.Should().Contain(["Manager", "Purchasing"]);
 
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptRequest)
+        typeof(IPCManagement.Api.Features.Inventory.Contracts.CreateInventoryReceiptRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("generic inventory receipts cannot attach to a purchase order");
-        typeof(IPCManagement.Api.Models.DTOs.Inventory.CreateInventoryReceiptFromPurchaseRequest)
+        typeof(IPCManagement.Api.Features.Inventory.Contracts.CreateInventoryReceiptFromPurchaseRequest)
             .GetProperty("PurchaseOrderId")
             .Should().BeNull("legacy purchase-request receipts cannot attach to a purchase order");
     }
 
     private static Type GetRequiredType(System.Reflection.Assembly assembly, string typeName)
     {
-        var type = assembly.GetType($"IPCManagement.Api.Models.DTOs.Workflow.{typeName}");
+        var type = assembly.GetType($"IPCManagement.Api.Features.Purchasing.Contracts.{typeName}");
         type.Should().NotBeNull($"{typeName} is part of the Warehouse receiving contract");
         return type!;
     }
@@ -340,7 +342,7 @@ public class WarehousePurchaseReceivingTests
         Func<string, CancellationToken, Task>? faultInjector)
     {
         var serviceType = typeof(PurchaseOrderService).Assembly.GetType(
-            "IPCManagement.Api.Services.Workflow.PurchaseReceivingService");
+            "IPCManagement.Api.Features.Purchasing.Services.PurchaseReceivingService");
         serviceType.Should().NotBeNull("the canonical Warehouse receiving writer must exist");
         return Activator.CreateInstance(serviceType!, context, stockLedgerService, faultInjector)!;
     }

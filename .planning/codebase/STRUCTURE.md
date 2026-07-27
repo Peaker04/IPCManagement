@@ -1,344 +1,257 @@
 # Codebase Structure
 
-**Analysis Date:** 2026-06-12
+**Analysis Date:** 2026-07-27
 
 ## Directory Layout
 
 ```text
 IPCManagement/
-├── backend/                         # .NET solution and ASP.NET Core API
-│   ├── IPCManagement.slnx           # Backend solution file
+├── backend/
+│   ├── src/IPCManagement.Api/
+│   │   ├── Features/              # 10 VSA-lite business slices
+│   │   ├── Shared/Contracts/      # Contracts intentionally shared across slices
+│   │   ├── Data/                  # DbContext, repositories, Unit of Work
+│   │   ├── Models/Entities/       # Shared EF entities
+│   │   ├── Security/              # JWT/current-user/policy support
+│   │   ├── Middlewares/           # HTTP pipeline cross-cutting behavior
+│   │   ├── HealthChecks/          # Liveness/readiness checks
+│   │   ├── OpenApi/               # API contract generation
+│   │   ├── Migrations/            # EF migrations and generated snapshots
+│   │   ├── Program.cs             # Runtime entry/composition
+│   │   └── DependencyInjection.cs # Service registration root
+│   ├── tests/                      # API and application xUnit projects
+│   ├── tools/                      # Database helper executable
+│   └── database/                   # SQL bootstrap/repair scripts
+├── frontend/
 │   ├── src/
-│   │   └── IPCManagement.Api/       # Main API project
-│   │       ├── Controllers/         # HTTP controllers
-│   │       ├── Data/                # EF Core context, unit of work, repositories
-│   │       ├── Helpers/             # Response, GUID, pagination, mapper helpers
-│   │       ├── Middlewares/         # ASP.NET Core middleware
-│   │       ├── Migrations/          # EF Core migrations and model snapshot
-│   │       ├── Models/              # Entities, DTOs, validators
-│   │       ├── Properties/          # Launch profile settings
-│   │       ├── Security/            # JWT token implementation
-│   │       ├── Services/            # Business services and interfaces
-│   │       ├── Program.cs           # API composition root
-│   │       └── IPCManagement.Api.csproj
-│   └── tests/                       # xUnit backend test projects
-├── frontend/                        # Vite React frontend workspace
-│   ├── public/                      # Static public assets
-│   ├── src/
-│   │   ├── api/                     # RTK Query API base slice
-│   │   ├── app/                     # Redux store and typed hooks
-│   │   ├── assets/                  # Bundled image/SVG assets
-│   │   ├── components/              # Shared layout and UI components
-│   │   ├── features/                # Feature modules by workflow/domain
-│   │   ├── lib/                     # Shared utilities and generic types
-│   │   ├── routes/                  # Route config, router, protected route
-│   │   ├── styles/                  # Global and app CSS
-│   │   ├── types/                   # Shared API/client types
-│   │   ├── App.tsx                  # App component delegating to router
-│   │   └── main.tsx                 # React entry point
-│   ├── index.html                   # Vite HTML entry
-│   ├── package.json                 # Frontend package scripts/dependencies
-│   └── vite.config.ts               # Vite configuration
-├── .husky/                          # Git hooks
-├── .planning/                       # GSD planning and generated codebase maps
-├── commitlint.config.js             # Conventional commit linting
-├── package.json                     # Root npm workspace and helper scripts
-├── package-lock.json                # Root npm lockfile
-├── CONTRIBUTING.md                  # Contribution workflow
-└── README.md                        # Project overview
+│   │   ├── features/              # Route/domain-owned UI modules
+│   │   ├── app/                   # Redux store and cross-feature page composition
+│   │   ├── api/                   # Shared RTK Query base and workflow endpoints
+│   │   ├── components/            # Shared UI, common workbench, layout
+│   │   ├── routes/                # Router, guards, code/data preload
+│   │   ├── lib/                   # Stateless shared domain/UI utilities
+│   │   ├── shared/api/contracts/  # Generated OpenAPI artifacts
+│   │   ├── styles/                # Ordered global/component/redesign CSS
+│   │   ├── types/                 # Cross-feature TypeScript types
+│   │   ├── main.tsx               # Browser entry point
+│   │   └── App.tsx                # Top-level composition
+│   └── tests/                      # Playwright browser/visual/performance tests
+├── scripts/                        # E2E and operational PowerShell entry points
+├── tools/                          # k6, DB, and browser-use tooling
+├── shipyard/profiles/IPCManagement/# Local integration profile and lifecycle hooks
+├── docs/                           # Maintained technical/runbook documentation
+├── .docs/                          # Business/demo reference material
+└── .planning/codebase/             # GSD-generated codebase maps
 ```
 
 ## Directory Purposes
 
-**`backend/`:**
-- Purpose: Contains the .NET backend solution, API project, and backend tests.
-- Contains: `backend/IPCManagement.slnx`, `backend/src/IPCManagement.Api`, `backend/tests`.
-- Key files: `backend/src/IPCManagement.Api/Program.cs`, `backend/src/IPCManagement.Api/DependencyInjection.cs`, `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`.
+**`backend/src/IPCManagement.Api/Features`:**
+- Purpose: Organize backend API/application code by business capability.
+- Contains: `Admin`, `Approvals`, `Auth`, `Catalog`, `Coordination`, `Inventory`, `Planning`, `Purchasing`, `Reports`, `SampleData`.
+- Key files: `Features/Planning/Services/MaterialDemandService.cs`, `Features/Purchasing/Services/PurchaseRequestWorkflowService.cs`, `Features/Reports/Services/WorkflowReportService.cs`.
+- Boundary rule: Add controller, request/response contracts, validators, and services to the owning feature. Do not assume the folder is isolated: verify direct imports of other feature namespaces before changing a contract.
 
-**`backend/src/IPCManagement.Api/Controllers`:**
-- Purpose: HTTP transport layer for API endpoints.
-- Contains: Controller classes such as `AuthController.cs`, `IngredientsController.cs`, `InventoryReceiptsController.cs`, `InventoryIssuesController.cs`, `ProductionPlansController.cs`.
-- Key files: `backend/src/IPCManagement.Api/Controllers/AuthController.cs`, `backend/src/IPCManagement.Api/Controllers/IngredientsController.cs`.
-
-**`backend/src/IPCManagement.Api/Services`:**
-- Purpose: Business logic layer and service contracts.
-- Contains: One interface and one implementation per service, plus cross-domain services such as stock ledger handling.
-- Key files: `backend/src/IPCManagement.Api/Services/IIngredientService.cs`, `backend/src/IPCManagement.Api/Services/IngredientService.cs`, `backend/src/IPCManagement.Api/Services/IStockLedgerService.cs`, `backend/src/IPCManagement.Api/Services/StockLedgerService.cs`.
+**Backend Feature Subdirectories:**
+- Purpose: Apply a consistent internal layer layout.
+- Contains: `Contracts`, `Controllers`, `Services`; most slices also have `Validators`.
+- Key files: `Features/Auth/Controllers/AuthController.cs`, `Features/Auth/Services/AuthService.cs`, `Features/Auth/Contracts/AuthDto.cs`.
+- Boundary rule: Controllers own HTTP only, services own use cases, contracts own wire/application DTOs, validators own FluentValidation rules.
 
 **`backend/src/IPCManagement.Api/Data`:**
-- Purpose: EF Core data access composition.
-- Contains: `IpcManagementContext`, `IUnitOfWork`, `UnitOfWork`, and repository folder.
-- Key files: `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`, `backend/src/IPCManagement.Api/Data/IUnitOfWork.cs`, `backend/src/IPCManagement.Api/Data/UnitOfWork.cs`.
-
-**`backend/src/IPCManagement.Api/Data/Repositories`:**
-- Purpose: Repository interfaces and EF Core implementations.
-- Contains: `GenericRepository<T>`, `IGenericRepository<T>`, entity-specific repository pairs.
-- Key files: `backend/src/IPCManagement.Api/Data/Repositories/GenericRepository.cs`, `backend/src/IPCManagement.Api/Data/Repositories/IIngredientRepository.cs`, `backend/src/IPCManagement.Api/Data/Repositories/IngredientRepository.cs`.
+- Purpose: Shared persistence infrastructure for the modular monolith.
+- Contains: `IpcManagementContext.cs`, repositories, Unit of Work, seed/configuration support.
+- Key files: `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`, `backend/src/IPCManagement.Api/Data/UnitOfWork.cs`.
+- Measured evidence: `IpcManagementContext.cs` is 2,563 lines, so entity mapping changes require targeted review even when feature code is small.
 
 **`backend/src/IPCManagement.Api/Models/Entities`:**
-- Purpose: EF Core entity classes representing database tables and navigation properties.
-- Contains: Entity classes such as `Ingredient.cs`, `Inventoryreceipt.cs`, `Inventoryissue.cs`, `Currentstock.cs`, `Stockmovement.cs`, `User.cs`.
-- Key files: `backend/src/IPCManagement.Api/Models/Entities/Ingredient.cs`, `backend/src/IPCManagement.Api/Models/Entities/Currentstock.cs`.
-
-**`backend/src/IPCManagement.Api/Models/DTOs`:**
-- Purpose: API request and response contracts grouped by domain.
-- Contains: DTO folders for `Auth`, `Common`, `Dish`, `Ingredient`, `Inventory`, `ProductionPlan`, `User`, `Warehouse`.
-- Key files: `backend/src/IPCManagement.Api/Models/DTOs/Common/PagedRequestDto.cs`, `backend/src/IPCManagement.Api/Models/DTOs/Ingredient/IngredientDto.cs`, `backend/src/IPCManagement.Api/Models/DTOs/Inventory/InventoryDto.cs`.
-
-**`backend/src/IPCManagement.Api/Models/Validators`:**
-- Purpose: FluentValidation rules for incoming DTOs.
-- Contains: Domain validator classes.
-- Key files: `backend/src/IPCManagement.Api/Models/Validators/IngredientValidators.cs`, `backend/src/IPCManagement.Api/Models/Validators/InventoryValidators.cs`.
-
-**`backend/src/IPCManagement.Api/Helpers`:**
-- Purpose: Shared backend utilities and mapper classes.
-- Contains: `ApiResponse`, `GuidHelper`, pagination options, and `Mappers`.
-- Key files: `backend/src/IPCManagement.Api/Helpers/ApiResponse.cs`, `backend/src/IPCManagement.Api/Helpers/GuidHelper.cs`, `backend/src/IPCManagement.Api/Helpers/Mappers/IngredientMapper.cs`.
-
-**`backend/src/IPCManagement.Api/Middlewares`:**
-- Purpose: Custom ASP.NET Core middleware.
-- Contains: Global exception handling middleware.
-- Key files: `backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs`.
-
-**`backend/src/IPCManagement.Api/Security`:**
-- Purpose: Authentication/token implementation details.
-- Contains: JWT token service implementation.
-- Key files: `backend/src/IPCManagement.Api/Security/JwtTokenService.cs`.
-
-**`backend/src/IPCManagement.Api/Migrations`:**
-- Purpose: EF Core migration history and model snapshot.
-- Contains: Timestamped migration files and `IpcManagementContextModelSnapshot.cs`.
-- Key files: `backend/src/IPCManagement.Api/Migrations/IpcManagementContextModelSnapshot.cs`.
+- Purpose: Store EF entities used by all slices.
+- Contains: Inventory, purchase, approval, customer, dish, coordination, and auth persistence models.
+- Key files: `Models/Entities/Ingredient.cs`, `Models/Entities/InventoryIssue.cs`, `Models/Entities/CustomerContract.cs`.
 
 **`backend/tests`:**
-- Purpose: Backend test projects.
-- Contains: API tests and application test project skeleton.
-- Key files: `backend/tests/IPCManagement.Api.Tests/AuthServiceTests.cs`, `backend/tests/IPCManagement.Api.Tests/InventoryReceiptServiceTests.cs`, `backend/tests/IPCManagement.Api.Tests/InventoryIssueServiceTests.cs`.
-
-**`frontend/`:**
-- Purpose: React/Vite SPA workspace.
-- Contains: Vite config, TypeScript configs, package scripts, public assets, and `src`.
-- Key files: `frontend/package.json`, `frontend/vite.config.ts`, `frontend/src/main.tsx`.
-
-**`frontend/src/routes`:**
-- Purpose: Routing definitions and route guards.
-- Contains: Route constants, root router, protected route component.
-- Key files: `frontend/src/routes/routeConfig.ts`, `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/ProtectedRoute.tsx`.
-
-**`frontend/src/app`:**
-- Purpose: Redux application wiring and typed hooks.
-- Contains: Store setup and app hooks.
-- Key files: `frontend/src/app/store.ts`, `frontend/src/app/hooks.ts`.
-
-**`frontend/src/api`:**
-- Purpose: Shared RTK Query API base.
-- Contains: `apiSlice` with base URL and auth header preparation.
-- Key files: `frontend/src/api/apiSlice.ts`.
-
-**`frontend/src/components`:**
-- Purpose: Shared layout and reusable UI primitives.
-- Contains: `layout/MainLayout.tsx` and shadcn-style primitives under `ui`.
-- Key files: `frontend/src/components/layout/MainLayout.tsx`, `frontend/src/components/ui/button.tsx`, `frontend/src/components/ui/card.tsx`, `frontend/src/components/ui/table.tsx`.
+- Purpose: Verify services, controllers, contracts, security, persistence, and end-to-end lifecycle behavior.
+- Contains: `IPCManagement.Api.Tests`, `IPCManagement.Application.Tests`.
+- Key files: `tests/IPCManagement.Api.Tests/Integration/WorkflowLifecycleE2ETests.cs`, `tests/IPCManagement.Application.Tests/FeatureNamespaceConventionTests.cs`.
 
 **`frontend/src/features`:**
-- Purpose: Feature modules by workflow/domain.
-- Contains: Auth, dashboard, reports, projects/menu, coordination, and chef workflows.
-- Key files: `frontend/src/features/auth/authSlice.ts`, `frontend/src/features/auth/authApi.ts`, `frontend/src/features/coordination/coordinationSlice.ts`, `frontend/src/features/chef/pages/ChefDashboardPage.tsx`.
+- Purpose: Own business-facing UI and route modules.
+- Contains: `admin`, `approvals`, `auth`, `chef`, `coordination`, `dashboard`, `projects`, `purchasing`, `reports`, `warehouse`; `workflow/pages` is currently empty.
+- Key files: `features/projects/pages/WeeklyMenuPage.tsx`, `features/purchasing/pages/PurchasingPage.tsx`, `features/warehouse/pages/WarehousePage.tsx`.
+- Boundary rule: Place a route page and its dedicated hooks/components under the feature that owns the user workflow. Keep generic UI out of features.
 
-**`frontend/src/features/auth`:**
-- Purpose: Login, auth API endpoints, auth state, and public exports.
-- Contains: `authSlice.ts`, `authApi.ts`, `pages/LoginPage.tsx`, `index.ts`.
-- Key files: `frontend/src/features/auth/authSlice.ts`, `frontend/src/features/auth/pages/LoginPage.tsx`.
+**`frontend/src/app`:**
+- Purpose: Own application-wide state setup and deliberate multi-feature composition.
+- Contains: Redux store/hooks and `pages/admin-data` composition.
+- Key files: `frontend/src/app/store.ts`, `frontend/src/app/pages/AdminDataPage.tsx`, `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts`.
+- Boundary rule: Use `app/pages` only when a screen composes multiple business features; a single-feature route belongs in `features/<name>/pages`.
 
-**`frontend/src/features/coordination`:**
-- Purpose: Meal order coordination and lock workflow.
-- Contains: `coordinationSlice.ts`, `types.ts`, page and components.
-- Key files: `frontend/src/features/coordination/pages/CoordinationPage.tsx`, `frontend/src/features/coordination/components/order-table.tsx`.
+**`frontend/src/api`:**
+- Purpose: Provide shared RTK Query infrastructure and legacy/cross-feature workflow endpoints.
+- Contains: `apiSlice.ts`, `workflowApi.ts`, cache tags, dish catalog endpoints.
+- Key files: `frontend/src/api/apiSlice.ts`, `frontend/src/api/workflowApi.ts`.
+- Measured evidence: `workflowApi.ts` is 1,955 lines and is a shared hub; prefer a feature-local endpoint module for new domain-specific operations.
 
-**`frontend/src/features/chef`:**
-- Purpose: Chef production dashboard and material workflows.
-- Contains: Chef dashboard page and production/material components.
-- Key files: `frontend/src/features/chef/pages/ChefDashboardPage.tsx`, `frontend/src/features/chef/components/head-chef-dashboard.tsx`.
+**`frontend/src/components`:**
+- Purpose: Store UI primitives, reusable operational components, and the application shell.
+- Contains: `ui`, `common`, `layout`.
+- Key files: `components/layout/MainLayout.tsx`, `components/common/OperationalFrame.tsx`, `components/ui/button.tsx`.
 
-**`frontend/src/features/projects`:**
-- Purpose: Weekly menu screen and backend dish catalog integration for menu/BOM calculations.
-- Contains: `pages/WeeklyMenuPage.tsx`, `dishCatalogApi.ts`.
-- Key files: `frontend/src/features/projects/pages/WeeklyMenuPage.tsx`, `frontend/src/features/projects/dishCatalogApi.ts`.
-
-**`frontend/src/lib`:**
-- Purpose: Generic frontend utilities and shared type helpers.
-- Contains: Utility and type files.
-- Key files: `frontend/src/lib/utils.ts`, `frontend/src/lib/types.ts`.
+**`frontend/src/routes`:**
+- Purpose: Centralize URL topology, access control, and route preload policy.
+- Contains: `AppRouter.tsx`, guards, route loaders, and data preloaders.
+- Key files: `frontend/src/routes/AppRouter.tsx`, `frontend/src/routes/routeLoaders.ts`, `frontend/src/routes/RoleGuard.tsx`.
 
 **`frontend/src/styles`:**
-- Purpose: Frontend CSS entry files.
-- Contains: Global and app CSS.
-- Key files: `frontend/src/styles/index.css`, `frontend/src/styles/App.css`.
+- Purpose: Preserve ordered global CSS layers and component/redesign styling.
+- Contains: `index.css`, `components/*`, `redesign/*`, `ui-redesign.css`.
+- Key files: `frontend/src/styles/index.css`, `frontend/src/styles/components/shell.css`, `frontend/src/styles/redesign/fiori.css`.
+- Boundary rule: Maintain import order in `frontend/src/main.tsx`; moving selectors between layers can alter cascade behavior even without markup changes.
 
-**`frontend/src/types`:**
-- Purpose: Shared frontend API type definitions.
-- Contains: API response and auth-related types.
-- Key files: `frontend/src/types/api.ts`.
+**`frontend/src/shared/api/contracts`:**
+- Purpose: Store generated OpenAPI source and TypeScript schema.
+- Contains: `openapi.json`, `schema.ts`, generation notes.
+- Key files: `frontend/src/shared/api/contracts/schema.ts` (13,340 lines), `frontend/src/shared/api/contracts/openapi.json`.
+- Boundary rule: Regenerate; do not manually maintain generated schema output.
+
+**`scripts`, `tools`, and `shipyard`:**
+- Purpose: Run E2E workflows, performance checks, DB backup/restore, and local environment lifecycle.
+- Contains: PowerShell orchestration, k6 tests, headed-browser helper configuration, Shipyard hooks.
+- Key files: `scripts/Invoke-WeeklyHappyPathE2E.ps1`, `tools/perf/k6/load.js`, `shipyard/profiles/IPCManagement/hooks/boot.sh`.
+
+## Feature Ownership Matrix
+
+| Business capability | Backend owner | Frontend owner | Important cross-boundary dependency |
+|---|---|---|---|
+| Authentication | `backend/src/IPCManagement.Api/Features/Auth` | `frontend/src/features/auth` | Shared transport imports auth state in `frontend/src/api/apiSlice.ts` |
+| Catalog/BOM | `backend/src/IPCManagement.Api/Features/Catalog` | Primarily `frontend/src/features/projects` and admin composition | Catalog service imports SampleData service in `Features/Catalog/Services/DishService.cs` |
+| Customer/menu coordination | `backend/src/IPCManagement.Api/Features/Coordination` | `frontend/src/features/coordination` | Coordination imports Approvals/Purchasing; projects imports coordination API types |
+| Planning/demand | `backend/src/IPCManagement.Api/Features/Planning` | `frontend/src/features/projects/weekly-menu` | Planning service uses Purchasing-owned material-demand port |
+| Purchasing | `backend/src/IPCManagement.Api/Features/Purchasing` | `frontend/src/features/purchasing` | Imports Reports and Inventory services/contracts |
+| Approval | `backend/src/IPCManagement.Api/Features/Approvals` | `frontend/src/features/approvals` | Approval handlers invoke Purchasing services |
+| Warehouse/inventory | `backend/src/IPCManagement.Api/Features/Inventory` | `frontend/src/features/warehouse` and `frontend/src/features/chef` | Purchasing receiving/order services invoke Inventory services |
+| Reporting | `backend/src/IPCManagement.Api/Features/Reports` | `frontend/src/features/reports` | Bidirectional contract/service coupling with Purchasing |
+| Sample/import data | `backend/src/IPCManagement.Api/Features/SampleData` | Admin/projects surfaces | Used directly by Catalog and Coordination controllers/services |
+| Admin | `backend/src/IPCManagement.Api/Features/Admin` | `frontend/src/features/admin` plus `frontend/src/app/pages/admin-data` | App-level page composes Admin, Auth, Coordination |
 
 ## Key File Locations
 
 **Entry Points:**
-- `backend/src/IPCManagement.Api/Program.cs`: Backend API host, service configuration, middleware pipeline, Swagger/root endpoints.
-- `backend/src/IPCManagement.Api/DependencyInjection.cs`: Backend dependency registration entry for repositories/services/EF.
-- `frontend/src/main.tsx`: Frontend React root and Redux provider.
-- `frontend/src/App.tsx`: App wrapper that renders `AppRouter`.
-- `frontend/src/routes/AppRouter.tsx`: Frontend route tree.
+- `backend/src/IPCManagement.Api/Program.cs`: ASP.NET Core process and middleware entry.
+- `frontend/src/main.tsx`: Browser bootstrap and global CSS ordering.
+- `frontend/src/routes/AppRouter.tsx`: Route tree and page composition.
 
 **Configuration:**
-- `package.json`: Root npm workspace scripts for frontend/backend helpers and commitlint.
-- `frontend/package.json`: Frontend dependencies and Vite scripts.
-- `frontend/vite.config.ts`: Vite setup.
-- `frontend/tsconfig.json`, `frontend/tsconfig.app.json`, `frontend/tsconfig.node.json`: Frontend TypeScript config.
-- `frontend/eslint.config.js`: Frontend lint configuration.
-- `backend/src/IPCManagement.Api/IPCManagement.Api.csproj`: Backend target framework and NuGet package references.
-- `backend/src/IPCManagement.Api/appsettings.json.example`: Example backend app settings. Do not put real secrets in docs or committed examples.
-- `backend/src/IPCManagement.Api/Properties/launchSettings.json`: Local backend launch profiles.
-- `commitlint.config.js`: Commit message linting config.
+- `backend/src/IPCManagement.Api/DependencyInjection.cs`: Backend dependency graph.
+- `backend/src/IPCManagement.Api/appsettings.json.example`: Safe backend configuration template.
+- `frontend/vite.config.ts`: Vite build/dev configuration.
+- `frontend/tsconfig.app.json`: Frontend TypeScript paths/options.
+- `package.json`: Root orchestration scripts.
 
 **Core Logic:**
-- `backend/src/IPCManagement.Api/Controllers`: HTTP API endpoints.
-- `backend/src/IPCManagement.Api/Services`: Business services and interfaces.
-- `backend/src/IPCManagement.Api/Data/Repositories`: EF Core repositories and interfaces.
-- `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`: Database mapping.
-- `backend/src/IPCManagement.Api/Helpers/Mappers`: Entity-to-DTO conversion.
-- `frontend/src/features`: Frontend feature pages, components, state, API extensions, and types.
-- `frontend/src/api/apiSlice.ts`: Frontend API client base.
-- `frontend/src/app/store.ts`: Frontend Redux store composition.
+- `backend/src/IPCManagement.Api/Features/*/Services`: Backend use-case orchestration.
+- `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`: Persistence model.
+- `frontend/src/features/*`: Feature UI ownership.
+- `frontend/src/api/apiSlice.ts`: Shared browser transport/cache.
 
 **Testing:**
-- `backend/tests/IPCManagement.Api.Tests`: API/service unit tests.
-- `backend/tests/IPCManagement.Application.Tests`: Application test project skeleton.
-- Frontend test configuration and test files are not detected.
+- `backend/tests/IPCManagement.Api.Tests`: Backend controller/integration tests.
+- `backend/tests/IPCManagement.Application.Tests`: Application-level unit/architecture tests.
+- `frontend/src/**/*.test.ts(x)`: Colocated unit/component tests.
+- `frontend/tests`: Playwright route, visual, performance, and workflow tests.
 
 ## Naming Conventions
 
 **Files:**
-- Backend controllers use PascalCase plural controller names with `Controller` suffix: `IngredientsController.cs`, `InventoryReceiptsController.cs`.
-- Backend service interfaces use `I{Name}Service.cs` and implementations use `{Name}Service.cs`: `IIngredientService.cs`, `IngredientService.cs`.
-- Backend repository interfaces use `I{Name}Repository.cs` and implementations use `{Name}Repository.cs`: `IIngredientRepository.cs`, `IngredientRepository.cs`.
-- Backend DTO files are grouped by domain and use `{Domain}Dto.cs` when several related DTOs are in one file: `Models/DTOs/Inventory/InventoryDto.cs`.
-- Backend validators group related request validators by domain: `IngredientValidators.cs`, `InventoryValidators.cs`.
-- Backend mapper files use `{Domain}Mapper.cs`: `IngredientMapper.cs`, `InventoryMapper.cs`.
-- Frontend route/page components use PascalCase: `AppRouter.tsx`, `ProtectedRoute.tsx`, `LoginPage.tsx`, `CoordinationPage.tsx`.
-- Frontend UI and feature component files are mixed; preserve local folder style. Shared shadcn-style UI uses lowercase names such as `button.tsx`, `card.tsx`, while layout/page components use PascalCase.
-- Frontend Redux files use `*Slice.ts`: `authSlice.ts`, `coordinationSlice.ts`.
-- Frontend API endpoint files use `*Api.ts`: `authApi.ts`.
-- Frontend feature barrel files use `index.ts`.
+- Backend classes/interfaces use PascalCase and role suffixes: `PurchaseOrderService.cs`, `IPurchaseOrderService.cs`, `PurchaseOrdersController.cs`, `SupplierQuotationValidators.cs`.
+- Frontend React components/pages use PascalCase: `WarehousePage.tsx`, `PurchaseDecisionPanel.tsx`.
+- Frontend hooks/utilities use camelCase and `use` prefix for hooks: `useReportsPageModel.ts`, `warehouseIssueAllocation.ts`.
+- Tests append `.test.ts`, `.test.tsx`, or backend `Tests.cs`; browser tests append `.spec.ts`.
+- Feature API modules use `<feature>Api.ts`: `features/coordination/coordinationApi.ts`, `features/admin/adminApi.ts`.
 
 **Directories:**
-- Backend namespaces map to PascalCase directories under `backend/src/IPCManagement.Api`: `Controllers`, `Services`, `Models`, `Helpers`, `Middlewares`, `Security`.
-- Backend DTO domains use PascalCase directories: `Models/DTOs/Ingredient`, `Models/DTOs/Inventory`.
-- Frontend top-level source directories use lowercase: `api`, `app`, `components`, `features`, `routes`, `styles`, `types`.
-- Frontend feature directories use lowercase domain names: `auth`, `coordination`, `chef`, `projects`.
-- Frontend feature pages live in `pages`; feature-local UI lives in `components`.
+- Backend namespaces/directories use PascalCase: `Features/Purchasing/Services`.
+- Frontend feature directories use lowercase or kebab-case: `features/projects/weekly-menu`.
+- Page-bearing directories are named `pages`; reusable within-feature UI uses `components` or a use-case noun such as `quotation`, `receipts`, `production`.
 
 ## Where to Add New Code
 
-**New Backend Feature/API Resource:**
-- Controller: `backend/src/IPCManagement.Api/Controllers/{Resource}Controller.cs`
-- Service contract: `backend/src/IPCManagement.Api/Services/I{Resource}Service.cs`
-- Service implementation: `backend/src/IPCManagement.Api/Services/{Resource}Service.cs`
-- Repository contract: `backend/src/IPCManagement.Api/Data/Repositories/I{Resource}Repository.cs`
-- Repository implementation: `backend/src/IPCManagement.Api/Data/Repositories/{Resource}Repository.cs`
-- DTOs: `backend/src/IPCManagement.Api/Models/DTOs/{Resource}/{Resource}Dto.cs`
-- Validators: `backend/src/IPCManagement.Api/Models/Validators/{Resource}Validators.cs`
-- Mapper: `backend/src/IPCManagement.Api/Helpers/Mappers/{Resource}Mapper.cs`
-- DI registration: `backend/src/IPCManagement.Api/DependencyInjection.cs`
-- Tests: `backend/tests/IPCManagement.Api.Tests/{Resource}ServiceTests.cs`
+**New Backend Feature Use Case:**
+- Controller: `backend/src/IPCManagement.Api/Features/<Feature>/Controllers/<UseCase>Controller.cs`
+- Contracts: `backend/src/IPCManagement.Api/Features/<Feature>/Contracts/<UseCase>Dto.cs`
+- Service/port: `backend/src/IPCManagement.Api/Features/<Feature>/Services/<UseCase>Service.cs` and `I<UseCase>Service.cs`
+- Validation: `backend/src/IPCManagement.Api/Features/<Feature>/Validators/<UseCase>Validators.cs`
+- Registration: `backend/src/IPCManagement.Api/DependencyInjection.cs`
+- Tests: `backend/tests/IPCManagement.Api.Tests/<UseCase>Tests.cs` or application tests when HTTP infrastructure is irrelevant.
 
-**New Backend Entity/Table Mapping:**
-- Entity: `backend/src/IPCManagement.Api/Models/Entities/{Entity}.cs`
-- DbSet/model mapping: `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`
-- Migration: `backend/src/IPCManagement.Api/Migrations`
-- Repository: `backend/src/IPCManagement.Api/Data/Repositories/I{Entity}Repository.cs` and `backend/src/IPCManagement.Api/Data/Repositories/{Entity}Repository.cs`
-- DTO/mapper/service/controller files follow the backend feature pattern above.
+**New Backend Cross-Feature Contract:**
+- Stable shared DTO: `backend/src/IPCManagement.Api/Shared/Contracts`
+- Guidance: Prefer a narrow shared contract over importing another feature's report/page DTO. Keep dependency direction one-way and document the owning use case.
 
-**New Backend Cross-Cutting Service:**
-- Interface and implementation: `backend/src/IPCManagement.Api/Services`
-- DI registration: `backend/src/IPCManagement.Api/DependencyInjection.cs`
-- If security-specific, implementation may live under `backend/src/IPCManagement.Api/Security` like `JwtTokenService.cs` while the interface remains in `Services`.
+**New Frontend Feature/Route:**
+- Route page: `frontend/src/features/<feature>/pages/<Name>Page.tsx`
+- Feature components/hooks/API: `frontend/src/features/<feature>`
+- Route loader: `frontend/src/routes/routeLoaders.ts`
+- Route declaration/permission: `frontend/src/routes/AppRouter.tsx`
+- Unit tests: colocate next to implementation; browser route tests belong in `frontend/tests`.
 
-**New Frontend Route/Page:**
-- Route constant: `frontend/src/routes/routeConfig.ts`
-- Route registration: `frontend/src/routes/AppRouter.tsx`
-- Navigation item/page title: `frontend/src/components/layout/MainLayout.tsx`
-- Page component: `frontend/src/features/{feature}/pages/{FeaturePage}.tsx`
-- Feature exports: `frontend/src/features/{feature}/index.ts`
+**New Multi-Feature Page:**
+- Composition shell/model: `frontend/src/app/pages/<page-name>` with a thin page entry in `frontend/src/app/pages`.
+- Guidance: Use only when the page genuinely coordinates several feature APIs, following `frontend/src/app/pages/admin-data`.
 
-**New Frontend Feature State:**
-- Slice: `frontend/src/features/{feature}/{feature}Slice.ts`
-- Types: `frontend/src/features/{feature}/types.ts`
-- Store registration: `frontend/src/app/store.ts`
-- Typed selector/hook helpers: `frontend/src/app/hooks.ts` when reusable across features.
-
-**New Frontend API Endpoints:**
-- Shared base: keep `frontend/src/api/apiSlice.ts` as the only base API definition.
-- Feature endpoints: `frontend/src/features/{feature}/{feature}Api.ts` using `apiSlice.injectEndpoints`.
-- Shared API response types: `frontend/src/types/api.ts` when reused across features.
-
-**New Frontend Component:**
-- Shared UI primitive: `frontend/src/components/ui/{component}.tsx`
-- Shared app layout/component: `frontend/src/components/{area}/{Component}.tsx`
-- Feature-specific component: `frontend/src/features/{feature}/components/{component}.tsx`
-- Route-level page: `frontend/src/features/{feature}/pages/{FeaturePage}.tsx`
+**New Shared Component:**
+- Primitive: `frontend/src/components/ui`
+- Operational/reusable domain-neutral component: `frontend/src/components/common`
+- Shell/navigation component: `frontend/src/components/layout`
 
 **Utilities:**
-- Backend helper: `backend/src/IPCManagement.Api/Helpers/{HelperName}.cs`
-- Backend mapper: `backend/src/IPCManagement.Api/Helpers/Mappers/{Domain}Mapper.cs`
-- Frontend helper: `frontend/src/lib/utils.ts` for generic helpers or `frontend/src/features/{feature}/components/hooks.ts` for feature-local hooks.
+- Shared stateless helper: `frontend/src/lib`
+- Cross-feature TypeScript contract: `frontend/src/types`
+- Feature-specific helper: keep under `frontend/src/features/<feature>`.
+
+## Oversized and Sensitive Locations
+
+- `frontend/src/shared/api/contracts/schema.ts` — 13,340 generated lines; regenerate only.
+- `backend/src/IPCManagement.Api/Features/Reports/Services/WorkflowReportService.cs` — 3,633 lines; isolate report-calculation changes and add regression tests.
+- `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` — 2,563 lines; schema changes affect the entire persistence model.
+- `backend/src/IPCManagement.Api/Features/Coordination/Services/CoordinationService.cs` — 2,416 lines; coordination workflow changes have broad cross-slice implications.
+- `backend/src/IPCManagement.Api/Features/SampleData/Services/SampleDataImportService.CustomMenu.cs` — 2,047 lines, paired with 1,488-line `SampleDataImportService.cs`; preserve the partial-class split and import fixtures.
+- `frontend/src/api/workflowApi.ts` — 1,955 lines; avoid extending it for isolated feature endpoints.
+- `backend/src/IPCManagement.Api/Features/Catalog/Services/DishService.cs` — 1,620 lines.
+- `backend/src/IPCManagement.Api/Features/Purchasing/Services/PurchaseRequestWorkflowService.cs` — 1,385 lines.
+- `backend/src/IPCManagement.Api/Features/Planning/Services/MaterialDemandService.cs` — 1,280 lines.
+- `frontend/src/features/reports/pages/ReportsPage.tsx` — 781 lines; extend its model/panel files instead of adding more inline concerns.
+- `frontend/src/features/warehouse/pages/WarehousePage.tsx` — 720 lines.
+- `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts` — 692 lines; it is intentionally cross-feature and should not become a generic dumping ground.
+- `backend/src/IPCManagement.Api/Features/Coordination/Controllers/CoordinationController.cs` — 678 lines; new actions should be assessed for a focused controller/use-case split.
 
 ## Special Directories
 
-**`.planning`:**
-- Purpose: GSD planning artifacts and generated codebase mapping documents.
-- Generated: Yes
-- Committed: Project-dependent; preserve existing planning files unless explicitly asked to clean them.
-
-**`.codex-run`:**
-- Purpose: Codex/GSD runtime artifacts.
-- Generated: Yes
-- Committed: Not applicable for source logic; do not place application code here.
-
-**`.husky`:**
-- Purpose: Git hook scripts for repository workflow.
-- Generated: Partly
-- Committed: Yes
-
-**`node_modules`:**
-- Purpose: Installed npm dependencies for the root workspace/frontend.
-- Generated: Yes
-- Committed: No
-
 **`backend/src/IPCManagement.Api/Migrations`:**
-- Purpose: EF Core schema migration history.
-- Generated: Yes
-- Committed: Yes
+- Purpose: EF Core schema history and generated model snapshots.
+- Generated: Partly; designer and snapshot files are generated.
+- Committed: Yes.
 
-**`backend/src/IPCManagement.Api/Properties`:**
-- Purpose: Local .NET launch profile configuration.
-- Generated: Partly
-- Committed: Yes
+**`frontend/src/shared/api/contracts`:**
+- Purpose: Generated OpenAPI JSON and TypeScript schema.
+- Generated: Yes.
+- Committed: Yes.
 
-**`backend/tests`:**
-- Purpose: Backend automated tests.
-- Generated: No
-- Committed: Yes
+**`frontend/dist`, `frontend/coverage`, `backend/**/bin`, `backend/**/obj`, `backend/TestResults`:**
+- Purpose: Build/test output.
+- Generated: Yes.
+- Committed: No; do not use as source locations.
 
-**`frontend/public`:**
-- Purpose: Static files served by Vite without bundling transforms.
-- Generated: No
-- Committed: Yes
+**`.artifacts`:**
+- Purpose: Browser/Shipyard visual and runtime evidence.
+- Generated: Yes.
+- Committed: Depends on evidence workflow; preserve existing user evidence and do not treat it as application source.
 
-**`frontend/src/assets`:**
-- Purpose: Bundled images and SVGs imported by frontend code.
-- Generated: No
-- Committed: Yes
+**`.planning/codebase`:**
+- Purpose: GSD-consumable codebase reference maps.
+- Generated: Yes, from current source analysis.
+- Committed: Managed by the orchestrating workflow.
 
 ---
 
-*Structure analysis: 2026-06-12*
+*Structure analysis: 2026-07-27*

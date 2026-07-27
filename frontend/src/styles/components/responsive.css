@@ -1,0 +1,198 @@
+@media (max-width: 599px) {
+  .ipc-view-switcher button {
+    min-height: var(--ipc-control-height-lg);
+  }
+
+  .ipc-pagination-bar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--ipc-space-1);
+    padding: var(--ipc-space-2);
+  }
+
+  .ipc-pagination-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .ipc-pagination-tools {
+    display: grid;
+    width: 100%;
+    grid-template-areas:
+      "actions actions"
+      "size jump";
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .ipc-pagination-tools .ipc-pagination-actions {
+    grid-area: actions;
+  }
+
+  .ipc-pagination-size {
+    grid-area: size;
+  }
+
+  .ipc-pagination-jump {
+    grid-area: jump;
+  }
+
+  .ipc-pagination-button {
+    width: var(--ipc-control-height-lg);
+    height: var(--ipc-control-height-lg);
+  }
+
+  .ipc-pagination-size select,
+  .ipc-pagination-jump input,
+  .ipc-pagination-jump button {
+    height: var(--ipc-control-height-lg);
+  }
+}
+
+@media (max-width: 480px) {
+  .ipc-auth-card {
+    padding: 20px;
+  }
+
+  .ipc-auth-title {
+    font-size: 1.18rem;
+  }
+}
+
+.operation-surface * {
+  border-color: var(--border);
+}
+
+.operation-surface .bg-slate-850 {
+  background-color: #f8fafc;
+}
+
+.operation-surface .hover\:bg-slate-750:hover {
+  background-color: #eef2f6;
+}
+
+.operation-surface input,
+.operation-surface select,
+.operation-surface textarea {
+  color-scheme: light;
+}
+
+/* ─── Keyframe Animations ─── */
+
+@keyframes ipc-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ipc-pulse-dot {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes ipc-slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Document card monospace ID */
+
+.ipc-document-card dd {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Table polish */
+
+.ipc-data-table th {
+  font-weight: 600;
+}
+
+.ipc-data-table tbody tr {
+  transition: background-color var(--ipc-transition-fast);
+}
+
+/* Lane summary card hover */
+
+/* Empty state polish */
+
+.ipc-empty-state {
+  animation: ipc-fade-in var(--ipc-transition-smooth);
+}
+
+/* Inline alert entrance */
+
+.ipc-inline-alert-enter {
+  animation: ipc-slide-in-left var(--ipc-transition-smooth);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ipc-empty-state,
+  .ipc-inline-alert-enter {
+    animation: none !important;
+  }
+
+  .ipc-button,
+  .ipc-nav-link,
+  .ipc-logout-button,
+  .ipc-approval-record,
+  .ipc-document-card,
+  .ipc-work-queue-item,
+  .ipc-exception-item {
+    transition-duration: 1ms !important;
+    transform: none !important;
+  }
+
+  .ipc-button:active,
+  .hover\:-translate-y-0\.5:hover,
+  .group:hover .group-hover\:translate-x-0 {
+    transform: none !important;
+  }
+}
+
+/* ─── Custom Scrollbars (Global & Helper) ─── */
+
+/* Global scrollbar style for WebKit browsers (Chrome, Safari, Edge, Opera) */
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ipc-slate-300);
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background var(--ipc-transition-fast);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ipc-slate-400);
+}
+
+/* Firefox support */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ipc-slate-300) transparent;
+}

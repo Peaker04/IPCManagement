@@ -4,7 +4,7 @@ using System.Text;
 using System.Xml;
 using FluentAssertions;
 using IPCManagement.Api.Exceptions;
-using IPCManagement.Api.Services.SampleData;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Application.Tests;
 

@@ -58,7 +58,93 @@ const noSwallowedQueryError = {
   },
 }
 
-const ipcPlugin = { rules: { 'no-swallowed-query-error': noSwallowedQueryError } }
+/**
+ * Khi một query đã được phân loại bằng `toQueryView`, dữ liệu của query đó chỉ
+ * được đọc từ nhánh `ready`. Tiếp tục dùng `query.data ?? []` ở cùng file sẽ
+ * bỏ qua uninitialized/error/forbidden và tái tạo empty state giả.
+ *
+ * Rule chỉ khóa query đã opt-in để roadmap có thể migrate theo strangler,
+ * không tạo một baseline warning mới cho toàn bộ code cũ.
+ */
+const noDirectQueryDataFallbackAfterClassification = {
+  meta: {
+    type: 'problem',
+    docs: {
+      description: 'Query đã qua toQueryView không được tiếp tục coerce data trực tiếp thành mảng rỗng.',
+    },
+    schema: [],
+    messages: {
+      directFallback:
+        '{{query}} đã được phân loại bằng toQueryView nhưng vẫn dùng data ?? []. Hãy đọc data từ nhánh ready để không biến uninitialized/error/forbidden thành empty.',
+    },
+  },
+  create(context) {
+    const adapterNames = new Set(['toQueryView'])
+    const classifiedQueries = new Set()
+    const fallbackNodes = []
+
+    const unwrap = (node) => {
+      let current = node
+      while (current?.type === 'ChainExpression' || current?.type === 'TSAsExpression' || current?.type === 'TSNonNullExpression') {
+        current = current.expression
+      }
+      return current
+    }
+
+    const getQueryDataRoot = (node) => {
+      let current = unwrap(node)
+      let readsQueryData = false
+
+      while (current?.type === 'MemberExpression') {
+        const propertyName = current.computed
+          ? current.property.type === 'Literal' ? current.property.value : null
+          : current.property.type === 'Identifier' ? current.property.name : null
+        if (DATA_KEYS.has(propertyName)) readsQueryData = true
+        current = unwrap(current.object)
+      }
+
+      return readsQueryData && current?.type === 'Identifier' ? current.name : null
+    }
+
+    return {
+      ImportDeclaration(node) {
+        if (typeof node.source.value !== 'string' || !node.source.value.endsWith('queryView')) return
+        for (const specifier of node.specifiers) {
+          if (specifier.type !== 'ImportSpecifier') continue
+          const importedName = specifier.imported.type === 'Identifier' ? specifier.imported.name : specifier.imported.value
+          if (importedName === 'toQueryView') adapterNames.add(specifier.local.name)
+        }
+      },
+      CallExpression(node) {
+        if (node.callee.type !== 'Identifier' || !adapterNames.has(node.callee.name)) return
+        const query = unwrap(node.arguments[0])
+        if (query?.type === 'Identifier') classifiedQueries.add(query.name)
+      },
+      LogicalExpression(node) {
+        if (node.operator !== '??' || node.right.type !== 'ArrayExpression') return
+        const query = getQueryDataRoot(node.left)
+        if (query) fallbackNodes.push({ node, query })
+      },
+      'Program:exit'() {
+        for (const fallback of fallbackNodes) {
+          if (!classifiedQueries.has(fallback.query)) continue
+          context.report({
+            node: fallback.node,
+            messageId: 'directFallback',
+            data: { query: fallback.query },
+          })
+        }
+      },
+    }
+  },
+}
+
+const ipcPlugin = {
+  rules: {
+    'no-swallowed-query-error': noSwallowedQueryError,
+    'no-direct-query-data-fallback-after-classification': noDirectQueryDataFallbackAfterClassification,
+  },
+}
 
 /**
  * Màn hình ra quyết định mua / nấu / xuất: empty state giả ở đây trực tiếp gây
@@ -93,7 +179,10 @@ export default defineConfig([
     files: ['src/**/*.{ts,tsx}'],
     ignores: ['src/**/*.test.{ts,tsx}'],
     plugins: { ipc: ipcPlugin },
-    rules: { 'ipc/no-swallowed-query-error': 'warn' },
+    rules: {
+      'ipc/no-swallowed-query-error': 'warn',
+      'ipc/no-direct-query-data-fallback-after-classification': 'error',
+    },
   },
   {
     files: DECISION_SCREEN_FILES,

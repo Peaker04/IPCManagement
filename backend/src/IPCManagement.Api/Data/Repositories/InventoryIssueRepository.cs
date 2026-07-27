@@ -1,9 +1,9 @@
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Models.Entities;
-using IPCManagement.Api.Models.DTOs.Inventory;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using Microsoft.EntityFrameworkCore;
+using IPCManagement.Api.Features.Inventory.Contracts;
 
 namespace IPCManagement.Api.Data.Repositories;
 

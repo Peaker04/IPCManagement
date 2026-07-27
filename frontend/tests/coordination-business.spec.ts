@@ -1,5 +1,5 @@
 import { expect, type Page, type Request, test } from '@playwright/test'
-import { ROUTES } from '../src/routes/routeConfig'
+import { ROUTES } from '../src/lib/routeConfig'
 
 type AppRole = 'quanly' | 'dieuphoi'
 

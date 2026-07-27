@@ -1,7 +1,7 @@
 import { expect, type Page, test } from '@playwright/test';
 import { mkdirSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
-import { ROUTES } from '../src/routes/routeConfig';
+import { ROUTES } from '../src/lib/routeConfig';
 import {
   PHASE09_DATE,
   PHASE09_WEEK,

@@ -1,307 +1,224 @@
-<!-- refreshed: 2026-07-08 -->
+<!-- refreshed: 2026-07-27 -->
 # Architecture
 
-> Refreshed 2026-07-19. The current MVP web walkthrough is documented in [`docs/MVP_WEB_FLOW.md`](../../docs/MVP_WEB_FLOW.md); aggregate ingredient demand pagination is exposed by `WorkflowReportsController` and consumed through RTK Query.
-
-**Analysis Date:** 2026-07-08 (updated from 2026-06-12)
+**Analysis Date:** 2026-07-27
 
 ## System Overview
 
 ```text
-┌─────────────────────────────────────────────────────────────┐
-│                      React Frontend                         │
-├──────────────────┬──────────────────┬───────────────────────┤
-│   Router/Layout  │  Feature Pages   │  Redux/RTK Query      │
-│ `frontend/src/   │ `frontend/src/   │ `frontend/src/app`    │
-│ routes`          │ features`        │ `frontend/src/api`    │
-└────────┬─────────┴────────┬─────────┴──────────┬────────────┘
-         │                  │                     │
-         ▼                  ▼                     ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  ASP.NET Core Web API                        │
-│ `backend/src/IPCManagement.Api/Program.cs`                  │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│ Controllers → Services → Repositories → EF Core DbContext    │
-│ `Controllers/` `Services/` `Data/Repositories/` `Data/`      │
-└──────────────────────────────┬──────────────────────────────┘
-                               │
-                               ▼
-┌─────────────────────────────────────────────────────────────┐
-│  MySQL database and generated migrations                     │
-│  `Models/Entities/` `Migrations/`                            │
-└─────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│ React 19 browser application                                        │
+│ `frontend/src/main.tsx` → `frontend/src/routes/AppRouter.tsx`        │
+├─────────────────────┬──────────────────────┬─────────────────────────┤
+│ Feature pages       │ Shared UI/layout     │ RTK Query + Redux       │
+│ `src/features/*`    │ `src/components/*`   │ `src/api/*`, `src/app`  │
+└──────────┬──────────┴──────────┬───────────┴────────────┬────────────┘
+           └─────────────────────┴────────────────────────┘
+                                  │ HTTP JSON / JWT cookie + bearer
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ ASP.NET Core 9 API host and middleware                              │
+│ `backend/src/IPCManagement.Api/Program.cs`                           │
+├─────────────────────┬──────────────────────┬─────────────────────────┤
+│ Feature controllers │ Feature services     │ Cross-cutting security  │
+│ `Features/*/...`    │ `Features/*/...`     │ `Security`, `Middleware`│
+└──────────┬──────────┴──────────┬───────────┴─────────────────────────┘
+                                  ▼
+┌──────────────────────────────────────────────────────────────────────┐
+│ Shared persistence: repositories, Unit of Work, EF Core DbContext   │
+│ `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`         │
+└──────────────────────────────────┬───────────────────────────────────┘
+                                   ▼
+                              MySQL 8+
 ```
 
 ## Component Responsibilities
 
 | Component | Responsibility | File |
 |-----------|----------------|------|
-| API bootstrap | Configure Serilog, DI, JWT auth, CORS, FluentValidation, Swagger, rate limiting, middleware, and controller routing. | `backend/src/IPCManagement.Api/Program.cs` |
-| Backend DI module | Register EF Core context, repositories, domain services, token service, and unit-of-work abstractions. | `backend/src/IPCManagement.Api/DependencyInjection.cs` |
-| Controllers | Expose HTTP endpoints, authorize requests, bind DTOs, call services, and wrap results in `ApiResponse`. | `backend/src/IPCManagement.Api/Controllers/*.cs` |
-| Services | Own business rules, DTO mapping, transaction orchestration, stock ledger updates, and repository coordination. | `backend/src/IPCManagement.Api/Services/*.cs` |
-| Repositories | Encapsulate EF Core queries and persistence methods per aggregate/table. | `backend/src/IPCManagement.Api/Data/Repositories/*.cs` |
-| EF Core context | Define `DbSet` properties, table mappings, indexes, relationships, enum columns, and MySQL schema configuration. | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` |
-| Validators | Validate incoming DTOs with FluentValidation before controller action logic runs. | `backend/src/IPCManagement.Api/Models/Validators/*.cs` |
-| Mappers | Convert EF entities to API DTOs and handle binary GUID string conversion. | `backend/src/IPCManagement.Api/Helpers/Mappers/*.cs` |
-| Frontend entry | Mount React with `StrictMode` and Redux provider. | `frontend/src/main.tsx` |
-| Frontend routing | Define public/protected routes and nested layout routing. | `frontend/src/routes/AppRouter.tsx` |
-| Frontend store | Compose auth, coordination, and RTK Query reducers/middleware. | `frontend/src/app/store.ts` |
-| API client | Centralize `/api` base URL and bearer-token header preparation. | `frontend/src/api/apiSlice.ts` |
-| Feature modules | Own pages, local components, feature slices, types, and exports for business areas. | `frontend/src/features/*` |
+| Browser bootstrap | Mount React, Redux provider, and global styles | `frontend/src/main.tsx` |
+| Route composition | Lazy-load pages and enforce authentication/permission guards | `frontend/src/routes/AppRouter.tsx` |
+| API core | Configure RTK Query base URL, auth headers, refresh, and shared cache | `frontend/src/api/apiSlice.ts` |
+| Feature UI | Own domain pages, local hooks, endpoint modules, and components | `frontend/src/features/*` |
+| Multi-feature UI composition | Combine admin, auth, and coordination data | `frontend/src/app/pages/AdminDataPage.tsx`, `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts` |
+| API host | Configure middleware, authorization, health checks, rate limiting, and endpoints | `backend/src/IPCManagement.Api/Program.cs` |
+| Dependency composition | Register persistence and feature services | `backend/src/IPCManagement.Api/DependencyInjection.cs` |
+| Backend slices | Group controllers, contracts, services, and validators by domain | `backend/src/IPCManagement.Api/Features/*` |
+| Persistence | Map all domain entities and expose shared database access | `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs` |
 
 ## Pattern Overview
 
-**Overall:** Split frontend/backend application with a layered ASP.NET Core API and feature-folder React client.
+**Overall:** Modular monolith with VSA-lite feature folders, layered internals, and a React feature-module frontend.
 
 **Key Characteristics:**
-- Backend request handling flows through controller classes, service interfaces, repository interfaces, and EF Core persistence. Keep new backend behavior inside this sequence.
-- Backend dependencies are interface-first and registered explicitly in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
-- Multi-entity backend writes use `IUnitOfWork` and repository synchronous change tracking before one `SaveChangesAsync`, as shown by `backend/src/IPCManagement.Api/Services/InventoryReceiptService.cs`.
-- Frontend routes are centralized in `frontend/src/routes/AppRouter.tsx` and `frontend/src/routes/routeConfig.ts`.
-- Frontend feature state lives in Redux slices under `frontend/src/features/*`, while server API calls extend `frontend/src/api/apiSlice.ts` with `injectEndpoints`.
-- Shared frontend primitives live under `frontend/src/components`, `frontend/src/app`, `frontend/src/lib`, `frontend/src/styles`, and `frontend/src/types`.
+- Deploy the backend as one ASP.NET Core process and one EF Core model; feature slices are source organization, not independently deployable modules.
+- Route HTTP work through controller → service → repository/DbContext. Controllers remain thin in most slices, although `Features/Coordination/Controllers/CoordinationController.cs` is 678 lines.
+- Keep frontend route ownership in `frontend/src/features/*`, while shared HTTP/session behavior stays centralized in `frontend/src/api/apiSlice.ts`.
+- Treat the VSA-lite boundary as porous. Backend feature namespaces import one another directly; all slices share `Data`, entities, security, helpers, and one DI root.
+
+### Measured Boundary Evidence
+
+- Backend has 10 feature folders. Largest by measured non-generated C# volume are `SampleData` (13 files/7,009 lines), `Reports` (12/4,577), `Purchasing` (33/3,893), `Inventory` (26/3,660), and `Coordination` (11/3,616).
+- Frontend has 10 named feature directories, but `frontend/src/features/workflow/pages` is empty. Largest measured TypeScript/TSX slices are `projects` (56 files/5,450 lines), `coordination` (17/2,447), `chef` (27/2,295), and `purchasing` (12/2,206).
+- Cross-slice backend imports are concrete: Planning calls Purchasing in `Features/Planning/Services/MaterialDemandService.cs`; Purchasing calls Reports in `Features/Purchasing/Services/PurchaseRequestWorkflowService.cs`; Purchasing calls Inventory in `Features/Purchasing/Services/PurchaseReceivingService.cs`; Catalog calls SampleData in `Features/Catalog/Services/DishService.cs`; Coordination calls Approvals and Purchasing in `Features/Coordination/Services/CoordinationService.cs`.
+- Cross-feature contracts are also coupled: `Features/Purchasing/Contracts/PurchasePlanPageDto.cs` imports Reports contracts, while `Features/Reports/Services/IWorkflowReportService.cs` imports Purchasing contracts. This makes the Reports/Purchasing boundary bidirectional rather than a strict vertical slice.
+- Frontend core depends on auth feature state (`frontend/src/api/apiSlice.ts`), and the app store depends on auth and coordination reducers (`frontend/src/app/store.ts`). `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts` intentionally composes admin, auth, and coordination.
 
 ## Layers
 
-**Frontend Shell:**
-- Purpose: Mount the SPA, create the router, guard authenticated pages, and render the persistent sidebar/header shell.
-- Location: `frontend/src/main.tsx`, `frontend/src/App.tsx`, `frontend/src/routes`, `frontend/src/components/layout/MainLayout.tsx`
-- Contains: React root setup, `BrowserRouter`, route config, `ProtectedRoute`, `MainLayout`.
-- Depends on: `react`, `react-dom`, `react-router-dom`, Redux hooks, auth selectors, `lucide-react`.
-- Used by: All frontend feature pages.
+**Frontend Route/Composition Layer:**
+- Purpose: Select the feature page, guard access, and provide a persistent application shell.
+- Location: `frontend/src/routes`, `frontend/src/App.tsx`, `frontend/src/components/layout`
+- Contains: Router, lazy loaders, role/action guards, and `MainLayout`.
+- Depends on: Feature pages, auth state, route configuration, shared UI.
+- Used by: `frontend/src/main.tsx`.
 
-**Frontend State and API:**
-- Purpose: Manage client state, attach auth tokens to API calls, and provide typed app hooks.
-- Location: `frontend/src/app`, `frontend/src/api`, `frontend/src/features/*/*Slice.ts`, `frontend/src/features/*/*Api.ts`
-- Contains: `configureStore`, `createApi`, `fetchBaseQuery`, `createSlice`, `createAsyncThunk`, selectors.
-- Depends on: `@reduxjs/toolkit`, `react-redux`, browser `localStorage`.
-- Used by: `frontend/src/routes/ProtectedRoute.tsx`, feature pages, feature components.
+**Frontend Feature Layer:**
+- Purpose: Own domain screens and interaction logic.
+- Location: `frontend/src/features/{admin,approvals,auth,chef,coordination,dashboard,projects,purchasing,reports,warehouse}`
+- Contains: Pages, components, feature API modules, hooks, slices, and feature tests.
+- Depends on: `frontend/src/api`, `frontend/src/components`, `frontend/src/lib`, and occasionally other features.
+- Used by: `frontend/src/routes/AppRouter.tsx` and multi-feature composition under `frontend/src/app/pages`.
 
-**Frontend Features:**
-- Purpose: Package user-facing workflows by business domain.
-- Location: `frontend/src/features/auth`, `frontend/src/features/coordination`, `frontend/src/features/chef`, `frontend/src/features/projects`, `frontend/src/features/dashboard`, `frontend/src/features/reports`, `frontend/src/features/workflow`, `frontend/src/features/admin`
-- Contains: Pages, feature-local components, feature state, API endpoint modules, types, and barrel exports.
-- Depends on: Shared UI components, app hooks, route constants, Redux slices, and RTK Query API modules.
-- Used by: `frontend/src/routes/AppRouter.tsx`.
+**Frontend Shared Infrastructure:**
+- Purpose: Provide HTTP/session cache, reusable components, formatting, pagination, and generated API contracts.
+- Location: `frontend/src/api`, `frontend/src/components`, `frontend/src/lib`, `frontend/src/shared/api/contracts`
+- Contains: `apiSlice`, workflow endpoints, reusable workbench primitives, utilities, and OpenAPI schema.
+- Depends on: Auth feature for token/session transitions.
+- Used by: All feature modules.
 
-> **Thêm vào Phase 2**: `frontend/src/features/workflow` chứa ApprovalPage, PurchasingPage, WarehousePage, AdminDataPage, ApprovalRulesPage. `frontend/src/services/` chứa các service helpers.
+**Backend Host/Cross-Cutting Layer:**
+- Purpose: Compose the application and enforce policies around every request.
+- Location: `backend/src/IPCManagement.Api/Program.cs`, `DependencyInjection.cs`, `Middlewares`, `Security`, `HealthChecks`, `OpenApi`
+- Contains: JWT, CORS, rate limiting, logging, exception handling, health, and DI.
+- Depends on: Feature services and persistence.
+- Used by: Runtime host and all controllers.
 
-**API Composition:**
-- Purpose: Configure host-level concerns and request pipeline order.
-- Location: `backend/src/IPCManagement.Api/Program.cs`, `backend/src/IPCManagement.Api/DependencyInjection.cs`
-- Contains: Serilog bootstrap, JWT bearer auth, CORS, JSON serialization, FluentValidation, Swagger, rate limiter policies, exception middleware registration, DI registrations.
-- Depends on: ASP.NET Core, Serilog, FluentValidation, EF Core, Pomelo MySQL, JWT packages.
-- Used by: The running backend process via `dotnet run --project backend/src/IPCManagement.Api`.
+**Backend Feature Layer:**
+- Purpose: Group HTTP contracts, controllers, validators, and application services by business capability.
+- Location: `backend/src/IPCManagement.Api/Features/*`
+- Contains: `Contracts`, `Controllers`, `Services`, and optional `Validators`.
+- Depends on: Shared persistence/entities plus direct service/contract dependencies across slices.
+- Used by: ASP.NET controller discovery and DI composition.
 
-**HTTP Controllers:**
-- Purpose: Keep transport concerns at the edge and delegate business logic to services.
-- Location: `backend/src/IPCManagement.Api/Controllers`
-- Contains: `[ApiController]`, `[Route]`, `[Authorize]`, action methods, `ApiResponse` wrappers, status-code choices.
-- Depends on: `IPCManagement.Api.Services`, DTOs, `ApiResponse`, ASP.NET MVC attributes.
-- Used by: ASP.NET Core endpoint routing through `app.MapControllers()`.
-
-**Business Services:**
-- Purpose: Enforce business operations, parse external IDs, compose repository calls, map outputs, and manage transactions.
-- Location: `backend/src/IPCManagement.Api/Services`
-- Contains:
-  - Core services: `IngredientService`, `InventoryReceiptService`, `InventoryIssueService`, `InventoryReturnService`, `StockLedgerService`, `StocktakeService`, `CoordinationService`, `DishService`, `AuthService`, `SupplierQuotationService`, `WarehouseService`, `ProductionPlanService`.
-  - Workflow services (thêm Phase 2) trong `Services/Workflow/`: `MaterialDemandService`, `PurchaseRequestWorkflowService`, `PurchaseOrderService`, `WorkflowReportService`.
-  - Admin services trong `Services/Admin/`.
-  - Sample data import trong `Services/SampleData/` (Development-only).
-- Depends on: Repository interfaces, `IUnitOfWork`, `GuidHelper`, mapper classes, DTOs, entity classes.
-- Used by: Controllers and other services.
-
-**Data Access:**
-- Purpose: Isolate EF Core query shapes and persistence mechanics.
-- Location: `backend/src/IPCManagement.Api/Data`, `backend/src/IPCManagement.Api/Data/Repositories`
-- Contains: `IpcManagementContext`, `UnitOfWork`, `GenericRepository<T>`, aggregate repositories, repository interfaces.
-- Depends on: EF Core, Pomelo MySQL provider, entity classes, pagination options.
-- Used by: Business services.
-
-**Domain Model and Contracts:**
-- Purpose: Represent database entities and API request/response payloads.
-- Location: `backend/src/IPCManagement.Api/Models/Entities`, `backend/src/IPCManagement.Api/Models/DTOs`
-- Contains: EF entity classes generated from database tables, DTOs grouped by domain.
-- Depends on: EF navigation conventions and helper mapping code.
-- Used by: EF Core context, repositories, services, controllers, mappers.
-
-**Validation and Error Handling:**
-- Purpose: Normalize request validation and unhandled exception responses.
-- Location: `backend/src/IPCManagement.Api/Models/Validators`, `backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs`, `backend/src/IPCManagement.Api/Helpers/ApiResponse.cs`
-- Contains: FluentValidation validators, exception-to-status mapping, response envelope helpers.
-- Depends on: FluentValidation, ASP.NET Core middleware pipeline.
-- Used by: All backend controllers.
+**Persistence Layer:**
+- Purpose: Maintain relational mappings and transaction boundaries.
+- Location: `backend/src/IPCManagement.Api/Data`, `backend/src/IPCManagement.Api/Models/Entities`, `backend/src/IPCManagement.Api/Migrations`
+- Contains: 2,563-line `IpcManagementContext`, repositories, Unit of Work, entities, and generated migrations.
+- Depends on: EF Core/Pomelo.
+- Used by: Feature services across all slices.
 
 ## Data Flow
 
-### Authenticated API Request Path
+### Primary Authenticated Request Path
 
-1. Browser renders route content through `AppRouter` and protected layout (`frontend/src/routes/AppRouter.tsx:14`, `frontend/src/routes/ProtectedRoute.tsx:6`).
-2. Frontend API calls go through `apiSlice` with `baseUrl: '/api'` and optional `authorization: Bearer {token}` from Redux auth state (`frontend/src/api/apiSlice.ts:4`).
-3. ASP.NET Core executes global middleware in pipeline order: exception middleware, rate limiter, HTTPS redirect, CORS, authentication, authorization, controller routing (`backend/src/IPCManagement.Api/Program.cs:175`, `backend/src/IPCManagement.Api/Program.cs:201`, `backend/src/IPCManagement.Api/Program.cs:204`, `backend/src/IPCManagement.Api/Program.cs:206`).
-4. Controller action binds DTO/query input, enforces `[Authorize]` where present, and calls an injected service (`backend/src/IPCManagement.Api/Controllers/IngredientsController.cs:13`).
-5. Service parses GUID strings, performs business checks, calls repositories, and maps entities to DTOs (`backend/src/IPCManagement.Api/Services/IngredientService.cs`).
-6. Repository executes EF Core queries against `IpcManagementContext` (`backend/src/IPCManagement.Api/Data/Repositories/IngredientRepository.cs`).
-7. Controller wraps service output in `ApiResponse<T>` (`backend/src/IPCManagement.Api/Helpers/ApiResponse.cs`).
+1. `frontend/src/main.tsx` mounts `App`, Redux, and global CSS.
+2. `frontend/src/routes/AppRouter.tsx` selects a lazy feature page; `ProtectedRoute.tsx` and `RoleGuard.tsx` validate session and permissions.
+3. A feature hook invokes an injected RTK Query endpoint through `frontend/src/api/apiSlice.ts`; the base query adds authentication and coordinates token refresh.
+4. `backend/src/IPCManagement.Api/Program.cs` applies forwarded headers, correlation ID, access logging, exception handling, CORS, authentication, rate limiting, and authorization.
+5. A controller in `backend/src/IPCManagement.Api/Features/*/Controllers` validates route/body and delegates to a feature service.
+6. The service coordinates repositories and/or `backend/src/IPCManagement.Api/Data/IpcManagementContext.cs`, commits a transaction, and returns a contract DTO.
+7. RTK Query normalizes cache state and the feature page rerenders from the response.
 
-### Inventory Receipt Write Flow
+### Demand-to-Purchase Cross-Feature Flow
 
-1. `InventoryReceiptsController.Create` accepts `CreateInventoryReceiptDto`, reads the authenticated user ID, and calls `IInventoryReceiptService.CreateAsync` (`backend/src/IPCManagement.Api/Controllers/InventoryReceiptsController.cs:53`).
-2. `InventoryReceiptService.CreateAsync` validates GUID strings, starts an EF transaction through `IUnitOfWork.BeginTransactionAsync`, creates the receipt and lines, and stages the receipt with the repository (`backend/src/IPCManagement.Api/Services/InventoryReceiptService.cs`).
-3. For each line, `InventoryReceiptService` calls `IStockLedgerService.AddStockAsync` to stage `Stockmovement` rows and upsert `Currentstock` (`backend/src/IPCManagement.Api/Services/StockLedgerService.cs`).
-4. `InventoryReceiptService` calls `IUnitOfWork.SaveChangesAsync`, commits the transaction, and returns a lightweight created DTO (`backend/src/IPCManagement.Api/Data/UnitOfWork.cs`).
-5. Exceptions roll back the transaction and are converted to a normalized error response by `ExceptionMiddleware` (`backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs`).
-
-### Frontend Coordination/Chef Flow
-
-1. `CoordinationPage` reads current day, shift, orders, weekly menu, and lock state from Redux (`frontend/src/features/coordination/pages/CoordinationPage.tsx`).
-2. Coordination components dispatch actions from `coordinationSlice` to update orders, select shifts, lock order plans, adjust locked orders, and export reports (`frontend/src/features/coordination/coordinationSlice.ts`).
-3. `ChefDashboardPage` reads coordination orders and lock state, then derives a production plan with `useMemo` from active day, active shift, menu price, loss rate, dishes, and raw materials (`frontend/src/features/chef/pages/ChefDashboardPage.tsx`).
-4. Chef components receive the computed production plan and callbacks for supplemental requests, excess returns, and material signoff (`frontend/src/features/chef/components/head-chef-dashboard.tsx`).
+1. Coordination data is captured by `Features/Coordination/Controllers/CoordinationController.cs` and `CoordinationService.cs`.
+2. Planning generates material demand through `Features/Planning/Controllers/MaterialDemandController.cs` and `MaterialDemandService.cs`.
+3. Planning relies on the Purchasing-owned `IMaterialDemandService` contract in `Features/Purchasing/Services/IMaterialDemandService.cs`.
+4. Purchasing creates and advances requests in `Features/Purchasing/Services/PurchaseRequestWorkflowService.cs` and invokes report calculations from `Features/Reports/Services`.
+5. Approval handlers in `Features/Approvals/Services/ApprovalHandlers.cs` call Purchasing services to apply decisions.
+6. Receiving crosses back from Purchasing into Inventory via `Features/Purchasing/Services/PurchaseReceivingService.cs`.
 
 **State Management:**
-- Backend state is request-scoped through ASP.NET Core DI; `IpcManagementContext`, repositories, services, and `IUnitOfWork` are scoped per request in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
-- Backend durable state is stored in MySQL through EF Core entities and migrations in `backend/src/IPCManagement.Api/Models/Entities` and `backend/src/IPCManagement.Api/Migrations`.
-- Frontend auth state is persisted to `localStorage` by `frontend/src/features/auth/authSlice.ts`; Redux stores the in-memory auth and coordination state.
-- Frontend server cache state is held by RTK Query under the `api` reducer from `frontend/src/api/apiSlice.ts`.
+- Browser server state lives in one RTK Query API cache (`frontend/src/api/apiSlice.ts`). Client state uses Redux reducers for auth and coordination in `frontend/src/app/store.ts`; page-local state remains in React hooks/models.
+- Backend request state is scoped through DI. Durable state and transactions live in MySQL through one `IpcManagementContext`; memory cache is process-local and registered in `Program.cs`.
 
 ## Key Abstractions
 
-**Controller-Service-Repository:**
-- Purpose: Separate HTTP handling, business rules, and persistence.
-- Examples: `backend/src/IPCManagement.Api/Controllers/IngredientsController.cs`, `backend/src/IPCManagement.Api/Services/IngredientService.cs`, `backend/src/IPCManagement.Api/Data/Repositories/IngredientRepository.cs`
-- Pattern: Define an interface per service/repository, register it in `DependencyInjection.cs`, inject the interface into the next layer.
+**Feature Service Interface:**
+- Purpose: Separate controller contracts from business orchestration and permit test substitution.
+- Examples: `Features/Coordination/Services/ICoordinationService.cs`, `Features/Purchasing/Services/IPurchaseRequestWorkflowService.cs`, `Features/Inventory/Services/IStockLedgerService.cs`
+- Pattern: Interface and implementation usually colocated in the slice; register in `DependencyInjection.cs`.
 
-**Generic Repository:**
-- Purpose: Provide common CRUD/pagination behavior for EF Core-backed entities.
-- Examples: `backend/src/IPCManagement.Api/Data/Repositories/GenericRepository.cs`, `backend/src/IPCManagement.Api/Data/Repositories/IngredientRepository.cs`
-- Pattern: Inherit from `GenericRepository<T>` and override query methods when includes, search, sorting, or filters are domain-specific.
-
-**Unit of Work:**
-- Purpose: Create explicit transactions and defer `SaveChangesAsync` for multi-entity write flows.
-- Examples: `backend/src/IPCManagement.Api/Data/IUnitOfWork.cs`, `backend/src/IPCManagement.Api/Data/UnitOfWork.cs`, `backend/src/IPCManagement.Api/Services/InventoryReceiptService.cs`
-- Pattern: Use repository `Add`/`Update` methods for staged changes, then call `IUnitOfWork.SaveChangesAsync` once inside a transaction.
-
-**Response Envelope:**
-- Purpose: Standardize API responses as `{ success, message, data/errors }`.
-- Examples: `backend/src/IPCManagement.Api/Helpers/ApiResponse.cs`, `backend/src/IPCManagement.Api/Controllers/IngredientsController.cs`
-- Pattern: Return `ApiResponse<T>.SuccessResult(...)` for data responses and `ApiResponse.FailResult(...)` for known failures.
-
-**GUID Binary Conversion:**
-- Purpose: Convert public GUID strings to MySQL `binary(16)` IDs and back.
-- Examples: `backend/src/IPCManagement.Api/Helpers/GuidHelper.cs`, `backend/src/IPCManagement.Api/Helpers/Mappers/IngredientMapper.cs`
-- Pattern: Parse external string IDs at service boundaries and return string IDs from mappers.
+**Unit of Work / Repository:**
+- Purpose: Centralize persistence and save boundaries.
+- Examples: `backend/src/IPCManagement.Api/Data/UnitOfWork.cs`, `backend/src/IPCManagement.Api/Data/Repositories`
+- Pattern: Shared infrastructure used across features; do not create per-feature DbContexts.
 
 **RTK Query API Slice:**
-- Purpose: Centralize API base configuration and let features inject endpoints.
-- Examples: `frontend/src/api/apiSlice.ts`, `frontend/src/features/auth/authApi.ts`
-- Pattern: Add feature endpoint groups with `apiSlice.injectEndpoints`, export generated hooks from the feature module.
+- Purpose: Share base transport, authentication, cache tags, and refresh behavior.
+- Examples: `frontend/src/api/apiSlice.ts`, `frontend/src/api/workflowApi.ts`, `frontend/src/features/coordination/coordinationApi.ts`
+- Pattern: Inject endpoints into the common slice; keep domain-facing hooks close to their owning feature unless the endpoint is deliberately cross-feature.
 
-**Feature Folders:**
-- Purpose: Keep page, component, state, type, and export files together by workflow.
-- Examples: `frontend/src/features/auth`, `frontend/src/features/coordination`, `frontend/src/features/chef`
-- Pattern: Place route-level pages in `pages/`, reusable feature-specific UI in `components/`, state in `*Slice.ts`, API endpoints in `*Api.ts`, and shared feature types in `types.ts`.
+**Page Model:**
+- Purpose: Move orchestration and derived state out of large presentation shells.
+- Examples: `frontend/src/app/pages/admin-data/useAdminDataPageModel.ts`, `frontend/src/features/reports/pages/useReportsPageModel.ts`
+- Pattern: Use for multi-query workbenches; split panels/components by cohesive responsibility.
 
 ## Entry Points
 
 **Backend API:**
 - Location: `backend/src/IPCManagement.Api/Program.cs`
-- Triggers: `npm run be` from root `package.json` or `dotnet run --project backend/src/IPCManagement.Api`.
-- Responsibilities: Build and run the ASP.NET Core web host, configure services, configure middleware, and map controllers.
+- Triggers: `dotnet run`, deployed ASP.NET host, Shipyard hooks.
+- Responsibilities: Host configuration, middleware order, health routes, controller mapping, lifecycle logging.
 
-**Backend DI:**
+**Backend Composition Root:**
 - Location: `backend/src/IPCManagement.Api/DependencyInjection.cs`
-- Triggers: Called by `builder.Services.AddBackendServices(builder.Configuration)` in `Program.cs`.
-- Responsibilities: Register the database context, repositories, services, token service, and unit of work.
+- Triggers: Called from `Program.cs`.
+- Responsibilities: Register DbContext, repositories, Unit of Work, security, and feature services.
 
-**Backend HTTP Controllers:**
-- Location: `backend/src/IPCManagement.Api/Controllers/*.cs`
-- Triggers: HTTP requests under `/api/*`.
-- Responsibilities: Request binding, authorization attributes, service delegation, HTTP status selection, and response envelope creation.
-
-**Frontend SPA:**
+**Frontend Browser:**
 - Location: `frontend/src/main.tsx`
-- Triggers: Vite loads `frontend/index.html` and imports `/src/main.tsx`.
-- Responsibilities: Create React root and wrap the app in the Redux provider.
+- Triggers: Vite-served `frontend/index.html`.
+- Responsibilities: Mount React providers, application, and ordered global styles.
 
-**Frontend Routes:**
+**Frontend Router:**
 - Location: `frontend/src/routes/AppRouter.tsx`
-- Triggers: Browser navigation inside the SPA.
-- Responsibilities: Public login route, protected application routes, layout nesting, fallback redirect.
-
-**Frontend Store:**
-- Location: `frontend/src/app/store.ts`
-- Triggers: Imported by `frontend/src/main.tsx`.
-- Responsibilities: Configure reducers, RTK Query middleware, and app-level dispatch/state types.
+- Triggers: Rendered by `frontend/src/App.tsx`.
+- Responsibilities: Public/private route split, layout nesting, lazy feature resolution, role permissions.
 
 ## Architectural Constraints
 
-- **Threading:** Backend uses ASP.NET Core async request handling and scoped EF Core `DbContext` instances; do not share `IpcManagementContext` across threads or static fields.
-- **Global state:** Frontend auth initializes from browser `localStorage` in `frontend/src/features/auth/authSlice.ts`; this makes auth state browser-local and synchronous at app startup.
-- **Global state:** Coordination currently stores generated mock orders and static defaults in module-level constants in `frontend/src/features/coordination/coordinationSlice.ts`.
-- **Transactions:** Repository methods such as `GenericRepository<T>.AddAsync` save immediately; use sync staging methods plus `IUnitOfWork` for write flows that must commit atomically.
-- **ID format:** Public APIs use GUID strings, while database entities use `byte[]` IDs. New service code must use `GuidHelper.ParseGuidString` and mapper code must use `GuidHelper.ToGuidString`.
-- **Authorization:** Most resource controllers are class-level `[Authorize]`; auth endpoints selectively add `[Authorize]` for logout/profile. Add new protected APIs with explicit authorization attributes in `backend/src/IPCManagement.Api/Controllers`.
-- **Circular imports:** No circular import chain was detected during static inspection. Keep frontend feature barrels limited to public exports to avoid route/store import cycles.
-- **Configuration:** Do not read or commit real environment files. Backend has `backend/src/IPCManagement.Api/appsettings.json.example`; secrets and actual connection strings should stay outside committed docs/code.
+- **Threading:** ASP.NET request processing is asynchronous and multi-request; process-local memory cache and singletons must be thread-safe. React executes on the browser main thread, with route/chunk preload scheduled during idle time.
+- **Global state:** One Redux store in `frontend/src/app/store.ts`, one RTK Query cache in `frontend/src/api/apiSlice.ts`, Serilog global logger in `Program.cs`, and process-local memory cache registered in `Program.cs`.
+- **Database boundary:** All backend slices share `IpcManagementContext`; schema and entity changes affect the whole monolith.
+- **Circular dependencies:** Namespace-level bidirectional coupling exists between Purchasing and Reports (`PurchasePlanPageDto.cs`/`IWorkflowReportService.cs`), and service orchestration crosses Planning→Purchasing, Purchasing→Reports/Inventory, Approvals→Purchasing, Catalog→SampleData, Coordination→Approvals/Purchasing.
+- **Generated files:** Do not hand-edit `frontend/src/shared/api/contracts/schema.ts` (13,340 lines) or EF migration designer/snapshot files under `backend/src/IPCManagement.Api/Migrations`.
 
 ## Anti-Patterns
 
-### Controller Business Logic
+### Treating Feature Folders as Hard Modules
 
-**What happens:** Putting validation beyond HTTP concerns, database access, or stock calculations directly in controllers.
-**Why it's wrong:** Existing controllers such as `backend/src/IPCManagement.Api/Controllers/IngredientsController.cs` are thin and delegate domain behavior to services.
-**Do this instead:** Put business decisions in `backend/src/IPCManagement.Api/Services/*Service.cs` and call repositories through interfaces registered in `backend/src/IPCManagement.Api/DependencyInjection.cs`.
+**What happens:** Code imports services and contracts directly across `Features/*`, including bidirectional Purchasing/Reports dependencies.
+**Why it's wrong:** Moving files into slice folders does not provide compile-time isolation; a local contract change can ripple through multiple business capabilities.
+**Do this instead:** Put genuinely cross-slice DTOs in `backend/src/IPCManagement.Api/Shared/Contracts`, expose narrow application ports, and keep orchestration direction acyclic. Use existing shared contracts as the placement model.
 
-### Immediate Saves Inside Atomic Workflows
+### Growing God Services and Controllers
 
-**What happens:** Calling repository `AddAsync`, `UpdateAsync`, or `DeleteAsync` inside a workflow that updates multiple tables.
-**Why it's wrong:** `backend/src/IPCManagement.Api/Data/Repositories/GenericRepository.cs` saves immediately in those async methods, which can split a logical transaction.
-**Do this instead:** For multi-entity writes, follow `backend/src/IPCManagement.Api/Services/InventoryReceiptService.cs`: begin a transaction, use repository `Add`/`Update`, call `IUnitOfWork.SaveChangesAsync`, then commit.
+**What happens:** `Features/Reports/Services/WorkflowReportService.cs` is 3,633 lines, `Features/Coordination/Services/CoordinationService.cs` is 2,416, `Features/Catalog/Services/DishService.cs` is 1,620, and `Features/Coordination/Controllers/CoordinationController.cs` is 678.
+**Why it's wrong:** Large files combine unrelated queries, workflow transitions, mapping, and validation, making feature ownership less meaningful and regression scope broad.
+**Do this instead:** Split by use case behind the existing service interfaces and keep controller actions delegating to focused handlers; retain one transaction boundary where a workflow truly spans operations.
 
-### Feature Logic in Shared Shell
+### Putting Domain API Everywhere
 
-**What happens:** Adding workflow-specific UI state or calculations to `frontend/src/components/layout/MainLayout.tsx` or `frontend/src/routes/AppRouter.tsx`.
-**Why it's wrong:** The shell owns navigation and layout only; feature pages own workflow computation, as shown in `frontend/src/features/chef/pages/ChefDashboardPage.tsx`.
-**Do this instead:** Put feature-specific state in `frontend/src/features/<feature>/*Slice.ts` or page-local hooks/components under `frontend/src/features/<feature>`.
-
-### Direct Fetch Calls in Components
-
-**What happens:** Calling `fetch('/api/...')` directly from route pages or components.
-**Why it's wrong:** Auth headers and API base configuration already live in `frontend/src/api/apiSlice.ts`.
-**Do this instead:** Add endpoints with `apiSlice.injectEndpoints` in a feature API file such as `frontend/src/features/auth/authApi.ts`.
+**What happens:** Some endpoints are feature-owned (`features/coordination/coordinationApi.ts`) while the 1,955-line `frontend/src/api/workflowApi.ts` owns many cross-domain workflow calls.
+**Why it's wrong:** Feature dependency direction becomes difficult to infer, and changes accumulate in a shared endpoint hub.
+**Do this instead:** Keep authentication/base-query/cache infrastructure in `frontend/src/api`, but add domain-specific endpoint modules in the owning `frontend/src/features/<feature>` and re-export only stable shared hooks.
 
 ## Error Handling
 
-**Strategy:** Validate inputs before action logic with FluentValidation, return explicit `NotFound`/created/OK responses from controllers for expected outcomes, and let `ExceptionMiddleware` normalize unhandled exceptions.
+**Strategy:** Convert uncaught backend exceptions into consistent API responses, attach a correlation ID, and surface query errors through shared frontend components.
 
 **Patterns:**
-- Use FluentValidation validators in `backend/src/IPCManagement.Api/Models/Validators` for DTO shape and range rules.
-- Use `ApiResponse<T>.SuccessResult` and `ApiResponse.FailResult` in controllers and middleware.
-- Throw `ArgumentException`, `InvalidOperationException`, `UnauthorizedAccessException`, or `KeyNotFoundException` from services when centralized exception mapping should determine response status.
-- Return `null` from services for missing/invalid IDs when the controller should produce `404`.
-- Log unhandled backend exceptions in `backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs`.
+- Use `backend/src/IPCManagement.Api/Middlewares/ExceptionMiddleware.cs` and typed exceptions under `Exceptions`; do not duplicate broad try/catch in controllers.
+- Use `frontend/src/components/common/QueryErrorAlert.tsx` and toast infrastructure for user-visible failures; allow RTK Query to retain transport metadata.
 
 ## Cross-Cutting Concerns
 
-**Logging:** Serilog writes to console and rolling files under `logs/ipc-.log` as configured in `backend/src/IPCManagement.Api/Program.cs`.
-
-**Validation:** FluentValidation is registered globally with `AddFluentValidationAutoValidation()` and `AddValidatorsFromAssemblyContaining<Program>()` in `backend/src/IPCManagement.Api/Program.cs`; validators live in `backend/src/IPCManagement.Api/Models/Validators`.
-
-**Authentication:** Backend uses JWT bearer authentication configured in `backend/src/IPCManagement.Api/Program.cs`; tokens are created by `backend/src/IPCManagement.Api/Security/JwtTokenService.cs` and frontend stores the access token in `localStorage` via `frontend/src/features/auth/authSlice.ts`.
-
-**Authorization:** Use ASP.NET Core `[Authorize]` on controllers/actions in `backend/src/IPCManagement.Api/Controllers`; protected frontend pages are guarded by `frontend/src/routes/ProtectedRoute.tsx`.
-
-**Rate limiting:** Backend applies `auth-strict` and `api-general` policies in `backend/src/IPCManagement.Api/Program.cs`. Attach policies to new endpoints when endpoint-specific limits are needed.
-
-**CORS:** Backend uses `FrontendPolicy` in `backend/src/IPCManagement.Api/Program.cs`; development allows all origins, production uses `Cors:AllowedOrigins`.
-
-**Serialization:** Backend JSON uses camelCase and ignores reference cycles in `backend/src/IPCManagement.Api/Program.cs`.
+**Logging:** Serilog bootstrap and request logging in `backend/src/IPCManagement.Api/Program.cs`; correlation IDs from `Middlewares/CorrelationIdMiddleware.cs`.
+**Validation:** FluentValidation assembly scanning in `Program.cs`, validators colocated under feature `Validators` folders, plus ASP.NET model binding.
+**Authentication:** JWT access token plus refresh flow; backend policies in `Program.cs`, browser refresh/session behavior in `frontend/src/api/apiSlice.ts`, and route enforcement in `frontend/src/routes`.
 
 ---
 
-*Architecture analysis: 2026-06-12*
+*Architecture analysis: 2026-07-27*

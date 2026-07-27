@@ -322,9 +322,15 @@ Hai lưu ý kỹ thuật bắt buộc:
 | **7** | Giải thể `workflow` theo 4 lát, **mỗi lát đi cùng lượt sửa 3 test `?raw` trong cùng commit** (**cặp #6 — quan trọng nhất**) | 40h |
 | **8** | Migrate FE sang type sinh, từng feature một commit. Cấm `as any` để làm xanh | 30h |
 | **9** | Tách tag cache **cuối cùng**, đi cùng phép đo trước/sau trong cùng PR (**cặp #7**) | 16h |
-| **10** | Hoãn có chủ đích: đổi tên cây FE, tách `AdminDataPage`/`ReportsPage`, số phận Repository, dọn CSS | — |
+| **10** | **Đã thực hiện 27/07 theo A1**: giữ cây FE, tách `AdminDataPage`/`ReportsPage`, BE VSA-lite một project, dọn/tách CSS; giữ Repository/Data/Entities/Migrations dùng chung | Hoàn tất |
 
 **Tổng bước 1–9: ~157 giờ người ≈ 5–6 tuần.**
+
+Kết quả Bước 10 không đổi cây FE sang `shared/`: Reports còn 799 dòng, Admin Data
+còn shell 74 dòng + model/panel; 138 file backend vào 10 `Features/*` và 2 contract vào
+`Shared/Contracts`; 6.607 dòng CSS
+được tách thành 13 file. Chi tiết commit, gate và evidence runtime desktop nằm trong
+`docs/CURRENT-STATE.md`.
 
 > **Điểm dừng an toàn: DỪNG SAU BƯỚC 5 vẫn có giá trị trọn vẹn** — rào chắn đã dựng, bug số liệu đã sửa,
 > tên đã chuẩn, contract đã có nguồn sự thật. Phần còn lại là dọn cấu trúc chứ không phải sửa lỗi.

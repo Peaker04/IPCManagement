@@ -1,11 +1,13 @@
 using FluentAssertions;
 using FluentValidation;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Common;
-using IPCManagement.Api.Models.DTOs.Ingredient;
-using IPCManagement.Api.Models.DTOs.Inventory;
-using IPCManagement.Api.Models.DTOs.Supplier;
-using IPCManagement.Api.Models.Validators;
+using IPCManagement.Api.Features.Catalog.Contracts;
+using IPCManagement.Api.Features.Catalog.Validators;
+using IPCManagement.Api.Features.Inventory.Contracts;
+using IPCManagement.Api.Features.Inventory.Validators;
+using IPCManagement.Api.Features.Purchasing.Contracts;
+using IPCManagement.Api.Features.Purchasing.Validators;
+using IPCManagement.Api.Shared.Contracts;
 
 namespace IPCManagement.Api.Tests;
 

@@ -1,15 +1,15 @@
 using System.Text;
 using FluentAssertions;
-using IPCManagement.Api.Controllers;
 using IPCManagement.Api.Helpers;
-using IPCManagement.Api.Models.DTOs.Coordination;
-using IPCManagement.Api.Models.DTOs.SampleData;
 using IPCManagement.Api.Security;
-using IPCManagement.Api.Services;
-using IPCManagement.Api.Services.SampleData;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using NSubstitute;
+using IPCManagement.Api.Features.Coordination.Contracts;
+using IPCManagement.Api.Features.Coordination.Controllers;
+using IPCManagement.Api.Features.Coordination.Services;
+using IPCManagement.Api.Features.SampleData.Contracts;
+using IPCManagement.Api.Features.SampleData.Services;
 
 namespace IPCManagement.Api.Tests;
 
