@@ -14,13 +14,15 @@ public class CoordinationService : ICoordinationService
     private readonly ICustomerContractService _customerContractService;
     private readonly IPortionRuleService _portionRuleService;
     private readonly IMenuScheduleService _menuScheduleService;
+    private readonly IMealQuantityPlanService _mealQuantityPlanService;
 
     public CoordinationService(IpcManagementContext context)
         : this(
             context,
             new CustomerContractService(context),
             new PortionRuleService(context),
-            new MenuScheduleService(context))
+            new MenuScheduleService(context),
+            new MealQuantityPlanService(context))
     {
     }
 
@@ -31,7 +33,8 @@ public class CoordinationService : ICoordinationService
             context,
             customerContractService,
             new PortionRuleService(context),
-            new MenuScheduleService(context))
+            new MenuScheduleService(context),
+            new MealQuantityPlanService(context))
     {
     }
 
@@ -39,7 +42,12 @@ public class CoordinationService : ICoordinationService
         IpcManagementContext context,
         ICustomerContractService customerContractService,
         IPortionRuleService portionRuleService)
-        : this(context, customerContractService, portionRuleService, new MenuScheduleService(context))
+        : this(
+            context,
+            customerContractService,
+            portionRuleService,
+            new MenuScheduleService(context),
+            new MealQuantityPlanService(context))
     {
     }
 
@@ -48,11 +56,27 @@ public class CoordinationService : ICoordinationService
         ICustomerContractService customerContractService,
         IPortionRuleService portionRuleService,
         IMenuScheduleService menuScheduleService)
+        : this(
+            context,
+            customerContractService,
+            portionRuleService,
+            menuScheduleService,
+            new MealQuantityPlanService(context))
+    {
+    }
+
+    public CoordinationService(
+        IpcManagementContext context,
+        ICustomerContractService customerContractService,
+        IPortionRuleService portionRuleService,
+        IMenuScheduleService menuScheduleService,
+        IMealQuantityPlanService mealQuantityPlanService)
     {
         _context = context;
         _customerContractService = customerContractService;
         _portionRuleService = portionRuleService;
         _menuScheduleService = menuScheduleService;
+        _mealQuantityPlanService = mealQuantityPlanService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -120,246 +144,13 @@ public class CoordinationService : ICoordinationService
         string? userId)
         => _menuScheduleService.RollbackMenuVersionAsync(request, userId);
 
-    public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
-    {
-        var customerId = string.IsNullOrWhiteSpace(query.CustomerId)
-            ? null
-            : GuidHelper.ParseGuidString(query.CustomerId);
-        if (!string.IsNullOrWhiteSpace(query.CustomerId) && customerId is null)
-        {
-            return [];
-        }
+    public Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
+        => _mealQuantityPlanService.GetMealQuantityPlansAsync(query);
 
-        var plansQuery = _context.Mealquantityplans
-            .Include(plan => plan.Mealquantityplanlines)
-                .ThenInclude(line => line.Customer)
-            .Include(plan => plan.Mealquantityplanlines)
-                .ThenInclude(line => line.Menu)
-            .Include(plan => plan.Mealquantityplanlines)
-                .ThenInclude(line => line.MenuSchedule)
-            .AsNoTracking()
-            .AsSplitQuery()
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
-            DateOnly.TryParse(query.ServiceDate, out var serviceDate))
-        {
-            plansQuery = plansQuery.Where(plan => plan.ServiceDate == serviceDate);
-        }
-        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
-        {
-            var resolvedDate = ResolveServiceDate(null, query.DayOfWeek);
-            plansQuery = plansQuery.Where(plan => plan.ServiceDate == resolvedDate);
-        }
-        else
-        {
-            var weekStart = ResolveWeekStartDate(query.WeekStartDate);
-            var weekEnd = weekStart.AddDays(6);
-            plansQuery = plansQuery.Where(plan =>
-                plan.ServiceDate >= weekStart &&
-                plan.ServiceDate <= weekEnd);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.Status))
-        {
-            var status = OrderStatus.Normalize(query.Status);
-            plansQuery = plansQuery.Where(plan => plan.Status == status);
-        }
-
-        if (customerId is not null)
-        {
-            plansQuery = plansQuery.Where(plan => plan.Mealquantityplanlines.Any(line => line.CustomerId.SequenceEqual(customerId)));
-        }
-
-        var shiftName = NormalizeShiftName(query.ShiftName);
-        if (!string.IsNullOrWhiteSpace(query.ShiftName) && shiftName is null)
-        {
-            return [];
-        }
-
-        var plans = await plansQuery
-            .OrderBy(plan => plan.ServiceDate)
-            .ThenBy(plan => plan.PlanCode)
-            .ToListAsync();
-
-        return plans.Select(plan => new MealQuantityPlanDto
-        {
-            QuantityPlanId = GuidHelper.ToGuidString(plan.QuantityPlanId),
-            PlanCode = plan.PlanCode,
-            ServiceDate = plan.ServiceDate.ToString("yyyy-MM-dd"),
-            DayOfWeek = ToDayCode(plan.ServiceDate),
-            Status = plan.Status,
-            ForecastReceivedAt = plan.ForecastReceivedAt,
-            ConfirmedAt = plan.ConfirmedAt,
-            Lines = plan.Mealquantityplanlines
-                .Where(line =>
-                    (shiftName is null || line.ShiftName == shiftName) &&
-                    (customerId is null || line.CustomerId.SequenceEqual(customerId)))
-                .OrderBy(line => line.ShiftName)
-                .ThenBy(line => line.Customer.CustomerCode)
-                .Select(line => new MealQuantityPlanLineDto
-                {
-                    QuantityPlanLineId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
-                    MenuScheduleId = GuidHelper.ToGuidString(line.MenuScheduleId),
-                    CustomerId = GuidHelper.ToGuidString(line.CustomerId),
-                    CustomerCode = line.Customer.CustomerCode,
-                    CustomerName = line.Customer.CustomerName,
-                    MenuId = GuidHelper.ToGuidString(line.MenuId),
-                    MenuCode = line.Menu.MenuCode,
-                    MenuName = line.Menu.MenuName,
-                    ShiftName = line.ShiftName,
-                    Shift = ToDisplayShift(line.ShiftName),
-                    ForecastServings = line.ForecastServings,
-                    ConfirmedServings = line.ConfirmedServings,
-                    AdjustedServings = line.AdjustedServings,
-                    FinalServings = line.FinalServings
-                })
-                .ToList()
-        }).ToList();
-    }
-
-    public async Task<MealQuantityPlanDto?> UpsertQuickServingsAsync(
+    public Task<MealQuantityPlanDto?> UpsertQuickServingsAsync(
         UpsertQuickServingsRequest request,
         string? userId)
-    {
-        var userIdBytes = GuidHelper.ParseGuidString(userId);
-        var customerId = GuidHelper.ParseGuidString(request.CustomerId);
-        if (userIdBytes is null || customerId is null)
-        {
-            return null;
-        }
-
-        if (!DateOnly.TryParse(request.ServiceDate, out var serviceDate))
-        {
-            throw new ArgumentException("Ngày phục vụ không hợp lệ.");
-        }
-
-        var shiftName = NormalizeShiftName(request.ShiftName);
-        if (shiftName is null)
-        {
-            throw new ArgumentException("Ca phục vụ không hợp lệ.");
-        }
-
-        if (request.Servings < 0)
-        {
-            throw new ArgumentException("Số suất phải lớn hơn hoặc bằng 0.");
-        }
-
-        var schedules = await _context.Menuschedules
-            .Include(schedule => schedule.Customer)
-            .Include(schedule => schedule.Menu)
-            .Where(schedule =>
-                schedule.ServiceDate == serviceDate &&
-                schedule.ShiftName == shiftName &&
-                schedule.CustomerId.SequenceEqual(customerId))
-            .ToListAsync();
-        if (schedules.Count == 0)
-        {
-            return null;
-        }
-
-        var customerCode = schedules.First().Customer.CustomerCode;
-        var planCode = BuildQuickServingPlanCode(serviceDate, shiftName, customerCode);
-        var plan = await _context.Mealquantityplans
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Customer)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Menu)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.MenuSchedule)
-            .FirstOrDefaultAsync(item => item.PlanCode == planCode);
-        var changedAt = DateTime.UtcNow;
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-
-        try
-        {
-            if (plan is null)
-            {
-                plan = new MealQuantityPlan
-                {
-                    QuantityPlanId = GuidHelper.NewId(),
-                    PlanCode = planCode,
-                    ServiceDate = serviceDate,
-                    Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted,
-                    ForecastReceivedAt = changedAt,
-                    ConfirmedAt = request.Complete ? changedAt : null,
-                    ConfirmationTime = TimeOnly.FromDateTime(changedAt),
-                    ConfirmedBy = request.Complete ? userIdBytes : null
-                };
-                _context.Mealquantityplans.Add(plan);
-            }
-            else if (OrderStatus.Normalize(plan.Status) == OrderStatus.Completed && !request.Complete)
-            {
-                throw new InvalidOperationException("Ca đã hoàn tất. Điều chỉnh sau hoàn tất cần thực hiện ở Điều phối đơn.");
-            }
-            else
-            {
-                plan.Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted;
-                plan.ForecastReceivedAt ??= changedAt;
-                plan.ConfirmedAt = request.Complete ? changedAt : plan.ConfirmedAt;
-                plan.ConfirmationTime = TimeOnly.FromDateTime(changedAt);
-                plan.ConfirmedBy = request.Complete ? userIdBytes : plan.ConfirmedBy;
-            }
-
-            foreach (var schedule in schedules)
-            {
-                var line = plan.Mealquantityplanlines.FirstOrDefault(item =>
-                    item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
-                if (line is null)
-                {
-                    line = new MealQuantityPlanLine
-                    {
-                        QuantityPlanLineId = GuidHelper.NewId(),
-                        QuantityPlanId = plan.QuantityPlanId,
-                        MenuScheduleId = schedule.MenuScheduleId,
-                        CustomerId = schedule.CustomerId,
-                        MenuId = schedule.MenuId,
-                        ShiftName = schedule.ShiftName
-                    };
-                    plan.Mealquantityplanlines.Add(line);
-                }
-
-                line.ForecastServings = request.Servings;
-                line.ConfirmedServings = request.Complete ? request.Servings : line.ConfirmedServings;
-                line.AdjustedServings = 0;
-                line.FinalServings = request.Servings;
-                line.UpdatedAt = changedAt;
-            }
-
-            AddAudit(
-                userIdBytes,
-                changedAt,
-                "Coordination",
-                nameof(MealQuantityPlan),
-                plan.QuantityPlanId,
-                request.Complete ? "QuickCompleteServings" : "QuickForecastServings",
-                null,
-                $"{serviceDate:yyyy-MM-dd}|{shiftName}|{request.Servings}",
-                "KHSX cập nhật nhanh số suất vận hành");
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-
-        var savedPlan = await _context.Mealquantityplans
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Customer)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Menu)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.MenuSchedule)
-            .AsNoTracking()
-            .AsSplitQuery()
-            .FirstOrDefaultAsync(item => item.QuantityPlanId == plan.QuantityPlanId);
-
-        return savedPlan is null ? null : MapMealQuantityPlan(savedPlan, shiftName, customerId);
-    }
+        => _mealQuantityPlanService.UpsertQuickServingsAsync(request, userId);
 
     public async Task<LockOrderPlanResultDto?> LockOrderPlanAsync(
         LockOrderPlanRequest request,
@@ -1662,60 +1453,6 @@ public class CoordinationService : ICoordinationService
                 .Select(item => GuidHelper.ToGuidString(item.DishId))
                 .FirstOrDefault() ?? string.Empty
         };
-
-    private static MealQuantityPlanDto MapMealQuantityPlan(
-        MealQuantityPlan plan,
-        string? shiftName = null,
-        byte[]? customerId = null)
-        => new()
-        {
-            QuantityPlanId = GuidHelper.ToGuidString(plan.QuantityPlanId),
-            PlanCode = plan.PlanCode,
-            ServiceDate = plan.ServiceDate.ToString("yyyy-MM-dd"),
-            DayOfWeek = ToDayCode(plan.ServiceDate),
-            Status = plan.Status,
-            ForecastReceivedAt = plan.ForecastReceivedAt,
-            ConfirmedAt = plan.ConfirmedAt,
-            Lines = plan.Mealquantityplanlines
-                .Where(line =>
-                    (shiftName is null || line.ShiftName == shiftName) &&
-                    (customerId is null || line.CustomerId.SequenceEqual(customerId)))
-                .OrderBy(line => line.ShiftName)
-                .ThenBy(line => line.Customer.CustomerCode)
-                .Select(line => new MealQuantityPlanLineDto
-                {
-                    QuantityPlanLineId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
-                    MenuScheduleId = GuidHelper.ToGuidString(line.MenuScheduleId),
-                    CustomerId = GuidHelper.ToGuidString(line.CustomerId),
-                    CustomerCode = line.Customer.CustomerCode,
-                    CustomerName = line.Customer.CustomerName,
-                    MenuId = GuidHelper.ToGuidString(line.MenuId),
-                    MenuCode = line.Menu.MenuCode,
-                    MenuName = line.Menu.MenuName,
-                    ShiftName = line.ShiftName,
-                    Shift = ToDisplayShift(line.ShiftName),
-                    ForecastServings = line.ForecastServings,
-                    ConfirmedServings = line.ConfirmedServings,
-                    AdjustedServings = line.AdjustedServings,
-                    FinalServings = line.FinalServings
-                })
-                .ToList()
-        };
-
-    private static string BuildQuickServingPlanCode(DateOnly serviceDate, string shiftName, string customerCode)
-    {
-        var safeCustomerCode = new string((customerCode ?? "CUS")
-            .Where(char.IsLetterOrDigit)
-            .Take(22)
-            .ToArray());
-        if (string.IsNullOrWhiteSpace(safeCustomerCode))
-        {
-            safeCustomerCode = "CUS";
-        }
-
-        var shiftCode = string.Equals(shiftName, "AFTERNOON", StringComparison.OrdinalIgnoreCase) ? "A" : "M";
-        return $"QTYK-{serviceDate:yyyyMMdd}-{shiftCode}-{safeCustomerCode}";
-    }
 
     private static DateOnly ResolveServiceDate(string? serviceDate, string? dayOfWeek)
     {
