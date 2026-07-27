@@ -3,7 +3,7 @@
 import { useDeferredValue, useMemo, useState } from 'react'
 import { Calendar, ShieldAlert, ShieldCheck } from 'lucide-react'
 import { useAppSelector } from '@/app/hooks'
-import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, QueryErrorAlert, ViewSwitcher } from '@/components/common'
+import { CommandBar, ContextStrip, InlineAlert, OperationalFrame, ViewSwitcher } from '@/components/common'
 import { DAYS_OF_WEEK, SHIFTS } from '@/lib/constants'
 import type { ShiftType } from '../../coordination/types'
 import { getBangkokDayCode, resolveChefServiceDate } from '@/lib/chefServiceDate'
@@ -15,6 +15,7 @@ import { ChefProductionSection } from '../production/ChefProductionSection'
 import { useChefProductionPlan, type ChefFeedback, type ChefShiftScope } from '../production/useChefProductionPlan'
 import { KitchenReceiptSection } from '../receipts/KitchenReceiptSection'
 import { useKitchenReceipts } from '../receipts/useKitchenReceipts'
+import { ChefQueryBoundary } from '../ChefQueryBoundary'
 
 export default function ChefDashboardPage() {
   const lockedShifts = useAppSelector((state) => state.coordination.lockedShifts)
@@ -40,29 +41,24 @@ export default function ChefDashboardPage() {
   const exceptions = useChefExceptions(scope, production.productionPlan, receipts.rows, setFeedback, isProductionView)
   const journal = useChefJournal(!isProductionView)
   const hasUnreviewedReceiptPages = receipts.hasAdditionalPages
+  const receiptViewReady = receipts.queryView.phase === 'ready'
+  const returnView = isProductionView ? exceptions.queryView : journal.queryViews.documents
+  const returnCount = isProductionView ? exceptions.activeReturns.length : journal.returnDocuments.length
 
   const statusMessages = [
-    production.status.isCatalogLoading ? 'Đang tải danh mục món ăn và định lượng để lập danh sách nguyên liệu.' : null,
-    production.status.isCatalogError ? 'Chưa tải được danh mục món ăn; danh sách sẽ thiếu định lượng chính xác từ hệ thống.' : null,
     production.status.isCatalogEmpty ? 'Danh mục món ăn đang trống nên danh sách nguyên liệu chưa thể sinh đầy đủ từ định lượng.' : null,
-    receipts.isLoading ? 'Đang tải phiếu xuất kho để bếp trưởng ký nhận nguyên liệu.' : null,
-    receipts.isError ? 'Chưa tải được phiếu xuất kho; danh sách tạm dùng dữ liệu dự kiến từ định lượng.' : null,
-    receipts.rows.length > 0
+    receiptViewReady && receipts.rows.length > 0
       ? receipts.pendingCount > 0
         ? `${receipts.pendingCount} dòng nguyên liệu trên trang ${receipts.page} đang chờ bếp trưởng ký nhận.`
         : hasUnreviewedReceiptPages
           ? `Trang ${receipts.page} đã ký nhận đủ; đang hiển thị ${receipts.rows.length}/${receipts.totalCount} dòng nên chưa thể kết luận toàn bộ phiếu đã nhận.`
           : 'Tất cả dòng nguyên liệu từ phiếu xuất kho đã được bếp xác nhận.'
       : null,
-    production.status.isDailyPlanLoading ? 'Đang tải kế hoạch sản xuất trong ngày từ hệ thống.' : null,
-    production.status.isDailyPlanError ? 'Chưa tải được kế hoạch sản xuất gửi bếp; danh sách dự kiến vẫn được giữ để tham chiếu.' : null,
     ...production.dailyPlanWarnings,
-    exceptions.isReturnsError ? 'Chưa tải được phiếu trả kho của ca; nhật ký ca đang thiếu dòng, không nên coi là ca chưa phát sinh phiếu trả.' : null,
     receipts.isConfirming ? 'Đang ghi nhận ký nhận nguyên liệu.' : null,
     exceptions.isCreatingReturn ? 'Đang tạo phiếu trả kho và cập nhật sổ kho.' : null,
   ].filter((message): message is string => Boolean(message))
-  const statusVariant = production.status.isCatalogError || production.status.isCatalogEmpty || receipts.isError
-    || production.status.isDailyPlanError || exceptions.isReturnsError || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
+  const statusVariant = production.status.isCatalogEmpty || production.dailyPlanWarnings.length > 0 ? 'warning' : 'info'
 
   const signOffMaterial = async (materialId: string, signed: boolean) => {
     await receipts.signOff(
@@ -77,9 +73,9 @@ export default function ChefDashboardPage() {
       context={(
         <>
           <ContextStrip items={[
-            { label: 'Kế hoạch hôm nay', value: production.dailyPlan ? `${production.dailyPlan.sentPlans}/${production.dailyPlan.totalPlans} đã gửi` : 'Đang kiểm tra', tone: production.dailyPlan?.sentPlans ? 'success' : 'warning' },
-            { label: 'Phiếu trả', value: `${journal.returnDocuments.length} chứng từ`, tone: 'neutral' },
-            { label: 'Trạng thái nhận', value: receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca', tone: receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
+            { label: 'Kế hoạch hôm nay', value: production.queryViews.dailyPlan.phase === 'ready' ? `${production.dailyPlan?.sentPlans ?? 0}/${production.dailyPlan?.totalPlans ?? 0} đã gửi` : '—', tone: production.queryViews.dailyPlan.phase === 'ready' && production.dailyPlan?.sentPlans ? 'success' : 'neutral' },
+            { label: 'Phiếu trả', value: returnView.phase === 'ready' ? `${returnCount} chứng từ` : '—', tone: 'neutral' },
+            { label: 'Trạng thái nhận', value: receiptViewReady ? receipts.pendingCount > 0 ? `${receipts.pendingCount} dòng chờ ký, trang ${receipts.page}` : hasUnreviewedReceiptPages ? `${receipts.rows.length}/${receipts.totalCount} dòng, trang ${receipts.page}` : receipts.allReceived ? 'Đã ký nhận' : production.isLocked ? 'Chờ nhận nguyên liệu' : 'Chưa chốt ca' : '—', tone: !receiptViewReady ? 'neutral' : receipts.pendingCount > 0 || hasUnreviewedReceiptPages ? 'warning' : receipts.allReceived ? 'success' : production.isLocked ? 'warning' : 'neutral' },
           ]} />
           <ShiftAlert isLocked={production.isLocked} />
           {statusMessages.length > 0 && (
@@ -91,15 +87,6 @@ export default function ChefDashboardPage() {
       )}
     >
       <div className="ipc-operational-view">
-        {(production.status.isCatalogError || production.status.isDailyPlanError || receipts.isError) && (
-          <QueryErrorAlert
-            title="Không tải đủ dữ liệu vận hành bếp"
-            isRetrying={production.status.isFetching || receipts.isFetching}
-            onRetry={() => Promise.all([production.refetch(), receipts.refetch()])}
-          >
-            Kế hoạch sản xuất, danh mục BOM hoặc phiếu xuất kho đang gián đoạn. Dữ liệu dự kiến chỉ để tham chiếu; tải lại trước khi nhận kế hoạch, ký nhận hoặc tạo ngoại lệ.
-          </QueryErrorAlert>
-        )}
         {feedback && <InlineAlert title={feedback.title} variant={feedback.variant}>{feedback.message}</InlineAlert>}
         <ViewSwitcher
           compact
@@ -116,6 +103,12 @@ export default function ChefDashboardPage() {
         )}
         {isProductionView && (
           <div id="chef-production-panel" role="tabpanel" aria-labelledby="chef-production-tab" className="space-y-4">
+            <ChefQueryBoundary preserveFallback queries={[
+              { label: 'danh mục món và BOM', view: production.queryViews.catalog },
+              { label: 'kế hoạch sản xuất trong ngày', view: production.queryViews.dailyPlan },
+              { label: 'phiếu xuất kho bàn giao cho bếp', view: receipts.queryView },
+              { label: 'phiếu trả kho của ca', view: exceptions.queryView },
+            ]}>
             <ChefHeader productionPlan={production.productionPlan} />
             <ChefProductionSection
               lines={production.dailyPlanLines}
@@ -139,16 +132,19 @@ export default function ChefDashboardPage() {
               receiptTotalCount={receipts.totalCount}
               onReceiptPageChange={receipts.setPage}
             />
+            </ChefQueryBoundary>
           </div>
         )}
         {!isProductionView && (
-          <ChefDocumentsSection
-            movements={journal.kitchenMovements}
-            documents={journal.returnDocuments}
-            isError={journal.isError}
-            isRetrying={journal.isRetrying}
-            onRetry={journal.retry}
-          />
+          <ChefQueryBoundary queries={[
+            { label: 'chứng từ bếp', view: journal.queryViews.documents },
+            { label: 'luân chuyển kho của bếp', view: journal.queryViews.movements },
+          ]}>
+            <ChefDocumentsSection
+              movements={journal.kitchenMovements}
+              documents={journal.returnDocuments}
+            />
+          </ChefQueryBoundary>
         )}
         </div>
       </div>

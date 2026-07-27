@@ -171,16 +171,17 @@ Chín điểm lệch khác gồm: `SupplierDto` đảo nullability (FE khai non-
 
 ---
 
-## Phần C — Snapshot backlog kiến trúc gốc (không còn là workflow thực thi)
+## Phần C — Sổ finding lịch sử (không phải workflow thực thi)
 
-Phần này được giữ lại để truy vết audit ngày 26/07/2026. **Không chạy P0–P3 bên dưới như
-một plan song song.** Mọi hạng mục còn hiệu lực đã được gộp vào duy nhất Bước 11→18 tại Phần F;
-khi trạng thái, thứ tự hoặc gate mâu thuẫn, **Phần F là nguồn điều khiển duy nhất**.
+Phần này chỉ giữ ID và bằng chứng của audit ngày 26/07/2026 để truy vết. Các nhãn ưu tiên
+P0–P3 cũ đã ngừng dùng để giao việc; **không thực thi các bảng dưới đây như một plan thứ hai**.
+Mọi hạng mục kiến trúc còn hiệu lực đã được nhập vào duy nhất Bước 11→18 tại Phần F; khi
+trạng thái, thứ tự hoặc gate mâu thuẫn, **Phần F là nguồn điều khiển duy nhất**.
 
 Nguyên tắc lịch sử: sửa theo thứ tự rủi ro, mỗi giai đoạn có tiêu chí nghiệm thu đo
 được và không gộp nhiều giai đoạn vào một commit.
 
-### P0 — Chặn máu (1–2 ngày)
+### C1 — Finding chặn máu (ID cũ 0.x)
 
 Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ liệu vĩnh viễn hoặc chiếm quyền hệ thống.
 
@@ -194,7 +195,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 | 0.6 | Sửa 3 bug ranh giới ngày FE; đưa mọi phép tính ngày qua `chefServiceDate.ts`; xóa `dateUtils.ts:11` | `AdminDataPage.tsx:129,131`, `purchasingModel.ts:110` | Test chạy ở TZ=UTC và TZ=ICT cho cùng kết quả |
 | 0.7 | Đăng ký `JsonStringEnumConverter` toàn cục; FE gửi string thay vì `0/1` | `Program.cs:147`, `workflowApi.ts:2228` | Duyệt/từ chối hoạt động đúng sau khi đảo thứ tự enum trong test |
 
-### P1 — Nền tảng an toàn (1–2 tuần)
+### C2 — Finding nền tảng an toàn (ID cũ 1.x)
 
 | # | Việc | Nghiệm thu |
 |---|---|---|
@@ -208,7 +209,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 | 1.8 | `[RequestSizeLimit]` cho 4 endpoint upload + giới hạn vùng merged-cell trong parser XLSX (hiện `ref="A1:XFD1048576"` treo worker vô hạn) | Upload file 50MB → 413; file merged-cell độc hại → 400 |
 | 1.9 | **Đưa `isError` vào các hook `use*`** và bắt page render `QueryErrorAlert`; `EmptyState` phân biệt "rỗng thật" vs "lỗi"; lint rule cấm bỏ `isError` | Ngắt API demand → hiện alert lỗi, không phải "Chưa có dữ liệu" |
 
-### P2 — Kiến trúc (3–4 tuần)
+### C3 — Finding kiến trúc (ID cũ 2.x)
 
 | # | Việc | Nghiệm thu |
 |---|---|---|
@@ -246,7 +247,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 > `20260708130000_RestorePurchaseRequestReceiptStatuses` — thực chất **EF chưa bao giờ nhìn thấy nó** vì thiếu cả
 > `.Designer.cs` lẫn `[Migration]` inline. File đó đã được xoá ngày 27/07.
 
-### P3 — Tối ưu và trả nợ (sau khi P0–P2 ổn định)
+### C4 — Finding tối ưu và trả nợ (ID cũ 3.x)
 
 | # | Việc | Ghi chú |
 |---|---|---|
@@ -406,25 +407,33 @@ hàm thuần, có test bảng tám trạng thái và xử lý 403 tường minh.
 
 ## Phần F — Workflow kiến trúc duy nhất sau Bước 10
 
-Đây là **plan thực thi duy nhất**. Nó gộp roadmap `f(data, state)`, backend boundary,
-tách use case/functional core, frontend ownership, persistence/reliability và guardrail test thành
-một chuỗi có dependency và gate chung. Không tiếp tục P0–P3 ở Phần C như một workflow khác.
+Đây là **plan thực thi duy nhất**, không phải roadmap `f(data, state)` kèm thêm
+một roadmap P0–P3. Toàn bộ việc của hai danh sách cũ được nhập trực tiếp thành work
+package của Bước 11→18, dùng chung dependency, gate và trạng thái. Từ đây không giao việc,
+commit hay báo tiến độ bằng nhãn P0/P1/P2/P3 nữa; chỉ dùng số Bước 11–18 bên dưới.
 
 ```text
 Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bước 16 → Bước 17 → Bước 18
  state core    pilot      state rollout VSA boundary  functional   persistence  FE ownership  close/gates
 ```
 
-| Bước | Kết quả bắt buộc | Hấp thụ hạng mục cũ | Trạng thái |
+### Hàng đợi thực thi đã hợp nhất
+
+| Bước | Work package thuộc chính bước này | Dependency | Trạng thái |
 |---|---|---|---|
-| 11 | Hợp đồng `QueryView<T>` và adapter thuần | Khóa `f(data, state)` | **Hoàn tất** |
-| 12 | Hai pilot Material Demand và Warehouse | Pilot state + browser evidence | **Hoàn tất** |
-| 13 | Nhân state boundary ra sáu feature | Roadmap state boundary | **Chưa bắt đầu** |
-| 14 | VSA dependency DAG, 0 cycle, 0 controller→DbContext | P0 boundary | **Đang thực hiện sớm do numbering cũ** |
-| 15 | Tách use case lớn và functional core | P1 backend split | Chưa bắt đầu |
-| 16 | Persistence và reliability nhất quán | P3 persistence | Chưa bắt đầu |
-| 17 | FE ownership/import boundary rõ ràng | P2 frontend boundary | Chưa bắt đầu |
-| 18 | Test/growth gate/tài liệu khóa workflow | P3 test + guardrail | Chưa bắt đầu |
+| 11 | `QueryView<T>`, adapter thuần, ma trận tám trạng thái và lint guardrail | Bước 10 | **Hoàn tất** |
+| 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
+| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: năm feature đầu đã hoàn tất** |
+| 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
+| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | Chưa bắt đầu |
+| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
+| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
+| 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
+
+Như vậy, bốn nhãn cũ đã biến mất khỏi execution queue: boundary cũ nằm trong
+Bước 14; tách use case trong Bước 15; persistence trong Bước 16; frontend boundary
+trong Bước 17; test/growth/documentation trong Bước 18. Các mục chi tiết dưới đây là
+acceptance criteria của chính hàng đợi này, không phải một plan thứ hai.
 
 ### Quy tắc chạy chung cho Bước 11→18
 
@@ -438,9 +447,8 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
   lane/database hiện hành sau khi kiểm tra lineage và evidence cần bảo toàn.
 - Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
-- Do Bước 14 đã bị bắt đầu dưới tên “Bước 13” cũ, không rollback các commit an toàn đã có.
-  Chỉ hoàn tất lát direct-DbContext đang dở để đưa worktree về atomic state, sau đó quay lại
-  Bước 13; không mở lát Bước 14 mới trước khi Gate 13 xanh.
+- Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
+  Luồng active quay lại Bước 13; không mở Bước 15–18 cho tới khi Gate 13 xanh.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -497,6 +505,78 @@ Trong từng feature:
 **Gate 13:** không còn data-owning page coerce error/skip thành mảng rỗng; state/component matrix và
 full FE gate xanh; endpoint/cache/DOM không drift; browser ba viewport xanh và CLS warm giữ 0.
 
+**Tiến độ 27/07/2026 — Purchasing hoàn tất tại `86a2347`.** Cả 8 query-owning boundary
+trong feature đã qua `QueryView`: workbench tuần (1), supplemental/purchase/order liên kết (3),
+ingredient/supplier/quotation (3) và supplier evidence (1). Forbidden không có retry, lỗi khác có
+retry, refreshing giữ stale data; danh sách supplemental giới hạn 100 dòng hiển thị truncation
+evidence thay vì bị coi là complete. Targeted state/component/cache **28/28**; full FE **354/354**,
+BE **634 pass / 1 skip**, lint 0 error/4 warning baseline, dependency không tăng, production build,
+OpenAPI và migration gate xanh. Browser headed trên `1365×900`, `1280×900`, `768×1024`:
+9/9 capture workflow/quotation/warm, API 2xx, warm switch 0 request, 0 console/page/request error,
+0 long task, CLS 0, 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-purchasing-performance.json` và chín screenshot cùng prefix.
+
+**Approvals hoàn tất tại `c0cf976`.** Bốn query owner (approval inbox, workflow documents,
+purchase-request page và approval history có `skip`) đều đi qua `QueryView`; forbidden không
+retry, lỗi khác có retry, refreshing giữ stale rows và history chưa chọn chứng từ giữ
+uninitialized instruction. Query ownership vẫn ở `ApprovalPage`; ba presentation-state panel được
+tách theo responsibility, đưa page từ 625 xuống **491 dòng** mà không đổi endpoint,
+args, skip, cache hay mutation behavior. Targeted state/component **22/22**; full FE **362/362**,
+BE **634 pass / 1 skip**, lint 0 error/1 warning baseline thuộc Admin, dependency không tăng,
+production build, OpenAPI và migration gate xanh. Browser headed trên ba viewport: **12/12**
+queue/role/history/warm capture, API và history action 200, warm revisit 0 request,
+0 console/page/request error, 0 long task, CLS 0, 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-approvals-performance.json` và mười hai screenshot cùng prefix.
+
+**Reports hoàn tất tại `e4d24bb`.** Mười hai query owner (bốn price subview và tám
+report view còn lại) giữ nguyên args/skip/cache nhưng đều qua `QueryView`; active boundary
+phân biệt uninitialized/loading/forbidden/error/ready, refreshing giữ stale table và metric của
+query chưa authoritative hiển thị `—` thay vì số 0 giả. Price navigation vẫn tồn tại khi
+query con đang tải. `ReportsPage` từ 800 xuống **515 dòng**; price panel 352 dòng và
+page model 594 dòng, cả ba dưới growth warning 600. CSV helper được chuyển nguyên
+logic và có BOM/escaping test. Targeted Reports/contracts **25/25**; full FE **368/368**,
+BE **634 pass / 1 skip**, lint 0 error/1 warning baseline thuộc Admin, dependency không tăng,
+production build, OpenAPI và migration gate xanh. Browser headed trên ba viewport: **39/39**
+capture, mỗi tab/subview action API 200, warm price revisit 0 request, 0 non-2xx/request fail/
+console/page error/long task, CLS 0, 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-reports-performance.json` và ba mươi chín screenshot cùng prefix.
+
+**Admin hoàn tất tại `0e0279f`.** Mười bốn query owner trong `AdminDataPage`
+và hai query của `ApprovalRulesPage` đều qua `QueryView`. Shared `AdminQueryBoundary`
+phân loại group query, không retry 403, giữ children khi refreshing và không render
+false-empty khi một dependency lỗi. Statistics nay thực sự tải current stock; BOM thực
+sự tải customer contracts; dialog BOM bị chặn khi catalog chưa authoritative; employee
+selector không pager hiển thị truncation `shown/total`. Endpoint, args, cache, URL và mutation
+behavior không đổi. `useAdminDataPageModel` còn **785 dòng**, vẫn là growth warning đã
+được xếp Bước 17; không big-bang split trong state rollout.
+
+Targeted Admin/state **26/26**; full FE **386/386**; BE **634 pass / 1 skip**; lint sạch,
+dependency không tăng, production build, OpenAPI deterministic và migration gate xanh.
+Browser headed ba viewport: **30/30** capture cho 7 tab, BOM warm, Approval Rules và dialog;
+55 API response đều 2xx, warm BOM 0 request, 0 request fail/non-2xx/console/page error/long task,
+CLS 0 và 0 page overflow. Evidence tại `.artifacts/shipyard-live/query-view-admin-performance.json`
+và ba mươi screenshot `query-view-admin-*.png`. Staged GitNexus audit: 13 file/45 symbol/
+11 flow, **HIGH**, đúng blast radius shared Admin boundary đã được phủ gate.
+
+**Chef hoàn tất tại `894012d`.** Sáu query owner — catalog món/BOM, daily production
+plan, kitchen issues, inventory returns, workflow documents và stock movements — đều qua
+`QueryView`. Tab sản xuất giữ fallback kế hoạch đã có nhưng gắn error/forbidden
+tường minh; tab chứng từ block false-empty. Context của query skip/chưa authoritative
+hiển thị `—`; return page và hai journal limit không pager hiển thị truncation evidence.
+Refreshing giữ stale data và dùng overlay text cố định ngoài document flow. Browser gate
+đã phát hiện stack alert ban đầu gây CLS ~0,15 khi đổi ngày; implementation cuối
+đã loại regression này thay vì nới ngưỡng.
+
+Targeted Chef/state **45/45**; full FE **400/400**; BE **634 pass / 1 skip**; lint sạch,
+dependency không tăng, production build, OpenAPI deterministic và migration gate xanh.
+Browser headed ba viewport: **12/12** capture cho production, đổi ngày, documents và warm;
+31 API response đều 2xx, warm production 0 request, 0 non-2xx/request fail/console/page error/
+long task, CLS 0 và 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-chef-performance.json` và mười hai screenshot
+`query-view-chef-*.png`. Staged GitNexus audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
+
+Bước active tiếp theo trong Gate 13 là Coordination.
+
 ### Bước 14 — Khóa VSA boundary
 
 **Mục tiêu:** biến VSA-lite từ cách đặt folder thành dependency DAG được architecture test bảo vệ.
@@ -512,10 +592,13 @@ full FE gate xanh; endpoint/cache/DOM không drift; browser ba viewport xanh và
 **Gate 14:** architecture test 0 legacy cycle/0 cạnh cấm; 0 controller truy cập DbContext; namespace/path,
 OpenAPI, full BE/FE và migration-diff gate xanh.
 
-**Trạng thái: đang thực hiện sớm do roadmap trước đây gán nhầm số Bước 13.** Bốn cycle đã
-về 0 tại `97bb33f`, `766fac7`, `baff911`, `91badde`; ceiling tương ứng đã xóa.
-Lát bỏ direct DbContext khỏi `PurchaseRequestsController` và `ApprovalHistoryController` đang ở
-working tree, chưa được coi là hoàn tất cho tới khi targeted/full gates và staged `detect_changes` xanh.
+**Trạng thái: hoàn tất sớm ngày 27/07/2026 do roadmap trước đây gán nhầm số
+Bước 13.** Bốn cycle về 0 tại `97bb33f`, `766fac7`, `baff911`, `91badde`; ceiling
+tương ứng đã xóa. Commit `45d2072` đưa query của `PurchaseRequestsController` và
+`ApprovalHistoryController` vào query service thuộc feature; quét source và architecture test xác nhận
+0 feature controller còn reference `IpcManagementContext`. Gate: architecture **3/3**, characterization
+**2/2**, BE **634 pass / 1 skip**, FE **341/341**, lint 0 error/4 warning baseline, dependency không có
+vi phạm mới, OpenAPI deterministic, EF không có model change chưa migration và production build xanh.
 
 ### Bước 15 — Tách use case và functional core
 

@@ -79,7 +79,7 @@ Phiếu nhập cho PO liên kết supplemental phải bị khóa vào kho đang 
 - Thu mua: `Quản lý báo giá nhà cung cấp` đã thành tab độc lập. Tab báo giá chỉ tải danh mục nguyên liệu/NCC/báo giá; purchase workbench được skip khi tab này active.
 - Bếp trưởng: bốn thẻ Ngày làm việc/Ca làm việc/Cụm bếp/Tổng suất ăn nằm ngay trước bảng kế hoạch sản xuất và dùng lại cùng `productionPlan`.
 - Biến động giá: bốn sub-tab chỉ query/render dataset active. Lần đo gần nhất đều `0` long task và `CLS 0`, mỗi tab aggregate gọi đúng endpoint tương ứng.
-- Quản trị dữ liệu: query được giới hạn theo active tab; dialog BOM chỉ mount khi mở; bộ lọc nặng dùng deferred value; chuyển tab dùng transition. Lần đo headed gần nhất: BOM, Contract, Dữ liệu lỗi, Tồn kho và Thống kê có `0` long task; Audit có một long task `51 ms`, Nhân viên có một long task `60 ms`; `CLS 0` trên cả bảy tab. Các số cold-run có thể dao động giữa lần chạy nên phải đọc JSON evidence thay vì chép lại kết luận cũ.
+- Quản trị dữ liệu: query được giới hạn theo active tab; dialog BOM chỉ mount khi mở; bộ lọc nặng dùng deferred value; chuyển tab dùng transition. Gate headed mới nhất của Bước 13 có **30/30** capture trên ba viewport cho 7 tab Admin, BOM warm, Approval Rules và dialog; 55 API 2xx, warm 0 request, 0 console/page/request error, 0 long task, `CLS 0` và 0 page overflow. Evidence authoritative là `.artifacts/shipyard-live/query-view-admin-performance.json`; file `query-view-admin-error.*` có timestamp cũ hơn là attempt trước final run, không phải kết quả cuối.
 - Tab Thống kê Admin giảm từ 8 API xuống 4 API sau khi bỏ workflow overview không được hiển thị đúng vùng.
 - Kế hoạch tuần: query demand và production chỉ active theo tab; 6 request staleness chỉ chạy ở tab Nhu cầu. Các panel nặng được split thành chunk riêng và preload tuần tự sau 1 giây trong idle slot, bỏ qua Data Saver/2G. Main chunk giảm từ `107.38 kB` xuống `83.50 kB`.
 - Bếp trưởng: production/receipt/exception query dừng khi xem Chứng từ bếp; journal query dừng khi xem Ca sản xuất. Kho: demand page và cụm 4 workflow-overview query dừng ngoài tab Nhu cầu xuất.
@@ -341,7 +341,9 @@ Còn hở sau đợt P1 ngày 26/07/2026:
 
 - **P1.2b — phân loại `InvalidOperationException`**: vẫn map 400 kèm log `Warning "Unclassified exception"`. Phải quét theo log đó, đổi từng chỗ sang `BusinessRuleException`/`ResourceConflictException` rồi mới để `InvalidOperationException` rơi về 500. Có `// TODO P1.2b` tại arm tương ứng trong `ExceptionMiddleware`.
 - **P1.5b — bọc `CreateExecutionStrategy` cho 26 `BeginTransactionAsync` ở 15 file**, rồi mới bật lại `EnableRetryOnFailure`. Ưu tiên `UnitOfWork.BeginTransactionAsync` (wrapper dùng chung cho 7 service) và `CoordinationService` (6 chỗ). Chừng nào chưa xong thì **không được bật retry**.
-- **P1.9 nhóm 2 — 15 call-site còn nuốt lỗi thành empty state**: `AdminDataPage.tsx` (11 chỗ: dòng 255, 256, 277, 346, 350, 360, 366, 370, 374, 390, 393), `ApprovalPage.tsx` (56, 57, 73), `ApprovalRulesPage.tsx` (68). Lint rule đang để mức `warning` ở vùng này; đề xuất gộp vào P2.6 khi tách `AdminDataPage`.
+- **P1.9 nhóm 2 đã đóng trong Bước 13**: Approvals `c0cf976` và Admin
+  `0e0279f` đã chuyển các query owner cũ của `ApprovalPage`, `ApprovalRulesPage` và
+  `useAdminDataPageModel` sang `QueryView`; lint hiện sạch, error/skip/403 không còn bị coi là empty.
 - **`SupplementalMaterialRequestService.FulfillAsync`** gọi `RemoveStockWithCheckAsync` mà chưa xác nhận có transaction bao ngoài — `ExecuteUpdateAsync` ghi thẳng xuống DB nên nếu thiếu thì trừ kho commit độc lập với phần còn lại.
 - **Luồng BOM import chưa có đường lỗi thân thiện**: file xlsx hỏng cho ra `InvalidDataException` → rơi vào nhánh mặc định → **HTTP 500**. Đường `FILE_READ_ERROR` hiện chỉ tồn tại ở luồng thực đơn tuần.
 - ~~Vercel Root Directory~~ **ĐÃ XÁC MINH 26/07/2026**: Root Directory là `./` (gốc repo) nên root `vercel.json` là file authoritative, `frontend/vercel.json` đã xóa là đúng. Hệ quả cần biết: rewrite SPA khai trong `frontend/vercel.json` **chưa từng có hiệu lực** — deep-link trước nay sống nhờ preset Vite mặc định, giờ mới được khai báo tường minh ở root cùng bộ security header. Lần deploy tới lên `main`/`dev` phải kiểm lại deep-link và header bằng `curl -I`.
@@ -545,7 +547,8 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
   `1365×900`, `1280×900`, `768×1024`, mobile ngoài scope.
 
 **Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn điều
-khiển duy nhất. Phần C chỉ là snapshot audit lịch sử, không chạy P0–P3 song song. Thứ tự đúng là:
+khiển duy nhất. Phần C chỉ là sổ finding lịch sử; nhãn P0–P3 cũ không còn được dùng như
+một workflow song song. Thứ tự thực thi duy nhất là:
 `11 state contract → 12 pilot → 13 state rollout → 14 VSA boundary → 15 functional core →
 16 persistence → 17 FE ownership → 18 guardrail/docs`.
 
@@ -560,10 +563,82 @@ Gate browser headed đã xanh trên `1365×900`, `1280×900`, `768×1024` với 
 API 2xx, 0 request fail, 0 console/page error, warm revisit 0 request/0 long task/CLS 0, 0 page overflow.
 Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và sáu ảnh
 `query-view-{material-demand,warehouse-movement}-*.png`; targeted state/component contract **21/21**.
-Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin → Chef → Coordination
-— chưa bắt đầu.
+### Bước 13 — rollout state (đang thực hiện)
 
-### Bước 14 — VSA backend boundary (bị thực hiện sớm do numbering cũ)
+- Thứ tự vẫn là Purchasing → Approvals → Reports → Admin → Chef → Coordination.
+- **Purchasing đã hoàn tất** tại `86a2347 refactor(fe-state): classify purchasing query views`.
+  Cả 8 query-owning boundary đã qua `QueryView`: workbench tuần; ba query supplemental/purchase/order;
+  ba query ingredient/supplier/quotation; supplier evidence. Không đổi endpoint, args, skip, cache key/tag,
+  URL hay mutation behavior.
+- State contract: uninitialized không thành empty; query-level 403 không retry; lỗi khác có retry;
+  refreshing giữ stale rows; supplemental pageSize 100 không có pager hiển thị shown/total khi truncated.
+- Targeted Purchasing **28/28**; full FE **354/354**; BE **634 pass / 1 skip**; lint **0 error / 4 warning
+  baseline**; dependency không tăng; production build, OpenAPI deterministic và EF migration gate xanh.
+- Runtime source-backed ở FE `3001`, API `8001`, DB `ipc_lane1` Healthy. Browser headed
+  `1365×900`, `1280×900`, `768×1024`: 9/9 workflow/quotation/warm capture, API 2xx,
+  warm switch 0 request, 0 console/page/request error, 0 long task, CLS 0, 0 page overflow.
+  Evidence: `.artifacts/shipyard-live/query-view-purchasing-performance.json` và chín screenshot
+  `query-view-purchasing-{workflow,quotations,quotations-warm}-*.png`. File
+  `query-view-purchasing-error.*` là attempt selector-wait thất bại trước final run, không phải kết quả cuối.
+- GitNexus staged audit: 9 file/14 symbol/5 flow, **MEDIUM**, đúng scope Purchasing.
+- **Approvals đã hoàn tất** tại `c0cf976 refactor(fe-state): classify approval query views`.
+  Bốn query owner (approval inbox, workflow documents, purchase-request page và approval history có
+  `skip`) đều qua `QueryView`; không đổi endpoint, args, cache key/tag, URL hay mutation behavior.
+  Forbidden không retry, lỗi khác có retry, refreshing giữ stale rows và history chưa chọn
+  purchase request giữ uninitialized instruction.
+- Ba presentation-state panel được tách sang `ApprovalQueryPanels.tsx` nhưng query ownership vẫn
+  ở `ApprovalPage.tsx`; page giảm **625 → 491 dòng**, không vượt growth warning 600.
+- Targeted Approvals **22/22**; full FE **362/362**; BE **634 pass / 1 skip**; lint 0 error/1 warning
+  baseline còn lại ở `ApprovalRulesPage` thuộc Admin; dependency không có vi phạm mới,
+  production build xanh, OpenAPI deterministic và EF migration snapshot sạch.
+- Browser headed `1365×900`, `1280×900`, `768×1024`: **12/12** queue/role/history/warm capture,
+  API và history action 200, warm revisit 0 request, 0 console/page/request error, 0 long task,
+  CLS 0, 0 page overflow. Evidence: `.artifacts/shipyard-live/query-view-approvals-performance.json`
+  và mười hai screenshot `query-view-approvals-{queue,role,history,history-warm}-*.png`.
+- GitNexus staged audit: 3 file/5 symbol/1 flow, **MEDIUM**, đúng scope Approvals.
+- **Reports đã hoàn tất** tại `e4d24bb refactor(fe-state): classify report query views`.
+  Mười hai query owner (bốn price subview và tám report view còn lại) đều qua
+  `QueryView`; giữ nguyên endpoint, args, skip, cache key/tag, URL và export behavior.
+  Uninitialized/loading/forbidden/error không còn render false-empty; forbidden không retry,
+  lỗi khác có retry, refreshing giữ stale table. Metric của query chưa authoritative hiển thị `—`.
+- Price presentation tách sang `ReportsPricePanel.tsx`, active state qua `ReportQueryBoundary.tsx`,
+  CSV helper sang `reportCsv.ts` với BOM/escaping test. `ReportsPage.tsx` **800 → 515 dòng**,
+  price panel 352 và page model 594 dòng; không file Reports nào vượt growth warning 600.
+- Targeted Reports/contracts **25/25**; full FE **368/368**; BE **634 pass / 1 skip**; lint
+  0 error/1 warning baseline còn lại ở `ApprovalRulesPage` thuộc Admin; dependency không có
+  vi phạm mới, production build xanh, OpenAPI deterministic và EF migration snapshot sạch.
+- Browser headed `1365×900`, `1280×900`, `768×1024`: **39/39** capture cho 12 query view
+  và warm revisit; action API 200, warm price 0 request, 0 non-2xx/request fail/console/page error/
+  long task, CLS 0, 0 page overflow. Evidence: `.artifacts/shipyard-live/query-view-reports-performance.json`
+  và ba mươi chín screenshot `query-view-reports-*.png`.
+- GitNexus staged audit: 9 file/16 symbol/3 flow, **MEDIUM**, đúng scope Reports.
+- **Admin đã hoàn tất** tại `0e0279f refactor(fe-state): classify admin query views`.
+  Mười bốn query owner của `AdminDataPage` và hai query của `ApprovalRulesPage`
+  đều qua `QueryView`; group boundary chặn false-empty, 403 không retry, refreshing giữ data,
+  employee selector hiển thị truncation khi vượt 200. Hai `skip` sai đã sửa: current stock
+  chạy cho Inventory + Statistics, customer contracts chạy cho Contracts + BOM.
+- Targeted Admin/state **26/26**; full FE **386/386**; BE **634 pass / 1 skip**; lint sạch,
+  dependency không tăng, production build, OpenAPI deterministic và EF migration gate xanh.
+  `useAdminDataPageModel` còn 785 dòng và tiếp tục được track cho split ở Bước 17.
+- Browser headed ba viewport: **30/30** capture, 55 API response đều 2xx, warm BOM 0 request,
+  0 non-2xx/request fail/console/page error/long task, CLS 0, 0 page overflow. Evidence:
+  `.artifacts/shipyard-live/query-view-admin-performance.json` và `query-view-admin-*.png`.
+- GitNexus staged audit: 13 file/45 symbol/11 flow, **HIGH**, đúng blast radius Admin đã phủ gate.
+- **Chef đã hoàn tất** tại `894012d refactor(fe-state): classify chef query views`.
+  Sáu query owner đều qua `QueryView`; production giữ fallback có nhãn, documents block
+  false-empty, forbidden không retry, context query skip hiển thị `—`, journal/returns có
+  truncation evidence. Refreshing overlay nằm ngoài flow; browser gate đã bắt và sửa
+  regression CLS ~0,15 của bản alert stack ban đầu.
+- Targeted Chef/state **45/45**; full FE **400/400**; BE **634 pass / 1 skip**; lint sạch,
+  dependency không tăng, production build, OpenAPI deterministic và EF migration gate xanh.
+- Browser headed ba viewport: **12/12** production/day-change/documents/warm capture, 31 API 2xx,
+  warm 0 request, 0 non-2xx/request fail/console/page error/long task, CLS 0, 0 page overflow.
+  Evidence: `.artifacts/shipyard-live/query-view-chef-performance.json` và `query-view-chef-*.png`.
+  File `query-view-chef-error.*` có timestamp cũ hơn là probe CLS trước fix, không phải final run.
+- GitNexus staged audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
+- Bước active tiếp theo là **Coordination**; đây là feature cuối trước khi đóng Gate 13.
+
+### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 
 - Commit `97bb33f refactor(be-boundary): remove purchasing reports cycle` gỡ cycle đầu tiên:
   `Purchasing→Reports` **3 → 0** reference; architecture baseline bỏ hẳn ceiling cạnh này.
@@ -584,11 +659,15 @@ Bước 13 — rollout state cho Purchasing → Approvals → Reports → Admin 
   `Coordination→SampleData` **2 → 0**. Bốn legacy cycle đã về 0 và ceiling tương ứng đã xóa.
 - Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, EF migration snapshot sạch.
-- Working tree hiện có lát chưa commit đưa query của `PurchaseRequestsController` và
-  `ApprovalHistoryController` vào query service thuộc feature, kèm architecture/characterization test.
-  Lát này chưa được coi là hoàn tất trước khi targeted/full gates và staged `detect_changes` xanh.
-- Để đưa worktree về atomic state, hoàn tất và commit lát direct-DbContext đang dở; sau đó
-  quay lại Bước 13. Không mở thêm lát Bước 14 mới cho tới khi Gate 13 xanh.
+- Commit `45d2072 refactor(be-boundary): move controller queries into feature services` đưa query
+  của `PurchaseRequestsController` và `ApprovalHistoryController` vào query service thuộc feature;
+  DTO approval history về `Approvals/Contracts`, DI đăng ký đủ hai service.
+- Architecture gate xác nhận 0 feature controller còn reference `IpcManagementContext`; targeted
+  architecture **3/3**, characterization filter/paging/detail/history **2/2**.
+- Full gate: BE **634 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
+  dependency FE không tăng, production build xanh, OpenAPI regenerate deterministic và EF migration
+  snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
+- Bước 14 đã đóng sớm; không mở Bước 15–18 trước khi Gate 13 xanh.
 
 ## Quy trình tiếp tục ở phiên mới
 

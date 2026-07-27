@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { formatCurrency } from '@/lib/formatters';
+import { toQueryView } from '@/lib/queryView';
 import { ROUTES } from '@/lib/routeConfig';
 import type {
   PurchaseRequestWorkflowLine,
@@ -163,15 +164,17 @@ export function PurchaseDecisionPanel({
     purchaseRequestId: serviceDate?.purchaseRequestId ?? '',
     purchaseRequestLineId: selectedLine?.purchaseRequestLineId ?? '',
   };
-  const {
-    data: evidence,
-    isFetching: isEvidenceLoading,
-    isError: isEvidenceError,
-    refetch: refetchEvidence,
-  } = useGetSupplierEvidenceQuery(
+  const evidenceQuery = useGetSupplierEvidenceQuery(
     evidenceArgs,
     { skip: selectedStage !== 'supplier-price' || !evidenceArgs.purchaseRequestId || !evidenceArgs.purchaseRequestLineId },
   );
+  const evidenceView = toQueryView(evidenceQuery, {
+    instruction: 'Chọn một dòng nguyên liệu để xem bằng chứng nhà cung cấp.',
+    retry: () => evidenceQuery.refetch(),
+    errorMessage: 'Không tải được bằng chứng nhà cung cấp.',
+    forbiddenMessage: 'Bạn không có quyền xem bằng chứng nhà cung cấp.',
+  });
+  const evidence = evidenceView.phase === 'ready' ? evidenceView.data : undefined;
   const [confirmSupplier, { isLoading: isConfirmingSupplier }] = useConfirmLineSupplierMutation();
   const [createRequest, { isLoading: isCreatingRequest }] = useCreatePurchaseRequestFromDemandMutation();
   const [submitRequest, { isLoading: isSubmittingRequest }] = useSubmitPurchaseRequestMutation();
@@ -335,15 +338,25 @@ export function PurchaseDecisionPanel({
                   <p className="font-semibold text-slate-900">{selectedLine.ingredientName}</p>
                   <p className="mt-1 text-[12px] text-slate-600">Cần mua {selectedLine.purchaseQty} {selectedLine.unitName}. Mã dòng {selectedLine.purchaseRequestLineId}.</p>
                 </div>
-                {isEvidenceLoading ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : isEvidenceError ? (
+                {evidenceView.phase === 'loading' ? <p role="status" className="text-[14px] text-slate-600">Đang tải bằng chứng nhà cung cấp...</p> : evidenceView.phase === 'forbidden' ? (
+                  <InlineAlert title="Không có quyền xem bằng chứng nhà cung cấp" variant="danger">
+                    <span role="alert">{evidenceView.message}</span>
+                  </InlineAlert>
+                ) : evidenceView.phase === 'error' ? (
                   <EmptyState
                     variant="error"
                     title="Không tải được bằng chứng nhà cung cấp"
                     description="Danh sách trống ở đây là do lỗi tải dữ liệu, không phải vì nguyên liệu này thiếu báo giá hoặc phiếu nhập. Hãy tải lại trước khi chọn nhà cung cấp và chốt giá."
-                    onRetry={refetchEvidence}
+                    onRetry={evidenceView.retry}
+                    isRetrying={evidenceView.isRetrying}
                   />
+                ) : evidenceView.phase === 'uninitialized' ? (
+                  <InlineAlert title="Chưa chọn dòng nguyên liệu" variant="info">{evidenceView.instruction}</InlineAlert>
                 ) : (
-                  <SupplierEvidenceList candidates={evidence?.candidates ?? []} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
+                  <>
+                    {evidenceView.isRefreshing && <p role="status" className="text-[14px] text-slate-600">Đang cập nhật bằng chứng; danh sách hiện tại vẫn được giữ.</p>}
+                    <SupplierEvidenceList candidates={evidenceView.data.candidates} selectedEvidenceId={selectedEvidence?.evidenceId} onSelect={selectEvidence} />
+                  </>
                 )}
                 {evidence?.blocker ? <InlineAlert title="Không thể xác nhận" variant="danger"><span role="alert">{evidence.blocker}</span></InlineAlert> : null}
                 {selectedEvidence ? (

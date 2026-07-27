@@ -2,22 +2,18 @@ import { useEffect, useRef, useState } from 'react';
 import { ClipboardCheck, FileCheck2, RotateCcw, Clock, ArrowRight } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
-  ApprovalQueue,
   CommandBar,
   ContextStrip,
-  CursorPaginationBar,
-  DocumentRail,
   InlineAlert,
   OperationalFrame,
   QueryErrorAlert,
-  PaginationBar,
   SectionPanel,
   SplitWorkbench,
-  StatusBadge,
   useToast,
   ViewSwitcher,
 } from '@/components/common';
 import { ROUTES } from '@/lib/routeConfig';
+import { toQueryView } from '@/lib/queryView';
 import { useExecuteApprovalDecisionMutation, useGetApprovalRecordsQuery, useGetWorkflowDocumentsQuery, useGetPurchaseRequestsPageQuery, useGetApprovalHistoryQuery } from '@/api/workflowApi';
 import type { ApprovalRecord } from '@/types/workflow';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -26,6 +22,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { formatWorkflowStatus } from '@/lib/workflowConfig';
 import { formatApprovalDecision, getApprovalDecisionCopy } from './approvalCopy';
 import { resolveApprovalAvailability } from '@/lib/actionEligibility';
+import {
+  ApprovalQueueState,
+  PurchaseRequestHistoryState,
+  WorkflowDocumentsState,
+} from './ApprovalQueryPanels';
 
 export default function ApprovalPage() {
   const { toast } = useToast();
@@ -37,38 +38,62 @@ export default function ApprovalPage() {
   const [purchaseRequestPage, setPurchaseRequestPage] = useState(1);
   
   const approvalCursor = approvalCursors.at(-1);
-  const {
-    data: approvalPage = { items: [], limit: 20, hasNext: false, nextCursor: null },
-    isFetching: isFetchingApprovals,
-    isError: isApprovalLoadError,
-    refetch: refetchApprovals,
-  } = useGetApprovalRecordsQuery({
+  const approvalQuery = useGetApprovalRecordsQuery({
     limit: 20,
     cursor: approvalCursor,
   });
-  const approvalRecords = approvalPage.items;
-  const { data: workflowDocuments = [] } = useGetWorkflowDocumentsQuery({ limit: 20 });
-  const { data: purchaseRequestsPageResponse } = useGetPurchaseRequestsPageQuery({
+  const approvalView = toQueryView(approvalQuery, {
+    instruction: 'Mở trang duyệt vận hành để tải hàng đợi phê duyệt.',
+    retry: () => approvalQuery.refetch(),
+    errorMessage: 'Không tải được hàng đợi phê duyệt.',
+    forbiddenMessage: 'Bạn không có quyền xem hàng đợi phê duyệt.',
+  });
+  const approvalPage = approvalView.phase === 'ready' ? approvalView.data : undefined;
+  const approvalRecords = approvalPage?.items ?? [];
+  const isFetchingApprovals = approvalView.phase === 'loading'
+    || approvalView.phase === 'ready' && approvalView.isRefreshing;
+  const isApprovalLoadError = approvalView.phase === 'error' || approvalView.phase === 'forbidden';
+
+  const workflowDocumentQuery = useGetWorkflowDocumentsQuery({ limit: 20 });
+  const workflowDocumentView = toQueryView(workflowDocumentQuery, {
+    instruction: 'Đang chờ khởi tạo danh sách chứng từ workflow.',
+    retry: () => workflowDocumentQuery.refetch(),
+    errorMessage: 'Không tải được chứng từ workflow.',
+    forbiddenMessage: 'Bạn không có quyền xem chứng từ workflow.',
+  });
+  const workflowDocuments = workflowDocumentView.phase === 'ready' ? workflowDocumentView.data : [];
+
+  const purchaseRequestQuery = useGetPurchaseRequestsPageQuery({
     pageNumber: purchaseRequestPage,
     pageSize: 8,
   });
-  const purchaseRequests = purchaseRequestsPageResponse?.items ?? [];
-
+  const purchaseRequestView = toQueryView(purchaseRequestQuery, {
+    instruction: 'Đang chờ khởi tạo danh sách đề xuất mua hàng.',
+    retry: () => purchaseRequestQuery.refetch(),
+    errorMessage: 'Không tải được danh sách đề xuất mua hàng.',
+    forbiddenMessage: 'Bạn không có quyền xem danh sách đề xuất mua hàng.',
+  });
   const approvalPageNumber = approvalCursors.length + 1;
   const goToPreviousApprovalPage = () => {
     setApprovalCursors((current) => current.slice(0, -1));
   };
   const goToNextApprovalPage = () => {
-    if (approvalPage.hasNext && approvalPage.nextCursor) {
+    if (approvalPage?.hasNext && approvalPage.nextCursor) {
       setApprovalCursors((current) => [...current, approvalPage.nextCursor!]);
     }
   };
 
-  const { data: historyResponse } = useGetApprovalHistoryQuery(
+  const historyQuery = useGetApprovalHistoryQuery(
     { documentType: 'purchaserequest', documentId: selectedPrId ?? '' },
     { skip: !selectedPrId }
   );
-  const historyItems = historyResponse?.data ?? [];
+  const historyView = toQueryView(historyQuery, {
+    instruction: 'Chọn một đề xuất mua hàng để xem tiến trình duyệt.',
+    retry: () => historyQuery.refetch(),
+    errorMessage: 'Không tải được lịch sử phê duyệt.',
+    forbiddenMessage: 'Bạn không có quyền xem lịch sử phê duyệt.',
+  });
+  const historyItems = historyView.phase === 'ready' ? historyView.data.data ?? [] : [];
 
   const [executeApprovalDecision, { isLoading: isDeciding }] = useExecuteApprovalDecisionMutation();
   const [decisionError, setDecisionError] = useState<string | null>(null);
@@ -87,10 +112,14 @@ export default function ApprovalPage() {
   });
 
   const purchaseDocuments = workflowDocuments.filter((document) => document.type === 'Đơn mua');
-  const sourceDocument = workflowDocuments.find((document) => document.type === 'KHSX')
-    ?? purchaseDocuments[0]
-    ?? workflowDocuments[0];
-  const nearestDeadline = approvalRecords.find((record) => record.deadline)?.deadline;
+  const sourceDocument = workflowDocumentView.phase === 'ready'
+    ? workflowDocuments.find((document) => document.type === 'KHSX')
+      ?? purchaseDocuments[0]
+      ?? workflowDocuments[0]
+    : undefined;
+  const nearestDeadline = approvalView.phase === 'ready'
+    ? approvalRecords.find((record) => record.deadline)?.deadline
+    : undefined;
   const approvalAvailability = resolveApprovalAvailability(approvalRecords, {
     isFetching: isFetchingApprovals,
     isError: isApprovalLoadError,
@@ -233,17 +262,17 @@ export default function ApprovalPage() {
         >
           <span className="ipc-command-meta">
             <ClipboardCheck size={16} />
-            Nguồn: {sourceDocument?.title ?? 'Chưa có chứng từ'}
+            Nguồn: {workflowDocumentView.phase === 'ready' ? sourceDocument?.title ?? 'Chưa có chứng từ' : 'Chưa xác định'}
           </span>
-          <span className="ipc-command-meta">Hạn duyệt gần nhất: {nearestDeadline ?? 'Chưa có'}</span>
+          <span className="ipc-command-meta">Hạn duyệt gần nhất: {approvalView.phase === 'ready' ? nearestDeadline ?? 'Chưa có' : 'Chưa xác định'}</span>
         </CommandBar>
       }
       context={
         <ContextStrip
           items={[
             { label: 'Trạng thái chính', value: approvalAvailability.statusLabel, tone: approvalAvailability.statusTone },
-            { label: 'Đơn mua', value: `${purchaseDocuments.length} chứng từ`, tone: 'neutral' },
-            { label: 'Nhu cầu xuất', value: `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu`, tone: 'warning' },
+            { label: 'Đơn mua', value: workflowDocumentView.phase === 'ready' ? `${purchaseDocuments.length} chứng từ` : '—', tone: 'neutral' },
+            { label: 'Nhu cầu xuất', value: approvalView.phase === 'ready' ? `${approvalRecords.filter((record) => record.type === 'issue').length} phiếu` : '—', tone: approvalView.phase === 'ready' ? 'warning' : 'neutral' },
             { label: 'Người duyệt', value: 'Quản lí vận hành', tone: 'neutral' },
           ]}
         />
@@ -265,54 +294,23 @@ export default function ApprovalPage() {
         <div id="approval-queue-panel" role="tabpanel" aria-labelledby="approval-queue-tab">
           <SplitWorkbench
             detailLabel="Chứng từ"
-            detail={
-              <DocumentRail
-                documents={purchaseDocuments}
-                title={null}
-                actionForDocument={(document) => (
-                  <Link className="ipc-button ipc-button-ghost" to={document.route}>
-                    Mở chứng từ
-                  </Link>
-                )}
-              />
-            }
+            detail={<WorkflowDocumentsState view={workflowDocumentView} documents={purchaseDocuments} />}
           >
             <SectionPanel title="Danh sách cần duyệt" icon={<ClipboardCheck size={18} />}>
-              {approvalAvailability.disabledReason && !isApprovalLoadError && (
-                <InlineAlert title={approvalRecords.length === 0 ? 'Không có chứng từ chờ duyệt' : 'Tạm thời chưa thể xử lý'} variant="info">
-                  <span id="approval-action-guidance">{approvalAvailability.disabledReason} Các chứng từ đã xử lý vẫn có thể xem trong tab Lịch sử.</span>
-                </InlineAlert>
-              )}
-              {decisionAnnouncement && <div role="status" aria-live="polite" className="sr-only">{decisionAnnouncement}</div>}
-              {requestedTargetType && requestedTargetId && !requestedRecord && !isFetchingApprovals && !isApprovalLoadError && (
-                <InlineAlert title="Không tìm thấy hồ sơ phê duyệt trong trang hiện tại" variant="warning">
-                  Hồ sơ {requestedTargetId} có thể đã được xử lý hoặc nằm ở trang khác. Tuần, ngày phục vụ và phạm vi trong đường dẫn vẫn được giữ nguyên.
-                </InlineAlert>
-              )}
-              {isApprovalLoadError && (
-                <QueryErrorAlert
-                  title="Không tải được hàng đợi phê duyệt"
-                  isRetrying={isFetchingApprovals}
-                  onRetry={refetchApprovals}
-                >
-                  Kiểm tra kết nối rồi thử lại. Ngữ cảnh đang chọn chưa bị thay đổi.
-                </QueryErrorAlert>
-              )}
-              <div ref={queueFocusRef} tabIndex={-1} aria-label="Hàng đợi duyệt đã cập nhật">
-              <ApprovalQueue
+              <ApprovalQueueState
+                view={approvalView}
                 records={approvalRecords}
-                pageSize={Math.max(approvalRecords.length, 1)}
-                title={null}
-                selectedRecordId={requestedRecord?.id}
+                disabledReason={approvalAvailability.disabledReason}
+                decisionAnnouncement={decisionAnnouncement}
+                requestedTargetType={requestedTargetType}
+                requestedTargetId={requestedTargetId}
+                requestedRecord={requestedRecord}
+                queueFocusRef={queueFocusRef}
                 actionForRecord={renderRecordActions}
-              />
-              </div>
-              <CursorPaginationBar
                 page={approvalPageNumber}
-                hasNext={approvalPage.hasNext}
                 onPrevious={goToPreviousApprovalPage}
                 onNext={goToNextApprovalPage}
-                ariaLabel="Phân trang hàng đợi duyệt"
+                paginationLabel="Phân trang hàng đợi duyệt"
               />
             </SectionPanel>
           </SplitWorkbench>
@@ -322,22 +320,21 @@ export default function ApprovalPage() {
       {activeView === 'role' && (
         <SectionPanel title="Việc đang chờ quản lí" icon={<ClipboardCheck size={18} />}>
           <div id="approval-role-panel" role="tabpanel" aria-labelledby="approval-role-tab">
-            <div>
-              <ApprovalQueue
-                records={approvalRecords}
-                pageSize={Math.max(approvalRecords.length, 1)}
-                title={null}
-                selectedRecordId={requestedRecord?.id}
-                actionForRecord={renderRecordActions}
-              />
-              <CursorPaginationBar
-                page={approvalPageNumber}
-                hasNext={approvalPage.hasNext}
-                onPrevious={goToPreviousApprovalPage}
-                onNext={goToNextApprovalPage}
-                ariaLabel="Phân trang việc đang chờ quản lí"
-              />
-            </div>
+            <ApprovalQueueState
+              view={approvalView}
+              records={approvalRecords}
+              disabledReason={approvalAvailability.disabledReason}
+              decisionAnnouncement={decisionAnnouncement}
+              requestedTargetType={requestedTargetType}
+              requestedTargetId={requestedTargetId}
+              requestedRecord={requestedRecord}
+              queueFocusRef={queueFocusRef}
+              actionForRecord={renderRecordActions}
+              page={approvalPageNumber}
+              onPrevious={goToPreviousApprovalPage}
+              onNext={goToNextApprovalPage}
+              paginationLabel="Phân trang việc đang chờ quản lí"
+            />
           </div>
         </SectionPanel>
       )}
@@ -358,37 +355,64 @@ export default function ApprovalPage() {
                       Đóng
                     </button>
                   </div>
-                  {historyItems.length === 0 ? (
-                    <p className="text-sm text-slate-500 italic text-center py-4">Không tìm thấy bước duyệt nào.</p>
+                  {historyView.phase === 'forbidden' ? (
+                    <InlineAlert title="Không có quyền xem lịch sử phê duyệt" variant="danger">
+                      <span role="alert">{historyView.message}</span>
+                    </InlineAlert>
+                  ) : historyView.phase === 'error' ? (
+                    <QueryErrorAlert
+                      title="Không tải được lịch sử phê duyệt"
+                      isRetrying={historyView.isRetrying}
+                      onRetry={historyView.retry}
+                    >
+                      Kiểm tra kết nối rồi thử lại để xem các bước đã ghi nhận.
+                    </QueryErrorAlert>
+                  ) : historyView.phase === 'loading' ? (
+                    <p role="status" className="text-sm text-slate-500 italic text-center py-4">
+                      Đang tải lịch sử phê duyệt...
+                    </p>
+                  ) : historyView.phase === 'uninitialized' ? (
+                    <p className="text-sm text-slate-500 italic text-center py-4">{historyView.instruction}</p>
                   ) : (
-                    <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
-                      {historyItems.map((item) => (
-                        <div key={item.historyId} className="flex gap-4 relative pl-6">
-                          <div className="absolute left-[-2px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-white flex items-center justify-center">
-                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                          </div>
-                          <div className="flex-1 space-y-1">
-                            <div className="flex items-center justify-between text-xs text-slate-500">
-                              <span>{new Date(item.actionAt).toLocaleString('vi-VN')}</span>
-                              <span className="font-semibold text-slate-700">{item.actionByName}</span>
-                            </div>
-                            <div className="text-sm">
-                              <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
-                              {item.oldStatus && item.newStatus && (
-                                <span className="ml-2 text-xs text-slate-400">
-                                  ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
-                                </span>
-                              )}
-                            </div>
-                            {item.reason && (
-                              <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded p-2 italic mt-1">
-                                "{item.reason}"
+                    <>
+                      {historyView.isRefreshing && (
+                        <InlineAlert title="Đang cập nhật lịch sử" variant="info">
+                          Lịch sử hiện tại vẫn được giữ trong khi đồng bộ bản mới.
+                        </InlineAlert>
+                      )}
+                      {historyItems.length === 0 ? (
+                        <p className="text-sm text-slate-500 italic text-center py-4">Không tìm thấy bước duyệt nào.</p>
+                      ) : (
+                        <div className="space-y-6 relative pl-4 before:absolute before:left-[17px] before:top-2 before:bottom-2 before:w-0.5 before:bg-slate-200">
+                          {historyItems.map((item) => (
+                            <div key={item.historyId} className="flex gap-4 relative pl-6">
+                              <div className="absolute left-[-2px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-blue-500 bg-white flex items-center justify-center">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                               </div>
-                            )}
-                          </div>
+                              <div className="flex-1 space-y-1">
+                                <div className="flex items-center justify-between text-xs text-slate-500">
+                                  <span>{new Date(item.actionAt).toLocaleString('vi-VN')}</span>
+                                  <span className="font-semibold text-slate-700">{item.actionByName}</span>
+                                </div>
+                                <div className="text-sm">
+                                  <span className="font-semibold text-blue-700">{formatApprovalDecision(item.decision)}</span>
+                                  {item.oldStatus && item.newStatus && (
+                                    <span className="ml-2 text-xs text-slate-400">
+                                      ({formatWorkflowStatus(item.oldStatus)} <ArrowRight className="inline size-3 mx-0.5" /> {formatWorkflowStatus(item.newStatus)})
+                                    </span>
+                                  )}
+                                </div>
+                                {item.reason && (
+                                  <div className="text-xs text-slate-600 bg-slate-50 border border-slate-100 rounded p-2 italic mt-1">
+                                    "{item.reason}"
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      )}
+                    </>
                   )}
                 </div>
               ) : (
@@ -402,36 +426,11 @@ export default function ApprovalPage() {
             }
           >
             <SectionPanel title="Danh sách đề xuất mua hàng" icon={<ClipboardCheck size={18} />}>
-              {purchaseRequests.length === 0 ? (
-                <p className="text-slate-500 italic p-4 text-center">Không có đề xuất mua hàng nào.</p>
-              ) : (
-                <div className="divide-y divide-slate-100 max-h-[600px] overflow-y-auto">
-                  {purchaseRequests.map((pr) => (
-                    <button
-                      key={pr.purchaseRequestId}
-                      onClick={() => setSelectedPrId(pr.purchaseRequestId)}
-                      className={`w-full text-left p-3 hover:bg-slate-50 transition-colors flex flex-col gap-1 ${
-                        selectedPrId === pr.purchaseRequestId ? 'bg-blue-50/50' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-semibold text-slate-800 text-sm">{pr.purchaseRequestCode}</span>
-                        <StatusBadge variant={pr.status === 'APPROVED' ? 'success' : pr.status === 'REJECTED' ? 'danger' : 'warning'}>
-                          {formatWorkflowStatus(pr.status)}
-                        </StatusBadge>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
-                        <span>Ngày mua: {pr.purchaseForDate} {pr.shiftName ? `(${pr.shiftName})` : ''}</span>
-                        <span>{pr.lines.length} dòng</span>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              )}
-              <PaginationBar
-                page={purchaseRequestsPageResponse?.pageNumber ?? purchaseRequestPage}
-                pageSize={purchaseRequestsPageResponse?.pageSize ?? 8}
-                totalItems={purchaseRequestsPageResponse?.totalCount ?? 0}
+              <PurchaseRequestHistoryState
+                view={purchaseRequestView}
+                selectedId={selectedPrId}
+                currentPage={purchaseRequestPage}
+                onSelect={setSelectedPrId}
                 onPageChange={setPurchaseRequestPage}
               />
             </SectionPanel>
@@ -483,7 +482,7 @@ export default function ApprovalPage() {
           {decisionError && (
             <div id="decision-error" role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800">
               <p>{decisionError}</p>
-              <Button type="button" variant="outline" className="mt-2" onClick={() => void refetchApprovals()} disabled={isDeciding}>
+              <Button type="button" variant="outline" className="mt-2" onClick={() => void approvalQuery.refetch()} disabled={isDeciding}>
                 Tải lại hàng đợi
               </Button>
             </div>
