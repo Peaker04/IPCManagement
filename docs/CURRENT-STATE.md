@@ -567,10 +567,15 @@ Bước tiếp theo là Bước 13, gỡ bốn backend dependency cycle theo t�
   Purchasing. Contract Swagger/TypeScript regenerate deterministic, không drift.
 - `PurchaseRequestWorkflowService.HasPriceException` dùng `PurchasePricePolicy` thuộc Purchasing thay
   `WorkflowReportCalculator`; purchase-plan/candidate/workbench targeted **12/12**.
+- Commit `766fac7 refactor(be-boundary): move material demand port to planning` gỡ cycle thứ hai:
+  `Purchasing→Planning` **1 → 0**. Interface `IMaterialDemandService` về feature có implementation/controller;
+  field/constructor dependency không bao giờ được dùng trong `CoordinationService` đã xóa thay vì
+  whitelist cạnh `Coordination→Planning` giả.
+- Targeted cycle thứ hai: architecture **2/2**, MaterialDemand/Coordination/controller **98/98**.
 - Full gate sau lát: BE **631 pass / 1 skip**, FE **341/341**, lint **0 error / 4 warning baseline**,
   dependency FE không tăng, production build xanh, EF migration snapshot sạch.
-- Còn ba cycle: `Approvals→Coordination` 1, `Coordination→SampleData` 2,
-  `Purchasing→Planning` 1; sau đó bỏ direct DbContext khỏi hai controller theo Gate 13.
+- Còn hai cycle: `Approvals→Coordination` 1 và `Coordination→SampleData` 2; sau đó bỏ direct
+  DbContext khỏi hai controller theo Gate 13.
 
 ## Quy trình tiếp tục ở phiên mới
 
