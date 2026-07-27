@@ -10,6 +10,8 @@ import { toApiShiftName } from '../types'
 import { ContextStrip, OperationalFrame, QueryErrorAlert, SectionPanel } from '@/components/common'
 import { formatNumber } from '@/lib/formatters'
 import { deriveCoordinationStatus } from '../coordinationStatus'
+import { QueryViewBoundary } from '@/components/common/QueryViewBoundary'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 export default function CoordinationPage() {
   const dispatch = useAppDispatch()
@@ -20,39 +22,47 @@ export default function CoordinationPage() {
   const ordersQuery = useGetCoordinationOrdersQuery({ dayOfWeek: currentDayOfWeek, shift: currentShift })
   const shiftName = toApiShiftName(currentShift)
   const plansQuery = useGetMealQuantityPlansQuery({ dayOfWeek: currentDayOfWeek, shiftName })
-  const plans = plansQuery.currentData?.data ?? []
-  const loading = ordersQuery.isLoading || ordersQuery.isFetching || plansQuery.isLoading
-  const coordinationStatus = deriveCoordinationStatus(
-    plans.map((plan) => plan.status),
-    loading,
-  )
-  const { hasPlans, isReadOnly, canEditForecast, canRequestAdjustment, useFinalServings } = coordinationStatus
+  const ordersView = toLabeledQueryView(ordersQuery, 'danh sách suất ăn', {
+    instruction: 'Chọn ngày và ca để tải danh sách suất ăn.',
+  })
+  const plansView = toLabeledQueryView(plansQuery, 'trạng thái chốt số suất', {
+    instruction: 'Chọn ngày và ca để tải trạng thái chốt số suất.',
+  })
+  const plansResponse = plansView.phase === 'ready'
+    ? plansView.data
+    : plansView.phase === 'error' ? plansQuery.currentData : undefined
+  const plans = plansResponse?.data ?? []
+  const ordersResponse = ordersView.phase === 'ready' ? ordersView.data : undefined
 
   useEffect(() => {
-    if (ordersQuery.currentData?.success && ordersQuery.currentData.data) {
+    if (ordersResponse?.success && ordersResponse.data) {
       dispatch(syncOrdersForShift({
         dayOfWeek: currentDayOfWeek,
         shift: currentShift,
-        orders: ordersQuery.currentData.data,
+        orders: ordersResponse.data,
       }))
     }
-  }, [currentDayOfWeek, currentShift, dispatch, ordersQuery.currentData])
+  }, [currentDayOfWeek, currentShift, dispatch, ordersResponse])
 
   // Filter orders by active day and shift
   const filteredOrders = allOrders.filter(
     (order) => order.dayOfWeek === currentDayOfWeek && order.shift === currentShift
   )
+  const hasOrderFallback = filteredOrders.length > 0
+  const hasPlanFallback = plansResponse !== undefined
+  const loading = (ordersView.phase !== 'ready' && !hasOrderFallback)
+    || (plansView.phase !== 'ready' && !hasPlanFallback)
+  const coordinationStatus = deriveCoordinationStatus(
+    plans.map((plan) => plan.status),
+    loading,
+  )
+  const { hasPlans, isReadOnly, canEditForecast, canRequestAdjustment, useFinalServings } = coordinationStatus
   const totalForecast = filteredOrders.reduce((sum, order) => sum + order.forecastQuantity, 0)
   const totalActual = filteredOrders.reduce((sum, order) => sum + order.actualQuantity, 0)
   const totalFinal = filteredOrders.reduce((sum, order) => sum + (isReadOnly ? order.actualQuantity : order.forecastQuantity), 0)
   const totalVariance = totalFinal - totalForecast
-
-  const error = ordersQuery.isError
-    ? 'Không tải được danh sách suất ăn từ hệ thống điều phối.'
-    : plansQuery.isError
-      ? 'Không tải được trạng thái chốt số suất của ca đang chọn.'
-    : localError
   const orderStatus = coordinationStatus.status
+  const hasVisibleOrderMetrics = ordersView.phase === 'ready' || hasOrderFallback
 
   return (
     <OperationalFrame
@@ -60,9 +70,9 @@ export default function CoordinationPage() {
       context={
         <ContextStrip
           items={[
-            { label: 'Suất dự kiến', value: formatNumber(totalForecast), tone: 'neutral' },
-            { label: 'Suất điều phối', value: isReadOnly ? formatNumber(totalActual) : 'Chưa chốt', tone: isReadOnly ? 'success' : 'warning' },
-            { label: 'Chênh lệch', value: `${totalVariance >= 0 ? '+' : ''}${formatNumber(totalVariance)}`, tone: totalVariance === 0 ? 'success' : 'warning' },
+            { label: 'Suất dự kiến', value: hasVisibleOrderMetrics ? formatNumber(totalForecast) : '—', tone: 'neutral' },
+            { label: 'Suất điều phối', value: !hasVisibleOrderMetrics ? '—' : isReadOnly ? formatNumber(totalActual) : 'Chưa chốt', tone: hasVisibleOrderMetrics && isReadOnly ? 'success' : 'warning' },
+            { label: 'Chênh lệch', value: hasVisibleOrderMetrics ? `${totalVariance >= 0 ? '+' : ''}${formatNumber(totalVariance)}` : '—', tone: hasVisibleOrderMetrics && totalVariance === 0 ? 'success' : 'warning' },
           ]}
         />
       }
@@ -72,27 +82,35 @@ export default function CoordinationPage() {
         padded={false}
         className="operation-surface ipc-coordination-workbench overflow-hidden border-slate-200 bg-white shadow-sm"
       >
-        {error && (
+        {localError && (
           <QueryErrorAlert
             title="Không tải được dữ liệu điều phối"
             isRetrying={ordersQuery.isFetching || plansQuery.isFetching}
             onRetry={() => Promise.all([ordersQuery.refetch(), plansQuery.refetch()])}
           >
-            {error}
+            {localError}
             {' '}Dữ liệu cũ được giữ chỉ để đối chiếu; hãy tải lại trước khi khóa hoặc điều chỉnh ca.
           </QueryErrorAlert>
         )}
-        <OrderStatusBanner status={orderStatus} />
-        <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
+        <QueryViewBoundary
+          preserveFallback={hasOrderFallback || hasPlanFallback}
+          queries={[
+            { label: 'danh sách suất ăn', view: ordersView },
+            { label: 'trạng thái chốt số suất', view: plansView },
+          ]}
+        >
+          <OrderStatusBanner status={orderStatus} />
+          <ActionToolbar status={orderStatus} hasPlans={hasPlans} />
 
-        <div className="min-h-0">
-          <OrderTable
-            orders={filteredOrders}
-            canEditForecast={canEditForecast}
-            canRequestAdjustment={canRequestAdjustment}
-            useFinalServings={useFinalServings}
-          />
-        </div>
+          <div className="min-h-0">
+            <OrderTable
+              orders={filteredOrders}
+              canEditForecast={canEditForecast}
+              canRequestAdjustment={canRequestAdjustment}
+              useFinalServings={useFinalServings}
+            />
+          </div>
+        </QueryViewBoundary>
       </SectionPanel>
     </OperationalFrame>
   )

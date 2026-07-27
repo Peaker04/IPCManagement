@@ -8,6 +8,7 @@ import {
 } from '../../weeklyMenuPlanning'
 import { parseDisplayDateToIso } from '../model/formatters'
 import type { WeeklyMenuScope } from '../schedule/types'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) {
   const scopeKey = `${scope.customerId}:${scope.weekStartDate}`
@@ -27,7 +28,15 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) 
     dateFrom: weekDates[0],
     dateTo: weekDates[weekDates.length - 1],
   }, { skip: !enabled || !scope.customerId || weekDates.length === 0 })
-  const weekPlans = useMemo(() => weekQuery.currentData?.data ?? [], [weekQuery.currentData])
+  const weekView = toLabeledQueryView(weekQuery, 'kế hoạch sản xuất của tuần', {
+    instruction: !scope.customerId
+      ? 'Chọn khách hàng để xem kế hoạch sản xuất.'
+      : weekDates.length === 0
+        ? 'Chọn tuần có ngày phục vụ để xem kế hoạch sản xuất.'
+        : 'Mở tab Kế hoạch sản xuất để tải dữ liệu.',
+  })
+  const weekResponse = weekView.phase === 'ready' ? weekView.data : undefined
+  const weekPlans = useMemo(() => weekResponse?.data ?? [], [weekResponse?.data])
   const selectedServiceDate = selectedDayKey
     ? parseDisplayDateToIso(scope.displayDays.find((day) => day.key === selectedDayKey)?.date)
     : undefined
@@ -48,11 +57,18 @@ export function useWeeklyProductionPlan(scope: WeeklyMenuScope, enabled = true) 
 
   return {
     scope,
+    dataState: weekView,
     state: { selectedDayKey, selectedServiceDate, pageIndex: safePageIndex },
     status: {
-      isLoading: !selectedServiceDate && weekQuery.isFetching,
-      isError: weekQuery.isError,
-      isRetrying: weekQuery.isFetching,
+      isUninitialized: weekView.phase === 'uninitialized',
+      instruction: weekView.phase === 'uninitialized' ? weekView.instruction : undefined,
+      isLoading: weekView.phase === 'loading',
+      isForbidden: weekView.phase === 'forbidden',
+      forbiddenMessage: weekView.phase === 'forbidden' ? weekView.message : undefined,
+      isError: weekView.phase === 'error',
+      errorMessage: weekView.phase === 'error' ? weekView.message : undefined,
+      isRetrying: weekView.phase === 'error' ? weekView.isRetrying : false,
+      isRefreshing: weekView.phase === 'ready' && weekView.isRefreshing,
     },
     actions: {
       selectDay,

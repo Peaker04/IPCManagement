@@ -18,6 +18,7 @@ import { buildImportPresentation } from './importPresentation'
 import type { ImportDisplayDay } from './importPresentation'
 import { initialWeeklyMenuImportState, weeklyMenuImportReducer } from './importState'
 import type { ImportFeedback } from './importState'
+import { toLabeledQueryView } from '@/lib/labeledQueryView'
 
 type UseWeeklyMenuImportOptions = {
   customers: CoordinationCustomerOption[]
@@ -48,8 +49,14 @@ export const useWeeklyMenuImport = ({
   const [saveImportMapping, { isLoading: isSavingMapping }] = useSaveCustomerImportMappingMutation()
   const [createCustomerContract, { isLoading: isCreatingCustomer }] = useCreateCustomerContractMutation()
   const [rollbackImport, { isLoading: isRollingBack }] = useRollbackWeeklyMenuImportMutation()
-  const { data: historyData, isError: isHistoryError } = useGetWeeklyMenuImportHistoryQuery()
-  const history = useMemo(() => historyData?.data ?? [], [historyData])
+  const historyQuery = useGetWeeklyMenuImportHistoryQuery()
+  const historyView = toLabeledQueryView(historyQuery, 'lịch sử import thực đơn tuần', {
+    instruction: 'Mở hộp thoại import để tải lịch sử import thực đơn tuần.',
+  })
+  const historyData = historyView.phase === 'ready'
+    ? historyView.data
+    : historyView.phase === 'error' ? historyQuery.currentData ?? historyQuery.data : undefined
+  const history = useMemo(() => historyData?.data ?? [], [historyData?.data])
   const selectedCustomer = customers.find((item) => item.customerId === state.draftCustomerId)
   const selectedJob = state.jobs.find((job) => job.jobId === state.selectedJobId) ?? state.jobs[0]
   const presentation = useMemo(
@@ -189,9 +196,20 @@ export const useWeeklyMenuImport = ({
   }
 
   return {
-    state, customers, history, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
+    state, customers, history, historyDataState: historyView, selectedCustomer, selectedJob, readyJobs, presentation, fileInputRef,
     wizardStep: getImportWizardStep(state.jobs), hiddenFeedbackByDetail,
-    status: { isCustomerLoading, isCustomerError, isHistoryError, isImporting, isPreviewing, isCommitting, isDownloadingTemplate, isSavingMapping, isCreatingCustomer, isRollingBack },
+    status: {
+      isCustomerLoading,
+      isCustomerError,
+      isHistoryError: historyView.phase === 'error' || historyView.phase === 'forbidden',
+      isImporting,
+      isPreviewing,
+      isCommitting,
+      isDownloadingTemplate,
+      isSavingMapping,
+      isCreatingCustomer,
+      isRollingBack,
+    },
     actions: {
       open, close, onOpenChange: (nextOpen: boolean) => nextOpen ? open() : close(),
       selectDraftCustomer: (value: string) => dispatch({ type: 'edit', field: 'draftCustomerId', value }),

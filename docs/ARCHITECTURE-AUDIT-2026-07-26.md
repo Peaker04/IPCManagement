@@ -423,9 +423,9 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 |---|---|---|---|
 | 11 | `QueryView<T>`, adapter thuần, ma trận tám trạng thái và lint guardrail | Bước 10 | **Hoàn tất** |
 | 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
-| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: năm feature đầu đã hoàn tất** |
+| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
-| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | Chưa bắt đầu |
+| 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Active tiếp theo: Reports** |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
 | 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
 | 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
@@ -448,7 +448,7 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
 - Browser gate chỉ kiểm website tại `1365×900`, `1280×900`, `768×1024`; mobile ngoài scope.
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
-  Luồng active quay lại Bước 13; không mở Bước 15–18 cho tới khi Gate 13 xanh.
+  Gate 13 nay đã xanh; luồng active chuyển sang Bước 15, bắt đầu từ Reports.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -575,7 +575,35 @@ long task, CLS 0 và 0 page overflow. Evidence tại
 `.artifacts/shipyard-live/query-view-chef-performance.json` và mười hai screenshot
 `query-view-chef-*.png`. Staged GitNexus audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
 
-Bước active tiếp theo trong Gate 13 là Coordination.
+**Coordination hoàn tất tại `fe5a438`.** Mười một query owner đã qua `QueryView`: hai query
+workbench điều phối, lazy menu metadata của dialog món, sáu query shell Weekly Menu,
+lịch sử import và kế hoạch sản xuất. `QueryViewBoundary` thuần được đặt ở `components/common`
+để hai feature dùng chung mà không tạo cạnh `projects→coordination` mới; dependency gate từng
+bắt 15 import vi phạm của bản đặt sai owner và implementation cuối đưa chúng về 0.
+
+Uninitialized do `skip` không còn thành empty; 403 không retry và không lộ cached data;
+lỗi khác có retry và giữ cached data đúng query key; refreshing dùng overlay tuyệt đối ngoài
+document flow. Metric workbench chưa authoritative hiển thị `—`; import history và Weekly Menu
+không còn xóa fallback khi refetch lỗi. Không đổi endpoint, query args, cache tag/key, URL,
+mutation hay ownership feature hiện hữu.
+
+Targeted Coordination/state **26/26**; full FE **416/416**; BE **634 pass / 1 skip**;
+lint sạch, dependency không có vi phạm mới và vẫn giữ 54 baseline cũ, production build,
+OpenAPI deterministic và EF pending-model gate xanh. Browser headed trên ba viewport:
+**21/21** capture, 118 API response đều 2xx, 0 business mutation, warm scope/production
+0 request, 0 request fail/console/page error/long task, CLS 0 và 0 page overflow. Runtime
+FE `3001`, API `8001`, Shipyard `8090`, `ipc_lane1` Healthy cho database + migrations.
+Evidence tại `.artifacts/shipyard-live/query-view-coordination-performance.json` và 21 screenshot
+`query-view-coordination-*.png`. Hai file `query-view-coordination-error.*` có timestamp cũ hơn
+là lỗi locator của browser helper trước final run, không phải kết quả cuối.
+
+Worktree runtime hiện không có order row ở cả 14 tổ hợp thứ/ngày + ca, nên browser xác minh
+ready-empty authoritative của workbench nhưng không tạo dữ liệu giả để mở dialog món. Lazy query
+của dialog được phủ bằng ma trận boundary tám trạng thái và ownership contract. Staged GitNexus:
+12 file/31 symbol/0 flow, **LOW**, đúng scope.
+
+**Gate 13 đã đóng ngày 28/07/2026.** Cả sáu feature đã hoàn tất; bước active tiếp theo là
+**Bước 15 — Reports**, vì Bước 14 đã hoàn tất sớm.
 
 ### Bước 14 — Khóa VSA boundary
 
