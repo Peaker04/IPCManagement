@@ -547,7 +547,8 @@ migration nào tạo bảng đó; chuỗi vốn thiết kế để chạy đè l
   `1365×900`, `1280×900`, `768×1024`, mobile ngoài scope.
 
 **Workflow thống nhất:** Phần F của `docs/ARCHITECTURE-AUDIT-2026-07-26.md` là nguồn điều
-khiển duy nhất. Phần C chỉ là snapshot audit lịch sử, không chạy P0–P3 song song. Thứ tự đúng là:
+khiển duy nhất. Phần C chỉ là sổ finding lịch sử; nhãn P0–P3 cũ không còn được dùng như
+một workflow song song. Thứ tự thực thi duy nhất là:
 `11 state contract → 12 pilot → 13 state rollout → 14 VSA boundary → 15 functional core →
 16 persistence → 17 FE ownership → 18 guardrail/docs`.
 
@@ -623,7 +624,19 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   0 non-2xx/request fail/console/page error/long task, CLS 0, 0 page overflow. Evidence:
   `.artifacts/shipyard-live/query-view-admin-performance.json` và `query-view-admin-*.png`.
 - GitNexus staged audit: 13 file/45 symbol/11 flow, **HIGH**, đúng blast radius Admin đã phủ gate.
-- Bước active tiếp theo là **Chef**; Gate 13 chưa đóng cho tới khi Chef + Coordination xanh.
+- **Chef đã hoàn tất** tại `894012d refactor(fe-state): classify chef query views`.
+  Sáu query owner đều qua `QueryView`; production giữ fallback có nhãn, documents block
+  false-empty, forbidden không retry, context query skip hiển thị `—`, journal/returns có
+  truncation evidence. Refreshing overlay nằm ngoài flow; browser gate đã bắt và sửa
+  regression CLS ~0,15 của bản alert stack ban đầu.
+- Targeted Chef/state **45/45**; full FE **400/400**; BE **634 pass / 1 skip**; lint sạch,
+  dependency không tăng, production build, OpenAPI deterministic và EF migration gate xanh.
+- Browser headed ba viewport: **12/12** production/day-change/documents/warm capture, 31 API 2xx,
+  warm 0 request, 0 non-2xx/request fail/console/page error/long task, CLS 0, 0 page overflow.
+  Evidence: `.artifacts/shipyard-live/query-view-chef-performance.json` và `query-view-chef-*.png`.
+  File `query-view-chef-error.*` có timestamp cũ hơn là probe CLS trước fix, không phải final run.
+- GitNexus staged audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
+- Bước active tiếp theo là **Coordination**; đây là feature cuối trước khi đóng Gate 13.
 
 ### Bước 14 — VSA backend boundary (hoàn tất sớm do numbering cũ)
 

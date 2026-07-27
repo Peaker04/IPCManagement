@@ -171,16 +171,17 @@ Chín điểm lệch khác gồm: `SupplierDto` đảo nullability (FE khai non-
 
 ---
 
-## Phần C — Snapshot backlog kiến trúc gốc (không còn là workflow thực thi)
+## Phần C — Sổ finding lịch sử (không phải workflow thực thi)
 
-Phần này được giữ lại để truy vết audit ngày 26/07/2026. **Không chạy P0–P3 bên dưới như
-một plan song song.** Mọi hạng mục còn hiệu lực đã được gộp vào duy nhất Bước 11→18 tại Phần F;
-khi trạng thái, thứ tự hoặc gate mâu thuẫn, **Phần F là nguồn điều khiển duy nhất**.
+Phần này chỉ giữ ID và bằng chứng của audit ngày 26/07/2026 để truy vết. Các nhãn ưu tiên
+P0–P3 cũ đã ngừng dùng để giao việc; **không thực thi các bảng dưới đây như một plan thứ hai**.
+Mọi hạng mục kiến trúc còn hiệu lực đã được nhập vào duy nhất Bước 11→18 tại Phần F; khi
+trạng thái, thứ tự hoặc gate mâu thuẫn, **Phần F là nguồn điều khiển duy nhất**.
 
 Nguyên tắc lịch sử: sửa theo thứ tự rủi ro, mỗi giai đoạn có tiêu chí nghiệm thu đo
 được và không gộp nhiều giai đoạn vào một commit.
 
-### P0 — Chặn máu (1–2 ngày)
+### C1 — Finding chặn máu (ID cũ 0.x)
 
 Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ liệu vĩnh viễn hoặc chiếm quyền hệ thống.
 
@@ -194,7 +195,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 | 0.6 | Sửa 3 bug ranh giới ngày FE; đưa mọi phép tính ngày qua `chefServiceDate.ts`; xóa `dateUtils.ts:11` | `AdminDataPage.tsx:129,131`, `purchasingModel.ts:110` | Test chạy ở TZ=UTC và TZ=ICT cho cùng kết quả |
 | 0.7 | Đăng ký `JsonStringEnumConverter` toàn cục; FE gửi string thay vì `0/1` | `Program.cs:147`, `workflowApi.ts:2228` | Duyệt/từ chối hoạt động đúng sau khi đảo thứ tự enum trong test |
 
-### P1 — Nền tảng an toàn (1–2 tuần)
+### C2 — Finding nền tảng an toàn (ID cũ 1.x)
 
 | # | Việc | Nghiệm thu |
 |---|---|---|
@@ -208,7 +209,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 | 1.8 | `[RequestSizeLimit]` cho 4 endpoint upload + giới hạn vùng merged-cell trong parser XLSX (hiện `ref="A1:XFD1048576"` treo worker vô hạn) | Upload file 50MB → 413; file merged-cell độc hại → 400 |
 | 1.9 | **Đưa `isError` vào các hook `use*`** và bắt page render `QueryErrorAlert`; `EmptyState` phân biệt "rỗng thật" vs "lỗi"; lint rule cấm bỏ `isError` | Ngắt API demand → hiện alert lỗi, không phải "Chưa có dữ liệu" |
 
-### P2 — Kiến trúc (3–4 tuần)
+### C3 — Finding kiến trúc (ID cũ 2.x)
 
 | # | Việc | Nghiệm thu |
 |---|---|---|
@@ -246,7 +247,7 @@ Mục tiêu: sau P0, một sự cố đơn lẻ không còn gây mất dữ li�
 > `20260708130000_RestorePurchaseRequestReceiptStatuses` — thực chất **EF chưa bao giờ nhìn thấy nó** vì thiếu cả
 > `.Designer.cs` lẫn `[Migration]` inline. File đó đã được xoá ngày 27/07.
 
-### P3 — Tối ưu và trả nợ (sau khi P0–P2 ổn định)
+### C4 — Finding tối ưu và trả nợ (ID cũ 3.x)
 
 | # | Việc | Ghi chú |
 |---|---|---|
@@ -422,7 +423,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 |---|---|---|---|
 | 11 | `QueryView<T>`, adapter thuần, ma trận tám trạng thái và lint guardrail | Bước 10 | **Hoàn tất** |
 | 12 | Pilot Material Demand + Warehouse và browser evidence | 11 | **Hoàn tất** |
-| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: bốn feature đầu đã hoàn tất** |
+| 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Đang thực hiện: năm feature đầu đã hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | Chưa bắt đầu |
 | 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | Chưa bắt đầu |
@@ -557,7 +558,24 @@ CLS 0 và 0 page overflow. Evidence tại `.artifacts/shipyard-live/query-view-a
 và ba mươi screenshot `query-view-admin-*.png`. Staged GitNexus audit: 13 file/45 symbol/
 11 flow, **HIGH**, đúng blast radius shared Admin boundary đã được phủ gate.
 
-Bước active tiếp theo trong Gate 13 là Chef.
+**Chef hoàn tất tại `894012d`.** Sáu query owner — catalog món/BOM, daily production
+plan, kitchen issues, inventory returns, workflow documents và stock movements — đều qua
+`QueryView`. Tab sản xuất giữ fallback kế hoạch đã có nhưng gắn error/forbidden
+tường minh; tab chứng từ block false-empty. Context của query skip/chưa authoritative
+hiển thị `—`; return page và hai journal limit không pager hiển thị truncation evidence.
+Refreshing giữ stale data và dùng overlay text cố định ngoài document flow. Browser gate
+đã phát hiện stack alert ban đầu gây CLS ~0,15 khi đổi ngày; implementation cuối
+đã loại regression này thay vì nới ngưỡng.
+
+Targeted Chef/state **45/45**; full FE **400/400**; BE **634 pass / 1 skip**; lint sạch,
+dependency không tăng, production build, OpenAPI deterministic và migration gate xanh.
+Browser headed ba viewport: **12/12** capture cho production, đổi ngày, documents và warm;
+31 API response đều 2xx, warm production 0 request, 0 non-2xx/request fail/console/page error/
+long task, CLS 0 và 0 page overflow. Evidence tại
+`.artifacts/shipyard-live/query-view-chef-performance.json` và mười hai screenshot
+`query-view-chef-*.png`. Staged GitNexus audit: 9 file/24 symbol/4 flow, **MEDIUM**, đúng scope Chef.
+
+Bước active tiếp theo trong Gate 13 là Coordination.
 
 ### Bước 14 — Khóa VSA boundary
 
