@@ -13,16 +13,25 @@ public class CoordinationService : ICoordinationService
     private readonly IpcManagementContext _context;
     private readonly ICustomerContractService _customerContractService;
     private readonly IPortionRuleService _portionRuleService;
+    private readonly IMenuScheduleService _menuScheduleService;
 
     public CoordinationService(IpcManagementContext context)
-        : this(context, new CustomerContractService(context), new PortionRuleService(context))
+        : this(
+            context,
+            new CustomerContractService(context),
+            new PortionRuleService(context),
+            new MenuScheduleService(context))
     {
     }
 
     public CoordinationService(
         IpcManagementContext context,
         ICustomerContractService customerContractService)
-        : this(context, customerContractService, new PortionRuleService(context))
+        : this(
+            context,
+            customerContractService,
+            new PortionRuleService(context),
+            new MenuScheduleService(context))
     {
     }
 
@@ -30,10 +39,20 @@ public class CoordinationService : ICoordinationService
         IpcManagementContext context,
         ICustomerContractService customerContractService,
         IPortionRuleService portionRuleService)
+        : this(context, customerContractService, portionRuleService, new MenuScheduleService(context))
+    {
+    }
+
+    public CoordinationService(
+        IpcManagementContext context,
+        ICustomerContractService customerContractService,
+        IPortionRuleService portionRuleService,
+        IMenuScheduleService menuScheduleService)
     {
         _context = context;
         _customerContractService = customerContractService;
         _portionRuleService = portionRuleService;
+        _menuScheduleService = menuScheduleService;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -50,67 +69,8 @@ public class CoordinationService : ICoordinationService
         return lines.Select(MapOrder).ToList();
     }
 
-    public async Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query)
-    {
-        var schedulesQuery = _context.Menuschedules
-            .Include(schedule => schedule.Customer)
-            .Include(schedule => schedule.Menu)
-                .ThenInclude(menu => menu.Menuitems)
-                    .ThenInclude(item => item.Dish)
-            .AsNoTracking()
-            .AsSplitQuery()
-            .AsQueryable();
-
-        if (!string.IsNullOrWhiteSpace(query.CustomerId))
-        {
-            var customerId = GuidHelper.ParseGuidString(query.CustomerId);
-            if (customerId is null)
-            {
-                return [];
-            }
-
-            schedulesQuery = schedulesQuery.Where(schedule => schedule.CustomerId == customerId);
-        }
-
-        if (!string.IsNullOrWhiteSpace(query.ServiceDate) &&
-            DateOnly.TryParse(query.ServiceDate, out var serviceDate))
-        {
-            schedulesQuery = schedulesQuery.Where(schedule => schedule.ServiceDate == serviceDate);
-        }
-        else if (!string.IsNullOrWhiteSpace(query.DayOfWeek))
-        {
-            var resolvedDate = ResolveServiceDate(null, query.DayOfWeek);
-            schedulesQuery = schedulesQuery.Where(schedule => schedule.ServiceDate == resolvedDate);
-        }
-        else
-        {
-            var weekStart = ResolveWeekStartDate(query.WeekStartDate);
-            var weekEnd = weekStart.AddDays(6);
-            schedulesQuery = schedulesQuery.Where(schedule =>
-                schedule.ServiceDate >= weekStart &&
-                schedule.ServiceDate <= weekEnd);
-        }
-
-        var shiftName = NormalizeShiftName(query.ShiftName);
-        if (!string.IsNullOrWhiteSpace(query.ShiftName) && shiftName is null)
-        {
-            return [];
-        }
-
-        if (shiftName is not null)
-        {
-            schedulesQuery = schedulesQuery.Where(schedule => schedule.ShiftName == shiftName);
-        }
-
-        var schedules = await schedulesQuery
-            .OrderBy(schedule => schedule.ServiceDate)
-            .ThenBy(schedule => schedule.ShiftName)
-            .ThenBy(schedule => schedule.Customer.CustomerCode)
-            .ToListAsync();
-
-        var versions = await LoadMenuVersionsAsync(schedules);
-        return schedules.Select(schedule => MapMenuSchedule(schedule, ResolveMenuVersion(versions, schedule))).ToList();
-    }
+    public Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query)
+        => _menuScheduleService.GetMenuSchedulesAsync(query);
 
     public Task<IReadOnlyList<CustomerContractDto>> GetCustomerContractsAsync()
         => _customerContractService.GetCustomerContractsAsync();
@@ -143,261 +103,22 @@ public class CoordinationService : ICoordinationService
     public Task<ResolvedPortionRuleDto?> ResolvePortionRuleAsync(ResolvePortionRuleRequest request)
         => _portionRuleService.ResolvePortionRuleAsync(request);
 
-    public async Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
+    public Task<MenuScheduleDto?> UpdateMenuScheduleRulesAsync(
         string menuScheduleId,
         UpdateMenuScheduleRulesRequest request,
         string? userId)
-    {
-        var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
-        if (schedule is null)
-        {
-            return null;
-        }
+        => _menuScheduleService.UpdateMenuScheduleRulesAsync(menuScheduleId, request, userId);
 
-        var actorId = ResolveActorId(userId);
-        var changedAt = DateTime.UtcNow;
-        var reason = string.IsNullOrWhiteSpace(request.Reason)
-            ? "Cập nhật quy tắc contract/suất ăn"
-            : request.Reason.Trim();
-
-        if (request.MenuPrice is not null)
-        {
-            var nextPrice = DecimalPolicy.RoundMoney(request.MenuPrice.Value);
-            if (nextPrice < 0)
-            {
-                throw new ArgumentException("Đơn giá menu không được âm.");
-            }
-
-            if (schedule.MenuPrice != nextPrice)
-            {
-                AddAudit(actorId, changedAt, "CustomerContract", nameof(MenuSchedule), schedule.MenuScheduleId,
-                    nameof(MenuSchedule.MenuPrice), schedule.MenuPrice.ToString(), nextPrice.ToString(), reason);
-                schedule.MenuPrice = nextPrice;
-            }
-        }
-
-        if (schedule.BomRatePercent != FixedBomRatePercent)
-        {
-            AddAudit(actorId, changedAt, "PortionRule", nameof(MenuSchedule), schedule.MenuScheduleId,
-                nameof(MenuSchedule.BomRatePercent), schedule.BomRatePercent.ToString(), FixedBomRatePercent.ToString(), reason);
-            schedule.BomRatePercent = FixedBomRatePercent;
-        }
-
-        var status = NormalizeMenuScheduleStatus(request.Status);
-        if (status is not null && !string.Equals(schedule.Status, status, StringComparison.OrdinalIgnoreCase))
-        {
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
-                nameof(MenuSchedule.Status), schedule.Status, status, reason);
-            schedule.Status = status;
-        }
-
-        await _context.SaveChangesAsync();
-        var version = await GetLatestMenuVersionAsync(schedule.CustomerId, schedule.WeekStartDate);
-        return MapMenuSchedule(schedule, version);
-    }
-
-    public async Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
+    public Task<MenuScheduleDto?> UpdateMenuScheduleVersionAsync(
         string menuScheduleId,
         UpdateMenuScheduleVersionRequest request,
         string? userId)
-    {
-        var schedule = await FindMenuScheduleForUpdateAsync(menuScheduleId);
-        if (schedule is null)
-        {
-            return null;
-        }
+        => _menuScheduleService.UpdateMenuScheduleVersionAsync(menuScheduleId, request, userId);
 
-        var status = NormalizeMenuScheduleStatus(request.Status);
-        if (status is null)
-        {
-            throw new ArgumentException("Trạng thái version thực đơn không hợp lệ.");
-        }
-
-        var actorId = ResolveActorId(userId);
-        var changedAt = DateTime.UtcNow;
-        var version = await EnsureMenuVersionAsync(schedule.CustomerId, schedule.WeekStartDate, actorId, changedAt);
-
-        if (status == "ACTIVE")
-        {
-            var activeVersions = (await _context.Menuversions
-                .Where(item => item.WeekStartDate == schedule.WeekStartDate && item.Status == "ACTIVE")
-                .ToListAsync())
-                .Where(item =>
-                    item.CustomerId.SequenceEqual(schedule.CustomerId) &&
-                    !item.MenuVersionId.SequenceEqual(version.MenuVersionId))
-                .ToList();
-            foreach (var activeVersion in activeVersions)
-            {
-                activeVersion.Status = "SUPERSEDED";
-                activeVersion.UpdatedAt = changedAt;
-            }
-
-            version.PublishedBy = actorId;
-            version.PublishedAt = changedAt;
-        }
-
-        if (!string.Equals(version.Status, status, StringComparison.OrdinalIgnoreCase))
-        {
-            AddAudit(
-                actorId,
-                changedAt,
-                "MenuVersion",
-                nameof(MenuVersion),
-                version.MenuVersionId,
-                nameof(MenuVersion.Status),
-                version.Status,
-                status,
-                string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật version thực đơn" : request.Reason.Trim());
-            version.Status = status;
-            version.UpdatedAt = changedAt;
-        }
-
-        var weekSchedules = (await _context.Menuschedules
-            .Where(item => item.WeekStartDate == schedule.WeekStartDate)
-            .ToListAsync())
-            .Where(item => item.CustomerId.SequenceEqual(schedule.CustomerId))
-            .ToList();
-
-        foreach (var weekSchedule in weekSchedules)
-        {
-            if (string.Equals(weekSchedule.Status, status, StringComparison.OrdinalIgnoreCase))
-            {
-                continue;
-            }
-
-            AddAudit(
-                actorId,
-                changedAt,
-                "MenuVersion",
-                nameof(MenuSchedule),
-                weekSchedule.MenuScheduleId,
-                nameof(MenuSchedule.Status),
-                weekSchedule.Status,
-                status,
-                string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật version thực đơn" : request.Reason.Trim());
-            weekSchedule.Status = status;
-        }
-
-        await _context.SaveChangesAsync();
-        return MapMenuSchedule(schedule, version);
-    }
-
-    public async Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
+    public Task<MenuVersionRollbackResultDto> RollbackMenuVersionAsync(
         RollbackMenuVersionRequest request,
         string? userId)
-    {
-        var customerId = GuidHelper.ParseGuidString(request.CustomerId)
-            ?? throw new ArgumentException("Khách hàng không hợp lệ.");
-        if (!DateOnly.TryParse(request.WeekStartDate, out var weekStartDate))
-        {
-            throw new ArgumentException("Tuần bắt đầu không hợp lệ.");
-        }
-
-        var reason = request.Reason?.Trim();
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new ArgumentException("Vui lòng nhập lý do rollback thực đơn.");
-        }
-
-        var actorId = ResolveActorId(userId);
-        var changedAt = DateTime.UtcNow;
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            var versions = (await _context.Menuversions
-                .Where(version => version.WeekStartDate == weekStartDate)
-                .OrderByDescending(version => version.VersionNo)
-                .ToListAsync())
-                .Where(version => version.CustomerId.SequenceEqual(customerId))
-                .ToList();
-            if (versions.Count == 0)
-            {
-                throw new ArgumentException("Chưa có version thực đơn cho khách hàng và tuần đã chọn.");
-            }
-
-            var current = versions
-                .Where(version => IsPublishedMenuVersionStatus(version.Status))
-                .OrderByDescending(version => version.PublishedAt.HasValue)
-                .ThenByDescending(version => version.VersionNo)
-                .FirstOrDefault()
-                ?? versions.OrderByDescending(version => version.VersionNo).First();
-            var target = ResolveRollbackTarget(versions, current, request);
-            if (target is null)
-            {
-                throw new ArgumentException("Không tìm thấy version trước đó để rollback.");
-            }
-
-            if (current.MenuVersionId.SequenceEqual(target.MenuVersionId))
-            {
-                throw new ArgumentException("Version rollback phải khác version đang dùng.");
-            }
-
-            foreach (var activeVersion in versions.Where(version =>
-                IsPublishedMenuVersionStatus(version.Status) &&
-                !version.MenuVersionId.SequenceEqual(target.MenuVersionId)))
-            {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
-                    nameof(MenuVersion.Status), activeVersion.Status, "SUPERSEDED", reason);
-                activeVersion.Status = "SUPERSEDED";
-                activeVersion.UpdatedAt = changedAt;
-            }
-
-            if (!string.Equals(target.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase))
-            {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
-                    nameof(MenuVersion.Status), target.Status, "PUBLISHED", reason);
-            }
-
-            target.Status = "PUBLISHED";
-            target.PublishedBy = actorId;
-            target.PublishedAt = changedAt;
-            target.UpdatedAt = changedAt;
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
-                "Rollback", current.VersionNo.ToString(), target.VersionNo.ToString(), reason);
-
-            var weekSchedules = (await _context.Menuschedules
-                .Where(schedule => schedule.WeekStartDate == weekStartDate)
-                .ToListAsync())
-                .Where(schedule => schedule.CustomerId.SequenceEqual(customerId))
-                .ToList();
-            foreach (var schedule in weekSchedules.Where(schedule =>
-                !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
-            {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
-                    nameof(MenuSchedule.Status), schedule.Status, "ACTIVE", reason);
-                schedule.Status = "ACTIVE";
-            }
-
-            var invalidated = await InvalidateWorkflowDocumentsForMenuRollbackAsync(
-                customerId,
-                weekStartDate,
-                target,
-                actorId,
-                changedAt,
-                reason);
-
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return new MenuVersionRollbackResultDto
-            {
-                CustomerId = GuidHelper.ToGuidString(customerId),
-                WeekStartDate = weekStartDate.ToString("yyyy-MM-dd"),
-                ActiveMenuVersionId = GuidHelper.ToGuidString(target.MenuVersionId),
-                ActiveVersionNo = target.VersionNo,
-                RolledBackFromMenuVersionId = GuidHelper.ToGuidString(current.MenuVersionId),
-                RolledBackFromVersionNo = current.VersionNo,
-                CancelledDemandCount = invalidated.CancelledDemandCount,
-                CancelledPurchaseCount = invalidated.CancelledPurchaseCount,
-                Reason = reason
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
-    }
+        => _menuScheduleService.RollbackMenuVersionAsync(request, userId);
 
     public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
     {
@@ -1299,23 +1020,6 @@ public class CoordinationService : ICoordinationService
         });
     }
 
-    private async Task<MenuSchedule?> FindMenuScheduleForUpdateAsync(string menuScheduleId)
-    {
-        var scheduleIdBytes = GuidHelper.ParseGuidString(menuScheduleId);
-        if (scheduleIdBytes is null)
-        {
-            return null;
-        }
-
-        return await _context.Menuschedules
-            .Include(schedule => schedule.Customer)
-            .Include(schedule => schedule.Menu)
-                .ThenInclude(menu => menu.Menuitems)
-                    .ThenInclude(item => item.Dish)
-            .AsSplitQuery()
-            .FirstOrDefaultAsync(schedule => schedule.MenuScheduleId == scheduleIdBytes);
-    }
-
     private CustomerContract ResolveMutableContract(
         Customer customer,
         IReadOnlyList<MenuSchedule> schedules,
@@ -1623,199 +1327,6 @@ public class CoordinationService : ICoordinationService
         };
     }
 
-    private async Task<IReadOnlyList<MenuVersion>> LoadMenuVersionsAsync(IReadOnlyList<MenuSchedule> schedules)
-    {
-        if (schedules.Count == 0)
-        {
-            return [];
-        }
-
-        var minWeekStart = schedules.Min(schedule => schedule.WeekStartDate);
-        var maxWeekStart = schedules.Max(schedule => schedule.WeekStartDate);
-        var customerIds = schedules
-            .Select(schedule => Convert.ToBase64String(schedule.CustomerId))
-            .Distinct(StringComparer.Ordinal)
-            .ToHashSet(StringComparer.Ordinal);
-
-        var versions = await _context.Menuversions
-            .AsNoTracking()
-            .Where(version => version.WeekStartDate >= minWeekStart && version.WeekStartDate <= maxWeekStart)
-            .OrderByDescending(version => version.VersionNo)
-            .ToListAsync();
-
-        return versions
-            .Where(version => customerIds.Contains(Convert.ToBase64String(version.CustomerId)))
-            .ToList();
-    }
-
-    private async Task<MenuVersion?> GetLatestMenuVersionAsync(byte[] customerId, DateOnly weekStartDate)
-    {
-        var versions = await _context.Menuversions
-            .AsNoTracking()
-            .Where(version => version.WeekStartDate == weekStartDate)
-            .OrderByDescending(version => version.VersionNo)
-            .ToListAsync();
-
-        return versions.FirstOrDefault(version => version.CustomerId.SequenceEqual(customerId));
-    }
-
-    private async Task<MenuVersion> EnsureMenuVersionAsync(
-        byte[] customerId,
-        DateOnly weekStartDate,
-        byte[] actorId,
-        DateTime changedAt)
-    {
-        var versions = await _context.Menuversions
-            .Where(version => version.WeekStartDate == weekStartDate)
-            .OrderByDescending(version => version.VersionNo)
-            .ToListAsync();
-        var customerVersions = versions
-            .Where(version => version.CustomerId.SequenceEqual(customerId))
-            .ToList();
-        var version = customerVersions.FirstOrDefault();
-        if (version is not null)
-        {
-            return version;
-        }
-
-        version = new MenuVersion
-        {
-            MenuVersionId = GuidHelper.NewId(),
-            CustomerId = customerId,
-            WeekStartDate = weekStartDate,
-            VersionNo = customerVersions.Count == 0 ? 1 : customerVersions.Max(item => item.VersionNo) + 1,
-            Status = "DRAFT",
-            SourceImportBatch = $"LEGACY-{weekStartDate:yyyyMMdd}",
-            CreatedBy = actorId,
-            CreatedAt = changedAt,
-            UpdatedAt = changedAt
-        };
-
-        _context.Menuversions.Add(version);
-        AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), version.MenuVersionId,
-            "VersionCreated", null, version.SourceImportBatch, "Tạo header version cho thực đơn tuần");
-        return version;
-    }
-
-    private static MenuVersion? ResolveMenuVersion(IEnumerable<MenuVersion> versions, MenuSchedule schedule)
-        => versions
-            .Where(version =>
-                version.WeekStartDate == schedule.WeekStartDate &&
-                version.CustomerId.SequenceEqual(schedule.CustomerId))
-            .OrderByDescending(version => version.VersionNo)
-            .FirstOrDefault();
-
-    private static MenuVersion? ResolveRollbackTarget(
-        IReadOnlyList<MenuVersion> versions,
-        MenuVersion current,
-        RollbackMenuVersionRequest request)
-    {
-        // Id phiên bản sai định dạng phải báo lỗi: rơi xuống nhánh dưới sẽ rollback về **phiên bản khác**
-        // với phiên bản người dùng chọn, kéo theo hủy nhu cầu và đơn mua của tuần đó.
-        var requestedTargetId = GuidHelper.ParseFilterIdOrThrow(request.TargetMenuVersionId, "phiên bản thực đơn đích");
-        if (requestedTargetId is not null)
-        {
-            return versions.FirstOrDefault(version => version.MenuVersionId.SequenceEqual(requestedTargetId));
-        }
-
-        if (request.TargetVersionNo is not null)
-        {
-            return versions.FirstOrDefault(version => version.VersionNo == request.TargetVersionNo.Value);
-        }
-
-        return versions
-            .Where(version => version.VersionNo < current.VersionNo)
-            .OrderByDescending(version => version.PublishedAt.HasValue)
-            .ThenByDescending(version => version.VersionNo)
-            .FirstOrDefault();
-    }
-
-    private async Task<(int CancelledDemandCount, int CancelledPurchaseCount)> InvalidateWorkflowDocumentsForMenuRollbackAsync(
-        byte[] customerId,
-        DateOnly weekStartDate,
-        MenuVersion targetVersion,
-        byte[] actorId,
-        DateTime changedAt,
-        string rollbackReason)
-    {
-        var reason = $"Rollback menu to V{targetVersion.VersionNo}: {rollbackReason}; regenerate demand required.";
-        var materialRequests = await _context.Materialrequests
-            .Include(request => request.Plan)
-            .Where(request =>
-                request.Status != "CANCELLED" &&
-                request.Plan.WeekStartDate == weekStartDate &&
-                request.Plan.CustomerId != null &&
-                request.Plan.CustomerId.SequenceEqual(customerId))
-            .ToListAsync();
-
-        foreach (var request in materialRequests)
-        {
-            AddAudit(actorId, changedAt, "Demand", nameof(MaterialRequest), request.RequestId,
-                nameof(MaterialRequest.Status), request.Status, "CANCELLED", reason);
-            request.Status = "CANCELLED";
-        }
-
-        var purchaseRequests = await _context.Purchaserequests
-            .Include(request => request.Purchaserequestlines)
-                .ThenInclude(line => line.MaterialRequestLine)
-                    .ThenInclude(line => line.Request)
-                        .ThenInclude(materialRequest => materialRequest.Plan)
-            .Where(request =>
-                request.Status != "CANCELLED" &&
-                request.Purchaserequestlines.Any(line =>
-                    line.MaterialRequestLine.Request.Plan.WeekStartDate == weekStartDate &&
-                    line.MaterialRequestLine.Request.Plan.CustomerId != null &&
-                    line.MaterialRequestLine.Request.Plan.CustomerId.SequenceEqual(customerId)))
-            .ToListAsync();
-
-        foreach (var request in purchaseRequests)
-        {
-            AddAudit(actorId, changedAt, "Purchase", nameof(PurchaseRequest), request.PurchaseRequestId,
-                nameof(PurchaseRequest.Status), request.Status, "CANCELLED", reason);
-            request.Status = "CANCELLED";
-        }
-
-        return (materialRequests.Count, purchaseRequests.Count);
-    }
-
-    private static MenuScheduleDto MapMenuSchedule(MenuSchedule schedule, MenuVersion? version = null)
-        => new()
-        {
-            MenuScheduleId = GuidHelper.ToGuidString(schedule.MenuScheduleId),
-            CustomerId = GuidHelper.ToGuidString(schedule.CustomerId),
-            CustomerCode = schedule.Customer.CustomerCode,
-            CustomerName = schedule.Customer.CustomerName,
-            MenuId = GuidHelper.ToGuidString(schedule.MenuId),
-            MenuCode = schedule.Menu.MenuCode,
-            MenuName = schedule.Menu.MenuName,
-            ServiceDate = schedule.ServiceDate.ToString("yyyy-MM-dd"),
-            WeekStartDate = schedule.WeekStartDate.ToString("yyyy-MM-dd"),
-            ShiftName = schedule.ShiftName,
-            Shift = ToDisplayShift(schedule.ShiftName),
-            DayOfWeek = ToDayCode(schedule.ServiceDate),
-            MenuPrice = DecimalPolicy.RoundMoney(schedule.MenuPrice),
-            BomRatePercent = FixedBomRatePercent,
-            Status = schedule.Status,
-            MenuVersionId = version is null ? null : GuidHelper.ToGuidString(version.MenuVersionId),
-            MenuVersionNo = version?.VersionNo,
-            MenuVersionStatus = version?.Status,
-            PublishedBy = version?.PublishedBy is null ? null : GuidHelper.ToGuidString(version.PublishedBy),
-            PublishedAt = version?.PublishedAt?.ToString("O"),
-            SourceImportBatch = version?.SourceImportBatch,
-            Dishes = schedule.Menu.Menuitems
-                .OrderBy(item => item.DisplayOrder)
-                .Select(item => new MenuScheduleDishDto
-                {
-                    DishId = GuidHelper.ToGuidString(item.DishId),
-                    DishCode = item.Dish.DishCode,
-                    DishName = item.Dish.DishName,
-                    DishGroup = item.Dish.DishGroup,
-                    DishType = item.Dish.DishType,
-                    DisplayOrder = item.DisplayOrder
-                })
-                .ToList()
-        };
-
     private async Task<byte[]?> ResolveOptionalDishIdAsync(string? dishId)
     {
         if (string.IsNullOrWhiteSpace(dishId))
@@ -2086,27 +1597,6 @@ public class CoordinationService : ICoordinationService
             Reason = reason
         });
     }
-
-    private static string? NormalizeMenuScheduleStatus(string? status)
-    {
-        if (string.IsNullOrWhiteSpace(status))
-        {
-            return null;
-        }
-
-        return status.Trim().ToUpperInvariant() switch
-        {
-            "DRAFT" => "DRAFT",
-            "ACTIVE" or "PUBLISHED" => "ACTIVE",
-            "SUPERSEDED" or "ARCHIVED" => "SUPERSEDED",
-            "LOCKED" => "LOCKED",
-            _ => null
-        };
-    }
-
-    private static bool IsPublishedMenuVersionStatus(string? status)
-        => string.Equals(status, "ACTIVE", StringComparison.OrdinalIgnoreCase) ||
-           string.Equals(status, "PUBLISHED", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsLockedSchedule(MenuSchedule schedule)
         => string.Equals(schedule.Status, "LOCKED", StringComparison.OrdinalIgnoreCase);
