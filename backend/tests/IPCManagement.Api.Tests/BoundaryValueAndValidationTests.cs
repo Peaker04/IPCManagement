@@ -135,8 +135,8 @@ public class BoundaryValueAndValidationTests
     public static TheoryData<DateOnly, bool> ReceiptDateBoundaryCases()
         => new()
         {
-            { DateOnly.FromDateTime(DateTime.Today.AddDays(1)), true },
-            { DateOnly.FromDateTime(DateTime.Today.AddDays(2)), false }
+            { ServiceCalendar.Today().AddDays(1), true },
+            { ServiceCalendar.Today().AddDays(2), false }
         };
 
     [Theory]
