@@ -14,10 +14,9 @@ namespace IPCManagement.Api.Features.Catalog.Services;
 
 public class DishService : IDishService
 {
-    private readonly IDishRepository _dishRepo;
+    private readonly IDishCatalogService _catalogService;
     private readonly IpcManagementContext _context;
     private readonly IMemoryCache _cache;
-    private const string CatalogCacheKey = "DishCatalog";
     private const string BomStatusDraft = "DRAFT";
     private const string BomStatusPublished = "PUBLISHED";
     private const string BomStatusArchived = "ARCHIVED";
@@ -25,51 +24,26 @@ public class DishService : IDishService
     private static readonly decimal[] SupportedBomPriceTiers = [25000m, 30000m, 34000m];
 
     public DishService(IDishRepository dishRepo, IpcManagementContext context, IMemoryCache cache)
+        : this(dishRepo, context, cache, new DishCatalogService(dishRepo, context, cache))
     {
-        _dishRepo = dishRepo;
+    }
+
+    public DishService(
+        IDishRepository dishRepo,
+        IpcManagementContext context,
+        IMemoryCache cache,
+        IDishCatalogService catalogService)
+    {
+        _catalogService = catalogService;
         _context = context;
         _cache = cache;
     }
 
-    public async Task<PagedResponseDto<DishDto>> GetPagedAsync(PagedRequestDto request)
-    {
-        var (items, totalCount) = await _dishRepo.GetPagedAsync(
-            request.PageNumber, request.PageSize, request.SearchKeyword);
+    public Task<PagedResponseDto<DishDto>> GetPagedAsync(PagedRequestDto request)
+        => _catalogService.GetPagedAsync(request);
 
-        return PagedResponseDto<DishDto>.Create(
-            items.Select(MapToDto),
-            totalCount,
-            request.PageNumber,
-            request.PageSize);
-    }
-
-    public async Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync(bool includeInactive = false)
-    {
-        var cacheKey = includeInactive ? $"{CatalogCacheKey}:all" : CatalogCacheKey;
-        if (_cache.TryGetValue(cacheKey, out IReadOnlyList<DishCatalogDto>? cachedCatalog) && cachedCatalog is not null)
-        {
-            return cachedCatalog;
-        }
-
-        var dishes = includeInactive
-            ? await _context.Dishes
-                .AsNoTracking()
-                .Include(d => d.Dishboms)
-                    .ThenInclude(bom => bom.Ingredient)
-                .Include(d => d.Dishboms)
-                    .ThenInclude(bom => bom.Unit)
-                .Include(d => d.Menuitems)
-                .OrderBy(d => d.DishCode)
-                .ToListAsync()
-            : await _dishRepo.GetCatalogAsync();
-        var result = dishes.Select(MapToCatalogDto).ToList();
-
-        var cacheOptions = new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(30));
-        _cache.Set(cacheKey, result, cacheOptions);
-
-        return result;
-    }
+    public Task<IReadOnlyList<DishCatalogDto>> GetCatalogAsync(bool includeInactive = false)
+        => _catalogService.GetCatalogAsync(includeInactive);
 
     public async Task<BomCoverageReportDto> GetBomCoverageAsync()
     {
@@ -568,67 +542,17 @@ public class DishService : IDishService
         return lines.Select(MapCatalogBomLine).ToList();
     }
 
-    public async Task<DishDto?> GetByIdAsync(string id)
-    {
-        var bytes  = GuidHelper.ParseGuidString(id);
-        if (bytes is null) return null;
+    public Task<DishDto?> GetByIdAsync(string id)
+        => _catalogService.GetByIdAsync(id);
 
-        var entity = await _dishRepo.GetByIdAsync(bytes);
-        return entity is null ? null : MapToDto(entity);
-    }
+    public Task<DishDto> CreateAsync(CreateDishRequest dto)
+        => _catalogService.CreateAsync(dto);
 
-    public async Task<DishDto> CreateAsync(CreateDishRequest dto)
-    {
-        if (await _dishRepo.IsCodeExistsAsync(dto.DishCode))
-            throw new InvalidOperationException($"Mã món ăn '{dto.DishCode}' đã tồn tại.");
+    public Task<DishDto?> UpdateAsync(string id, UpdateDishRequest dto)
+        => _catalogService.UpdateAsync(id, dto);
 
-        var entity = new Dish
-        {
-            DishId    = GuidHelper.NewId(),
-            DishCode  = dto.DishCode.Trim(),
-            DishName  = dto.DishName.Trim(),
-            DishType  = dto.DishType?.Trim(),
-            DishGroup = dto.DishGroup?.Trim(),
-            IsActive  = true
-        };
-
-        await _dishRepo.AddAsync(entity);
-        ClearCatalogCache();
-        return MapToDto(entity);
-    }
-
-    public async Task<DishDto?> UpdateAsync(string id, UpdateDishRequest dto)
-    {
-        var bytes  = GuidHelper.ParseGuidString(id);
-        if (bytes is null) return null;
-
-        var entity = await _dishRepo.GetByIdAsync(bytes);
-        if (entity is null) return null;
-
-        if (dto.DishName  is not null) entity.DishName  = dto.DishName.Trim();
-        if (dto.DishType  is not null) entity.DishType  = dto.DishType.Trim();
-        if (dto.DishGroup is not null) entity.DishGroup = dto.DishGroup.Trim();
-        if (dto.IsActive  is not null) entity.IsActive  = dto.IsActive;
-
-        await _dishRepo.UpdateAsync(entity);
-        ClearCatalogCache();
-        return MapToDto(entity);
-    }
-
-    public async Task<bool> DeleteAsync(string id)
-    {
-        var bytes = GuidHelper.ParseGuidString(id);
-        if (bytes is null) return false;
-
-        var entity = await _dishRepo.GetByIdAsync(bytes);
-        if (entity is null) return false;
-
-        // Soft-delete: giữ lại dữ liệu cho BOM, menu, kế hoạch sản xuất
-        entity.IsActive = false;
-        await _dishRepo.UpdateAsync(entity);
-        ClearCatalogCache();
-        return true;
-    }
+    public Task<bool> DeleteAsync(string id)
+        => _catalogService.DeleteAsync(id);
 
     public async Task<DishCatalogBomLineDto?> AddBomLineAsync(string dishId, CreateDishBomLineRequest dto)
     {
@@ -1508,9 +1432,6 @@ public class DishService : IDishService
         };
     }
 
-    private static bool IsSupportedBomTier(decimal tier)
-        => tier is 25000m or 30000m or 34000m;
-
     private static string NormalizeBomTemplateType(string? templateType, bool hasDishFilter)
     {
         var normalized = string.IsNullOrWhiteSpace(templateType)
@@ -1584,10 +1505,7 @@ public class DishService : IDishService
         IReadOnlyList<string> Warnings);
 
     private void ClearCatalogCache()
-    {
-        _cache.Remove(CatalogCacheKey);
-        _cache.Remove($"{CatalogCacheKey}:all");
-    }
+        => DishCatalogCache.Clear(_cache);
 
     private static BomValidationIssueDto CreateValidationIssue(
         Dish dish,
@@ -1626,38 +1544,6 @@ public class DishService : IDishService
     }
 
     // ─── Mapping ──────────────────────────────────────────────────────────────
-    private static DishDto MapToDto(Dish e) => new()
-    {
-        DishId    = GuidHelper.ToGuidString(e.DishId),
-        DishCode  = e.DishCode,
-        DishName  = e.DishName,
-        DishType  = e.DishType,
-        DishGroup = e.DishGroup,
-        IsActive  = e.IsActive ?? true
-    };
-
-    private static DishCatalogDto MapToCatalogDto(Dish e) => new()
-    {
-        DishId = GuidHelper.ToGuidString(e.DishId),
-        DishCode = e.DishCode,
-        DishName = e.DishName,
-        DishType = e.DishType,
-        DishGroup = e.DishGroup,
-        IsActive = e.IsActive ?? true,
-        MenuSlots = e.Menuitems
-            .Where(item => !string.IsNullOrWhiteSpace(item.DishSlot))
-            .OrderBy(item => item.DisplayOrder)
-            .Select(item => item.DishSlot!.Trim())
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList(),
-        BomLines = e.Dishboms
-            .Where(bom => IsSupportedBomTier(bom.PriceTierAmount))
-            .OrderBy(bom => bom.Ingredient.IngredientName)
-            .ThenBy(bom => bom.EffectiveFrom)
-            .Select(MapCatalogBomLine)
-            .ToList()
-    };
-
     private static DishCatalogBomLineDto MapCatalogBomLine(DishBom bom) => new()
     {
         BomId = GuidHelper.ToGuidString(bom.BomId),
