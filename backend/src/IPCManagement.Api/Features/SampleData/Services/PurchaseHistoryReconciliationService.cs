@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -26,16 +27,19 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     private readonly Func<string> _databaseIdentityFactory;
     private readonly Func<PurchaseHistoryApplySafetyEvidence> _safetyEvidenceFactory;
     private readonly Func<int, PurchaseHistoryActionDto, Exception?> _actionFailureFactory;
+    private readonly IEfTransactionRunner _transactionRunner;
 
     public PurchaseHistoryReconciliationService(
         IpcManagementContext context,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        IEfTransactionRunner transactionRunner)
         : this(
             context,
             () => ReadServerOwnedSource(environment),
             () => ResolveDatabaseIdentity(context),
             () => LoadSafetyEvidence(environment),
-            null)
+            null,
+            transactionRunner)
     {
     }
 
@@ -44,7 +48,8 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         Func<PurchaseHistoryPreviewSource> sourceFactory,
         Func<string>? databaseIdentityFactory = null,
         Func<PurchaseHistoryApplySafetyEvidence>? safetyEvidenceFactory = null,
-        Func<int, PurchaseHistoryActionDto, Exception?>? actionFailureFactory = null)
+        Func<int, PurchaseHistoryActionDto, Exception?>? actionFailureFactory = null,
+        IEfTransactionRunner? transactionRunner = null)
     {
         _context = context;
         _sourceFactory = sourceFactory;
@@ -52,6 +57,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         _safetyEvidenceFactory = safetyEvidenceFactory ?? (() => throw new InvalidOperationException(
             "Apply requires verified repository safety evidence."));
         _actionFailureFactory = actionFailureFactory ?? ((_, _) => null);
+        _transactionRunner = transactionRunner ?? new EfTransactionRunner(context);
     }
 
     public async Task<PurchaseHistoryPreviewDto> PreviewAsync(CancellationToken cancellationToken = default)
@@ -343,83 +349,89 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         }
 
         var accepted = await ValidateAcceptedManifestAsync(request, appliedBy, cancellationToken);
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        var runId = DeterministicId($"run|{accepted.Preview.Manifest.ManifestHash}");
         try
         {
-            var concurrentReplay = await TryBuildReplayResultAsync(
-                request,
-                appliedBy,
-                databaseIdentity,
-                safetyEvidence,
-                cancellationToken);
-            if (concurrentReplay is not null)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                return concurrentReplay;
-            }
-
-            var appliedAt = DateTime.UtcNow;
-            var runId = DeterministicId($"run|{accepted.Preview.Manifest.ManifestHash}");
-            var counts = accepted.Actions
-                .GroupBy(action => action.ActionType, StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
-            var run = new PurchaseHistoryReconciliationRun
-            {
-                PurchaseHistoryReconciliationRunId = runId,
-                ManifestId = accepted.Preview.Manifest.ManifestId,
-                ManifestHash = accepted.Preview.Manifest.ManifestHash,
-                SourceName = accepted.Preview.Manifest.SourceName,
-                SourceSha256 = accepted.Preview.Manifest.SourceSha256,
-                PolicyVersion = accepted.Preview.Manifest.PolicyVersion,
-                AsOfDate = accepted.Preview.Manifest.AsOfDate,
-                DatabaseFingerprint = accepted.Preview.Manifest.DatabaseFingerprint,
-                BackupIdentifier = accepted.SafetyEvidence.BackupIdentifier,
-                BackupTargetFingerprint = accepted.SafetyEvidence.TargetFingerprint,
-                RestoreFingerprint = accepted.SafetyEvidence.RestoreFingerprint,
-                RestoreVerified = true,
-                AppliedBy = accepted.AppliedBy,
-                AppliedAt = appliedAt,
-                Status = "APPLIED",
-                CandidateCount = accepted.Preview.Manifest.CandidateCount,
-                CurrentUniqueBusinessKeyCount = accepted.Preview.Manifest.CurrentUniqueBusinessKeyCount,
-                AuditedDeltaCount = accepted.Preview.Manifest.AuditedDeltaCount,
-                ActionCount = accepted.Actions.Count,
-                BlockerCount = 0,
-                KeepCount = counts.GetValueOrDefault("keep"),
-                VersionCount = counts.GetValueOrDefault("version"),
-                DeactivateCount = counts.GetValueOrDefault("deactivate"),
-                DeleteCount = counts.GetValueOrDefault("delete"),
-                BlockCount = 0
-            };
-            _context.Purchasehistoryreconciliationruns.Add(run);
-
-            for (var index = 0; index < accepted.Actions.Count; index++)
-            {
-                var action = accepted.Actions[index];
-                await ApplyActionAsync(action, accepted, cancellationToken);
-                _context.Purchasehistoryreconciliationactions.Add(ToAuditAction(action, runId, appliedAt));
-                var injectedFailure = _actionFailureFactory(index, action);
-                if (injectedFailure is not null)
+            return await _transactionRunner.ExecuteAsync(
+                async token =>
                 {
-                    throw injectedFailure;
-                }
-            }
+                    var concurrentReplay = await TryBuildReplayResultAsync(
+                        request,
+                        appliedBy,
+                        databaseIdentity,
+                        safetyEvidence,
+                        token);
+                    if (concurrentReplay is not null)
+                    {
+                        return concurrentReplay;
+                    }
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await transaction.CommitAsync(cancellationToken);
-            return new PurchaseHistoryApplyResultDto
-            {
-                ManifestId = run.ManifestId,
-                RunId = GuidHelper.ToGuidString(runId),
-                AuditReference = BuildAuditReference(runId),
-                Applied = true,
-                NoOp = false,
-                AppliedActionCount = run.ActionCount
-            };
+                    var appliedAt = DateTime.UtcNow;
+                    var counts = accepted.Actions
+                        .GroupBy(action => action.ActionType, StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(group => group.Key, group => group.Count(), StringComparer.OrdinalIgnoreCase);
+                    var run = new PurchaseHistoryReconciliationRun
+                    {
+                        PurchaseHistoryReconciliationRunId = runId,
+                        ManifestId = accepted.Preview.Manifest.ManifestId,
+                        ManifestHash = accepted.Preview.Manifest.ManifestHash,
+                        SourceName = accepted.Preview.Manifest.SourceName,
+                        SourceSha256 = accepted.Preview.Manifest.SourceSha256,
+                        PolicyVersion = accepted.Preview.Manifest.PolicyVersion,
+                        AsOfDate = accepted.Preview.Manifest.AsOfDate,
+                        DatabaseFingerprint = accepted.Preview.Manifest.DatabaseFingerprint,
+                        BackupIdentifier = accepted.SafetyEvidence.BackupIdentifier,
+                        BackupTargetFingerprint = accepted.SafetyEvidence.TargetFingerprint,
+                        RestoreFingerprint = accepted.SafetyEvidence.RestoreFingerprint,
+                        RestoreVerified = true,
+                        AppliedBy = accepted.AppliedBy,
+                        AppliedAt = appliedAt,
+                        Status = "APPLIED",
+                        CandidateCount = accepted.Preview.Manifest.CandidateCount,
+                        CurrentUniqueBusinessKeyCount = accepted.Preview.Manifest.CurrentUniqueBusinessKeyCount,
+                        AuditedDeltaCount = accepted.Preview.Manifest.AuditedDeltaCount,
+                        ActionCount = accepted.Actions.Count,
+                        BlockerCount = 0,
+                        KeepCount = counts.GetValueOrDefault("keep"),
+                        VersionCount = counts.GetValueOrDefault("version"),
+                        DeactivateCount = counts.GetValueOrDefault("deactivate"),
+                        DeleteCount = counts.GetValueOrDefault("delete"),
+                        BlockCount = 0
+                    };
+                    _context.Purchasehistoryreconciliationruns.Add(run);
+
+                    for (var index = 0; index < accepted.Actions.Count; index++)
+                    {
+                        var action = accepted.Actions[index];
+                        await ApplyActionAsync(action, accepted, token);
+                        _context.Purchasehistoryreconciliationactions.Add(ToAuditAction(action, runId, appliedAt));
+                        var injectedFailure = _actionFailureFactory(index, action);
+                        if (injectedFailure is not null)
+                        {
+                            throw injectedFailure;
+                        }
+                    }
+
+                    await _context.SaveChangesAsync(token);
+                    return new PurchaseHistoryApplyResultDto
+                    {
+                        ManifestId = run.ManifestId,
+                        RunId = GuidHelper.ToGuidString(runId),
+                        AuditReference = BuildAuditReference(runId),
+                        Applied = true,
+                        NoOp = false,
+                        AppliedActionCount = run.ActionCount
+                    };
+                },
+                token => _context.Purchasehistoryreconciliationruns
+                    .AsNoTracking()
+                    .AnyAsync(
+                        run => run.PurchaseHistoryReconciliationRunId == runId && run.Status == "APPLIED",
+                        token),
+                cancellationToken: cancellationToken);
         }
         catch
         {
-            await transaction.RollbackAsync(CancellationToken.None);
             _context.ChangeTracker.Clear();
             throw;
         }
@@ -574,27 +586,27 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 await CreateVersionAsync(action, accepted, cancellationToken);
                 return;
             case "delete":
-            {
-                var targetId = ParseTargetId(action);
-                var line = await _context.Inventoryreceiptlines
-                    .SingleOrDefaultAsync(item => item.ReceiptLineId == targetId, cancellationToken)
-                    ?? throw new BusinessRuleException("The accepted delete target no longer exists.");
-                _context.Inventoryreceiptlines.Remove(line);
-                return;
-            }
+                {
+                    var targetId = ParseTargetId(action);
+                    var line = await _context.Inventoryreceiptlines
+                        .SingleOrDefaultAsync(item => item.ReceiptLineId == targetId, cancellationToken)
+                        ?? throw new BusinessRuleException("The accepted delete target no longer exists.");
+                    _context.Inventoryreceiptlines.Remove(line);
+                    return;
+                }
             case "deactivate":
             case "keep":
-            {
-                var targetId = ParseTargetId(action);
-                if (!await _context.Inventoryreceiptlines.AnyAsync(
-                        item => item.ReceiptLineId == targetId,
-                        cancellationToken))
                 {
-                    throw new BusinessRuleException("The accepted preserved target no longer exists.");
-                }
+                    var targetId = ParseTargetId(action);
+                    if (!await _context.Inventoryreceiptlines.AnyAsync(
+                            item => item.ReceiptLineId == targetId,
+                            cancellationToken))
+                    {
+                        throw new BusinessRuleException("The accepted preserved target no longer exists.");
+                    }
 
-                return;
-            }
+                    return;
+                }
             default:
                 throw new BusinessRuleException($"Unsupported accepted reconciliation action: {action.ActionType}.");
         }

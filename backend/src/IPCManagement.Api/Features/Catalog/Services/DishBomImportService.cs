@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -14,12 +15,17 @@ public sealed class DishBomImportService : IDishBomImportService
     private readonly IpcManagementContext _context;
     private readonly IMemoryCache _cache;
     private readonly DishBomImportParser _parser;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public DishBomImportService(IpcManagementContext context, IMemoryCache cache)
+    public DishBomImportService(
+        IpcManagementContext context,
+        IMemoryCache cache,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
         _cache = cache;
         _parser = new DishBomImportParser(context);
+        _transactionRunner = transactionRunner;
     }
 
     public Task<BomImportPreviewDto> PreviewAsync(
@@ -46,122 +52,155 @@ public sealed class DishBomImportService : IDishBomImportService
         var rows = await _parser.ParseAsync(fileStream, request, cancellationToken);
         var validRows = rows.Where(row => row.Errors.Count == 0).ToList();
         var now = DateTime.UtcNow;
-        var created = 0;
-        var updated = 0;
-        var archived = 0;
         var batchCode = $"BOM-{priceTier:0}-{now:yyyyMMddHHmmss}";
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-        var importedIngredients = new Dictionary<string, Ingredient>(StringComparer.OrdinalIgnoreCase);
-        foreach (var row in validRows)
-        {
-            var effectiveFrom = row.EffectiveFrom;
-            var effectiveTo = row.EffectiveTo;
-            var status = DishBomPolicy.NormalizeStatus(row.BomStatus);
-            var ingredient = row.Ingredient ?? await CreateImportedIngredientAsync(row, importedIngredients, cancellationToken);
-            var unit = row.Unit!;
-            var existing = await _context.Dishboms
-                .Include(line => line.Ingredient)
-                .Include(line => line.Unit)
-                .Where(line =>
-                    line.DishId == row.Dish!.DishId &&
-                    line.IngredientId == ingredient.IngredientId &&
-                    line.UnitId == unit.UnitId &&
-                    line.PriceTierAmount == priceTier &&
-                    line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
-                    (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom))
-                .Where(line => customerId == null
-                    ? line.CustomerId == null
-                    : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
-                .OrderByDescending(line => line.EffectiveFrom)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (existing is not null && DishBomPolicy.IsPublished(existing))
+        var result = await _transactionRunner.ExecuteAsync(
+            async token =>
             {
-                if (existing.EffectiveFrom < effectiveFrom &&
-                    (existing.EffectiveTo is null || existing.EffectiveTo >= effectiveFrom))
+                var created = 0;
+                var updated = 0;
+                var archived = 0;
+                var importedIngredients = new Dictionary<string, Ingredient>(StringComparer.OrdinalIgnoreCase);
+                foreach (var row in validRows)
                 {
-                    existing.EffectiveTo = effectiveFrom.AddDays(-1);
-                    archived++;
+                    var effectiveFrom = row.EffectiveFrom;
+                    var effectiveTo = row.EffectiveTo;
+                    var status = DishBomPolicy.NormalizeStatus(row.BomStatus);
+                    var ingredient = row.Ingredient ?? await CreateImportedIngredientAsync(row, importedIngredients, token);
+                    var unit = row.Unit!;
+                    var existing = await _context.Dishboms
+                        .Include(line => line.Ingredient)
+                        .Include(line => line.Unit)
+                        .Where(line =>
+                            line.DishId == row.Dish!.DishId &&
+                            line.IngredientId == ingredient.IngredientId &&
+                            line.UnitId == unit.UnitId &&
+                            line.PriceTierAmount == priceTier &&
+                            line.EffectiveFrom <= (effectiveTo ?? DateOnly.MaxValue) &&
+                            (line.EffectiveTo == null || line.EffectiveTo >= effectiveFrom))
+                        .Where(line => customerId == null
+                            ? line.CustomerId == null
+                            : line.CustomerId != null && line.CustomerId.SequenceEqual(customerId))
+                        .OrderByDescending(line => line.EffectiveFrom)
+                                .FirstOrDefaultAsync(token);
+
+                    if (existing is not null && DishBomPolicy.IsPublished(existing))
+                    {
+                        if (existing.EffectiveFrom < effectiveFrom &&
+                            (existing.EffectiveTo is null || existing.EffectiveTo >= effectiveFrom))
+                        {
+                            existing.EffectiveTo = effectiveFrom.AddDays(-1);
+                            archived++;
+                        }
+
+                        if (existing.EffectiveFrom == effectiveFrom)
+                        {
+                            var oldGross = existing.GrossQtyPerServing;
+                            var oldWaste = existing.WasteRatePercent;
+                            existing.GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing);
+                            existing.WasteRatePercent = row.WasteRatePercent;
+                            existing.EffectiveTo = effectiveTo;
+                            existing.BomStatus = status;
+                            AddBomAdjustmentIfNeeded(
+                                existing.BomId,
+                                oldGross,
+                                existing.GrossQtyPerServing,
+                                oldWaste,
+                                existing.WasteRatePercent,
+                                row.Note,
+                                userId);
+                            updated++;
+                            continue;
+                        }
+                    }
+
+                    _context.Dishboms.Add(new DishBom
+                    {
+                        BomId = GuidHelper.NewId(),
+                        DishId = row.Dish!.DishId,
+                        IngredientId = ingredient.IngredientId,
+                        UnitId = unit.UnitId,
+                        CustomerId = customerId,
+                        PriceTierAmount = priceTier,
+                        GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing),
+                        WasteRatePercent = row.WasteRatePercent,
+                        BomStatus = status,
+                        EffectiveFrom = effectiveFrom,
+                        EffectiveTo = effectiveTo
+                    });
+                    created++;
                 }
 
-                if (existing.EffectiveFrom == effectiveFrom)
+                if (actor is not null)
                 {
-                    var oldGross = existing.GrossQtyPerServing;
-                    var oldWaste = existing.WasteRatePercent;
-                    existing.GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing);
-                    existing.WasteRatePercent = row.WasteRatePercent;
-                    existing.EffectiveTo = effectiveTo;
-                    existing.BomStatus = status;
-                    AddBomAdjustmentIfNeeded(
-                        existing.BomId,
-                        oldGross,
-                        existing.GrossQtyPerServing,
-                        oldWaste,
-                        existing.WasteRatePercent,
-                        row.Note,
-                        userId);
-                    updated++;
-                    continue;
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = now,
+                        ChangedBy = actor,
+                        BusinessArea = "BOM",
+                        EntityName = nameof(DishBom),
+                        EntityId = actor,
+                        FieldName = "BulkImport",
+                        OldValue = null,
+                        NewValue = $"{batchCode}; created={created}; updated={updated}; archived={archived}; rows={validRows.Count}; tier={priceTier}; scope={preview.BomScope}",
+                        Reason = "Import BOM theo đơn giá/khách hàng từ file Excel-compatible."
+                    });
                 }
-            }
 
-            _context.Dishboms.Add(new DishBom
+                await _context.SaveChangesAsync(token);
+                return new BomImportCommitResultDto
+                {
+                    GeneratedAt = DateTime.UtcNow,
+                    PriceTier = preview.PriceTier,
+                    CustomerId = preview.CustomerId,
+                    BomScope = preview.BomScope,
+                    TotalRows = preview.TotalRows,
+                    ValidRows = preview.ValidRows,
+                    ErrorRows = preview.ErrorRows,
+                    WarningRows = preview.WarningRows,
+                    CanCommit = true,
+                    Rows = preview.Rows,
+                    Warnings = preview.Warnings,
+                    CreatedRows = created,
+                    UpdatedRows = updated,
+                    ArchivedRows = archived,
+                    AuditBatchCode = batchCode
+                };
+            },
+            async token =>
             {
-                BomId = GuidHelper.NewId(),
-                DishId = row.Dish!.DishId,
-                IngredientId = ingredient.IngredientId,
-                UnitId = unit.UnitId,
-                CustomerId = customerId,
-                PriceTierAmount = priceTier,
-                GrossQtyPerServing = DecimalPolicy.RoundQuantity(row.GrossQtyPerServing),
-                WasteRatePercent = row.WasteRatePercent,
-                BomStatus = status,
-                EffectiveFrom = effectiveFrom,
-                EffectiveTo = effectiveTo
-            });
-            created++;
-        }
+                foreach (var row in validRows)
+                {
+                    var ingredientId = row.Ingredient?.IngredientId ?? await _context.Ingredients
+                        .Where(ingredient => ingredient.IngredientCode == row.IngredientCode)
+                        .Select(ingredient => ingredient.IngredientId)
+                        .FirstOrDefaultAsync(token);
+                    if (ingredientId is null ||
+                        !await _context.Dishboms
+                            .AsNoTracking()
+                            .AnyAsync(
+                                bom =>
+                                    bom.DishId == row.Dish!.DishId &&
+                                    bom.IngredientId == ingredientId &&
+                                    bom.UnitId == row.Unit!.UnitId &&
+                                    bom.PriceTierAmount == priceTier &&
+                                    bom.EffectiveFrom == row.EffectiveFrom &&
+                                    bom.GrossQtyPerServing == DecimalPolicy.RoundQuantity(row.GrossQtyPerServing) &&
+                                    (customerId == null
+                                        ? bom.CustomerId == null
+                                        : bom.CustomerId != null && bom.CustomerId == customerId),
+                                token))
+                    {
+                        return false;
+                    }
+                }
 
-        if (actor is not null)
-        {
-            _context.Auditlogs.Add(new AuditLog
-            {
-                AuditId = GuidHelper.NewId(),
-                ChangedAt = now,
-                ChangedBy = actor,
-                BusinessArea = "BOM",
-                EntityName = nameof(DishBom),
-                EntityId = actor,
-                FieldName = "BulkImport",
-                OldValue = null,
-                NewValue = $"{batchCode}; created={created}; updated={updated}; archived={archived}; rows={validRows.Count}; tier={priceTier}; scope={preview.BomScope}",
-                Reason = "Import BOM theo đơn giá/khách hàng từ file Excel-compatible."
-            });
-        }
-
-        await _context.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+                return true;
+            },
+            cancellationToken: cancellationToken);
         DishCatalogCache.Clear(_cache);
-
-        return new BomImportCommitResultDto
-        {
-            GeneratedAt = DateTime.UtcNow,
-            PriceTier = preview.PriceTier,
-            CustomerId = preview.CustomerId,
-            BomScope = preview.BomScope,
-            TotalRows = preview.TotalRows,
-            ValidRows = preview.ValidRows,
-            ErrorRows = preview.ErrorRows,
-            WarningRows = preview.WarningRows,
-            CanCommit = true,
-            Rows = preview.Rows,
-            Warnings = preview.Warnings,
-            CreatedRows = created,
-            UpdatedRows = updated,
-            ArchivedRows = archived,
-            AuditBatchCode = batchCode
-        };
+        return result;
     }
 
     private async Task<BomImportPreviewDto> BuildPreviewAsync(

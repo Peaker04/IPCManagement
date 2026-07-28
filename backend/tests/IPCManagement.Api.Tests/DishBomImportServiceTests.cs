@@ -1,6 +1,7 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Helpers;
@@ -52,7 +53,7 @@ public class DishBomImportServiceTests
         using var cache = new MemoryCache(new MemoryCacheOptions());
         cache.Set("DishCatalog", new object());
         cache.Set("DishCatalog:all", new object());
-        var service = new DishBomImportService(context, cache);
+        var service = new DishBomImportService(context, cache, new EfTransactionRunner(context));
         var csv = """
             DishCode,DishName,PriceTier,CustomerCode,IngredientCode,IngredientName,UnitCode,GrossQtyPerServing,WasteRatePercent,EffectiveFrom,EffectiveTo,BomStatus,Note
             DISH-IMPORT,Món import,25000,,,Nguyên liệu mới,KG,0.12,5,2026-07-01,,PUBLISHED,Import

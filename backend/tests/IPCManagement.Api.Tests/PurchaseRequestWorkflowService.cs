@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
 
@@ -18,7 +19,7 @@ internal sealed class PurchaseRequestWorkflowService
     {
         _workbench = new PurchaseWorkbenchService(context);
         _generation = new PurchaseRequestGenerationService(context);
-        _supplierDecision = new PurchaseSupplierDecisionService(context);
+        _supplierDecision = new PurchaseSupplierDecisionService(context, new EfTransactionRunner(context));
         _submission = new PurchaseRequestSubmissionService(context);
     }
 
@@ -58,4 +59,3 @@ internal sealed class PurchaseRequestWorkflowService
         CancellationToken cancellationToken = default)
         => _submission.SubmitAsync(requestId, userId, cancellationToken);
 }
-

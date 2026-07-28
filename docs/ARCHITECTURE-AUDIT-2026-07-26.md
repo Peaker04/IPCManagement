@@ -433,7 +433,7 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Hoàn tất** |
-| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | **Active tiếp theo** |
+| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | **Đang thực hiện — Task 4/5** |
 | 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
 | 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
 
@@ -736,17 +736,23 @@ mà không reset dữ liệu.
 **Gate 16:** retry không nhân đôi side effect; fresh-install/upgrade lineage được giải thích và test;
 restore drill đạt RPO/RTO đã chốt; production/lane data không bị reset.
 
-**Tiến độ 28/07/2026 — EF mapping qua Coordination customer/contract:** mười chín mapping của
-`Role`, `User`, `RefreshToken`, `ApprovalHistory`, `ApprovalRule`, `ApprovalAssignment`,
-`BomAdjustment`, `Dish`, `DishBom`, `Ingredient`, `Unit`, `AuditLog`, `CustomerImportMapping`
-hai entity reconciliation, demand cùng `Customer`/`CustomerContract` đã chuyển nguyên cấu hình sang
-`Features/<owner>/Persistence` bằng `IEntityTypeConfiguration<T>`; context đăng ký configuration
-từ production assembly và bỏ mười chín block inline. Architecture convention đã mở layer `Persistence`
-chính thức, không đặt mapping vào `Services` để né gate. GitNexus cảnh báo
-`IpcManagementContext` **HIGH** (26 direct dependants/3 module), còn `OnModelCreating` LOW;
-blast radius được phủ bằng full regression. Gate: API **663 pass/1 skip**, Application **47/47**,
-FE **416/416**, build/lint/dependency/production build/OpenAPI deterministic xanh và EF xác nhận
-không có pending model change. Không gọi database runtime, migrate, seed, reset hay import.
+**Tiến độ 28/07/2026 — dừng ở Task 4/5:** Task 1 đã chuyển đủ **53 mapping** vào 11 file
+`Features/<owner>/Persistence` bằng `IEntityTypeConfiguration<T>` và đóng tại `7e94eb3`;
+`IpcManagementContext` chỉ còn registration root. Task 2 thêm execution-strategy-aware
+`IEfTransactionRunner`, regression chống duplicate side effect, domain/application exception có HTTP mapping,
+canonical migration lineage và disposable-clone restore rehearsal; checkpoint đóng tại `b37606b`.
+Task 3 đưa runner vào Coordination, Purchasing, Inventory, SampleData, Catalog, Reports, Approvals và Admin,
+đóng tại `f3e7bcd`. Mutable entity luôn được load trong runner operation và mỗi operation có database verifier;
+không dùng verifier unconditional.
+
+Task 4 còn gỡ API `BeginTransactionAsync` không còn caller khỏi `IUnitOfWork`/`UnitOfWork`, cập nhật comment DI
+và quyết định `EnableRetryOnFailure` sau source scan + focused retry/idempotency regression. Task 5 còn full
+Gate 16 và closeout ARCH-16A–E. Restore rehearsal cùng SHA-256 mirror C:/D: đã pass, nhưng chưa chứng minh hai
+đích là thiết bị/site vật lý khác nhau; off-site NAS/cloud/external media vẫn là gap vận hành, không được mô tả
+như đã hoàn tất. Công việc production xen ngang sửa hai temporary-key migration dùng collation tường minh tại
+`7e79106`; gate sau incident: API **667 pass/1 skip**, Application **47/47**, FE **416/416**, Debug/Release
+0 warning, lint/dependency/build/OpenAPI/TypeScript/EF pending-model xanh. Production đã đồng bộ 61/61 bảng,
+53.404/53.404 dòng và browser xác nhận menu ANV hiện có BOM **90/90 món**; việc này không tự đóng Task 4/5.
 
 ### Bước 17 — Thu hẹp frontend ownership
 

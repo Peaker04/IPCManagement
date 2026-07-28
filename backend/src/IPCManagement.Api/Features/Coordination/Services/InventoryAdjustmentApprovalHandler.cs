@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
@@ -14,7 +15,11 @@ public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Qua
 {
     private const string OrderAdjustmentTargetType = "order-adjustment";
 
-    public InventoryAdjustmentApprovalHandler(IpcManagementContext context) : base(context) { }
+    public InventoryAdjustmentApprovalHandler(IpcManagementContext context)
+        : this(context, new EfTransactionRunner(context)) { }
+
+    public InventoryAdjustmentApprovalHandler(IpcManagementContext context, IEfTransactionRunner transactionRunner)
+        : base(context, transactionRunner) { }
 
     public override ApprovalTargetType TargetType => ApprovalTargetType.InventoryAdjustment;
 

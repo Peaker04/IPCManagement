@@ -5,9 +5,9 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Xunit;
@@ -24,7 +24,7 @@ public class InventoryIssueServiceTests
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
-    private readonly IDbContextTransaction _transaction;
+    private readonly ImmediateTransactionRunner _transactionRunner;
     private readonly InventoryIssueService _service;
 
     public InventoryIssueServiceTests()
@@ -32,14 +32,13 @@ public class InventoryIssueServiceTests
         _issueRepository = Substitute.For<IInventoryIssueRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
-        _transaction = Substitute.For<IDbContextTransaction>();
-
-        _unitOfWork.BeginTransactionAsync().Returns(_transaction);
+        _transactionRunner = new ImmediateTransactionRunner();
 
         _service = new InventoryIssueService(
             _issueRepository,
             _unitOfWork,
-            _stockLedgerService);
+            _stockLedgerService,
+            _transactionRunner);
     }
 
     [Fact]
@@ -116,7 +115,7 @@ public class InventoryIssueServiceTests
 
         // Verify UnitOfWork saved changes and transaction committed
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     [Fact]
@@ -169,7 +168,7 @@ public class InventoryIssueServiceTests
             .WithMessage("*không đủ tồn kho*");
 
         // Verify issue is NOT committed and rollback is called
-        await _transaction.Received(1).RollbackAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     [Fact]
@@ -516,7 +515,12 @@ public class InventoryIssueServiceTests
     public async Task CreateAsync_Should_UpdateMaterialRequestStatus_To_Exported_When_FullyIssued()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryIssueService(_issueRepository, new UnitOfWork(context), _stockLedgerService, context);
+        var service = new InventoryIssueService(
+            _issueRepository,
+            new UnitOfWork(context),
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var materialRequestId = GuidHelper.NewId();
         var ingredientId = GuidHelper.NewId();
@@ -587,7 +591,12 @@ public class InventoryIssueServiceTests
     public async Task ConfirmReceiptAsync_Should_UpdateReceivedAt_And_WriteAuditLog()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryIssueService(_issueRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryIssueService(
+            _issueRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var issueId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();
@@ -633,7 +642,12 @@ public class InventoryIssueServiceTests
     public async Task ConfirmReceiptAsync_Should_CloseFullyIssuedSupplementalRequest_InSameTransaction()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryIssueService(_issueRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryIssueService(
+            _issueRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
         var issueId = GuidHelper.NewId();
         var requestId = GuidHelper.NewId();
         var userId = GuidHelper.NewId();

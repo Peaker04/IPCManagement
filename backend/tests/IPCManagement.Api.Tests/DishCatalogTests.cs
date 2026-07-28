@@ -1,5 +1,6 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Middlewares;
@@ -744,7 +745,7 @@ public class DishCatalogTests
         => new(context, new MemoryCache(new MemoryCacheOptions()));
 
     private static DishBomImportService CreateDishBomImportService(IpcManagementContext context)
-        => new(context, new MemoryCache(new MemoryCacheOptions()));
+        => new(context, new MemoryCache(new MemoryCacheOptions()), new EfTransactionRunner(context));
 
     private static MemoryStream ToStream(string content)
         => new(Encoding.UTF8.GetBytes(content));

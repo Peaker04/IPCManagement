@@ -2,6 +2,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -22,17 +23,20 @@ public class InventoryIssueService : IInventoryIssueService
     private readonly IInventoryIssueRepository _issueRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
 
     public InventoryIssueService(
         IInventoryIssueRepository issueRepository,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner,
         IpcManagementContext? context = null)
     {
         _issueRepository = issueRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
         _context = context;
     }
 
@@ -65,82 +69,80 @@ public class InventoryIssueService : IInventoryIssueService
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
-        var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
-            ?? throw new BusinessRuleException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
-        if (!IssuableDemandStatuses.Contains(materialRequest.Status))
-        {
-            throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
-        }
-
-        var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
-        var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
-
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
+        var issueId = GuidHelper.NewId();
+        var issueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
         try
         {
-            await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
+            return await _transactionRunner.ExecuteAsync(
+                async _ =>
+                {
+                    var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
+                        ?? throw new BusinessRuleException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
+                    if (!IssuableDemandStatuses.Contains(materialRequest.Status))
+                    {
+                        throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
+                    }
 
-            var issue = new InventoryIssue
-            {
-                IssueId = GuidHelper.NewId(),
-                IssueCode = $"ISS-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
-                IssueDate = dto.IssueDate,
-                ShiftName = dto.ShiftName,
-                WarehouseId = warehouseBytes,
-                MaterialRequestId = materialRequestBytes,
-                IssuedBy = userIdBytes,
-                CreatedAt = DateTime.UtcNow
-            };
+                    var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
+                    var issueLines = ResolveIssueLines(dto, materialRequest, issuedLines);
+                    await EnsureStockAvailableAsync(warehouseBytes, dto.IssueDate, materialRequest, issueLines, userIdBytes);
 
-            issue.Inventoryissuelines = issueLines.Select(line => new InventoryIssueLine
-            {
-                IssueLineId = GuidHelper.NewId(),
-                IssueId = issue.IssueId,
-                IngredientId = line.IngredientId,
-                RequestedQty = line.RequestedQty,
-                IssuedQty = line.IssuedQty,
-                UnitId = line.UnitId
-            }).ToList();
+                    var issue = new InventoryIssue
+                    {
+                        IssueId = issueId,
+                        IssueCode = issueCode,
+                        IssueDate = dto.IssueDate,
+                        ShiftName = dto.ShiftName,
+                        WarehouseId = warehouseBytes,
+                        MaterialRequestId = materialRequestBytes,
+                        IssuedBy = userIdBytes,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-            // Add issue using sync change tracking
-            _issueRepository.Add(issue);
+                    issue.Inventoryissuelines = issueLines.Select(line => new InventoryIssueLine
+                    {
+                        IssueLineId = GuidHelper.NewId(),
+                        IssueId = issue.IssueId,
+                        IngredientId = line.IngredientId,
+                        RequestedQty = line.RequestedQty,
+                        IssuedQty = line.IssuedQty,
+                        UnitId = line.UnitId
+                    }).ToList();
 
-            // Cập nhật tồn kho hiện tại + ghi nhận stock movements
-            foreach (var line in issue.Inventoryissuelines)
-            {
-                await _stockLedgerService.RemoveStockWithCheckAsync(
-                    warehouseBytes,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.IssuedQty,
-                    "ISSUE",
-                    "inventoryissues",
-                    issue.IssueId,
-                    userIdBytes,
-                    "Xuất kho sản xuất",
-                    $"Phiếu xuất {issue.IssueCode}");
-            }
+                    // Add issue using sync change tracking
+                    _issueRepository.Add(issue);
 
-            UpdateMaterialRequestStatusIfCompleted(materialRequest, issuedLines, issueLines, userIdBytes);
+                    // Cập nhật tồn kho hiện tại + ghi nhận stock movements
+                    foreach (var line in issue.Inventoryissuelines)
+                    {
+                        await _stockLedgerService.RemoveStockWithCheckAsync(
+                            warehouseBytes,
+                            line.IngredientId,
+                            line.UnitId,
+                            line.IssuedQty,
+                            "ISSUE",
+                            "inventoryissues",
+                            issue.IssueId,
+                            userIdBytes,
+                            "Xuất kho sản xuất",
+                            $"Phiếu xuất {issue.IssueCode}");
+                    }
 
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync();
+                    UpdateMaterialRequestStatusIfCompleted(materialRequest, issuedLines, issueLines, userIdBytes);
 
-            return new InventoryIssueCreatedDto
-            {
-                IssueId = GuidHelper.ToGuidString(issue.IssueId),
-                IssueCode = issue.IssueCode
-            };
+                    await _unitOfWork.SaveChangesAsync();
+
+                    return new InventoryIssueCreatedDto
+                    {
+                        IssueId = GuidHelper.ToGuidString(issue.IssueId),
+                        IssueCode = issue.IssueCode
+                    };
+                },
+                async _ => await _issueRepository.GetByIdWithLinesAsync(issueId) is not null);
         }
         catch (StockShortageException ex)
         {
-            await transaction.RollbackAsync();
             await WriteStockShortageAuditAsync(ex.Shortage, materialRequestBytes, userIdBytes);
-            throw;
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
             throw;
         }
     }
@@ -171,49 +173,32 @@ public class InventoryIssueService : IInventoryIssueService
         // transaction thì phiếu có thể được đánh dấu "bếp đã nhận" trong khi nhu cầu bổ sung liên quan
         // vẫn treo ở trạng thái cũ. Theo đúng khuôn mẫu transaction của CreateAsync trong cùng file.
         // Đọc phiếu nằm trong transaction để chốt chặn hai request xác nhận song song.
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
-        try
-        {
-            var issue = await _context.Inventoryissues
-                .Include(item => item.Warehouse)
-                .Include(item => item.IssuedByNavigation)
-                .Include(item => item.ReceivedByNavigation)
-                .Include(item => item.Inventoryissuelines)
-                    .ThenInclude(line => line.Ingredient)
-                .Include(item => item.Inventoryissuelines)
-                    .ThenInclude(line => line.Unit)
-                .FirstOrDefaultAsync(item => item.IssueId == issueId);
-            if (issue is null)
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                return null;
-            }
+                var issue = await _context.Inventoryissues
+                    .Include(item => item.Warehouse)
+                    .Include(item => item.IssuedByNavigation)
+                    .Include(item => item.ReceivedByNavigation)
+                    .Include(item => item.Inventoryissuelines)
+                        .ThenInclude(line => line.Ingredient)
+                    .Include(item => item.Inventoryissuelines)
+                        .ThenInclude(line => line.Unit)
+                    .FirstOrDefaultAsync(item => item.IssueId == issueId, cancellationToken);
+                if (issue is null)
+                {
+                    return null;
+                }
 
-            if (issue.ReceivedAt is not null)
-            {
-                throw new ResourceConflictException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
-            }
+                if (issue.ReceivedAt is not null)
+                {
+                    throw new ResourceConflictException("Phiếu xuất này đã được bếp xác nhận nhận nguyên liệu.");
+                }
 
-            var confirmedAt = DateTime.UtcNow;
-            issue.ReceivedBy = userIdBytes;
-            issue.ReceivedAt = confirmedAt;
+                var confirmedAt = DateTime.UtcNow;
+                issue.ReceivedBy = userIdBytes;
+                issue.ReceivedAt = confirmedAt;
 
-            _context.Auditlogs.Add(new AuditLog
-            {
-                AuditId = GuidHelper.NewId(),
-                ChangedAt = confirmedAt,
-                ChangedBy = userIdBytes,
-                BusinessArea = "KitchenReceipt",
-                EntityName = nameof(InventoryIssue),
-                EntityId = issue.IssueId,
-                FieldName = "KitchenReceived",
-                OldValue = null,
-                NewValue = $"receivedAt={confirmedAt:O}",
-                Reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {issue.IssueCode}."
-            });
-
-            if (dto.HasDiscrepancy)
-            {
-                var note = dto.DiscrepancyNote!.Trim();
                 _context.Auditlogs.Add(new AuditLog
                 {
                     AuditId = GuidHelper.NewId(),
@@ -222,89 +207,105 @@ public class InventoryIssueService : IInventoryIssueService
                     BusinessArea = "KitchenReceipt",
                     EntityName = nameof(InventoryIssue),
                     EntityId = issue.IssueId,
-                    FieldName = "KitchenReceiptDiscrepancy",
-                    OldValue = "expected=issued_qty",
-                    NewValue = note,
-                    Reason = $"Bếp báo chênh lệch khi nhận phiếu xuất {issue.IssueCode}: {note}"
+                    FieldName = "KitchenReceived",
+                    OldValue = null,
+                    NewValue = $"receivedAt={confirmedAt:O}",
+                    Reason = $"Bếp xác nhận đã nhận nguyên liệu từ phiếu xuất {issue.IssueCode}."
                 });
-            }
 
-            var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
-            var supplementalLinks = await _context.Auditlogs
-                .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
-                    item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
-                    item.NewValue == issueIdText)
-                .ToListAsync();
-            foreach (var link in supplementalLinks)
-            {
-                var supplementalRequest = await _context.Supplementalmaterialrequests
-                    .FirstOrDefaultAsync(item => item.RequestId == link.EntityId);
-                if (supplementalRequest is null)
+                if (dto.HasDiscrepancy)
                 {
-                    continue;
-                }
-
-                var fulfilledQty = await _context.Stockmovements
-                    .Where(item => item.RefTable == "supplementalmaterialrequests" &&
-                        item.RefId == supplementalRequest.RequestId)
-                    .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
-                var linkedIssueIds = await _context.Auditlogs
-                    .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
-                        item.EntityId == supplementalRequest.RequestId &&
-                        item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
-                    .Select(item => item.NewValue)
-                    .ToListAsync();
-                var parsedIssueIds = linkedIssueIds
-                    .Select(GuidHelper.ParseGuidString)
-                    .Where(item => item is not null)
-                    .Select(item => item!)
-                    .ToList();
-                var allLinkedIssuesReceived = parsedIssueIds.Count > 0;
-                foreach (var linkedIssueId in parsedIssueIds)
-                {
-                    if (linkedIssueId.SequenceEqual(issue.IssueId))
-                    {
-                        continue;
-                    }
-
-                    if (!await _context.Inventoryissues.AnyAsync(item =>
-                            item.IssueId == linkedIssueId && item.ReceivedAt != null))
-                    {
-                        allLinkedIssuesReceived = false;
-                        break;
-                    }
-                }
-
-                if (!DecimalPolicy.LessThanQuantity(fulfilledQty, supplementalRequest.RequestedQty) &&
-                    allLinkedIssuesReceived)
-                {
-                    var oldStatus = supplementalRequest.Status;
-                    supplementalRequest.Status = "FULFILLED";
+                    var note = dto.DiscrepancyNote!.Trim();
                     _context.Auditlogs.Add(new AuditLog
                     {
                         AuditId = GuidHelper.NewId(),
                         ChangedAt = confirmedAt,
                         ChangedBy = userIdBytes,
-                        BusinessArea = "SupplementalMaterial",
-                        EntityName = nameof(SupplementalMaterialRequest),
-                        EntityId = supplementalRequest.RequestId,
-                        FieldName = nameof(SupplementalMaterialRequest.Status),
-                        OldValue = oldStatus,
-                        NewValue = supplementalRequest.Status,
-                        Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
+                        BusinessArea = "KitchenReceipt",
+                        EntityName = nameof(InventoryIssue),
+                        EntityId = issue.IssueId,
+                        FieldName = "KitchenReceiptDiscrepancy",
+                        OldValue = "expected=issued_qty",
+                        NewValue = note,
+                        Reason = $"Bếp báo chênh lệch khi nhận phiếu xuất {issue.IssueCode}: {note}"
                     });
                 }
-            }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return InventoryMapper.MapIssue(issue, includeLines: true);
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                var issueIdText = GuidHelper.ToGuidString(issue.IssueId);
+                var supplementalLinks = await _context.Auditlogs
+                    .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
+                        item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField &&
+                        item.NewValue == issueIdText)
+                    .ToListAsync();
+                foreach (var link in supplementalLinks)
+                {
+                    var supplementalRequest = await _context.Supplementalmaterialrequests
+                        .FirstOrDefaultAsync(item => item.RequestId == link.EntityId);
+                    if (supplementalRequest is null)
+                    {
+                        continue;
+                    }
+
+                    var fulfilledQty = await _context.Stockmovements
+                        .Where(item => item.RefTable == "supplementalmaterialrequests" &&
+                            item.RefId == supplementalRequest.RequestId)
+                        .SumAsync(item => (decimal?)item.QuantityOut) ?? 0;
+                    var linkedIssueIds = await _context.Auditlogs
+                        .Where(item => item.EntityName == nameof(SupplementalMaterialRequest) &&
+                            item.EntityId == supplementalRequest.RequestId &&
+                            item.FieldName == SupplementalMaterialRequestService.FulfillmentIssueAuditField)
+                        .Select(item => item.NewValue)
+                        .ToListAsync();
+                    var parsedIssueIds = linkedIssueIds
+                        .Select(GuidHelper.ParseGuidString)
+                        .Where(item => item is not null)
+                        .Select(item => item!)
+                        .ToList();
+                    var allLinkedIssuesReceived = parsedIssueIds.Count > 0;
+                    foreach (var linkedIssueId in parsedIssueIds)
+                    {
+                        if (linkedIssueId.SequenceEqual(issue.IssueId))
+                        {
+                            continue;
+                        }
+
+                        if (!await _context.Inventoryissues.AnyAsync(item =>
+                                item.IssueId == linkedIssueId && item.ReceivedAt != null))
+                        {
+                            allLinkedIssuesReceived = false;
+                            break;
+                        }
+                    }
+
+                    if (!DecimalPolicy.LessThanQuantity(fulfilledQty, supplementalRequest.RequestedQty) &&
+                        allLinkedIssuesReceived)
+                    {
+                        var oldStatus = supplementalRequest.Status;
+                        supplementalRequest.Status = "FULFILLED";
+                        _context.Auditlogs.Add(new AuditLog
+                        {
+                            AuditId = GuidHelper.NewId(),
+                            ChangedAt = confirmedAt,
+                            ChangedBy = userIdBytes,
+                            BusinessArea = "SupplementalMaterial",
+                            EntityName = nameof(SupplementalMaterialRequest),
+                            EntityId = supplementalRequest.RequestId,
+                            FieldName = nameof(SupplementalMaterialRequest.Status),
+                            OldValue = oldStatus,
+                            NewValue = supplementalRequest.Status,
+                            Reason = $"Bếp đã xác nhận nhận đủ nguyên liệu bổ sung qua phiếu {issue.IssueCode}."
+                        });
+                    }
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                return InventoryMapper.MapIssue(issue, includeLines: true);
+            },
+            cancellationToken => _context.Inventoryissues
+                .AsNoTracking()
+                .AnyAsync(
+                    item => item.IssueId == issueId && item.ReceivedAt != null,
+                    cancellationToken));
     }
 
     private async Task EnsureStockAvailableAsync(
@@ -372,7 +373,6 @@ public class InventoryIssueService : IInventoryIssueService
             IssueDate = issueDate,
             Lines = shortageLines
         };
-        await WriteStockShortageAuditAsync(shortage, materialRequest.RequestId, actorId);
         throw new StockShortageException(shortage);
     }
 

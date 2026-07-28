@@ -15,7 +15,7 @@ public partial class SeedPurchaseHistoryCanonicalUnits : Migration
         migrationBuilder.Sql("""
 CREATE TEMPORARY TABLE `tmp_purchase_history_canonical_units` (
     `unitId` binary(16) NOT NULL,
-    `unitCode` varchar(20) NOT NULL,
+    `unitCode` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
     `unitName` varchar(100) NOT NULL,
     PRIMARY KEY (`unitCode`)
 );

@@ -48,6 +48,11 @@ public sealed class EfTransactionRunner : IEfTransactionRunner
         ArgumentNullException.ThrowIfNull(operation);
         ArgumentNullException.ThrowIfNull(verifySucceeded);
 
+        if (!_context.Database.IsRelational())
+        {
+            return await operation(cancellationToken);
+        }
+
         var attempt = 0;
         var strategy = _executionStrategyFactory();
 

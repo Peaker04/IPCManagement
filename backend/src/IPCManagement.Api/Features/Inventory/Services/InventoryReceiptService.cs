@@ -2,6 +2,7 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Helpers.Mappers;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
@@ -16,17 +17,20 @@ public class InventoryReceiptService : IInventoryReceiptService
     private readonly IInventoryReceiptRepository _receiptRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
 
     public InventoryReceiptService(
         IInventoryReceiptRepository receiptRepository,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner,
         IpcManagementContext? context = null)
     {
         _receiptRepository = receiptRepository;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
         _context = context;
     }
 
@@ -62,74 +66,71 @@ public class InventoryReceiptService : IInventoryReceiptService
         var warehouseBytes = GuidHelper.ParseGuidString(dto.WarehouseId)
             ?? throw new ArgumentException("WarehouseId không hợp lệ.");
 
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
-        try
-        {
-            var receipt = new InventoryReceipt
+        var receiptId = GuidHelper.NewId();
+        var receiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+        return await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
-                ReceiptId = GuidHelper.NewId(),
-                ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
-                ReceiptDate = dto.ReceiptDate,
-                SupplierId = supplierBytes,
-                WarehouseId = warehouseBytes,
-                PurchaseRequestId = dto.PurchaseRequestId is not null
-                    ? GuidHelper.ParseGuidString(dto.PurchaseRequestId)
-                    : null,
-                CreatedBy = userIdBytes,
-                CreatedAt = DateTime.UtcNow
-            };
+                var receipt = new InventoryReceipt
+                {
+                    ReceiptId = receiptId,
+                    ReceiptCode = receiptCode,
+                    ReceiptDate = dto.ReceiptDate,
+                    SupplierId = supplierBytes,
+                    WarehouseId = warehouseBytes,
+                    PurchaseRequestId = dto.PurchaseRequestId is not null
+                        ? GuidHelper.ParseGuidString(dto.PurchaseRequestId)
+                        : null,
+                    CreatedBy = userIdBytes,
+                    CreatedAt = DateTime.UtcNow
+                };
 
-            receipt.Inventoryreceiptlines = dto.Lines.Select(line => new InventoryReceiptLine
-            {
-                ReceiptLineId = GuidHelper.NewId(),
-                ReceiptId = receipt.ReceiptId,
-                IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
-                    ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
-                Quantity = DecimalPolicy.RoundQuantity(line.Quantity),
-                UnitId = GuidHelper.ParseGuidString(line.UnitId)
-                    ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ."),
-                UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
-                LotNumber = line.LotNumber,
-                ManufactureDate = line.ManufactureDate,
-                ExpiredDate = line.ExpiredDate
-            }).ToList();
+                receipt.Inventoryreceiptlines = dto.Lines.Select(line => new InventoryReceiptLine
+                {
+                    ReceiptLineId = GuidHelper.NewId(),
+                    ReceiptId = receipt.ReceiptId,
+                    IngredientId = GuidHelper.ParseGuidString(line.IngredientId)
+                        ?? throw new ArgumentException($"IngredientId '{line.IngredientId}' không hợp lệ."),
+                    Quantity = DecimalPolicy.RoundQuantity(line.Quantity),
+                    UnitId = GuidHelper.ParseGuidString(line.UnitId)
+                        ?? throw new ArgumentException($"UnitId '{line.UnitId}' không hợp lệ."),
+                    UnitPrice = DecimalPolicy.RoundMoney(line.UnitPrice),
+                    LotNumber = line.LotNumber,
+                    ManufactureDate = line.ManufactureDate,
+                    ExpiredDate = line.ExpiredDate
+                }).ToList();
 
-            // Add receipt using sync change tracking
-            _receiptRepository.Add(receipt);
+                // Add receipt using sync change tracking
+                _receiptRepository.Add(receipt);
 
-            // Cập nhật tồn kho hiện tại + ghi nhận stock movements
-            foreach (var line in receipt.Inventoryreceiptlines)
-            {
-                await _stockLedgerService.AddStockAsync(
-                    warehouseBytes,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.Quantity,
-                    "RECEIPT",
-                    "inventoryreceipts",
-                    receipt.ReceiptId,
-                    userIdBytes,
-                    "Nhập kho mua hàng",
-                    $"Phiếu nhập {receipt.ReceiptCode}",
-                    line.LotNumber,
-                    line.ManufactureDate,
-                    line.ExpiredDate);
-            }
+                // Cập nhật tồn kho hiện tại + ghi nhận stock movements
+                foreach (var line in receipt.Inventoryreceiptlines)
+                {
+                    await _stockLedgerService.AddStockAsync(
+                        warehouseBytes,
+                        line.IngredientId,
+                        line.UnitId,
+                        line.Quantity,
+                        "RECEIPT",
+                        "inventoryreceipts",
+                        receipt.ReceiptId,
+                        userIdBytes,
+                        "Nhập kho mua hàng",
+                        $"Phiếu nhập {receipt.ReceiptCode}",
+                        line.LotNumber,
+                        line.ManufactureDate,
+                        line.ExpiredDate);
+                }
 
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync();
+                await _unitOfWork.SaveChangesAsync();
 
-            return new InventoryReceiptCreatedDto
-            {
-                ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
-                ReceiptCode = receipt.ReceiptCode
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                return new InventoryReceiptCreatedDto
+                {
+                    ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
+                    ReceiptCode = receipt.ReceiptCode
+                };
+            },
+            async _ => await _receiptRepository.GetByIdWithLinesAsync(receiptId) is not null);
     }
 
     public async Task<InventoryReceiptCreatedDto?> CreateFromPurchaseRequestAsync(
@@ -155,153 +156,150 @@ public class InventoryReceiptService : IInventoryReceiptService
             throw new ArgumentException("Cần ít nhất một dòng nguyên liệu để nhập kho.");
         }
 
-        var request = await _context.Purchaserequests
-            .Include(item => item.Purchaserequestlines)
-            .FirstOrDefaultAsync(item => item.PurchaseRequestId == purchaseRequestId);
-        if (request is null)
-        {
-            throw new ArgumentException("Không tìm thấy phiếu mua.");
-        }
-
-        if (request.Status is not "SENTTOSUPPLIER" and not "PARTIALRECEIVED")
-        {
-            throw new BusinessRuleException("Chỉ nhập kho từ phiếu mua đã gửi nhà cung cấp hoặc đang nhận một phần.");
-        }
-
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
-        try
-        {
-            var receipt = new InventoryReceipt
+        var receiptId = GuidHelper.NewId();
+        var receiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}";
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                ReceiptId = GuidHelper.NewId(),
-                ReceiptCode = $"RCP-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpper()}",
-                ReceiptDate = dto.ReceiptDate,
-                SupplierId = supplierId,
-                WarehouseId = warehouseId,
-                PurchaseRequestId = request.PurchaseRequestId,
-                CreatedBy = userIdBytes,
-                CreatedAt = DateTime.UtcNow
-            };
-
-            var requestedLineIds = new HashSet<string>(StringComparer.Ordinal);
-            var linesById = request.Purchaserequestlines.ToDictionary(
-                line => GuidHelper.ToGuidString(line.PurchaseRequestLineId),
-                StringComparer.Ordinal);
-            var existingReceived = await LoadReceivedQuantitiesAsync(request.PurchaseRequestId);
-
-            foreach (var input in dto.Lines)
-            {
-                var purchaseLineId = GuidHelper.ParseGuidString(input.PurchaseRequestLineId)
-                    ?? throw new ArgumentException("PurchaseRequestLineId không hợp lệ.");
-                var purchaseLineKey = GuidHelper.ToGuidString(purchaseLineId);
-                if (!requestedLineIds.Add(purchaseLineKey))
+                var request = await _context.Purchaserequests
+                    .Include(item => item.Purchaserequestlines)
+                    .FirstOrDefaultAsync(item => item.PurchaseRequestId == purchaseRequestId, cancellationToken);
+                if (request is null)
                 {
-                    throw new ArgumentException("Một dòng mua chỉ được nhập một lần trong cùng phiếu nhập.");
+                    throw new ArgumentException("Không tìm thấy phiếu mua.");
                 }
 
-                if (!linesById.TryGetValue(purchaseLineKey, out var purchaseLine))
+                if (request.Status is not "SENTTOSUPPLIER" and not "PARTIALRECEIVED")
                 {
-                    throw new ArgumentException("Dòng nhập không thuộc phiếu mua đã chọn.");
+                    throw new BusinessRuleException("Chỉ nhập kho từ phiếu mua đã gửi nhà cung cấp hoặc đang nhận một phần.");
                 }
 
-                if (purchaseLine.SupplierId is null || !purchaseLine.SupplierId.SequenceEqual(supplierId))
+                var receipt = new InventoryReceipt
                 {
-                    throw new BusinessRuleException("Nhà cung cấp trên dòng nhập không khớp phiếu mua.");
+                    ReceiptId = receiptId,
+                    ReceiptCode = receiptCode,
+                    ReceiptDate = dto.ReceiptDate,
+                    SupplierId = supplierId,
+                    WarehouseId = warehouseId,
+                    PurchaseRequestId = request.PurchaseRequestId,
+                    CreatedBy = userIdBytes,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                var requestedLineIds = new HashSet<string>(StringComparer.Ordinal);
+                var linesById = request.Purchaserequestlines.ToDictionary(
+                    line => GuidHelper.ToGuidString(line.PurchaseRequestLineId),
+                    StringComparer.Ordinal);
+                var existingReceived = await LoadReceivedQuantitiesAsync(request.PurchaseRequestId);
+
+                foreach (var input in dto.Lines)
+                {
+                    var purchaseLineId = GuidHelper.ParseGuidString(input.PurchaseRequestLineId)
+                        ?? throw new ArgumentException("PurchaseRequestLineId không hợp lệ.");
+                    var purchaseLineKey = GuidHelper.ToGuidString(purchaseLineId);
+                    if (!requestedLineIds.Add(purchaseLineKey))
+                    {
+                        throw new ArgumentException("Một dòng mua chỉ được nhập một lần trong cùng phiếu nhập.");
+                    }
+
+                    if (!linesById.TryGetValue(purchaseLineKey, out var purchaseLine))
+                    {
+                        throw new ArgumentException("Dòng nhập không thuộc phiếu mua đã chọn.");
+                    }
+
+                    if (purchaseLine.SupplierId is null || !purchaseLine.SupplierId.SequenceEqual(supplierId))
+                    {
+                        throw new BusinessRuleException("Nhà cung cấp trên dòng nhập không khớp phiếu mua.");
+                    }
+
+                    var unitId = GuidHelper.ParseGuidString(input.UnitId)
+                        ?? throw new ArgumentException("UnitId không hợp lệ.");
+                    if (!purchaseLine.UnitId.SequenceEqual(unitId))
+                    {
+                        throw new BusinessRuleException("Đơn vị nhập phải khớp đơn vị trên phiếu mua.");
+                    }
+
+                    var receivedQty = DecimalPolicy.RoundQuantity(input.ReceivedQty);
+                    if (receivedQty <= 0)
+                    {
+                        throw new ArgumentException("Số lượng nhận phải lớn hơn 0.");
+                    }
+
+                    var receivedKey = BuildReceiptLineMatchKey(purchaseLine.PurchaseRequestLineId);
+                    var alreadyReceived = existingReceived.TryGetValue(receivedKey, out var value) ? value : 0m;
+                    var remainingQty = DecimalPolicy.RoundQuantity(purchaseLine.PurchaseQty - alreadyReceived);
+                    if (DecimalPolicy.GreaterThanQuantity(receivedQty, remainingQty))
+                    {
+                        throw new BusinessRuleException(
+                            $"Số lượng nhận vượt số còn lại của dòng mua. Còn lại: {remainingQty}, nhập: {receivedQty}.");
+                    }
+
+                    var unitPrice = DecimalPolicy.RoundMoney(input.UnitPrice ?? purchaseLine.EstimatedUnitPrice);
+                    receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
+                    {
+                        ReceiptLineId = GuidHelper.NewId(),
+                        ReceiptId = receipt.ReceiptId,
+                        PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
+                        IngredientId = purchaseLine.IngredientId,
+                        UnitId = purchaseLine.UnitId,
+                        Quantity = receivedQty,
+                        UnitPrice = unitPrice,
+                        Amount = DecimalPolicy.RoundMoney(receivedQty * unitPrice),
+                        LotNumber = string.IsNullOrWhiteSpace(input.LotNumber) ? null : input.LotNumber.Trim(),
+                        ManufactureDate = input.ManufactureDate,
+                        ExpiredDate = input.ExpiredDate
+                    });
+                    existingReceived[receivedKey] = DecimalPolicy.RoundQuantity(alreadyReceived + receivedQty);
                 }
 
-                var unitId = GuidHelper.ParseGuidString(input.UnitId)
-                    ?? throw new ArgumentException("UnitId không hợp lệ.");
-                if (!purchaseLine.UnitId.SequenceEqual(unitId))
+                _receiptRepository.Add(receipt);
+                foreach (var line in receipt.Inventoryreceiptlines)
                 {
-                    throw new BusinessRuleException("Đơn vị nhập phải khớp đơn vị trên phiếu mua.");
+                    await _stockLedgerService.AddStockAsync(
+                        warehouseId,
+                        line.IngredientId,
+                        line.UnitId,
+                        line.Quantity,
+                        "RECEIPT",
+                        "inventoryreceipts",
+                        receipt.ReceiptId,
+                        userIdBytes,
+                        "Nhập kho từ phiếu mua",
+                        $"Phiếu nhập {receipt.ReceiptCode} từ {request.PurchaseRequestCode}",
+                        line.LotNumber,
+                        line.ManufactureDate,
+                        line.ExpiredDate);
                 }
 
-                var receivedQty = DecimalPolicy.RoundQuantity(input.ReceivedQty);
-                if (receivedQty <= 0)
+                var oldStatus = request.Status;
+                var newStatus = ResolvePurchaseReceiptStatus(request.Purchaserequestlines, existingReceived);
+                if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new ArgumentException("Số lượng nhận phải lớn hơn 0.");
+                    request.Status = newStatus;
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = DateTime.UtcNow,
+                        ChangedBy = userIdBytes,
+                        BusinessArea = "Receipt",
+                        EntityName = nameof(PurchaseRequest),
+                        EntityId = request.PurchaseRequestId,
+                        FieldName = nameof(PurchaseRequest.Status),
+                        OldValue = oldStatus,
+                        NewValue = newStatus,
+                        Reason = $"Nhập kho từ phiếu mua {request.PurchaseRequestCode}."
+                    });
                 }
 
-                var receivedKey = BuildReceiptLineMatchKey(purchaseLine.PurchaseRequestLineId);
-                var alreadyReceived = existingReceived.TryGetValue(receivedKey, out var value) ? value : 0m;
-                var remainingQty = DecimalPolicy.RoundQuantity(purchaseLine.PurchaseQty - alreadyReceived);
-                if (DecimalPolicy.GreaterThanQuantity(receivedQty, remainingQty))
+                await _unitOfWork.SaveChangesAsync();
+
+                return new InventoryReceiptCreatedDto
                 {
-                    throw new BusinessRuleException(
-                        $"Số lượng nhận vượt số còn lại của dòng mua. Còn lại: {remainingQty}, nhập: {receivedQty}.");
-                }
-
-                var unitPrice = DecimalPolicy.RoundMoney(input.UnitPrice ?? purchaseLine.EstimatedUnitPrice);
-                receipt.Inventoryreceiptlines.Add(new InventoryReceiptLine
-                {
-                    ReceiptLineId = GuidHelper.NewId(),
-                    ReceiptId = receipt.ReceiptId,
-                    PurchaseRequestLineId = purchaseLine.PurchaseRequestLineId,
-                    IngredientId = purchaseLine.IngredientId,
-                    UnitId = purchaseLine.UnitId,
-                    Quantity = receivedQty,
-                    UnitPrice = unitPrice,
-                    Amount = DecimalPolicy.RoundMoney(receivedQty * unitPrice),
-                    LotNumber = string.IsNullOrWhiteSpace(input.LotNumber) ? null : input.LotNumber.Trim(),
-                    ManufactureDate = input.ManufactureDate,
-                    ExpiredDate = input.ExpiredDate
-                });
-                existingReceived[receivedKey] = DecimalPolicy.RoundQuantity(alreadyReceived + receivedQty);
-            }
-
-            _receiptRepository.Add(receipt);
-            foreach (var line in receipt.Inventoryreceiptlines)
-            {
-                await _stockLedgerService.AddStockAsync(
-                    warehouseId,
-                    line.IngredientId,
-                    line.UnitId,
-                    line.Quantity,
-                    "RECEIPT",
-                    "inventoryreceipts",
-                    receipt.ReceiptId,
-                    userIdBytes,
-                    "Nhập kho từ phiếu mua",
-                    $"Phiếu nhập {receipt.ReceiptCode} từ {request.PurchaseRequestCode}",
-                    line.LotNumber,
-                    line.ManufactureDate,
-                    line.ExpiredDate);
-            }
-
-            var oldStatus = request.Status;
-            var newStatus = ResolvePurchaseReceiptStatus(request.Purchaserequestlines, existingReceived);
-            if (!string.Equals(oldStatus, newStatus, StringComparison.OrdinalIgnoreCase))
-            {
-                request.Status = newStatus;
-                _context.Auditlogs.Add(new AuditLog
-                {
-                    AuditId = GuidHelper.NewId(),
-                    ChangedAt = DateTime.UtcNow,
-                    ChangedBy = userIdBytes,
-                    BusinessArea = "Receipt",
-                    EntityName = nameof(PurchaseRequest),
-                    EntityId = request.PurchaseRequestId,
-                    FieldName = nameof(PurchaseRequest.Status),
-                    OldValue = oldStatus,
-                    NewValue = newStatus,
-                    Reason = $"Nhập kho từ phiếu mua {request.PurchaseRequestCode}."
-                });
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return new InventoryReceiptCreatedDto
-            {
-                ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
-                ReceiptCode = receipt.ReceiptCode
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                    ReceiptId = GuidHelper.ToGuidString(receipt.ReceiptId),
+                    ReceiptCode = receipt.ReceiptCode
+                };
+            },
+            async _ => await _receiptRepository.GetByIdWithLinesAsync(receiptId) is not null);
     }
 
     private async Task<Dictionary<string, decimal>> LoadReceivedQuantitiesAsync(byte[] purchaseRequestId)

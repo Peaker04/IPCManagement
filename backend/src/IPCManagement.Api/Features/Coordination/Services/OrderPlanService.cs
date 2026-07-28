@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -11,10 +12,12 @@ namespace IPCManagement.Api.Features.Coordination.Services;
 public sealed class OrderPlanService : IOrderPlanService
 {
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public OrderPlanService(IpcManagementContext context)
+    public OrderPlanService(IpcManagementContext context, IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<IReadOnlyList<CoordinationOrderDto>> GetActiveOrdersAsync(CoordinationOrdersQueryDto query)
@@ -61,67 +64,71 @@ public sealed class OrderPlanService : IOrderPlanService
                 line => Convert.ToBase64String(line.Id!),
                 line => line.Servings!.Value);
 
-        var lines = await QueryLines(serviceDate, scope == "FULLDAY" ? null : shiftName).ToListAsync();
-        if (lines.Count == 0)
-        {
-            return null;
-        }
-
-        var plans = lines
-            .Select(line => line.QuantityPlan)
-            .DistinctBy(plan => Convert.ToBase64String(plan.QuantityPlanId))
-            .ToList();
-        var invalidPlan = plans.FirstOrDefault(plan =>
-            !OrderStatus.CanTransition(plan.Status, OrderStatus.Confirmed));
-        if (invalidPlan is not null)
-        {
-            throw new BusinessRuleException(
-                $"Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo. " +
-                $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
-        }
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            var lockedAt = DateTime.UtcNow;
-            foreach (var line in lines)
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                var lineKey = Convert.ToBase64String(line.QuantityPlanLineId);
-                var finalServings = requestedServings.GetValueOrDefault(lineKey, line.ForecastServings);
-                line.ConfirmedServings = finalServings;
-                line.AdjustedServings = 0;
-                line.FinalServings = finalServings;
-            }
+                var lines = await QueryLines(serviceDate, scope == "FULLDAY" ? null : shiftName)
+                    .ToListAsync(cancellationToken);
+                if (lines.Count == 0)
+                {
+                    return null;
+                }
 
-            foreach (var plan in plans)
-            {
-                plan.Status = OrderStatus.Confirmed;
-                plan.ConfirmedAt = lockedAt;
-                plan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
-                plan.ConfirmedBy = userIdBytes;
-            }
+                var plans = lines
+                    .Select(line => line.QuantityPlan)
+                    .DistinctBy(plan => Convert.ToBase64String(plan.QuantityPlanId))
+                    .ToList();
+                var invalidPlan = plans.FirstOrDefault(plan =>
+                    !OrderStatus.CanTransition(plan.Status, OrderStatus.Confirmed));
+                if (invalidPlan is not null)
+                {
+                    throw new BusinessRuleException(
+                        $"Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo. " +
+                        $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
+                }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return new LockOrderPlanResultDto
+                var lockedAt = DateTime.UtcNow;
+                foreach (var line in lines)
+                {
+                    var lineKey = Convert.ToBase64String(line.QuantityPlanLineId);
+                    var finalServings = requestedServings.GetValueOrDefault(lineKey, line.ForecastServings);
+                    line.ConfirmedServings = finalServings;
+                    line.AdjustedServings = 0;
+                    line.FinalServings = finalServings;
+                }
+
+                foreach (var plan in plans)
+                {
+                    plan.Status = OrderStatus.Confirmed;
+                    plan.ConfirmedAt = lockedAt;
+                    plan.ConfirmationTime = TimeOnly.FromDateTime(lockedAt);
+                    plan.ConfirmedBy = userIdBytes;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                return new LockOrderPlanResultDto
+                {
+                    Success = true,
+                    LockedAt = lockedAt,
+                    ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
+                    Scope = scope,
+                    LockedShiftNames = lines
+                        .Select(line => line.ShiftName)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .OrderBy(shift => shift)
+                        .ToList(),
+                    LockedLineCount = lines.Count
+                };
+            },
+            async cancellationToken =>
             {
-                Success = true,
-                LockedAt = lockedAt,
-                ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
-                Scope = scope,
-                LockedShiftNames = lines
-                    .Select(line => line.ShiftName)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .OrderBy(shift => shift)
-                    .ToList(),
-                LockedLineCount = lines.Count
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                var statuses = await QueryLines(serviceDate, scope == "FULLDAY" ? null : shiftName)
+                    .AsNoTracking()
+                    .Select(line => line.QuantityPlan.Status)
+                    .ToListAsync(cancellationToken);
+                return statuses.Count > 0 && statuses.All(status =>
+                    string.Equals(OrderStatus.Normalize(status), OrderStatus.Confirmed, StringComparison.Ordinal));
+            });
     }
 
     public async Task<LockOrderPlanResultDto?> UnlockOrderPlanAsync(
@@ -212,89 +219,97 @@ public sealed class OrderPlanService : IOrderPlanService
             throw new ArgumentException("Ca phục vụ không hợp lệ.");
         }
 
-        var plans = await _context.Mealquantityplans
-            .Include(plan => plan.Mealquantityplanlines)
-            .Where(plan =>
-                plan.ServiceDate == serviceDate &&
-                plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName))
-            .ToListAsync();
-        if (plans.Count == 0)
-        {
-            return null;
-        }
-
-        var invalidPlan = plans.FirstOrDefault(plan =>
-        {
-            var status = OrderStatus.Normalize(plan.Status);
-            return status != OrderStatus.Confirmed && status != OrderStatus.Adjusted;
-        });
-        if (invalidPlan is not null)
-        {
-            throw new BusinessRuleException(
-                $"Chỉ có thể mở khóa khi tất cả kế hoạch trong ca đang được chốt. " +
-                $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
-        }
-
-        var oldStatuses = plans
-            .Select(plan => OrderStatus.Normalize(plan.Status))
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(status => status)
-            .ToList();
-        var changedAt = DateTime.UtcNow;
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            foreach (var plan in plans)
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                var oldStatus = OrderStatus.Normalize(plan.Status);
-                plan.Status = OrderStatus.Draft;
-                plan.ConfirmedAt = null;
-                plan.ConfirmedBy = null;
-                plan.ConfirmationTime = new TimeOnly(8, 30);
-                plan.CompletedAt = null;
-                plan.CompletedBy = null;
-                _context.Auditlogs.Add(new AuditLog
+                var plans = await _context.Mealquantityplans
+                    .Include(plan => plan.Mealquantityplanlines)
+                    .Where(plan =>
+                        plan.ServiceDate == serviceDate &&
+                        plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName))
+                    .ToListAsync(cancellationToken);
+                if (plans.Count == 0)
                 {
-                    AuditId = GuidHelper.NewId(),
-                    ChangedAt = changedAt,
-                    ChangedBy = userIdBytes,
-                    BusinessArea = "Coordination",
-                    EntityName = nameof(MealQuantityPlan),
-                    EntityId = plan.QuantityPlanId,
-                    FieldName = nameof(MealQuantityPlan.Status),
-                    OldValue = oldStatus,
-                    NewValue = OrderStatus.Draft,
-                    Reason = string.IsNullOrWhiteSpace(request.Note)
-                        ? $"Mở khóa ca {shiftName}"
-                        : request.Note.Trim()
+                    return null;
+                }
+
+                var invalidPlan = plans.FirstOrDefault(plan =>
+                {
+                    var status = OrderStatus.Normalize(plan.Status);
+                    return status != OrderStatus.Confirmed && status != OrderStatus.Adjusted;
                 });
-            }
+                if (invalidPlan is not null)
+                {
+                    throw new BusinessRuleException(
+                        $"Chỉ có thể mở khóa khi tất cả kế hoạch trong ca đang được chốt. " +
+                        $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
+                }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            await transaction.RollbackAsync();
-            throw new BusinessRuleException(
-                "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                var oldStatuses = plans
+                    .Select(plan => OrderStatus.Normalize(plan.Status))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(status => status)
+                    .ToList();
+                var changedAt = DateTime.UtcNow;
+                foreach (var plan in plans)
+                {
+                    var oldStatus = OrderStatus.Normalize(plan.Status);
+                    plan.Status = OrderStatus.Draft;
+                    plan.ConfirmedAt = null;
+                    plan.ConfirmedBy = null;
+                    plan.ConfirmationTime = new TimeOnly(8, 30);
+                    plan.CompletedAt = null;
+                    plan.CompletedBy = null;
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = changedAt,
+                        ChangedBy = userIdBytes,
+                        BusinessArea = "Coordination",
+                        EntityName = nameof(MealQuantityPlan),
+                        EntityId = plan.QuantityPlanId,
+                        FieldName = nameof(MealQuantityPlan.Status),
+                        OldValue = oldStatus,
+                        NewValue = OrderStatus.Draft,
+                        Reason = string.IsNullOrWhiteSpace(request.Note)
+                            ? $"Mở khóa ca {shiftName}"
+                            : request.Note.Trim()
+                    });
+                }
 
-        return new CoordinationScopeActionResultDto
-        {
-            Success = true,
-            ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
-            ShiftName = shiftName,
-            AffectedPlanCount = plans.Count,
-            OldStatuses = oldStatuses,
-            NewStatus = OrderStatus.Draft,
-            ChangedAt = changedAt
-        };
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    throw new BusinessRuleException(
+                        "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
+                }
+
+                return new CoordinationScopeActionResultDto
+                {
+                    Success = true,
+                    ServiceDate = serviceDate.ToString("yyyy-MM-dd"),
+                    ShiftName = shiftName,
+                    AffectedPlanCount = plans.Count,
+                    OldStatuses = oldStatuses,
+                    NewStatus = OrderStatus.Draft,
+                    ChangedAt = changedAt
+                };
+            },
+            async cancellationToken =>
+            {
+                var statuses = await _context.Mealquantityplans
+                    .AsNoTracking()
+                    .Where(plan =>
+                        plan.ServiceDate == serviceDate &&
+                        plan.Mealquantityplanlines.Any(line => line.ShiftName == shiftName))
+                    .Select(plan => plan.Status)
+                    .ToListAsync(cancellationToken);
+                return statuses.Count > 0 && statuses.All(status =>
+                    string.Equals(OrderStatus.Normalize(status), OrderStatus.Draft, StringComparison.Ordinal));
+            });
     }
 
     public Task<ExportOrderReportResultDto> ExportOrderReportAsync(ExportOrderReportRequest request)

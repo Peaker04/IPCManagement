@@ -5,8 +5,8 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Models.Entities;
-using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using Xunit;
 using IPCManagement.Api.Features.Inventory.Contracts;
@@ -19,7 +19,7 @@ public class InventoryReceiptServiceTests
     private readonly IInventoryReceiptRepository _receiptRepository;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
-    private readonly IDbContextTransaction _transaction;
+    private readonly ImmediateTransactionRunner _transactionRunner;
     private readonly InventoryReceiptService _service;
 
     public InventoryReceiptServiceTests()
@@ -27,14 +27,13 @@ public class InventoryReceiptServiceTests
         _receiptRepository = Substitute.For<IInventoryReceiptRepository>();
         _unitOfWork = Substitute.For<IUnitOfWork>();
         _stockLedgerService = Substitute.For<IStockLedgerService>();
-        _transaction = Substitute.For<IDbContextTransaction>();
-
-        _unitOfWork.BeginTransactionAsync().Returns(_transaction);
+        _transactionRunner = new ImmediateTransactionRunner();
 
         _service = new InventoryReceiptService(
             _receiptRepository,
             _unitOfWork,
-            _stockLedgerService);
+            _stockLedgerService,
+            _transactionRunner);
     }
 
     [Fact]
@@ -92,7 +91,7 @@ public class InventoryReceiptServiceTests
 
         // Verify UnitOfWork saved changes and transaction committed
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
+        _transactionRunner.ExecutionCount.Should().Be(1);
     }
 
     private IpcManagementContext CreateInMemoryContext()
@@ -192,7 +191,12 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_Throw_When_PurchaseRequest_NotFound()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var dto = new CreateInventoryReceiptFromPurchaseRequest
         {
@@ -210,7 +214,12 @@ public class InventoryReceiptServiceTests
     public async Task CreateFromPurchaseRequestAsync_Should_CreateReceipt_UpdateStock_And_ChangeStatus()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();
@@ -296,16 +305,20 @@ public class InventoryReceiptServiceTests
             Arg.Any<DateOnly?>(),
             Arg.Any<DateOnly?>());
 
-        // Verify transaction
+        // Verify persistence boundary
         await _unitOfWork.Received(1).SaveChangesAsync();
-        await _transaction.Received(1).CommitAsync();
     }
 
     [Fact]
     public async Task CreateFromPurchaseRequestAsync_Should_Track_ReceivedQuantity_ByPurchaseLine()
     {
         using var context = CreateInMemoryContext();
-        var service = new InventoryReceiptService(_receiptRepository, _unitOfWork, _stockLedgerService, context);
+        var service = new InventoryReceiptService(
+            _receiptRepository,
+            _unitOfWork,
+            _stockLedgerService,
+            new EfTransactionRunner(context),
+            context);
 
         var userId = IPCManagement.Api.Helpers.GuidHelper.NewId();
         var purchaseRequestId = IPCManagement.Api.Helpers.GuidHelper.NewId();

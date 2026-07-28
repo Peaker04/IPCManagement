@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -11,10 +12,12 @@ namespace IPCManagement.Api.Features.Coordination.Services;
 public sealed class MealQuantityPlanService : IMealQuantityPlanService
 {
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public MealQuantityPlanService(IpcManagementContext context)
+    public MealQuantityPlanService(IpcManagementContext context, IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<IReadOnlyList<MealQuantityPlanDto>> GetMealQuantityPlansAsync(MealQuantityPlanQueryDto query)
@@ -112,105 +115,125 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
             throw new ArgumentException("Số suất phải lớn hơn hoặc bằng 0.");
         }
 
-        var schedules = await _context.Menuschedules
-            .Include(schedule => schedule.Customer)
-            .Include(schedule => schedule.Menu)
-            .Where(schedule =>
-                schedule.ServiceDate == serviceDate &&
-                schedule.ShiftName == shiftName &&
-                schedule.CustomerId.SequenceEqual(customerId))
-            .ToListAsync();
-        if (schedules.Count == 0)
-        {
-            return null;
-        }
-
-        var customerCode = schedules.First().Customer.CustomerCode;
-        var planCode = MealQuantityPlanPolicy.BuildQuickServingPlanCode(serviceDate, shiftName, customerCode);
-        var plan = await _context.Mealquantityplans
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Customer)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.Menu)
-            .Include(item => item.Mealquantityplanlines)
-                .ThenInclude(line => line.MenuSchedule)
-            .FirstOrDefaultAsync(item => item.PlanCode == planCode);
         var changedAt = DateTime.UtcNow;
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            if (plan is null)
+        byte[]? transactionPlanId = null;
+        var savedPlanId = await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                plan = new MealQuantityPlan
+                var schedules = await _context.Menuschedules
+                    .Include(schedule => schedule.Customer)
+                    .Include(schedule => schedule.Menu)
+                    .Where(schedule =>
+                        schedule.ServiceDate == serviceDate &&
+                        schedule.ShiftName == shiftName &&
+                        schedule.CustomerId.SequenceEqual(customerId))
+                    .ToListAsync(cancellationToken);
+                if (schedules.Count == 0)
                 {
-                    QuantityPlanId = GuidHelper.NewId(),
-                    PlanCode = planCode,
-                    ServiceDate = serviceDate,
-                    Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted,
-                    ForecastReceivedAt = changedAt,
-                    ConfirmedAt = request.Complete ? changedAt : null,
-                    ConfirmationTime = TimeOnly.FromDateTime(changedAt),
-                    ConfirmedBy = request.Complete ? userIdBytes : null
-                };
-                _context.Mealquantityplans.Add(plan);
-            }
-            else if (OrderStatus.Normalize(plan.Status) == OrderStatus.Completed && !request.Complete)
-            {
-                throw new BusinessRuleException("Ca đã hoàn tất. Điều chỉnh sau hoàn tất cần thực hiện ở Điều phối đơn.");
-            }
-            else
-            {
-                plan.Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted;
-                plan.ForecastReceivedAt ??= changedAt;
-                plan.ConfirmedAt = request.Complete ? changedAt : plan.ConfirmedAt;
-                plan.ConfirmationTime = TimeOnly.FromDateTime(changedAt);
-                plan.ConfirmedBy = request.Complete ? userIdBytes : plan.ConfirmedBy;
-            }
-
-            foreach (var schedule in schedules)
-            {
-                var line = plan.Mealquantityplanlines.FirstOrDefault(item =>
-                    item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
-                if (line is null)
-                {
-                    line = new MealQuantityPlanLine
-                    {
-                        QuantityPlanLineId = GuidHelper.NewId(),
-                        QuantityPlanId = plan.QuantityPlanId,
-                        MenuScheduleId = schedule.MenuScheduleId,
-                        CustomerId = schedule.CustomerId,
-                        MenuId = schedule.MenuId,
-                        ShiftName = schedule.ShiftName
-                    };
-                    plan.Mealquantityplanlines.Add(line);
+                    return null;
                 }
 
-                line.ForecastServings = request.Servings;
-                line.ConfirmedServings = request.Complete ? request.Servings : line.ConfirmedServings;
-                line.AdjustedServings = 0;
-                line.FinalServings = request.Servings;
-                line.UpdatedAt = changedAt;
-            }
+                var customerCode = schedules.First().Customer.CustomerCode;
+                var planCode = MealQuantityPlanPolicy.BuildQuickServingPlanCode(serviceDate, shiftName, customerCode);
+                var plan = await _context.Mealquantityplans
+                    .Include(item => item.Mealquantityplanlines)
+                        .ThenInclude(line => line.Customer)
+                    .Include(item => item.Mealquantityplanlines)
+                        .ThenInclude(line => line.Menu)
+                    .Include(item => item.Mealquantityplanlines)
+                        .ThenInclude(line => line.MenuSchedule)
+                    .FirstOrDefaultAsync(item => item.PlanCode == planCode, cancellationToken);
+                if (plan is null)
+                {
+                    plan = new MealQuantityPlan
+                    {
+                        QuantityPlanId = GuidHelper.NewId(),
+                        PlanCode = planCode,
+                        ServiceDate = serviceDate,
+                        Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted,
+                        ForecastReceivedAt = changedAt,
+                        ConfirmedAt = request.Complete ? changedAt : null,
+                        ConfirmationTime = TimeOnly.FromDateTime(changedAt),
+                        ConfirmedBy = request.Complete ? userIdBytes : null
+                    };
+                    _context.Mealquantityplans.Add(plan);
+                }
+                else if (OrderStatus.Normalize(plan.Status) == OrderStatus.Completed && !request.Complete)
+                {
+                    throw new BusinessRuleException("Ca đã hoàn tất. Điều chỉnh sau hoàn tất cần thực hiện ở Điều phối đơn.");
+                }
+                else
+                {
+                    plan.Status = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted;
+                    plan.ForecastReceivedAt ??= changedAt;
+                    plan.ConfirmedAt = request.Complete ? changedAt : plan.ConfirmedAt;
+                    plan.ConfirmationTime = TimeOnly.FromDateTime(changedAt);
+                    plan.ConfirmedBy = request.Complete ? userIdBytes : plan.ConfirmedBy;
+                }
 
-            AddAudit(
-                userIdBytes,
-                changedAt,
-                "Coordination",
-                nameof(MealQuantityPlan),
-                plan.QuantityPlanId,
-                request.Complete ? "QuickCompleteServings" : "QuickForecastServings",
-                null,
-                $"{serviceDate:yyyy-MM-dd}|{shiftName}|{request.Servings}",
-                "KHSX cập nhật nhanh số suất vận hành");
+                foreach (var schedule in schedules)
+                {
+                    var line = plan.Mealquantityplanlines.FirstOrDefault(item =>
+                        item.MenuScheduleId.SequenceEqual(schedule.MenuScheduleId));
+                    if (line is null)
+                    {
+                        line = new MealQuantityPlanLine
+                        {
+                            QuantityPlanLineId = GuidHelper.NewId(),
+                            QuantityPlanId = plan.QuantityPlanId,
+                            MenuScheduleId = schedule.MenuScheduleId,
+                            CustomerId = schedule.CustomerId,
+                            MenuId = schedule.MenuId,
+                            ShiftName = schedule.ShiftName
+                        };
+                        plan.Mealquantityplanlines.Add(line);
+                    }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch
+                    line.ForecastServings = request.Servings;
+                    line.ConfirmedServings = request.Complete ? request.Servings : line.ConfirmedServings;
+                    line.AdjustedServings = 0;
+                    line.FinalServings = request.Servings;
+                    line.UpdatedAt = changedAt;
+                }
+
+                AddAudit(
+                    userIdBytes,
+                    changedAt,
+                    "Coordination",
+                    nameof(MealQuantityPlan),
+                    plan.QuantityPlanId,
+                    request.Complete ? "QuickCompleteServings" : "QuickForecastServings",
+                    null,
+                    $"{serviceDate:yyyy-MM-dd}|{shiftName}|{request.Servings}",
+                    "KHSX cập nhật nhanh số suất vận hành");
+
+                transactionPlanId = plan.QuantityPlanId;
+                await _context.SaveChangesAsync(cancellationToken);
+                return transactionPlanId;
+            },
+            async cancellationToken =>
+            {
+                if (transactionPlanId is null)
+                {
+                    return false;
+                }
+
+                var expectedStatus = request.Complete ? OrderStatus.Completed : OrderStatus.Forecasted;
+                return await _context.Mealquantityplans
+                    .AsNoTracking()
+                    .AnyAsync(
+                        plan => plan.QuantityPlanId == transactionPlanId &&
+                                plan.Status == expectedStatus &&
+                                plan.Mealquantityplanlines.Count > 0 &&
+                                plan.Mealquantityplanlines.All(line =>
+                                    line.ForecastServings == request.Servings &&
+                                    line.FinalServings == request.Servings),
+                        cancellationToken);
+            });
+
+        if (savedPlanId is null)
         {
-            await transaction.RollbackAsync();
-            throw;
+            return null;
         }
 
         var savedPlan = await _context.Mealquantityplans
@@ -222,7 +245,7 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
                 .ThenInclude(line => line.MenuSchedule)
             .AsNoTracking()
             .AsSplitQuery()
-            .FirstOrDefaultAsync(item => item.QuantityPlanId == plan.QuantityPlanId);
+            .FirstOrDefaultAsync(item => item.QuantityPlanId == savedPlanId);
 
         return savedPlan is null
             ? null

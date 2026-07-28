@@ -56,7 +56,7 @@ WHERE @unit_lat IS NULL;
 SET @unit_lat = (SELECT `unitId` FROM `units` WHERE `unitCode` = 'LAT' LIMIT 1);
 
 CREATE TEMPORARY TABLE `tmp_preset_bom_unit_corrections` (
-    `ingredientName` varchar(200) NOT NULL,
+    `ingredientName` varchar(200) COLLATE utf8mb4_unicode_ci NOT NULL,
     `unitId` binary(16) NOT NULL,
     PRIMARY KEY (`ingredientName`)
 );
