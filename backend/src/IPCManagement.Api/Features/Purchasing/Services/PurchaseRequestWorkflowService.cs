@@ -1,12 +1,11 @@
 
 
+
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Globalization;
-using System.Security.Cryptography;
-using System.Text;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 
 namespace IPCManagement.Api.Features.Purchasing.Services;
@@ -20,13 +19,12 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         "MANAGERAPPROVED",
         "APPROVED"
     };
-    private const string MissingSupplierEvidenceBlocker =
-        "Chưa có đơn giá hiệu lực hoặc biên nhận hợp lệ cho nguyên liệu này. Hãy cập nhật báo giá hoặc xác minh biên nhận trước khi chọn nhà cung cấp.";
 
     private readonly IpcManagementContext _context;
     private readonly ISupplierQuotationService _supplierQuotationService;
     private readonly IPurchaseWorkbenchService _purchaseWorkbenchService;
     private readonly IPurchaseRequestGenerationService _purchaseRequestGenerationService;
+    private readonly IPurchaseSupplierDecisionService _purchaseSupplierDecisionService;
 
     public PurchaseRequestWorkflowService(
         IpcManagementContext context,
@@ -35,7 +33,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             context,
             supplierQuotationService,
             new PurchaseWorkbenchService(context),
-            new PurchaseRequestGenerationService(context))
+            new PurchaseRequestGenerationService(context),
+            new PurchaseSupplierDecisionService(context))
     {
     }
 
@@ -47,7 +46,8 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             context,
             supplierQuotationService,
             purchaseWorkbenchService,
-            new PurchaseRequestGenerationService(context))
+            new PurchaseRequestGenerationService(context),
+            new PurchaseSupplierDecisionService(context))
     {
     }
 
@@ -56,11 +56,27 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
         ISupplierQuotationService supplierQuotationService,
         IPurchaseWorkbenchService purchaseWorkbenchService,
         IPurchaseRequestGenerationService purchaseRequestGenerationService)
+        : this(
+            context,
+            supplierQuotationService,
+            purchaseWorkbenchService,
+            purchaseRequestGenerationService,
+            new PurchaseSupplierDecisionService(context))
+    {
+    }
+
+    public PurchaseRequestWorkflowService(
+        IpcManagementContext context,
+        ISupplierQuotationService supplierQuotationService,
+        IPurchaseWorkbenchService purchaseWorkbenchService,
+        IPurchaseRequestGenerationService purchaseRequestGenerationService,
+        IPurchaseSupplierDecisionService purchaseSupplierDecisionService)
     {
         _context = context;
         _supplierQuotationService = supplierQuotationService;
         _purchaseWorkbenchService = purchaseWorkbenchService;
         _purchaseRequestGenerationService = purchaseRequestGenerationService;
+        _purchaseSupplierDecisionService = purchaseSupplierDecisionService;
     }
 
     public Task<PurchaseWorkbenchWeekDto> GetWorkbenchWeekAsync(
@@ -77,472 +93,27 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             userId,
             cancellationToken);
 
-    public async Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
+    public Task<SupplierEvidenceResultDto> GetSupplierEvidenceAsync(
         string requestId,
         string lineId,
         CancellationToken cancellationToken = default)
-    {
-        var purchaseRequestId = GuidHelper.ParseGuidString(requestId);
-        var purchaseRequestLineId = GuidHelper.ParseGuidString(lineId);
-        if (purchaseRequestId is null || purchaseRequestLineId is null)
-        {
-            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
-        }
+        => _purchaseSupplierDecisionService.GetSupplierEvidenceAsync(
+            requestId,
+            lineId,
+            cancellationToken);
 
-        var lineQuery = _context.Purchaserequestlines
-            .AsNoTracking()
-            .Include(item => item.PurchaseRequest)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit);
-        PurchaseRequestLine? line;
-        if (string.Equals(
-                _context.Database.ProviderName,
-                "Microsoft.EntityFrameworkCore.InMemory",
-                StringComparison.Ordinal))
-        {
-            var trackedAndStored = _context.ChangeTracker.Entries<PurchaseRequestLine>()
-                .Select(entry => entry.Entity)
-                .Concat(await lineQuery.ToListAsync(cancellationToken))
-                .DistinctBy(item => BuildKey(item.PurchaseRequestLineId));
-            line = trackedAndStored.FirstOrDefault(item =>
-
-                item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
-                item.PurchaseRequestLineId.SequenceEqual(purchaseRequestLineId));
-        }
-        else
-        {
-            line = await lineQuery.FirstOrDefaultAsync(item =>
-                item.PurchaseRequestId == purchaseRequestId &&
-                item.PurchaseRequestLineId == purchaseRequestLineId,
-                cancellationToken);
-        }
-
-        if (line is null)
-        {
-            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong đề xuất mua.");
-        }
-
-        var asOfDate = line.PurchaseRequest.PurchaseForDate;
-        var isInMemoryProvider = string.Equals(
-            _context.Database.ProviderName,
-            "Microsoft.EntityFrameworkCore.InMemory",
-            StringComparison.Ordinal);
-        var quotationQuery = _context.Supplierquotations
-            .AsNoTracking()
-            .Include(item => item.Supplier)
-            .AsQueryable();
-        if (!isInMemoryProvider)
-        {
-            quotationQuery = quotationQuery.Where(item =>
-                item.IngredientId == line.IngredientId &&
-                item.IsActive != false &&
-                item.Supplier.IsActive != false &&
-                item.UnitPrice > 0 &&
-                item.EffectiveFrom <= asOfDate &&
-                (item.EffectiveTo == null || item.EffectiveTo >= asOfDate));
-        }
-
-        var queriedQuotations = (isInMemoryProvider
-
-                ? _context.ChangeTracker.Entries<SupplierQuotation>()
-                    .Select(entry => entry.Entity)
-                    .Concat(await quotationQuery.ToListAsync(cancellationToken))
-                    .DistinctBy(item => BuildKey(item.QuotationId))
-                : await quotationQuery.ToListAsync(cancellationToken))
-            .Where(item =>
-                item.IngredientId.SequenceEqual(line.IngredientId) &&
-                item.IsActive != false &&
-                item.Supplier.IsActive != false &&
-                item.UnitPrice > 0 &&
-                item.EffectiveFrom <= asOfDate &&
-                (item.EffectiveTo == null || item.EffectiveTo >= asOfDate));
-        var quotations = queriedQuotations
-            .OrderBy(item => item.UnitPrice)
-            .ThenByDescending(item => item.EffectiveFrom)
-            .ThenBy(item => item.Supplier.SupplierName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => BuildKey(item.QuotationId), StringComparer.Ordinal)
-            .ToList();
-
-        if (quotations.Count > 0)
-        {
-            return new SupplierEvidenceResultDto
-            {
-                Candidates = quotations.Select(item => new SupplierEvidenceCandidateDto
-                {
-                    EvidenceType = SupplierEvidenceType.EffectiveQuotation,
-                    EvidenceId = GuidHelper.ToGuidString(item.QuotationId),
-                    EvidenceDate = item.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    SupplierId = GuidHelper.ToGuidString(item.SupplierId),
-                    SupplierName = item.Supplier.SupplierName,
-                    IngredientId = GuidHelper.ToGuidString(line.IngredientId),
-                    UnitId = GuidHelper.ToGuidString(line.UnitId),
-                    UnitName = line.Unit.UnitName,
-                    UnitPrice = DecimalPolicy.RoundMoney(item.UnitPrice),
-                    EffectiveFrom = item.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                    EffectiveTo = item.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
-                }).ToList()
-            };
-        }
-
-        var receiptLineQuery = _context.Inventoryreceiptlines
-            .AsNoTracking()
-            .Include(item => item.Receipt)
-                .ThenInclude(receipt => receipt.Supplier)
-            .Include(item => item.Unit)
-            .AsQueryable();
-        if (!isInMemoryProvider)
-        {
-            receiptLineQuery = receiptLineQuery.Where(item =>
-                item.IngredientId == line.IngredientId &&
-                item.Quantity > 0 &&
-                item.UnitPrice > 0 &&
-                item.Receipt.ReceiptDate <= asOfDate &&
-                item.Receipt.Supplier.IsActive != false);
-        }
-
-        var queriedReceiptLines = (isInMemoryProvider
-                ? _context.ChangeTracker.Entries<InventoryReceiptLine>()
-                    .Select(entry => entry.Entity)
-                    .Concat(await receiptLineQuery.ToListAsync(cancellationToken))
-                    .DistinctBy(item => BuildKey(item.ReceiptLineId))
-                : await receiptLineQuery.ToListAsync(cancellationToken))
-            .Where(item =>
-                item.IngredientId.SequenceEqual(line.IngredientId) &&
-                item.Quantity > 0 &&
-                item.UnitPrice > 0 &&
-                item.Receipt.ReceiptDate <= asOfDate &&
-                item.Receipt.Supplier.IsActive != false);
-        var receiptLines = queriedReceiptLines
-            .OrderByDescending(item => item.Receipt.ReceiptDate)
-            .ThenByDescending(item => item.Receipt.CreatedAt)
-            .ThenBy(item => BuildKey(item.ReceiptLineId), StringComparer.Ordinal)
-            .ToList();
-
-        var diagnostics = receiptLines
-            .Where(item => !CanConvertUnits(item.Unit, line.Unit))
-            .Select(item =>
-                $"Biên nhận {GuidHelper.ToGuidString(item.ReceiptLineId)} có đơn vị {item.Unit.UnitName} không thể quy đổi sang {line.Unit.UnitName}.")
-            .OrderBy(message => message, StringComparer.Ordinal)
-            .ToList();
-
-        var candidates = receiptLines
-            .Where(item => CanConvertUnits(item.Unit, line.Unit))
-            .GroupBy(item => BuildKey(item.Receipt.SupplierId))
-            .Select(group => group
-                .OrderByDescending(item => item.Receipt.ReceiptDate)
-                .ThenByDescending(item => item.Receipt.CreatedAt)
-                .ThenBy(item => BuildKey(item.ReceiptLineId), StringComparer.Ordinal)
-                .First())
-            .Select(item => new SupplierEvidenceCandidateDto
-            {
-                EvidenceType = SupplierEvidenceType.LatestValidReceipt,
-                EvidenceId = GuidHelper.ToGuidString(item.ReceiptLineId),
-                EvidenceDate = item.Receipt.ReceiptDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                SupplierId = GuidHelper.ToGuidString(item.Receipt.SupplierId),
-                SupplierName = item.Receipt.Supplier.SupplierName,
-                IngredientId = GuidHelper.ToGuidString(line.IngredientId),
-                UnitId = GuidHelper.ToGuidString(line.UnitId),
-                UnitName = line.Unit.UnitName,
-                UnitPrice = ResolveLatestReceiptPrice(item, line.Unit)
-            })
-            .OrderBy(item => item.UnitPrice)
-            .ThenBy(item => item.SupplierName, StringComparer.OrdinalIgnoreCase)
-            .ThenBy(item => item.EvidenceId, StringComparer.Ordinal)
-            .ToList();
-
-        return new SupplierEvidenceResultDto
-        {
-            Candidates = candidates,
-            Blocker = candidates.Count == 0 ? MissingSupplierEvidenceBlocker : null,
-            Diagnostics = diagnostics
-        };
-    }
-
-    public async Task<PurchaseLineSupplierDecisionDto> ConfirmLineSupplierAsync(
+    public Task<PurchaseLineSupplierDecisionDto> ConfirmLineSupplierAsync(
         string requestId,
         string lineId,
         ConfirmPurchaseLineSupplierRequest request,
         string? userId,
         CancellationToken cancellationToken = default)
-    {
-        var purchaseRequestId = GuidHelper.ParseGuidString(requestId);
-        var purchaseRequestLineId = GuidHelper.ParseGuidString(lineId);
-        var supplierId = GuidHelper.ParseGuidString(request.SupplierId);
-        var actorId = GuidHelper.ParseGuidString(userId);
-
-        if (purchaseRequestId is null || purchaseRequestLineId is null || supplierId is null || actorId is null)
-        {
-            throw new ArgumentException("Mã tham chiếu không hợp lệ.");
-        }
-
-        if (request.ExpectedDecisionVersion < 0)
-        {
-            throw new ArgumentException("Phiên bản quyết định không hợp lệ.");
-        }
-
-        var proposedUnitPrice = DecimalPolicy.RoundMoney(request.ProposedUnitPrice);
-        if (proposedUnitPrice <= 0)
-        {
-            throw new ArgumentException("Đơn giá đề xuất phải lớn hơn 0.");
-        }
-
-        if (!DateOnly.TryParseExact(
-                request.ProposedDeliveryDate,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture,
-                DateTimeStyles.None,
-                out var proposedDeliveryDate))
-        {
-
-            throw new ArgumentException("Ngày giao dự kiến phải có định dạng yyyy-MM-dd.");
-        }
-
-        await using var transaction = _context.Database.IsRelational()
-            ? await _context.Database.BeginTransactionAsync(cancellationToken)
-            : null;
-        var lineQuery = _context.Purchaserequestlines
-            .Include(item => item.PurchaseRequest)
-            .Include(item => item.SupplierDecisions)
-            .Include(item => item.Ingredient)
-            .Include(item => item.Unit)
-            .AsQueryable();
-        PurchaseRequestLine? line;
-        if (string.Equals(
-                _context.Database.ProviderName,
-                "Microsoft.EntityFrameworkCore.InMemory",
-                StringComparison.Ordinal))
-        {
-            line = _context.ChangeTracker.Entries<PurchaseRequestLine>()
-                .Select(entry => entry.Entity)
-                .FirstOrDefault(item =>
-                    item.PurchaseRequestId.SequenceEqual(purchaseRequestId) &&
-                    item.PurchaseRequestLineId.SequenceEqual(purchaseRequestLineId));
-        }
-        else
-        {
-            line = await lineQuery.FirstOrDefaultAsync(item =>
-                item.PurchaseRequestId == purchaseRequestId &&
-                item.PurchaseRequestLineId == purchaseRequestLineId,
-                cancellationToken);
-        }
-
-        if (line is null)
-        {
-            throw new KeyNotFoundException("Không tìm thấy dòng nguyên liệu trong đề xuất mua.");
-        }
-
-        if (!string.Equals(line.PurchaseRequest.Status, PurchaseDraftStatus, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("Chỉ được xác nhận nhà cung cấp khi đề xuất mua ở trạng thái DRAFT.");
-        }
-
-        var currentDecision = line.SupplierDecisions
-            .SingleOrDefault(item => string.Equals(item.Status, "CURRENT", StringComparison.Ordinal));
-        var currentVersion = currentDecision?.Version ?? 0;
-        if (request.ExpectedDecisionVersion != currentVersion)
-        {
-            throw new DbUpdateConcurrencyException("Quyết định nhà cung cấp đã thay đổi. Hãy tải lại dữ liệu.");
-        }
-
-        var evidence = await GetSupplierEvidenceAsync(requestId, lineId, cancellationToken);
-        var evidenceCandidate = evidence.Candidates.SingleOrDefault(candidate =>
-            candidate.EvidenceType == request.EvidenceType &&
-            string.Equals(candidate.EvidenceId, request.EvidenceId, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(candidate.SupplierId, request.SupplierId, StringComparison.OrdinalIgnoreCase));
-        if (evidenceCandidate is null)
-        {
-            throw new DbUpdateConcurrencyException("Bằng chứng nhà cung cấp đã hết hiệu lực hoặc không còn khớp. Hãy tải lại gợi ý.");
-        }
-
-        var evidenceType = ToPersistenceEvidenceType(request.EvidenceType);
-        var referencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice);
-        var variancePercent = PurchasePricePolicy.CalculateVariancePercent(referencePrice, proposedUnitPrice);
-        var exceptionReason = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
-        if (PurchasePricePolicy.RequiresException(variancePercent) && exceptionReason is null)
-        {
-            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
-        }
-
-        var fingerprint = BuildSupplierDecisionFingerprint(
-            line.PurchaseRequestLineId,
-            supplierId,
-            evidenceType,
-            GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
-            evidenceCandidate.UnitPrice,
-            proposedUnitPrice,
-            proposedDeliveryDate);
-        if (currentDecision is not null &&
-            string.Equals(currentDecision.DecisionFingerprint, fingerprint, StringComparison.Ordinal))
-        {
-            await UpsertPriceExceptionAsync(
-                currentDecision,
-                null,
-                variancePercent,
-                exceptionReason,
-                actorId,
-                cancellationToken);
-            await _context.SaveChangesAsync(cancellationToken);
-            if (transaction is not null)
-            {
-                await transaction.CommitAsync(cancellationToken);
-            }
-
-            return MapSupplierDecision(currentDecision);
-        }
-
-        var decisionId = GuidHelper.NewId();
-        if (currentDecision is not null)
-        {
-            currentDecision.Status = "SUPERSEDED";
-            currentDecision.CurrentDecisionKey = null;
-            currentDecision.SupersededByDecisionId = decisionId;
-            currentDecision.ConcurrencyVersion++;
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
-        var decision = new PurchaseLineSupplierDecision
-        {
-            PurchaseLineSupplierDecisionId = decisionId,
-            PurchaseRequestLineId = line.PurchaseRequestLineId,
-            SupplierId = supplierId,
-            EvidenceType = evidenceType,
-            EvidenceId = GuidHelper.ParseGuidString(evidenceCandidate.EvidenceId)!,
-            EvidenceDate = DateOnly.ParseExact(
-                evidenceCandidate.EvidenceDate,
-                "yyyy-MM-dd",
-                CultureInfo.InvariantCulture),
-            EvidenceReferencePrice = DecimalPolicy.RoundMoney(evidenceCandidate.UnitPrice),
-            ProposedUnitPrice = proposedUnitPrice,
-            ProposedDeliveryDate = proposedDeliveryDate,
-            ConfirmedBy = actorId,
-            ConfirmedAt = DateTime.UtcNow,
-            DecisionFingerprint = fingerprint,
-            Version = currentVersion + 1,
-            Status = "CURRENT",
-            CurrentDecisionKey = line.PurchaseRequestLineId,
-            ConcurrencyVersion = 1,
-            PurchaseRequestLine = line
-        };
-
-        line.SupplierId = supplierId;
-        line.EstimatedUnitPrice = proposedUnitPrice;
-        line.ExpectedDeliveryDate = proposedDeliveryDate;
-        line.Note = exceptionReason;
-        line.IsLegacySupplierSnapshot = false;
-        line.SupplierDecisions.Add(decision);
-        _context.Purchaselinesupplierdecisions.Add(decision);
-
-        await UpsertPriceExceptionAsync(
-            decision,
-            currentDecision,
-            variancePercent,
-            exceptionReason,
-            actorId,
+        => _purchaseSupplierDecisionService.ConfirmLineSupplierAsync(
+            requestId,
+            lineId,
+            request,
+            userId,
             cancellationToken);
-
-        _context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = DateTime.UtcNow,
-            ChangedBy = actorId,
-            BusinessArea = "Purchasing",
-            EntityName = nameof(PurchaseLineSupplierDecision),
-            EntityId = decision.PurchaseLineSupplierDecisionId,
-            FieldName = "ConfirmSupplierDecision",
-            OldValue = currentDecision?.DecisionFingerprint,
-            NewValue = decision.DecisionFingerprint,
-            Reason = "Xác nhận nhà cung cấp, giá và ngày giao từ bằng chứng hợp lệ."
-        });
-
-        await _context.SaveChangesAsync(cancellationToken);
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
-
-        }
-
-        return MapSupplierDecision(decision);
-    }
-
-    private async Task UpsertPriceExceptionAsync(
-        PurchaseLineSupplierDecision decision,
-        PurchaseLineSupplierDecision? supersededDecision,
-        decimal variancePercent,
-        string? reason,
-        byte[] actorId,
-        CancellationToken cancellationToken)
-    {
-        if (!PurchasePricePolicy.RequiresException(variancePercent))
-        {
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
-        }
-
-        var existing = await _context.Purchasepriceexceptions.FirstOrDefaultAsync(item =>
-            item.PurchaseLineSupplierDecisionId == decision.PurchaseLineSupplierDecisionId &&
-            item.ProposalFingerprint == decision.DecisionFingerprint &&
-            item.ProposalVersion == decision.Version,
-            cancellationToken);
-        if (existing is not null)
-        {
-            return;
-        }
-
-        var exceptionId = GuidHelper.NewId();
-        if (supersededDecision is not null)
-
-        {
-            var priorExceptions = await _context.Purchasepriceexceptions
-                .Where(item =>
-                    item.PurchaseLineSupplierDecisionId == supersededDecision.PurchaseLineSupplierDecisionId &&
-                    item.Status != "SUPERSEDED")
-                .ToListAsync(cancellationToken);
-            foreach (var priorException in priorExceptions)
-            {
-                priorException.Status = "SUPERSEDED";
-                priorException.SupersededByExceptionId = exceptionId;
-                priorException.ConcurrencyVersion++;
-            }
-        }
-
-        var priceException = new PurchasePriceException
-        {
-            PurchasePriceExceptionId = exceptionId,
-            PurchaseLineSupplierDecisionId = decision.PurchaseLineSupplierDecisionId,
-            ReferencePrice = DecimalPolicy.RoundMoney(decision.EvidenceReferencePrice),
-            ProposedPrice = DecimalPolicy.RoundMoney(decision.ProposedUnitPrice),
-            VariancePercent = variancePercent,
-            EvidenceType = decision.EvidenceType,
-            EvidenceId = decision.EvidenceId,
-            EvidenceDate = decision.EvidenceDate,
-            Reason = reason,
-            ProposalFingerprint = decision.DecisionFingerprint,
-            ProposalVersion = decision.Version,
-            RequestedBy = actorId,
-            RequestedAt = DateTime.UtcNow,
-            Status = "PENDING",
-            ConcurrencyVersion = 1,
-            PurchaseLineSupplierDecision = decision
-        };
-        _context.Purchasepriceexceptions.Add(priceException);
-        _context.Auditlogs.Add(new AuditLog
-        {
-            AuditId = GuidHelper.NewId(),
-            ChangedAt = priceException.RequestedAt,
-            ChangedBy = actorId,
-            BusinessArea = "Purchasing",
-            EntityName = nameof(PurchasePriceException),
-            EntityId = exceptionId,
-            FieldName = "CreatePriceException",
-            OldValue = null,
-            NewValue = decision.DecisionFingerprint,
-            Reason = reason
-        });
-    }
 
     public async Task<PurchaseRequestWorkflowResultDto?> SubmitAsync(
         string requestId,
@@ -598,6 +169,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             EntityName = nameof(PurchaseRequest),
             EntityId = purchaseRequest.PurchaseRequestId,
             FieldName = "Submit",
+
             OldValue = oldStatus,
             NewValue = PurchaseSubmittedStatus,
             Reason = "Gửi đơn mua chính thức từ nhu cầu đã duyệt."
@@ -607,44 +179,6 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
 
         return MapResult(purchaseRequest, materialRequest.RequestId, purchaseRequest.Purchaserequestlines);
     }
-
-    private static decimal ResolveLatestReceiptPrice(InventoryReceiptLine? latestReceiptLine, Unit targetUnit)
-    {
-        if (latestReceiptLine is null || latestReceiptLine.UnitPrice <= 0)
-        {
-            return 0m;
-        }
-
-        if (latestReceiptLine.UnitId.SequenceEqual(targetUnit.UnitId))
-        {
-            return latestReceiptLine.UnitPrice;
-        }
-
-        if (!CanConvertUnits(latestReceiptLine.Unit, targetUnit))
-        {
-            return 0m;
-        }
-
-
-        return DecimalPolicy.RoundMoney(latestReceiptLine.UnitPrice * targetUnit.ConvertRateToBase / latestReceiptLine.Unit.ConvertRateToBase);
-    }
-
-    private static bool CanConvertUnits(Unit sourceUnit, Unit targetUnit)
-    {
-        if (sourceUnit.UnitId.SequenceEqual(targetUnit.UnitId))
-        {
-            return true;
-        }
-
-        return sourceUnit.ConvertRateToBase > 0 &&
-               targetUnit.ConvertRateToBase > 0 &&
-               string.Equals(NormalizedBaseUnitCode(sourceUnit), NormalizedBaseUnitCode(targetUnit), StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static string NormalizedBaseUnitCode(Unit unit)
-        => string.IsNullOrWhiteSpace(unit.BaseUnitCode)
-            ? unit.UnitCode.Trim().ToUpperInvariant()
-            : unit.BaseUnitCode.Trim().ToUpperInvariant();
 
     private static string BuildKey(byte[] value)
         => Convert.ToBase64String(value);
@@ -798,6 +332,7 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
             {
                 throw new InvalidOperationException(
                     "Có dòng mua cần ngoại lệ giá hiện hành trước khi gửi đơn mua.");
+
             }
 
             if (string.Equals(currentException.Status, "REJECTED", StringComparison.Ordinal))
@@ -890,35 +425,6 @@ public class PurchaseRequestWorkflowService : IPurchaseRequestWorkflowService
                 ? null
                 : GuidHelper.ToGuidString(decision.SupersededByDecisionId),
             ConcurrencyVersion = decision.ConcurrencyVersion
-        };
-
-    private static string BuildSupplierDecisionFingerprint(
-        byte[] purchaseRequestLineId,
-        byte[] supplierId,
-        string evidenceType,
-        byte[] evidenceId,
-        decimal evidenceReferencePrice,
-        decimal proposedUnitPrice,
-        DateOnly proposedDeliveryDate)
-    {
-        var payload = string.Join(
-            '|',
-            BuildKey(purchaseRequestLineId),
-            BuildKey(supplierId),
-            evidenceType,
-            BuildKey(evidenceId),
-            DecimalPolicy.RoundMoney(evidenceReferencePrice).ToString("0.00", CultureInfo.InvariantCulture),
-            DecimalPolicy.RoundMoney(proposedUnitPrice).ToString("0.00", CultureInfo.InvariantCulture),
-            proposedDeliveryDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-        return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(payload)));
-    }
-
-    private static string ToPersistenceEvidenceType(SupplierEvidenceType evidenceType)
-        => evidenceType switch
-        {
-            SupplierEvidenceType.EffectiveQuotation => "EFFECTIVE_QUOTATION",
-            SupplierEvidenceType.LatestValidReceipt => "LATEST_VALID_RECEIPT",
-            _ => throw new ArgumentOutOfRangeException(nameof(evidenceType))
         };
 
     private static SupplierEvidenceType FromPersistenceEvidenceType(string evidenceType)

@@ -103,6 +103,7 @@ public static class DependencyInjection
         services.AddScoped<IPurchaseRequestQueryService, PurchaseRequestQueryService>();
         services.AddScoped<IPurchaseWorkbenchService, PurchaseWorkbenchService>();
         services.AddScoped<IPurchaseRequestGenerationService, PurchaseRequestGenerationService>();
+        services.AddScoped<IPurchaseSupplierDecisionService, PurchaseSupplierDecisionService>();
         services.AddScoped<IPurchaseRequestWorkflowService, PurchaseRequestWorkflowService>();
         services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
         services.AddScoped<IPurchaseReceivingService, PurchaseReceivingService>();
