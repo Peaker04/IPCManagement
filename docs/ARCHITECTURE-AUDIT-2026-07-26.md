@@ -686,6 +686,14 @@ Gate cuối: API **671 pass / 1 skip**, Application **47/47**, FE **416/416**, R
 lint/dependency/production build xanh và EF pending-model sạch. OpenAPI vẫn **152 path / 396 schema**;
 generated TypeScript không đổi và generator chạy lặp deterministic. Bước 15 tiếp tục với SampleData.
 
+**SampleData đã bắt đầu tại `486c9f8` và `815a3c0`.** Endpoint preset BOM dùng port hẹp
+`ISampleBomImportService`; weekly menu tiếp tục dùng port riêng cũ nhưng cùng scoped implementation nên
+tracking/transaction không đổi. Weighted merge, scientific notation và fallback weight/servings đã chuyển
+sang pure `PresetBomImportPolicy` có test trực tiếp. Service partial giảm còn **3.868 dòng**; chưa gọi endpoint,
+không seed/reset database. Gate hiện tại: API **672 pass / 1 skip**, Application **47/47**.
+Lát active tiếp theo là di chuyển preset BOM imperative shell khỏi `SampleDataImportService`, sau đó mới tới
+weekly parser/policy, query/template/mapping, commit, history/rollback và bulk edit.
+
 ### Bước 16 — Persistence và reliability
 
 **Mục tiêu:** chuẩn hóa mapping, transaction, exception, migration lineage và khả năng phục hồi

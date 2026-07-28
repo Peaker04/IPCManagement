@@ -747,6 +747,10 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Lát active tiếp theo là **SampleData**, theo thứ tự preset BOM → weekly parser/policy →
   query/template/mapping → preview/commit → history/rollback → bulk edit → controller/facade.
   Không gọi endpoint import và không seed/reset `ipc_lane1` trong quá trình refactor.
+- SampleData đã bắt đầu: `486c9f8` tách port preset BOM khỏi weekly menu; `815a3c0` tách pure
+  `PresetBomImportPolicy` cho weighted merge, scientific notation và fallback weight/servings.
+  Full backend sau hai lát: API **672 pass / 1 skip**, Application **47/47**. Service partial còn
+  **3.868 dòng**; bước tiếp theo là tách preset BOM imperative shell, không chạy import thật.
 
 ## Quy trình tiếp tục ở phiên mới
 
