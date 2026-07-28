@@ -433,8 +433,8 @@ Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bư�
 | 13 | Rollout state boundary: Purchasing → Approvals → Reports → Admin → Chef → Coordination | 12 | **Hoàn tất** |
 | 14 | Architecture test + dependency DAG; gỡ bốn cycle; chuyển shared DTO/interface về đúng owner; bỏ controller→DbContext; không di chuyển migration/big-bang | 13 theo thứ tự logic; đã thực hiện sớm | **Hoàn tất sớm do numbering cũ** |
 | 15 | Tách use case thật cho Reports → Coordination → Purchasing → Catalog → SampleData; tách pure policy/state transition khỏi EF/transaction | 13 + 14 | **Hoàn tất** |
-| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | **Đang thực hiện — Task 4/5** |
-| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | Chưa bắt đầu |
+| 16 | EF mapping theo feature; transaction execution strategy; domain exception; canonical migration lineage; backup off-site/restore rehearsal | 15 | **Hoàn tất** |
+| 17 | Tách endpoint module nhưng giữ một `apiSlice`; chuyển `MainLayout`; giải quyết `projects→coordination`; xử lý 54 violation; thu nhỏ page model | 13 + 15 + 16 | **Active tiếp theo** |
 | 18 | Tách test monolith/fixture builder; áp ngưỡng growth; full quality gate; đồng bộ tài liệu | 11–17 | Chưa bắt đầu |
 
 Như vậy, bốn nhãn cũ đã biến mất khỏi execution queue: boundary cũ nằm trong
@@ -456,7 +456,7 @@ acceptance criteria của chính hàng đợi này, không phải một plan th�
   Kết luận E2E phải đối chiếu FE control/render, BE request/response và DB transition/reload.
 - Bước 14 đã hoàn tất sớm dưới tên “Bước 13” cũ; không rollback các commit đã qua gate.
   Gate 13 nay đã xanh; Bước 15 đã hoàn tất cả Reports, Coordination, Purchasing, Catalog và SampleData;
-  luồng active tiếp theo là Bước 16.
+  Bước 16 cũng đã đóng; luồng active tiếp theo là Bước 17.
 
 ### Bước 11 — Khóa hợp đồng `f(data, state)`
 
@@ -719,7 +719,7 @@ Gate cuối: targeted **55/55**; API **663 pass / 1 skip**, Application **47/47*
 Debug/Release build 0 warning, lint/dependency/production build xanh và EF pending-model sạch. Không gọi
 endpoint import, không reset/seed/import hoặc truy cập database; không chạy browser vì API contract, route,
 UI và DOM không đổi. GitNexus staged audit **MEDIUM** (21 file/48 symbol/2 flow); hai flow được báo do
-comment trong `OpenWorkbook`, executable reader không đổi. **Bước 15 đã đóng; bước active tiếp theo là Bước 16.**
+comment trong `OpenWorkbook`, executable reader không đổi. **Bước 15 đã đóng; Bước 16 sau đó cũng đã hoàn tất.**
 
 ### Bước 16 — Persistence và reliability
 
@@ -736,7 +736,7 @@ mà không reset dữ liệu.
 **Gate 16:** retry không nhân đôi side effect; fresh-install/upgrade lineage được giải thích và test;
 restore drill đạt RPO/RTO đã chốt; production/lane data không bị reset.
 
-**Tiến độ 28/07/2026 — dừng ở Task 4/5:** Task 1 đã chuyển đủ **53 mapping** vào 11 file
+**Hoàn tất 28/07/2026:** Task 1 đã chuyển đủ **53 mapping** vào 11 file
 `Features/<owner>/Persistence` bằng `IEntityTypeConfiguration<T>` và đóng tại `7e94eb3`;
 `IpcManagementContext` chỉ còn registration root. Task 2 thêm execution-strategy-aware
 `IEfTransactionRunner`, regression chống duplicate side effect, domain/application exception có HTTP mapping,
@@ -745,14 +745,18 @@ Task 3 đưa runner vào Coordination, Purchasing, Inventory, SampleData, Catalo
 đóng tại `f3e7bcd`. Mutable entity luôn được load trong runner operation và mỗi operation có database verifier;
 không dùng verifier unconditional.
 
-Task 4 còn gỡ API `BeginTransactionAsync` không còn caller khỏi `IUnitOfWork`/`UnitOfWork`, cập nhật comment DI
-và quyết định `EnableRetryOnFailure` sau source scan + focused retry/idempotency regression. Task 5 còn full
-Gate 16 và closeout ARCH-16A–E. Restore rehearsal cùng SHA-256 mirror C:/D: đã pass, nhưng chưa chứng minh hai
-đích là thiết bị/site vật lý khác nhau; off-site NAS/cloud/external media vẫn là gap vận hành, không được mô tả
-như đã hoàn tất. Công việc production xen ngang sửa hai temporary-key migration dùng collation tường minh tại
-`7e79106`; gate sau incident: API **667 pass/1 skip**, Application **47/47**, FE **416/416**, Debug/Release
-0 warning, lint/dependency/build/OpenAPI/TypeScript/EF pending-model xanh. Production đã đồng bộ 61/61 bảng,
-53.404/53.404 dòng và browser xác nhận menu ANV hiện có BOM **90/90 món**; việc này không tự đóng Task 4/5.
+Task 4 đóng tại `59add79`: xóa API `BeginTransactionAsync` không còn caller khỏi
+`IUnitOfWork`/`UnitOfWork`, bật `EnableRetryOnFailure` và thêm convention test khóa production source chỉ
+còn một transaction opener trong `EfTransactionRunner`. Focused convention **2/2** và runner retry **2/2**
+chứng minh retry với tracking sạch không nhân đôi side effect. Task 5 full gate: API **667 pass/1 skip**,
+Application **49/49**, FE **416/416**, Debug/Release **0 warning/0 error**, lint sạch, dependency không có
+violation mới (54 baseline ignored), production build, OpenAPI/TypeScript deterministic và EF pending-model
+xanh. Không chạy browser vì route/API/UI/cache/DOM không đổi; không reset/seed/import hay mutate `ipc_lane1`.
+
+ARCH-16A–E đã đóng ở phạm vi code/evidence. Restore rehearsal và SHA-256 mirror C:/D: hợp lệ, nhưng chưa
+chứng minh hai đích là thiết bị/site vật lý khác nhau; NAS/cloud/external media thực sự off-site vẫn là gap
+vận hành được ghi rõ, không bị mô tả sai là disaster recovery toàn máy đã hoàn tất. Direct restore runbook
+đã bổ sung restart/clear application cache sau restore.
 
 ### Bước 17 — Thu hẹp frontend ownership
 

@@ -23,6 +23,11 @@ khóa baseline trước khi Bước 18 chuyển phần nợ đã xử lý sang b
 `.artifacts/contract-build/api`, nên có thể chạy trong khi lane API Release vẫn listen mà không dừng
 process hoặc khóa DLL của lane.
 
+`PersistenceReliabilityConventionTests` khóa production source chỉ còn một
+`BeginTransactionAsync(` trong `EfTransactionRunner` và MySQL luôn bật `EnableRetryOnFailure`.
+`EfTransactionRunnerTests` dùng SQLite retry strategy để chứng minh retry bắt đầu với tracking sạch
+và không nhân đôi database side effect.
+
 Backend từ root:
 
 ```bash
