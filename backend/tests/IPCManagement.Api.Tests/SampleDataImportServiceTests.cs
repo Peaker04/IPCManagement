@@ -3,6 +3,7 @@ using System.IO.Compression;
 using System.Reflection;
 using System.Security;
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -482,7 +483,7 @@ public class SampleDataImportServiceTests
             25000m,
             setup.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.");
         (await context.Menuversions.CountAsync()).Should().Be(1);
         (await context.Menuschedules.CountAsync()).Should().Be(1);

@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Models.Entities;
 
@@ -25,7 +26,7 @@ public class PurchaseRequestSubmissionPolicyTests
         var act = () => PurchaseRequestSubmissionPolicy.ValidateCurrentSupplierDecisions(request);
 
         act.Should()
-            .Throw<InvalidOperationException>()
+            .Throw<BusinessRuleException>()
             .WithMessage("*quyết định nhà cung cấp hiện hành*");
     }
 
@@ -42,7 +43,7 @@ public class PurchaseRequestSubmissionPolicyTests
 
         if (shouldThrow)
         {
-            act.Should().Throw<InvalidOperationException>();
+            act.Should().Throw<BusinessRuleException>();
         }
         else
         {
@@ -83,4 +84,3 @@ public class PurchaseRequestSubmissionPolicyTests
         return request;
     }
 }
-

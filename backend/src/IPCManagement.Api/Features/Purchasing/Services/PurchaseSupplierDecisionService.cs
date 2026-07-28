@@ -6,6 +6,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionService
@@ -279,7 +281,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
 
         if (!string.Equals(line.PurchaseRequest.Status, DraftStatus, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Chỉ được xác nhận nhà cung cấp khi đề xuất mua ở trạng thái DRAFT.");
+            throw new BusinessRuleException("Chỉ được xác nhận nhà cung cấp khi đề xuất mua ở trạng thái DRAFT.");
         }
 
         var currentDecision = line.SupplierDecisions
@@ -306,7 +308,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
         var exceptionReason = string.IsNullOrWhiteSpace(request.Note) ? null : request.Note.Trim();
         if (PurchasePricePolicy.RequiresException(variancePercent) && exceptionReason is null)
         {
-            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
+            throw new BusinessRuleException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
         }
 
         var fingerprint = PurchaseSupplierDecisionPolicy.BuildFingerprint(
@@ -427,7 +429,7 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
 
         if (string.IsNullOrWhiteSpace(reason))
         {
-            throw new InvalidOperationException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
+            throw new BusinessRuleException("Cần nhập lý do khi giá đề xuất vượt 15% giá tham chiếu.");
         }
 
         var existing = await _context.Purchasepriceexceptions.FirstOrDefaultAsync(item =>
@@ -493,4 +495,3 @@ public sealed class PurchaseSupplierDecisionService : IPurchaseSupplierDecisionS
     }
 
 }
-

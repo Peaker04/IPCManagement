@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using NSubstitute;
 using IPCManagement.Api.Features.Inventory.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public class StockLedgerServiceTests
@@ -108,7 +110,7 @@ public class StockLedgerServiceTests
             "Xuất kho sản xuất",
             "Phiếu xuất ISS-TEST");
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*không đủ tồn kho*Hiện có: 4*");
         _stockMovementRepository.DidNotReceive().Add(Arg.Any<StockMovement>());
     }

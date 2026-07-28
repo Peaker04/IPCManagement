@@ -211,7 +211,7 @@ public class StocktakeService : IStocktakeService
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
-        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new InvalidOperationException("Không tìm thấy phiên kiểm kê.");
+        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
         
         if (stocktake.Status != "DRAFT" && stocktake.Status != "REVIEWING")
         {
@@ -241,7 +241,7 @@ public class StocktakeService : IStocktakeService
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
-        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new InvalidOperationException("Không tìm thấy phiên kiểm kê.");
+        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
         
         if (stocktake.Status != "DRAFT")
         {
@@ -250,7 +250,7 @@ public class StocktakeService : IStocktakeService
 
         if (stocktake.Stocktakelines.Any(l => !l.ActualQty.HasValue))
         {
-            throw new InvalidOperationException("Cần nhập đầy đủ tồn thực tế cho tất cả nguyên liệu trước khi gửi duyệt.");
+            throw new BusinessRuleException("Cần nhập đầy đủ tồn thực tế cho tất cả nguyên liệu trước khi gửi duyệt.");
         }
 
         stocktake.Status = "REVIEWING";
@@ -281,7 +281,7 @@ public class StocktakeService : IStocktakeService
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
-        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new InvalidOperationException("Không tìm thấy phiên kiểm kê.");
+        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
         
         if (stocktake.Status != "REVIEWING")
         {
@@ -369,7 +369,7 @@ public class StocktakeService : IStocktakeService
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
-        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new InvalidOperationException("Không tìm thấy phiên kiểm kê.");
+        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
         
         if (stocktake.Status != "REVIEWING")
         {

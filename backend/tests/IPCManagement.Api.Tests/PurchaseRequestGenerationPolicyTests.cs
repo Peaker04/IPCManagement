@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Features.Purchasing.Services;
 using IPCManagement.Api.Models.Entities;
 
@@ -31,7 +32,7 @@ public class PurchaseRequestGenerationPolicyTests
         var act = () => PurchaseRequestGenerationPolicy.ValidateApprovedFullDayDemand(demand);
 
         act.Should()
-            .Throw<InvalidOperationException>()
+            .Throw<BusinessRuleException>()
             .WithMessage($"*{expectedMessage}*");
     }
 

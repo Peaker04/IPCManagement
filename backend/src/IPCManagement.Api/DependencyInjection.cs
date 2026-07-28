@@ -1,5 +1,6 @@
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.EntityFrameworkCore;
@@ -50,6 +51,8 @@ public static class DependencyInjection
 
         // Unit of Work
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IEfTransactionRunner>(serviceProvider =>
+            new EfTransactionRunner(serviceProvider.GetRequiredService<IpcManagementContext>()));
 
         // Security
         services.AddScoped<ICurrentUserService, CurrentUserService>();

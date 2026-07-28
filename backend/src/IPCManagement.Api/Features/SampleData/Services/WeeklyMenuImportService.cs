@@ -5,6 +5,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuImportService(
@@ -58,7 +60,7 @@ internal sealed class WeeklyMenuImportService(
                 WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage,
                 "file");
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return WeeklyMenuImportValidationPolicy.BuildInvalidResult(
                 fileName,
@@ -105,7 +107,7 @@ internal sealed class WeeklyMenuImportService(
             {
                 var firstIssue = validationResult.Validation.Issues.FirstOrDefault(item =>
                     string.Equals(item.Severity, "error", StringComparison.OrdinalIgnoreCase));
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     firstIssue?.Message ?? "File import còn lỗi critical, không thể commit DB.");
             }
 
@@ -122,7 +124,7 @@ internal sealed class WeeklyMenuImportService(
         }
         catch (Exception ex) when (WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException(ex))
         {
-            throw new InvalidOperationException(WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage, ex);
+            throw new BusinessRuleException(WeeklyMenuImportValidationPolicy.UnreadableWorkbookMessage, ex);
         }
         finally
         {
@@ -143,14 +145,14 @@ internal sealed class WeeklyMenuImportService(
     {
         if (priceTierAmount is null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Vui lòng chọn định mức 25.000, 30.000 hoặc 34.000 trước khi import menu.");
         }
 
         var normalized = DecimalPolicy.RoundMoney(priceTierAmount.Value);
         if (!Array.Exists(WeeklyMenuPriceTiers, tier => tier == normalized))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Định mức import menu chỉ được chọn 25.000, 30.000 hoặc 34.000.");
         }
 

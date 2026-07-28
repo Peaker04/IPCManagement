@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Inventory.Services;
 
 public class StockLedgerService : IStockLedgerService
@@ -127,7 +129,7 @@ public class StockLedgerService : IStockLedgerService
         var currentStock = await _currentStockRepo.GetByWarehouseAndIngredientAsync(warehouseId, ingredientId);
         if (currentStock is null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Nguyên liệu '{GuidHelper.ToGuidString(ingredientId)}' không đủ tồn kho tại kho chỉ định. Yêu cầu: {quantity}, Hiện có: 0.");
         }
 
@@ -141,7 +143,7 @@ public class StockLedgerService : IStockLedgerService
             var currentQty = currentStock is null
                 ? 0
                 : await _currentStockRepo.ConvertQuantityAsync(currentStock.UnitId, unitId, currentStock.CurrentQty);
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Nguyên liệu '{GuidHelper.ToGuidString(ingredientId)}' không đủ tồn kho tại kho chỉ định. Yêu cầu: {quantity}, Hiện có: {currentQty}.");
         }
 

@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Controllers;
 
 [ApiController]
@@ -151,7 +153,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
                 result,
                 "Đã phân tích file thực đơn. Vui lòng kiểm tra trước khi lưu."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -197,7 +199,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
                 result,
                 "Đã lưu thực đơn tuần từ file Excel."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -234,7 +236,7 @@ public sealed class WeeklyMenuImportsController : ControllerBase
                 result,
                 "Đã hủy phiên import thực đơn."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Controllers;
 
 [ApiController]
@@ -56,7 +58,7 @@ public sealed class WarehousePurchaseReceiptsController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(exception.Message));
         }
-        catch (InvalidOperationException exception)
+        catch (BusinessRuleException exception)
         {
             return Conflict(ApiResponse.FailResult(exception.Message));
         }

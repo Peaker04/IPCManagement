@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Approvals.Services;
 
 public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
@@ -64,7 +66,7 @@ public abstract class ApprovalHandlerBase<TEntity> : IApprovalTargetHandler
             .AnyAsync(item => item.TargetType == targetType && item.TargetId == targetId);
         if (alreadyResolved)
         {
-            throw new InvalidOperationException("Phiếu này đã được xử lý.");
+            throw new BusinessRuleException("Phiếu này đã được xử lý.");
         }
 
         var actionAt = DateTime.UtcNow;
@@ -118,7 +120,7 @@ public sealed class PurchaseRequestApprovalHandler : ApprovalHandlerBase<Purchas
 
         if (request.Status == ApprovalDecision.Approve && await HasPriceWarningAsync(entity))
         {
-            throw new InvalidOperationException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
+            throw new BusinessRuleException("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
         }
 
         entity.Status = newStatus;
@@ -187,7 +189,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
             if (!string.Equals(existingHistory.Decision, requestedDecision, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(priceException.Status, existingHistory.NewStatus, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Ngoại lệ giá đã có quyết định khác hoặc không còn đúng phiên bản.");
+                throw new BusinessRuleException("Ngoại lệ giá đã có quyết định khác hoặc không còn đúng phiên bản.");
             }
 
             return MapExistingResult(existingHistory);
@@ -195,7 +197,7 @@ public sealed class PurchasePriceExceptionApprovalHandler : ApprovalHandlerBase<
 
         if (!string.Equals(priceException.Status, "PENDING", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Chỉ ngoại lệ giá PENDING hiện hành mới được quyết định.");
+            throw new BusinessRuleException("Chỉ ngoại lệ giá PENDING hiện hành mới được quyết định.");
         }
 
         var decision = priceException.PurchaseLineSupplierDecision;
@@ -276,7 +278,7 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
             if (!string.Equals(existingHistory.Decision, requestedDecision, StringComparison.OrdinalIgnoreCase) ||
                 !string.Equals(demand.Status, existingHistory.NewStatus, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException("Nhu cầu nguyên liệu đã có quyết định khác hoặc không còn đúng phiên bản.");
+                throw new BusinessRuleException("Nhu cầu nguyên liệu đã có quyết định khác hoặc không còn đúng phiên bản.");
             }
 
             return MapExistingResult(existingHistory);
@@ -284,7 +286,7 @@ public sealed class MaterialDemandApprovalHandler : ApprovalHandlerBase<Material
 
         if (!string.Equals(demand.Status, PendingStatus, StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Chỉ nhu cầu nguyên liệu DRAFT hiện hành mới được quyết định.");
+            throw new BusinessRuleException("Chỉ nhu cầu nguyên liệu DRAFT hiện hành mới được quyết định.");
         }
 
         var oldStatus = demand.Status;

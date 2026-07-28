@@ -9,6 +9,8 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.SampleData.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryReconciliationService
@@ -326,7 +328,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         AssertDisposableTarget(databaseIdentity);
         if (appliedBy.Length != 16)
         {
-            throw new InvalidOperationException("Apply requires a valid server-authenticated actor.");
+            throw new BusinessRuleException("Apply requires a valid server-authenticated actor.");
         }
 
         var replay = await TryBuildReplayResultAsync(
@@ -433,24 +435,24 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         AssertDisposableTarget(databaseIdentity);
         if (appliedBy.Length != 16)
         {
-            throw new InvalidOperationException("Apply requires a valid server-authenticated actor.");
+            throw new BusinessRuleException("Apply requires a valid server-authenticated actor.");
         }
 
         if (request.BackupRestoreEvidence is null)
         {
-            throw new InvalidOperationException("Apply requires backup and restore evidence.");
+            throw new BusinessRuleException("Apply requires backup and restore evidence.");
         }
 
         var preview = await PreviewAsync(cancellationToken);
         if (preview.Blockers.Count != 0 || preview.Manifest.BlockerCount != 0)
         {
-            throw new InvalidOperationException("A reconciliation manifest with blockers cannot be applied.");
+            throw new BusinessRuleException("A reconciliation manifest with blockers cannot be applied.");
         }
 
         if (!string.Equals(request.ManifestId, preview.Manifest.ManifestId, StringComparison.Ordinal) ||
             !string.Equals(request.ManifestHash, preview.Manifest.ManifestHash, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The accepted reconciliation manifest is stale.");
+            throw new BusinessRuleException("The accepted reconciliation manifest is stale.");
         }
 
         var expectedActionIds = preview.Actions.Select(action => action.ActionId).ToArray();
@@ -458,7 +460,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             request.AcceptedActionIds.Distinct(StringComparer.Ordinal).Count() != expectedActionIds.Length ||
             !request.AcceptedActionIds.SequenceEqual(expectedActionIds, StringComparer.Ordinal))
         {
-            throw new InvalidOperationException("The accepted reconciliation action set or count has drifted.");
+            throw new BusinessRuleException("The accepted reconciliation action set or count has drifted.");
         }
 
         var suppliedEvidence = request.BackupRestoreEvidence;
@@ -476,7 +478,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 safetyEvidence.RestoreFingerprint,
                 StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Backup or restore evidence does not match the verified disposable baseline.");
+            throw new BusinessRuleException("Backup or restore evidence does not match the verified disposable baseline.");
         }
 
         var acceptedSource = _sourceFactory();
@@ -487,7 +489,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             acceptedSource.ParseResult.AsOfDate != preview.Manifest.AsOfDate ||
             !string.Equals(acceptedSource.PolicyVersion, preview.Manifest.PolicyVersion, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The server-owned source changed during apply validation.");
+            throw new BusinessRuleException("The server-owned source changed during apply validation.");
         }
 
         return new ValidatedPurchaseHistoryApply(
@@ -527,7 +529,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             !string.Equals(request.BackupRestoreEvidence.TargetFingerprint, existing.BackupTargetFingerprint, StringComparison.Ordinal) ||
             !string.Equals(request.BackupRestoreEvidence.RestoreFingerprint, existing.RestoreFingerprint, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The replay request does not match the original applied run.");
+            throw new BusinessRuleException("The replay request does not match the original applied run.");
         }
 
         var source = _sourceFactory();
@@ -535,7 +537,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             source.ParseResult.AsOfDate != existing.AsOfDate ||
             !string.Equals(source.PolicyVersion, existing.PolicyVersion, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("The source or policy changed after the original apply.");
+            throw new BusinessRuleException("The source or policy changed after the original apply.");
         }
 
         var persistedActionIds = await _context.Purchasehistoryreconciliationactions
@@ -547,7 +549,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             persistedActionIds.Except(request.AcceptedActionIds, StringComparer.Ordinal).Any() ||
             request.AcceptedActionIds.Except(persistedActionIds, StringComparer.Ordinal).Any())
         {
-            throw new InvalidOperationException("The replay action set does not match the original applied run.");
+            throw new BusinessRuleException("The replay action set does not match the original applied run.");
         }
 
         return new PurchaseHistoryApplyResultDto
@@ -576,7 +578,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 var targetId = ParseTargetId(action);
                 var line = await _context.Inventoryreceiptlines
                     .SingleOrDefaultAsync(item => item.ReceiptLineId == targetId, cancellationToken)
-                    ?? throw new InvalidOperationException("The accepted delete target no longer exists.");
+                    ?? throw new BusinessRuleException("The accepted delete target no longer exists.");
                 _context.Inventoryreceiptlines.Remove(line);
                 return;
             }
@@ -588,13 +590,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                         item => item.ReceiptLineId == targetId,
                         cancellationToken))
                 {
-                    throw new InvalidOperationException("The accepted preserved target no longer exists.");
+                    throw new BusinessRuleException("The accepted preserved target no longer exists.");
                 }
 
                 return;
             }
             default:
-                throw new InvalidOperationException($"Unsupported accepted reconciliation action: {action.ActionType}.");
+                throw new BusinessRuleException($"Unsupported accepted reconciliation action: {action.ActionType}.");
         }
     }
 
@@ -605,9 +607,9 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     {
         var candidate = accepted.Candidates.SingleOrDefault(item =>
             string.Equals(item.SourceKey, action.SourceKey, StringComparison.Ordinal))
-            ?? throw new InvalidOperationException("The accepted source candidate no longer exists.");
+            ?? throw new BusinessRuleException("The accepted source candidate no longer exists.");
         var normalization = candidate.Normalization
-            ?? throw new InvalidOperationException("The accepted source candidate is not normalized.");
+            ?? throw new BusinessRuleException("The accepted source candidate is not normalized.");
         var supplierId = await _context.Suppliers
             .Where(item => item.SupplierName == normalization.SupplierName && item.IsActive != false)
             .Select(item => item.SupplierId)
@@ -647,7 +649,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             ReceiptId = receiptId,
             ReceiptCode = $"RCR-{accepted.Preview.Manifest.ManifestId[..8]}-{action.ActionId[..8]}",
             ReceiptDate = normalization.DeliveryDate ?? candidate.DeliveryDate
-                ?? throw new InvalidOperationException("The accepted source candidate has no delivery date."),
+                ?? throw new BusinessRuleException("The accepted source candidate has no delivery date."),
             WarehouseId = warehouseId,
             SupplierId = supplierId,
             CreatedBy = accepted.AppliedBy,
@@ -700,7 +702,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
     {
         if (action.TargetId.Length != 32)
         {
-            throw new InvalidOperationException("The accepted reconciliation target ID is invalid.");
+            throw new BusinessRuleException("The accepted reconciliation target ID is invalid.");
         }
 
         return Convert.FromHexString(action.TargetId);
@@ -719,7 +721,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 "^ipc_lane[1-9]$",
                 RegexOptions.CultureInvariant | RegexOptions.IgnoreCase))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Purchase-history apply is restricted to ipc_lane1..ipc_lane9 disposable databases.");
         }
     }
@@ -737,7 +739,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
                 if (!string.Equals(parsed.WorkbookSha256, AuditedSourceSha256, StringComparison.Ordinal) ||
                     parsed.ImportableBusinessKeys.Count != AuditedCurrentUniqueBusinessKeyCount)
                 {
-                    throw new InvalidOperationException("Nguồn lịch sử mua hàng phía server không khớp baseline đã kiểm toán.");
+                    throw new BusinessRuleException("Nguồn lịch sử mua hàng phía server không khớp baseline đã kiểm toán.");
                 }
 
                 return new PurchaseHistoryPreviewSource(SourceFileName, parsed);
@@ -778,7 +780,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         var actualProtectedHash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(protectedSqlPath)));
         if (!string.Equals(actualProtectedHash, expectedProtectedHash, StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Protected cleanup SQL hash does not match the Wave 0 baseline.");
+            throw new BusinessRuleException("Protected cleanup SQL hash does not match the Wave 0 baseline.");
         }
 
         const string protectedRelativePath = "backend/database/Clean_Legacy_Imported_Bom_Idempotent.sql";
@@ -792,13 +794,13 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
         if (porcelain.ExitCode != 0 ||
             !string.Equals(porcelain.Output.Trim(), $"?? {protectedRelativePath}", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Protected cleanup SQL porcelain state has changed.");
+            throw new BusinessRuleException("Protected cleanup SQL porcelain state has changed.");
         }
 
         var tracked = RunGit(repositoryRoot, "ls-files", "--error-unmatch", "--", protectedRelativePath);
         if (tracked.ExitCode == 0)
         {
-            throw new InvalidOperationException("Protected cleanup SQL unexpectedly became tracked.");
+            throw new BusinessRuleException("Protected cleanup SQL unexpectedly became tracked.");
         }
 
         return new PurchaseHistoryApplySafetyEvidence(
@@ -832,7 +834,7 @@ public sealed class PurchaseHistoryReconciliationService : IPurchaseHistoryRecon
             RegexOptions.CultureInvariant);
         return match.Success
             ? match.Groups["value"].Value.Trim()
-            : throw new InvalidOperationException($"Wave 0 evidence is missing {key}.");
+            : throw new BusinessRuleException($"Wave 0 evidence is missing {key}.");
     }
 
     private static GitCommandResult RunGit(string repositoryRoot, params string[] arguments)

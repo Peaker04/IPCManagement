@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class OrderSignoffService : IOrderSignoffService
@@ -37,7 +39,7 @@ public sealed class OrderSignoffService : IOrderSignoffService
         var oldStatus = OrderStatus.Normalize(plan.Status);
         if (!OrderStatus.CanTransition(oldStatus, OrderStatus.Completed))
         {
-            throw new InvalidOperationException("Chỉ có thể hoàn tất ca sau khi kế hoạch đã được chốt.");
+            throw new BusinessRuleException("Chỉ có thể hoàn tất ca sau khi kế hoạch đã được chốt.");
         }
 
         var signedOffAt = DateTime.UtcNow;
@@ -66,7 +68,7 @@ public sealed class OrderSignoffService : IOrderSignoffService
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Kế hoạch này đã được người khác chỉnh sửa trước đó. Vui lòng tải lại trang.");
         }
 
@@ -113,7 +115,7 @@ public sealed class OrderSignoffService : IOrderSignoffService
             !OrderStatus.CanTransition(plan.Status, OrderStatus.Completed));
         if (invalidPlan is not null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Chỉ có thể hoàn tất ca khi tất cả kế hoạch đã được chốt. " +
                 $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
         }
@@ -156,7 +158,7 @@ public sealed class OrderSignoffService : IOrderSignoffService
         catch (DbUpdateConcurrencyException)
         {
             await transaction.RollbackAsync();
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
         }
         catch

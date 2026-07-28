@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using IPCManagement.Api.Features.Approvals.Contracts;
 using IPCManagement.Api.Features.Approvals.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Approvals.Controllers;
 
 [ApiController]
@@ -48,7 +50,7 @@ public class ApprovalsController : ControllerBase
         {
             return StatusCode(StatusCodes.Status403Forbidden, ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

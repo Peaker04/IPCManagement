@@ -6,6 +6,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<QuantityAdjustment>
@@ -33,7 +35,7 @@ public sealed class InventoryAdjustmentApprovalHandler : ApprovalHandlerBase<Qua
 
         if (alreadyResolved)
         {
-            throw new InvalidOperationException("Yêu cầu điều chỉnh này đã được xử lý.");
+            throw new BusinessRuleException("Yêu cầu điều chỉnh này đã được xử lý.");
         }
 
         var oldStatus = "PENDING";

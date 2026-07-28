@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Controllers;
 
 [ApiController]
@@ -47,7 +49,7 @@ public sealed class MealQuantityPlansController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }

@@ -1,5 +1,7 @@
 using IPCManagement.Api.Helpers;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public static class PurchasePricePolicy
@@ -10,7 +12,7 @@ public static class PurchasePricePolicy
     {
         if (referencePrice is null || referencePrice <= 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Thiếu giá tham chiếu hợp lệ để đánh giá ngoại lệ giá mua.");
         }
 
@@ -18,7 +20,7 @@ public static class PurchasePricePolicy
         var normalizedProposedPrice = DecimalPolicy.RoundMoney(proposedPrice);
         if (normalizedReferencePrice <= 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Thiếu giá tham chiếu hợp lệ để đánh giá ngoại lệ giá mua.");
         }
 

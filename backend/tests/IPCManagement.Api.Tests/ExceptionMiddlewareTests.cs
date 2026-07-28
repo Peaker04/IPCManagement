@@ -1,5 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Middlewares;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Hosting;
@@ -41,6 +42,34 @@ public class ExceptionMiddlewareTests
         body.GetProperty("message").GetString().Should().Be("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
         body.TryGetProperty("errors", out var errors).Should().BeTrue();
         errors.ValueKind.Should().Be(JsonValueKind.Null);
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_Return_BadRequest_ForClassifiedBusinessRule()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = CreateMiddleware(_ => throw new BusinessRuleException("Quy tắc nghiệp vụ không hợp lệ."));
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status400BadRequest);
+        var body = await ReadJsonBodyAsync(context);
+        body.GetProperty("message").GetString().Should().Be("Quy tắc nghiệp vụ không hợp lệ.");
+    }
+
+    [Fact]
+    public async Task InvokeAsync_Should_TreatInvalidOperationAsUnexpectedServerFailure()
+    {
+        var context = new DefaultHttpContext();
+        context.Response.Body = new MemoryStream();
+        var middleware = CreateMiddleware(_ => throw new InvalidOperationException("internal invariant detail"));
+
+        await middleware.InvokeAsync(context);
+
+        context.Response.StatusCode.Should().Be(StatusCodes.Status500InternalServerError);
+        var body = await ReadJsonBodyAsync(context);
+        body.GetProperty("message").GetString().Should().Be("Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.");
     }
 
     private static ExceptionMiddleware CreateMiddleware(RequestDelegate next)

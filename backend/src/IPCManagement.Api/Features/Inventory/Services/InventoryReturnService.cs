@@ -72,7 +72,7 @@ public class InventoryReturnService : IInventoryReturnService
 
         if (!issue.WarehouseId.SequenceEqual(warehouseBytes))
         {
-            throw new InvalidOperationException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
+            throw new BusinessRuleException("Phiếu trả phải thuộc cùng kho với phiếu xuất gốc.");
         }
 
         var returnType = NormalizeReturnType(dto.ReturnType);
@@ -304,14 +304,14 @@ public class InventoryReturnService : IInventoryReturnService
 
         if (!issueQuantities.TryGetValue(key, out var issuedQuantity))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Nguyên liệu trả phải tồn tại trong phiếu xuất gốc và cùng đơn vị tính.");
         }
 
         var alreadyAccounted = accountedQuantities.GetValueOrDefault(key);
         if (DecimalPolicy.GreaterThanQuantity(alreadyAccounted + accountedQuantity, issuedQuantity))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Số lượng trả/hao hụt vượt quá số lượng đã xuất. Đã xuất: {issuedQuantity}, đã ghi nhận: {alreadyAccounted}, ghi thêm: {accountedQuantity}.");
         }
     }

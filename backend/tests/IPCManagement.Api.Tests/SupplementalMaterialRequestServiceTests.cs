@@ -8,6 +8,8 @@ using NSubstitute;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public sealed class SupplementalMaterialRequestServiceTests
@@ -55,7 +57,7 @@ public sealed class SupplementalMaterialRequestServiceTests
             GuidHelper.ToGuidString(seed.UserId),
             GuidHelper.ToGuidString(seed.WarehouseId));
 
-        await action.Should().ThrowAsync<InvalidOperationException>()
+        await action.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*xác nhận đã nhận*");
     }
 

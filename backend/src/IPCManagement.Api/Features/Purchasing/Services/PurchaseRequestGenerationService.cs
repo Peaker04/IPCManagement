@@ -5,6 +5,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public sealed class PurchaseRequestGenerationService : IPurchaseRequestGenerationService
@@ -253,7 +255,7 @@ public sealed class PurchaseRequestGenerationService : IPurchaseRequestGeneratio
 
         if (!PurchaseRequestGenerationPolicy.BelongsToCurrentDemand(existing, materialRequest))
         {
-            throw new InvalidOperationException("Nhu cầu nguyên liệu đã cũ hoặc không khớp với đề xuất mua hiện tại.");
+            throw new BusinessRuleException("Nhu cầu nguyên liệu đã cũ hoặc không khớp với đề xuất mua hiện tại.");
         }
     }
 

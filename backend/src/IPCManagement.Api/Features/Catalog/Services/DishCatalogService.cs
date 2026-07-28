@@ -7,6 +7,8 @@ using IPCManagement.Api.Shared.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Catalog.Services;
 
 public sealed class DishCatalogService : IDishCatalogService
@@ -79,7 +81,7 @@ public sealed class DishCatalogService : IDishCatalogService
     {
         if (await _dishRepo.IsCodeExistsAsync(dto.DishCode))
         {
-            throw new InvalidOperationException($"Mã món ăn '{dto.DishCode}' đã tồn tại.");
+            throw new BusinessRuleException($"Mã món ăn '{dto.DishCode}' đã tồn tại.");
         }
 
         var entity = new Dish

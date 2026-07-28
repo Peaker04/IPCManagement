@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class MealQuantityPlanService : IMealQuantityPlanService
@@ -155,7 +157,7 @@ public sealed class MealQuantityPlanService : IMealQuantityPlanService
             }
             else if (OrderStatus.Normalize(plan.Status) == OrderStatus.Completed && !request.Complete)
             {
-                throw new InvalidOperationException("Ca đã hoàn tất. Điều chỉnh sau hoàn tất cần thực hiện ở Điều phối đơn.");
+                throw new BusinessRuleException("Ca đã hoàn tất. Điều chỉnh sau hoàn tất cần thực hiện ở Điều phối đơn.");
             }
             else
             {

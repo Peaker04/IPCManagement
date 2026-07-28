@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Data.Repositories;
@@ -216,7 +217,7 @@ public class SupplierDecisionWorkflowTests
             },
             UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*duyệt nhu cầu nguyên liệu*");
         (await context.Purchaserequests.CountAsync()).Should().Be(0);
         (await context.Purchaserequestlines.CountAsync()).Should().Be(0);
@@ -265,7 +266,7 @@ public class SupplierDecisionWorkflowTests
             },
             UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*FULLDAY*");
         (await context.Purchaserequests.CountAsync()).Should().Be(0);
     }
@@ -295,7 +296,7 @@ public class SupplierDecisionWorkflowTests
             },
             UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*cũ*");
         (await context.Purchaserequests.CountAsync()).Should().Be(1);
         (await context.Purchaserequestlines.CountAsync()).Should().Be(1);
@@ -782,7 +783,7 @@ public class SupplierDecisionWorkflowTests
                 ExpectedDecisionVersion = 1
             },
             UserId);
-        await wrongStatus.Should().ThrowAsync<InvalidOperationException>()
+        await wrongStatus.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*DRAFT*");
         (await context.Purchaselinesupplierdecisions.CountAsync()).Should().Be(1);
     }
@@ -906,7 +907,7 @@ public class SupplierDecisionWorkflowTests
             UserId);
 
         var blocked = () => service.SubmitAsync(requestId, UserId);
-        await blocked.Should().ThrowAsync<InvalidOperationException>()
+        await blocked.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*ngoại lệ giá*");
 
         var priceException = await context.Purchasepriceexceptions.SingleAsync();
@@ -973,7 +974,7 @@ public class SupplierDecisionWorkflowTests
             GuidHelper.ToGuidString(fixture.Request.PurchaseRequestId),
             UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*ngoại lệ giá*");
         (await context.Purchaseorders.CountAsync()).Should().Be(0);
     }

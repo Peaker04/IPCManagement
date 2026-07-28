@@ -5,6 +5,8 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Catalog.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Catalog.Services;
 
 public sealed class DishBomService : IDishBomService
@@ -91,7 +93,7 @@ public sealed class DishBomService : IDishBomService
         if (bomStatus == DishBomPolicy.Published &&
             await HasOverlappingBomLineAsync(dishBytes, ingredientBytes, unitBytes, priceTier, customerId, effectiveFrom, dto.EffectiveTo))
         {
-            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực cho cùng đơn giá/khách hàng.");
+            throw new BusinessRuleException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực cho cùng đơn giá/khách hàng.");
         }
 
         var entity = new DishBom
@@ -230,7 +232,7 @@ public sealed class DishBomService : IDishBomService
                     targetEffectiveTo,
                     entity.BomId))
                 {
-                    throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
+                    throw new BusinessRuleException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
                 }
 
                 if (entity.EffectiveTo is null || entity.EffectiveTo >= targetEffectiveFrom)
@@ -275,7 +277,7 @@ public sealed class DishBomService : IDishBomService
             targetEffectiveTo,
             entity.BomId))
         {
-            throw new InvalidOperationException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
+            throw new BusinessRuleException("Món ăn đã có dòng BOM trùng nguyên liệu, đơn vị và khoảng hiệu lực.");
         }
 
         entity.IngredientId = targetIngredientId;

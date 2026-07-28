@@ -6,6 +6,8 @@ using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 internal static class PurchaseSupplierDecisionPolicy
@@ -86,7 +88,7 @@ internal static class PurchaseSupplierDecisionPolicy
         {
             "EFFECTIVE_QUOTATION" => SupplierEvidenceType.EffectiveQuotation,
             "LATEST_VALID_RECEIPT" => SupplierEvidenceType.LatestValidReceipt,
-            _ => throw new InvalidOperationException(
+            _ => throw new BusinessRuleException(
                 $"Loại bằng chứng nhà cung cấp không hợp lệ: {evidenceType}.")
         };
 
@@ -95,4 +97,3 @@ internal static class PurchaseSupplierDecisionPolicy
             ? unit.UnitCode.Trim().ToUpperInvariant()
             : unit.BaseUnitCode.Trim().ToUpperInvariant();
 }
-

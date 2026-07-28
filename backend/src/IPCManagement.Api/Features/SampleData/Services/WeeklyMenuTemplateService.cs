@@ -2,6 +2,8 @@ using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuTemplateService(IpcManagementContext context) : IWeeklyMenuTemplateService
@@ -37,7 +39,7 @@ internal sealed class WeeklyMenuTemplateService(IpcManagementContext context) : 
             "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx";
         using var resourceStream = typeof(WeeklyMenuTemplateService).Assembly
             .GetManifestResourceStream(resourceName)
-            ?? throw new InvalidOperationException(
+            ?? throw new BusinessRuleException(
                 "Không tìm thấy template thực đơn ANV mặc định trong ứng dụng.");
         using var output = new MemoryStream();
         resourceStream.CopyTo(output);

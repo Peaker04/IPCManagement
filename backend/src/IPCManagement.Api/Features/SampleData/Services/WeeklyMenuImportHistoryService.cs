@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuImportHistoryService(
@@ -81,7 +83,7 @@ internal sealed class WeeklyMenuImportHistoryService(
         var (canRollback, reason) = await EvaluateRollbackEligibilityAsync(version, cancellationToken);
         if (!canRollback)
         {
-            throw new InvalidOperationException(reason ?? "Không thể rollback phiên import này.");
+            throw new BusinessRuleException(reason ?? "Không thể rollback phiên import này.");
         }
 
         var schedules = await context.Menuschedules

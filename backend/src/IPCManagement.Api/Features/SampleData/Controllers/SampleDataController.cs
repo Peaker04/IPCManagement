@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using IPCManagement.Api.Features.SampleData.Contracts;
 using IPCManagement.Api.Features.SampleData.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Controllers;
 
 [ApiController]
@@ -113,7 +115,7 @@ public class SampleDataController : ControllerBase
                     ? "Manifest đối soát đã được áp dụng trước đó."
                     : "Áp dụng đối soát lịch sử mua hàng hoàn tất."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }

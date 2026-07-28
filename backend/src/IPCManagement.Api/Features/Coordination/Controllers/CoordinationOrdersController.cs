@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Controllers;
 
 [ApiController]
@@ -66,7 +68,7 @@ public sealed class CoordinationOrdersController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -89,7 +91,7 @@ public sealed class CoordinationOrdersController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -113,7 +115,7 @@ public sealed class CoordinationOrdersController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -135,7 +137,7 @@ public sealed class CoordinationOrdersController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -154,7 +156,7 @@ public sealed class CoordinationOrdersController : ControllerBase
                 ? NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"))
                 : Ok(ApiResponse<SignoffOrderResultDto>.SuccessResult(result, "Hoàn tất ca thành công."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -174,7 +176,7 @@ public sealed class CoordinationOrdersController : ControllerBase
                 ? NotFound(ApiResponse.FailResult($"Không tìm thấy kế hoạch với ID: {id}"))
                 : Ok(ApiResponse<LockOrderPlanResultDto>.SuccessResult(result, "Mở khóa kế hoạch thành công."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -192,7 +194,7 @@ public sealed class CoordinationOrdersController : ControllerBase
                 ? NotFound(ApiResponse.FailResult("Không tìm thấy dòng kế hoạch suất ăn để điều chỉnh."))
                 : Ok(ApiResponse<AdjustServingsResultDto>.SuccessResult(result, result.Warning ?? "Điều chỉnh số suất ăn thành công."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -214,7 +216,7 @@ public sealed class CoordinationOrdersController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }

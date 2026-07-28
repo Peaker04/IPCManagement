@@ -7,6 +7,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuCustomerResolver(IpcManagementContext context)
@@ -59,7 +61,7 @@ internal sealed class WeeklyMenuAuditActorResolver(IpcManagementContext context)
             .FirstOrDefaultAsync(cancellationToken);
 
         return actor?.UserId
-            ?? throw new InvalidOperationException("Không tìm thấy user để ghi audit import thực đơn.");
+            ?? throw new BusinessRuleException("Không tìm thấy user để ghi audit import thực đơn.");
     }
 }
 

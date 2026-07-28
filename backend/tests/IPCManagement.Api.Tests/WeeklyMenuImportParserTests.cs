@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Security;
 using System.Xml.Linq;
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -97,7 +98,7 @@ public class WeeklyMenuImportParserTests
         var action = () => method!.Invoke(null, [null]);
 
         action.Should().Throw<TargetInvocationException>()
-            .WithInnerException<InvalidOperationException>()
+            .WithInnerException<BusinessRuleException>()
             .WithMessage("*chọn định mức*");
     }
 
@@ -306,7 +307,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "no-sheet.xlsx", null);
-            action.Should().Throw<InvalidOperationException>();
+            action.Should().Throw<BusinessRuleException>();
         }
         finally
         {
@@ -334,7 +335,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var action = () => InvokeParse(tempFile, "bad-dates.xlsx", null);
-            action.Should().Throw<InvalidOperationException>();
+            action.Should().Throw<BusinessRuleException>();
         }
         finally
         {
@@ -695,7 +696,7 @@ public class WeeklyMenuImportParserTests
 
             var action = () => InvokeParse(tempFile, "mam-le-cung.xlsx", null);
 
-            action.Should().Throw<InvalidOperationException>()
+            action.Should().Throw<BusinessRuleException>()
                 .WithMessage("*không có bảng thực đơn tuần*");
         }
         finally
@@ -730,7 +731,7 @@ public class WeeklyMenuImportParserTests
             ]);
 
             var actionWithoutHint = () => InvokeParse(tempFile, "customer-file.xlsx", null, null);
-            actionWithoutHint.Should().Throw<InvalidOperationException>();
+            actionWithoutHint.Should().Throw<BusinessRuleException>();
 
             var mapping = new CustomerImportMapping { SheetNameHint = "MENU" };
             var plan = InvokeParse(tempFile, "customer-file.xlsx", null, mapping);

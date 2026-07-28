@@ -15,6 +15,8 @@ using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Inventory.Validators;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public class InventoryIssueServiceTests
@@ -256,7 +258,7 @@ public class InventoryIssueServiceTests
 
         var act = async () => await _service.CreateAsync(dto, userId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*vượt nhu cầu còn lại*");
         _issueRepository.DidNotReceive().Add(Arg.Any<InventoryIssue>());
         await _stockLedgerService.DidNotReceive().RemoveStockWithCheckAsync(
