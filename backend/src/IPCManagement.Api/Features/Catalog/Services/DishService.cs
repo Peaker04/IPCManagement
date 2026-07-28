@@ -16,9 +16,9 @@ public class DishService : IDishService
 {
     private readonly IDishCatalogService _catalogService;
     private readonly IDishCatalogDiagnosticsService _diagnosticsService;
+    private readonly IDishBomTemplateService _templateService;
     private readonly IpcManagementContext _context;
     private readonly IMemoryCache _cache;
-    private const int BlankBomRowsPerDish = 8;
 
     public DishService(IDishRepository dishRepo, IpcManagementContext context, IMemoryCache cache)
         : this(
@@ -26,7 +26,8 @@ public class DishService : IDishService
             context,
             cache,
             new DishCatalogService(dishRepo, context, cache),
-            new DishCatalogDiagnosticsService(context))
+            new DishCatalogDiagnosticsService(context),
+            new DishBomTemplateService(context))
     {
     }
 
@@ -35,7 +36,13 @@ public class DishService : IDishService
         IpcManagementContext context,
         IMemoryCache cache,
         IDishCatalogService catalogService)
-        : this(dishRepo, context, cache, catalogService, new DishCatalogDiagnosticsService(context))
+        : this(
+            dishRepo,
+            context,
+            cache,
+            catalogService,
+            new DishCatalogDiagnosticsService(context),
+            new DishBomTemplateService(context))
     {
     }
 
@@ -45,9 +52,21 @@ public class DishService : IDishService
         IMemoryCache cache,
         IDishCatalogService catalogService,
         IDishCatalogDiagnosticsService diagnosticsService)
+        : this(dishRepo, context, cache, catalogService, diagnosticsService, new DishBomTemplateService(context))
+    {
+    }
+
+    public DishService(
+        IDishRepository dishRepo,
+        IpcManagementContext context,
+        IMemoryCache cache,
+        IDishCatalogService catalogService,
+        IDishCatalogDiagnosticsService diagnosticsService,
+        IDishBomTemplateService templateService)
     {
         _catalogService = catalogService;
         _diagnosticsService = diagnosticsService;
+        _templateService = templateService;
         _context = context;
         _cache = cache;
     }
@@ -67,82 +86,10 @@ public class DishService : IDishService
         => _diagnosticsService.GetMenuImportHistoryAsync();
     public Task<SampleImportStatusDto> GetSampleImportStatusAsync()
         => _diagnosticsService.GetSampleImportStatusAsync();
-    public async Task<byte[]> BuildBomTemplateWorkbookAsync(BomTemplateQueryDto query, CancellationToken cancellationToken = default)
-    {
-        var priceTier = DishBomPolicy.NormalizePriceTier(query.PriceTier);
-        var customerId = DishBomPolicy.ParseOptionalCustomerId(query.CustomerId);
-        var dishId = DishBomPolicy.ParseOptionalDishId(query.DishId);
-        var templateType = DishBomPolicy.NormalizeTemplateType(query.TemplateType, dishId is not null);
-        var customerCode = await ResolveCustomerCodeAsync(customerId, cancellationToken);
-        var rows = new List<IReadOnlyList<string>>();
-        var today = ServiceCalendar.Today();
-
-        if (templateType != "blank")
-        {
-            var dishesQuery = _context.Dishes
-            .AsNoTracking()
-            .Include(dish => dish.Dishboms)
-                .ThenInclude(bom => bom.Ingredient)
-            .Include(dish => dish.Dishboms)
-                .ThenInclude(bom => bom.Unit)
-            .Where(dish => dish.IsActive ?? true);
-
-            if (dishId is not null)
-            {
-                dishesQuery = dishesQuery.Where(dish => dish.DishId.SequenceEqual(dishId));
-            }
-
-            var dishes = await dishesQuery
-                .OrderBy(dish => dish.DishCode)
-                .ToListAsync(cancellationToken);
-            var effectiveFrom = today.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
-
-            foreach (var dish in dishes)
-            {
-                var currentLines = query.IncludeCurrent
-                    ? dish.Dishboms
-                        .Where(line => line.PriceTierAmount == priceTier)
-                        .Where(line => DishBomPolicy.MatchesCustomerScope(line.CustomerId, customerId))
-                        .Where(DishBomPolicy.IsPublished)
-                        .Where(line => line.EffectiveFrom <= today && (line.EffectiveTo is null || line.EffectiveTo >= today))
-                        .OrderBy(line => line.Ingredient.IngredientName)
-                        .ToList()
-                    : [];
-
-                if (templateType == "missing" && currentLines.Count > 0)
-                {
-                    continue;
-                }
-
-                if (currentLines.Count == 0)
-                {
-                    AddBlankBomRows(rows, dish, priceTier, customerCode, effectiveFrom);
-                    continue;
-                }
-
-                foreach (var line in currentLines)
-                {
-                    rows.Add([
-                        dish.DishCode,
-                        dish.DishName,
-                        priceTier.ToString("0.##", CultureInfo.InvariantCulture),
-                        customerCode ?? string.Empty,
-                        line.Ingredient.IngredientName,
-                        line.Unit.UnitCode,
-                        line.GrossQtyPerServing.ToString("0.######", CultureInfo.InvariantCulture),
-                        line.WasteRatePercent.ToString("0.##", CultureInfo.InvariantCulture),
-                        line.EffectiveFrom.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
-                        line.EffectiveTo?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? string.Empty,
-                        line.BomStatus,
-                        string.Empty
-                    ]);
-                }
-            }
-        }
-
-        var scope = customerCode is null ? "Global" : $"Customer {customerCode}";
-        return BomTemplateWorkbookBuilder.Build(priceTier, $"{scope} / {templateType}", today, rows);
-    }
+    public Task<byte[]> BuildBomTemplateWorkbookAsync(
+        BomTemplateQueryDto query,
+        CancellationToken cancellationToken = default)
+        => _templateService.BuildAsync(query, cancellationToken);
 
     public async Task<BomImportPreviewDto> PreviewBomImportAsync(
         Stream fileStream,
@@ -1162,45 +1109,6 @@ public class DishService : IDishService
         _context.Ingredients.Add(ingredient);
         importedIngredients[row.IngredientCode] = ingredient;
         return ingredient;
-    }
-
-    private async Task<string?> ResolveCustomerCodeAsync(byte[]? customerId, CancellationToken cancellationToken)
-    {
-        if (customerId is null)
-        {
-            return null;
-        }
-
-        var customer = await _context.Customers
-            .AsNoTracking()
-            .FirstOrDefaultAsync(item => item.CustomerId.SequenceEqual(customerId), cancellationToken);
-        return customer?.CustomerCode;
-    }
-
-    private static void AddBlankBomRows(
-        ICollection<IReadOnlyList<string>> rows,
-        Dish dish,
-        decimal priceTier,
-        string? customerCode,
-        string effectiveFrom)
-    {
-        for (var index = 0; index < BlankBomRowsPerDish; index++)
-        {
-            rows.Add([
-                dish.DishCode,
-                dish.DishName,
-                priceTier.ToString("0.##", CultureInfo.InvariantCulture),
-                customerCode ?? string.Empty,
-                string.Empty,
-                string.Empty,
-                string.Empty,
-                string.Empty,
-                effectiveFrom,
-                string.Empty,
-                DishBomPolicy.Published,
-                string.Empty
-            ]);
-        }
     }
 
     private sealed record BomImportSourceRow(
