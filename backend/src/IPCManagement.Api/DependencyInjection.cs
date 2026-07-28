@@ -82,6 +82,7 @@ public static class DependencyInjection
         services.AddScoped<IApprovalTargetHandler, InventoryIssueApprovalHandler>();
         services.AddScoped<IApprovalTargetHandler, InventoryAdjustmentApprovalHandler>();
         services.AddScoped<IIngredientService, IngredientService>();
+        services.AddScoped<IDishCatalogService, DishCatalogService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
