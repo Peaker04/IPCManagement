@@ -1,7 +1,15 @@
 <!-- generated-by: gsd-doc-writer -->
 # Trạng thái làm việc hiện tại
 
-Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 28/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 29/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+
+## Candidate dọn lịch sử và CI ngày 29/07/2026
+
+- Branch đang làm việc là `chore/history-curation-candidate-20260729`; 85 commit milestone liên tục đã được dựng lại với ngày author/committer chính xác, ranh giới Phase 8–16 và tree khớp canonical. Chưa force-push hoặc thay lịch sử `main`.
+- Backup remote/local của `main` và `feature/production-plan`, Git bundle cùng manifest phục dựng nằm trong `.artifacts/history-curation/`; không xóa cho tới khi candidate được duyệt và GitHub gate xanh.
+- Run GitHub Actions trên `main` tại `968b2ed` fail vì test boundary dùng `DateTime.Today` của runner UTC trong khi validator dùng `ServiceCalendar.Today()` theo giờ Việt Nam. Candidate đồng bộ dữ liệu test với service calendar; targeted test đã pass khi ép `TZ=UTC`.
+- Lỗi integration refresh-token trong run backup feature `e67f0e0` là contract test cũ. Candidate hiện xác minh refresh token không xuất hiện trong response body và được phát hành bằng cookie HttpOnly.
+- Full local gate trước bản vá CI: Application 49/49, API 667 pass/1 skip, frontend 416/416, lint, dependency check và production build đều xanh. Cần giữ commit sửa CI ngày 29/07 tách khỏi 85 commit lịch sử và xác minh GitHub Actions trên candidate trước khi thay `main`.
 
 ## Phạm vi người dùng đã chốt
 
