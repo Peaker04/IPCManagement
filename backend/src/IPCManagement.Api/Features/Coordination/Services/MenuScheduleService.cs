@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -10,10 +11,12 @@ public sealed class MenuScheduleService : IMenuScheduleService
 {
     private const decimal FixedBomRatePercent = 100m;
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public MenuScheduleService(IpcManagementContext context)
+    public MenuScheduleService(IpcManagementContext context, IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<IReadOnlyList<MenuScheduleDto>> GetMenuSchedulesAsync(MenuScheduleQueryDto query)
@@ -243,102 +246,136 @@ public sealed class MenuScheduleService : IMenuScheduleService
 
         var actorId = ResolveActorId(userId);
         var changedAt = DateTime.UtcNow;
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            var versions = (await _context.Menuversions
-                .Where(version => version.WeekStartDate == weekStartDate)
-                .OrderByDescending(version => version.VersionNo)
-                .ToListAsync())
-                .Where(version => version.CustomerId.SequenceEqual(customerId))
-                .ToList();
-            if (versions.Count == 0)
+        MenuVersionRollbackResultDto? transactionResult = null;
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                throw new ArgumentException("Chưa có version thực đơn cho khách hàng và tuần đã chọn.");
-            }
+                var versions = (await _context.Menuversions
+                    .Where(version => version.WeekStartDate == weekStartDate)
+                    .OrderByDescending(version => version.VersionNo)
+                    .ToListAsync(cancellationToken))
+                    .Where(version => version.CustomerId.SequenceEqual(customerId))
+                    .ToList();
+                if (versions.Count == 0)
+                {
+                    throw new ArgumentException("Chưa có version thực đơn cho khách hàng và tuần đã chọn.");
+                }
 
-            var current = versions
-                .Where(version => MenuSchedulePolicy.IsPublishedMenuVersionStatus(version.Status))
-                .OrderByDescending(version => version.PublishedAt.HasValue)
-                .ThenByDescending(version => version.VersionNo)
-                .FirstOrDefault()
-                ?? versions.OrderByDescending(version => version.VersionNo).First();
-            var target = MenuSchedulePolicy.ResolveRollbackTarget(versions, current, request);
-            if (target is null)
-            {
-                throw new ArgumentException("Không tìm thấy version trước đó để rollback.");
-            }
+                var current = versions
+                    .Where(version => MenuSchedulePolicy.IsPublishedMenuVersionStatus(version.Status))
+                    .OrderByDescending(version => version.PublishedAt.HasValue)
+                    .ThenByDescending(version => version.VersionNo)
+                    .FirstOrDefault()
+                    ?? versions.OrderByDescending(version => version.VersionNo).First();
+                var target = MenuSchedulePolicy.ResolveRollbackTarget(versions, current, request);
+                if (target is null)
+                {
+                    throw new ArgumentException("Không tìm thấy version trước đó để rollback.");
+                }
 
-            if (current.MenuVersionId.SequenceEqual(target.MenuVersionId))
-            {
-                throw new ArgumentException("Version rollback phải khác version đang dùng.");
-            }
+                if (current.MenuVersionId.SequenceEqual(target.MenuVersionId))
+                {
+                    throw new ArgumentException("Version rollback phải khác version đang dùng.");
+                }
 
-            foreach (var activeVersion in versions.Where(version =>
-                MenuSchedulePolicy.IsPublishedMenuVersionStatus(version.Status) &&
-                !version.MenuVersionId.SequenceEqual(target.MenuVersionId)))
-            {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
-                    nameof(MenuVersion.Status), activeVersion.Status, "SUPERSEDED", reason);
-                activeVersion.Status = "SUPERSEDED";
-                activeVersion.UpdatedAt = changedAt;
-            }
+                foreach (var activeVersion in versions.Where(version =>
+                    MenuSchedulePolicy.IsPublishedMenuVersionStatus(version.Status) &&
+                    !version.MenuVersionId.SequenceEqual(target.MenuVersionId)))
+                {
+                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), activeVersion.MenuVersionId,
+                        nameof(MenuVersion.Status), activeVersion.Status, "SUPERSEDED", reason);
+                    activeVersion.Status = "SUPERSEDED";
+                    activeVersion.UpdatedAt = changedAt;
+                }
 
-            if (!string.Equals(target.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase))
-            {
+                if (!string.Equals(target.Status, "PUBLISHED", StringComparison.OrdinalIgnoreCase))
+                {
+                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
+                        nameof(MenuVersion.Status), target.Status, "PUBLISHED", reason);
+                }
+
+                target.Status = "PUBLISHED";
+                target.PublishedBy = actorId;
+                target.PublishedAt = changedAt;
+                target.UpdatedAt = changedAt;
                 AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
-                    nameof(MenuVersion.Status), target.Status, "PUBLISHED", reason);
-            }
+                    "Rollback", current.VersionNo.ToString(), target.VersionNo.ToString(), reason);
 
-            target.Status = "PUBLISHED";
-            target.PublishedBy = actorId;
-            target.PublishedAt = changedAt;
-            target.UpdatedAt = changedAt;
-            AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuVersion), target.MenuVersionId,
-                "Rollback", current.VersionNo.ToString(), target.VersionNo.ToString(), reason);
+                var weekSchedules = (await _context.Menuschedules
+                    .Where(schedule => schedule.WeekStartDate == weekStartDate)
+                    .ToListAsync(cancellationToken))
+                    .Where(schedule => schedule.CustomerId.SequenceEqual(customerId))
+                    .ToList();
+                foreach (var schedule in weekSchedules.Where(schedule =>
+                    !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
+                {
+                    AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
+                        nameof(MenuSchedule.Status), schedule.Status, "ACTIVE", reason);
+                    schedule.Status = "ACTIVE";
+                }
 
-            var weekSchedules = (await _context.Menuschedules
-                .Where(schedule => schedule.WeekStartDate == weekStartDate)
-                .ToListAsync())
-                .Where(schedule => schedule.CustomerId.SequenceEqual(customerId))
-                .ToList();
-            foreach (var schedule in weekSchedules.Where(schedule =>
-                !string.Equals(schedule.Status, "ACTIVE", StringComparison.OrdinalIgnoreCase)))
+                var invalidated = await InvalidateWorkflowDocumentsForMenuRollbackAsync(
+                    customerId,
+                    weekStartDate,
+                    target,
+                    actorId,
+                    changedAt,
+                    reason);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                transactionResult = new MenuVersionRollbackResultDto
+                {
+                    CustomerId = GuidHelper.ToGuidString(customerId),
+                    WeekStartDate = weekStartDate.ToString("yyyy-MM-dd"),
+                    ActiveMenuVersionId = GuidHelper.ToGuidString(target.MenuVersionId),
+                    ActiveVersionNo = target.VersionNo,
+                    RolledBackFromMenuVersionId = GuidHelper.ToGuidString(current.MenuVersionId),
+                    RolledBackFromVersionNo = current.VersionNo,
+                    CancelledDemandCount = invalidated.CancelledDemandCount,
+                    CancelledPurchaseCount = invalidated.CancelledPurchaseCount,
+                    Reason = reason
+                };
+                return transactionResult;
+            },
+            async cancellationToken =>
             {
-                AddAudit(actorId, changedAt, "MenuVersion", nameof(MenuSchedule), schedule.MenuScheduleId,
-                    nameof(MenuSchedule.Status), schedule.Status, "ACTIVE", reason);
-                schedule.Status = "ACTIVE";
-            }
+                var targetId = GuidHelper.ParseGuidString(transactionResult?.ActiveMenuVersionId);
+                if (targetId is null)
+                {
+                    return false;
+                }
 
-            var invalidated = await InvalidateWorkflowDocumentsForMenuRollbackAsync(
-                customerId,
-                weekStartDate,
-                target,
-                actorId,
-                changedAt,
-                reason);
+                var targetPublished = await _context.Menuversions
+                    .AsNoTracking()
+                    .AnyAsync(
+                        version => version.MenuVersionId == targetId && version.Status == "PUBLISHED",
+                        cancellationToken);
+                var schedulesActive = await _context.Menuschedules
+                    .AsNoTracking()
+                    .Where(schedule => schedule.WeekStartDate == weekStartDate)
+                    .Where(schedule => schedule.CustomerId.SequenceEqual(customerId))
+                    .AllAsync(schedule => schedule.Status == "ACTIVE", cancellationToken);
+                var hasActiveDemand = await _context.Materialrequests
+                    .AsNoTracking()
+                    .AnyAsync(request =>
+                        request.Status != "CANCELLED" &&
+                        request.Plan.WeekStartDate == weekStartDate &&
+                        request.Plan.CustomerId != null &&
+                        request.Plan.CustomerId.SequenceEqual(customerId),
+                        cancellationToken);
+                var hasActivePurchase = await _context.Purchaserequests
+                    .AsNoTracking()
+                    .AnyAsync(request =>
+                        request.Status != "CANCELLED" &&
+                        request.Purchaserequestlines.Any(line =>
+                            line.MaterialRequestLine.Request.Plan.WeekStartDate == weekStartDate &&
+                            line.MaterialRequestLine.Request.Plan.CustomerId != null &&
+                            line.MaterialRequestLine.Request.Plan.CustomerId.SequenceEqual(customerId)),
+                        cancellationToken);
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-
-            return new MenuVersionRollbackResultDto
-            {
-                CustomerId = GuidHelper.ToGuidString(customerId),
-                WeekStartDate = weekStartDate.ToString("yyyy-MM-dd"),
-                ActiveMenuVersionId = GuidHelper.ToGuidString(target.MenuVersionId),
-                ActiveVersionNo = target.VersionNo,
-                RolledBackFromMenuVersionId = GuidHelper.ToGuidString(current.MenuVersionId),
-                RolledBackFromVersionNo = current.VersionNo,
-                CancelledDemandCount = invalidated.CancelledDemandCount,
-                CancelledPurchaseCount = invalidated.CancelledPurchaseCount,
-                Reason = reason
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                return targetPublished && schedulesActive && !hasActiveDemand && !hasActivePurchase;
+            });
     }
 
     private async Task<MenuSchedule?> FindMenuScheduleForUpdateAsync(string menuScheduleId)

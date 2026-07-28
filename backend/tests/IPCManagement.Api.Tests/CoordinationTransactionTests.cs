@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.Data.Sqlite;
@@ -1163,9 +1164,10 @@ public class CoordinationTransactionTests
 
         public OrderLifecycleTestHarness(IpcManagementContext context)
         {
-            _plan = new OrderPlanService(context);
-            _adjustment = new OrderAdjustmentService(context);
-            _signoff = new OrderSignoffService(context);
+            var transactionRunner = new EfTransactionRunner(context);
+            _plan = new OrderPlanService(context, transactionRunner);
+            _adjustment = new OrderAdjustmentService(context, transactionRunner);
+            _signoff = new OrderSignoffService(context, transactionRunner);
         }
 
         public Task<LockOrderPlanResultDto?> LockOrderPlanAsync(LockOrderPlanRequest request, string? userId)

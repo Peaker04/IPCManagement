@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -11,10 +12,12 @@ namespace IPCManagement.Api.Features.Coordination.Services;
 public sealed class OrderAdjustmentService : IOrderAdjustmentService
 {
     private readonly IpcManagementContext _context;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public OrderAdjustmentService(IpcManagementContext context)
+    public OrderAdjustmentService(IpcManagementContext context, IEfTransactionRunner transactionRunner)
     {
         _context = context;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<AdjustOrderAfterLockResultDto?> AdjustOrderAfterLockAsync(
@@ -147,58 +150,63 @@ public sealed class OrderAdjustmentService : IOrderAdjustmentService
             return null;
         }
 
-        var line = await _context.Mealquantityplanlines
-            .Include(item => item.QuantityPlan)
-            .FirstOrDefaultAsync(item => item.QuantityPlanLineId == lineId);
-        if (line is null)
-        {
-            return null;
-        }
-
-        if (!OrderStatus.CanEditForecast(line.QuantityPlan.Status))
-        {
-            throw new BusinessRuleException("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
-        }
-
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        try
-        {
-            var oldValue = line.ForecastServings;
-            var changedAt = DateTime.UtcNow;
-            var auditId = GuidHelper.NewId();
-            line.ForecastServings = request.ServingsQuantity;
-            line.FinalServings = request.ServingsQuantity;
-            line.UpdatedAt = changedAt;
-            _context.Auditlogs.Add(new AuditLog
+        var changedAt = DateTime.UtcNow;
+        var auditId = GuidHelper.NewId();
+        return await _transactionRunner.ExecuteAsync(
+            async cancellationToken =>
             {
-                AuditId = auditId,
-                ChangedAt = changedAt,
-                ChangedBy = userIdBytes,
-                BusinessArea = "Coordination",
-                EntityName = nameof(MealQuantityPlanLine),
-                EntityId = line.QuantityPlanLineId,
-                FieldName = "forecastServings",
-                OldValue = oldValue.ToString(),
-                NewValue = request.ServingsQuantity.ToString(),
-                Reason = request.Reason
-            });
+                var line = await _context.Mealquantityplanlines
+                    .Include(item => item.QuantityPlan)
+                    .FirstOrDefaultAsync(item => item.QuantityPlanLineId == lineId, cancellationToken);
+                if (line is null)
+                {
+                    return null;
+                }
 
-            await _context.SaveChangesAsync();
-            await transaction.CommitAsync();
-            return new AdjustServingsResultDto
-            {
-                Success = true,
-                OrderId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
-                OldServings = oldValue,
-                NewServings = request.ServingsQuantity,
-                ChangedAt = changedAt,
-                AuditId = GuidHelper.ToGuidString(auditId)
-            };
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                if (!OrderStatus.CanEditForecast(line.QuantityPlan.Status))
+                {
+                    throw new BusinessRuleException("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
+                }
+
+                var oldValue = line.ForecastServings;
+                line.ForecastServings = request.ServingsQuantity;
+                line.FinalServings = request.ServingsQuantity;
+                line.UpdatedAt = changedAt;
+                _context.Auditlogs.Add(new AuditLog
+                {
+                    AuditId = auditId,
+                    ChangedAt = changedAt,
+                    ChangedBy = userIdBytes,
+                    BusinessArea = "Coordination",
+                    EntityName = nameof(MealQuantityPlanLine),
+                    EntityId = line.QuantityPlanLineId,
+                    FieldName = "forecastServings",
+                    OldValue = oldValue.ToString(),
+                    NewValue = request.ServingsQuantity.ToString(),
+                    Reason = request.Reason
+                });
+
+                await _context.SaveChangesAsync(cancellationToken);
+                return new AdjustServingsResultDto
+                {
+                    Success = true,
+                    OrderId = GuidHelper.ToGuidString(line.QuantityPlanLineId),
+                    OldServings = oldValue,
+                    NewServings = request.ServingsQuantity,
+                    ChangedAt = changedAt,
+                    AuditId = GuidHelper.ToGuidString(auditId)
+                };
+            },
+            async cancellationToken =>
+                await _context.Mealquantityplanlines
+                    .AsNoTracking()
+                    .AnyAsync(
+                        line => line.QuantityPlanLineId == lineId &&
+                                line.ForecastServings == request.ServingsQuantity &&
+                                line.FinalServings == request.ServingsQuantity,
+                        cancellationToken) &&
+                await _context.Auditlogs
+                    .AsNoTracking()
+                    .AnyAsync(audit => audit.AuditId == auditId, cancellationToken));
     }
 }
