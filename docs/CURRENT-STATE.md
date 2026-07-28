@@ -1,7 +1,15 @@
 <!-- generated-by: gsd-doc-writer -->
 # Trạng thái làm việc hiện tại
 
-Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 28/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+Tài liệu này là handoff sống cho các phiên làm việc mới. Nó tóm tắt mục tiêu nghiệp vụ, trạng thái Shipyard, các quyết định đã chốt, evidence và phần còn hở tính đến ngày 29/07/2026. Code đang chạy, database lane và evidence mới nhất vẫn là nguồn sự thật cao hơn tài liệu này.
+
+## Dọn lịch sử và CI ngày 29/07/2026
+
+- Branch đang làm việc là `main`. Lịch sử hiện có 85 commit milestone liên tục với ngày author/committer chính xác, ranh giới Phase 8–16 rõ ràng, cộng một commit sửa CI ngày 29/07.
+- Remote `main` đã được thay bằng lịch sử curated qua `--force-with-lease`; tip cũ `968b2ed` vẫn được giữ tại `backup/main-before-history-curation-20260729-000323`. Backup của `feature/production-plan`, local `main` cũ, Git bundle và manifest phục dựng cũng vẫn được giữ.
+- Lỗi CI boundary xuất phát từ việc test dùng `DateTime.Today` của runner UTC trong khi validator dùng `ServiceCalendar.Today()` theo giờ Việt Nam. Test đã dùng chung service calendar và pass khi ép `TZ=UTC`.
+- Lỗi integration refresh-token trong run backup feature `e67f0e0` là contract test cũ. Lịch sử hiện tại xác minh refresh token không xuất hiện trong response body và được phát hành bằng cookie HttpOnly.
+- Full local gate xanh: Application 49/49, API 667 pass/1 skip, frontend 416/416, lint, dependency check và production build. GitHub Verify và CodeQL cũng đã xanh trên lịch sử replacement; các commit mới vẫn phải chạy lại hai gate này.
 
 ## Phạm vi người dùng đã chốt
 
