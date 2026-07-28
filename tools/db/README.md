@@ -5,8 +5,8 @@ Lưới an toàn dữ liệu tối thiểu cho MySQL. Hai script, không phụ t
 
 | File | Việc |
 |---|---|
-| `Backup-Database.ps1` | Dump → nén `.zip` → xoá bản cũ quá hạn |
-| `Restore-Database.ps1` | Giải nén → tạo DB đích → nạp dump, có guard chặn ghi đè DB thật |
+| `Backup-Database.ps1` | Dump + manifest → nén `.zip` → mirror khác volume → xoá bản cũ quá hạn |
+| `Restore-Database.ps1` | Verify SHA-256 → tạo DB đích → nạp dump → đối chiếu manifest, có guard DB thật/DB đã có dữ liệu |
 | `Audit-NonCriticalDataQuality.sql` | Audit read-only BOM, quotation, demand traceability, duplicate master, menu status và lineage |
 | `Compare-MigrationLineage.ps1` | Đối chiếu read-only `__EFMigrationsHistory` với file migration trong source |
 | `migration-lineage.json` | Manifest canonical cho migration DB-only đã retirement/supersede có evidence |
@@ -71,7 +71,8 @@ Mất bảng này là mất số liệu kho, không có cách dựng lại.
 ```powershell
 # Mật khẩu KHÔNG nằm trong script. Đưa qua biến môi trường (khuyến nghị) ...
 $env:MYSQL_PWD = '<mat-khau-mysql>'
-.\Backup-Database.ps1 -OutputDir 'D:\Backups\ipc' -RetentionDays 14
+.\Backup-Database.ps1 -OutputDir 'D:\Backups\ipc' `
+  -MirrorDir 'E:\IPCManagement-offsite' -RetentionDays 14
 
 # ... hoặc qua tham số
 .\Backup-Database.ps1 -Password '<mat-khau-mysql>' -OutputDir 'D:\Backups\ipc'
@@ -83,17 +84,25 @@ Tham số (đều có mặc định hợp lý cho máy dev):
 |---|---|---|
 | `-Database` | `ipcmanagement` | |
 | `-OutputDir` | `%USERPROFILE%\ipc-backups` | Nằm ngoài repo, không lo lọt vào git |
+| `-MirrorDir` | không có | Phải ở volume khác `OutputDir`; copy xong phải khớp SHA-256 |
 | `-RetentionDays` | `14` | Bắt buộc `>= 1` |
 | `-DbUser` | `root` | Production nên dùng user backup riêng, xem §6 |
 | `-Password` | `$env:MYSQL_PWD` | Thiếu → thoát mã 2 |
 | `-DbHost` / `-Port` | `localhost` / `3306` | |
 | `-MySqlBin` | `C:\Program Files\MySQL\MySQL Server 9.5\bin` | |
 
-Kết quả: `D:\Backups\ipc\ipcmanagement-yyyyMMdd-HHmmss.zip`
+Kết quả: `D:\Backups\ipc\ipcmanagement-yyyyMMdd-HHmmss.zip`, bên trong có SQL và
+manifest gồm SHA-256 SQL, table count, `stockmovements` count và migration lineage. Khi có
+`-MirrorDir`, bản mirror chỉ được báo thành công sau khi hash khớp.
 
 Cờ dump đang dùng: `--single-transaction` (không khoá bảng InnoDB, app vẫn chạy bình thường trong
 lúc dump), `--routines --triggers --events` (mang theo cả object schema), `--set-gtid-purged=OFF`
 (xem §6).
+
+Table/ledger/migration evidence được parse từ chính SQL snapshot. Parser đếm top-level tuple
+trong extended INSERT và bỏ qua ngoặc/dấu phẩy nằm trong MySQL escaped string; không query live sau
+dump nên không có race giữa snapshot và manifest, đồng thời không làm restore chậm như
+`--skip-extended-insert`.
 
 **Exit code:** `0` OK · `1` dump lỗi/không toàn vẹn (file dở dang đã bị xoá, **không** để lại file
 rỗng) · `2` sai cấu hình (thiếu mật khẩu, không thấy `mysqldump.exe`, retention < 1).
@@ -120,7 +129,7 @@ dev, còn production xem §6.)
 
 ```cmd
 schtasks /Create /TN "IPC-DB-Backup" ^
-  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\IPCManagement\tools\db\Backup-Database.ps1\" -OutputDir \"D:\Backups\ipc\" -RetentionDays 14" ^
+  /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -File \"D:\IPCManagement\tools\db\Backup-Database.ps1\" -OutputDir \"D:\Backups\ipc\" -MirrorDir \"E:\IPCManagement-offsite\" -RetentionDays 14" ^
   /SC DAILY /ST 01:00 /RL HIGHEST /F
 ```
 
@@ -146,9 +155,9 @@ Gỡ task: `schtasks /Delete /TN "IPC-DB-Backup" /F`
 
 ## 3. Quy trình restore khi có sự cố
 
-**Nguyên tắc: không bao giờ restore thẳng đè lên `ipcmanagement`.** Restore vào DB tạm, đối chiếu
-số dòng, rồi mới quyết định. Script tự chặn việc này — `-Database ipcmanagement` sẽ bị từ chối
-(exit 2) trừ khi truyền `-Force` tường minh.
+**Nguyên tắc: không bao giờ restore thẳng đè lên `ipcmanagement` hoặc `ipc_lane1`.** Restore
+vào DB tạm, đối chiếu, rồi mới quyết định. Script tự chặn hai database thật và
+chặn cả target đã có bảng (exit 2) trừ khi truyền `-Force` tường minh.
 
 **B1. Dừng ứng dụng** (backend + worker) để không có ai ghi thêm vào DB hỏng.
 
@@ -166,6 +175,10 @@ $env:MYSQL_PWD = '<mat-khau-mysql>'
 .\Restore-Database.ps1 -BackupPath 'D:\Backups\ipc\ipcmanagement-20260726-155820.zip' `
                        -Database ipcmanagement_restore_test
 ```
+
+Với archive mới có manifest, script verify SHA-256 của SQL trước restore và tự đối chiếu
+table count, `stockmovements`, migration count/latest migration sau restore. Archive cũ không có
+manifest vẫn restore được nhưng phải đối chiếu tay theo B4.
 
 **B4. Đối chiếu số dòng** giữa DB tạm và DB thật trước khi tin bản backup:
 
@@ -206,8 +219,10 @@ xong thì dọn:
 & $mysql -u root -e "DROP DATABASE IF EXISTS ipcmanagement_restore_test;"
 ```
 
-Diễn tập gần nhất: 2026-07-26 — dump 12.51 MB (1.0s) → zip 2.84 MB, restore 4.2s, **61/61 bảng và
-53.396 dòng khớp 100%**, fingerprint MD5 toàn bộ `movementId` của `stockmovements` trùng khớp.
+Diễn tập gần nhất: 2026-07-28 — dump 12,51 MB + parse evidence (2,4s) → zip 2,84 MB, mirror
+`D:` → `C:` khớp SHA-256, restore disposable 61 bảng trong 4,2s; manifest khớp 17.256
+`stockmovements`, 41 migration và latest migration. Clone đã drop, còn 0 schema rehearsal.
+Chi tiết: `docs/DATABASE-RECOVERY-REHEARSAL-2026-07-28.md`.
 
 ---
 
@@ -246,9 +261,9 @@ Ràng buộc để giữ được 30 phút: có người biết quy trình này,
 
 ## 5. Những gì lưới này KHÔNG bảo vệ
 
-1. **Hỏng ổ đĩa.** Backup mặc định nằm cùng máy với DB. Ổ chết là mất cả hai. **Việc cần làm ngay:
-   copy thư mục backup sang chỗ khác** (ổ ngoài, OneDrive, S3). Không có bước này thì đây chưa phải
-   disaster recovery, chỉ là chống xoá nhầm.
+1. **Hỏng toàn máy/ổ vật lý.** `-MirrorDir` nay bắt buộc khác volume và verify hash,
+   nhưng `C:`/`D:` có thể vẫn cùng physical disk. Muốn thành disaster recovery phải trỏ
+   mirror tới ổ ngoài/NAS/cloud hoặc máy khác và rehearsal từ chính bản đó.
 2. **Hỏng dữ liệu logic.** Nếu bug ứng dụng ghi sai số liệu, backup sẽ chép nguyên si cái sai.
    Retention 14 ngày chính là cửa sổ để phát hiện — quá 14 ngày mới nhận ra thì không còn bản đúng.
 3. **Mất dữ liệu giữa hai lần dump.** Mặc định RPO = chu kỳ chạy task. Muốn nhỏ hơn phải dùng PITR
@@ -259,8 +274,9 @@ Ràng buộc để giữ được 30 phút: có người biết quy trình này,
    Y". Trước khi chạy migration trên DB thật, hãy chạy backup thủ công ngay trước đó.
 6. **Backup không mã hoá.** File `.zip` chứa toàn bộ dữ liệu, kể cả bảng `users`. Đừng để trong thư
    mục chia sẻ hay repo git.
-7. **Không tự kiểm chứng.** Task Scheduler báo `Last Result = 0` chỉ nghĩa là dump chạy xong, không
-   nghĩa là restore được. Diễn tập hàng tháng (§3) là bước không bỏ được.
+7. **Manifest không thay thế rehearsal.** Task Scheduler `Last Result = 0` + manifest chỉ chứng
+   minh dump đủ marker/evidence và mirror khớp hash. Diễn tập hàng tháng (§3) vẫn là bước
+   không bỏ được.
 
 ---
 
