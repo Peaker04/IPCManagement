@@ -6,9 +6,9 @@ status: executing
 current_phase: "16"
 current_phase_name: persistence-and-reliability
 current_plan: "16-01"
-stopped_at: Step 16 discovery before EF mapping, transaction, exception, lineage and recovery slices
-last_updated: "2026-07-28T00:00:00+07:00"
-last_activity: 2026-07-28 — Step 15 SampleData closed at 7ae0e67; active routing synchronized to Step 16
+stopped_at: Step 16 Auth mapping slice complete; continue feature-owned EF mapping before transaction standardization
+last_updated: "2026-07-28T16:45:18+07:00"
+last_activity: 2026-07-28 — Auth Role/User/RefreshToken mappings extracted with full gates and zero EF model drift
 progress:
   total_phases: 8
   completed_phases: 5
@@ -53,6 +53,10 @@ Defined-plan progress: ████████░░ 83% (5/6 defined plans com
 3. Replace business `InvalidOperationException` with mapped domain/application exceptions.
 4. Explain and test canonical fresh/upgrade migration lineage without modifying applied migration history.
 5. Add off-site backup and disposable-clone restore rehearsal evidence without mutating `ipc_lane1`.
+
+Auth mapping checkpoint: `Role`, `User` and `RefreshToken` now use feature-owned
+`IEntityTypeConfiguration<T>` implementations and `IpcManagementContext` discovers them through
+assembly registration. Full backend/frontend/contract/dependency and pending-model gates are green.
 
 ## Gate 16
 
