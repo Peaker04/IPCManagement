@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,11 +25,16 @@ public class PurchaseOrderService : IPurchaseOrderService
 
     private readonly IpcManagementContext _context;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
 
-    public PurchaseOrderService(IpcManagementContext context, IStockLedgerService stockLedgerService)
+    public PurchaseOrderService(
+        IpcManagementContext context,
+        IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<IReadOnlyList<PurchaseOrderDto>> CreateFromApprovedRequestAsync(
@@ -83,74 +89,85 @@ public class PurchaseOrderService : IPurchaseOrderService
         byte[] userId,
         CancellationToken cancellationToken)
     {
-        await using var transaction = _context.Database.IsRelational()
-            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken)
-            : null;
-
-        var source = await LoadPurchaseRequestForOrdersAsync(purchaseRequestId, cancellationToken)
-            ?? throw new KeyNotFoundException("Không tìm thấy đề xuất mua hàng.");
-        var purchaseRequest = source.Request;
-        if (!string.Equals(purchaseRequest.Status, "APPROVED", StringComparison.Ordinal))
-        {
-            throw new BusinessRuleException("Chỉ có thể tạo đơn mua hàng từ đề xuất mua hàng đã được Quản lý duyệt.");
-        }
-
-        var expectedLines = ValidateCurrentOrderDecisions(source.Lines);
-        var existingOrders = await LoadOrdersForRequestAsync(purchaseRequestId, cancellationToken);
-        if (existingOrders.Count > 0)
-        {
-            ValidateEstablishedOrders(existingOrders, expectedLines);
-            if (transaction is not null)
+        return await _transactionRunner.ExecuteAsync(
+            async token =>
             {
-                await transaction.CommitAsync(cancellationToken);
-            }
-
-            return existingOrders.Select(MapToDto).ToList();
-        }
-
-        var now = DateTime.UtcNow;
-        var orderDate = DateOnly.FromDateTime(now);
-        foreach (var supplierGroup in expectedLines.GroupBy(item => Convert.ToHexString(item.Decision.SupplierId)))
-        {
-            var supplierId = supplierGroup.First().Decision.SupplierId;
-            var order = new PurchaseOrder
-            {
-                PurchaseOrderId = GuidHelper.NewId(),
-                PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierId),
-                PurchaseRequestId = purchaseRequestId,
-                SupplierId = supplierId,
-                OrderDate = orderDate,
-                Status = StatusOrdered,
-                CreatedBy = userId,
-                CreatedAt = now,
-                UpdatedAt = now
-            };
-            foreach (var expected in supplierGroup)
-            {
-                order.Purchaseorderlines.Add(new PurchaseOrderLine
+                var source = await LoadPurchaseRequestForOrdersAsync(purchaseRequestId, token)
+                    ?? throw new KeyNotFoundException("Không tìm thấy đề xuất mua hàng.");
+                var purchaseRequest = source.Request;
+                if (!string.Equals(purchaseRequest.Status, "APPROVED", StringComparison.Ordinal))
                 {
-                    PurchaseOrderLineId = BuildDecisionSnapshotId(expected.Line.PurchaseRequestLineId, expected.Decision.DecisionFingerprint),
-                    PurchaseOrderId = order.PurchaseOrderId,
-                    PurchaseRequestLineId = expected.Line.PurchaseRequestLineId,
-                    IngredientId = expected.Line.IngredientId,
-                    UnitId = expected.Line.UnitId,
-                    OrderedQty = DecimalPolicy.RoundQuantity(expected.Line.PurchaseQty),
-                    ReceivedQty = 0,
-                    UnitPrice = DecimalPolicy.RoundMoney(expected.Decision.ProposedUnitPrice),
-                    PurchaseOrder = order
-                });
-            }
+                    throw new BusinessRuleException("Chỉ có thể tạo đơn mua hàng từ đề xuất mua hàng đã được Quản lý duyệt.");
+                }
 
-            _context.Purchaseorders.Add(order);
-        }
+                var expectedLines = ValidateCurrentOrderDecisions(source.Lines);
+                var existingOrders = await LoadOrdersForRequestAsync(purchaseRequestId, token);
+                if (existingOrders.Count > 0)
+                {
+                    ValidateEstablishedOrders(existingOrders, expectedLines);
+                    return existingOrders.Select(MapToDto).ToList();
+                }
 
-        await _context.SaveChangesAsync(cancellationToken);
-        if (transaction is not null)
-        {
-            await transaction.CommitAsync(cancellationToken);
-        }
+                var now = DateTime.UtcNow;
+                var orderDate = DateOnly.FromDateTime(now);
+                foreach (var supplierGroup in expectedLines.GroupBy(item => Convert.ToHexString(item.Decision.SupplierId)))
+                {
+                    var supplierId = supplierGroup.First().Decision.SupplierId;
+                    var order = new PurchaseOrder
+                    {
+                        PurchaseOrderId = GuidHelper.NewId(),
+                        PurchaseOrderCode = BuildPurchaseOrderCode(purchaseRequest.PurchaseRequestCode, supplierId),
+                        PurchaseRequestId = purchaseRequestId,
+                        SupplierId = supplierId,
+                        OrderDate = orderDate,
+                        Status = StatusOrdered,
+                        CreatedBy = userId,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    foreach (var expected in supplierGroup)
+                    {
+                        order.Purchaseorderlines.Add(new PurchaseOrderLine
+                        {
+                            PurchaseOrderLineId = BuildDecisionSnapshotId(expected.Line.PurchaseRequestLineId, expected.Decision.DecisionFingerprint),
+                            PurchaseOrderId = order.PurchaseOrderId,
+                            PurchaseRequestLineId = expected.Line.PurchaseRequestLineId,
+                            IngredientId = expected.Line.IngredientId,
+                            UnitId = expected.Line.UnitId,
+                            OrderedQty = DecimalPolicy.RoundQuantity(expected.Line.PurchaseQty),
+                            ReceivedQty = 0,
+                            UnitPrice = DecimalPolicy.RoundMoney(expected.Decision.ProposedUnitPrice),
+                            PurchaseOrder = order
+                        });
+                    }
 
-        return await GetByPurchaseRequestAsync(purchaseRequestId, cancellationToken);
+                    _context.Purchaseorders.Add(order);
+                }
+
+                await _context.SaveChangesAsync(token);
+                return await GetByPurchaseRequestAsync(purchaseRequestId, token);
+            },
+            async token =>
+            {
+                var source = await LoadPurchaseRequestForOrdersAsync(purchaseRequestId, token);
+                if (source is null)
+                {
+                    return false;
+                }
+
+                var establishedOrders = await LoadOrdersForRequestAsync(purchaseRequestId, token);
+                if (establishedOrders.Count == 0)
+                {
+                    return false;
+                }
+
+                ValidateEstablishedOrders(
+                    establishedOrders,
+                    ValidateCurrentOrderDecisions(source.Lines));
+                return true;
+            },
+            IsolationLevel.Serializable,
+            cancellationToken);
     }
 
     public async Task<IReadOnlyList<PurchaseOrderDto>> GetListAsync(string? status, CancellationToken cancellationToken = default)

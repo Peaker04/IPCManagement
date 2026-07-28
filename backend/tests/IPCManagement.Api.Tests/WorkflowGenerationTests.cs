@@ -5422,14 +5422,16 @@ public class WorkflowGenerationTests
             context,
             new StockLedgerService(
                 new CurrentStockRepository(context),
-                new StockMovementRepository(context)));
+                new StockMovementRepository(context)),
+            new EfTransactionRunner(context));
 
     private static PurchaseReceivingService CreatePurchaseReceivingService(IpcManagementContext context)
         => new(
             context,
             new StockLedgerService(
                 new CurrentStockRepository(context),
-                new StockMovementRepository(context)));
+                new StockMovementRepository(context)),
+            new EfTransactionRunner(context));
 
     private static RecordWarehousePurchaseReceiptRequest CreatePurchaseReceiptRequest(
         WorkflowFixture fixture,
