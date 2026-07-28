@@ -16,7 +16,6 @@ using Microsoft.EntityFrameworkCore.Metadata;
 using MySqlConnector;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.Json;
 using System.Data.Common;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
@@ -1240,12 +1239,13 @@ public class SupplierDecisionWorkflowTests
     private static string DisposableConnectionString(string database)
     {
         DatabaseClonePolicy.ValidateTransition(DatabaseClonePolicy.TemplateDatabase, database);
-        using var settings = JsonDocument.Parse(File.ReadAllText(
-            FindRepositoryFile("backend", "src", "IPCManagement.Api", "appsettings.json")));
-        var configured = settings.RootElement
-            .GetProperty("ConnectionStrings")
-            .GetProperty("DefaultConnection")
-            .GetString() ?? throw new InvalidOperationException("DefaultConnection is missing.");
+        var configured = Environment.GetEnvironmentVariable("IPC_TEST_CONNECTION_STRING");
+        if (string.IsNullOrWhiteSpace(configured))
+        {
+            throw new InvalidOperationException(
+                "IPC_TEST_CONNECTION_STRING phải trỏ tới MySQL test riêng để chạy migration replay.");
+        }
+
         return new MySqlConnectionStringBuilder(configured)
         {
             Database = database

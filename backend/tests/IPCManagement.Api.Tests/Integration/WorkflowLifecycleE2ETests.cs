@@ -82,7 +82,6 @@ public class WorkflowLifecycleE2ETests
 
         await state.LoginAsync(username, password);
         state.AccessToken.Should().NotBeNullOrWhiteSpace();
-        state.RefreshToken.Should().NotBeNullOrWhiteSpace();
 
         await state.LoadProductionPlansAsync();
         state.LastResponseStatusCode.Should().Be(HttpStatusCode.OK);
@@ -130,7 +129,6 @@ public class WorkflowLifecycleE2ETests
         }
 
         public string AccessToken { get; private set; } = string.Empty;
-        public string RefreshToken { get; private set; } = string.Empty;
         public HttpStatusCode LastResponseStatusCode { get; private set; }
 
         public async Task LoginAsync(string username, string password)
@@ -149,7 +147,11 @@ public class WorkflowLifecycleE2ETests
                 ?? throw new InvalidOperationException("Login response is empty.");
 
             AccessToken = payload.Data.AccessToken;
-            RefreshToken = payload.Data.RefreshToken;
+            payload.Data.RefreshToken.Should().BeEmpty(
+                "refresh token phải chỉ được phát hành qua cookie HttpOnly, không lộ trong response body");
+            response.Headers.GetValues("Set-Cookie").Should().Contain(header =>
+                header.StartsWith("refreshToken=", StringComparison.OrdinalIgnoreCase) &&
+                header.Contains("httponly", StringComparison.OrdinalIgnoreCase));
 
             _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", AccessToken);
         }
