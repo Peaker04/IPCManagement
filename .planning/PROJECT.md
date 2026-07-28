@@ -12,9 +12,11 @@ Its roadmap, requirements and state are preserved under `.planning/archive/v1.1-
 
 Finish the architecture workflow without changing public behavior or mutating the preserved database lane:
 
-1. close persistence and reliability debt;
-2. establish explicit frontend ownership;
-3. lock the result with guardrail tests, growth gates and verified documentation.
+1. establish explicit frontend ownership in Step 17;
+2. lock the result with Step 18 guardrail tests, growth gates and verified documentation.
+
+Persistence and reliability debt closed in Step 16 at source checkpoint `59add79`; genuinely off-site
+physical backup storage remains an operational concern rather than executable architecture scope.
 
 ## Non-negotiable constraints
 

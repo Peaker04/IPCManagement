@@ -2,20 +2,18 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: architecture-hardening-steps-11-18
-status: paused
-paused_at: "2026-07-28T19:04:01+07:00"
-current_phase: "16"
-current_phase_name: persistence-and-reliability
-current_plan: "16-01"
-stopped_at: Step 16 Task 4/5; retire unused UnitOfWork transaction API, update DI retry note and decide EnableRetryOnFailure
-last_updated: "2026-07-28T23:05:41+07:00"
-last_activity: 2026-07-28 — Production synchronized with local; BOM 90/90 verified; Step 16 remains paused at Task 4
+status: ready_to_plan
+current_phase: "17"
+current_phase_name: frontend-ownership
+stopped_at: Step 16 complete; proceed to discuss/plan Step 17 frontend ownership
+last_updated: "2026-07-28T23:25:31+07:00"
+last_activity: 2026-07-28 — Step 16 completed with full gates; Step 17 is ready for planning
 progress:
   total_phases: 8
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 6
-  completed_plans: 5
-  percent: 83
+  completed_plans: 6
+  percent: 100
 ---
 
 # Project State
@@ -28,32 +26,31 @@ The previous v1.1 BOM/supplier roadmap, requirements and state are preserved in 
 
 ## Current Position
 
-Phase: 16 of 18 — Persistence and reliability
+Phase: 17 of 18 — Frontend ownership
 
-Plan: 16-01 active
+Plan: not created
 
-Status: paused after Task 3; resume Task 4 only after upstream impact analysis
+Status: ready for discussion/planning
 
-**Paused At:** 2026-07-28 19:04 +07:00 — Step 16 Task 4/5
+Milestone phase progress: ████████░░ 75% (6/8 steps complete).
 
-Milestone phase progress: ██████░░░░ 63% (5/8 steps complete).
+Defined-plan progress: ██████████ 100% (6/6 defined plans complete; Steps 17–18 remain intentionally unplanned).
 
-Defined-plan progress: ████████░░ 83% (5/6 defined plans complete; Steps 17–18 remain intentionally unplanned until their dependency gates close).
-
-Step 16 work-package progress: 3/5 complete; Task 4 in progress; Task 5 not started.
+Step 16 work-package progress: 5/5 complete.
 
 ## Verified Baseline
 
-- Branch `feature/production-plan`; source baseline trước commit handoff là
-  `7e79106 fix(db): make data migrations collation-safe`. Sau commit tài liệu này branch ở trước
-  `origin/feature/production-plan` hai commit; không push trong phiên này.
+- Branch `feature/production-plan`; Step 16 code baseline trước closeout docs là
+  `59add79 refactor(persistence): retire legacy transaction API`. Không push trong phiên này.
 - Working tree has only user-owned untracked `.dockerignore` and `Dockerfile`; do not stage, overwrite or remove them.
-- GitNexus was refreshed at `7e79106`: 10,629 nodes, 29,171 edges and 300 execution flows.
-- Latest full gates: backend API 667 pass/1 skip; Application 47/47; frontend 416/416; Debug/Release build, lint, dependency, production build, OpenAPI/TypeScript determinism, EF pending-model, diff and secret gates green.
+- GitNexus was refreshed before Task 4 impact: 10,629 nodes, 29,171 edges and 300 execution flows.
+- Step 16 full gates: backend API 667 pass/1 skip; Application 49/49; frontend 416/416;
+  Debug/Release 0 warning/error, lint, dependency, production build, OpenAPI/TypeScript determinism,
+  EF pending-model, diff and secret gates green.
 - OpenAPI remained 152 paths / 396 schemas.
 - Step 15 and the Step 16 refactor sequence did not call import endpoints, seed/reset/import a database or access `ipc_lane1`.
 
-## Active Scope — Step 16
+## Completed Scope — Step 16
 
 1. **Done (`7e94eb3`):** 53 EF mappings live in 11 feature-owned `IEntityTypeConfiguration<T>` files;
    `IpcManagementContext` is the assembly registration root.
@@ -62,9 +59,9 @@ Step 16 work-package progress: 3/5 complete; Task 4 in progress; Task 5 not star
 3. **Done (`f3e7bcd`):** runner adopted across Coordination, Purchasing, Inventory, SampleData, Catalog,
    Reports, Approvals and Admin. Mutable loads occur inside runner operations and every operation has a
    stable database verifier.
-4. **In progress:** remove unused `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync`,
-   update the stale DI retry warning and decide `EnableRetryOnFailure` only after source scan and focused retry gates.
-5. **Not started:** final Step 16 gates and synchronized closeout of ARCH-16A–E.
+4. **Done (`59add79`):** removed unused `IUnitOfWork.BeginTransactionAsync`/`UnitOfWork.BeginTransactionAsync`,
+   enabled `EnableRetryOnFailure` and added convention coverage that permits only the runner transaction opener.
+5. **Done:** full Step 16 gates and synchronized closeout of ARCH-16A–E.
 
 Restore/hash evidence is valid, but C:/D: matching mirrors are not proof of physically independent/off-site
 storage. A NAS/cloud/external-media target remains a non-blocking operational gap.
@@ -101,7 +98,7 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 | Phase | Decision | Rationale |
 |---|---|---|
 | 16 | Load mutable EF entities inside the transaction-runner operation and require a stable database verifier. | Retry and commit verification clear tracking; external tracked entities could detach or silently skip writes. |
-| 16 | Keep `EnableRetryOnFailure` disabled until the legacy UnitOfWork transaction API is removed and final retry gates pass. | A single transaction owner is required before enabling provider-level transient retries safely. |
+| 16 | Enable `EnableRetryOnFailure` only after retiring the legacy UnitOfWork transaction API and proving one transaction owner with retry regression. | A single execution-strategy-aware owner prevents user-initiated transaction failures and duplicate side effects. |
 | 16 | Do not call the C:/D: mirror proven off-site storage. | Logical drive letters do not prove different physical devices or sites. |
 | Incident | Do not repeat the production restore/import; direct restore procedures must restart or clear catalog/application caches. | Production is already synchronized, and direct database restore bypasses application cache invalidation. |
 
@@ -111,11 +108,11 @@ storage. A NAS/cloud/external-media target remains a non-blocking operational ga
 
 ## Session
 
-**Last Date:** 2026-07-28 23:05 +07:00
+**Last Date:** 2026-07-28 23:25 +07:00
 
-**Stopped At:** Step 16 Task 4/5 — impact and retire the unused UnitOfWork transaction API before deciding retry enablement.
+**Stopped At:** Step 16 complete; Step 17 frontend ownership is ready for discussion/planning.
 
-**Resume File:** `.planning/phases/16-persistence-and-reliability/.continue-here.md`
+**Resume File:** None
 
 ## Constraints
 
