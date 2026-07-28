@@ -686,7 +686,7 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   snapshot sạch. GitNexus staged audit: 10 file/52 symbol/3 flow, **MEDIUM**, đúng scope.
 - Bước 14 đã đóng sớm; Gate 13 nay đã xanh nên tiếp tục Bước 15, bắt đầu từ Reports.
 
-### Bước 15 — Tách use case và functional core (Reports, Coordination và Purchasing hoàn tất)
+### Bước 15 — Tách use case và functional core (Catalog đang thực hiện)
 
 - Reports đã tách theo mười hai lát commit nguyên tử: price variance `92b7bf3`, demand
   `354b920`, purchasing `ffdab86`, stock snapshot `92c64dd`, inventory operations `7db54c5`,
@@ -729,7 +729,18 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   (655 API + 47 Application), FE **416/416**, backend build 0 warning, lint/dependency/
   production build xanh, OpenAPI/TypeScript deterministic và EF pending-model sạch. Không
   reset/seed database, không push và không chạy browser vì UI/API/cache/DOM không đổi.
-- Bước 15 chưa đóng: thứ tự active tiếp theo là **Catalog → SampleData**.
+- Catalog đã có năm checkpoint nguyên tử: core `b3cdbad`, diagnostics/validation `ae80e24`,
+  pure BOM policy `321c7a9`, template `7475207` và import/parser `f083fb0`.
+- `DishService` giảm **1.796 → 542 dòng**. Service mới: catalog core 143 dòng,
+  diagnostics 316, template 135, import 330 và parser 462; pure `DishBomPolicy` có test không DB.
+  Preview/commit import giữ nguyên DTO/message/transaction và xóa đúng hai cache key sau commit.
+- Gate Catalog checkpoint: API **675 pass / 1 skip**, Application **47/47**, FE **416/416**,
+  lint sạch, dependency không tăng (54 known violation vẫn ignore), production/Release build xanh,
+  OpenAPI/TypeScript deterministic và EF pending-model sạch. Không chạm database và không chạy
+  browser vì API contract, UI, route và cache behavior không đổi.
+- Catalog **chưa hoàn tất**: architecture-growth còn cảnh báo `DishesController` 266 dòng/17 action.
+  Lát active tiếp theo là manual BOM lifecycle → split controller → retire `DishService` facade.
+  Chỉ sau khi các gate này xanh mới bắt đầu SampleData; không chạy SampleData seed trên `ipc_lane1`.
 
 ## Quy trình tiếp tục ở phiên mới
 

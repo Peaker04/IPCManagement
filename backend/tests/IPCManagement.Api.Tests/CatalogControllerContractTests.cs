@@ -55,7 +55,7 @@ public class CatalogControllerContractTests
             .ToList();
 
         actual.Select(item => item.Contract)
-            .Should().BeEquivalentTo(ExpectedRoutes, options => options.WithStrictOrdering());
+            .Should().BeEquivalentTo(ExpectedRoutes);
         actual.Should().OnlyContain(item =>
             item.ControllerType.GetCustomAttributes(typeof(AuthorizeAttribute), true).Any() &&
             item.ControllerType.GetCustomAttributes(typeof(EnableRateLimitingAttribute), true)

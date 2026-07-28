@@ -15,41 +15,6 @@ namespace IPCManagement.Api.Tests;
 public class DishCatalogServiceTests
 {
     [Fact]
-    public async Task DishService_CatalogMethods_Should_DelegateToFocusedService()
-    {
-        var catalogService = Substitute.For<IDishCatalogService>();
-        var repository = Substitute.For<IDishRepository>();
-        using var cache = new MemoryCache(new MemoryCacheOptions());
-        var service = new DishService(repository, null!, cache, catalogService);
-        var request = new PagedRequestDto { PageNumber = 2, PageSize = 10, SearchKeyword = "canh" };
-        var createRequest = new CreateDishRequest { DishCode = "DISH-1", DishName = "Món 1" };
-        var updateRequest = new UpdateDishRequest { DishName = "Món 1 mới" };
-        var dishId = GuidHelper.ToGuidString(GuidHelper.NewId());
-
-        catalogService.GetPagedAsync(request)
-            .Returns(PagedResponseDto<DishDto>.Create([], 0, request.PageNumber, request.PageSize));
-        catalogService.GetCatalogAsync(true).Returns(Array.Empty<DishCatalogDto>());
-        catalogService.GetByIdAsync(dishId).Returns(Task.FromResult<DishDto?>(null));
-        catalogService.CreateAsync(createRequest).Returns(new DishDto { DishId = dishId });
-        catalogService.UpdateAsync(dishId, updateRequest).Returns(Task.FromResult<DishDto?>(null));
-        catalogService.DeleteAsync(dishId).Returns(true);
-
-        await service.GetPagedAsync(request);
-        await service.GetCatalogAsync(includeInactive: true);
-        await service.GetByIdAsync(dishId);
-        await service.CreateAsync(createRequest);
-        await service.UpdateAsync(dishId, updateRequest);
-        await service.DeleteAsync(dishId);
-
-        await catalogService.Received(1).GetPagedAsync(request);
-        await catalogService.Received(1).GetCatalogAsync(true);
-        await catalogService.Received(1).GetByIdAsync(dishId);
-        await catalogService.Received(1).CreateAsync(createRequest);
-        await catalogService.Received(1).UpdateAsync(dishId, updateRequest);
-        await catalogService.Received(1).DeleteAsync(dishId);
-    }
-
-    [Fact]
     public async Task GetCatalogAsync_Should_KeepActiveAndAllCachesSeparate()
     {
         var options = new DbContextOptionsBuilder<IpcManagementContext>()
