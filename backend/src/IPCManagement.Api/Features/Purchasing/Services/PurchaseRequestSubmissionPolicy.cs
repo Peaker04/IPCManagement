@@ -1,6 +1,8 @@
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 internal static class PurchaseRequestSubmissionPolicy
@@ -29,7 +31,7 @@ internal static class PurchaseRequestSubmissionPolicy
                 currentDecision.ProposedUnitPrice != DecimalPolicy.RoundMoney(line.EstimatedUnitPrice) ||
                 currentDecision.ProposedDeliveryDate != line.ExpectedDeliveryDate)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Có dòng mua chưa có quyết định nhà cung cấp hiện hành hợp lệ.");
             }
         }
@@ -59,22 +61,21 @@ internal static class PurchaseRequestSubmissionPolicy
                     !string.Equals(priceException.Status, "SUPERSEDED", StringComparison.Ordinal));
             if (currentException is null)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Có dòng mua cần ngoại lệ giá hiện hành trước khi gửi đơn mua.");
             }
 
             if (string.Equals(currentException.Status, "REJECTED", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Ngoại lệ giá đã bị từ chối; hãy cập nhật và gửi lại đề xuất giá.");
             }
 
             if (!string.Equals(currentException.Status, "APPROVED", StringComparison.Ordinal))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Có dòng mua cần ngoại lệ giá được Quản lý duyệt trước khi gửi đơn mua.");
             }
         }
     }
 }
-

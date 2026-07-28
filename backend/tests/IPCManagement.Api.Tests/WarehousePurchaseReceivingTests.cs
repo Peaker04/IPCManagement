@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
 using IPCManagement.Api.Helpers;
@@ -198,7 +199,7 @@ public class WarehousePurchaseReceivingTests
 
         var mismatchedRetry = fixture.CreateRequest("receipt-key-1", 5m);
         var mismatch = () => InvokeRecordAsync(service, mismatchedRetry, fixture.UserId);
-        await mismatch.Should().ThrowAsync<InvalidOperationException>()
+        await mismatch.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*idempotency*");
         fixture.Context.Inventoryreceipts.Should().ContainSingle();
         fixture.Context.Stockmovements.Should().ContainSingle();

@@ -1,5 +1,7 @@
 using IPCManagement.Api.Models.Entities;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 internal static class PurchaseRequestGenerationPolicy
@@ -15,12 +17,12 @@ internal static class PurchaseRequestGenerationPolicy
     {
         if (!ApprovedDemandStatuses.Contains(materialRequest.Status))
         {
-            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi tạo đề xuất mua.");
+            throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi tạo đề xuất mua.");
         }
 
         if (!string.Equals(materialRequest.RequestScope, "FULLDAY", StringComparison.OrdinalIgnoreCase))
         {
-            throw new InvalidOperationException("Đề xuất mua chỉ được tạo cho nhu cầu Cả ngày (FULLDAY).");
+            throw new BusinessRuleException("Đề xuất mua chỉ được tạo cho nhu cầu Cả ngày (FULLDAY).");
         }
     }
 

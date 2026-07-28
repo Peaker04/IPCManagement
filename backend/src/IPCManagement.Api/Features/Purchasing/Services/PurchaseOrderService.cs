@@ -10,6 +10,8 @@ using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public class PurchaseOrderService : IPurchaseOrderService
@@ -90,7 +92,7 @@ public class PurchaseOrderService : IPurchaseOrderService
         var purchaseRequest = source.Request;
         if (!string.Equals(purchaseRequest.Status, "APPROVED", StringComparison.Ordinal))
         {
-            throw new InvalidOperationException("Chỉ có thể tạo đơn mua hàng từ đề xuất mua hàng đã được Quản lý duyệt.");
+            throw new BusinessRuleException("Chỉ có thể tạo đơn mua hàng từ đề xuất mua hàng đã được Quản lý duyệt.");
         }
 
         var expectedLines = ValidateCurrentOrderDecisions(source.Lines);
@@ -222,7 +224,7 @@ public class PurchaseOrderService : IPurchaseOrderService
 
         if (order.Purchaseorderlines.Any(line => line.ReceivedQty > 0))
         {
-            throw new InvalidOperationException("Không thể hủy đơn mua hàng đã có dòng nhận hàng.");
+            throw new BusinessRuleException("Không thể hủy đơn mua hàng đã có dòng nhận hàng.");
         }
 
         order.Status = StatusCancelled;
@@ -425,7 +427,7 @@ public class PurchaseOrderService : IPurchaseOrderService
     {
         if (purchaseRequestLines.Count == 0)
         {
-            throw new InvalidOperationException("Đề xuất mua hàng không có dòng nào để tạo đơn.");
+            throw new BusinessRuleException("Đề xuất mua hàng không có dòng nào để tạo đơn.");
         }
 
         var expectedLines = new List<ExpectedOrderLine>(purchaseRequestLines.Count);
@@ -436,7 +438,7 @@ public class PurchaseOrderService : IPurchaseOrderService
                 .ToList();
             if (currentDecisions.Count != 1)
             {
-                throw new InvalidOperationException("Mỗi dòng mua phải có đúng một quyết định nhà cung cấp hiện hành trước khi tạo đơn mua hàng.");
+                throw new BusinessRuleException("Mỗi dòng mua phải có đúng một quyết định nhà cung cấp hiện hành trước khi tạo đơn mua hàng.");
             }
 
             var decision = currentDecisions[0];
@@ -462,7 +464,7 @@ public class PurchaseOrderService : IPurchaseOrderService
                     priceException.EvidenceDate == decision.EvidenceDate &&
                     string.Equals(priceException.Status, "APPROVED", StringComparison.Ordinal)))
             {
-                throw new InvalidOperationException("Ngoại lệ giá của quyết định nhà cung cấp hiện hành chưa được Quản lý duyệt.");
+                throw new BusinessRuleException("Ngoại lệ giá của quyết định nhà cung cấp hiện hành chưa được Quản lý duyệt.");
             }
 
             expectedLines.Add(new ExpectedOrderLine(line, decision));

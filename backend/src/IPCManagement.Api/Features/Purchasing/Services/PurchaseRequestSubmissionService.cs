@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissionService
@@ -58,7 +60,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
 
         if (purchaseRequest.Status != DraftStatus)
         {
-            throw new InvalidOperationException("Chỉ được gửi đơn mua khi danh sách còn ở trạng thái nháp.");
+            throw new BusinessRuleException("Chỉ được gửi đơn mua khi danh sách còn ở trạng thái nháp.");
         }
 
         var oldStatus = purchaseRequest.Status;
@@ -90,12 +92,12 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
     {
         if (purchaseRequest.Purchaserequestlines.Count == 0)
         {
-            throw new InvalidOperationException("Danh sách mua chưa có dòng nguyên liệu hợp lệ.");
+            throw new BusinessRuleException("Danh sách mua chưa có dòng nguyên liệu hợp lệ.");
         }
 
         if (purchaseRequest.Purchaserequestlines.Any(line => line.MaterialRequestLine is null))
         {
-            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
         }
 
         var requestIds = purchaseRequest.Purchaserequestlines
@@ -104,7 +106,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
             .ToList();
         if (requestIds.Count != 1)
         {
-            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
         }
 
         var requestId = purchaseRequest.Purchaserequestlines.First().MaterialRequestLine.RequestId;
@@ -113,7 +115,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
             .FirstOrDefaultAsync(item => item.RequestId == requestId, cancellationToken);
 
         return materialRequest
-            ?? throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            ?? throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
     }
 
     private async Task ValidateSubmitAsync(
@@ -137,7 +139,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
 
         if (supplementalRequest is null && !PurchaseRequestSubmissionPolicy.IsApprovedDemandStatus(materialRequest.Status))
         {
-            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
+            throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
         }
 
         var currentShortageLineIds = materialRequest.Materialrequestlines
@@ -149,7 +151,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
             .ToHashSet();
         if (supplementalRequest is null && !currentShortageLineIds.SetEquals(purchaseLineDemandIds))
         {
-            throw new InvalidOperationException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
+            throw new BusinessRuleException("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
         }
 
         if (supplementalRequest is not null)
@@ -170,7 +172,7 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
                     line.PurchaseQty <= 0 ||
                     DecimalPolicy.GreaterThanQuantity(line.PurchaseQty, remainingQty)))
             {
-                throw new InvalidOperationException("Đề xuất mua bổ sung không còn khớp số lượng bếp đang thiếu. Hãy tải lại yêu cầu.");
+                throw new BusinessRuleException("Đề xuất mua bổ sung không còn khớp số lượng bếp đang thiếu. Hãy tải lại yêu cầu.");
             }
         }
 
@@ -178,12 +180,12 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
         {
             if (line.SupplierId is null || line.Supplier is null || line.Supplier.IsActive == false)
             {
-                throw new InvalidOperationException("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
+                throw new BusinessRuleException("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
             }
 
             if (line.PurchaseQty <= 0 || line.EstimatedUnitPrice <= 0)
             {
-                throw new InvalidOperationException("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
+                throw new BusinessRuleException("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
             }
 
         }
@@ -194,4 +196,3 @@ public sealed class PurchaseRequestSubmissionService : IPurchaseRequestSubmissio
     }
 
 }
-

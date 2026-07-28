@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -141,7 +142,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
     {
         var act = () => PurchasePricePolicy.CalculateVariancePercent(referencePrice, 100m);
 
-        act.Should().Throw<InvalidOperationException>()
+        act.Should().Throw<BusinessRuleException>()
             .WithMessage("*giá tham chiếu*");
     }
 
