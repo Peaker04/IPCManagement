@@ -118,7 +118,12 @@ public partial class SampleDataImportService : ISampleDataImportService, ISample
                 .ReadTable(bomFile.FullName, sheet.SheetName, BomRequiredHeaders, request.MaxRows)
                 .Select(row => new PresetBomSourceRow(sheet.SheetName, sheet.PriceTier, row)))
             .ToList();
-        var rows = ValidateAndDeduplicatePresetBomRows(sourceRows, result);
+        var deduplication = PresetBomImportPolicy.ValidateAndDeduplicate(sourceRows);
+        foreach (var warning in deduplication.Warnings)
+        {
+            AddWarning(result, warning);
+        }
+        var rows = deduplication.Rows;
         var fileResult = AddFileResult(
             result,
             bomFile.FullName,
@@ -165,7 +170,7 @@ public partial class SampleDataImportService : ISampleDataImportService, ISample
                 continue;
             }
 
-            var grossQty = ParsePresetGrossQtyPerServing(row);
+            var grossQty = PresetBomImportPolicy.ParseGrossQtyPerServing(row);
             if (grossQty <= 0)
             {
                 fileResult.RowsSkipped++;
@@ -1016,76 +1021,6 @@ public partial class SampleDataImportService : ISampleDataImportService, ISample
         bomLines.Add(bom);
     }
 
-    private static IReadOnlyList<PresetBomSourceRow> ValidateAndDeduplicatePresetBomRows(
-        IReadOnlyList<PresetBomSourceRow> sourceRows,
-        SampleDataImportResultDto result)
-    {
-        var groups = sourceRows
-            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Món")))
-            .Where(item => !string.IsNullOrWhiteSpace(Get(item.Row, "Nguyên liệu chính")))
-            .GroupBy(
-                item => $"{item.PriceTier:0}|{NormalizeName(Get(item.Row, "Món"))}|{NormalizeName(Get(item.Row, "Nguyên liệu chính"))}",
-                StringComparer.OrdinalIgnoreCase)
-            .ToList();
-
-        return groups
-            .Select(group =>
-            {
-                var rows = group.ToList();
-                var quantities = rows
-                    .Select(item => ParsePresetGrossQtyPerServing(item.Row))
-                    .Distinct()
-                    .ToList();
-                if (quantities.Count <= 1)
-                {
-                    return rows[0];
-                }
-
-                var weightedQuantity = CalculateWeightedGrossQty(rows.Select(item => item.Row).ToList());
-                var first = rows[0];
-                var mergedRow = new Dictionary<string, string>(first.Row, StringComparer.OrdinalIgnoreCase)
-                {
-                    ["Định lượng (gram) / khay"] = weightedQuantity.ToString("0.######", CultureInfo.InvariantCulture)
-                };
-                AddWarning(
-                    result,
-                    $"{first.SheetName}: gộp {rows.Count} dòng '{Get(first.Row, "Món")}/{Get(first.Row, "Nguyên liệu chính")}' " +
-                    $"theo bình quân gia quyền thành {weightedQuantity:0.######} đơn vị BOM/suất.");
-                return new PresetBomSourceRow(first.SheetName, first.PriceTier, mergedRow);
-            })
-            .ToList();
-    }
-
-    private static decimal CalculateWeightedGrossQty(
-        IReadOnlyList<IReadOnlyDictionary<string, string>> rows)
-    {
-        var weightedRows = rows
-            .Select(row => new
-            {
-                Quantity = ParsePresetGrossQtyPerServing(row),
-                Servings = ParseInt(Get(row, "Số lượng suất ăn"))
-            })
-            .Where(item => item.Quantity > 0)
-            .ToList();
-        var totalServings = weightedRows.Where(item => item.Servings > 0).Sum(item => item.Servings);
-        if (totalServings > 0)
-        {
-            var weightedTotal = weightedRows
-                .Where(item => item.Servings > 0)
-                .Sum(item => item.Quantity * item.Servings);
-            return DecimalPolicy.RoundQuantity(weightedTotal / totalServings);
-        }
-
-        return weightedRows.Count == 0
-            ? 0
-            : DecimalPolicy.RoundQuantity(weightedRows.Average(item => item.Quantity));
-    }
-
-    private sealed record PresetBomSourceRow(
-        string SheetName,
-        decimal PriceTier,
-        IReadOnlyDictionary<string, string> Row);
-
     private InventoryReceipt EnsureReceipt(
         Supplier supplier,
         Warehouse warehouse,
@@ -1506,50 +1441,6 @@ public partial class SampleDataImportService : ISampleDataImportService, ISample
 
     private static string GetColumn(IReadOnlyDictionary<string, string> row, string column)
         => row.TryGetValue(column, out var value) ? value.Trim() : string.Empty;
-
-    private static decimal ParseGrossQtyPerServing(string value)
-    {
-        var parsed = ParsePresetDecimal(value);
-        if (parsed <= 0)
-        {
-            return 0;
-        }
-
-        return DecimalPolicy.RoundQuantity(parsed > 5 ? parsed / 1000 : parsed);
-    }
-
-    private static decimal ParsePresetGrossQtyPerServing(IReadOnlyDictionary<string, string> row)
-    {
-        var workbookQuantity = ParseGrossQtyPerServing(Get(row, "Định lượng (gram) / khay"));
-        if (workbookQuantity > 0)
-        {
-            return workbookQuantity;
-        }
-
-        var totalWeight = ParsePresetDecimal(Get(row, "Khối lượng ( kg)"));
-        var servings = ParseInt(Get(row, "Số lượng suất ăn"));
-        return totalWeight > 0 && servings > 0
-            ? DecimalPolicy.RoundQuantity(totalWeight / servings)
-            : 0;
-    }
-
-    private static decimal ParsePresetDecimal(string value)
-    {
-        var parsed = ParseDecimal(value);
-        if (parsed != 0 || string.IsNullOrWhiteSpace(value))
-        {
-            return parsed;
-        }
-
-        var normalized = value.Trim().Replace(",", ".", StringComparison.Ordinal);
-        return decimal.TryParse(
-            normalized,
-            NumberStyles.Float,
-            CultureInfo.InvariantCulture,
-            out var scientificValue)
-            ? scientificValue
-            : 0;
-    }
 
     private static int ParseInt(string value)
         => (int)Math.Round(ParseDecimal(value), MidpointRounding.AwayFromZero);

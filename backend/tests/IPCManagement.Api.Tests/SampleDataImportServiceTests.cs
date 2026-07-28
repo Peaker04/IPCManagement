@@ -267,8 +267,36 @@ public class SampleDataImportServiceTests
             new Dictionary<string, string> { ["Định lượng (gram) / khay"] = "0.103448275862069", ["Số lượng suất ăn"] = "116" }
         };
 
-        InvokePrivateStatic<decimal>("CalculateWeightedGrossQty", bananaRows).Should().Be(1.02446m);
-        InvokePrivateStatic<decimal>("CalculateWeightedGrossQty", fishRows).Should().Be(0.117914m);
+        PresetBomImportPolicy.CalculateWeightedGrossQty(bananaRows).Should().Be(1.02446m);
+        PresetBomImportPolicy.CalculateWeightedGrossQty(fishRows).Should().Be(0.117914m);
+    }
+
+    [Fact]
+    public void ValidateAndDeduplicate_Should_MergeSameTierDishIngredientAndReportWarning()
+    {
+        var rows = new List<PresetBomSourceRow>
+        {
+            new("định lượng suất 25k", 25000m, new Dictionary<string, string>
+            {
+                ["Món"] = "Cơm gà",
+                ["Nguyên liệu chính"] = "Thịt gà",
+                ["Định lượng (gram) / khay"] = "0.1",
+                ["Số lượng suất ăn"] = "100"
+            }),
+            new("định lượng suất 25k", 25000m, new Dictionary<string, string>
+            {
+                ["Món"] = "Cơm gà",
+                ["Nguyên liệu chính"] = "Thịt gà",
+                ["Định lượng (gram) / khay"] = "0.2",
+                ["Số lượng suất ăn"] = "100"
+            })
+        };
+
+        var result = PresetBomImportPolicy.ValidateAndDeduplicate(rows);
+
+        result.Rows.Should().ContainSingle();
+        result.Rows[0].Row["Định lượng (gram) / khay"].Should().Be("0.15");
+        result.Warnings.Should().ContainSingle().Which.Should().Contain("gộp 2 dòng");
     }
 
     [Fact]
@@ -281,7 +309,7 @@ public class SampleDataImportServiceTests
             ["Số lượng suất ăn"] = "100"
         };
 
-        InvokePrivateStatic<decimal>("ParsePresetGrossQtyPerServing", row).Should().Be(0.035m);
+        PresetBomImportPolicy.ParseGrossQtyPerServing(row).Should().Be(0.035m);
     }
 
     [Fact]
@@ -294,7 +322,7 @@ public class SampleDataImportServiceTests
             ["Số lượng suất ăn"] = "1"
         };
 
-        InvokePrivateStatic<decimal>("ParsePresetGrossQtyPerServing", row).Should().Be(0.015m);
+        PresetBomImportPolicy.ParseGrossQtyPerServing(row).Should().Be(0.015m);
     }
 
     [Theory]

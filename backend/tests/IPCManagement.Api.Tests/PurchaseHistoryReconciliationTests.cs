@@ -1948,6 +1948,7 @@ public class PurchaseHistoryReconciliationTests
         });
         builder.Services.AddSingleton(reconciliationService);
         builder.Services.AddSingleton(Substitute.For<ISampleDataImportService>());
+        builder.Services.AddSingleton(Substitute.For<ISampleBomImportService>());
         builder.Services.AddControllers().AddApplicationPart(typeof(SampleDataController).Assembly);
 
         var app = builder.Build();
