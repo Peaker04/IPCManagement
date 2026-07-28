@@ -785,6 +785,17 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - Không gọi endpoint import, không reset/seed/import hoặc truy cập database, không chạy browser vì
   API contract, route, UI và DOM không đổi. **Bước 15 đã hoàn tất; bước active tiếp theo là Bước 16.**
 
+### GSD routing đã đồng bộ với workflow kiến trúc
+
+- Session “Kiểm tra tiến độ đọc tài liệu” ngày 27/07 là nơi người dùng yêu cầu gộp hai danh sách
+  `f(data,state)` và P0–P3 thành một workflow duy nhất; commit `15d8592` tạo workflow đó, sau đó
+  `0fb96be` và `5869295` làm rõ/chốt Phần F là nguồn thực thi duy nhất.
+- `.planning/ROADMAP.md` v1.1 có lịch sử từ 20–23/07 và không được tạo trong session nói trên.
+  Nó cùng Phase 08–09 đã được chuyển vào `.planning/archive/v1.1-legacy/` để chỉ giữ provenance.
+- GSD active hiện là milestone `v1.2`, **5/8 bước hoàn tất**, đúng một phase đang thực hiện:
+  **Phase/Step 16 — Persistence and reliability**. Step 17–18 vẫn pending và chưa có executable plan
+  cho đến khi dependency gate trước đó đóng.
+
 ## Quy trình tiếp tục ở phiên mới
 
 1. Đọc `AGENTS.md`, tài liệu này và `.artifacts/shipyard-live/E2E-AUDIT-2026-07-25.md` trước khi hỏi lại người dùng.

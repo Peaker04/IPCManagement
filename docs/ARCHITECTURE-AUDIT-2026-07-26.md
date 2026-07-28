@@ -412,6 +412,13 @@ một roadmap P0–P3. Toàn bộ việc của hai danh sách cũ được nhậ
 package của Bước 11→18, dùng chung dependency, gate và trạng thái. Từ đây không giao việc,
 commit hay báo tiến độ bằng nhãn P0/P1/P2/P3 nữa; chỉ dùng số Bước 11–18 bên dưới.
 
+GSD đã được đồng bộ ngày 28/07/2026 thành milestone `v1.2`: `.planning/ROADMAP.md`
+chỉ mirror trạng thái Bước 11–18 để route workflow. Roadmap GSD v1.1 cùng Phase 08–09 được
+lưu dưới `.planning/archive/v1.1-legacy/` làm lịch sử và không còn tham gia execution queue.
+Provenance được đối chiếu từ Git history và session “Kiểm tra tiến độ đọc tài liệu”: roadmap v1.1
+kết thúc ngày 23/07, còn workflow hợp nhất này được tạo trong session ngày 27/07 tại `15d8592`
+và tiếp tục được chốt ở `0fb96be`, `5869295`.
+
 ```text
 Bước 11 → Bước 12 → Bước 13 → Bước 14 → Bước 15 → Bước 16 → Bước 17 → Bước 18
  state core    pilot      state rollout VSA boundary  functional   persistence  FE ownership  close/gates
