@@ -5,6 +5,8 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Catalog.Services;
 
 public sealed class DishBomImportService : IDishBomImportService
@@ -35,7 +37,7 @@ public sealed class DishBomImportService : IDishBomImportService
         var preview = await BuildPreviewAsync(fileStream, request, cancellationToken);
         if (!preview.CanCommit)
         {
-            throw new InvalidOperationException("File BOM còn lỗi, cần sửa preview trước khi commit.");
+            throw new BusinessRuleException("File BOM còn lỗi, cần sửa preview trước khi commit.");
         }
 
         var priceTier = DishBomPolicy.NormalizePriceTier(request.PriceTier);
@@ -279,7 +281,7 @@ public sealed class DishBomImportService : IDishBomImportService
             .OrderBy(item => item.WarehouseCode)
             .Select(item => item.WarehouseId)
             .FirstOrDefaultAsync(cancellationToken)
-            ?? throw new InvalidOperationException("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
+            ?? throw new BusinessRuleException("Chưa có kho nguyên liệu để tự tạo IngredientCode mới.");
 
         var ingredient = new Ingredient
         {

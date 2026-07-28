@@ -7,6 +7,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Catalog.Services;
 
 internal sealed class DishBomImportParser(IpcManagementContext context)
@@ -304,14 +306,14 @@ internal sealed class DishBomImportParser(IpcManagementContext context)
             var sheetNames = reader.GetSheetNames(tempFilePath);
             var sheetName = sheetNames.FirstOrDefault(name => string.Equals(name, "BOM", StringComparison.OrdinalIgnoreCase))
                 ?? sheetNames.FirstOrDefault()
-                ?? throw new InvalidOperationException("File Excel không có sheet BOM.");
+                ?? throw new BusinessRuleException("File Excel không có sheet BOM.");
             var rows = reader.ReadRowsWithMetadata(tempFilePath, sheetName);
             var headerRow = rows.FirstOrDefault(row =>
                 BomTemplateWorkbookBuilder.Headers.All(header =>
                     row.Cells.Values.Any(value => NormalizeHeader(value) == NormalizeHeader(header))));
             if (headerRow is null)
             {
-                throw new InvalidOperationException("File Excel BOM thiếu dòng header đúng cấu trúc.");
+                throw new BusinessRuleException("File Excel BOM thiếu dòng header đúng cấu trúc.");
             }
 
             var headersByColumn = headerRow.Cells

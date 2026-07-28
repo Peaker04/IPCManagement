@@ -340,7 +340,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var context = fixture.CreateContext();
         (await context.Materialrequests.AsNoTracking().SingleAsync()).Status.Should().Be("MANAGERAPPROVED");
         (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(1);
@@ -359,7 +359,7 @@ public class MaterialDemandAndPriceExceptionApprovalTests
             fixture.ActorIdString,
             BuildPrincipal("Manager"));
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var context = fixture.CreateContext();
         (await context.Approvalhistories.AsNoTracking().CountAsync()).Should().Be(0);
     }

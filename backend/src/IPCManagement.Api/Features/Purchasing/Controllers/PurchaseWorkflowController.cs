@@ -8,6 +8,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 using IPCManagement.Api.Features.Purchasing.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Controllers;
 
 [ApiController]
@@ -97,7 +99,7 @@ public class PurchaseWorkflowController : ControllerBase
         {
             return NotFound(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -141,7 +143,7 @@ public class PurchaseWorkflowController : ControllerBase
         {
             return NotFound(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -172,7 +174,7 @@ public class PurchaseWorkflowController : ControllerBase
 
             return Ok(ApiResponse<PurchaseRequestWorkflowResultDto>.SuccessResult(result, "Đã gửi đơn mua chính thức."));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

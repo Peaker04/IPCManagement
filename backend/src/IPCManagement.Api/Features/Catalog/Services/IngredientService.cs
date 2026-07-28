@@ -5,6 +5,8 @@ using IPCManagement.Api.Models.Entities;
 using IPCManagement.Api.Features.Catalog.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Catalog.Services;
 
 public class IngredientService : IIngredientService
@@ -41,7 +43,7 @@ public class IngredientService : IIngredientService
     {
         // Kiểm tra trùng code
         if (await _ingredientRepo.IsCodeExistsAsync(dto.IngredientCode))
-            throw new InvalidOperationException($"Mã nguyên liệu '{dto.IngredientCode}' đã tồn tại.");
+            throw new BusinessRuleException($"Mã nguyên liệu '{dto.IngredientCode}' đã tồn tại.");
 
         var unitBytes      = GuidHelper.ParseGuidString(dto.UnitId)
             ?? throw new ArgumentException("UnitId không hợp lệ.");

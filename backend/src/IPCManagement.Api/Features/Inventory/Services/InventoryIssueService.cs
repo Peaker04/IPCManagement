@@ -66,10 +66,10 @@ public class InventoryIssueService : IInventoryIssueService
         var materialRequestBytes = GuidHelper.ParseGuidString(dto.MaterialRequestId)
             ?? throw new ArgumentException("MaterialRequestId không hợp lệ.");
         var materialRequest = await _issueRepository.GetMaterialRequestForIssueAsync(materialRequestBytes)
-            ?? throw new InvalidOperationException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
+            ?? throw new BusinessRuleException("Không tìm thấy nhu cầu nguyên liệu để tạo phiếu xuất kho.");
         if (!IssuableDemandStatuses.Contains(materialRequest.Status))
         {
-            throw new InvalidOperationException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
+            throw new BusinessRuleException("Cần duyệt nhu cầu nguyên liệu trước khi xuất kho.");
         }
 
         var issuedLines = await _issueRepository.GetIssuedLinesForMaterialRequestAsync(materialRequestBytes);
@@ -422,7 +422,7 @@ public class InventoryIssueService : IInventoryIssueService
 
         if (demandByItem.Count == 0)
         {
-            throw new InvalidOperationException("Nhu cầu nguyên liệu chưa có dòng để xuất kho.");
+            throw new BusinessRuleException("Nhu cầu nguyên liệu chưa có dòng để xuất kho.");
         }
 
         var alreadyIssuedByItem = issuedLines
@@ -438,7 +438,7 @@ public class InventoryIssueService : IInventoryIssueService
 
         if (requestedLines.Count == 0)
         {
-            throw new InvalidOperationException("Nhu cầu nguyên liệu đã được xuất đủ.");
+            throw new BusinessRuleException("Nhu cầu nguyên liệu đã được xuất đủ.");
         }
 
         return requestedLines;
@@ -496,23 +496,23 @@ public class InventoryIssueService : IInventoryIssueService
         {
             if (!demandByItem.TryGetValue(item.Key, out var demand))
             {
-                throw new InvalidOperationException("Dòng xuất kho không nằm trong nhu cầu nguyên liệu đã duyệt.");
+                throw new BusinessRuleException("Dòng xuất kho không nằm trong nhu cầu nguyên liệu đã duyệt.");
             }
 
             if (!DecimalPolicy.GreaterThanQuantity(item.Line.RequestedQty, 0) ||
                 !DecimalPolicy.GreaterThanQuantity(item.Line.IssuedQty, 0))
             {
-                throw new InvalidOperationException("Số lượng xuất kho phải lớn hơn 0.");
+                throw new BusinessRuleException("Số lượng xuất kho phải lớn hơn 0.");
             }
             if (DecimalPolicy.GreaterThanQuantity(item.Line.IssuedQty, item.Line.RequestedQty))
             {
-                throw new InvalidOperationException("Số lượng xuất không được lớn hơn số lượng yêu cầu.");
+                throw new BusinessRuleException("Số lượng xuất không được lớn hơn số lượng yêu cầu.");
             }
 
             var remaining = CalculateRemaining(demand.TotalRequiredQty, alreadyIssuedByItem.GetValueOrDefault(item.Key));
             if (DecimalPolicy.GreaterThanQuantity(item.Line.RequestedQty, remaining))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Dòng xuất kho '{demand.IngredientName}' vượt nhu cầu còn lại. Yêu cầu: {item.Line.RequestedQty}, còn lại: {remaining}.");
             }
 

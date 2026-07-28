@@ -16,6 +16,8 @@ using IPCManagement.Api.Features.Approvals.Services;
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.Coordination.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public class CoordinationTransactionTests
@@ -94,7 +96,7 @@ public class CoordinationTransactionTests
         Func<Task> act = async () => await service.AdjustServingsAsync(lineId, request, fixture.UserId);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Không thể điều chỉnh trực tiếp sau khi chốt. Hãy gửi yêu cầu duyệt điều chỉnh.");
 
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
@@ -235,7 +237,7 @@ public class CoordinationTransactionTests
             },
             fixture.UserId);
 
-        await directForecastEdit.Should().ThrowAsync<InvalidOperationException>()
+        await directForecastEdit.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
     }
 
@@ -275,7 +277,7 @@ public class CoordinationTransactionTests
             },
             fixture.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo.*");
 
         await using var verifyContext = new IpcManagementContext(options);
@@ -325,7 +327,7 @@ public class CoordinationTransactionTests
             new LockOrderPlanRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var verifyContext = new IpcManagementContext(options);
         (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status
             .Should().Be(sourceStatus);
@@ -428,7 +430,7 @@ public class CoordinationTransactionTests
             },
             fixture.UserId);
 
-        await duplicate.Should().ThrowAsync<InvalidOperationException>()
+        await duplicate.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
 
         await using var verifyContext = new IpcManagementContext(BuildOptions(connection));
@@ -727,7 +729,7 @@ public class CoordinationTransactionTests
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var verifyContext = new IpcManagementContext(options);
         (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
         (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
@@ -773,7 +775,7 @@ public class CoordinationTransactionTests
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             fixture.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var verifyContext = new IpcManagementContext(options);
         (await verifyContext.Mealquantityplans.AsNoTracking().SingleAsync()).Status.Should().Be(sourceStatus);
         (await verifyContext.Auditlogs.AsNoTracking().CountAsync()).Should().Be(0);
@@ -826,7 +828,7 @@ public class CoordinationTransactionTests
             new CoordinationScopeActionRequest { ServiceDate = "2026-06-15", ShiftName = "MORNING" },
             first.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         await using var verifyContext = new IpcManagementContext(options);
         (await verifyContext.Mealquantityplans.AsNoTracking().Select(plan => plan.Status).ToListAsync())
             .Should().BeEquivalentTo([OrderStatus.Confirmed, OrderStatus.Draft]);
@@ -910,7 +912,7 @@ public class CoordinationTransactionTests
             ? async () => await service.SignoffOrderScopeAsync(request, fixture.UserId)
             : async () => await service.UnlockOrderPlanScopeAsync(request, fixture.UserId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
 
         await using var verifyContext = new IpcManagementContext(seedOptions);
