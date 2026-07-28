@@ -85,6 +85,7 @@ public static class DependencyInjection
         services.AddScoped<IDishCatalogService, DishCatalogService>();
         services.AddScoped<IDishCatalogDiagnosticsService, DishCatalogDiagnosticsService>();
         services.AddScoped<IDishBomTemplateService, DishBomTemplateService>();
+        services.AddScoped<IDishBomImportService, DishBomImportService>();
         services.AddScoped<IDishService, DishService>();
         services.AddScoped<IWarehouseService, WarehouseService>();
         services.AddScoped<IInventoryReceiptService, InventoryReceiptService>();
