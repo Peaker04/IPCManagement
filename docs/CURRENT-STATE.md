@@ -795,9 +795,9 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
 - GSD active hiện là milestone `v1.2`, **5/8 bước hoàn tất**, đúng một phase đang thực hiện:
   **Phase/Step 16 — Persistence and reliability**. Step 17–18 vẫn pending và chưa có executable plan
   cho đến khi dependency gate trước đó đóng.
-- Step 16 đã hoàn tất hai lát EF mapping cho Auth và Approvals: `Role`, `User`, `RefreshToken`,
-  `ApprovalHistory`, `ApprovalRule`, `ApprovalAssignment` nằm trong `Features/<owner>/Persistence`
-  dưới sáu `IEntityTypeConfiguration<T>`; context dùng assembly registration. Architecture convention
+- Step 16 đã hoàn tất ba lát EF mapping cho Auth, Approvals và Catalog: tổng cộng 11 entity nằm
+  trong `Features/<owner>/Persistence` dưới `IEntityTypeConfiguration<T>`; context dùng assembly
+  registration. Architecture convention
   công nhận `Persistence`. Full gate mỗi lát: API **663/1**,
   Application **47/47**, FE **416/416**, build/lint/dependency/OpenAPI xanh và EF pending-model sạch.
   Không truy cập hoặc mutate database runtime.

@@ -736,10 +736,11 @@ mà không reset dữ liệu.
 **Gate 16:** retry không nhân đôi side effect; fresh-install/upgrade lineage được giải thích và test;
 restore drill đạt RPO/RTO đã chốt; production/lane data không bị reset.
 
-**Tiến độ 28/07/2026 — EF mapping/Auth + Approvals:** `Role`, `User`, `RefreshToken`,
-`ApprovalHistory`, `ApprovalRule` và `ApprovalAssignment` đã chuyển nguyên cấu hình sang
+**Tiến độ 28/07/2026 — EF mapping/Auth + Approvals + Catalog:** mười một mapping của
+`Role`, `User`, `RefreshToken`, `ApprovalHistory`, `ApprovalRule`, `ApprovalAssignment`,
+`BomAdjustment`, `Dish`, `DishBom`, `Ingredient` và `Unit` đã chuyển nguyên cấu hình sang
 `Features/<owner>/Persistence` bằng `IEntityTypeConfiguration<T>`; context đăng ký configuration
-từ production assembly và bỏ sáu block inline. Architecture convention đã mở layer `Persistence`
+từ production assembly và bỏ mười một block inline. Architecture convention đã mở layer `Persistence`
 chính thức, không đặt mapping vào `Services` để né gate. GitNexus cảnh báo
 `IpcManagementContext` **HIGH** (26 direct dependants/3 module), còn `OnModelCreating` LOW;
 blast radius được phủ bằng full regression. Gate: API **663 pass/1 skip**, Application **47/47**,
