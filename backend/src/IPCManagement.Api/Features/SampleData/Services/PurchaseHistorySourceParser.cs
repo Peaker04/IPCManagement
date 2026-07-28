@@ -5,6 +5,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 /// <summary>
@@ -363,7 +365,7 @@ internal sealed class PurchaseHistorySourceParser
     private static XDocument LoadDocument(ZipArchive archive, string path)
     {
         var entry = archive.GetEntry(path)
-            ?? throw new InvalidOperationException($"Workbook is missing '{path}'.");
+            ?? throw new BusinessRuleException($"Workbook is missing '{path}'.");
 
         return XlsxSecurityLimits.LoadXmlPart(entry, $"Thành phần '{path}'");
     }

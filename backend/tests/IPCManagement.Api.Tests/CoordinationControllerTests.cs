@@ -1,5 +1,6 @@
 using System.Text;
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Http;
@@ -27,7 +28,7 @@ public class CoordinationControllerTests
                 Arg.Any<DateOnly?>(),
                 Arg.Any<decimal?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.")));
+            .Returns(Task.FromException<WeeklyMenuImportResultDto>(new BusinessRuleException("File Excel không có bảng thực đơn tuần hợp lệ.")));
 
         var controller = new WeeklyMenuImportsController(
             Substitute.For<IWeeklyMenuQueryService>(),
@@ -60,7 +61,7 @@ public class CoordinationControllerTests
                 Arg.Any<decimal?>(),
                 Arg.Any<string?>(),
                 Arg.Any<CancellationToken>())
-            .Returns(Task.FromException<WeeklyMenuImportResultDto>(new InvalidOperationException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
+            .Returns(Task.FromException<WeeklyMenuImportResultDto>(new BusinessRuleException("File Excel không đọc được. Vui lòng chọn đúng file Excel theo mẫu thực đơn rồi thử lại.")));
         var currentUserService = Substitute.For<ICurrentUserService>();
         currentUserService.GetUserId(Arg.Any<System.Security.Claims.ClaimsPrincipal>()).Returns(GuidHelper.ToGuidString(GuidHelper.NewId()));
 

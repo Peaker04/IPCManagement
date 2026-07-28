@@ -7,6 +7,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal sealed class WeeklyMenuImportPersistence(
@@ -271,7 +273,7 @@ internal sealed class WeeklyMenuImportPersistence(
             !string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
         if (lockedSchedule is not null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Không thể thay thế thực đơn tuần vì lịch {lockedSchedule.ServiceDate:dd/MM/yyyy} {WeeklyMenuWorkbookSyntaxPolicy.ToVietnameseShift(lockedSchedule.ShiftName)} đã ở trạng thái {lockedSchedule.Status}.");
         }
     }
@@ -297,7 +299,7 @@ internal sealed class WeeklyMenuImportPersistence(
         if (linkedScheduleIds.Any(linkedId =>
             staleScheduleIds.Any(staleId => linkedId.SequenceEqual(staleId))))
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Không thể xóa lịch thực đơn cũ vì đã có số suất liên kết. Vui lòng điều chỉnh số suất hoặc import lại file đầy đủ ngày/ca.");
         }
 
@@ -320,7 +322,7 @@ internal sealed class WeeklyMenuImportPersistence(
             !string.Equals(item.Status, "DRAFT", StringComparison.OrdinalIgnoreCase));
         if (lockedSchedule is not null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Không thể ghi đè thực đơn {serviceDate:dd/MM/yyyy} {WeeklyMenuWorkbookSyntaxPolicy.ToVietnameseShift(shiftName)} vì lịch đã ở trạng thái {lockedSchedule.Status}.");
         }
     }

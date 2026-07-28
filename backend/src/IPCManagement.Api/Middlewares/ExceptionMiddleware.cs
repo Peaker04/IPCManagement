@@ -58,27 +58,12 @@ public class ExceptionMiddleware
                     ? "File tải lên vượt quá dung lượng cho phép (tối đa 10 MB)."
                     : "Yêu cầu không hợp lệ."),
             DbUpdateConcurrencyException => (HttpStatusCode.Conflict,             "Dữ liệu đã bị thay đổi bởi người dùng khác. Vui lòng thử lại."),
-            // TODO P1.2b: sau khi service chuyển sang BusinessRuleException, chuyển dòng dưới về 500.
-            InvalidOperationException => (HttpStatusCode.BadRequest,         ex.Message),
             ArgumentException         => (HttpStatusCode.UnprocessableEntity, ex.Message),
             UnauthorizedAccessException => (HttpStatusCode.Unauthorized,      "Không có quyền truy cập."),
             KeyNotFoundException      => (HttpStatusCode.NotFound,            ex.Message),
             DirectoryNotFoundException => (HttpStatusCode.NotFound,           ex.Message),
             _                         => (HttpStatusCode.InternalServerError, "Đã xảy ra lỗi hệ thống. Vui lòng thử lại sau.")
         };
-
-        // Còn ném InvalidOperationException cho lỗi nghiệp vụ nghĩa là chỗ đó chưa được phân loại.
-        // Log Warning để P1.2b biết chính xác endpoint/lớp nào cần đổi sang BusinessRuleException.
-        if (ex is InvalidOperationException)
-        {
-            _logger.LogWarning(
-                "Unclassified exception: {ExceptionType} tại {Method} {Path} (nguồn: {Source}). "
-                + "Cần đổi sang BusinessRuleException/ResourceNotFoundException/ResourceConflictException.",
-                ex.GetType().FullName,
-                context.Request.Method,
-                context.Request.Path.Value,
-                ex.TargetSite?.DeclaringType?.FullName ?? ex.Source ?? "unknown");
-        }
 
         context.Response.StatusCode = (int)statusCode;
 
