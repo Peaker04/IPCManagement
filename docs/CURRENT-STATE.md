@@ -146,7 +146,7 @@ Khóa đúng theo ngữ cảnh:
 
 | Phạm vi | Tests | Line | Branch | Function/method |
 |---|---:|---:|---:|---:|
-| Backend | **634 pass / 0 fail / 1 skip** (28/07) — `npm run test:be` gồm 2 project: Api.Tests 587, Application.Tests 47 | 69.4% | 53.8% | 75.5% method |
+| Backend | **710 pass / 0 fail / 1 skip** (28/07) — `npm run test:be` gồm 2 project: Api.Tests 663, Application.Tests 47 | 69.4% | 53.8% | 75.5% method |
 | Frontend | **416/416 pass trên 74 file** (28/07) | 39.68% | 29.21% | 32.00% function |
 
 Số coverage phần trăm là của lần chạy coverage 25/07; các lần sau chỉ chạy lại test suite, chưa chạy lại coverage.
@@ -764,8 +764,26 @@ Evidence tại `.artifacts/shipyard-live/query-view-pilot-performance.json` và 
   lint/dependency/production build xanh, OpenAPI/TypeScript deterministic và EF pending-model sạch.
   GitNexus staged audit preset là **HIGH** (35 symbol/9 flow); parser là **CRITICAL**
   (103 symbol/17 flow), đúng các flow preview/commit đã được phủ regression.
-- Lát active tiếp theo là **query/template/mapping**, sau đó preview/commit, history/rollback,
-  bulk edit và cuối cùng rewire controller để xóa `ISampleDataImportService`/partial facade.
+- SampleData đã hoàn tất query/template/mapping, preview/commit, history/rollback và bulk edit.
+  Sáu port use-case mới được controller gọi trực tiếp: `IWeeklyMenuQueryService`,
+  `IWeeklyMenuTemplateService`, `ICustomerImportMappingService`, `IWeeklyMenuImportService`,
+  `IWeeklyMenuImportHistoryService` và `IWeeklyMenuBulkEditService`.
+- `SampleDataImportService` partial **2.409 dòng** và `ISampleDataImportService` đã xóa; production scan
+  không còn reference. Imperative shell lớn nhất là `WeeklyMenuImportPersistence` **521 dòng**;
+  query 172, template 53, mapping 66, preview/commit 183, history/rollback 167, bulk edit 122,
+  result builder 191 và shared resolver/projection 251 dòng. Không service mới nào vượt ngưỡng 600.
+- Controller giữ nguyên 11 route, response metadata, upload limit, message và transaction boundary;
+  OpenAPI vẫn **152 path / 396 schema**, TypeScript generate deterministic và không drift. Thử tách
+  controller vật lý đã bị loại vì chỉ làm đổi thứ tự path generated dù semantic route không đổi.
+- Gate cuối SampleData: targeted **55/55**; API **663 pass / 1 skip**, Application **47/47**,
+  FE **416/416**, Debug/Release build 0 warning, lint/dependency/production build xanh và EF
+  pending-model sạch. Mười một test reflection chỉ phủ private helper legacy đã xóa cùng facade nên
+  được retire; các test parser/validation và behavior preview/commit/re-import còn lại vẫn chạy trực tiếp.
+- GitNexus pre-edit đánh dấu `XlsxWorkbookReader` **CRITICAL** (35 direct/54 total) dù thay đổi tại đó
+  chỉ là comment stale, không đổi executable reader. Staged audit cuối là **MEDIUM**: 21 file,
+  48 symbol, 2 flow; hai flow chỉ map tới hunk comment trong `OpenWorkbook` và đều đã qua full regression.
+- Không gọi endpoint import, không reset/seed/import hoặc truy cập database, không chạy browser vì
+  API contract, route, UI và DOM không đổi. **Bước 15 đã hoàn tất; bước active tiếp theo là Bước 16.**
 
 ## Quy trình tiếp tục ở phiên mới
 

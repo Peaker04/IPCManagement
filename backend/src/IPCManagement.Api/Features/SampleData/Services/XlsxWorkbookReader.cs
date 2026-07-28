@@ -126,7 +126,7 @@ internal sealed class XlsxWorkbookReader
     private static ZipArchive OpenWorkbook(string workbookPath)
     {
         // InvalidDataException (file không phải zip/xlsx) được giữ nguyên để
-        // SampleDataImportService.IsUnreadableWorkbookException tiếp tục quy nó về
+        // WeeklyMenuImportValidationPolicy.IsUnreadableWorkbookException tiếp tục quy nó về
         // FILE_READ_ERROR thân thiện — đó là lỗi người dùng thường gặp, không phải tấn công.
         var archive = ZipFile.OpenRead(workbookPath);
 

@@ -73,11 +73,11 @@ public class WeeklyMenuImportParserTests
         });
         await context.SaveChangesAsync();
 
-        var service = new SampleDataImportService(context, null!);
+        var service = new WeeklyMenuTemplateService(context);
         var result = await service.BuildWeeklyMenuTemplateAsync(
             GuidHelper.ToGuidString(customerId),
             new DateOnly(2026, 7, 20));
-        using var embeddedTemplate = typeof(SampleDataImportService).Assembly
+        using var embeddedTemplate = typeof(WeeklyMenuTemplateService).Assembly
             .GetManifestResourceStream(
                 "IPCManagement.Api.Resources.Templates.weekly-menu-template-ANV-default.xlsx")
             ?? throw new InvalidOperationException("Embedded ANV template was not found.");
@@ -91,7 +91,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void NormalizeWeeklyMenuPriceTier_Should_RejectMissingTier()
     {
-        var method = typeof(SampleDataImportService)
+        var method = typeof(WeeklyMenuImportService)
             .GetMethod("NormalizeWeeklyMenuPriceTier", BindingFlags.NonPublic | BindingFlags.Static);
 
         var action = () => method!.Invoke(null, [null]);
@@ -104,7 +104,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public async Task BuildWeeklyMenuTemplateAsync_Should_CreateThreeAlignedPriceSheets()
     {
-        var service = new SampleDataImportService(null!, null!);
+        var service = new WeeklyMenuTemplateService(null!);
         var template = await service.BuildWeeklyMenuTemplateAsync(null, new DateOnly(2026, 6, 15));
         var bytes = template.Content;
 
@@ -138,7 +138,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void WeeklyMenuTemplateBuilder_Should_CreateDistinctCustomerLayouts_ForAnvAndDav()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         buildMethod.Should().NotBeNull();
@@ -216,7 +216,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void WeeklyMenuTemplateBuilder_Should_BorderEveryCellInMergedFruitRows()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var bytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;
@@ -242,7 +242,7 @@ public class WeeklyMenuImportParserTests
     [Fact]
     public void ParseWeeklyMenuWorkbook_Should_AcceptPopulatedGeneratedSharedLayout()
     {
-        var buildMethod = typeof(SampleDataImportService).Assembly
+        var buildMethod = typeof(WeeklyMenuTemplateService).Assembly
             .GetType("IPCManagement.Api.Features.SampleData.Services.WeeklyMenuTemplateWorkbookBuilder")!
             .GetMethod("Build", BindingFlags.Public | BindingFlags.Static);
         var generatedBytes = (byte[])buildMethod!.Invoke(null, [new DateOnly(2026, 6, 15), "ANV"])!;

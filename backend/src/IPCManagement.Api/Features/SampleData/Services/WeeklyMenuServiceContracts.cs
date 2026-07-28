@@ -1,10 +1,9 @@
-
 using IPCManagement.Api.Features.Coordination.Contracts;
 using IPCManagement.Api.Features.SampleData.Contracts;
 
 namespace IPCManagement.Api.Features.SampleData.Services;
 
-public interface ISampleDataImportService
+public interface IWeeklyMenuQueryService
 {
     Task<IReadOnlyList<CoordinationCustomerOptionDto>> GetActiveCustomersAsync(
         CancellationToken cancellationToken = default);
@@ -13,12 +12,30 @@ public interface ISampleDataImportService
         string customerId,
         DateOnly? weekStartDate,
         CancellationToken cancellationToken = default);
+}
 
+public interface IWeeklyMenuTemplateService
+{
     Task<(byte[] Content, string CustomerCode)> BuildWeeklyMenuTemplateAsync(
         string? customerId,
         DateOnly? weekStartDate,
         CancellationToken cancellationToken = default);
+}
 
+public interface ICustomerImportMappingService
+{
+    Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
+        string customerId,
+        CancellationToken cancellationToken = default);
+
+    Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
+        string customerId,
+        SaveCustomerImportMappingRequest request,
+        CancellationToken cancellationToken = default);
+}
+
+public interface IWeeklyMenuImportService
+{
     Task<WeeklyMenuImportResultDto> PreviewWeeklyMenuImportAsync(
         Stream fileStream,
         string fileName,
@@ -35,7 +52,10 @@ public interface ISampleDataImportService
         decimal? priceTierAmount,
         string? actorUserId = null,
         CancellationToken cancellationToken = default);
+}
 
+public interface IWeeklyMenuImportHistoryService
+{
     Task<IReadOnlyList<WeeklyMenuImportHistoryItemDto>> GetWeeklyMenuImportHistoryAsync(
         string? customerId,
         CancellationToken cancellationToken = default);
@@ -44,16 +64,10 @@ public interface ISampleDataImportService
         string menuVersionId,
         string? actorUserId,
         CancellationToken cancellationToken = default);
+}
 
-    Task<CustomerImportMappingDto?> GetCustomerImportMappingAsync(
-        string customerId,
-        CancellationToken cancellationToken = default);
-
-    Task<CustomerImportMappingDto> SaveCustomerImportMappingAsync(
-        string customerId,
-        SaveCustomerImportMappingRequest request,
-        CancellationToken cancellationToken = default);
-
+public interface IWeeklyMenuBulkEditService
+{
     Task<(bool Success, string Message, List<string> Warnings)> BulkUpdateWeeklyMenuAsync(
         BulkUpdateWeeklyMenuRequest request,
         CancellationToken cancellationToken = default);
