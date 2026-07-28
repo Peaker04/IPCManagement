@@ -7,6 +7,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Inventory.Services;
 
 public class InventoryReceiptService : IInventoryReceiptService
@@ -163,7 +165,7 @@ public class InventoryReceiptService : IInventoryReceiptService
 
         if (request.Status is not "SENTTOSUPPLIER" and not "PARTIALRECEIVED")
         {
-            throw new InvalidOperationException("Chỉ nhập kho từ phiếu mua đã gửi nhà cung cấp hoặc đang nhận một phần.");
+            throw new BusinessRuleException("Chỉ nhập kho từ phiếu mua đã gửi nhà cung cấp hoặc đang nhận một phần.");
         }
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -204,14 +206,14 @@ public class InventoryReceiptService : IInventoryReceiptService
 
                 if (purchaseLine.SupplierId is null || !purchaseLine.SupplierId.SequenceEqual(supplierId))
                 {
-                    throw new InvalidOperationException("Nhà cung cấp trên dòng nhập không khớp phiếu mua.");
+                    throw new BusinessRuleException("Nhà cung cấp trên dòng nhập không khớp phiếu mua.");
                 }
 
                 var unitId = GuidHelper.ParseGuidString(input.UnitId)
                     ?? throw new ArgumentException("UnitId không hợp lệ.");
                 if (!purchaseLine.UnitId.SequenceEqual(unitId))
                 {
-                    throw new InvalidOperationException("Đơn vị nhập phải khớp đơn vị trên phiếu mua.");
+                    throw new BusinessRuleException("Đơn vị nhập phải khớp đơn vị trên phiếu mua.");
                 }
 
                 var receivedQty = DecimalPolicy.RoundQuantity(input.ReceivedQty);
@@ -225,7 +227,7 @@ public class InventoryReceiptService : IInventoryReceiptService
                 var remainingQty = DecimalPolicy.RoundQuantity(purchaseLine.PurchaseQty - alreadyReceived);
                 if (DecimalPolicy.GreaterThanQuantity(receivedQty, remainingQty))
                 {
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Số lượng nhận vượt số còn lại của dòng mua. Còn lại: {remainingQty}, nhập: {receivedQty}.");
                 }
 

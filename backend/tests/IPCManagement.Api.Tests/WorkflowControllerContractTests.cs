@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Security;
 using Microsoft.AspNetCore.Http;
@@ -28,7 +29,7 @@ public class WorkflowControllerContractTests
                 "user-id",
                 Arg.Any<CancellationToken>())
             .Returns(Task.FromException<MaterialDemandResultDto?>(
-                new InvalidOperationException("Giá ngoài tier cố định.")));
+                new BusinessRuleException("Giá ngoài tier cố định.")));
 
         var result = await controller.GenerateAsync(new GenerateMaterialDemandRequest
         {

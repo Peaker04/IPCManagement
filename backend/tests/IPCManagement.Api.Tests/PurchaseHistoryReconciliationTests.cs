@@ -7,6 +7,7 @@ using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Middlewares;
@@ -1135,7 +1136,7 @@ public class PurchaseHistoryReconciliationTests
                 Arg.Any<PurchaseHistoryApplyRequest>(),
                 Arg.Any<byte[]>(),
                 Arg.Any<CancellationToken>())
-            .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new InvalidOperationException("Manifest drifted."));
+            .Returns<Task<PurchaseHistoryApplyResultDto>>(_ => throw new BusinessRuleException("Manifest drifted."));
         await using var app = await CreatePreviewEndpointAppAsync(service, "Development");
         using var client = app.GetTestClient();
         client.DefaultRequestHeaders.Add(PreviewTestAuthHandler.RoleHeader, "Manager");
@@ -1246,7 +1247,7 @@ public class PurchaseHistoryReconciliationTests
 
         var act = () => service.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
     }
 
@@ -1288,7 +1289,7 @@ public class PurchaseHistoryReconciliationTests
 
         var act = () => driftedService.ValidateAcceptedManifestAsync(request, Id(41), CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
     }
 
@@ -1322,7 +1323,7 @@ public class PurchaseHistoryReconciliationTests
             omitActor ? [] : Id(41),
             CancellationToken.None);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
         (await ApplyDatabaseCountsAsync(context)).Should().Be(before);
     }
 

@@ -6,6 +6,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Planning.Services;
 
 public class ProductionPlanService : IProductionPlanService
@@ -105,7 +107,7 @@ public class ProductionPlanService : IProductionPlanService
             .ToListAsync(cancellationToken);
         if (plans.Count == 0)
         {
-            throw new InvalidOperationException("Chưa có kế hoạch sản xuất để gửi bếp.");
+            throw new BusinessRuleException("Chưa có kế hoạch sản xuất để gửi bếp.");
         }
 
         var now = DateTime.UtcNow;

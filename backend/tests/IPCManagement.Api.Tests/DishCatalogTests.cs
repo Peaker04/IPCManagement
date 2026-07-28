@@ -22,6 +22,8 @@ using IPCManagement.Api.Features.Catalog.Controllers;
 using IPCManagement.Api.Features.Catalog.Services;
 using IPCManagement.Api.Features.SampleData.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public class DishCatalogTests
@@ -351,7 +353,7 @@ public class DishCatalogTests
 
         var act = () => service.AddBomLineAsync(GuidHelper.ToGuidString(fixture.DishId), overlappingRequest);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*trùng nguyên liệu, đơn vị và khoảng hiệu lực*");
     }
 
@@ -708,7 +710,7 @@ public class DishCatalogTests
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("DishCode không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("IngredientCode không tồn tại")));
         preview.Rows.Should().Contain(row => row.Errors.Any(error => error.Contains("UnitCode không tồn tại")));
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*File BOM còn lỗi*");
 
         var persistedRows = await fixture.Context.Dishboms.AsNoTracking().ToListAsync();

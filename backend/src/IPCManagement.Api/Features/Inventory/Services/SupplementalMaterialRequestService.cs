@@ -5,6 +5,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Inventory.Services;
 
 public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRequestService
@@ -116,10 +118,10 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         }
 
         var source = await _context.Inventoryissuelines.FindAsync(issueLineId)
-            ?? throw new InvalidOperationException("Không tìm thấy dòng nguyên liệu trên phiếu xuất.");
+            ?? throw new BusinessRuleException("Không tìm thấy dòng nguyên liệu trên phiếu xuất.");
         if (!source.IssueId.SequenceEqual(issueId))
         {
-            throw new InvalidOperationException("Dòng nguyên liệu không thuộc phiếu xuất đã chọn.");
+            throw new BusinessRuleException("Dòng nguyên liệu không thuộc phiếu xuất đã chọn.");
         }
 
         await _context.Entry(source).Reference(line => line.Issue).LoadAsync();
@@ -128,7 +130,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
 
         if (source.Issue.ReceivedAt is null)
         {
-            throw new InvalidOperationException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
+            throw new BusinessRuleException("Bếp cần xác nhận đã nhận phiếu xuất trước khi yêu cầu bổ sung.");
         }
 
         EnsureWarehouseScope(source.Issue.WarehouseId, scopedWarehouseId);
@@ -177,11 +179,11 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var current = await MapAsync(entity, source);
         if (requestedQuantity > current.RemainingQty)
         {
-            throw new InvalidOperationException($"Số lượng cấp vượt phần còn thiếu {current.RemainingQty} {current.UnitName}.");
+            throw new BusinessRuleException($"Số lượng cấp vượt phần còn thiếu {current.RemainingQty} {current.UnitName}.");
         }
         if (requestedQuantity > current.AvailableQty)
         {
-            throw new InvalidOperationException($"Kho chỉ còn {current.AvailableQty} {current.UnitName}; hãy cấp một phần hoặc chuyển phần thiếu sang thu mua.");
+            throw new BusinessRuleException($"Kho chỉ còn {current.AvailableQty} {current.UnitName}; hãy cấp một phần hoặc chuyển phần thiếu sang thu mua.");
         }
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -259,11 +261,11 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var purchaseQty = DecimalPolicy.RoundQuantity(current.RemainingQty - current.AvailableQty);
         if (purchaseQty <= 0)
         {
-            throw new InvalidOperationException("Kho đang đủ hàng cho phần còn thiếu; hãy tạo phiếu xuất bổ sung.");
+            throw new BusinessRuleException("Kho đang đủ hàng cho phần còn thiếu; hãy tạo phiếu xuất bổ sung.");
         }
         if (current.PurchaseRequestId is not null)
         {
-            throw new InvalidOperationException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
+            throw new BusinessRuleException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
         }
 
         var materialLineQuery = _context.Materialrequestlines
@@ -282,7 +284,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
                 line.UnitId == entity.UnitId);
         if (materialLine is null)
         {
-            throw new InvalidOperationException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
+            throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
         }
 
         using var transaction = await _unitOfWork.BeginTransactionAsync();
@@ -354,7 +356,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var current = await MapAsync(entity);
         if (current.FulfilledQty > 0 || current.PurchaseRequestId is not null)
         {
-            throw new InvalidOperationException("Không thể từ chối yêu cầu đã cấp một phần hoặc đã chuyển sang thu mua.");
+            throw new BusinessRuleException("Không thể từ chối yêu cầu đã cấp một phần hoặc đã chuyển sang thu mua.");
         }
 
         var oldStatus = entity.Status;
@@ -536,7 +538,7 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         var status = NormalizeStatus(entity.Status);
         if (status is RejectedStatus or FulfilledStatus)
         {
-            throw new InvalidOperationException("Yêu cầu bổ sung đã ở trạng thái kết thúc và không thể thao tác thêm.");
+            throw new BusinessRuleException("Yêu cầu bổ sung đã ở trạng thái kết thúc và không thể thao tác thêm.");
         }
     }
 

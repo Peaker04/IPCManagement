@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class OrderAdjustmentService : IOrderAdjustmentService
@@ -56,7 +58,7 @@ public sealed class OrderAdjustmentService : IOrderAdjustmentService
 
         if (!OrderStatus.IsLocked(line.QuantityPlan.Status))
         {
-            throw new InvalidOperationException("Chỉ có thể điều chỉnh sau khi kế hoạch đã được chốt.");
+            throw new BusinessRuleException("Chỉ có thể điều chỉnh sau khi kế hoạch đã được chốt.");
         }
 
         var adjustmentIds = line.Quantityadjustments
@@ -73,7 +75,7 @@ public sealed class OrderAdjustmentService : IOrderAdjustmentService
                 !resolvedIds.Any(resolvedId => resolvedId.SequenceEqual(adjustmentId)));
             if (hasPendingAdjustment)
             {
-                throw new InvalidOperationException("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
+                throw new BusinessRuleException("Dòng này đang có yêu cầu điều chỉnh chờ duyệt.");
             }
         }
 
@@ -124,7 +126,7 @@ public sealed class OrderAdjustmentService : IOrderAdjustmentService
             return null;
         }
 
-        throw new InvalidOperationException(
+        throw new BusinessRuleException(
             "Không thể điều chỉnh trực tiếp sau khi chốt. Hãy gửi yêu cầu duyệt điều chỉnh.");
     }
 
@@ -155,7 +157,7 @@ public sealed class OrderAdjustmentService : IOrderAdjustmentService
 
         if (!OrderStatus.CanEditForecast(line.QuantityPlan.Status))
         {
-            throw new InvalidOperationException("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
+            throw new BusinessRuleException("Chỉ có thể cập nhật số suất dự kiến trước khi kế hoạch được chốt.");
         }
 
         await using var transaction = await _context.Database.BeginTransactionAsync();

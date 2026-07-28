@@ -2,6 +2,8 @@ using System.Globalization;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 internal static class WeeklyMenuWorkbookParser
@@ -40,7 +42,7 @@ internal static class WeeklyMenuWorkbookParser
         var best = candidatePool.OrderByDescending(candidate => candidate.Score).FirstOrDefault();
         if (best is null || best.Score < 20)
         {
-            throw new InvalidOperationException("File Excel không có bảng thực đơn tuần hợp lệ.");
+            throw new BusinessRuleException("File Excel không có bảng thực đơn tuần hợp lệ.");
         }
 
         var labelColumn = !string.IsNullOrWhiteSpace(mapping?.LabelColumn)
@@ -48,7 +50,7 @@ internal static class WeeklyMenuWorkbookParser
             : DetectLabelColumn(best.Rows);
         if (labelColumn is null)
         {
-            throw new InvalidOperationException("Không xác định được cột nhãn món trong file thực đơn.");
+            throw new BusinessRuleException("Không xác định được cột nhãn món trong file thực đơn.");
         }
 
         var weekStart = WeeklyMenuWorkbookLayoutPolicy.ExtractWeekStart(best.Rows, originalFileName, weekStartFallback);
@@ -59,7 +61,7 @@ internal static class WeeklyMenuWorkbookParser
             weekStartFallback);
         if (dayColumns.Count == 0)
         {
-            throw new InvalidOperationException("Không xác định được cột ngày. Vui lòng nhập ngày bắt đầu tuần rồi thử lại.");
+            throw new BusinessRuleException("Không xác định được cột ngày. Vui lòng nhập ngày bắt đầu tuần rồi thử lại.");
         }
 
         var plan = new WeeklyMenuImportPlan(
@@ -82,7 +84,7 @@ internal static class WeeklyMenuWorkbookParser
                 return fallbackPlan;
             }
 
-            throw new InvalidOperationException("File Excel không có dòng món ăn hợp lệ để import.");
+            throw new BusinessRuleException("File Excel không có dòng món ăn hợp lệ để import.");
         }
 
         WeeklyMenuImportValidationPolicy.AddDuplicateWarnings(plan);

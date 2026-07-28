@@ -345,7 +345,7 @@ public class AdminEmployeeService : IAdminEmployeeService
 
         var roleExists = await _context.Roles.AnyAsync(role => role.RoleId == bytes);
         if (!roleExists)
-            throw new InvalidOperationException("Vai trò không tồn tại.");
+            throw new ResourceNotFoundException("Vai trò không tồn tại.");
 
         return bytes;
     }

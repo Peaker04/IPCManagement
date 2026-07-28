@@ -7,6 +7,8 @@ using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Shared.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Inventory.Controllers;
 
 [ApiController]
@@ -88,7 +90,7 @@ public class InventoryIssuesController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
@@ -115,7 +117,7 @@ public class InventoryIssuesController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

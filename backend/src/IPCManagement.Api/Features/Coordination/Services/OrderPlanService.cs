@@ -4,6 +4,8 @@ using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Coordination.Services;
 
 public sealed class OrderPlanService : IOrderPlanService
@@ -73,7 +75,7 @@ public sealed class OrderPlanService : IOrderPlanService
             !OrderStatus.CanTransition(plan.Status, OrderStatus.Confirmed));
         if (invalidPlan is not null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Chỉ có thể chốt kế hoạch đang ở trạng thái nháp hoặc dự báo. " +
                 $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
         }
@@ -144,7 +146,7 @@ public sealed class OrderPlanService : IOrderPlanService
         var oldStatus = OrderStatus.Normalize(plan.Status);
         if (oldStatus != OrderStatus.Confirmed && oldStatus != OrderStatus.Adjusted)
         {
-            throw new InvalidOperationException("Chỉ có thể mở khóa kế hoạch đang ở trạng thái chốt hoặc điều chỉnh.");
+            throw new BusinessRuleException("Chỉ có thể mở khóa kế hoạch đang ở trạng thái chốt hoặc điều chỉnh.");
         }
 
         var unlockedAt = DateTime.UtcNow;
@@ -174,7 +176,7 @@ public sealed class OrderPlanService : IOrderPlanService
         }
         catch (DbUpdateConcurrencyException)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Kế hoạch này đã được người khác chỉnh sửa trước đó. Vui lòng tải lại trang.");
         }
 
@@ -228,7 +230,7 @@ public sealed class OrderPlanService : IOrderPlanService
         });
         if (invalidPlan is not null)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Chỉ có thể mở khóa khi tất cả kế hoạch trong ca đang được chốt. " +
                 $"Kế hoạch {invalidPlan.PlanCode} hiện ở trạng thái {OrderStatus.Normalize(invalidPlan.Status)}.");
         }
@@ -274,7 +276,7 @@ public sealed class OrderPlanService : IOrderPlanService
         catch (DbUpdateConcurrencyException)
         {
             await transaction.RollbackAsync();
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 "Một kế hoạch trong ca đã được người khác chỉnh sửa. Vui lòng tải lại trang.");
         }
         catch

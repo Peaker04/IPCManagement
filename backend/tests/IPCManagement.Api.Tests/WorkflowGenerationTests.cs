@@ -1,4 +1,5 @@
 using FluentAssertions;
+using IPCManagement.Api.Exceptions;
 using NSubstitute;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
@@ -480,7 +481,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Không thể tính lại nhu cầu đã phát sinh đơn mua hàng*");
             (await context.Materialrequestlines.AsNoTracking().CountAsync()).Should().Be(1);
             (await context.Purchaserequestlines.AsNoTracking().CountAsync()).Should().Be(1);
@@ -518,7 +519,7 @@ public class WorkflowGenerationTests
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Không thể tính lại nhu cầu đã phát sinh phiếu xuất kho*");
         var staleness = await new MaterialDemandService(recalculationContext).GetStalenessAsync(
             "2026-06-15",
@@ -545,7 +546,7 @@ public class WorkflowGenerationTests
             new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
             fixture.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Không thể tính lại nhu cầu đã được duyệt*");
         (await context.Materialrequests.AsNoTracking().Select(request => request.Status).SingleAsync())
             .Should().Be("MANAGERAPPROVED");
@@ -575,7 +576,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage($"*đề xuất mua hàng*{purchaseStatus}*");
         }
 
@@ -634,7 +635,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Không thể tính lại nhu cầu đã phát sinh đơn mua hàng*");
         }
 
@@ -658,7 +659,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
         }
 
@@ -1052,7 +1053,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("*25000/30000/34000*");
         }
     }
@@ -1343,7 +1344,7 @@ public class WorkflowGenerationTests
                 new ApprovalRequest { Status = ApprovalDecision.Approve, Reason = "Approve PR" },
                 fixture.UserId);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Có dòng mua vượt ngưỡng giá, cần xử lý cảnh báo trước khi duyệt.");
 
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
@@ -1536,7 +1537,7 @@ public class WorkflowGenerationTests
             var service = CreatePurchaseRequestWorkflowService(context);
             var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Cần duyệt nhu cầu nguyên liệu trước khi gửi đơn mua.");
         }
 
@@ -1554,7 +1555,7 @@ public class WorkflowGenerationTests
             var service = CreatePurchaseRequestWorkflowService(context);
             var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Danh sách mua đã cũ, vui lòng tạo lại từ nhu cầu hiện tại.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
@@ -1596,7 +1597,7 @@ public class WorkflowGenerationTests
             var service = CreatePurchaseRequestWorkflowService(context);
             var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Có dòng mua thiếu số lượng hoặc giá dự kiến hợp lệ.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
@@ -1638,7 +1639,7 @@ public class WorkflowGenerationTests
             var service = CreatePurchaseRequestWorkflowService(context);
             var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Có dòng mua chưa chọn nhà cung cấp hợp lệ.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
@@ -1686,7 +1687,7 @@ public class WorkflowGenerationTests
             var service = CreatePurchaseRequestWorkflowService(context);
             var act = async () => await service.SubmitAsync(purchaseRequestId, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Có dòng mua cần ngoại lệ giá được Quản lý duyệt trước khi gửi đơn mua.");
             (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
                 .Should().Be("DRAFT");
@@ -2104,7 +2105,7 @@ public class WorkflowGenerationTests
                 ]
             }, fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("*vượt nhu cầu còn lại*");
             (await context.Inventoryissues.AsNoTracking().CountAsync()).Should().Be(1);
             (await context.Currentstocks.AsNoTracking().Select(item => item.CurrentQty).SingleAsync())
@@ -2238,7 +2239,7 @@ public class WorkflowGenerationTests
                 },
                 fixture.UserIdString);
 
-            await overReceipt.Should().ThrowAsync<InvalidOperationException>()
+            await overReceipt.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("*vượt số còn lại*");
             (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(0);
             (await context.Stockmovements.AsNoTracking().CountAsync()).Should().Be(0);
@@ -2748,7 +2749,7 @@ public class WorkflowGenerationTests
             fixture.UserIdString,
             BuildPrincipal("Manager"));
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("Phiếu này đã được xử lý.");
         (await context.Purchaserequests.AsNoTracking().Select(item => item.Status).SingleAsync())
             .Should().Be("APPROVED");
@@ -4532,7 +4533,7 @@ public class WorkflowGenerationTests
                 new GenerateMaterialDemandRequest { ServiceDate = "2026-06-15", Scope = "FULLDAY" },
                 fixture.UserIdString);
 
-            await act.Should().ThrowAsync<InvalidOperationException>()
+            await act.Should().ThrowAsync<BusinessRuleException>()
                 .WithMessage("Cần hoàn tất số suất trước khi tạo nhu cầu nguyên liệu.");
         }
     }
@@ -5747,7 +5748,7 @@ public class WorkflowGenerationTests
         var service = CreatePurchaseOrderService(context);
         var act = () => service.CreateFromApprovedRequestAsync(GuidHelper.ToGuidString(purchaseRequestId), fixture.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
     }
 
     [Fact]
@@ -5827,7 +5828,7 @@ public class WorkflowGenerationTests
             CreatePurchaseReceiptRequest(fixture, orderForSupplierA.PurchaseOrderId, lineId, 11m, "workflow-over-receipt"),
             fixture.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
     }
 
     [Fact]
@@ -5906,7 +5907,7 @@ public class WorkflowGenerationTests
                 "workflow-wrong-supplemental-warehouse"),
             fixture.UserIdString);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*đúng kho đang xử lý yêu cầu của bếp*");
         (await context.Inventoryreceipts.AsNoTracking().CountAsync()).Should().Be(0);
     }
@@ -5932,7 +5933,7 @@ public class WorkflowGenerationTests
 
         var act = () => orderService.CancelAsync(orderForSupplierA.PurchaseOrderId);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
+        await act.Should().ThrowAsync<BusinessRuleException>();
     }
 
     [Fact]

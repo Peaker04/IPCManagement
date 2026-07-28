@@ -9,6 +9,8 @@ using Xunit;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Tests;
 
 public class InventoryReturnServiceTests
@@ -138,7 +140,7 @@ public class InventoryReturnServiceTests
         Func<Task> act = async () => await _service.CreateAsync(dto, userId);
 
         // Assert
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<BusinessRuleException>()
             .WithMessage("*vượt quá số lượng đã xuất*");
 
         _returnRepository.DidNotReceive().Add(Arg.Any<InventoryReturn>());

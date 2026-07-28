@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using IPCManagement.Api.Features.Planning.Contracts;
 using IPCManagement.Api.Features.Planning.Services;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Planning.Controllers;
 
 [ApiController]
@@ -45,7 +47,7 @@ public class MaterialDemandController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return Conflict(ApiResponse.FailResult(ex.Message));
         }
@@ -95,7 +97,7 @@ public class MaterialDemandController : ControllerBase
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }
-        catch (InvalidOperationException ex)
+        catch (BusinessRuleException ex)
         {
             return BadRequest(ApiResponse.FailResult(ex.Message));
         }

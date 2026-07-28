@@ -2,6 +2,8 @@ using System.Globalization;
 using System.IO.Compression;
 using System.Xml.Linq;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.SampleData.Services;
 
 /// <summary>
@@ -38,7 +40,7 @@ internal sealed class XlsxWorkbookReader
 
         if (headerIndex < 0)
         {
-            throw new InvalidOperationException(
+            throw new BusinessRuleException(
                 $"Không tìm thấy header bắt buộc trong sheet '{sheetName}': {string.Join(", ", requiredHeaders)}.");
         }
 
@@ -146,7 +148,7 @@ internal sealed class XlsxWorkbookReader
     {
         var sheetPath = ResolveSheetPath(archive, sheetName);
         var sheetEntry = archive.GetEntry(sheetPath)
-            ?? throw new InvalidOperationException($"Không tìm thấy sheet '{sheetName}' trong workbook.");
+            ?? throw new BusinessRuleException($"Không tìm thấy sheet '{sheetName}' trong workbook.");
 
         return XlsxSecurityLimits.LoadXmlPart(sheetEntry, $"Sheet '{sheetName}'");
     }
@@ -154,7 +156,7 @@ internal sealed class XlsxWorkbookReader
     private static XDocument LoadPart(ZipArchive archive, string entryPath, string label)
     {
         var entry = archive.GetEntry(entryPath)
-            ?? throw new InvalidOperationException($"Workbook không có {entryPath}.");
+            ?? throw new BusinessRuleException($"Workbook không có {entryPath}.");
 
         return XlsxSecurityLimits.LoadXmlPart(entry, label);
     }
@@ -199,17 +201,17 @@ internal sealed class XlsxWorkbookReader
                 item.Attribute("name")?.Value,
                 sheetName,
                 StringComparison.OrdinalIgnoreCase))
-            ?? throw new InvalidOperationException($"Workbook không có sheet '{sheetName}'.");
+            ?? throw new BusinessRuleException($"Workbook không có sheet '{sheetName}'.");
 
         var relId = sheet.Attribute(RelationshipNs + "id")?.Value
-            ?? throw new InvalidOperationException($"Sheet '{sheetName}' thiếu relationship id.");
+            ?? throw new BusinessRuleException($"Sheet '{sheetName}' thiếu relationship id.");
 
         var target = rels
             .Descendants(PackageRelationshipNs + "Relationship")
             .FirstOrDefault(item => item.Attribute("Id")?.Value == relId)
             ?.Attribute("Target")
             ?.Value
-            ?? throw new InvalidOperationException($"Sheet '{sheetName}' không có target path.");
+            ?? throw new BusinessRuleException($"Sheet '{sheetName}' không có target path.");
 
         var normalized = target.Replace('\\', '/');
         return normalized.StartsWith("xl/", StringComparison.OrdinalIgnoreCase)

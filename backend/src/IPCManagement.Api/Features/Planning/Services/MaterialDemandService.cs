@@ -4,6 +4,8 @@ using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Planning.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Planning.Services;
 
 public class MaterialDemandService : IMaterialDemandService
@@ -57,7 +59,7 @@ public class MaterialDemandService : IMaterialDemandService
         {
             if (await HasUnsignedOffQuantityLinesAsync(serviceDate, shiftName, customerId, cancellationToken))
             {
-                throw new InvalidOperationException("Cần hoàn tất số suất trước khi tạo nhu cầu nguyên liệu.");
+                throw new BusinessRuleException("Cần hoàn tất số suất trước khi tạo nhu cầu nguyên liệu.");
             }
 
             return null;
@@ -434,7 +436,7 @@ public class MaterialDemandService : IMaterialDemandService
 
         if (request.Status != "DRAFT")
         {
-            throw new InvalidOperationException("Chỉ nhu cầu nguyên liệu DRAFT mới được duyệt.");
+            throw new BusinessRuleException("Chỉ nhu cầu nguyên liệu DRAFT mới được duyệt.");
         }
 
         var approvedAt = DateTime.UtcNow;
@@ -779,7 +781,7 @@ public class MaterialDemandService : IMaterialDemandService
                 .ToList();
             if (purchaseLines.Any(line => line.PurchaseOrderLine is not null))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Không thể tính lại nhu cầu đã phát sinh đơn mua hàng. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
             }
 
@@ -788,7 +790,7 @@ public class MaterialDemandService : IMaterialDemandService
                 .AnyAsync(issue => issue.MaterialRequestId.SequenceEqual(existing.RequestId), cancellationToken);
             if (hasInventoryIssue)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Không thể tính lại nhu cầu đã phát sinh phiếu xuất kho. Hãy giữ chứng từ hiện tại hoặc tạo luồng điều chỉnh riêng.");
             }
 
@@ -826,7 +828,7 @@ public class MaterialDemandService : IMaterialDemandService
                 if (!canRecycleMenuReimportLineage ||
                     !string.Equals(purchaseRequest.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
                 {
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Không thể tính lại nhu cầu vì đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} đang ở trạng thái {purchaseRequest.Status}.");
                 }
 
@@ -848,21 +850,21 @@ public class MaterialDemandService : IMaterialDemandService
                         " invalidated downstream demand/PR; regenerate required.",
                         StringComparison.Ordinal))
                 {
-                    throw new InvalidOperationException(
+                    throw new BusinessRuleException(
                         $"Không thể tính lại nhu cầu vì đề xuất mua hàng {purchaseRequest.PurchaseRequestCode} đang ở trạng thái {purchaseRequest.Status}.");
                 }
             }
 
             if (string.Equals(existing.Status, DemandApprovedStatus, StringComparison.OrdinalIgnoreCase))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Không thể tính lại nhu cầu đã được duyệt. Hãy tạo phiên bản tính lại riêng.");
             }
 
             if (!string.Equals(existing.Status, DemandDraftStatus, StringComparison.OrdinalIgnoreCase) &&
                 !canRecycleMenuReimportLineage)
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Không thể tính lại nhu cầu đang ở trạng thái {existing.Status}. Hãy tạo luồng điều chỉnh riêng.");
             }
 
@@ -1280,7 +1282,7 @@ public class MaterialDemandService : IMaterialDemandService
         return normalized switch
         {
             25000m or 30000m or 34000m => normalized,
-            _ => throw new InvalidOperationException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
+            _ => throw new BusinessRuleException($"Đơn giá thực đơn {menuPrice:0.##} không thuộc tier BOM 25000/30000/34000.")
         };
     }
 

@@ -10,6 +10,8 @@ using Microsoft.EntityFrameworkCore;
 using IPCManagement.Api.Features.Inventory.Services;
 using IPCManagement.Api.Features.Purchasing.Contracts;
 
+using IPCManagement.Api.Exceptions;
+
 namespace IPCManagement.Api.Features.Purchasing.Services;
 
 public sealed class PurchaseReceivingService : IPurchaseReceivingService
@@ -112,12 +114,12 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
             if (order.Status is StatusCancelled or StatusReceived)
             {
-                throw new InvalidOperationException("Đơn mua hàng đã đóng hoặc bị hủy, không thể nhập thêm.");
+                throw new BusinessRuleException("Đơn mua hàng đã đóng hoặc bị hủy, không thể nhập thêm.");
             }
 
             if (order.Status is not StatusOrdered and not StatusPartiallyReceived)
             {
-                throw new InvalidOperationException("Trạng thái đơn mua hàng không cho phép nhập kho.");
+                throw new BusinessRuleException("Trạng thái đơn mua hàng không cho phép nhập kho.");
             }
 
             var purchaseRequestId = GuidHelper.ToGuidString(order.PurchaseRequestId);
@@ -135,7 +137,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
                     .FirstOrDefaultAsync(item => item.RequestId == supplementalAudit.EntityId, cancellationToken);
             if (supplementalRequest is not null && !supplementalRequest.WarehouseId.SequenceEqual(warehouseId))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     "Đơn mua bổ sung phải được nhập vào đúng kho đang xử lý yêu cầu của bếp.");
             }
 
@@ -289,20 +291,20 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
                 ?? throw new ArgumentException("Đơn vị thực nhận không hợp lệ.");
             if (!orderLine.UnitId.AsSpan().SequenceEqual(actualUnitId))
             {
-                throw new InvalidOperationException("Đơn vị thực nhận không khớp đơn vị đã đặt.");
+                throw new BusinessRuleException("Đơn vị thực nhận không khớp đơn vị đã đặt.");
             }
 
             var newTotal = DecimalPolicy.RoundQuantity(orderLine.ReceivedQty + input.ActualQuantity);
             if (DecimalPolicy.GreaterThanQuantity(newTotal, orderLine.OrderedQty))
             {
-                throw new InvalidOperationException(
+                throw new BusinessRuleException(
                     $"Số lượng thực nhận cho '{orderLine.Ingredient.IngredientName}' vượt số lượng còn lại.");
             }
 
             var requirement = requirementsByLine[GuidHelper.ToGuidString(orderLine.PurchaseOrderLineId)];
             if (!string.IsNullOrWhiteSpace(requirement.BlockerReason))
             {
-                throw new InvalidOperationException(requirement.BlockerReason);
+                throw new BusinessRuleException(requirement.BlockerReason);
             }
 
             ValidateRequiredEvidence(requirement, input);
@@ -313,7 +315,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
                 var packageUnitExists = await UnitExistsAsync(packageBaseUnitId, cancellationToken);
                 if (!packageUnitExists)
                 {
-                    throw new InvalidOperationException("Không tìm thấy đơn vị cơ sở của quy cách đóng gói.");
+                    throw new BusinessRuleException("Không tìm thấy đơn vị cơ sở của quy cách đóng gói.");
                 }
             }
 
@@ -399,7 +401,7 @@ public sealed class PurchaseReceivingService : IPurchaseReceivingService
 
         if (!matches)
         {
-            throw new InvalidOperationException("Idempotency key đã được dùng với nội dung phiếu nhập khác.");
+            throw new BusinessRuleException("Idempotency key đã được dùng với nội dung phiếu nhập khác.");
         }
     }
 
