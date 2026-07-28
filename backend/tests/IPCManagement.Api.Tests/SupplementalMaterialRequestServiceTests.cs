@@ -1,9 +1,9 @@
 using FluentAssertions;
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Storage;
 using NSubstitute;
 using IPCManagement.Api.Features.Inventory.Contracts;
 using IPCManagement.Api.Features.Inventory.Services;
@@ -188,13 +188,12 @@ public sealed class SupplementalMaterialRequestServiceTests
         IStockLedgerService? stockLedgerService = null)
     {
         var unitOfWork = Substitute.For<IUnitOfWork>();
-        var transaction = Substitute.For<IDbContextTransaction>();
-        unitOfWork.BeginTransactionAsync().Returns(transaction);
         unitOfWork.SaveChangesAsync().Returns(_ => context.SaveChangesAsync());
         return new SupplementalMaterialRequestService(
             context,
             unitOfWork,
-            stockLedgerService ?? Substitute.For<IStockLedgerService>());
+            stockLedgerService ?? Substitute.For<IStockLedgerService>(),
+            new EfTransactionRunner(context));
     }
 
     private static (byte[] IssueId, byte[] IssueLineId, byte[] WarehouseId, byte[] UserId, byte[] IngredientId, byte[] UnitId, byte[] MaterialRequestId) SeedReceivedIssueLine(

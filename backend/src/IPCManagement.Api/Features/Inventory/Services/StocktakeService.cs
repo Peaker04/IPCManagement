@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using IPCManagement.Api.Data;
 using IPCManagement.Api.Data.Repositories;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Exceptions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
@@ -18,17 +19,20 @@ public class StocktakeService : IStocktakeService
     private readonly IStocktakeRepository _stocktakeRepo;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
     private readonly IpcManagementContext? _context;
 
     public StocktakeService(
         IStocktakeRepository stocktakeRepo,
         IUnitOfWork unitOfWork,
         IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner,
         IpcManagementContext? context = null)
     {
         _stocktakeRepo = stocktakeRepo;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
         _context = context;
     }
 
@@ -106,84 +110,84 @@ public class StocktakeService : IStocktakeService
         // Ghi vào stocktakes + stocktakelines + auditlogs nên phải nằm chung một transaction.
         // Chốt chặn "mỗi kho chỉ một phiên đang mở" cũng phải đọc trong transaction này: trước đây
         // kiểm tra rồi mới ghi (check-then-write) nên hai request song song cùng lọt qua.
-        byte[] createdStocktakeId;
-        await using (var transaction = await _unitOfWork.BeginTransactionAsync())
+        var createdStocktakeId = GuidHelper.NewId();
+        var stocktakeCode = $"STK-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper()}";
+        try
         {
-            try
-            {
-                var hasPending = await _context.Stocktakes
-                    .AnyAsync(s => s.WarehouseId == warehouseBytes && (s.Status == "DRAFT" || s.Status == "REVIEWING"));
-                if (hasPending)
+            await _transactionRunner.ExecuteAsync(
+                async cancellationToken =>
                 {
-                    throw new ResourceConflictException("Kho này đang có một phiên kiểm kê chưa hoàn tất.");
-                }
-
-                var currentStocks = await _context.Currentstocks
-                    .Where(cs => cs.WarehouseId == warehouseBytes && ingredientBytesList.Contains(cs.IngredientId))
-                    .ToListAsync();
-
-                var stocktake = new Stocktake
-                {
-                    StocktakeId = GuidHelper.NewId(),
-                    StocktakeCode = $"STK-{DateTime.Now:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N").Substring(0, 4).ToUpper()}",
-                    WarehouseId = warehouseBytes,
-                    Status = "DRAFT",
-                    Notes = dto.Notes,
-                    CreatedBy = userBytes,
-                    CreatedAt = DateTime.UtcNow
-                };
-
-                foreach (var ingredientId in ingredientBytesList)
-                {
-                    var stock = currentStocks.FirstOrDefault(s => s.IngredientId.SequenceEqual(ingredientId));
-
-                    stocktake.Stocktakelines.Add(new StocktakeLine
+                    var hasPending = await _context.Stocktakes
+                        .AnyAsync(
+                            s => s.WarehouseId == warehouseBytes && (s.Status == "DRAFT" || s.Status == "REVIEWING"),
+                            cancellationToken);
+                    if (hasPending)
                     {
-                        LineId = GuidHelper.NewId(),
-                        StocktakeId = stocktake.StocktakeId,
-                        IngredientId = ingredientId,
-                        UnitId = stock?.UnitId ?? _context.Ingredients.FirstOrDefault(i => i.IngredientId == ingredientId)?.UnitId ?? GuidHelper.NewId(),
-                        SystemQty = stock?.CurrentQty ?? 0m,
-                        ActualQty = null,
-                        DiscrepancyQty = null,
-                        Reason = null
+                        throw new ResourceConflictException("Kho này đang có một phiên kiểm kê chưa hoàn tất.");
+                    }
+
+                    var currentStocks = await _context.Currentstocks
+                        .Where(cs => cs.WarehouseId == warehouseBytes && ingredientBytesList.Contains(cs.IngredientId))
+                        .ToListAsync(cancellationToken);
+
+                    var stocktake = new Stocktake
+                    {
+                        StocktakeId = createdStocktakeId,
+                        StocktakeCode = stocktakeCode,
+                        WarehouseId = warehouseBytes,
+                        Status = "DRAFT",
+                        Notes = dto.Notes,
+                        CreatedBy = userBytes,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    foreach (var ingredientId in ingredientBytesList)
+                    {
+                        var stock = currentStocks.FirstOrDefault(s => s.IngredientId.SequenceEqual(ingredientId));
+
+                        stocktake.Stocktakelines.Add(new StocktakeLine
+                        {
+                            LineId = GuidHelper.NewId(),
+                            StocktakeId = stocktake.StocktakeId,
+                            IngredientId = ingredientId,
+                            UnitId = stock?.UnitId ?? _context.Ingredients.FirstOrDefault(i => i.IngredientId == ingredientId)?.UnitId ?? GuidHelper.NewId(),
+                            SystemQty = stock?.CurrentQty ?? 0m,
+                            ActualQty = null,
+                            DiscrepancyQty = null,
+                            Reason = null
+                        });
+                    }
+
+                    _stocktakeRepo.Add(stocktake);
+
+                    _context.Auditlogs.Add(new AuditLog
+                    {
+                        AuditId = GuidHelper.NewId(),
+                        ChangedAt = stocktake.CreatedAt,
+                        ChangedBy = userBytes,
+                        BusinessArea = "Stocktake",
+                        EntityName = nameof(Stocktake),
+                        EntityId = stocktake.StocktakeId,
+                        FieldName = "Status",
+                        OldValue = null,
+                        NewValue = "DRAFT",
+                        Reason = "Tạo phiên kiểm kê mới."
                     });
-                }
 
-                _stocktakeRepo.Add(stocktake);
-
-                _context.Auditlogs.Add(new AuditLog
-                {
-                    AuditId = GuidHelper.NewId(),
-                    ChangedAt = stocktake.CreatedAt,
-                    ChangedBy = userBytes,
-                    BusinessArea = "Stocktake",
-                    EntityName = nameof(Stocktake),
-                    EntityId = stocktake.StocktakeId,
-                    FieldName = "Status",
-                    OldValue = null,
-                    NewValue = "DRAFT",
-                    Reason = "Tạo phiên kiểm kê mới."
-                });
-
-                await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                createdStocktakeId = stocktake.StocktakeId;
-            }
-            catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
-            {
-                // Chốt chặn cuối là unique index uxStocktakeActiveWarehouse (migration
-                // 20260726120000_AddStocktakeActiveWarehouseUnique): request thua cuộc trong tình huống
-                // đua nhau sẽ vấp khóa trùng ở database chứ không tạo được phiên kiểm kê thứ hai.
-                await transaction.RollbackAsync();
-                throw new ResourceConflictException("Kho này đang có một phiên kiểm kê chưa hoàn tất.", exception);
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
+                    await _unitOfWork.SaveChangesAsync();
+                },
+                cancellationToken => _context.Stocktakes
+                    .AsNoTracking()
+                    .AnyAsync(
+                        stocktake => stocktake.StocktakeId == createdStocktakeId && stocktake.Status == "DRAFT",
+                        cancellationToken));
+        }
+        catch (DbUpdateException exception) when (IsUniqueConstraintViolation(exception))
+        {
+            // Chốt chặn cuối là unique index uxStocktakeActiveWarehouse (migration
+            // 20260726120000_AddStocktakeActiveWarehouseUnique): request thua cuộc trong tình huống
+            // đua nhau sẽ vấp khóa trùng ở database chứ không tạo được phiên kiểm kê thứ hai.
+            throw new ResourceConflictException("Kho này đang có một phiên kiểm kê chưa hoàn tất.", exception);
         }
 
         return await GetByIdAsync(GuidHelper.ToGuidString(createdStocktakeId)) ?? throw new InvalidOperationException("Lỗi sau khi tạo.");
@@ -212,7 +216,7 @@ public class StocktakeService : IStocktakeService
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
         var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
-        
+
         if (stocktake.Status != "DRAFT" && stocktake.Status != "REVIEWING")
         {
             throw new ResourceConflictException($"Không thể cập nhật số lượng khi phiếu ở trạng thái {stocktake.Status}.");
@@ -242,7 +246,7 @@ public class StocktakeService : IStocktakeService
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
         var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
-        
+
         if (stocktake.Status != "DRAFT")
         {
             throw new ResourceConflictException($"Không thể gửi duyệt khi phiếu đang ở trạng thái {stocktake.Status}.");
@@ -254,7 +258,7 @@ public class StocktakeService : IStocktakeService
         }
 
         stocktake.Status = "REVIEWING";
-        
+
         _context.Auditlogs.Add(new AuditLog
         {
             AuditId = GuidHelper.NewId(),
@@ -281,20 +285,20 @@ public class StocktakeService : IStocktakeService
         var bytes = GuidHelper.ParseGuidString(id) ?? throw new ArgumentException("Id không hợp lệ.");
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
-        var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
-        
-        if (stocktake.Status != "REVIEWING")
-        {
-            throw new ResourceConflictException("Chỉ có thể duyệt khi phiếu ở trạng thái REVIEWING.");
-        }
-
         // GetByIdAsync được đưa ra ngoài transaction: trước đây nó nằm sau CommitAsync nhưng vẫn trong
         // khối try, nên nếu câu đọc lại hỏng thì catch gọi RollbackAsync trên transaction đã commit và
         // lỗi thật bị che bởi "transaction has completed".
-        await using (var transaction = await _unitOfWork.BeginTransactionAsync())
-        {
-            try
+        await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
+                var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes)
+                    ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
+
+                if (stocktake.Status != "REVIEWING")
+                {
+                    throw new ResourceConflictException("Chỉ có thể duyệt khi phiếu ở trạng thái REVIEWING.");
+                }
+
                 stocktake.Status = "APPROVED";
                 var now = DateTime.UtcNow;
                 stocktake.ApprovedBy = userBytes;
@@ -351,14 +355,12 @@ public class StocktakeService : IStocktakeService
 
                 _stocktakeRepo.Update(stocktake);
                 await _unitOfWork.SaveChangesAsync();
-                await transaction.CommitAsync();
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+            },
+            cancellationToken => _context.Stocktakes
+                .AsNoTracking()
+                .AnyAsync(
+                    stocktake => stocktake.StocktakeId == bytes && stocktake.Status == "APPROVED",
+                    cancellationToken));
 
         return await GetByIdAsync(id) ?? throw new InvalidOperationException("Lỗi sau khi duyệt.");
     }
@@ -370,7 +372,7 @@ public class StocktakeService : IStocktakeService
         var userBytes = GuidHelper.ParseGuidString(userId) ?? throw new ArgumentException("UserId không hợp lệ.");
 
         var stocktake = await _stocktakeRepo.GetByIdWithLinesAsync(bytes) ?? throw new ResourceNotFoundException("Không tìm thấy phiên kiểm kê.");
-        
+
         if (stocktake.Status != "REVIEWING")
         {
             throw new ResourceConflictException("Chỉ có thể từ chối khi phiếu ở trạng thái REVIEWING.");
@@ -380,7 +382,7 @@ public class StocktakeService : IStocktakeService
         var now = DateTime.UtcNow;
         stocktake.ApprovedBy = userBytes;
         stocktake.ApprovedAt = now;
-        
+
         if (!string.IsNullOrWhiteSpace(reason))
         {
             stocktake.Notes = string.IsNullOrWhiteSpace(stocktake.Notes) ? reason : $"{stocktake.Notes}\nTừ chối: {reason}";

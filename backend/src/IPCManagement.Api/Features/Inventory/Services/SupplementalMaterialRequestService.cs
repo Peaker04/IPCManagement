@@ -1,4 +1,5 @@
 using IPCManagement.Api.Data;
+using IPCManagement.Api.Data.Transactions;
 using IPCManagement.Api.Helpers;
 using IPCManagement.Api.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -24,15 +25,18 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
     private readonly IpcManagementContext _context;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IStockLedgerService _stockLedgerService;
+    private readonly IEfTransactionRunner _transactionRunner;
 
     public SupplementalMaterialRequestService(
         IpcManagementContext context,
         IUnitOfWork unitOfWork,
-        IStockLedgerService stockLedgerService)
+        IStockLedgerService stockLedgerService,
+        IEfTransactionRunner transactionRunner)
     {
         _context = context;
         _unitOfWork = unitOfWork;
         _stockLedgerService = stockLedgerService;
+        _transactionRunner = transactionRunner;
     }
 
     public async Task<PagedResponseDto<SupplementalMaterialRequestDto>> GetPagedAsync(
@@ -165,85 +169,87 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string? scopedWarehouseId = null)
     {
         var actorId = ParseActor(actorUserId);
-        var entity = await LoadTrackedAsync(id);
-        EnsureWarehouseScope(entity, scopedWarehouseId);
-        EnsureActionable(entity);
-
         var requestedQuantity = DecimalPolicy.RoundQuantity(request.Quantity);
         if (requestedQuantity <= 0)
         {
             throw new ArgumentException("Số lượng cấp bổ sung phải lớn hơn 0.");
         }
 
-        var source = await LoadSourceLineAsync(entity);
-        var current = await MapAsync(entity, source);
-        if (requestedQuantity > current.RemainingQty)
-        {
-            throw new BusinessRuleException($"Số lượng cấp vượt phần còn thiếu {current.RemainingQty} {current.UnitName}.");
-        }
-        if (requestedQuantity > current.AvailableQty)
-        {
-            throw new BusinessRuleException($"Kho chỉ còn {current.AvailableQty} {current.UnitName}; hãy cấp một phần hoặc chuyển phần thiếu sang thu mua.");
-        }
-
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
-        try
-        {
-            var issue = new InventoryIssue
+        var issueId = GuidHelper.NewId();
+        var issueCode = $"ISS-SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+        return await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
-                IssueId = GuidHelper.NewId(),
-                IssueCode = $"ISS-SUP-{DateTime.UtcNow:yyyyMMdd-HHmmss}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
-                IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                ShiftName = source.Issue.ShiftName,
-                WarehouseId = entity.WarehouseId,
-                MaterialRequestId = source.Issue.MaterialRequestId,
-                IssuedBy = actorId,
-                CreatedAt = DateTime.UtcNow,
-            };
-            issue.Inventoryissuelines.Add(new InventoryIssueLine
-            {
-                IssueLineId = GuidHelper.NewId(),
-                IssueId = issue.IssueId,
-                IngredientId = entity.IngredientId,
-                UnitId = entity.UnitId,
-                RequestedQty = requestedQuantity,
-                IssuedQty = requestedQuantity,
-            });
-            _context.Inventoryissues.Add(issue);
+                var entity = await LoadTrackedAsync(id);
+                EnsureWarehouseScope(entity, scopedWarehouseId);
+                EnsureActionable(entity);
 
-            await _stockLedgerService.RemoveStockWithCheckAsync(
-                entity.WarehouseId,
-                entity.IngredientId,
-                entity.UnitId,
-                requestedQuantity,
-                "ISSUE",
-                MovementRefTable,
-                entity.RequestId,
-                actorId,
-                "Cấp nguyên liệu bổ sung cho bếp",
-                $"Yêu cầu {entity.RequestCode}; phiếu xuất {issue.IssueCode}");
+                var source = await LoadSourceLineAsync(entity);
+                var current = await MapAsync(entity, source);
+                if (requestedQuantity > current.RemainingQty)
+                {
+                    throw new BusinessRuleException($"Số lượng cấp vượt phần còn thiếu {current.RemainingQty} {current.UnitName}.");
+                }
+                if (requestedQuantity > current.AvailableQty)
+                {
+                    throw new BusinessRuleException($"Kho chỉ còn {current.AvailableQty} {current.UnitName}; hãy cấp một phần hoặc chuyển phần thiếu sang thu mua.");
+                }
 
-            var totalFulfilled = DecimalPolicy.RoundQuantity(current.FulfilledQty + requestedQuantity);
-            var oldStatus = entity.Status;
-            entity.Status = totalFulfilled >= entity.RequestedQty ? IssuedStatus : PartialStatus;
-            AddAudit(
-                entity,
-                actorId,
-                FulfillmentIssueAuditField,
-                oldStatus,
-                GuidHelper.ToGuidString(issue.IssueId),
-                $"Kho cấp {requestedQuantity} {source.Unit.UnitName} bằng phiếu {issue.IssueCode}.");
+                var issue = new InventoryIssue
+                {
+                    IssueId = issueId,
+                    IssueCode = issueCode,
+                    IssueDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    ShiftName = source.Issue.ShiftName,
+                    WarehouseId = entity.WarehouseId,
+                    MaterialRequestId = source.Issue.MaterialRequestId,
+                    IssuedBy = actorId,
+                    CreatedAt = DateTime.UtcNow,
+                };
+                issue.Inventoryissuelines.Add(new InventoryIssueLine
+                {
+                    IssueLineId = GuidHelper.NewId(),
+                    IssueId = issue.IssueId,
+                    IngredientId = entity.IngredientId,
+                    UnitId = entity.UnitId,
+                    RequestedQty = requestedQuantity,
+                    IssuedQty = requestedQuantity,
+                });
+                _context.Inventoryissues.Add(issue);
 
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                await _stockLedgerService.RemoveStockWithCheckAsync(
+                    entity.WarehouseId,
+                    entity.IngredientId,
+                    entity.UnitId,
+                    requestedQuantity,
+                    "ISSUE",
+                    MovementRefTable,
+                    entity.RequestId,
+                    actorId,
+                    "Cấp nguyên liệu bổ sung cho bếp",
+                    $"Yêu cầu {entity.RequestCode}; phiếu xuất {issue.IssueCode}");
 
-        return await MapAsync(entity, source);
+                var totalFulfilled = DecimalPolicy.RoundQuantity(current.FulfilledQty + requestedQuantity);
+                var oldStatus = entity.Status;
+                entity.Status = totalFulfilled >= entity.RequestedQty ? IssuedStatus : PartialStatus;
+                AddAudit(
+                    entity,
+                    actorId,
+                    FulfillmentIssueAuditField,
+                    oldStatus,
+                    GuidHelper.ToGuidString(issue.IssueId),
+                    $"Kho cấp {requestedQuantity} {source.Unit.UnitName} bằng phiếu {issue.IssueCode}.");
+
+                await _unitOfWork.SaveChangesAsync();
+                return await MapAsync(entity, source);
+            },
+            cancellationToken => _context.Auditlogs
+                .AsNoTracking()
+                .AnyAsync(
+                    audit => audit.EntityName == nameof(SupplementalMaterialRequest) &&
+                             audit.FieldName == FulfillmentIssueAuditField &&
+                             audit.NewValue == GuidHelper.ToGuidString(issueId),
+                    cancellationToken));
     }
 
     public async Task<SupplementalMaterialRequestDto> RouteToPurchasingAsync(
@@ -252,88 +258,90 @@ public sealed class SupplementalMaterialRequestService : ISupplementalMaterialRe
         string? scopedWarehouseId = null)
     {
         var actorId = ParseActor(actorUserId);
-        var entity = await LoadTrackedAsync(id);
-        EnsureWarehouseScope(entity, scopedWarehouseId);
-        EnsureActionable(entity);
-
-        var source = await LoadSourceLineAsync(entity);
-        var current = await MapAsync(entity, source);
-        var purchaseQty = DecimalPolicy.RoundQuantity(current.RemainingQty - current.AvailableQty);
-        if (purchaseQty <= 0)
-        {
-            throw new BusinessRuleException("Kho đang đủ hàng cho phần còn thiếu; hãy tạo phiếu xuất bổ sung.");
-        }
-        if (current.PurchaseRequestId is not null)
-        {
-            throw new BusinessRuleException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
-        }
-
-        var materialLineQuery = _context.Materialrequestlines
-            .Include(line => line.Ingredient)
-            .Include(line => line.Unit);
-        var materialLine = string.Equals(
-                _context.Database.ProviderName,
-                "Microsoft.EntityFrameworkCore.InMemory",
-                StringComparison.Ordinal)
-            ? _context.ChangeTracker.Entries<MaterialRequestLine>()
-                .Select(entry => entry.Entity)
-                .FirstOrDefault()
-            : await materialLineQuery.FirstOrDefaultAsync(line =>
-                line.RequestId == source.Issue.MaterialRequestId &&
-                line.IngredientId == entity.IngredientId &&
-                line.UnitId == entity.UnitId);
-        if (materialLine is null)
-        {
-            throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
-        }
-
-        using var transaction = await _unitOfWork.BeginTransactionAsync();
-        try
-        {
-            var purchaseRequest = new PurchaseRequest
+        var purchaseRequestId = GuidHelper.NewId();
+        var purchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}";
+        return await _transactionRunner.ExecuteAsync(
+            async _ =>
             {
-                PurchaseRequestId = GuidHelper.NewId(),
-                PurchaseRequestCode = $"PR-SUP-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..4].ToUpperInvariant()}",
-                RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow),
-                ShiftName = source.Issue.ShiftName,
-                Status = "DRAFT",
-                CreatedBy = actorId,
-            };
-            purchaseRequest.Purchaserequestlines.Add(new PurchaseRequestLine
-            {
-                PurchaseRequestLineId = GuidHelper.NewId(),
-                PurchaseRequestId = purchaseRequest.PurchaseRequestId,
-                MaterialRequestLineId = materialLine.RequestLineId,
-                IngredientId = entity.IngredientId,
-                UnitId = entity.UnitId,
-                RequiredQty = current.RemainingQty,
-                CurrentStockQty = current.AvailableQty,
-                PurchaseQty = purchaseQty,
-                EstimatedUnitPrice = 0,
-            });
-            _context.Purchaserequests.Add(purchaseRequest);
+                var entity = await LoadTrackedAsync(id);
+                EnsureWarehouseScope(entity, scopedWarehouseId);
+                EnsureActionable(entity);
 
-            var oldStatus = entity.Status;
-            entity.Status = NeedsPurchaseStatus;
-            AddAudit(
-                entity,
-                actorId,
-                PurchaseRequestAuditField,
-                oldStatus,
-                GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
-                $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.");
+                var source = await LoadSourceLineAsync(entity);
+                var current = await MapAsync(entity, source);
+                var purchaseQty = DecimalPolicy.RoundQuantity(current.RemainingQty - current.AvailableQty);
+                if (purchaseQty <= 0)
+                {
+                    throw new BusinessRuleException("Kho đang đủ hàng cho phần còn thiếu; hãy tạo phiếu xuất bổ sung.");
+                }
+                if (current.PurchaseRequestId is not null)
+                {
+                    throw new BusinessRuleException($"Yêu cầu đã được chuyển sang thu mua bằng {current.PurchaseRequestCode}.");
+                }
 
-            await _unitOfWork.SaveChangesAsync();
-            await transaction.CommitAsync();
-        }
-        catch
-        {
-            await transaction.RollbackAsync();
-            throw;
-        }
+                var materialLineQuery = _context.Materialrequestlines
+                    .Include(line => line.Ingredient)
+                    .Include(line => line.Unit);
+                var materialLine = string.Equals(
+                        _context.Database.ProviderName,
+                        "Microsoft.EntityFrameworkCore.InMemory",
+                        StringComparison.Ordinal)
+                    ? _context.ChangeTracker.Entries<MaterialRequestLine>()
+                        .Select(entry => entry.Entity)
+                        .FirstOrDefault()
+                    : await materialLineQuery.FirstOrDefaultAsync(line =>
+                        line.RequestId == source.Issue.MaterialRequestId &&
+                        line.IngredientId == entity.IngredientId &&
+                        line.UnitId == entity.UnitId);
+                if (materialLine is null)
+                {
+                    throw new BusinessRuleException("Không tìm thấy dòng nhu cầu gốc để chuyển phần thiếu sang thu mua.");
+                }
 
-        return await MapAsync(entity, source);
+                var purchaseRequest = new PurchaseRequest
+                {
+                    PurchaseRequestId = purchaseRequestId,
+                    PurchaseRequestCode = purchaseRequestCode,
+                    RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    PurchaseForDate = DateOnly.FromDateTime(DateTime.UtcNow),
+                    ShiftName = source.Issue.ShiftName,
+                    Status = "DRAFT",
+                    CreatedBy = actorId,
+                };
+                purchaseRequest.Purchaserequestlines.Add(new PurchaseRequestLine
+                {
+                    PurchaseRequestLineId = GuidHelper.NewId(),
+                    PurchaseRequestId = purchaseRequest.PurchaseRequestId,
+                    MaterialRequestLineId = materialLine.RequestLineId,
+                    IngredientId = entity.IngredientId,
+                    UnitId = entity.UnitId,
+                    RequiredQty = current.RemainingQty,
+                    CurrentStockQty = current.AvailableQty,
+                    PurchaseQty = purchaseQty,
+                    EstimatedUnitPrice = 0,
+                });
+                _context.Purchaserequests.Add(purchaseRequest);
+
+                var oldStatus = entity.Status;
+                entity.Status = NeedsPurchaseStatus;
+                AddAudit(
+                    entity,
+                    actorId,
+                    PurchaseRequestAuditField,
+                    oldStatus,
+                    GuidHelper.ToGuidString(purchaseRequest.PurchaseRequestId),
+                    $"Kho chuyển {purchaseQty} {source.Unit.UnitName} còn thiếu sang đề xuất {purchaseRequest.PurchaseRequestCode}.");
+
+                await _unitOfWork.SaveChangesAsync();
+                return await MapAsync(entity, source);
+            },
+            cancellationToken => _context.Auditlogs
+                .AsNoTracking()
+                .AnyAsync(
+                    audit => audit.EntityName == nameof(SupplementalMaterialRequest) &&
+                             audit.FieldName == PurchaseRequestAuditField &&
+                             audit.NewValue == GuidHelper.ToGuidString(purchaseRequestId),
+                    cancellationToken));
     }
 
     public async Task<SupplementalMaterialRequestDto> RejectAsync(

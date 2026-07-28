@@ -5465,6 +5465,7 @@ public class WorkflowGenerationTests
             new StockLedgerService(
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
+            new EfTransactionRunner(context),
             context);
 
     private static InventoryReceiptService CreateInventoryReceiptService(IpcManagementContext context)
@@ -5474,6 +5475,7 @@ public class WorkflowGenerationTests
             new StockLedgerService(
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
+            new EfTransactionRunner(context),
             context);
 
     private static InventoryReturnService CreateInventoryReturnService(IpcManagementContext context)
@@ -5484,6 +5486,7 @@ public class WorkflowGenerationTests
             new StockLedgerService(
                 new CurrentStockRepository(context),
                 new StockMovementRepository(context)),
+            new EfTransactionRunner(context),
             context);
 
     private static async Task<string> SeedSubmittedPurchaseRequestAsync(WorkflowFixture fixture)
