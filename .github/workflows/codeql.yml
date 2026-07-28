@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # build-mode none: không cần dựng backend/MySQL chỉ để quét mã.
       - name: Initialize CodeQL
